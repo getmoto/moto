@@ -12,6 +12,7 @@ from .awslambda import mock_lambda, mock_lambda_deprecated  # flake8: noqa
 from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated  # flake8: noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # flake8: noqa
 from .cognitoidentity import mock_cognitoidentity, mock_cognitoidentity_deprecated  # flake8: noqa
+from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # flake8: noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # flake8: noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # flake8: noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # flake8: noqa
@@ -33,6 +34,7 @@ from .rds2 import mock_rds2, mock_rds2_deprecated  # flake8: noqa
 from .redshift import mock_redshift, mock_redshift_deprecated  # flake8: noqa
 from .s3 import mock_s3, mock_s3_deprecated  # flake8: noqa
 from .ses import mock_ses, mock_ses_deprecated  # flake8: noqa
+from .secretsmanager import mock_secretsmanager  # flake8: noqa
 from .sns import mock_sns, mock_sns_deprecated  # flake8: noqa
 from .sqs import mock_sqs, mock_sqs_deprecated  # flake8: noqa
 from .sts import mock_sts, mock_sts_deprecated  # flake8: noqa

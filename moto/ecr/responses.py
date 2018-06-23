@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends
+from .models import ecr_backends, DEFAULT_REGISTRY_ID
 
 
 class ECRResponse(BaseResponse):
@@ -120,7 +120,7 @@ class ECRResponse(BaseResponse):
     def get_authorization_token(self):
         registry_ids = self._get_param('registryIds')
         if not registry_ids:
-            registry_ids = [self.region]
+            registry_ids = [DEFAULT_REGISTRY_ID]
         auth_data = []
         for registry_id in registry_ids:
             password = '{}-auth-token'.format(registry_id)
@@ -128,7 +128,7 @@ class ECRResponse(BaseResponse):
             auth_data.append({
                 'authorizationToken': auth_token,
                 'expiresAt': time.mktime(datetime(2015, 1, 1).timetuple()),
-                'proxyEndpoint': 'https://012345678910.dkr.ecr.{}.amazonaws.com'.format(registry_id)
+                'proxyEndpoint': 'https://{}.dkr.ecr.{}.amazonaws.com'.format(registry_id, self.region)
             })
         return json.dumps({'authorizationData': auth_data})
 

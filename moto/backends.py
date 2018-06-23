@@ -7,6 +7,7 @@ from moto.awslambda import lambda_backends
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
 from moto.cognitoidentity import cognitoidentity_backends
+from moto.cognitoidp import cognitoidp_backends
 from moto.core import moto_api_backends
 from moto.datapipeline import datapipeline_backends
 from moto.dynamodb import dynamodb_backends
@@ -31,6 +32,7 @@ from moto.redshift import redshift_backends
 from moto.route53 import route53_backends
 from moto.s3 import s3_backends
 from moto.ses import ses_backends
+from moto.secretsmanager import secretsmanager_backends
 from moto.sns import sns_backends
 from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
@@ -51,6 +53,7 @@ BACKENDS = {
     'cloudformation': cloudformation_backends,
     'cloudwatch': cloudwatch_backends,
     'cognito-identity': cognitoidentity_backends,
+    'cognito-idp': cognitoidp_backends,
     'datapipeline': datapipeline_backends,
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
@@ -75,6 +78,7 @@ BACKENDS = {
     's3': s3_backends,
     's3bucket_path': s3_backends,
     'ses': ses_backends,
+    'secretsmanager': secretsmanager_backends,
     'sns': sns_backends,
     'sqs': sqs_backends,
     'ssm': ssm_backends,

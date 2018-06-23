@@ -5,6 +5,8 @@ import string
 import random
 import hashlib
 import uuid
+import re
+from datetime import datetime
 from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
 from .exceptions import (
@@ -30,6 +32,7 @@ class FakeThing(BaseModel):
     def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
+            'thingArn': self.arn,
             'attributes': self.attributes,
             'version': self.version
         }
@@ -159,11 +162,76 @@ class FakePolicy(BaseModel):
         }
 
 
+class FakeJob(BaseModel):
+    JOB_ID_REGEX_PATTERN = "[a-zA-Z0-9_-]"
+    JOB_ID_REGEX = re.compile(JOB_ID_REGEX_PATTERN)
+
+    def __init__(self, job_id, targets, document_source, document, description, presigned_url_config, target_selection,
+                 job_executions_rollout_config, document_parameters, region_name):
+        if not self._job_id_matcher(self.JOB_ID_REGEX, job_id):
+            raise InvalidRequestException()
+
+        self.region_name = region_name
+        self.job_id = job_id
+        self.job_arn = 'arn:aws:iot:%s:1:job/%s' % (self.region_name, job_id)
+        self.targets = targets
+        self.document_source = document_source
+        self.document = document
+        self.description = description
+        self.presigned_url_config = presigned_url_config
+        self.target_selection = target_selection
+        self.job_executions_rollout_config = job_executions_rollout_config
+        self.status = None  # IN_PROGRESS | CANCELED | COMPLETED
+        self.comment = None
+        self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.completed_at = None
+        self.job_process_details = {
+            'processingTargets': targets,
+            'numberOfQueuedThings': 1,
+            'numberOfCanceledThings': 0,
+            'numberOfSucceededThings': 0,
+            'numberOfFailedThings': 0,
+            'numberOfRejectedThings': 0,
+            'numberOfInProgressThings': 0,
+            'numberOfRemovedThings': 0
+        }
+        self.document_parameters = document_parameters
+
+    def to_dict(self):
+        obj = {
+            'jobArn': self.job_arn,
+            'jobId': self.job_id,
+            'targets': self.targets,
+            'description': self.description,
+            'presignedUrlConfig': self.presigned_url_config,
+            'targetSelection': self.target_selection,
+            'jobExecutionsRolloutConfig': self.job_executions_rollout_config,
+            'status': self.status,
+            'comment': self.comment,
+            'createdAt': self.created_at,
+            'lastUpdatedAt': self.last_updated_at,
+            'completedAt': self.completedAt,
+            'jobProcessDetails': self.job_process_details,
+            'documentParameters': self.document_parameters,
+            'document': self.document,
+            'documentSource': self.document_source
+        }
+
+        return obj
+
+    def _job_id_matcher(self, regex, argument):
+        regex_match = regex.match(argument)
+        length_match = len(argument) <= 64
+        return regex_match and length_match
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
         self.region_name = region_name
         self.things = OrderedDict()
+        self.jobs = OrderedDict()
         self.thing_types = OrderedDict()
         self.thing_groups = OrderedDict()
         self.certificates = OrderedDict()
@@ -506,6 +574,16 @@ class IoTBackend(BaseBackend):
                 thing_group.thing_group_name, None,
                 thing.thing_name, None
             )
+
+    def create_job(self, job_id, targets, document_source, document, description, presigned_url_config,
+                   target_selection, job_executions_rollout_config, document_parameters):
+        job = FakeJob(job_id, targets, document_source, document, description, presigned_url_config, target_selection,
+                      job_executions_rollout_config, document_parameters, self.region_name)
+        self.jobs[job_id] = job
+        return job.job_arn, job_id, description
+
+    def describe_job(self, job_id):
+        return self.jobs[job_id]
 
 
 available_regions = boto3.session.Session().get_available_regions("iot")

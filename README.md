@@ -72,6 +72,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | Cognito Identity      | @mock_cognitoidentity| basic endpoints done           |
 |------------------------------------------------------------------------------|
+| Cognito Identity Provider | @mock_cognitoidp| basic endpoints done           |
+|------------------------------------------------------------------------------|
 | Data Pipeline         | @mock_datapipeline| basic endpoints done             |
 |------------------------------------------------------------------------------|
 | DynamoDB              | @mock_dynamodb   | core endpoints done               |
@@ -122,6 +124,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | S3                    | @mock_s3         | core endpoints done               |
 |------------------------------------------------------------------------------|
+| SecretsManager        | @mock_secretsmanager | basic endpoints done
+|------------------------------------------------------------------------------|
 | SES                   | @mock_ses        | all endpoints done                |
 |------------------------------------------------------------------------------|
 | SNS                   | @mock_sns        | all endpoints done                |
@@ -137,6 +141,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | X-Ray                 | @mock_xray       | all endpoints done                |
 |------------------------------------------------------------------------------|
 ```
+
+For a full list of endpoint [implementation coverage](https://github.com/spulec/moto/blob/master/IMPLEMENTATION_COVERAGE.md)
 
 ### Another Example
 

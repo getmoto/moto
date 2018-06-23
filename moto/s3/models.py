@@ -864,6 +864,9 @@ class S3Backend(BaseBackend):
                             if str(key.version_id) != str(version_id)
                         ]
                     )
+
+                    if not bucket.keys.getlist(key_name):
+                        bucket.keys.pop(key_name)
             return True
         except KeyError:
             return False

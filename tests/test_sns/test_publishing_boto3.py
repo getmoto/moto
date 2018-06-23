@@ -10,6 +10,7 @@ import sure  # noqa
 
 import responses
 from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 from moto import mock_sns, mock_sqs
 
 
@@ -40,6 +41,29 @@ def test_publish_to_sqs():
     expected = MESSAGE_FROM_SQS_TEMPLATE  % (message, published_message_id, 'us-east-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", u'2015-01-01T12:00:00.000Z', messages[0].body)
     acquired_message.should.equal(expected)
+
+
+@mock_sqs
+@mock_sns
+def test_publish_to_sqs_raw():
+    sns = boto3.resource('sns', region_name='us-east-1')
+    topic = sns.create_topic(Name='some-topic')
+
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    subscription = topic.subscribe(
+        Protocol='sqs', Endpoint=queue.attributes['QueueArn'])
+
+    subscription.set_attributes(
+        AttributeName='RawMessageDelivery', AttributeValue='true')
+
+    message = 'my message'
+    with freeze_time("2015-01-01 12:00:00"):
+        topic.publish(Message=message)
+
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages[0].body.should.equal(message)
 
 
 @mock_sqs
@@ -230,7 +254,7 @@ def test_publish_to_sqs_in_different_region():
 @mock_sns
 def test_publish_to_http():
     def callback(request):
-        request.headers["Content-Type"].should.equal("application/json")
+        request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
         json.loads.when.called_with(
             request.body.decode()
         ).should_not.throw(Exception)
@@ -283,6 +307,20 @@ def test_publish_subject():
         err.response['Error']['Code'].should.equal('InvalidParameter')
     else:
         raise RuntimeError('Should have raised an InvalidParameter exception')
+
+
+@mock_sns
+def test_publish_message_too_long():
+    sns = boto3.resource('sns', region_name='us-east-1')
+    topic = sns.create_topic(Name='some-topic')
+
+    with assert_raises(ClientError):
+        topic.publish(
+            Message="".join(["." for i in range(0, 262145)]))
+
+    # message short enough - does not raise an error
+    topic.publish(
+        Message="".join(["." for i in range(0, 262144)]))
 
 
 def _setup_filter_policy_test(filter_policy):

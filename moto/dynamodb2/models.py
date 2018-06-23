@@ -176,16 +176,17 @@ class Item(BaseModel):
                         key_parts = key.split('.')
                         attr = key_parts.pop(0)
                         if attr not in self.attrs:
-                            raise ValueError()
+                            raise ValueError
 
                         last_val = self.attrs[attr].value
                         for key_part in key_parts:
                             # Hack but it'll do, traverses into a dict
-                            if list(last_val.keys())[0] == 'M':
-                                last_val = last_val['M']
+                            last_val_type = list(last_val.keys())
+                            if last_val_type and last_val_type[0] == 'M':
+                                    last_val = last_val['M']
 
                             if key_part not in last_val:
-                                raise ValueError()
+                                last_val[key_part] = {'M': {}}
 
                             last_val = last_val[key_part]
 
@@ -705,7 +706,9 @@ class DynamoDBBackend(BaseBackend):
 
                 gsis_by_name[gsi_to_create['IndexName']] = gsi_to_create
 
-        table.global_indexes = gsis_by_name.values()
+        # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
+        # parts of the codebase
+        table.global_indexes = list(gsis_by_name.values())
         return table
 
     def put_item(self, table_name, item_attrs, expected=None, overwrite=False):

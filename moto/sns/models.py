@@ -24,6 +24,7 @@ from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_PAGE_SIZE = 100
+MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
 
 class Topic(BaseModel):
@@ -94,11 +95,14 @@ class Subscription(BaseModel):
         if self.protocol == 'sqs':
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
-            enveloped_message = json.dumps(self.get_post_data(message, message_id, subject, message_attributes=message_attributes), sort_keys=True, indent=2, separators=(',', ': '))
+            if self.attributes.get('RawMessageDelivery') != 'true':
+                enveloped_message = json.dumps(self.get_post_data(message, message_id, subject, message_attributes=message_attributes), sort_keys=True, indent=2, separators=(',', ': '))
+            else:
+                enveloped_message = message
             sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id, subject)
-            requests.post(self.endpoint, json=post_data)
+            requests.post(self.endpoint, json=post_data, headers={'Content-Type': 'text/plain; charset=UTF-8'})
         elif self.protocol == 'lambda':
             # TODO: support bad function name
             # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -240,7 +244,7 @@ class SNSBackend(BaseBackend):
         self.sms_attributes.update(attrs)
 
     def create_topic(self, name):
-        fails_constraints = not re.match(r'^[a-zA-Z0-9](?:[A-Za-z0-9_-]{0,253}[a-zA-Z0-9])?$', name)
+        fails_constraints = not re.match(r'^[a-zA-Z0-9_-]{1,256}$', name)
         if fails_constraints:
             raise InvalidParameterValue("Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long.")
         candidate_topic = Topic(name, self)
@@ -323,6 +327,9 @@ class SNSBackend(BaseBackend):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
             raise ValueError('Subject must be less than 100 characters')
+
+        if len(message) > MAXIMUM_MESSAGE_LENGTH:
+            raise InvalidParameterValue("An error occurred (InvalidParameter) when calling the Publish operation: Invalid parameter: Message too long")
 
         try:
             topic = self.get_topic(arn)

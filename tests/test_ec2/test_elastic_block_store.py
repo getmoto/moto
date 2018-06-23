@@ -8,6 +8,7 @@ import boto
 import boto3
 from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
+from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
@@ -588,6 +589,7 @@ def test_volume_tag_escaping():
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
 
 
+@freeze_time
 @mock_ec2
 def test_copy_snapshot():
     ec2_client = boto3.client('ec2', region_name='eu-west-1')

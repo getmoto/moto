@@ -689,6 +689,31 @@ def test_authorize_and_revoke_in_bulk():
         sg01.ip_permissions_egress.shouldnt.contain(ip_permission)
 
 
+@mock_ec2
+def test_security_group_ingress_without_multirule():
+    ec2 = boto3.resource('ec2', 'ca-central-1')
+    sg = ec2.create_security_group(Description='Test SG', GroupName='test-sg')
+
+    assert len(sg.ip_permissions) == 0
+    sg.authorize_ingress(CidrIp='192.168.0.1/32', FromPort=22, ToPort=22, IpProtocol='tcp')
+
+    # Fails
+    assert len(sg.ip_permissions) == 1
+
+
+@mock_ec2
+def test_security_group_ingress_without_multirule_after_reload():
+    ec2 = boto3.resource('ec2', 'ca-central-1')
+    sg = ec2.create_security_group(Description='Test SG', GroupName='test-sg')
+
+    assert len(sg.ip_permissions) == 0
+    sg.authorize_ingress(CidrIp='192.168.0.1/32', FromPort=22, ToPort=22, IpProtocol='tcp')
+
+    # Also Fails
+    sg_after = ec2.SecurityGroup(sg.id)
+    assert len(sg_after.ip_permissions) == 1
+
+
 @mock_ec2_deprecated
 def test_get_all_security_groups_filter_with_same_vpc_id():
     conn = boto.connect_ec2('the_key', 'the_secret')

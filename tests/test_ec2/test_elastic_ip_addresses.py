@@ -62,6 +62,17 @@ def test_eip_allocate_vpc():
     logging.debug("vpc alloc_id:".format(vpc.allocation_id))
     vpc.release()
 
+@mock_ec2
+def test_specific_eip_allocate_vpc():
+    """Allocate VPC EIP with specific address"""
+    service = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+
+    vpc = client.allocate_address(Domain="vpc", Address="127.38.43.222")
+    vpc['Domain'].should.be.equal("vpc")
+    vpc['PublicIp'].should.be.equal("127.38.43.222")
+    logging.debug("vpc alloc_id:".format(vpc['AllocationId']))
+
 
 @mock_ec2_deprecated
 def test_eip_allocate_invalid_domain():

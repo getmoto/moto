@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import email
+from email.utils import parseaddr
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import MessageRejectedError
@@ -84,13 +85,27 @@ class SESBackend(BaseBackend):
         return message
 
     def send_raw_email(self, source, destinations, raw_data):
-        if source not in self.addresses:
-            raise MessageRejectedError(
-                "Did not have authority to send from email %s" % source
-            )
+        if source is not None:
+            _, source_email_address = parseaddr(source)
+            if source_email_address not in self.addresses:
+                raise MessageRejectedError(
+                    "Did not have authority to send from email %s" % source_email_address
+                )
 
         recipient_count = len(destinations)
         message = email.message_from_string(raw_data)
+        if source is None:
+            if message['from'] is None:
+                raise MessageRejectedError(
+                    "Source not specified"
+                )
+
+            _, source_email_address = parseaddr(message['from'])
+            if source_email_address not in self.addresses:
+                raise MessageRejectedError(
+                    "Did not have authority to send from email %s" % source_email_address
+                )
+
         for header in 'TO', 'CC', 'BCC':
             recipient_count += sum(
                 d.strip() and 1 or 0

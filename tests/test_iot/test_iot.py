@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 import sure  # noqa
+import json
 from moto import mock_iot
 
 
@@ -34,12 +35,14 @@ def test_things():
     res.should.have.key('things').which.should.have.length_of(1)
     for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
+        thing.should.have.key('thingArn').which.should_not.be.none
 
     thing = client.update_thing(thingName=name, attributePayload={'attributes': {'k1': 'v1'}})
     res = client.list_things()
     res.should.have.key('things').which.should.have.length_of(1)
     for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
+        thing.should.have.key('thingArn').which.should_not.be.none
     res['things'][0]['attributes'].should.have.key('k1').which.should.equal('v1')
 
     thing = client.describe_thing(thingName=name)
@@ -96,6 +99,7 @@ def test_certs():
     res = client.list_certificates()
     res.should.have.key('certificates').which.should.have.length_of(0)
 
+
 @mock_iot
 def test_certs_create_inactive():
     client = boto3.client('iot', region_name='ap-northeast-1')
@@ -112,6 +116,7 @@ def test_certs_create_inactive():
     cert.should.have.key('certificateDescription')
     cert_desc = cert['certificateDescription']
     cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+
 
 @mock_iot
 def test_policy():
@@ -239,9 +244,9 @@ def test_thing_groups():
     thing_group.should.have.key('thingGroupArn')
 
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key('thingGroupProperties')\
-                           .which.should.have.key('attributePayload')\
-                           .which.should.have.key('attributes')
+    thing_group.should.have.key('thingGroupProperties') \
+        .which.should.have.key('attributePayload') \
+        .which.should.have.key('attributes')
     res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
     res_props.should.have.key('key1').which.should.equal('val01')
     res_props.should.have.key('Key02').which.should.equal('VAL2')
@@ -260,9 +265,9 @@ def test_thing_groups():
         thingGroupProperties=new_props
     )
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key('thingGroupProperties')\
-                           .which.should.have.key('attributePayload')\
-                           .which.should.have.key('attributes')
+    thing_group.should.have.key('thingGroupProperties') \
+        .which.should.have.key('attributePayload') \
+        .which.should.have.key('attributes')
     res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
     res_props.should.have.key('key1').which.should.equal('val01')
     res_props.should.have.key('Key02').which.should.equal('VAL2')
@@ -282,9 +287,9 @@ def test_thing_groups():
         thingGroupProperties=new_props
     )
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key('thingGroupProperties')\
-                           .which.should.have.key('attributePayload')\
-                           .which.should.have.key('attributes')
+    thing_group.should.have.key('thingGroupProperties') \
+        .which.should.have.key('attributePayload') \
+        .which.should.have.key('attributes')
     res_props = thing_group['thingGroupProperties']['attributePayload']['attributes']
     res_props.should.have.key('k4').which.should.equal('v4')
     res_props.should_not.have.key('key1')
@@ -383,3 +388,135 @@ def test_thing_group_relations():
     )
     things.should.have.key('things')
     things['things'].should.have.length_of(0)
+
+
+@mock_iot
+def test_create_job():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+    job.should.have.key('description')
+
+@mock_iot
+def test_describe_job():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key('documentSource')
+    job.should.have.key('job')
+    job.should.have.key('job').which.should.have.key("jobArn")
+    job.should.have.key('job').which.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key('job').which.should.have.key("targets")
+    job.should.have.key('job').which.should.have.key("jobProcessDetails")
+    job.should.have.key('job').which.should.have.key("lastUpdatedAt")
+    job.should.have.key('job').which.should.have.key("createdAt")
+    job.should.have.key('job').which.should.have.key("jobExecutionsRolloutConfig")
+    job.should.have.key('job').which.should.have.key("targetSelection").which.should.equal("CONTINUOUS")
+    job.should.have.key('job').which.should.have.key("presignedUrlConfig")
+    job.should.have.key('job').which.should.have.key("presignedUrlConfig").which.should.have.key(
+        "roleArn").which.should.equal('arn:aws:iam::1:role/service-role/iot_job_role')
+    job.should.have.key('job').which.should.have.key("presignedUrlConfig").which.should.have.key(
+        "expiresInSec").which.should.equal(123)
+    job.should.have.key('job').which.should.have.key("jobExecutionsRolloutConfig").which.should.have.key(
+        "maximumPerMinute").which.should.equal(10)
+
+
+@mock_iot
+def test_describe_job_1():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key('job')
+    job.should.have.key('job').which.should.have.key("jobArn")
+    job.should.have.key('job').which.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key('job').which.should.have.key("targets")
+    job.should.have.key('job').which.should.have.key("jobProcessDetails")
+    job.should.have.key('job').which.should.have.key("lastUpdatedAt")
+    job.should.have.key('job').which.should.have.key("createdAt")
+    job.should.have.key('job').which.should.have.key("jobExecutionsRolloutConfig")
+    job.should.have.key('job').which.should.have.key("targetSelection").which.should.equal("CONTINUOUS")
+    job.should.have.key('job').which.should.have.key("presignedUrlConfig")
+    job.should.have.key('job').which.should.have.key("presignedUrlConfig").which.should.have.key(
+        "roleArn").which.should.equal('arn:aws:iam::1:role/service-role/iot_job_role')
+    job.should.have.key('job').which.should.have.key("presignedUrlConfig").which.should.have.key(
+        "expiresInSec").which.should.equal(123)
+    job.should.have.key('job').which.should.have.key("jobExecutionsRolloutConfig").which.should.have.key(
+        "maximumPerMinute").which.should.equal(10)

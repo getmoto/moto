@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import moto
+import os
 from botocore import xform_name
 from botocore.session import Session
 import boto3
@@ -42,8 +43,7 @@ def calculate_implementation_coverage():
     return coverage
 
 
-def print_implementation_coverage():
-    coverage = calculate_implementation_coverage()
+def print_implementation_coverage(coverage):
     for service_name in sorted(coverage):
         implemented = coverage.get(service_name)['implemented']
         not_implemented = coverage.get(service_name)['not_implemented']
@@ -65,5 +65,37 @@ def print_implementation_coverage():
                 print("- [ ] {}".format(op))
 
 
+def write_implementation_coverage_to_file(coverage):
+    # try deleting the implementation coverage file
+    try:
+        os.remove("../IMPLEMENTATION_COVERAGE.md")
+    except OSError:
+        pass
+
+    for service_name in sorted(coverage):
+        implemented = coverage.get(service_name)['implemented']
+        not_implemented = coverage.get(service_name)['not_implemented']
+        operations = sorted(implemented + not_implemented)
+
+        if implemented and not_implemented:
+            percentage_implemented = int(100.0 * len(implemented) / (len(implemented) + len(not_implemented)))
+        elif implemented:
+            percentage_implemented = 100
+        else:
+            percentage_implemented = 0
+
+        # rewrite the implementation coverage file with updated values
+        with open("../IMPLEMENTATION_COVERAGE.md", "a+") as file:
+            file.write("\n")
+            file.write("## {} - {}% implemented\n".format(service_name, percentage_implemented))
+            for op in operations:
+                if op in implemented:
+                    file.write("- [X] {}\n".format(op))
+                else:
+                    file.write("- [ ] {}\n".format(op))
+
+
 if __name__ == '__main__':
-    print_implementation_coverage()
+    cov = calculate_implementation_coverage()
+    write_implementation_coverage_to_file(cov)
+    print_implementation_coverage(cov)
