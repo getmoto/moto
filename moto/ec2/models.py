@@ -708,8 +708,19 @@ class InstanceBackend(object):
     def add_instances(self, image_id, count, user_data, security_group_names,
                       **kwargs):
 
-
         def invalid_instance_type(self, instance_type):
+            """
+            Returns true if the instance type is invalid.
+
+            A beautiful soup script from http://www.ec2instances.info pulls of the available instance types 
+            and puts them into a hash table that is a 2d numpy array.
+
+            Each row of the hash table contains several instance types.
+            To get to the row a small hash function is used that calculates the corresponding
+            row based on the instance family.
+
+            Then it checks if the instance_type is contained in that row of the table.
+            """
 
             if instance_type is None:
                 return True
@@ -735,7 +746,6 @@ class InstanceBackend(object):
             if size(INSTANCE_TYPES_HASH_TABLE[i]) < 1:
                 return True
             
-            # instance type is in the table
             if  numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type)):
                 return False
             return True
