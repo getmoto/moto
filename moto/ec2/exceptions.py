@@ -323,6 +323,7 @@ class InvalidParameterValueErrorTagNull(EC2ClientError):
             "InvalidParameterValue",
             "Tag value cannot be null. Use empty string instead.")
 
+
 class InvalidParameterValueErrorInstanceType(EC2ClientError):
 
     def __init__(self, parameter_value):

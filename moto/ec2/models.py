@@ -130,6 +130,7 @@ AMIS = json.load(
 )
 INSTANCE_TYPES_HASH_TABLE = loadtxt(resource_filename(__name__, 'resources/instance_types_hash.csv'), dtype="U20", delimiter=",")
 
+
 def utc_date_and_time():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
@@ -738,14 +739,13 @@ class InstanceBackend(object):
                 char_array = array(list(instance_family))
                 normalized = char_array.view(uint32)
                 sum = (int) (numpysum(normalized))
-
                 return sum % 17
-            
+
             i = hash_function(family_split[0])
 
             if size(INSTANCE_TYPES_HASH_TABLE[i]) < 1:
                 return True
-            
+
             if  numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type)):
                 return False
             return True
@@ -763,7 +763,7 @@ class InstanceBackend(object):
         instance_tags = tags.get('instance', {})
 
         if invalid_instance_type(self, kwargs.get("instance_type")):
-            raise InvalidParameterValueError(kwargs.get("instance_type"))
+            raise InvalidParameterValueErrorInstanceType(kwargs.get("instance_type"))
 
         for index in range(count):
             new_instance = Instance(
@@ -897,7 +897,7 @@ class InstanceBackend(object):
         reservations = [copy.copy(reservation) for reservation in self.reservations.values()]
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
-        return reservations 
+        return reservations
 
 
 class KeyPair(object):
