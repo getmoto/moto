@@ -10,7 +10,7 @@ def write_file(result):
     root_dir = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
     dest = os.path.join(root_dir, 'moto/ec2/resources/instance_types_hash.csv')
     print("Writing data to {0}".format(dest))
-    np.savetxt("output.csv", result, delimiter=",", fmt="%s")
+    np.savetxt(dest, result, delimiter=",", fmt="%s")
 
 def parse_html(url):
 
@@ -69,7 +69,6 @@ def build_hash(instance_types, column_length):
         rows_count[j] += 1
 
     return hash_instances
-
 
 
 def main():
