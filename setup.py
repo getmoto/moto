@@ -25,6 +25,7 @@ install_requires = [
     "jsondiff==1.1.1",
     "aws-xray-sdk<0.96,>=0.93",
     "responses>=0.9.0",
+    "numpy"
 ]
 
 extras_require = {
