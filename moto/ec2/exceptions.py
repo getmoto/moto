@@ -329,7 +329,7 @@ class InvalidParameterValueErrorInstanceType(EC2ClientError):
     def __init__(self, parameter_value):
         super(InvalidParameterValueErrorInstanceType, self).__init__(
             "InvalidParameterValue",
-            "Invalid value {0} for InstanceType."
+            "Invalid value \'{0}\' for InstanceType."
             .format(parameter_value)
         )
 
