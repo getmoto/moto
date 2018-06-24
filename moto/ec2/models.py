@@ -762,6 +762,9 @@ class InstanceBackend(object):
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get('instance', {})
 
+        if kwargs.get("instance_type") is None:
+            kwargs["instance_type"] = "m1.small"
+
         if invalid_instance_type(self, kwargs.get("instance_type")):
             raise InvalidParameterValueErrorInstanceType(kwargs.get("instance_type"))
 
