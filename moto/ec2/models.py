@@ -713,7 +713,7 @@ class InstanceBackend(object):
             """
             Returns true if the instance type is invalid.
 
-            A beautiful soup script from http://www.ec2instances.info pulls of the available instance types 
+            A beautiful soup script from http://www.ec2instances.info pulls of the available instance types
             and puts them into a hash table that is a 2d numpy array.
 
             Each row of the hash table contains several instance types.
@@ -738,7 +738,7 @@ class InstanceBackend(object):
 
                 char_array = array(list(instance_family))
                 normalized = char_array.view(uint32)
-                sum = (int) (numpysum(normalized))
+                sum = int(numpysum(normalized))
                 return sum % 17
 
             i = hash_function(family_split[0])

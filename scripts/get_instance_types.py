@@ -48,7 +48,7 @@ def hash_function(instance_family):
 
     char_array = np.array(list(instance_family))
     normalized = char_array.view(np.uint32)
-    sum = (int) (np.sum(normalized))
+    sum = int(np.sum(normalized))
 
     return sum % 17
 
