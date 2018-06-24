@@ -46,11 +46,9 @@ def build_numpy_array(soup_instance_types):
 def hash_function(instance_family):
     sum = 0
 
-    char_array = list(instance_family)
-    family_length = np.size(char_array)
-
-    for i in range(0, family_length):
-        sum += ord(char_array[i])
+    char_array = np.array(list(instance_family))
+    normalized = char_array.view(np.uint32)
+    sum = (int) (np.sum(normalized))
 
     return sum % 17
 

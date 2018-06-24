@@ -18,7 +18,7 @@ from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
-from numpy import array, loadtxt
+from numpy import array, loadtxt, size
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -717,6 +717,11 @@ class InstanceBackend(object):
 
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get('instance', {})
+        # print(vars(self))
+        print(kwargs.get("instance_type"))
+
+        if validate_instance_type(kwargs.get("instance_type")):
+            raise InvalidParameterValueError(kwargs.get("instance_type"))
 
         for index in range(count):
             new_instance = Instance(
@@ -851,6 +856,24 @@ class InstanceBackend(object):
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
+    
+    def validate_instance_type(self, instance_type):
+
+        family_split = instance_type.split(".")
+
+        if len != 2:
+            raise InvalidParameterValueError
+
+        def hash_function(instance_family):
+            sum = 0
+
+            char_array = np.array(list(instance_family))
+            normalized = char_array.view(np.uint32)
+            sum = (int) (np.sum(normalized))
+
+            return sum % 17
+        
+        
 
 
 class KeyPair(object):
