@@ -8,10 +8,9 @@ import numpy as np
 
 def write_file(result):
     root_dir = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
-    dest = os.path.join(root_dir, 'moto/ec2/resources/instance_types_shortened.json')
+    dest = os.path.join(root_dir, 'moto/ec2/resources/instance_types_hash.csv')
     print("Writing data to {0}".format(dest))
-    with open(dest, 'w') as open_file:
-        json.dump(result, open_file)
+    np.savetxt("output.csv", result, delimiter=",", fmt="%s")
 
 def parse_html(url):
 
@@ -56,10 +55,10 @@ def hash_function(instance_family):
     return sum % 17
 
 
-def build_hash(instance_types):
+def build_hash(instance_types, column_length):
 
     # builds a hash table of the instances based on the instance family for quicker searching
-    hash_instances = np.zeros((17,30), dtype="U20")
+    hash_instances = np.zeros((17,column_length), dtype="U20")
     # used to keep track of how many instances are in each row of table
     rows_count = np.zeros(17, dtype=np.int)
 
@@ -79,9 +78,13 @@ def main():
 
     instance_types = build_numpy_array(soup_instance_types)
 
-    hash_instances = build_hash(instance_types)
+    # column length is currently 15
+    # but if a bunch new instances types get added, it may need to be increased
+    column_length = 15
 
-    # write_file(hash_instances)
+    hash_instances = build_hash(instance_types, column_length)
+
+    write_file(hash_instances)
 
 
 if __name__ == '__main__':
