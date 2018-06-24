@@ -18,6 +18,7 @@ from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
+from numpy import array, loadtxt
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -126,7 +127,7 @@ AMIS = json.load(
     open(os.environ.get('MOTO_AMIS_PATH') or resource_filename(
          __name__, 'resources/amis.json'), 'r')
 )
-
+INSTANCE_TYPES_SHORTENED = loadtxt(resource_filename(__name__, 'resources/instance_types_hash.csv'), dtype="U20", delimiter=",")
 
 def utc_date_and_time():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
