@@ -18,7 +18,7 @@ from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
-from numpy import array, loadtxt, size
+from numpy import array, loadtxt, size, isin, any as numpyany, uint32, sum as numpysum
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -49,6 +49,7 @@ from .exceptions import (
     InvalidNetworkInterfaceIdError,
     InvalidParameterValueError,
     InvalidParameterValueErrorTagNull,
+    InvalidParameterValueErrorInstanceType,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
@@ -127,7 +128,7 @@ AMIS = json.load(
     open(os.environ.get('MOTO_AMIS_PATH') or resource_filename(
          __name__, 'resources/amis.json'), 'r')
 )
-INSTANCE_TYPES_SHORTENED = loadtxt(resource_filename(__name__, 'resources/instance_types_hash.csv'), dtype="U20", delimiter=",")
+INSTANCE_TYPES_HASH_TABLE = loadtxt(resource_filename(__name__, 'resources/instance_types_hash.csv'), dtype="U20", delimiter=",")
 
 def utc_date_and_time():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
@@ -706,6 +707,39 @@ class InstanceBackend(object):
 
     def add_instances(self, image_id, count, user_data, security_group_names,
                       **kwargs):
+
+
+        def invalid_instance_type(self, instance_type):
+
+            if instance_type is None:
+                return True
+
+            family_split = instance_type.split(".")
+
+            # instance type is always of the format family.size
+            if len(family_split) != 2:
+                return True
+
+            # gets the corresponding row id of the hash table for the instance family
+            def hash_function(instance_family):
+                sum = 0
+
+                char_array = array(list(instance_family))
+                normalized = char_array.view(uint32)
+                sum = (int) (numpysum(normalized))
+
+                return sum % 17
+            
+            i = hash_function(family_split[0])
+
+            if size(INSTANCE_TYPES_HASH_TABLE[i]) < 1:
+                return True
+            
+            # instance type is in the table
+            if  numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type)):
+                return False
+            return True
+
         new_reservation = Reservation()
         new_reservation.id = random_reservation_id()
 
@@ -717,10 +751,8 @@ class InstanceBackend(object):
 
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get('instance', {})
-        # print(vars(self))
-        print(kwargs.get("instance_type"))
 
-        if validate_instance_type(kwargs.get("instance_type")):
+        if invalid_instance_type(self, kwargs.get("instance_type")):
             raise InvalidParameterValueError(kwargs.get("instance_type"))
 
         for index in range(count):
@@ -855,25 +887,7 @@ class InstanceBackend(object):
         reservations = [copy.copy(reservation) for reservation in self.reservations.values()]
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
-        return reservations
-    
-    def validate_instance_type(self, instance_type):
-
-        family_split = instance_type.split(".")
-
-        if len != 2:
-            raise InvalidParameterValueError
-
-        def hash_function(instance_family):
-            sum = 0
-
-            char_array = np.array(list(instance_family))
-            normalized = char_array.view(np.uint32)
-            sum = (int) (np.sum(normalized))
-
-            return sum % 17
-        
-        
+        return reservations 
 
 
 class KeyPair(object):
