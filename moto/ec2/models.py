@@ -746,7 +746,7 @@ class InstanceBackend(object):
             if size(INSTANCE_TYPES_HASH_TABLE[i]) < 1:
                 return True
 
-            if  numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type)):
+            if numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type)):
                 return False
             return True
 
