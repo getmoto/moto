@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from copy import deepcopy
 
+from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa
 import json
@@ -448,6 +449,21 @@ def test_update_service():
         desiredCount=0
     )
     response['service']['desiredCount'].should.equal(0)
+
+
+@mock_ecs
+def test_update_missing_service():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+
+    client.update_service.when.called_with(
+        cluster='test_ecs_cluster',
+        service='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=0
+    ).should.throw(ClientError)
 
 
 @mock_ecs
@@ -1053,6 +1069,13 @@ def test_describe_tasks():
     len(response['tasks']).should.equal(2)
     set([response['tasks'][0]['taskArn'], response['tasks']
     [1]['taskArn']]).should.equal(set(tasks_arns))
+
+    # Test we can pass task ids instead of ARNs
+    response = client.describe_tasks(
+        cluster='test_ecs_cluster',
+        tasks=[tasks_arns[0].split("/")[-1]]
+    )
+    len(response['tasks']).should.equal(1)
 
 
 @mock_ecs
