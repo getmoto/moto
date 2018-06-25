@@ -10,6 +10,8 @@ from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from copy import copy
 
+from .exceptions import ServiceNotFoundException
+
 
 class BaseObject(BaseModel):
 
@@ -601,8 +603,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("tasks cannot be empty")
         response = []
         for cluster, cluster_tasks in self.tasks.items():
-            for task_id, task in cluster_tasks.items():
-                if task_id in tasks or task.task_arn in tasks:
+            for task_arn, task in cluster_tasks.items():
+                task_id = task_arn.split("/")[-1]
+                if task_arn in tasks or task.task_arn in tasks or any(task_id in task for task in tasks):
                     response.append(task)
         return response
 
@@ -698,8 +701,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     cluster_service_pair].desired_count = desired_count
             return self.services[cluster_service_pair]
         else:
-            raise Exception("cluster {0} or service {1} does not exist".format(
-                cluster_name, service_name))
+            raise ServiceNotFoundException(service_name)
 
     def delete_service(self, cluster_name, service_name):
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
