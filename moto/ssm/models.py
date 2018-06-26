@@ -100,7 +100,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # difference here.
         path = path.rstrip('/') + '/'
         for param in self._parameters:
-            if not param.startswith(path):
+            if path != '/' and not param.startswith(path):
                 continue
             if '/' in param[len(path) + 1:] and not recursive:
                 continue
