@@ -45,5 +45,4 @@ class SecretsManagerBackend(BaseBackend):
 
 
 available_regions = boto3.session.Session().get_available_regions("secretsmanager")
-print(available_regions)
 secretsmanager_backends = {region: SecretsManagerBackend(region_name=region) for region in available_regions}
