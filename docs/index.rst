@@ -34,11 +34,11 @@ Currently implemented Services:
 | - DynamoDB2           | - @mock_dynamodb2   | - core endpoints + partial indexes|
 +-----------------------+---------------------+-----------------------------------+
 | EC2                   | @mock_ec2           | core endpoints done               |
-|     - AMI             |                     | core endpoints done               |
-|     - EBS             |                     | core endpoints done               |
-|     - Instances       |                     | all  endpoints done               |
-|     - Security Groups |                     | core endpoints done               |
-|     - Tags            |                     | all  endpoints done               |
+|     - AMI             |                     |     - core endpoints done         |
+|     - EBS             |                     |     - core endpoints done         |
+|     - Instances       |                     |     - all  endpoints done         |
+|     - Security Groups |                     |     - core endpoints done         |
+|     - Tags            |                     |     - all  endpoints done         |
 +-----------------------+---------------------+-----------------------------------+
 | ECS                   | @mock_ecs           | basic endpoints done              |
 +-----------------------+---------------------+-----------------------------------+
