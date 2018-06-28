@@ -1,6 +1,10 @@
 Moto Changelog
 ===================
 
+1.3.4-carium.2
+--------------
+    * Remove unneeded print of all available regions
+
 1.3.4-carium.1
 -------------
     * Add cognito-idp get_user support
