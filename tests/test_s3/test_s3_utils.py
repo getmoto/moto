@@ -21,7 +21,6 @@ def test_force_ignore_subdomain_for_bucketnames():
     os.environ['S3_IGNORE_SUBDOMAIN_BUCKETNAME'] = '1'
     expect(bucket_name_from_url('https://subdomain.localhost:5000/abc/resource')).should.equal(None)
     del(os.environ['S3_IGNORE_SUBDOMAIN_BUCKETNAME'])
-    
 
 
 def test_versioned_key_store():
