@@ -25,13 +25,22 @@ class Record(BaseModel):
         self.data = data
         self.sequence_number = sequence_number
         self.explicit_hash_key = explicit_hash_key
-        self.create_at = unix_time()
+        self.created_at_datetime = datetime.datetime.utcnow()
+        self.create_at = unix_time(self.created_at_datetime)
 
     def to_json(self):
         return {
             "Data": self.data,
             "PartitionKey": self.partition_key,
             "SequenceNumber": str(self.sequence_number),
+        }
+
+    def to_output_json(self):
+        return {
+            "Data": self.data,
+            "PartitionKey": self.partition_key,
+            "SequenceNumber": str(self.sequence_number),
+            "ApproximateArrivalTimestamp": self.created_at_datetime.isoformat()
         }
 
 

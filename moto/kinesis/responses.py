@@ -85,7 +85,7 @@ class KinesisResponse(BaseResponse):
 
         return json.dumps({
             "NextShardIterator": next_shard_iterator,
-            "Records": [record.to_json() for record in records]
+            "Records": [record.to_output_json() for record in records]
         })
 
     def put_record(self):
