@@ -23,6 +23,7 @@ def test_force_ignore_subdomain_for_bucketnames():
     del(os.environ['S3_IGNORE_SUBDOMAIN_BUCKETNAME'])
 
 
+
 def test_versioned_key_store():
     d = _VersionedKeyStore()
 
