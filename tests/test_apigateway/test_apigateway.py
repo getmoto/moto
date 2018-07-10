@@ -981,7 +981,7 @@ def test_api_keys():
     apikey['value'].should.equal(apikey_value)
 
     apikey_name = 'TESTKEY2'
-    payload = {'name': apikey_name, 'generateDistinctId': True}
+    payload = {'name': apikey_name }
     response = client.create_api_key(**payload)
     apikey_id = response['id']
     apikey = client.get_api_key(apiKey=apikey_id)
