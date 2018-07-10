@@ -995,3 +995,40 @@ def test_api_keys():
 
     response = client.get_api_keys()
     len(response['items']).should.equal(1)
+
+@mock_apigateway
+def test_usage_plans():
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+    response = client.get_usage_plans()
+    len(response['items']).should.equal(0)
+
+    usage_plan_name = 'TEST-PLAN'
+    payload = {'name': usage_plan_name}
+    response = client.create_usage_plan(**payload)
+    usage_plan = client.get_usage_plan(usagePlanId=response['id'])
+    usage_plan['name'].should.equal(usage_plan_name)
+    usage_plan['apiStages'].should.equal([])
+
+    usage_plan_name = 'TEST-PLAN-2'
+    usage_plan_description = 'Description'
+    usage_plan_quota = {'limit': 10, 'period': 'DAY', 'offset': 0}
+    usage_plan_throttle = {'rateLimit': 2, 'burstLimit': 1}
+    usage_plan_api_stages = [{'apiId': 'foo', 'stage': 'bar'}]
+    payload = {'name': usage_plan_name, 'description': usage_plan_description, 'quota': usage_plan_quota, 'throttle': usage_plan_throttle, 'apiStages': usage_plan_api_stages}
+    response = client.create_usage_plan(**payload)
+    usage_plan_id = response['id']
+    usage_plan = client.get_usage_plan(usagePlanId=usage_plan_id)
+    usage_plan['name'].should.equal(usage_plan_name)
+    usage_plan['description'].should.equal(usage_plan_description)
+    usage_plan['apiStages'].should.equal(usage_plan_api_stages)
+    usage_plan['throttle'].should.equal(usage_plan_throttle)
+    usage_plan['quota'].should.equal(usage_plan_quota)
+
+    response = client.get_usage_plans()
+    len(response['items']).should.equal(2)
+
+    client.delete_usage_plan(usagePlanId=usage_plan_id)
+
+    response = client.get_usage_plans()
+    len(response['items']).should.equal(1)

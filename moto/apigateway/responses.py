@@ -248,3 +248,25 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'DELETE':
             apikey_response = self.backend.delete_apikey(apikey)
         return 200, {}, json.dumps(apikey_response)
+
+    def usage_plans(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == 'POST':
+            usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
+        elif self.method == 'GET':
+            usage_plans_response = self.backend.get_usage_plans()
+            return 200, {}, json.dumps({"item": usage_plans_response})
+        return 200, {}, json.dumps(usage_plan_response)
+
+    def usage_plan_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        usage_plan = url_path_parts[2]
+
+        if self.method == 'GET':
+            usage_plan_response = self.backend.get_usage_plan(usage_plan)
+        elif self.method == 'DELETE':
+            usage_plan_response = self.backend.delete_usage_plan(usage_plan)
+        return 200, {}, json.dumps(usage_plan_response)

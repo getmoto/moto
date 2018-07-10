@@ -309,6 +309,19 @@ class ApiKey(BaseModel, dict):
         self['stageKeys'] = stageKeys
 
 
+class UsagePlan(BaseModel, dict):
+
+    def __init__(self, name=None, description=None, apiStages=[],
+                 throttle=None, quota=None):
+        super(UsagePlan, self).__init__()
+        self['id'] = create_id()
+        self['name'] = name
+        self['description'] = description
+        self['apiStages'] = apiStages
+        self['throttle'] = throttle
+        self['quota'] = quota
+
+
 class RestAPI(BaseModel):
 
     def __init__(self, id, region_name, name, description):
@@ -408,6 +421,7 @@ class APIGatewayBackend(BaseBackend):
         super(APIGatewayBackend, self).__init__()
         self.apis = {}
         self.keys = {}
+        self.usage_plans = {}
         self.region_name = region_name
 
     def reset(self):
@@ -574,6 +588,21 @@ class APIGatewayBackend(BaseBackend):
 
     def delete_apikey(self, api_key_id):
         self.keys.pop(api_key_id)
+        return {}
+
+    def create_usage_plan(self, payload):
+        plan = UsagePlan(**payload)
+        self.usage_plans[plan['id']] = plan
+        return plan
+
+    def get_usage_plans(self):
+        return list(self.usage_plans.values())
+
+    def get_usage_plan(self, usage_plan_id):
+        return self.usage_plans[usage_plan_id]
+
+    def delete_usage_plan(self, usage_plan_id):
+        self.usage_plans.pop(usage_plan_id)
         return {}
 
 
