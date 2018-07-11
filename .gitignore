@@ -8,6 +8,7 @@ cover/
 *~
 .noseids
 build/
+env/
 .idea/
 *.swp
 .DS_Store

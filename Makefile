@@ -8,12 +8,21 @@ else
 	TEST_EXCLUDE :=
 endif
 
+VENV ?= env
+BIN_DIR ?= $(VENV)/bin/
+
 init:
 	@python setup.py develop
 	@pip install -r requirements.txt
 
 lint:
 	flake8 moto
+
+prepare-venv:
+	$(HIDE)virtualenv $(VENV) --no-pip --clear --python python3.6
+	$(HIDE)$(BIN_DIR)easy_install pip
+	$(HIDE)$(BIN_DIR)pip install --upgrade --requirement requirements-dev.txt
+	$(HIDE)$(BIN_DIR)pip install --upgrade --requirement requirements.txt
 
 test: lint
 	rm -f .coverage
