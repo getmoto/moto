@@ -19,7 +19,7 @@ install_requires = [
     "pyaml",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "python-jose<3.0.0",
+    "python-jose",
     "mock",
     "docker>=2.5.1",
     "jsondiff==1.1.1",
