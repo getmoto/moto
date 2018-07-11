@@ -1,6 +1,10 @@
 Moto Changelog
 ===================
 
+1.3.4-carium.3
+--------------
+    * Relaxed python-jose requirement
+
 1.3.4-carium.2
 --------------
     * Remove unneeded print of all available regions
