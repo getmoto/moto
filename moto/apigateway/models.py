@@ -10,7 +10,7 @@ from boto3.session import Session
 import responses
 from moto.core import BaseBackend, BaseModel
 from .utils import create_id
-from .exceptions import StageNotFoundException
+from .exceptions import StageNotFoundException, ApiKeyNotFoundException
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
@@ -322,6 +322,16 @@ class UsagePlan(BaseModel, dict):
         self['quota'] = quota
 
 
+class UsagePlanKey(BaseModel, dict):
+
+    def __init__(self, id, type, name, value):
+        super(UsagePlanKey, self).__init__()
+        self['id'] = id
+        self['name'] = name
+        self['type'] = type
+        self['value'] = value
+
+
 class RestAPI(BaseModel):
 
     def __init__(self, id, region_name, name, description):
@@ -422,6 +432,7 @@ class APIGatewayBackend(BaseBackend):
         self.apis = {}
         self.keys = {}
         self.usage_plans = {}
+        self.usage_plan_keys = {}
         self.region_name = region_name
 
     def reset(self):
@@ -603,6 +614,33 @@ class APIGatewayBackend(BaseBackend):
 
     def delete_usage_plan(self, usage_plan_id):
         self.usage_plans.pop(usage_plan_id)
+        return {}
+
+    def create_usage_plan_key(self, usage_plan_id, payload):
+        if usage_plan_id not in self.usage_plan_keys:
+            self.usage_plan_keys[usage_plan_id] = {}
+
+        key_id = payload["keyId"]
+        if key_id not in self.keys:
+            raise ApiKeyNotFoundException()
+
+        api_key = self.keys[key_id]
+
+        usage_plan_key = UsagePlanKey(id=key_id, type=payload["keyType"], name=api_key["name"], value=api_key["value"])
+        self.usage_plan_keys[usage_plan_id][usage_plan_key['id']] = usage_plan_key
+        return usage_plan_key
+
+    def get_usage_plan_keys(self, usage_plan_id):
+        if usage_plan_id not in self.usage_plan_keys:
+            return []
+
+        return list(self.usage_plan_keys[usage_plan_id].values())
+
+    def get_usage_plan_key(self, usage_plan_id, key_id):
+        return self.usage_plan_keys[usage_plan_id][key_id]
+
+    def delete_usage_plan_key(self, usage_plan_id, key_id):
+        self.usage_plan_keys[usage_plan_id].pop(key_id)
         return {}
 
 

@@ -21,5 +21,7 @@ url_paths = {
     '{0}/apikeys$': APIGatewayResponse().apikeys,
     '{0}/apikeys/(?P<apikey>[^/]+)': APIGatewayResponse().apikey_individual,
     '{0}/usageplans$': APIGatewayResponse().usage_plans,
-    '{0}/usageplans/(?P<usage_plan_id>[^/]+)': APIGatewayResponse().usage_plan_individual,
+    '{0}/usageplans/(?P<usage_plan_id>[^/]+)/?$': APIGatewayResponse().usage_plan_individual,
+    '{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys$': APIGatewayResponse().usage_plan_keys,
+    '{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys/(?P<api_key_id>[^/]+)/?$': APIGatewayResponse().usage_plan_key_individual,
 }

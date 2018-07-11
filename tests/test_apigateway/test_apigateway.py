@@ -1032,3 +1032,55 @@ def test_usage_plans():
 
     response = client.get_usage_plans()
     len(response['items']).should.equal(1)
+
+@mock_apigateway
+def test_usage_plan_keys():
+    region_name = 'us-west-2'
+    usage_plan_id = 'test_usage_plan_id'
+    client = boto3.client('apigateway', region_name=region_name)
+    usage_plan_id = "test"
+
+    # Create an API key so we can use it
+    key_name = 'test-api-key'
+    response = client.create_api_key(name=key_name)
+    key_id = response["id"]
+    key_value = response["value"]
+
+    # Get current plan keys (expect none)
+    response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
+    len(response['items']).should.equal(0)
+
+    # Create usage plan key
+    key_type = 'API_KEY'
+    payload = {'usagePlanId': usage_plan_id, 'keyId': key_id, 'keyType': key_type }
+    response = client.create_usage_plan_key(**payload)
+    usage_plan_key_id = response["id"]
+
+    # Get current plan keys (expect 1)
+    response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
+    len(response['items']).should.equal(1)
+
+    # Get a single usage plan key and check it matches the created one
+    usage_plan_key = client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId=usage_plan_key_id)
+    usage_plan_key['name'].should.equal(key_name)
+    usage_plan_key['id'].should.equal(key_id)
+    usage_plan_key['type'].should.equal(key_type)
+    usage_plan_key['value'].should.equal(key_value)
+
+    # Delete usage plan key
+    client.delete_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
+
+    # Get current plan keys (expect none)
+    response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
+    len(response['items']).should.equal(0)
+
+@mock_apigateway
+def test_create_usage_plan_key_non_existent_api_key():
+    region_name = 'us-west-2'
+    usage_plan_id = 'test_usage_plan_id'
+    client = boto3.client('apigateway', region_name=region_name)
+    usage_plan_id = "test"
+
+    # Attempt to create a usage plan key for a API key that doesn't exists
+    payload = {'usagePlanId': usage_plan_id, 'keyId': 'non-existent', 'keyType': 'API_KEY' }
+    client.create_usage_plan_key.when.called_with(**payload).should.throw(ClientError)
