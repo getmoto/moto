@@ -19,7 +19,7 @@ install_requires = [
     "pyaml",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "python-jose<3.0.0",
+    "python-jose",
     "mock",
     "docker>=2.5.1",
     "jsondiff==1.1.1",
@@ -41,7 +41,7 @@ else:
 
 setup(
     name='moto',
-    version='1.3.3',
+    version='1.3.4-carium.3',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

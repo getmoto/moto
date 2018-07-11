@@ -68,6 +68,7 @@ class CognitoIdpUserPool(BaseModel):
             "token_use": "id",
             "auth_time": now,
             "exp": now + expires_in,
+            "email": self.users[username].username
         }
         payload.update(extra_data)
 
@@ -352,6 +353,10 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(user_pool_id)
 
         user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"], attributes)
+        user.attributes.append({"Name": "sub", "Value": user.id})
+        user.attributes.append({"Name": "email_verified", "Value": True})
+        user.attributes.append({"Name": "name", "Value": ""})
+        user.attributes.append({"Name": "family_name", "Value": ""})
         user_pool.users[user.username] = user
         return user
 
@@ -364,6 +369,16 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(username)
 
         return user_pool.users[username]
+
+    def get_user(self, access_token):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = user_pool.users.get(username)
+                if not user or not user.enabled or user.status != UserStatus['CONFIRMED']:
+                    raise NotAuthorizedError('username')
+                return user
+        raise NotAuthorizedError('Invalid token')
 
     def list_users(self, user_pool_id):
         user_pool = self.user_pools.get(user_pool_id)

@@ -338,9 +338,7 @@ def test_admin_create_user():
 
     result["User"]["Username"].should.equal(username)
     result["User"]["UserStatus"].should.equal("FORCE_CHANGE_PASSWORD")
-    result["User"]["Attributes"].should.have.length_of(1)
-    result["User"]["Attributes"][0]["Name"].should.equal("thing")
-    result["User"]["Attributes"][0]["Value"].should.equal(value)
+    result["User"]["Attributes"].should.have.length_of(5)
 
 
 @mock_cognitoidp
@@ -360,9 +358,16 @@ def test_admin_get_user():
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
-    result["UserAttributes"].should.have.length_of(1)
-    result["UserAttributes"][0]["Name"].should.equal("thing")
-    result["UserAttributes"][0]["Value"].should.equal(value)
+    result["UserAttributes"].should.have.length_of(5)
+
+
+@mock_cognitoidp
+def test_get_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn)
+    result = conn.get_user(AccessToken=outputs['access_token'])
+    result["Username"].should.equal(outputs['username'])
+    result["UserAttributes"].should.have.length_of(0)
 
 
 @mock_cognitoidp

@@ -1,6 +1,19 @@
 Moto Changelog
 ===================
 
+1.3.4-carium.3
+--------------
+    * Relaxed python-jose requirement
+
+1.3.4-carium.2
+--------------
+    * Remove unneeded print of all available regions
+
+1.3.4-carium.1
+-------------
+    * Add cognito-idp get_user support
+    * Add carium required attributes in jwt and user
+
 1.3.3
 ------
     
