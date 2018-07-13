@@ -50,10 +50,6 @@ class Policy(BaseModel):
         self.create_datetime = datetime.now(pytz.utc)
         self.update_datetime = datetime.now(pytz.utc)
 
-    @property
-    def arn(self):
-        return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
-
 
 class PolicyVersion(object):
 
@@ -82,6 +78,10 @@ class ManagedPolicy(Policy):
         self.attachment_count -= 1
         del obj.managed_policies[self.name]
 
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:policy{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+
 
 class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
@@ -92,6 +92,10 @@ class AWSManagedPolicy(ManagedPolicy):
                    default_version_id=data.get('DefaultVersionId'),
                    path=data.get('Path'),
                    document=data.get('Document'))
+
+    @property
+    def arn(self):
+        return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
 
 
 # AWS defines some of its own managed policies and we periodically

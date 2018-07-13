@@ -263,17 +263,26 @@ def test_update_assume_role_policy():
 
 
 @mock_iam
+def test_create_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    response = conn.create_policy(
+        PolicyName="TestCreatePolicy",
+        PolicyDocument='{"some":"policy"}')
+    response['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestCreatePolicy")
+
+
+@mock_iam
 def test_create_policy_versions():
     conn = boto3.client('iam', region_name='us-east-1')
     with assert_raises(ClientError):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::aws:policy/TestCreatePolicyVersion",
+            PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
             PolicyDocument='{"some":"policy"}')
     conn.create_policy(
         PolicyName="TestCreatePolicyVersion",
         PolicyDocument='{"some":"policy"}')
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestCreatePolicyVersion",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
         PolicyDocument='{"some":"policy"}')
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
 
@@ -285,14 +294,14 @@ def test_get_policy_version():
         PolicyName="TestGetPolicyVersion",
         PolicyDocument='{"some":"policy"}')
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestGetPolicyVersion",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
         PolicyDocument='{"some":"policy"}')
     with assert_raises(ClientError):
         conn.get_policy_version(
-            PolicyArn="arn:aws:iam::aws:policy/TestGetPolicyVersion",
+            PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
             VersionId='v2-does-not-exist')
     retrieved = conn.get_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestGetPolicyVersion",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
         VersionId=version.get('PolicyVersion').get('VersionId'))
     retrieved.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
 
@@ -302,18 +311,18 @@ def test_list_policy_versions():
     conn = boto3.client('iam', region_name='us-east-1')
     with assert_raises(ClientError):
         versions = conn.list_policy_versions(
-            PolicyArn="arn:aws:iam::aws:policy/TestListPolicyVersions")
+            PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     conn.create_policy(
         PolicyName="TestListPolicyVersions",
         PolicyDocument='{"some":"policy"}')
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestListPolicyVersions",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
         PolicyDocument='{"first":"policy"}')
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestListPolicyVersions",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
         PolicyDocument='{"second":"policy"}')
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::aws:policy/TestListPolicyVersions")
+        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     versions.get('Versions')[0].get('Document').should.equal({'first': 'policy'})
     versions.get('Versions')[1].get('Document').should.equal({'second': 'policy'})
 
@@ -325,17 +334,17 @@ def test_delete_policy_version():
         PolicyName="TestDeletePolicyVersion",
         PolicyDocument='{"some":"policy"}')
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestDeletePolicyVersion",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
         PolicyDocument='{"first":"policy"}')
     with assert_raises(ClientError):
         conn.delete_policy_version(
-            PolicyArn="arn:aws:iam::aws:policy/TestDeletePolicyVersion",
+            PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
             VersionId='v2-nope-this-does-not-exist')
     conn.delete_policy_version(
-        PolicyArn="arn:aws:iam::aws:policy/TestDeletePolicyVersion",
+        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
         VersionId='v1')
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::aws:policy/TestDeletePolicyVersion")
+        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion")
     len(versions.get('Versions')).should.equal(0)
 
 
