@@ -183,6 +183,72 @@ def test_subscription_paging():
 
 
 @mock_sns
+def test_creating_subscription_with_attributes():
+    conn = boto3.client('sns', region_name='us-east-1')
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]['TopicArn']
+
+    delivery_policy = json.dumps({
+        'healthyRetryPolicy': {
+            "numRetries": 10,
+            "minDelayTarget": 1,
+            "maxDelayTarget":2
+        }
+    })
+
+    filter_policy = json.dumps({
+        "store": ["example_corp"],
+        "event": ["order_cancelled"],
+        "encrypted": [False],
+        "customer_interests": ["basketball", "baseball"]
+    })
+
+    conn.subscribe(TopicArn=topic_arn,
+                   Protocol="http",
+                   Endpoint="http://example.com/",
+                   Attributes={
+                       'RawMessageDelivery': 'true',
+                       'DeliveryPolicy': delivery_policy,
+                       'FilterPolicy': filter_policy
+                   })
+
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["TopicArn"].should.equal(topic_arn)
+    subscription["Protocol"].should.equal("http")
+    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription["Endpoint"].should.equal("http://example.com/")
+
+    # Test the subscription attributes have been set
+    subscription_arn = subscription["SubscriptionArn"]
+    attrs = conn.get_subscription_attributes(
+        SubscriptionArn=subscription_arn
+    )
+
+    attrs['Attributes']['RawMessageDelivery'].should.equal('true')
+    attrs['Attributes']['DeliveryPolicy'].should.equal(delivery_policy)
+    attrs['Attributes']['FilterPolicy'].should.equal(filter_policy)
+
+    # Now unsubscribe the subscription
+    conn.unsubscribe(SubscriptionArn=subscription["SubscriptionArn"])
+
+    # And there should be zero subscriptions left
+    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(0)
+
+    # invalid attr name
+    with assert_raises(ClientError):
+        conn.subscribe(TopicArn=topic_arn,
+                       Protocol="http",
+                       Endpoint="http://example.com/",
+                       Attributes={
+                           'InvalidName': 'true'
+                       })
+
+
+@mock_sns
 def test_set_subscription_attributes():
     conn = boto3.client('sns', region_name='us-east-1')
     conn.create_topic(Name="some-topic")
