@@ -19,19 +19,20 @@ from .utils import compose_shard_iterator, compose_new_shard_iterator, decompose
 
 
 class Record(BaseModel):
-
     def __init__(self, partition_key, data, sequence_number, explicit_hash_key):
         self.partition_key = partition_key
         self.data = data
         self.sequence_number = sequence_number
         self.explicit_hash_key = explicit_hash_key
-        self.create_at = unix_time()
+        self.created_at_datetime = datetime.datetime.utcnow()
+        self.created_at = unix_time(self.created_at_datetime)
 
     def to_json(self):
         return {
             "Data": self.data,
             "PartitionKey": self.partition_key,
             "SequenceNumber": str(self.sequence_number),
+            "ApproximateArrivalTimestamp": self.created_at_datetime.isoformat()
         }
 
 
@@ -50,16 +51,21 @@ class Shard(BaseModel):
     def get_records(self, last_sequence_id, limit):
         last_sequence_id = int(last_sequence_id)
         results = []
+        secs_behind_latest = 0
 
         for sequence_number, record in self.records.items():
             if sequence_number > last_sequence_id:
                 results.append(record)
                 last_sequence_id = sequence_number
 
+                very_last_record = self.records[next(reversed(self.records))]
+                secs_behind_latest = very_last_record.created_at - record.created_at
+
             if len(results) == limit:
                 break
 
-        return results, last_sequence_id
+        millis_behind_latest = int(secs_behind_latest * 1000)
+        return results, last_sequence_id, millis_behind_latest
 
     def put_record(self, partition_key, data, explicit_hash_key):
         # Note: this function is not safe for concurrency
@@ -83,12 +89,12 @@ class Shard(BaseModel):
         return 0
 
     def get_sequence_number_at(self, at_timestamp):
-        if not self.records or at_timestamp < list(self.records.values())[0].create_at:
+        if not self.records or at_timestamp < list(self.records.values())[0].created_at:
             return 0
         else:
             # find the last item in the list that was created before
             # at_timestamp
-            r = next((r for r in reversed(self.records.values()) if r.create_at < at_timestamp), None)
+            r = next((r for r in reversed(self.records.values()) if r.created_at < at_timestamp), None)
             return r.sequence_number
 
     def to_json(self):
@@ -226,7 +232,7 @@ class DeliveryStream(BaseModel):
 
         self.records = []
         self.status = 'ACTIVE'
-        self.create_at = datetime.datetime.utcnow()
+        self.created_at = datetime.datetime.utcnow()
         self.last_updated = datetime.datetime.utcnow()
 
     @property
@@ -267,7 +273,7 @@ class DeliveryStream(BaseModel):
     def to_dict(self):
         return {
             "DeliveryStreamDescription": {
-                "CreateTimestamp": time.mktime(self.create_at.timetuple()),
+                "CreateTimestamp": time.mktime(self.created_at.timetuple()),
                 "DeliveryStreamARN": self.arn,
                 "DeliveryStreamName": self.name,
                 "DeliveryStreamStatus": self.status,
@@ -329,12 +335,12 @@ class KinesisBackend(BaseBackend):
         stream = self.describe_stream(stream_name)
         shard = stream.get_shard(shard_id)
 
-        records, last_sequence_id = shard.get_records(last_sequence_id, limit)
+        records, last_sequence_id, millis_behind_latest = shard.get_records(last_sequence_id, limit)
 
         next_shard_iterator = compose_shard_iterator(
             stream_name, shard, last_sequence_id)
 
-        return next_shard_iterator, records
+        return next_shard_iterator, records, millis_behind_latest
 
     def put_record(self, stream_name, partition_key, explicit_hash_key, sequence_number_for_ordering, data):
         stream = self.describe_stream(stream_name)
