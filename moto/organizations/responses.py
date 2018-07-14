@@ -45,4 +45,3 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_accounts()
         )
-

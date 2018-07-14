@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import datetime
-import time
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -25,7 +24,7 @@ class FakeOrganization(BaseModel):
             'Type': 'SERVICE_CONTROL_POLICY',
             'Status': 'ENABLED'
         }]
-    
+
     @property
     def arn(self):
         return ORGANIZATION_ARN_FORMAT.format(self.master_account_id, self.id)
@@ -115,7 +114,7 @@ class OrganizationsBackend(BaseBackend):
         return new_account.create_account_status
 
     def describe_account(self, **kwargs):
-        account = [account for account in self.accounts 
+        account = [account for account in self.accounts
                    if account.account_id == kwargs['AccountId']][0]
         return account.describe()
 
@@ -126,6 +125,3 @@ class OrganizationsBackend(BaseBackend):
 
 
 organizations_backend = OrganizationsBackend()
-
-
-

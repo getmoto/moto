@@ -4,7 +4,6 @@ models.  This module will go away.
 """
 
 import yaml
-import moto
 from moto import organizations as orgs
 
 
@@ -15,7 +14,7 @@ print(orgs.utils.make_random_account_id())
 print(orgs.utils.make_random_create_account_id())
 
 # models
-my_org = orgs.models.FakeOrganization(feature_set = 'ALL')
+my_org = orgs.models.FakeOrganization(feature_set='ALL')
 print(yaml.dump(my_org._describe()))
 #assert False
 

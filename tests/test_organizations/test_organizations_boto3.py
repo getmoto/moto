@@ -1,13 +1,9 @@
 from __future__ import unicode_literals
 
 import boto3
-import botocore.exceptions
 import sure   # noqa
-import yaml
-import re
 import datetime
 
-import moto
 from moto import mock_organizations
 from moto.organizations.models import (
     MASTER_ACCOUNT_ID,
@@ -53,21 +49,7 @@ def validate_organization(response):
         'Type': 'SERVICE_CONTROL_POLICY',
         'Status': 'ENABLED'
     }])
-    #
-    #'Organization': {
-    #    'Id': 'string',
-    #    'Arn': 'string',
-    #    'FeatureSet': 'ALL'|'CONSOLIDATED_BILLING',
-    #    'MasterAccountArn': 'string',
-    #    'MasterAccountId': 'string',
-    #    'MasterAccountEmail': 'string',
-    #    'AvailablePolicyTypes': [
-    #        {
-    #            'Type': 'SERVICE_CONTROL_POLICY',
-    #            'Status': 'ENABLED'|'PENDING_ENABLE'|'PENDING_DISABLE'
-    #        },
-    #    ]
-    #}
+
 
 def validate_account(org, account):
     sorted(account.keys()).should.equal([
@@ -84,21 +66,13 @@ def validate_account(org, account):
         org['MasterAccountId'],
         org['Id'],
         account['Id'],
-    ))        
+    ))
     account['Email'].should.match(EMAIL_REGEX)
     account['JoinedMethod'].should.be.within(['INVITED', 'CREATED'])
     account['Status'].should.be.within(['ACTIVE', 'SUSPENDED'])
     account['Name'].should.be.a(str)
     account['JoinedTimestamp'].should.be.a(datetime.datetime)
-    #'Account': {
-    #    'Id': 'string',
-    #    'Arn': 'string',
-    #    'Email': 'string',
-    #    'Name': 'string',
-    #    'Status': 'ACTIVE'|'SUSPENDED',
-    #    'JoinedMethod': 'INVITED'|'CREATED',
-    #    'JoinedTimestamp': datetime(2015, 1, 1)
-    #}
+
 
 def validate_create_account_status(create_status):
     sorted(create_status.keys()).should.equal([
@@ -115,15 +89,7 @@ def validate_create_account_status(create_status):
     create_status['State'].should.equal('SUCCEEDED')
     create_status['RequestedTimestamp'].should.be.a(datetime.datetime)
     create_status['CompletedTimestamp'].should.be.a(datetime.datetime)
-    #'CreateAccountStatus': {
-    #    'Id': 'string',
-    #    'AccountName': 'string',
-    #    'State': 'IN_PROGRESS'|'SUCCEEDED'|'FAILED',
-    #    'RequestedTimestamp': datetime(2015, 1, 1),
-    #    'CompletedTimestamp': datetime(2015, 1, 1),
-    #    'AccountId': 'string',
-    #    'FailureReason': 'ACCOUNT_LIMIT_EXCEEDED'|'EMAIL_ALREADY_EXISTS'|'INVALID_ADDRESS'|'INVALID_EMAIL'|'CONCURRENT_ACCOUNT_MODIFICATION'|'INTERNAL_FAILURE'
-    #}
+
 
 @mock_organizations
 def test_create_organization():
@@ -133,6 +99,7 @@ def test_create_organization():
     validate_organization(response)
     response['Organization']['FeatureSet'].should.equal('ALL')
     #assert False
+
 
 @mock_organizations
 def test_describe_organization():
@@ -148,29 +115,34 @@ mockname = 'mock-account'
 mockdomain = 'moto-example.org'
 mockemail = '@'.join([mockname, mockdomain])
 
+
 @mock_organizations
 def test_create_account():
     client = boto3.client('organizations', region_name='us-east-1')
     client.create_organization(FeatureSet='ALL')
     create_status = client.create_account(
-            AccountName=mockname, Email=mockemail)['CreateAccountStatus']
+        AccountName=mockname, Email=mockemail
+    )['CreateAccountStatus']
     #print(yaml.dump(create_status, default_flow_style=False))
     validate_create_account_status(create_status)
     create_status['AccountName'].should.equal(mockname)
     #assert False
+
 
 @mock_organizations
 def test_describe_account():
     client = boto3.client('organizations', region_name='us-east-1')
     org = client.create_organization(FeatureSet='ALL')['Organization']
     account_id = client.create_account(
-            AccountName=mockname, Email=mockemail)['CreateAccountStatus']['AccountId']
+        AccountName=mockname, Email=mockemail
+    )['CreateAccountStatus']['AccountId']
     response = client.describe_account(AccountId=account_id)
     #print(yaml.dump(response, default_flow_style=False))
     validate_account(org, response['Account'])
     response['Account']['Name'].should.equal(mockname)
     response['Account']['Email'].should.equal(mockemail)
     #assert False
+
 
 @mock_organizations
 def test_list_accounts():
@@ -190,4 +162,3 @@ def test_list_accounts():
     accounts[3]['Name'].should.equal(mockname + '3')
     accounts[2]['Email'].should.equal(mockname + '2' + '@' + mockdomain)
     #assert False
-
