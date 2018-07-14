@@ -26,6 +26,7 @@ from moto.kinesis import kinesis_backends
 from moto.kms import kms_backends
 from moto.logs import logs_backends
 from moto.opsworks import opsworks_backends
+from moto.organizations import organizations_backends
 from moto.polly import polly_backends
 from moto.rds2 import rds2_backends
 from moto.redshift import redshift_backends
@@ -72,6 +73,7 @@ BACKENDS = {
     'kinesis': kinesis_backends,
     'kms': kms_backends,
     'opsworks': opsworks_backends,
+    'organizations': organizations_backends,
     'polly': polly_backends,
     'redshift': redshift_backends,
     'rds': rds2_backends,
