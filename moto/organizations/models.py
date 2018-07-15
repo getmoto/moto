@@ -51,7 +51,7 @@ class FakeOrganization(BaseModel):
 
 class FakeAccount(BaseModel):
 
-    def __init__(self, organization, **kwargs):
+    def __init__(self, organization, root_id, **kwargs):
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.create_account_status_id = utils.make_random_create_account_status_id()
@@ -61,6 +61,7 @@ class FakeAccount(BaseModel):
         self.create_time = datetime.datetime.utcnow()
         self.status = 'ACTIVE'
         self.joined_method = 'CREATED'
+        self.parent_id = root_id
 
     @property
     def arn(self):
@@ -215,7 +216,7 @@ class OrganizationsBackend(BaseBackend):
         return dict(Parents=root_parents + ou_parents)
 
     def create_account(self, **kwargs):
-        new_account = FakeAccount(self.org, **kwargs)
+        new_account = FakeAccount(self.org, self.roots[0].id, **kwargs)
         self.accounts.append(new_account)
         return new_account.create_account_status
 
@@ -230,6 +231,26 @@ class OrganizationsBackend(BaseBackend):
         return dict(
             Accounts=[account.describe()['Account'] for account in self.accounts]
         )
+
+    def list_accounts_for_parent(self, **kwargs):
+        return dict(
+            Accounts=[
+                account.describe()['Account']
+                for account in self.accounts
+                if account.parent_id == kwargs['ParentId']
+            ]
+        )
+
+    def move_account(self, **kwargs):
+        new_parent_id = kwargs['DestinationParentId']
+        all_parent_id = [parent.id for parent in self.roots + self.ou]
+        account = [
+            account for account in self.accounts if account.account_id == kwargs['AccountId']
+        ].pop(0)
+        assert new_parent_id in all_parent_id
+        assert account.parent_id == kwargs['SourceParentId']
+        index = self.accounts.index(account)
+        self.accounts[index].parent_id = new_parent_id
 
 
 organizations_backend = OrganizationsBackend()

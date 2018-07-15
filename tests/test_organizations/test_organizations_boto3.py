@@ -274,3 +274,39 @@ def test_list_accounts():
     accounts[3]['Name'].should.equal(mockname + '3')
     accounts[2]['Email'].should.equal(mockname + '2' + '@' + mockdomain)
     #assert False
+
+
+@mock_organizations
+def test_list_accounts_for_parent():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    account_id = client.create_account(
+        AccountName=mockname,
+        Email=mockemail,
+    )['CreateAccountStatus']['AccountId']
+    response = client.list_accounts_for_parent(ParentId=root_id)
+    #print(yaml.dump(response, default_flow_style=False))
+    account_id.should.be.within([account['Id'] for account in response['Accounts']])
+    #assert False
+
+
+@mock_organizations
+def test_move_account():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    account_id = client.create_account(
+        AccountName=mockname, Email=mockemail
+    )['CreateAccountStatus']['AccountId']
+    ou01 = client.create_organizational_unit(ParentId=root_id, Name='ou01')
+    ou01_id = ou01['OrganizationalUnit']['Id']
+    client.move_account(
+        AccountId=account_id,
+        SourceParentId=root_id,
+        DestinationParentId=ou01_id,
+    )
+    response = client.list_accounts_for_parent(ParentId=ou01_id)
+    #print(yaml.dump(response, default_flow_style=False))
+    account_id.should.be.within([account['Id'] for account in response['Accounts']])
+    #assert False

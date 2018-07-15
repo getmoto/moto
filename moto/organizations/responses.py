@@ -70,3 +70,13 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_accounts()
         )
+
+    def list_accounts_for_parent(self):
+        return json.dumps(
+            self.organizations_backend.list_accounts_for_parent(**self.request_params)
+        )
+
+    def move_account(self):
+        return json.dumps(
+            self.organizations_backend.move_account(**self.request_params)
+        )
