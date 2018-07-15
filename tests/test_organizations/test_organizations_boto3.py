@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto3
 import sure   # noqa
 import datetime
+import yaml
 
 from moto import mock_organizations
 from moto.organizations.models import (
@@ -11,6 +12,7 @@ from moto.organizations.models import (
     ORGANIZATION_ARN_FORMAT,
     MASTER_ACCOUNT_ARN_FORMAT,
     ACCOUNT_ARN_FORMAT,
+    ROOT_ARN_FORMAT,
 )
 from .test_organizations_utils import (
     ORG_ID_REGEX,
@@ -108,6 +110,28 @@ def test_describe_organization():
     response = client.describe_organization()
     #print(yaml.dump(response))
     validate_organization(response)
+    #assert False
+
+
+@mock_organizations
+def test_list_roots():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    response = client.list_roots()
+    #print(yaml.dump(response, default_flow_style=False))
+    response.should.have.key('Roots').should.be.a(list)
+    response['Roots'].should_not.be.empty
+    root = response['Roots'][0]
+    root.should.have.key('Id').should.match(ROOT_ID_REGEX)
+    root.should.have.key('Arn').should.equal(ROOT_ARN_FORMAT.format(
+        org['MasterAccountId'],
+        org['Id'],
+        root['Id'],
+    ))
+    root.should.have.key('Name').should.be.a(str)
+    root.should.have.key('PolicyTypes').should.be.a(list)
+    root['PolicyTypes'][0].should.have.key('Type').should.equal('SERVICE_CONTROL_POLICY')
+    root['PolicyTypes'][0].should.have.key('Status').should.equal('ENABLED')
     #assert False
 
 

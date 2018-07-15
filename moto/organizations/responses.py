@@ -31,6 +31,11 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.describe_organization()
         )
 
+    def list_roots(self):
+        return json.dumps(
+            self.organizations_backend.list_roots()
+        )
+
     def create_account(self):
         return json.dumps(
             self.organizations_backend.create_account(**self.request_params)

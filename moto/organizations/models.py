@@ -11,7 +11,7 @@ MASTER_ACCOUNT_EMAIL = 'fakeorg@moto-example.com'
 ORGANIZATION_ARN_FORMAT = 'arn:aws:organizations::{0}:organization/{1}'
 MASTER_ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{0}'
 ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{2}'
-
+ROOT_ARN_FORMAT = 'arn:aws:organizations::{0}:root/{1}/{2}'
 
 class FakeOrganization(BaseModel):
 
@@ -33,7 +33,7 @@ class FakeOrganization(BaseModel):
     def master_account_arn(self):
         return MASTER_ACCOUNT_ARN_FORMAT.format(self.master_account_id, self.id)
 
-    def _describe(self):
+    def describe(self):
         return {
             'Organization': {
                 'Id': self.id,
@@ -95,18 +95,80 @@ class FakeAccount(BaseModel):
         }
 
 
+class FakeOrganizationalUnit(BaseModel):
+
+    def __init__(self, organization, **kwargs):
+        self.organization_id = organization.id
+        self.master_account_id = organization.master_account_id
+        self.id = utils.make_random_ou_id()
+        self.name = kwargs['Name']
+
+    @property
+    def arn(self):
+        return OU_ARN_FORMAT.format(
+            self.master_account_id,
+            self.organization_id,
+            self.id
+        )
+
+    def describe(self):
+        return {
+            'OrganizationalUnit': {
+                'Id': self.id,
+                'Arn': self.arn,
+                'Name': self.name,
+            }
+        }
+
+
+class FakeRoot(BaseModel):
+
+    def __init__(self, organization, **kwargs):
+        self.organization_id = organization.id
+        self.master_account_id = organization.master_account_id
+        self.id = utils.make_random_root_id()
+        self.name = 'Root'
+        self.policy_types = [{
+            'Type': 'SERVICE_CONTROL_POLICY',
+            'Status': 'ENABLED'
+        }]
+
+    @property
+    def arn(self):
+        return ROOT_ARN_FORMAT.format(
+            self.master_account_id,
+            self.organization_id,
+            self.id
+        )
+
+    def describe(self):
+        return {
+            'Id': self.id,
+            'Arn': self.arn,
+            'Name': self.name,
+            'PolicyTypes': self.policy_types
+        }
+
+
 class OrganizationsBackend(BaseBackend):
 
     def __init__(self):
         self.org = None
         self.accounts = []
+        self.roots = []
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs['FeatureSet'])
-        return self.org._describe()
+        self.roots.append(FakeRoot(self.org))
+        return self.org.describe()
 
     def describe_organization(self):
-        return self.org._describe()
+        return self.org.describe()
+
+    def list_roots(self):
+        return dict(
+            Roots=[root.describe() for root in self.roots]
+        )
 
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)
