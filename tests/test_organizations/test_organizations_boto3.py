@@ -13,10 +13,12 @@ from moto.organizations.models import (
     MASTER_ACCOUNT_ARN_FORMAT,
     ACCOUNT_ARN_FORMAT,
     ROOT_ARN_FORMAT,
+    OU_ARN_FORMAT,
 )
 from .test_organizations_utils import (
     ORG_ID_REGEX,
     ROOT_ID_REGEX,
+    OU_ID_REGEX,
     ACCOUNT_ID_REGEX,
     CREATE_ACCOUNT_STATUS_ID_REGEX,
 )
@@ -51,6 +53,18 @@ def validate_organization(response):
         'Type': 'SERVICE_CONTROL_POLICY',
         'Status': 'ENABLED'
     }])
+
+
+def validate_organizationa_unit(org, response):
+    response.should.have.key('OrganizationalUnit').should.be.a(dict)
+    ou = response['OrganizationalUnit']
+    ou.should.have.key('Id').should.match(OU_ID_REGEX)
+    ou.should.have.key('Arn').should.equal(OU_ARN_FORMAT.format(
+        org['MasterAccountId'],
+        org['Id'],
+        ou['Id'],
+    ))
+    ou.should.have.key('Name').should.equal(ou_name)
 
 
 def validate_account(org, account):
@@ -113,6 +127,9 @@ def test_describe_organization():
     #assert False
 
 
+# Organizational Units
+ou_name = 'ou01'
+
 @mock_organizations
 def test_list_roots():
     client = boto3.client('organizations', region_name='us-east-1')
@@ -135,6 +152,38 @@ def test_list_roots():
     #assert False
 
 
+@mock_organizations
+def test_create_organizational_unit():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    response = client.create_organizational_unit(
+        ParentId=root_id,
+        Name=ou_name,
+    )
+    #print(yaml.dump(response, default_flow_style=False))
+    validate_organizationa_unit(org, response)
+    #assert False
+
+
+@mock_organizations
+def test_describe_organizational_unit():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    ou_id = client.create_organizational_unit(
+        ParentId=root_id,
+        Name=ou_name,
+    )['OrganizationalUnit']['Id']
+    response = client.describe_organizational_unit(
+        OrganizationalUnitId=ou_id,
+    )
+    print(yaml.dump(response, default_flow_style=False))
+    validate_organizationa_unit(org, response)
+    #assert False
+
+
+# Accounts
 mockname = 'mock-account'
 mockdomain = 'moto-example.org'
 mockemail = '@'.join([mockname, mockdomain])

@@ -3147,13 +3147,13 @@
 - [ ] update_server
 - [ ] update_server_engine_attributes
 
-## organizations - 8% implemented
+## organizations - 19% implemented
 - [ ] accept_handshake
 - [ ] attach_policy
 - [ ] cancel_handshake
 - [X] create_account
 - [X] create_organization
-- [ ] create_organizational_unit
+- [X] create_organizational_unit
 - [ ] create_policy
 - [ ] decline_handshake
 - [ ] delete_organization
@@ -3163,7 +3163,7 @@
 - [ ] describe_create_account_status
 - [ ] describe_handshake
 - [X] describe_organization
-- [ ] describe_organizational_unit
+- [X] describe_organizational_unit
 - [ ] describe_policy
 - [ ] detach_policy
 - [ ] disable_aws_service_access
@@ -3184,7 +3184,7 @@
 - [ ] list_parents
 - [ ] list_policies
 - [ ] list_policies_for_target
-- [ ] list_roots
+- [X] list_roots
 - [ ] list_targets_for_policy
 - [ ] move_account
 - [ ] remove_account_from_organization
