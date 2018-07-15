@@ -55,7 +55,7 @@ def validate_organization(response):
     }])
 
 
-def validate_organizationa_unit(org, response):
+def validate_organizational_unit(org, response):
     response.should.have.key('OrganizationalUnit').should.be.a(dict)
     ou = response['OrganizationalUnit']
     ou.should.have.key('Id').should.match(OU_ID_REGEX)
@@ -64,7 +64,7 @@ def validate_organizationa_unit(org, response):
         org['Id'],
         ou['Id'],
     ))
-    ou.should.have.key('Name').should.equal(ou_name)
+    ou.should.have.key('Name').should.be.a(str)
 
 
 def validate_account(org, account):
@@ -128,7 +128,6 @@ def test_describe_organization():
 
 
 # Organizational Units
-ou_name = 'ou01'
 
 @mock_organizations
 def test_list_roots():
@@ -157,12 +156,14 @@ def test_create_organizational_unit():
     client = boto3.client('organizations', region_name='us-east-1')
     org = client.create_organization(FeatureSet='ALL')['Organization']
     root_id = client.list_roots()['Roots'][0]['Id']
+    ou_name = 'ou01'
     response = client.create_organizational_unit(
         ParentId=root_id,
         Name=ou_name,
     )
     #print(yaml.dump(response, default_flow_style=False))
-    validate_organizationa_unit(org, response)
+    validate_organizational_unit(org, response)
+    response['OrganizationalUnit']['Name'].should.equal(ou_name)
     #assert False
 
 
@@ -173,13 +174,51 @@ def test_describe_organizational_unit():
     root_id = client.list_roots()['Roots'][0]['Id']
     ou_id = client.create_organizational_unit(
         ParentId=root_id,
-        Name=ou_name,
+        Name='ou01',
     )['OrganizationalUnit']['Id']
-    response = client.describe_organizational_unit(
-        OrganizationalUnitId=ou_id,
-    )
+    response = client.describe_organizational_unit(OrganizationalUnitId=ou_id)
     print(yaml.dump(response, default_flow_style=False))
-    validate_organizationa_unit(org, response)
+    validate_organizational_unit(org, response)
+    #assert False
+
+
+@mock_organizations
+def test_list_organizational_units_for_parent():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    client.create_organizational_unit(ParentId=root_id, Name='ou01')
+    client.create_organizational_unit(ParentId=root_id, Name='ou02')
+    client.create_organizational_unit(ParentId=root_id, Name='ou03')
+    response = client.list_organizational_units_for_parent(ParentId=root_id)
+    print(yaml.dump(response, default_flow_style=False))
+    response.should.have.key('OrganizationalUnits').should.be.a(list)
+    for ou in response['OrganizationalUnits']:
+        validate_organizational_unit(org, dict(OrganizationalUnit=ou))
+    #assert False
+
+
+@mock_organizations
+def test_list_parents():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+
+    ou01 = client.create_organizational_unit(ParentId=root_id, Name='ou01')
+    ou01_id = ou01['OrganizationalUnit']['Id']
+    response01 = client.list_parents(ChildId=ou01_id)
+    #print(yaml.dump(response01, default_flow_style=False))
+    response01.should.have.key('Parents').should.be.a(list)
+    response01['Parents'][0].should.have.key('Id').should.equal(root_id)
+    response01['Parents'][0].should.have.key('Type').should.equal('ROOT')
+
+    ou02 = client.create_organizational_unit(ParentId=ou01_id, Name='ou02')
+    ou02_id = ou02['OrganizationalUnit']['Id']
+    response02 = client.list_parents(ChildId=ou02_id)
+    #print(yaml.dump(response02, default_flow_style=False))
+    response02.should.have.key('Parents').should.be.a(list)
+    response02['Parents'][0].should.have.key('Id').should.equal(ou01_id)
+    response02['Parents'][0].should.have.key('Type').should.equal('ORGANIZATIONAL_UNIT')
     #assert False
 
 

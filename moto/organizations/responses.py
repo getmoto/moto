@@ -46,6 +46,16 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.describe_organizational_unit(**self.request_params)
         )
 
+    def list_organizational_units_for_parent(self):
+        return json.dumps(
+            self.organizations_backend.list_organizational_units_for_parent(**self.request_params)
+        )
+
+    def list_parents(self):
+        return json.dumps(
+            self.organizations_backend.list_parents(**self.request_params)
+        )
+
     def create_account(self):
         return json.dumps(
             self.organizations_backend.create_account(**self.request_params)

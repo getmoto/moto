@@ -14,6 +14,7 @@ ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{2}'
 ROOT_ARN_FORMAT = 'arn:aws:organizations::{0}:root/{1}/{2}'
 OU_ARN_FORMAT = 'arn:aws:organizations::{0}:ou/{1}/{2}'
 
+
 class FakeOrganization(BaseModel):
 
     def __init__(self, feature_set):
@@ -125,7 +126,6 @@ class FakeRoot(BaseModel):
         }
 
 
-
 class FakeOrganizationalUnit(BaseModel):
 
     def __init__(self, organization, root_id, **kwargs):
@@ -151,6 +151,7 @@ class FakeOrganizationalUnit(BaseModel):
                 'Name': self.name,
             }
         }
+
 
 class OrganizationsBackend(BaseBackend):
 
@@ -183,6 +184,35 @@ class OrganizationsBackend(BaseBackend):
             ou for ou in self.ou if ou.id == kwargs['OrganizationalUnitId']
         ].pop(0)
         return ou.describe()
+
+    def list_organizational_units_for_parent(self, **kwargs):
+        return dict(
+            OrganizationalUnits=[
+                {
+                    'Id': ou.id,
+                    'Arn': ou.arn,
+                    'Name': ou.name,
+                }
+                for ou in self.ou
+                if ou.parent_id == kwargs['ParentId']
+            ]
+        )
+
+    def list_parents(self, **kwargs):
+        parent_id = [
+            ou.parent_id for ou in self.ou if ou.id == kwargs['ChildId']
+        ].pop(0)
+        root_parents = [
+            dict(Id=root.id, Type='ROOT')
+            for root in self.roots
+            if root.id == parent_id
+        ]
+        ou_parents = [
+            dict(Id=ou.id, Type='ORGANIZATIONAL_UNIT')
+            for ou in self.ou
+            if ou.id == parent_id
+        ]
+        return dict(Parents=root_parents + ou_parents)
 
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)

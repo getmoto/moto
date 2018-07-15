@@ -3147,7 +3147,7 @@
 - [ ] update_server
 - [ ] update_server_engine_attributes
 
-## organizations - 19% implemented
+## organizations - 20% implemented
 - [ ] accept_handshake
 - [ ] attach_policy
 - [ ] cancel_handshake
@@ -3180,8 +3180,8 @@
 - [ ] list_create_account_status
 - [ ] list_handshakes_for_account
 - [ ] list_handshakes_for_organization
-- [ ] list_organizational_units_for_parent
-- [ ] list_parents
+- [X] list_organizational_units_for_parent
+- [X] list_parents
 - [ ] list_policies
 - [ ] list_policies_for_target
 - [X] list_roots
