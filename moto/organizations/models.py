@@ -55,8 +55,8 @@ class FakeAccount(BaseModel):
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.create_account_status_id = utils.make_random_create_account_status_id()
-        self.account_id = utils.make_random_account_id()
-        self.account_name = kwargs['AccountName']
+        self.id = utils.make_random_account_id()
+        self.name = kwargs['AccountName']
         self.email = kwargs['Email']
         self.create_time = datetime.datetime.utcnow()
         self.status = 'ACTIVE'
@@ -68,7 +68,7 @@ class FakeAccount(BaseModel):
         return ACCOUNT_ARN_FORMAT.format(
             self.master_account_id,
             self.organization_id,
-            self.account_id
+            self.id
         )
 
     @property
@@ -76,24 +76,51 @@ class FakeAccount(BaseModel):
         return {
             'CreateAccountStatus': {
                 'Id': self.create_account_status_id,
-                'AccountName': self.account_name,
+                'AccountName': self.name,
                 'State': 'SUCCEEDED',
                 'RequestedTimestamp': unix_time(self.create_time),
                 'CompletedTimestamp': unix_time(self.create_time),
-                'AccountId': self.account_id,
+                'AccountId': self.id,
             }
         }
 
     def describe(self):
         return {
             'Account': {
-                'Id': self.account_id,
+                'Id': self.id,
                 'Arn': self.arn,
                 'Email': self.email,
-                'Name': self.account_name,
+                'Name': self.name,
                 'Status': self.status,
                 'JoinedMethod': self.joined_method,
                 'JoinedTimestamp': unix_time(self.create_time),
+            }
+        }
+
+
+class FakeOrganizationalUnit(BaseModel):
+
+    def __init__(self, organization, root_id, **kwargs):
+        self.organization_id = organization.id
+        self.master_account_id = organization.master_account_id
+        self.id = utils.make_random_ou_id(root_id)
+        self.name = kwargs['Name']
+        self.parent_id = kwargs['ParentId']
+
+    @property
+    def arn(self):
+        return OU_ARN_FORMAT.format(
+            self.master_account_id,
+            self.organization_id,
+            self.id
+        )
+
+    def describe(self):
+        return {
+            'OrganizationalUnit': {
+                'Id': self.id,
+                'Arn': self.arn,
+                'Name': self.name,
             }
         }
 
@@ -126,32 +153,6 @@ class FakeRoot(BaseModel):
             'PolicyTypes': self.policy_types
         }
 
-
-class FakeOrganizationalUnit(BaseModel):
-
-    def __init__(self, organization, root_id, **kwargs):
-        self.organization_id = organization.id
-        self.master_account_id = organization.master_account_id
-        self.id = utils.make_random_ou_id(root_id)
-        self.name = kwargs['Name']
-        self.parent_id = kwargs['ParentId']
-
-    @property
-    def arn(self):
-        return OU_ARN_FORMAT.format(
-            self.master_account_id,
-            self.organization_id,
-            self.id
-        )
-
-    def describe(self):
-        return {
-            'OrganizationalUnit': {
-                'Id': self.id,
-                'Arn': self.arn,
-                'Name': self.name,
-            }
-        }
 
 
 class OrganizationsBackend(BaseBackend):
@@ -223,7 +224,7 @@ class OrganizationsBackend(BaseBackend):
     def describe_account(self, **kwargs):
         account = [
             account for account in self.accounts
-            if account.account_id == kwargs['AccountId']
+            if account.id == kwargs['AccountId']
         ].pop(0)
         return account.describe()
 
@@ -245,7 +246,7 @@ class OrganizationsBackend(BaseBackend):
         new_parent_id = kwargs['DestinationParentId']
         all_parent_id = [parent.id for parent in self.roots + self.ou]
         account = [
-            account for account in self.accounts if account.account_id == kwargs['AccountId']
+            account for account in self.accounts if account.id == kwargs['AccountId']
         ].pop(0)
         assert new_parent_id in all_parent_id
         assert account.parent_id == kwargs['SourceParentId']
