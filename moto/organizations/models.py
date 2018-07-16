@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import re
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -19,6 +20,7 @@ class FakeOrganization(BaseModel):
 
     def __init__(self, feature_set):
         self.id = utils.make_random_org_id()
+        self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
         self.master_account_id = MASTER_ACCOUNT_ID
         self.master_account_email = MASTER_ACCOUNT_EMAIL
@@ -51,7 +53,7 @@ class FakeOrganization(BaseModel):
 
 class FakeAccount(BaseModel):
 
-    def __init__(self, organization, root_id, **kwargs):
+    def __init__(self, organization, **kwargs):
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.create_account_status_id = utils.make_random_create_account_status_id()
@@ -61,7 +63,7 @@ class FakeAccount(BaseModel):
         self.create_time = datetime.datetime.utcnow()
         self.status = 'ACTIVE'
         self.joined_method = 'CREATED'
-        self.parent_id = root_id
+        self.parent_id = organization.root_id
 
     @property
     def arn(self):
@@ -100,16 +102,18 @@ class FakeAccount(BaseModel):
 
 class FakeOrganizationalUnit(BaseModel):
 
-    def __init__(self, organization, root_id, **kwargs):
+    def __init__(self, organization, **kwargs):
+        self.type = 'ORGANIZATIONAL_UNIT'
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
-        self.id = utils.make_random_ou_id(root_id)
-        self.name = kwargs['Name']
-        self.parent_id = kwargs['ParentId']
+        self.id = utils.make_random_ou_id(organization.root_id)
+        self.name = kwargs.get('Name')
+        self.parent_id = kwargs.get('ParentId')
+        self._arn_format = OU_ARN_FORMAT
 
     @property
     def arn(self):
-        return OU_ARN_FORMAT.format(
+        return self._arn_format.format(
             self.master_account_id,
             self.organization_id,
             self.id
@@ -125,25 +129,18 @@ class FakeOrganizationalUnit(BaseModel):
         }
 
 
-class FakeRoot(BaseModel):
+class FakeRoot(FakeOrganizationalUnit):
 
     def __init__(self, organization, **kwargs):
-        self.organization_id = organization.id
-        self.master_account_id = organization.master_account_id
-        self.id = utils.make_random_root_id()
+        super().__init__(organization, **kwargs)
+        self.type = 'ROOT'
+        self.id = organization.root_id
         self.name = 'Root'
         self.policy_types = [{
             'Type': 'SERVICE_CONTROL_POLICY',
             'Status': 'ENABLED'
         }]
-
-    @property
-    def arn(self):
-        return ROOT_ARN_FORMAT.format(
-            self.master_account_id,
-            self.organization_id,
-            self.id
-        )
+        self._arn_format = ROOT_ARN_FORMAT
 
     def describe(self):
         return {
@@ -154,18 +151,16 @@ class FakeRoot(BaseModel):
         }
 
 
-
 class OrganizationsBackend(BaseBackend):
 
     def __init__(self):
         self.org = None
         self.accounts = []
-        self.roots = []
         self.ou = []
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs['FeatureSet'])
-        self.roots.append(FakeRoot(self.org))
+        self.ou.append(FakeRoot(self.org))
         return self.org.describe()
 
     def describe_organization(self):
@@ -173,11 +168,11 @@ class OrganizationsBackend(BaseBackend):
 
     def list_roots(self):
         return dict(
-            Roots=[root.describe() for root in self.roots]
+            Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)]
         )
 
     def create_organizational_unit(self, **kwargs):
-        new_ou = FakeOrganizationalUnit(self.org, self.roots[0].id, **kwargs)
+        new_ou = FakeOrganizationalUnit(self.org, **kwargs)
         self.ou.append(new_ou)
         return new_ou.describe()
 
@@ -201,23 +196,29 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def list_parents(self, **kwargs):
-        parent_id = [
-            ou.parent_id for ou in self.ou if ou.id == kwargs['ChildId']
-        ].pop(0)
-        root_parents = [
-            dict(Id=root.id, Type='ROOT')
-            for root in self.roots
-            if root.id == parent_id
-        ]
-        ou_parents = [
-            dict(Id=ou.id, Type='ORGANIZATIONAL_UNIT')
-            for ou in self.ou
-            if ou.id == parent_id
-        ]
-        return dict(Parents=root_parents + ou_parents)
+        if re.compile(r'[0-9]{12}').match(kwargs['ChildId']):
+            parent_id = [
+                account.parent_id for account in self.accounts
+                if account.id == kwargs['ChildId']
+            ].pop(0)
+        else:
+            parent_id = [
+                ou.parent_id for ou in self.ou
+                if ou.id == kwargs['ChildId']
+            ].pop(0)
+        return dict(
+            Parents=[
+                {
+                    'Id': ou.id,
+                    'Type': ou.type,
+                }
+                for ou in self.ou
+                if ou.id == parent_id
+            ]
+        )
 
     def create_account(self, **kwargs):
-        new_account = FakeAccount(self.org, self.roots[0].id, **kwargs)
+        new_account = FakeAccount(self.org, **kwargs)
         self.accounts.append(new_account)
         return new_account.create_account_status
 
@@ -244,9 +245,10 @@ class OrganizationsBackend(BaseBackend):
 
     def move_account(self, **kwargs):
         new_parent_id = kwargs['DestinationParentId']
-        all_parent_id = [parent.id for parent in self.roots + self.ou]
+        all_parent_id = [parent.id for parent in self.ou]
         account = [
-            account for account in self.accounts if account.id == kwargs['AccountId']
+            account for account in self.accounts
+            if account.id == kwargs['AccountId']
         ].pop(0)
         assert new_parent_id in all_parent_id
         assert account.parent_id == kwargs['SourceParentId']
