@@ -4,6 +4,7 @@ import boto3
 import sure   # noqa
 import datetime
 import yaml
+import six
 
 from moto import mock_organizations
 from moto.organizations.models import (
@@ -64,7 +65,7 @@ def validate_organizational_unit(org, response):
         org['Id'],
         ou['Id'],
     ))
-    ou.should.have.key('Name').should.be.a(str)
+    ou.should.have.key('Name').should.be.a(six.string_types)
 
 
 def validate_account(org, account):
@@ -86,7 +87,7 @@ def validate_account(org, account):
     account['Email'].should.match(EMAIL_REGEX)
     account['JoinedMethod'].should.be.within(['INVITED', 'CREATED'])
     account['Status'].should.be.within(['ACTIVE', 'SUSPENDED'])
-    account['Name'].should.be.a(str)
+    account['Name'].should.be.a(six.string_types)
     account['JoinedTimestamp'].should.be.a(datetime.datetime)
 
 
@@ -101,7 +102,7 @@ def validate_create_account_status(create_status):
     ])
     create_status['Id'].should.match(CREATE_ACCOUNT_STATUS_ID_REGEX)
     create_status['AccountId'].should.match(ACCOUNT_ID_REGEX)
-    create_status['AccountName'].should.be.a(str)
+    create_status['AccountName'].should.be.a(six.string_types)
     create_status['State'].should.equal('SUCCEEDED')
     create_status['RequestedTimestamp'].should.be.a(datetime.datetime)
     create_status['CompletedTimestamp'].should.be.a(datetime.datetime)
@@ -144,7 +145,7 @@ def test_list_roots():
         org['Id'],
         root['Id'],
     ))
-    root.should.have.key('Name').should.be.a(str)
+    root.should.have.key('Name').should.be.a(six.string_types)
     root.should.have.key('PolicyTypes').should.be.a(list)
     root['PolicyTypes'][0].should.have.key('Type').should.equal('SERVICE_CONTROL_POLICY')
     root['PolicyTypes'][0].should.have.key('Status').should.equal('ENABLED')

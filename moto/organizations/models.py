@@ -132,7 +132,7 @@ class FakeOrganizationalUnit(BaseModel):
 class FakeRoot(FakeOrganizationalUnit):
 
     def __init__(self, organization, **kwargs):
-        super().__init__(organization, **kwargs)
+        super(FakeRoot, self).__init__(organization, **kwargs)
         self.type = 'ROOT'
         self.id = organization.root_id
         self.name = 'Root'
