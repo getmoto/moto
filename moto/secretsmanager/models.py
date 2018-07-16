@@ -6,7 +6,12 @@ import json
 import boto3
 
 from moto.core import BaseBackend, BaseModel
-from .exceptions import ResourceNotFoundException
+from .exceptions import (
+    ResourceNotFoundException,
+    InvalidParameterException,
+    ClientError
+)
+from .utils import random_password, secret_arn
 
 
 class SecretsManager(BaseModel):
@@ -40,7 +45,7 @@ class SecretsManagerBackend(BaseBackend):
             raise ResourceNotFoundException()
 
         response = json.dumps({
-            "ARN": self.secret_arn(self.region, self.secret_id),
+            "ARN": secret_arn(self.region, self.secret_id),
             "Name": self.secret_id,
             "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
             "SecretString": self.secret_string,
@@ -58,16 +63,41 @@ class SecretsManagerBackend(BaseBackend):
         self.secret_id = name
 
         response = json.dumps({
-            "ARN": self.secret_arn(self.region, name),
+            "ARN": secret_arn(self.region, name),
             "Name": self.secret_id,
             "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
         })
 
         return response
 
-    def secret_arn(self, region, secret_id):
-        return "arn:aws:secretsmanager:{0}:1234567890:secret:{1}-rIjad".format(
-            region, secret_id)
+    def get_random_password(self, password_length,
+                            exclude_characters, exclude_numbers,
+                            exclude_punctuation, exclude_uppercase,
+                            exclude_lowercase, include_space,
+                            require_each_included_type):
+        # password size must have value less than or equal to 4096
+        if password_length > 4096:
+            raise ClientError(
+                "ClientError: An error occurred (ValidationException) \
+                when calling the GetRandomPassword operation: 1 validation error detected: Value '{}' at 'passwordLength' \
+                failed to satisfy constraint: Member must have value less than or equal to 4096".format(password_length))
+        if password_length < 4:
+            raise InvalidParameterException(
+                "InvalidParameterException: An error occurred (InvalidParameterException) \
+                when calling the GetRandomPassword operation: Password length is too short based on the required types.")
+
+        response = json.dumps({
+            "RandomPassword": random_password(password_length,
+                                              exclude_characters,
+                                              exclude_numbers,
+                                              exclude_punctuation,
+                                              exclude_uppercase,
+                                              exclude_lowercase,
+                                              include_space,
+                                              require_each_included_type)
+        })
+
+        return response
 
 
 available_regions = (
