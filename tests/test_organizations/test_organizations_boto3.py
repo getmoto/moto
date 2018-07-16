@@ -341,3 +341,44 @@ def test_list_parents_for_accounts():
     response02['Parents'][0].should.have.key('Id').should.equal(ou01_id)
     response02['Parents'][0].should.have.key('Type').should.equal('ORGANIZATIONAL_UNIT')
     #assert False
+
+
+@mock_organizations
+def test_list_chidlren():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    ou01 = client.create_organizational_unit(ParentId=root_id, Name='ou01')
+    ou01_id = ou01['OrganizationalUnit']['Id']
+    ou02 = client.create_organizational_unit(ParentId=ou01_id, Name='ou02')
+    ou02_id = ou02['OrganizationalUnit']['Id']
+    account01_id = client.create_account(
+        AccountName='account01',
+        Email='account01@moto-example.org'
+    )['CreateAccountStatus']['AccountId']
+    account02_id = client.create_account(
+        AccountName='account02',
+        Email='account02@moto-example.org'
+    )['CreateAccountStatus']['AccountId']
+    client.move_account(
+        AccountId=account02_id,
+        SourceParentId=root_id,
+        DestinationParentId=ou01_id,
+    )
+    response01 = client.list_children(ParentId=root_id, ChildType='ACCOUNT')
+    response02 = client.list_children(ParentId=root_id, ChildType='ORGANIZATIONAL_UNIT')
+    response03 = client.list_children(ParentId=ou01_id, ChildType='ACCOUNT')
+    response04 = client.list_children(ParentId=ou01_id, ChildType='ORGANIZATIONAL_UNIT')
+    #print(yaml.dump(response01, default_flow_style=False))
+    #print(yaml.dump(response02, default_flow_style=False))
+    #print(yaml.dump(response03, default_flow_style=False))
+    #print(yaml.dump(response04, default_flow_style=False))
+    response01['Children'][0]['Id'].should.equal(account01_id)
+    response01['Children'][0]['Type'].should.equal('ACCOUNT')
+    response02['Children'][0]['Id'].should.equal(ou01_id)
+    response02['Children'][0]['Type'].should.equal('ORGANIZATIONAL_UNIT')
+    response03['Children'][0]['Id'].should.equal(account02_id)
+    response03['Children'][0]['Type'].should.equal('ACCOUNT')
+    response04['Children'][0]['Id'].should.equal(ou02_id)
+    response04['Children'][0]['Type'].should.equal('ORGANIZATIONAL_UNIT')
+    #assert False

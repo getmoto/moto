@@ -80,3 +80,8 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.move_account(**self.request_params)
         )
+
+    def list_children(self):
+        return json.dumps(
+            self.organizations_backend.list_children(**self.request_params)
+        )

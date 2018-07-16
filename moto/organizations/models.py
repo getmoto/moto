@@ -195,28 +195,6 @@ class OrganizationsBackend(BaseBackend):
             ]
         )
 
-    def list_parents(self, **kwargs):
-        if re.compile(r'[0-9]{12}').match(kwargs['ChildId']):
-            parent_id = [
-                account.parent_id for account in self.accounts
-                if account.id == kwargs['ChildId']
-            ].pop(0)
-        else:
-            parent_id = [
-                ou.parent_id for ou in self.ou
-                if ou.id == kwargs['ChildId']
-            ].pop(0)
-        return dict(
-            Parents=[
-                {
-                    'Id': ou.id,
-                    'Type': ou.type,
-                }
-                for ou in self.ou
-                if ou.id == parent_id
-            ]
-        )
-
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)
         self.accounts.append(new_account)
@@ -254,6 +232,44 @@ class OrganizationsBackend(BaseBackend):
         assert account.parent_id == kwargs['SourceParentId']
         index = self.accounts.index(account)
         self.accounts[index].parent_id = new_parent_id
+
+    def list_parents(self, **kwargs):
+        if re.compile(r'[0-9]{12}').match(kwargs['ChildId']):
+            obj_list = self.accounts
+        else:
+            obj_list = self.ou
+        parent_id = [
+            obj.parent_id for obj in obj_list
+            if obj.id == kwargs['ChildId']
+        ].pop(0)
+        return dict(
+            Parents=[
+                {
+                    'Id': ou.id,
+                    'Type': ou.type,
+                }
+                for ou in self.ou
+                if ou.id == parent_id
+            ]
+        )
+
+    def list_children(self, **kwargs):
+        if kwargs['ChildType'] == 'ACCOUNT':
+            obj_list = self.accounts
+        elif kwargs['ChildType'] == 'ORGANIZATIONAL_UNIT':
+            obj_list = self.ou
+        else:
+            raise ValueError
+        return dict(
+            Children=[
+                {
+                    'Id': obj.id,
+                    'Type': kwargs['ChildType'],
+                }
+                for obj in obj_list
+                if obj.parent_id == kwargs['ParentId']
+            ]
+        )
 
 
 organizations_backend = OrganizationsBackend()
