@@ -13,3 +13,17 @@ class ResourceNotFoundException(SecretsManagerClientError):
             "ResourceNotFoundException",
             "Secrets Manager can't find the specified secret"
         )
+
+
+class ClientError(SecretsManagerClientError):
+    def __init__(self, message):
+        super(ClientError, self).__init__(
+            'InvalidParameterValue',
+            message)
+
+
+class InvalidParameterException(SecretsManagerClientError):
+    def __init__(self, message):
+        super(InvalidParameterException, self).__init__(
+            'InvalidParameterException',
+            message)
