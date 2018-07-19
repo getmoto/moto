@@ -718,7 +718,7 @@ class S3Backend(BaseBackend):
                 if key_name in bucket.keys:
                     key = bucket.keys[key_name]
             else:
-                for key_version in bucket.keys.getlist(key_name):
+                for key_version in bucket.keys.getlist(key_name, default=[]):
                     if str(key_version.version_id) == str(version_id):
                         key = key_version
                         break
