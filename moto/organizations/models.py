@@ -7,14 +7,6 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.organizations import utils
 
-MASTER_ACCOUNT_ID = '123456789012'
-MASTER_ACCOUNT_EMAIL = 'fakeorg@moto-example.com'
-ORGANIZATION_ARN_FORMAT = 'arn:aws:organizations::{0}:organization/{1}'
-MASTER_ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{0}'
-ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{2}'
-ROOT_ARN_FORMAT = 'arn:aws:organizations::{0}:root/{1}/{2}'
-OU_ARN_FORMAT = 'arn:aws:organizations::{0}:ou/{1}/{2}'
-
 
 class FakeOrganization(BaseModel):
 
@@ -22,8 +14,8 @@ class FakeOrganization(BaseModel):
         self.id = utils.make_random_org_id()
         self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
-        self.master_account_id = MASTER_ACCOUNT_ID
-        self.master_account_email = MASTER_ACCOUNT_EMAIL
+        self.master_account_id = utils.MASTER_ACCOUNT_ID
+        self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [{
             'Type': 'SERVICE_CONTROL_POLICY',
             'Status': 'ENABLED'
@@ -31,11 +23,11 @@ class FakeOrganization(BaseModel):
 
     @property
     def arn(self):
-        return ORGANIZATION_ARN_FORMAT.format(self.master_account_id, self.id)
+        return utils.ORGANIZATION_ARN_FORMAT.format(self.master_account_id, self.id)
 
     @property
     def master_account_arn(self):
-        return MASTER_ACCOUNT_ARN_FORMAT.format(self.master_account_id, self.id)
+        return utils.MASTER_ACCOUNT_ARN_FORMAT.format(self.master_account_id, self.id)
 
     def describe(self):
         return {
@@ -67,7 +59,7 @@ class FakeAccount(BaseModel):
 
     @property
     def arn(self):
-        return ACCOUNT_ARN_FORMAT.format(
+        return utils.ACCOUNT_ARN_FORMAT.format(
             self.master_account_id,
             self.organization_id,
             self.id
@@ -109,7 +101,7 @@ class FakeOrganizationalUnit(BaseModel):
         self.id = utils.make_random_ou_id(organization.root_id)
         self.name = kwargs.get('Name')
         self.parent_id = kwargs.get('ParentId')
-        self._arn_format = OU_ARN_FORMAT
+        self._arn_format = utils.OU_ARN_FORMAT
 
     @property
     def arn(self):
@@ -140,7 +132,7 @@ class FakeRoot(FakeOrganizationalUnit):
             'Type': 'SERVICE_CONTROL_POLICY',
             'Status': 'ENABLED'
         }]
-        self._arn_format = ROOT_ARN_FORMAT
+        self._arn_format = utils.ROOT_ARN_FORMAT
 
     def describe(self):
         return {

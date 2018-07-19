@@ -3,6 +3,14 @@ from __future__ import unicode_literals
 import random
 import string
 
+MASTER_ACCOUNT_ID = '123456789012'
+MASTER_ACCOUNT_EMAIL = 'fakeorg@moto-example.com'
+ORGANIZATION_ARN_FORMAT = 'arn:aws:organizations::{0}:organization/{1}'
+MASTER_ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{0}'
+ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{2}'
+ROOT_ARN_FORMAT = 'arn:aws:organizations::{0}:root/{1}/{2}'
+OU_ARN_FORMAT = 'arn:aws:organizations::{0}:ou/{1}/{2}'
+
 CHARSET = string.ascii_lowercase + string.digits
 ORG_ID_SIZE = 10
 ROOT_ID_SIZE = 4
