@@ -200,17 +200,22 @@ class ECRBackend(BaseBackend):
         """
         maxResults and filtering not implemented
         """
-        images = []
-        for repository in self.repositories.values():
-            if repository_name:
-                if repository.name != repository_name:
-                    continue
+        repository = None
+        found = False
+        if repository_name in self.repositories:
+            repository = self.repositories[repository_name]
             if registry_id:
-                if repository.registry_id != registry_id:
-                    continue
+                if repository.registry_id == registry_id:
+                    found = True
+            else:
+                found = True
 
-            for image in repository.images:
-                images.append(image)
+        if not found:
+            raise RepositoryNotFoundException(repository_name, registry_id or DEFAULT_REGISTRY_ID)
+
+        images = []
+        for image in repository.images:
+            images.append(image)
         return images
 
     def describe_images(self, repository_name, registry_id=None, image_ids=None):
