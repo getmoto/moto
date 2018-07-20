@@ -181,7 +181,7 @@ class OrganizationsBackend(BaseBackend):
     def validate_parent_id(self, parent_id):
         try:
             self.get_organizational_unit_by_id(parent_id)
-        except RESTError as e:
+        except RESTError:
             raise RESTError(
                 'ParentNotFoundException',
                 "You specified parent that doesn't exist."
