@@ -4,6 +4,7 @@ import datetime
 import re
 
 from moto.core import BaseBackend, BaseModel
+from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
 
@@ -168,13 +169,31 @@ class OrganizationsBackend(BaseBackend):
         self.ou.append(new_ou)
         return new_ou.describe()
 
+    def get_organizational_unit_by_id(self, ou_id):
+        ou = next((ou for ou in self.ou if ou.id == ou_id), None)
+        if ou is None:
+            raise RESTError(
+                'OrganizationalUnitNotFoundException',
+                "You specified an organizational unit that doesn't exist."
+            )
+        return ou
+
+    def validate_parent_id(self, parent_id):
+        try:
+            self.get_organizational_unit_by_id(parent_id)
+        except RESTError as e:
+            raise RESTError(
+                'ParentNotFoundException',
+                "You specified parent that doesn't exist."
+            )
+        return parent_id
+
     def describe_organizational_unit(self, **kwargs):
-        ou = [
-            ou for ou in self.ou if ou.id == kwargs['OrganizationalUnitId']
-        ].pop(0)
+        ou = self.get_organizational_unit_by_id(kwargs['OrganizationalUnitId'])
         return ou.describe()
 
     def list_organizational_units_for_parent(self, **kwargs):
+        parent_id = self.validate_parent_id(kwargs['ParentId'])
         return dict(
             OrganizationalUnits=[
                 {
@@ -183,7 +202,7 @@ class OrganizationsBackend(BaseBackend):
                     'Name': ou.name,
                 }
                 for ou in self.ou
-                if ou.parent_id == kwargs['ParentId']
+                if ou.parent_id == parent_id
             ]
         )
 
@@ -192,11 +211,20 @@ class OrganizationsBackend(BaseBackend):
         self.accounts.append(new_account)
         return new_account.create_account_status
 
-    def describe_account(self, **kwargs):
-        account = [
+    def get_account_by_id(self, account_id):
+        account = next((
             account for account in self.accounts
-            if account.id == kwargs['AccountId']
-        ].pop(0)
+            if account.id == account_id
+        ), None)
+        if account is None:
+            raise RESTError(
+                'AccountNotFoundException',
+                "You specified an account that doesn't exist."
+            )
+        return account
+
+    def describe_account(self, **kwargs):
+        account = self.get_account_by_id(kwargs['AccountId'])
         return account.describe()
 
     def list_accounts(self):
@@ -205,35 +233,27 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def list_accounts_for_parent(self, **kwargs):
+        parent_id = self.validate_parent_id(kwargs['ParentId'])
         return dict(
             Accounts=[
                 account.describe()['Account']
                 for account in self.accounts
-                if account.parent_id == kwargs['ParentId']
+                if account.parent_id == parent_id
             ]
         )
 
     def move_account(self, **kwargs):
-        new_parent_id = kwargs['DestinationParentId']
-        all_parent_id = [parent.id for parent in self.ou]
-        account = [
-            account for account in self.accounts
-            if account.id == kwargs['AccountId']
-        ].pop(0)
-        assert new_parent_id in all_parent_id
-        assert account.parent_id == kwargs['SourceParentId']
+        new_parent_id = self.validate_parent_id(kwargs['DestinationParentId'])
+        self.validate_parent_id(kwargs['SourceParentId'])
+        account = self.get_account_by_id(kwargs['AccountId'])
         index = self.accounts.index(account)
         self.accounts[index].parent_id = new_parent_id
 
     def list_parents(self, **kwargs):
         if re.compile(r'[0-9]{12}').match(kwargs['ChildId']):
-            obj_list = self.accounts
+            child_object = self.get_account_by_id(kwargs['ChildId'])
         else:
-            obj_list = self.ou
-        parent_id = [
-            obj.parent_id for obj in obj_list
-            if obj.id == kwargs['ChildId']
-        ].pop(0)
+            child_object = self.get_organizational_unit_by_id(kwargs['ChildId'])
         return dict(
             Parents=[
                 {
@@ -241,17 +261,21 @@ class OrganizationsBackend(BaseBackend):
                     'Type': ou.type,
                 }
                 for ou in self.ou
-                if ou.id == parent_id
+                if ou.id == child_object.parent_id
             ]
         )
 
     def list_children(self, **kwargs):
+        parent_id = self.validate_parent_id(kwargs['ParentId'])
         if kwargs['ChildType'] == 'ACCOUNT':
             obj_list = self.accounts
         elif kwargs['ChildType'] == 'ORGANIZATIONAL_UNIT':
             obj_list = self.ou
         else:
-            raise ValueError
+            raise RESTError(
+                'InvalidInputException',
+                'You specified an invalid value.'
+            )
         return dict(
             Children=[
                 {
@@ -259,7 +283,7 @@ class OrganizationsBackend(BaseBackend):
                     'Type': kwargs['ChildType'],
                 }
                 for obj in obj_list
-                if obj.parent_id == kwargs['ParentId']
+                if obj.parent_id == parent_id
             ]
         )
 

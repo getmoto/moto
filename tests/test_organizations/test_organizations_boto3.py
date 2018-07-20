@@ -2,9 +2,11 @@ from __future__ import unicode_literals
 
 import boto3
 import sure   # noqa
-import yaml
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 
 from moto import mock_organizations
+from moto.organizations import utils
 from .organizations_test_utils import (
     validate_organization,
     validate_roots,
@@ -68,6 +70,20 @@ def test_describe_organizational_unit():
 
 
 @mock_organizations
+def test_describe_organizational_unit_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    with assert_raises(ClientError) as e:
+        response = client.describe_organizational_unit(
+            OrganizationalUnitId=utils.make_random_root_id()
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('DescribeOrganizationalUnit')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('OrganizationalUnitNotFoundException')
+
+
+@mock_organizations
 def test_list_organizational_units_for_parent():
     client = boto3.client('organizations', region_name='us-east-1')
     org = client.create_organization(FeatureSet='ALL')['Organization']
@@ -79,6 +95,19 @@ def test_list_organizational_units_for_parent():
     response.should.have.key('OrganizationalUnits').should.be.a(list)
     for ou in response['OrganizationalUnits']:
         validate_organizational_unit(org, dict(OrganizationalUnit=ou))
+
+
+@mock_organizations
+def test_list_organizational_units_for_parent_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    with assert_raises(ClientError) as e:
+        response = client.list_organizational_units_for_parent(
+            ParentId=utils.make_random_root_id()
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('ListOrganizationalUnitsForParent')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('ParentNotFoundException')
 
 
 # Accounts
@@ -109,6 +138,17 @@ def test_describe_account():
     validate_account(org, response['Account'])
     response['Account']['Name'].should.equal(mockname)
     response['Account']['Email'].should.equal(mockemail)
+
+
+@mock_organizations
+def test_describe_account_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    with assert_raises(ClientError) as e:
+        response = client.describe_account(AccountId=utils.make_random_account_id())
+    ex = e.exception
+    ex.operation_name.should.equal('DescribeAccount')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('AccountNotFoundException')
 
 
 @mock_organizations
@@ -211,7 +251,7 @@ def test_list_parents_for_accounts():
 
 
 @mock_organizations
-def test_list_chidlren():
+def test_list_children():
     client = boto3.client('organizations', region_name='us-east-1')
     org = client.create_organization(FeatureSet='ALL')['Organization']
     root_id = client.list_roots()['Roots'][0]['Id']
@@ -244,3 +284,28 @@ def test_list_chidlren():
     response03['Children'][0]['Type'].should.equal('ACCOUNT')
     response04['Children'][0]['Id'].should.equal(ou02_id)
     response04['Children'][0]['Type'].should.equal('ORGANIZATIONAL_UNIT')
+
+
+@mock_organizations
+def test_list_children_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    with assert_raises(ClientError) as e:
+        response = client.list_children(
+            ParentId=utils.make_random_root_id(),
+            ChildType='ACCOUNT'
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('ListChildren')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('ParentNotFoundException')
+    with assert_raises(ClientError) as e:
+        response = client.list_children(
+            ParentId=root_id,
+            ChildType='BLEE'
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('ListChildren')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('InvalidInputException')

@@ -112,7 +112,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | KMS                   | @mock_kms        | basic endpoints done              |
 |------------------------------------------------------------------------------|
-| Organizations         | @mock_organizations | some endpoints done            |
+| Organizations         | @mock_organizations | some core endpoints done       |
 |------------------------------------------------------------------------------|
 | Polly                 | @mock_polly      | all endpoints done                |
 |------------------------------------------------------------------------------|
