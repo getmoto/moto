@@ -859,14 +859,14 @@
 - [ ] confirm_device
 - [X] confirm_forgot_password
 - [ ] confirm_sign_up
-- [ ] create_group
+- [X] create_group
 - [X] create_identity_provider
 - [ ] create_resource_server
 - [ ] create_user_import_job
 - [X] create_user_pool
 - [X] create_user_pool_client
 - [X] create_user_pool_domain
-- [ ] delete_group
+- [X] delete_group
 - [X] delete_identity_provider
 - [ ] delete_resource_server
 - [ ] delete_user
@@ -885,7 +885,7 @@
 - [ ] forgot_password
 - [ ] get_csv_header
 - [ ] get_device
-- [ ] get_group
+- [X] get_group
 - [ ] get_identity_provider_by_identifier
 - [ ] get_signing_certificate
 - [ ] get_ui_customization
@@ -895,7 +895,7 @@
 - [ ] global_sign_out
 - [ ] initiate_auth
 - [ ] list_devices
-- [ ] list_groups
+- [X] list_groups
 - [X] list_identity_providers
 - [ ] list_resource_servers
 - [ ] list_user_import_jobs

@@ -1,14 +1,18 @@
 from __future__ import unicode_literals
 
-import boto3
 import json
 import os
+import random
 import uuid
 
+import boto3
+# noinspection PyUnresolvedReferences
+import sure  # noqa
+from botocore.exceptions import ClientError
 from jose import jws
+from nose.tools import assert_raises
 
 from moto import mock_cognitoidp
-import sure  # noqa
 
 
 @mock_cognitoidp
@@ -321,6 +325,94 @@ def test_delete_identity_providers():
         caught = True
 
     caught.should.be.true
+
+
+@mock_cognitoidp
+def test_create_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    description = str(uuid.uuid4())
+    role_arn = "arn:aws:iam:::role/my-iam-role"
+    precedence = random.randint(0, 100000)
+
+    result = conn.create_group(
+        GroupName=group_name,
+        UserPoolId=user_pool_id,
+        Description=description,
+        RoleArn=role_arn,
+        Precedence=precedence,
+    )
+
+    result["Group"]["GroupName"].should.equal(group_name)
+    result["Group"]["UserPoolId"].should.equal(user_pool_id)
+    result["Group"]["Description"].should.equal(description)
+    result["Group"]["RoleArn"].should.equal(role_arn)
+    result["Group"]["Precedence"].should.equal(precedence)
+    result["Group"]["LastModifiedDate"].should.be.a("datetime.datetime")
+    result["Group"]["CreationDate"].should.be.a("datetime.datetime")
+
+
+@mock_cognitoidp
+def test_create_group_with_duplicate_name_raises_error():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    with assert_raises(ClientError) as cm:
+        conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+    cm.exception.operation_name.should.equal('CreateGroup')
+    cm.exception.response['Error']['Code'].should.equal('GroupExistsException')
+    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+
+@mock_cognitoidp
+def test_get_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    result = conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    result["Group"]["GroupName"].should.equal(group_name)
+    result["Group"]["UserPoolId"].should.equal(user_pool_id)
+    result["Group"]["LastModifiedDate"].should.be.a("datetime.datetime")
+    result["Group"]["CreationDate"].should.be.a("datetime.datetime")
+
+
+@mock_cognitoidp
+def test_list_groups():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    result = conn.list_groups(UserPoolId=user_pool_id)
+
+    result["Groups"].should.have.length_of(1)
+    result["Groups"][0]["GroupName"].should.equal(group_name)
+
+
+@mock_cognitoidp
+def test_delete_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    with assert_raises(ClientError) as cm:
+        conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
+    cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
 
 
 @mock_cognitoidp

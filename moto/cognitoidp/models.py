@@ -11,8 +11,7 @@ from jose import jws
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from .exceptions import NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
-
+from .exceptions import GroupExistsException, NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
@@ -33,6 +32,7 @@ class CognitoIdpUserPool(BaseModel):
 
         self.clients = OrderedDict()
         self.identity_providers = OrderedDict()
+        self.groups = OrderedDict()
         self.users = OrderedDict()
         self.refresh_tokens = {}
         self.access_tokens = {}
@@ -183,6 +183,29 @@ class CognitoIdpIdentityProvider(BaseModel):
             identity_provider_json.update(self.extended_config)
 
         return identity_provider_json
+
+
+class CognitoIdpGroup(BaseModel):
+
+    def __init__(self, user_pool_id, group_name, description, role_arn, precedence):
+        self.user_pool_id = user_pool_id
+        self.group_name = group_name
+        self.description = description or ""
+        self.role_arn = role_arn
+        self.precedence = precedence
+        self.last_modified_date = datetime.datetime.now()
+        self.creation_date = self.last_modified_date
+
+    def to_json(self):
+        return {
+            "GroupName": self.group_name,
+            "UserPoolId": self.user_pool_id,
+            "Description": self.description,
+            "RoleArn": self.role_arn,
+            "Precedence": self.precedence,
+            "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "CreationDate": time.mktime(self.creation_date.timetuple()),
+        }
 
 
 class CognitoIdpUser(BaseModel):
@@ -366,6 +389,46 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(name)
 
         del user_pool.identity_providers[name]
+
+    # Group
+    def create_group(self, user_pool_id, group_name, description, role_arn, precedence):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = CognitoIdpGroup(user_pool_id, group_name, description, role_arn, precedence)
+        if group.group_name in user_pool.groups:
+            raise GroupExistsException("A group with the name already exists")
+        user_pool.groups[group.group_name] = group
+
+        return group
+
+    def get_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if group_name not in user_pool.groups:
+            raise ResourceNotFoundError(group_name)
+
+        return user_pool.groups[group_name]
+
+    def list_groups(self, user_pool_id):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        return user_pool.groups.values()
+
+    def delete_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if group_name not in user_pool.groups:
+            raise ResourceNotFoundError(group_name)
+
+        del user_pool.groups[group_name]
 
     # User
     def admin_create_user(self, user_pool_id, username, temporary_password, attributes):
