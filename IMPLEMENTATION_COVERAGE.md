@@ -831,16 +831,16 @@
 - [ ] add_custom_attributes
 - [ ] admin_add_user_to_group
 - [ ] admin_confirm_sign_up
-- [ ] admin_create_user
-- [ ] admin_delete_user
+- [X] admin_create_user
+- [X] admin_delete_user
 - [ ] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
 - [ ] admin_disable_user
 - [ ] admin_enable_user
 - [ ] admin_forget_device
 - [ ] admin_get_device
-- [ ] admin_get_user
-- [ ] admin_initiate_auth
+- [X] admin_get_user
+- [X] admin_initiate_auth
 - [ ] admin_link_provider_for_user
 - [ ] admin_list_devices
 - [ ] admin_list_groups_for_user
@@ -855,32 +855,32 @@
 - [ ] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
-- [ ] change_password
+- [X] change_password
 - [ ] confirm_device
-- [ ] confirm_forgot_password
+- [X] confirm_forgot_password
 - [ ] confirm_sign_up
 - [ ] create_group
-- [ ] create_identity_provider
+- [X] create_identity_provider
 - [ ] create_resource_server
 - [ ] create_user_import_job
-- [ ] create_user_pool
-- [ ] create_user_pool_client
-- [ ] create_user_pool_domain
+- [X] create_user_pool
+- [X] create_user_pool_client
+- [X] create_user_pool_domain
 - [ ] delete_group
-- [ ] delete_identity_provider
+- [X] delete_identity_provider
 - [ ] delete_resource_server
 - [ ] delete_user
 - [ ] delete_user_attributes
-- [ ] delete_user_pool
-- [ ] delete_user_pool_client
-- [ ] delete_user_pool_domain
-- [ ] describe_identity_provider
+- [X] delete_user_pool
+- [X] delete_user_pool_client
+- [X] delete_user_pool_domain
+- [X] describe_identity_provider
 - [ ] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_user_import_job
-- [ ] describe_user_pool
-- [ ] describe_user_pool_client
-- [ ] describe_user_pool_domain
+- [X] describe_user_pool
+- [X] describe_user_pool_client
+- [X] describe_user_pool_domain
 - [ ] forget_device
 - [ ] forgot_password
 - [ ] get_csv_header
@@ -896,15 +896,15 @@
 - [ ] initiate_auth
 - [ ] list_devices
 - [ ] list_groups
-- [ ] list_identity_providers
+- [X] list_identity_providers
 - [ ] list_resource_servers
 - [ ] list_user_import_jobs
-- [ ] list_user_pool_clients
-- [ ] list_user_pools
-- [ ] list_users
+- [X] list_user_pool_clients
+- [X] list_user_pools
+- [X] list_users
 - [ ] list_users_in_group
 - [ ] resend_confirmation_code
-- [ ] respond_to_auth_challenge
+- [X] respond_to_auth_challenge
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [ ] set_user_mfa_preference
@@ -920,7 +920,7 @@
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
-- [ ] update_user_pool_client
+- [X] update_user_pool_client
 - [ ] verify_software_token
 - [ ] verify_user_attribute
 
