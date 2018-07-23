@@ -170,6 +170,48 @@ class CognitoIdpResponse(BaseResponse):
         cognitoidp_backends[self.region].delete_group(user_pool_id, group_name)
         return ""
 
+    def admin_add_user_to_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        group_name = self._get_param("GroupName")
+
+        cognitoidp_backends[self.region].admin_add_user_to_group(
+            user_pool_id,
+            group_name,
+            username,
+        )
+
+        return ""
+
+    def list_users_in_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        users = cognitoidp_backends[self.region].list_users_in_group(user_pool_id, group_name)
+        return json.dumps({
+            "Users": [user.to_json(extended=True) for user in users],
+        })
+
+    def admin_list_groups_for_user(self):
+        username = self._get_param("Username")
+        user_pool_id = self._get_param("UserPoolId")
+        groups = cognitoidp_backends[self.region].admin_list_groups_for_user(user_pool_id, username)
+        return json.dumps({
+            "Groups": [group.to_json() for group in groups],
+        })
+
+    def admin_remove_user_from_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        group_name = self._get_param("GroupName")
+
+        cognitoidp_backends[self.region].admin_remove_user_from_group(
+            user_pool_id,
+            group_name,
+            username,
+        )
+
+        return ""
+
     # User
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")

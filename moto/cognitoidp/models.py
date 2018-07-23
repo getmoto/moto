@@ -196,6 +196,10 @@ class CognitoIdpGroup(BaseModel):
         self.last_modified_date = datetime.datetime.now()
         self.creation_date = self.last_modified_date
 
+        # Users who are members of this group.
+        # Note that these links are bidirectional.
+        self.users = set()
+
     def to_json(self):
         return {
             "GroupName": self.group_name,
@@ -220,6 +224,10 @@ class CognitoIdpUser(BaseModel):
         self.attributes = attributes
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
+
+        # Groups this user is a member of.
+        # Note that these links are bidirectional.
+        self.groups = set()
 
     def _base_json(self):
         return {
@@ -428,7 +436,33 @@ class CognitoIdpBackend(BaseBackend):
         if group_name not in user_pool.groups:
             raise ResourceNotFoundError(group_name)
 
+        group = user_pool.groups[group_name]
+        for user in group.users:
+            user.groups.remove(group)
+
         del user_pool.groups[group_name]
+
+    def admin_add_user_to_group(self, user_pool_id, group_name, username):
+        group = self.get_group(user_pool_id, group_name)
+        user = self.admin_get_user(user_pool_id, username)
+
+        group.users.add(user)
+        user.groups.add(group)
+
+    def list_users_in_group(self, user_pool_id, group_name):
+        group = self.get_group(user_pool_id, group_name)
+        return list(group.users)
+
+    def admin_list_groups_for_user(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        return list(user.groups)
+
+    def admin_remove_user_from_group(self, user_pool_id, group_name, username):
+        group = self.get_group(user_pool_id, group_name)
+        user = self.admin_get_user(user_pool_id, username)
+
+        group.users.discard(user)
+        user.groups.discard(group)
 
     # User
     def admin_create_user(self, user_pool_id, username, temporary_password, attributes):
@@ -464,6 +498,10 @@ class CognitoIdpBackend(BaseBackend):
 
         if username not in user_pool.users:
             raise ResourceNotFoundError(username)
+
+        user = user_pool.users[username]
+        for group in user.groups:
+            group.users.remove(user)
 
         del user_pool.users[username]
 

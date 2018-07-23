@@ -827,9 +827,9 @@
 - [ ] unlink_identity
 - [ ] update_identity_pool
 
-## cognito-idp - 0% implemented
+## cognito-idp - 34% implemented
 - [ ] add_custom_attributes
-- [ ] admin_add_user_to_group
+- [X] admin_add_user_to_group
 - [ ] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
@@ -843,9 +843,9 @@
 - [X] admin_initiate_auth
 - [ ] admin_link_provider_for_user
 - [ ] admin_list_devices
-- [ ] admin_list_groups_for_user
+- [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
-- [ ] admin_remove_user_from_group
+- [X] admin_remove_user_from_group
 - [ ] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
@@ -902,7 +902,7 @@
 - [X] list_user_pool_clients
 - [X] list_user_pools
 - [X] list_users
-- [ ] list_users_in_group
+- [X] list_users_in_group
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
 - [ ] set_risk_configuration

@@ -408,11 +408,162 @@ def test_delete_group():
     group_name = str(uuid.uuid4())
     conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
 
-    conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
+    result = conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
     with assert_raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
     cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+
+
+@mock_cognitoidp
+def test_admin_add_user_to_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+
+@mock_cognitoidp
+def test_admin_add_user_to_group_again_is_noop():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+
+
+@mock_cognitoidp
+def test_list_users_in_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+
+    result = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
+
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username)
+
+
+@mock_cognitoidp
+def test_list_users_in_group_ignores_deleted_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    username2 = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username2)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username2, GroupName=group_name)
+    conn.admin_delete_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
+
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username2)
+
+
+@mock_cognitoidp
+def test_admin_list_groups_for_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+
+    result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
+
+    result["Groups"].should.have.length_of(1)
+    result["Groups"][0]["GroupName"].should.equal(group_name)
+
+
+@mock_cognitoidp
+def test_admin_list_groups_for_user_ignores_deleted_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+    group_name2 = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name2, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name2)
+    conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
+
+    result["Groups"].should.have.length_of(1)
+    result["Groups"][0]["GroupName"].should.equal(group_name2)
+
+
+@mock_cognitoidp
+def test_admin_remove_user_from_group():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+
+    result = conn.admin_remove_user_from_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+    conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name) \
+        ["Users"].should.have.length_of(0)
+    conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id) \
+        ["Groups"].should.have.length_of(0)
+
+
+@mock_cognitoidp
+def test_admin_remove_user_from_group_again_is_noop():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    group_name = str(uuid.uuid4())
+    conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
+
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
 
 
 @mock_cognitoidp
