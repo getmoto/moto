@@ -589,7 +589,7 @@ def test_volume_tag_escaping():
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
 
 
-@freeze_time
+@freeze_time("2015-01-01 12:00:00")
 @mock_ec2
 def test_copy_snapshot():
     ec2_client = boto3.client('ec2', region_name='eu-west-1')
