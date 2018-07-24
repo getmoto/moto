@@ -906,7 +906,21 @@ class IAMBackend(BaseBackend):
         self.account_aliases = []
 
     def get_account_authorization_details(self, filter):
-        return {}
+        policies = self.managed_policies.values()
+        local_policies = set(policies) - set(aws_managed_policies)
+        returned_policies = []
 
+        if 'AWSManagedPolicy' in filter:
+            returned_policies = aws_managed_policies
+        if 'LocalManagedPolicy' in filter:
+            returned_policies = returned_policies + list(local_policies)
+
+        return {
+            'instance_profiles': self.instance_profiles.values(),
+            'roles': self.roles.values(),
+            'groups': self.groups.values(),
+            'users': self.users.values(),
+            'managed_policies': returned_policies
+        }
 
 iam_backend = IAMBackend()
