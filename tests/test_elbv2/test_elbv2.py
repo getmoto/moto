@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation
+from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation, settings
 from moto.elbv2 import elbv2_backends
 
 
@@ -1488,7 +1488,7 @@ def test_modify_listener_http_to_https():
     len(response['Listeners'][0]['Certificates']).should.equal(2)
 
     # Check default cert, can't do this in server mode
-    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'false':
+    if not settings.TEST_SERVER_MODE:
         listener = elbv2_backends['eu-central-1'].load_balancers[load_balancer_arn].listeners[listener_arn]
         listener.certificate.should.equal(yahoo_arn)
 

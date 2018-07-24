@@ -839,7 +839,7 @@ def test_delete_message_after_visibility_timeout():
 
 @mock_sqs
 def test_batch_change_message_visibility():
-    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+    if settings.TEST_SERVER_MODE:
         raise SkipTest('Cant manipulate time in server mode')
 
     with freeze_time("2015-01-01 12:00:00"):
@@ -969,7 +969,7 @@ def test_create_fifo_queue_with_dlq():
 
 @mock_sqs
 def test_queue_with_dlq():
-    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+    if settings.TEST_SERVER_MODE:
         raise SkipTest('Cant manipulate time in server mode')
 
     sqs = boto3.client('sqs', region_name='us-east-1')
@@ -1155,7 +1155,7 @@ def test_receive_messages_with_message_group_id_on_requeue():
 
 @mock_sqs
 def test_receive_messages_with_message_group_id_on_visibility_timeout():
-    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+    if settings.TEST_SERVER_MODE:
         raise SkipTest('Cant manipulate time in server mode')
 
     with freeze_time("2015-01-01 12:00:00"):
