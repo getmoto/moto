@@ -199,7 +199,7 @@ def test_igw_desribe():
 
 
 @mock_ec2_deprecated
-def test_igw_desribe_bad_id():
+def test_igw_describe_bad_id():
     """ internet gateway fail to fetch by bad id """
     conn = boto.connect_vpc('the_key', 'the_secret')
     with assert_raises(EC2ResponseError) as cm:
