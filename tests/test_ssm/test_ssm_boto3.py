@@ -668,3 +668,43 @@ def test_list_commands():
     with assert_raises(ClientError):
         response = client.list_commands(
             CommandId=str(uuid.uuid4()))
+
+@mock_ssm
+def test_get_command_invocation():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    ssm_document = 'AWS-RunShellScript'
+    params = {'commands': ['#!/bin/bash\necho \'hello world\'']}
+
+    response = client.send_command(
+        InstanceIds=['i-123456', 'i-234567', 'i-345678'],
+        DocumentName=ssm_document,
+        Parameters=params,
+        OutputS3Region='us-east-2',
+        OutputS3BucketName='the-bucket',
+        OutputS3KeyPrefix='pref')
+
+    cmd = response['Command']
+    cmd_id = cmd['CommandId']
+
+    instance_id = 'i-345678'
+    invocation_response = client.get_command_invocation(
+        CommandId=cmd_id,
+        InstanceId=instance_id,
+        PluginName='aws:runShellScript')
+
+    invocation_response['CommandId'].should.equal(cmd_id)
+    invocation_response['InstanceId'].should.equal(instance_id)
+
+    # test the error case for an invalid instance id
+    with assert_raises(ClientError):
+        invocation_response = client.get_command_invocation(
+            CommandId=cmd_id,
+            InstanceId='i-FAKE')
+
+    # test the error case for an invalid plugin name
+    with assert_raises(ClientError):
+        invocation_response = client.get_command_invocation(
+            CommandId=cmd_id,
+            InstanceId=instance_id,
+            PluginName='FAKE')
