@@ -43,6 +43,7 @@ from moto.iot import iot_backends
 from moto.iotdata import iotdata_backends
 from moto.batch import batch_backends
 from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
+from moto.elastictranscoder import elastictranscoder_backends
 
 
 BACKENDS = {
@@ -90,6 +91,7 @@ BACKENDS = {
     'resourcegroupstaggingapi': resourcegroupstaggingapi_backends,
     'iot': iot_backends,
     'iot-data': iotdata_backends,
+    'elastictranscoder': elastictranscoder_backends,
 }
 
 
