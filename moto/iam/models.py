@@ -905,5 +905,8 @@ class IAMBackend(BaseBackend):
     def delete_account_alias(self, alias):
         self.account_aliases = []
 
+    def get_account_authorization_details(self, filter):
+        return {}
+
 
 iam_backend = IAMBackend()

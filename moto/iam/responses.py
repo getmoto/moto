@@ -534,6 +534,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(DELETE_ACCOUNT_ALIAS_TEMPLATE)
         return template.render()
 
+    def get_account_authorization_details(self):
+        print('enter get_account')
+        filter_param = self._get_param('Filter')
+        iam_backend.get_account_authorization_details(filter_param)
+        template = self.response_template(GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE)
+        print('render template')
+        return template.render()
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
@@ -1309,3 +1317,422 @@ DELETE_ACCOUNT_ALIAS_TEMPLATE = """<DeleteAccountAliasResponse xmlns="https://ia
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteAccountAliasResponse>"""
+
+
+LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
+  <ListGroupsForUserResult>
+    <Groups>
+        {% for group in groups %}
+        <member>
+            <Path>{{ group.path }}</Path>
+            <GroupName>{{ group.name }}</GroupName>
+            <GroupId>{{ group.id }}</GroupId>
+            <Arn>{{ group.arn }}</Arn>
+        </member>
+        {% endfor %}
+    </Groups>
+    <IsTruncated>false</IsTruncated>
+  </ListGroupsForUserResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupsForUserResponse>"""
+
+
+GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountAuthorizationDetailsResult>
+    <IsTruncated>true</IsTruncated>
+    <UserDetailList>
+      <member>
+        <GroupList>
+          <member>Admins</member>
+        </GroupList>
+        <AttachedManagedPolicies/>
+        <UserId>AIDACKCEVSQ6C2EXAMPLE</UserId>
+        <Path>/</Path>
+        <UserName>Alice</UserName>
+        <Arn>arn:aws:iam::123456789012:user/Alice</Arn>
+        <CreateDate>2013-10-14T18:32:24Z</CreateDate>
+      </member>
+      <member>
+        <GroupList>
+          <member>Admins</member>
+        </GroupList>
+        <AttachedManagedPolicies/>
+        <UserPolicyList>
+          <member>
+            <PolicyName>DenyBillingAndIAMPolicy</PolicyName>
+            <PolicyDocument>
+              {"Version":"2012-10-17","Statement":{"Effect":"Deny","Action":
+              ["aws-portal:*","iam:*"],"Resource":"*"}}
+            </PolicyDocument>
+          </member>
+        </UserPolicyList>
+        <UserId>AIDACKCEVSQ6C3EXAMPLE</UserId>
+        <Path>/</Path>
+        <UserName>Bob</UserName>
+        <Arn>arn:aws:iam::123456789012:user/Bob</Arn>
+        <CreateDate>2013-10-14T18:32:25Z</CreateDate>
+      </member>
+      <member>
+        <GroupList>
+          <member>Dev</member>
+        <AttachedManagedPolicies/>
+        </GroupList>
+        <UserId>AIDACKCEVSQ6C4EXAMPLE</UserId>
+        <Path>/</Path>
+        <UserName>Charlie</UserName>
+        <Arn>arn:aws:iam::123456789012:user/Charlie</Arn>
+        <CreateDate>2013-10-14T18:33:56Z</CreateDate>
+      </member>
+      <member>
+        <GroupList>
+          <member>Dev</member>
+        </GroupList>
+        <AttachedManagedPolicies/>
+        <UserId>AIDACKCEVSQ6C5EXAMPLE</UserId>
+        <Path>/</Path>
+        <UserName>Danielle</UserName>
+        <Arn>arn:aws:iam::123456789012:user/Danielle</Arn>
+        <CreateDate>2013-10-14T18:33:56Z</CreateDate>
+      </member>
+      <member>
+        <GroupList>
+          <member>Finance</member>
+        </GroupList>
+        <AttachedManagedPolicies/>
+        <UserId>AIDACKCEVSQ6C6EXAMPLE</UserId>
+        <Path>/</Path>
+        <UserName>Elaine</UserName>
+        <Arn>arn:aws:iam::123456789012:user/Elaine</Arn>
+        <CreateDate>2013-10-14T18:57:48Z</CreateDate>
+      </member>
+    </UserDetailList>
+    <Marker>
+      EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/
+      bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE
+    </Marker>
+    <GroupDetailList>
+      <member>
+        <GroupId>AIDACKCEVSQ6C7EXAMPLE</GroupId>
+        <AttachedManagedPolicies>
+          <member>
+            <PolicyName>AdministratorAccess</PolicyName>
+            <PolicyArn>arn:aws:iam::aws:policy/AdministratorAccess</PolicyArn>
+          </member>
+        </AttachedManagedPolicies>
+        <GroupName>Admins</GroupName>
+        <Path>/</Path>
+        <Arn>arn:aws:iam::123456789012:group/Admins</Arn>
+        <CreateDate>2013-10-14T18:32:24Z</CreateDate>
+        <GroupPolicyList/>
+      </member>
+      <member>
+        <GroupId>AIDACKCEVSQ6C8EXAMPLE</GroupId>
+        <AttachedManagedPolicies>
+          <member>
+            <PolicyName>PowerUserAccess</PolicyName>
+            <PolicyArn>arn:aws:iam::aws:policy/PowerUserAccess</PolicyArn>
+          </member>
+        </AttachedManagedPolicies>
+        <GroupName>Dev</GroupName>
+        <Path>/</Path>
+        <Arn>arn:aws:iam::123456789012:group/Dev</Arn>
+        <CreateDate>2013-10-14T18:33:55Z</CreateDate>
+        <GroupPolicyList/>
+      </member>
+      <member>
+        <GroupId>AIDACKCEVSQ6C9EXAMPLE</GroupId>
+        <AttachedManagedPolicies/>
+        <GroupName>Finance</GroupName>
+        <Path>/</Path>
+        <Arn>arn:aws:iam::123456789012:group/Finance</Arn>
+        <CreateDate>2013-10-14T18:57:48Z</CreateDate>
+        <GroupPolicyList>
+          <member>
+            <PolicyName>policygen-201310141157</PolicyName>
+            <PolicyDocument>
+              {"Version":"2012-10-17","Statement":[{"Action":["aws-portal:*"],
+              "Sid":"Stmt1381777017000","Resource":["*"],"Effect":"Allow"}]}
+            </PolicyDocument>
+          </member>
+        </GroupPolicyList>
+      </member>
+    </GroupDetailList>
+    <RoleDetailList>
+      <member>
+        <RolePolicyList/>
+        <AttachedManagedPolicies>
+          <member>
+            <PolicyName>AmazonS3FullAccess</PolicyName>
+            <PolicyArn>arn:aws:iam::aws:policy/AmazonS3FullAccess</PolicyArn>
+          </member>
+          <member>
+            <PolicyName>AmazonDynamoDBFullAccess</PolicyName>
+            <PolicyArn>arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess</PolicyArn>
+          </member>
+        </AttachedManagedPolicies>
+        <InstanceProfileList>
+          <member>
+            <InstanceProfileName>EC2role</InstanceProfileName>
+            <Roles>
+              <member>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:role/EC2role</Arn>
+                <RoleName>EC2role</RoleName>
+                <AssumeRolePolicyDocument>
+                  {"Version":"2012-10-17","Statement":[{"Sid":"",
+                  "Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},
+                  "Action":"sts:AssumeRole"}]}
+                </AssumeRolePolicyDocument>
+                <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+                <RoleId>AROAFP4BKI7Y7TEXAMPLE</RoleId>
+              </member>
+            </Roles>
+            <Path>/</Path>
+            <Arn>arn:aws:iam::123456789012:instance-profile/EC2role</Arn>
+            <InstanceProfileId>AIPAFFYRBHWXW2EXAMPLE</InstanceProfileId>
+            <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+          </member>
+        </InstanceProfileList>
+        <Path>/</Path>
+        <Arn>arn:aws:iam::123456789012:role/EC2role</Arn>
+        <RoleName>EC2role</RoleName>
+        <AssumeRolePolicyDocument>
+          {"Version":"2012-10-17","Statement":[{"Sid":"","Effect":"Allow",
+          "Principal":{"Service":"ec2.amazonaws.com"},
+          "Action":"sts:AssumeRole"}]}
+        </AssumeRolePolicyDocument>
+        <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+        <RoleId>AROAFP4BKI7Y7TEXAMPLE</RoleId>
+      </member>
+    </RoleDetailList>
+    <Policies>
+      <member>
+        <PolicyName>create-update-delete-set-managed-policies</PolicyName>
+        <DefaultVersionId>v1</DefaultVersionId>
+        <PolicyId>ANPAJ2UCCR6DPCEXAMPLE</PolicyId>
+        <Path>/</Path>
+        <PolicyVersionList>
+          <member>
+            <Document>
+              {"Version":"2012-10-17","Statement":{"Effect":"Allow",
+              "Action":["iam:CreatePolicy","iam:CreatePolicyVersion",
+              "iam:DeletePolicy","iam:DeletePolicyVersion","iam:GetPolicy",
+              "iam:GetPolicyVersion","iam:ListPolicies",
+              "iam:ListPolicyVersions","iam:SetDefaultPolicyVersion"],
+              "Resource":"*"}}
+            </Document>
+            <IsDefaultVersion>true</IsDefaultVersion>
+            <VersionId>v1</VersionId>
+            <CreateDate>2015-02-06T19:58:34Z</CreateDate>
+          </member>
+        </PolicyVersionList>
+        <Arn>
+          arn:aws:iam::123456789012:policy/create-update-delete-set-managed-policies
+        </Arn>
+        <AttachmentCount>1</AttachmentCount>
+        <CreateDate>2015-02-06T19:58:34Z</CreateDate>
+        <IsAttachable>true</IsAttachable>
+        <UpdateDate>2015-02-06T19:58:34Z</UpdateDate>
+      </member>
+      <member>
+        <PolicyName>S3-read-only-specific-bucket</PolicyName>
+        <DefaultVersionId>v1</DefaultVersionId>
+        <PolicyId>ANPAJ4AE5446DAEXAMPLE</PolicyId>
+        <Path>/</Path>
+        <PolicyVersionList>
+          <member>
+            <Document>
+              {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":
+              ["s3:Get*","s3:List*"],"Resource":["arn:aws:s3:::example-bucket",
+              "arn:aws:s3:::example-bucket/*"]}]}
+            </Document>
+            <IsDefaultVersion>true</IsDefaultVersion>
+            <VersionId>v1</VersionId>
+            <CreateDate>2015-01-21T21:39:41Z</CreateDate>
+          </member>
+        </PolicyVersionList>
+        <Arn>arn:aws:iam::123456789012:policy/S3-read-only-specific-bucket</Arn>
+        <AttachmentCount>1</AttachmentCount>
+        <CreateDate>2015-01-21T21:39:41Z</CreateDate>
+        <IsAttachable>true</IsAttachable>
+        <UpdateDate>2015-01-21T23:39:41Z</UpdateDate>
+      </member>
+      <member>
+        <PolicyName>AWSOpsWorksRole</PolicyName>
+        <DefaultVersionId>v1</DefaultVersionId>
+        <PolicyId>ANPAE376NQ77WV6KGJEBE</PolicyId>
+        <Path>/service-role/</Path>
+        <PolicyVersionList>
+          <member>
+            <Document>
+              {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":
+              ["cloudwatch:GetMetricStatistics","ec2:DescribeAccountAttributes",
+              "ec2:DescribeAvailabilityZones","ec2:DescribeInstances",
+              "ec2:DescribeKeyPairs","ec2:DescribeSecurityGroups","ec2:DescribeSubnets",
+              "ec2:DescribeVpcs","elasticloadbalancing:DescribeInstanceHealth",
+              "elasticloadbalancing:DescribeLoadBalancers","iam:GetRolePolicy",
+              "iam:ListInstanceProfiles","iam:ListRoles","iam:ListUsers",
+              "iam:PassRole","opsworks:*","rds:*"],"Resource":["*"]}]}
+            </Document>
+            <IsDefaultVersion>true</IsDefaultVersion>
+            <VersionId>v1</VersionId>
+            <CreateDate>2014-12-10T22:57:47Z</CreateDate>
+          </member>
+        </PolicyVersionList>
+        <Arn>arn:aws:iam::aws:policy/service-role/AWSOpsWorksRole</Arn>
+        <AttachmentCount>1</AttachmentCount>
+        <CreateDate>2015-02-06T18:41:27Z</CreateDate>
+        <IsAttachable>true</IsAttachable>
+        <UpdateDate>2015-02-06T18:41:27Z</UpdateDate>
+      </member>
+      <member>
+        <PolicyName>AmazonEC2FullAccess</PolicyName>
+        <DefaultVersionId>v1</DefaultVersionId>
+        <PolicyId>ANPAE3QWE5YT46TQ34WLG</PolicyId>
+        <Path>/</Path>
+        <PolicyVersionList>
+          <member>
+            <Document>
+              {"Version":"2012-10-17","Statement":[{"Action":"ec2:*",
+              "Effect":"Allow","Resource":"*"},{"Effect":"Allow",
+              "Action":"elasticloadbalancing:*","Resource":"*"},{"Effect":"Allow",
+              "Action":"cloudwatch:*","Resource":"*"},{"Effect":"Allow",
+              "Action":"autoscaling:*","Resource":"*"}]}
+            </Document>
+            <IsDefaultVersion>true</IsDefaultVersion>
+            <VersionId>v1</VersionId>
+            <CreateDate>2014-10-30T20:59:46Z</CreateDate>
+          </member>
+        </PolicyVersionList>
+        <Arn>arn:aws:iam::aws:policy/AmazonEC2FullAccess</Arn>
+        <AttachmentCount>1</AttachmentCount>
+        <CreateDate>2015-02-06T18:40:15Z</CreateDate>
+        <IsAttachable>true</IsAttachable>
+        <UpdateDate>2015-02-06T18:40:15Z</UpdateDate>
+      </member>
+    </Policies>
+  </GetAccountAuthorizationDetailsResult>
+  <ResponseMetadata>
+    <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountAuthorizationDetailsResponse>"""
+# GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+#   <GetAccountAuthorizationDetailsResult>
+#     <IsTruncated>true</IsTruncated>
+#     <UserDetailList>
+#     {% for user in users %}
+#       <member>
+#         </GroupList>
+#         <AttachedManagedPolicies/>
+#         <UserId>{{ user.id }}</UserId>
+#         <Path>{{ user.path }}</Path>
+#         <UserName>{{ user.name }}</UserName>
+#         <Arn>{{ user.arn }}</Arn>
+#         <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+#       </member>
+#     {% endfor %}
+#     </UserDetailList>
+#     <Marker>
+#       EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/
+#       bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE
+#     </Marker>
+#     <GroupDetailList>
+#     {% for group in groups %}
+#       <member>
+#         <GroupId>{{ group.id }}</GroupId>
+#         <AttachedManagedPolicies>
+#           <member>
+#             <PolicyName>AdministratorAccess</PolicyName>
+#             <PolicyArn>arn:aws:iam::aws:policy/AdministratorAccess</PolicyArn>
+#           </member>
+#         </AttachedManagedPolicies>
+#         <GroupName>{{ group.name }}</GroupName>
+#         <Path>{{ group.path }}</Path>
+#         <Arn>{{ group.arn }}</Arn>
+#         <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
+#         <GroupPolicyList/>
+#       </member>
+#     {% endfor %}
+#     </GroupDetailList>
+#     <RoleDetailList>
+#     {% for role in roles %}
+#       <member>
+#         <RolePolicyList/>
+#         <AttachedManagedPolicies>
+#         {% for policy in policies %}
+#             <member>
+#                 <PolicyName>{{ policy.name }}</PolicyName>
+#                 <PolicyArn>{{ policy.arn }}</PolicyArn>
+#             </member>
+#         {% endfor %}
+#         </AttachedManagedPolicies>
+#         <InstanceProfileList>
+#             {% for profile in instance_profiles %}
+#             <member>
+#             <Id>{{ profile.id }}</Id>
+#               <Roles>
+#                 {% for role in profile.roles %}
+#                 <member>
+#                   <Path>{{ role.path }}</Path>
+#                   <Arn>{{ role.arn }}</Arn>
+#                   <RoleName>{{ role.name }}</RoleName>
+#                   <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
+#                   <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+#                   <RoleId>{{ role.id }}</RoleId>
+#                 </member>
+#                 {% endfor %}
+#               </Roles>
+#               <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
+#               <Path>{{ profile.path }}</Path>
+#               <Arn>{{ profile.arn }}</Arn>
+#               <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+#             </member>
+#             {% endfor %}
+#         </InstanceProfileList>
+#         <Path>{{ role.path }}</Path>
+#         <Arn>{{ role.arn }}</Arn>
+#         <RoleName>{{ role.name }}</RoleName>
+#         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+#         <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+#         <RoleId>{{ role.id }}</RoleId>
+#       </member>
+#     {% endfor %}
+#     </RoleDetailList>
+#     <Policies>
+#     {% for policy in policies %}
+#       <member>
+#         <PolicyName>{{ policy.name }}</PolicyName>
+#         <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
+#         <PolicyId>{{ policy.id }}</PolicyId>
+#         <Path>{{ policy.path }}</Path>
+#         <PolicyVersionList>
+#           <member>
+#             <Document>
+#               {"Version":"2012-10-17","Statement":{"Effect":"Allow",
+#               "Action":["iam:CreatePolicy","iam:CreatePolicyVersion",
+#               "iam:DeletePolicy","iam:DeletePolicyVersion","iam:GetPolicy",
+#               "iam:GetPolicyVersion","iam:ListPolicies",
+#               "iam:ListPolicyVersions","iam:SetDefaultPolicyVersion"],
+#               "Resource":"*"}}
+#             </Document>
+#             <IsDefaultVersion>true</IsDefaultVersion>
+#             <VersionId>v1</VersionId>
+#             <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+#           </member>
+#         </PolicyVersionList>
+#         <Arn>{{ policy.arn }}</Arn>
+#         <AttachmentCount>1</AttachmentCount>
+#         <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+#         <IsAttachable>true</IsAttachable>
+#         <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+#       </member>
+#     {% endfor %}
+#     </Policies>
+#   </GetAccountAuthorizationDetailsResult>
+#   <ResponseMetadata>
+#     <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
+#   </ResponseMetadata>
+# </GetAccountAuthorizationDetailsResponse>"""
+
