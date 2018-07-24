@@ -1462,4 +1462,3 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
     <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
   </ResponseMetadata>
 </GetAccountAuthorizationDetailsResponse>"""
-

@@ -910,6 +910,15 @@ class IAMBackend(BaseBackend):
         local_policies = set(policies) - set(aws_managed_policies)
         returned_policies = []
 
+        if len(filter) == 0:
+            return {
+                'instance_profiles': self.instance_profiles.values(),
+                'roles': self.roles.values(),
+                'groups': self.groups.values(),
+                'users': self.users.values(),
+                'managed_policies': self.managed_policies.values()
+            }
+
         if 'AWSManagedPolicy' in filter:
             returned_policies = aws_managed_policies
         if 'LocalManagedPolicy' in filter:
@@ -917,10 +926,11 @@ class IAMBackend(BaseBackend):
 
         return {
             'instance_profiles': self.instance_profiles.values(),
-            'roles': self.roles.values(),
-            'groups': self.groups.values(),
-            'users': self.users.values(),
+            'roles': self.roles.values() if 'Role' in filter else [],
+            'groups': self.groups.values() if 'Group' in filter else [],
+            'users': self.users.values() if 'User' in filter else [],
             'managed_policies': returned_policies
         }
+
 
 iam_backend = IAMBackend()
