@@ -5,10 +5,12 @@ from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
+from moto.cloudformation import cloudformation_backends
 
 import datetime
 import time
 import uuid
+import itertools
 
 
 class Parameter(BaseModel):
@@ -67,7 +69,7 @@ class Command(BaseModel):
             instance_ids=None, max_concurrency='', max_errors='',
             notification_config=None, output_s3_bucket_name='',
             output_s3_key_prefix='', output_s3_region='', parameters=None,
-            service_role_arn='', targets=None):
+            service_role_arn='', targets=None, backend_region='us-east-1'):
 
         if instance_ids is None:
             instance_ids = []
@@ -105,12 +107,32 @@ class Command(BaseModel):
         self.parameters = parameters
         self.service_role_arn = service_role_arn
         self.targets = targets
+        self.backend_region = backend_region
+
+        # Get instance ids from a cloud formation stack target.
+        stack_instance_ids = [self.get_instance_ids_by_stack_ids(target['Values']) for
+            target in self.targets if
+            target['Key'] == 'tag:aws:cloudformation:stack-name']
+
+        self.instance_ids += list(itertools.chain.from_iterable(stack_instance_ids))
 
         # Create invocations with a single run command plugin.
         self.invocations = []
         for instance_id in self.instance_ids:
             self.invocations.append(
                 self.invocation_response(instance_id, "aws:runShellScript"))
+
+    def get_instance_ids_by_stack_ids(self, stack_ids):
+        instance_ids = []
+        cloudformation_backend = cloudformation_backends[self.backend_region]
+        for stack_id in stack_ids:
+            stack_resources = cloudformation_backend.list_stack_resources(stack_id)
+            instance_resources = [
+                instance.id for instance in stack_resources
+                if instance.type == "AWS::EC2::Instance"]
+            instance_ids.extend(instance_resources)
+
+        return instance_ids
 
     def response_object(self):
         r = {
@@ -190,6 +212,11 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._parameters = {}
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
+
+        # figure out what region we're in
+        for region, backend in ssm_backends.items():
+            if backend == self:
+                self._region = region
 
     def delete_parameter(self, name):
         try:
@@ -311,7 +338,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             output_s3_region=kwargs.get('OutputS3Region', ''),
             parameters=kwargs.get('Parameters', {}),
             service_role_arn=kwargs.get('ServiceRoleArn', ''),
-            targets=kwargs.get('Targets', []))
+            targets=kwargs.get('Targets', []),
+            backend_region=self._region)
 
         self._commands.append(command)
         return {
