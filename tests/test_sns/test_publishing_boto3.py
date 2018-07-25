@@ -11,12 +11,15 @@ import sure  # noqa
 import responses
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
+
+from tests.helpers import skip_in_server_mode
 from moto import mock_sns, mock_sqs
 
 
 MESSAGE_FROM_SQS_TEMPLATE = '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:123456789012:some-topic",\n  "Type": "Notification",\n  "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"\n}'
 
 
+@skip_in_server_mode
 @mock_sqs
 @mock_sns
 def test_publish_to_sqs():
@@ -43,6 +46,7 @@ def test_publish_to_sqs():
     acquired_message.should.equal(expected)
 
 
+@skip_in_server_mode
 @mock_sqs
 @mock_sns
 def test_publish_to_sqs_raw():
@@ -186,6 +190,7 @@ def test_publish_bad_sms():
         err.response['Error']['Code'].should.equal('ParameterValueInvalid')
 
 
+@skip_in_server_mode
 @mock_sqs
 @mock_sns
 def test_publish_to_sqs_dump_json():
@@ -223,6 +228,7 @@ def test_publish_to_sqs_dump_json():
     acquired_message.should.equal(expected)
 
 
+@skip_in_server_mode
 @mock_sqs
 @mock_sns
 def test_publish_to_sqs_in_different_region():
@@ -250,6 +256,7 @@ def test_publish_to_sqs_in_different_region():
     acquired_message.should.equal(expected)
 
 
+@skip_in_server_mode
 @freeze_time("2013-01-01")
 @mock_sns
 def test_publish_to_http():
@@ -279,6 +286,7 @@ def test_publish_to_http():
         TopicArn=topic_arn, Message="my message", Subject="my subject")
 
 
+@skip_in_server_mode
 @mock_sqs
 @mock_sns
 def test_publish_subject():

@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import tests.backport_assert_raises
 from nose.tools import assert_raises
 
+from tests.helpers import skip_in_server_mode
 from moto.ec2 import ec2_backends
 import boto
 import boto3
@@ -589,6 +590,7 @@ def test_volume_tag_escaping():
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01 12:00:00")
 @mock_ec2
 def test_copy_snapshot():

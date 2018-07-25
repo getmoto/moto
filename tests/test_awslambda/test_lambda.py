@@ -11,6 +11,8 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
+
+from tests.helpers import skip_in_server_mode
 from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings
 
 _lambda_region = 'us-west-2'
@@ -244,6 +246,7 @@ def test_create_based_on_s3_with_missing_bucket():
     ).should.throw(botocore.client.ClientError)
 
 
+@skip_in_server_mode
 @mock_lambda
 @mock_s3
 @freeze_time('2015-01-01 00:00:00')
@@ -299,6 +302,7 @@ def test_create_function_from_aws_bucket():
     })
 
 
+@skip_in_server_mode
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
 def test_create_function_from_zipfile():
@@ -344,6 +348,7 @@ def test_create_function_from_zipfile():
     })
 
 
+@skip_in_server_mode
 @mock_lambda
 @mock_s3
 @freeze_time('2015-01-01 00:00:00')
@@ -480,6 +485,7 @@ def test_publish():
     function_list['Functions'][0]['FunctionArn'].should.contain('testFunction:$LATEST')
 
 
+@skip_in_server_mode
 @mock_lambda
 @mock_s3
 @freeze_time('2015-01-01 00:00:00')
@@ -700,6 +706,7 @@ def test_invoke_async_function():
     success_result['Status'].should.equal(202)
 
 
+@skip_in_server_mode
 @mock_lambda
 @freeze_time('2015-01-01 00:00:00')
 def test_get_function_created_with_zipfile():

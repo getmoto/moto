@@ -10,7 +10,8 @@ import sure  # noqa
 from freezegun import freeze_time
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
-from tests.helpers import requires_boto_gte
+from tests.helpers import requires_boto_gte, skip_in_server_mode
+
 try:
     from boto.dynamodb2.fields import GlobalAllIndex, HashKey, RangeKey, AllIndex
     from boto.dynamodb2.table import Item, Table
@@ -61,6 +62,7 @@ def iterate_results(res):
         pass
 
 
+@skip_in_server_mode
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")
@@ -91,6 +93,7 @@ def test_create_table():
     table.describe().should.equal(expected)
 
 
+@skip_in_server_mode
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")

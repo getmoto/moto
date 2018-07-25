@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import boto
+from moto import settings
 from nose.plugins.skip import SkipTest
 import six
 
@@ -34,3 +35,17 @@ class disable_on_py3(object):
         if not six.PY3:
             return test
         return skip_test
+
+
+def skip_in_server_mode(test):
+    """Decorator for skipping a test when running in server mode.
+
+    Typically, some library behaviour can only be tested inside the local
+    process (eg. by manipulating time with freezegun). If we try to test
+    this behaviour with an external process running in server mode, then
+    the test is likely to fail inconsistently.
+    """
+
+    if settings.TEST_SERVER_MODE:
+        return skip_test
+    return test

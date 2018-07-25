@@ -2,6 +2,7 @@ from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_swf_deprecated
 from moto.swf import swf_backend
 
@@ -205,6 +206,7 @@ def test_record_activity_task_heartbeat_with_wrong_token():
     ).should.throw(SWFResponseError)
 
 
+@skip_in_server_mode
 @mock_swf_deprecated
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():
     conn = setup_workflow()

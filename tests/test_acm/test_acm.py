@@ -316,6 +316,7 @@ def test_request_certificate_no_san():
 
 # # Also tests the SAN code
 # # requires Pull: https://github.com/spulec/freezegun/pull/210
+# @skip_in_server_mode
 # @freeze_time("2012-01-01 12:00:00", as_arg=True)
 # @mock_acm
 # def test_request_certificate(frozen_time):
@@ -346,6 +347,7 @@ def test_request_certificate_no_san():
 #
 #
 # # requires Pull: https://github.com/spulec/freezegun/pull/210
+# @skip_in_server_mode
 # @freeze_time("2012-01-01 12:00:00", as_arg=True)
 # @mock_acm
 # def test_request_certificate(frozen_time):

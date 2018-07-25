@@ -2,6 +2,7 @@ from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_swf_deprecated
 from moto.swf import swf_backend
 
@@ -287,6 +288,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution():
     attrs["details"].should.equal("foo")
 
 
+@skip_in_server_mode
 @mock_swf_deprecated
 @freeze_time("2015-01-01 12:00:00")
 def test_respond_decision_task_completed_with_schedule_activity_task():

@@ -26,6 +26,7 @@ from nose.tools import assert_raises
 
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto import settings, mock_s3, mock_s3_deprecated
 import moto.s3.models as s3model
 
@@ -420,6 +421,7 @@ def test_copy_key_replace_metadata():
         "new-key").get_metadata('momd').should.equal('Mometadatastring')
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3_deprecated
 def test_last_modified():
@@ -698,6 +700,7 @@ def test_copy_key_reduced_redundancy():
     keys['the-key'].storage_class.should.equal("STANDARD")
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3_deprecated
 def test_restore_key():
@@ -719,6 +722,7 @@ def test_restore_key():
     key.expiry_date.should.equal("Tue, 03 Jan 2012 12:00:00 GMT")
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3_deprecated
 def test_restore_key_headers():

@@ -4,6 +4,7 @@ import boto
 import sure  # noqa
 from freezegun import freeze_time
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_dynamodb_deprecated
 
 from boto.dynamodb import condition
@@ -26,6 +27,7 @@ def create_table(conn):
     return table
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-14")
 @mock_dynamodb_deprecated
 def test_create_table():

@@ -6,9 +6,11 @@ import boto3
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_sts, mock_sts_deprecated
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_sts_deprecated
 def test_get_session_token():
@@ -22,6 +24,7 @@ def test_get_session_token():
     token.secret_key.should.equal("wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_sts_deprecated
 def test_get_federation_token():
@@ -39,6 +42,7 @@ def test_get_federation_token():
     token.federated_user_id.should.equal("123456789012:Bob")
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_sts_deprecated
 def test_assume_role():

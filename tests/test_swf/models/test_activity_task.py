@@ -1,6 +1,7 @@
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import (
     ActivityTask,
@@ -69,6 +70,7 @@ def test_activity_task_full_dict_representation():
     fd["startedEventId"].should.equal(1234)
 
 
+@skip_in_server_mode
 def test_activity_task_reset_heartbeat_clock():
     wfe = make_workflow_execution()
 
@@ -90,6 +92,7 @@ def test_activity_task_reset_heartbeat_clock():
     task.last_heartbeat_timestamp.should.equal(1420117200.0)
 
 
+@skip_in_server_mode
 def test_activity_task_first_timeout():
     wfe = make_workflow_execution()
 
@@ -112,6 +115,7 @@ def test_activity_task_first_timeout():
         task.timeout_type.should.equal("HEARTBEAT")
 
 
+@skip_in_server_mode
 def test_activity_task_cannot_timeout_on_closed_workflow_execution():
     with freeze_time("2015-01-01 12:00:00"):
         wfe = make_workflow_execution()

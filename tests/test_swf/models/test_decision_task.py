@@ -2,6 +2,7 @@ from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 from sure import expect
 
+from tests.helpers import skip_in_server_mode
 from moto.swf.models import DecisionTask, Timeout
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 
@@ -35,6 +36,7 @@ def test_decision_task_full_dict_representation():
     fd["startedEventId"].should.equal(1234)
 
 
+@skip_in_server_mode
 def test_decision_task_first_timeout():
     wfe = make_workflow_execution()
     dt = DecisionTask(wfe, 123)
@@ -52,6 +54,7 @@ def test_decision_task_first_timeout():
     dt.first_timeout().should.be.none
 
 
+@skip_in_server_mode
 def test_decision_task_cannot_timeout_on_closed_workflow_execution():
     with freeze_time("2015-01-01 12:00:00"):
         wfe = make_workflow_execution()

@@ -16,7 +16,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
-from tests.helpers import requires_boto_gte
+from tests.helpers import requires_boto_gte, skip_in_server_mode
 
 
 ################ Test Readme ###############
@@ -39,6 +39,7 @@ def test_add_servers():
 ############################################
 
 
+@skip_in_server_mode
 @freeze_time("2014-01-01 05:00:00")
 @mock_ec2_deprecated
 def test_instance_launch_and_terminate():
@@ -100,6 +101,7 @@ def test_terminate_empty_instances():
         []).should.throw(EC2ResponseError)
 
 
+@skip_in_server_mode
 @freeze_time("2014-01-01 05:00:00")
 @mock_ec2_deprecated
 def test_instance_attach_volume():

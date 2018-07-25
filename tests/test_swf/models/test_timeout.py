@@ -1,11 +1,13 @@
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto.swf.models import Timeout
 
 from ..utils import make_workflow_execution
 
 
+@skip_in_server_mode
 def test_timeout_creation():
     wfe = make_workflow_execution()
 

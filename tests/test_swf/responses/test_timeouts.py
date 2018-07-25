@@ -1,6 +1,7 @@
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_swf_deprecated
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
@@ -8,6 +9,7 @@ from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 
 # Activity Task Heartbeat timeout
 # Default value in workflow helpers: 5 mins
+@skip_in_server_mode
 @mock_swf_deprecated
 def test_activity_task_heartbeat_timeout():
     with freeze_time("2015-01-01 12:00:00"):
@@ -41,6 +43,7 @@ def test_activity_task_heartbeat_timeout():
 
 # Decision Task Start to Close timeout
 # Default value in workflow helpers: 5 mins
+@skip_in_server_mode
 @mock_swf_deprecated
 def test_decision_task_start_to_close_timeout():
     pass
@@ -77,6 +80,7 @@ def test_decision_task_start_to_close_timeout():
 
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours
+@skip_in_server_mode
 @mock_swf_deprecated
 def test_workflow_execution_start_to_close_timeout():
     pass

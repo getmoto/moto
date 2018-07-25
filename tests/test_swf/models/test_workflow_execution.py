@@ -1,6 +1,7 @@
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto.swf.models import (
     ActivityType,
     Timeout,
@@ -189,6 +190,7 @@ def test_workflow_execution_history_events_ids():
     ids.should.equal([1, 2, 3])
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01 12:00:00")
 def test_workflow_execution_start():
     wfe = make_workflow_execution()
@@ -201,6 +203,7 @@ def test_workflow_execution_start():
     wfe.events()[1].event_type.should.equal("DecisionTaskScheduled")
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-02 12:00:00")
 def test_workflow_execution_complete():
     wfe = make_workflow_execution()
@@ -214,6 +217,7 @@ def test_workflow_execution_complete():
     wfe.events()[-1].event_attributes["result"].should.equal("foo")
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-02 12:00:00")
 def test_workflow_execution_fail():
     wfe = make_workflow_execution()
@@ -228,6 +232,7 @@ def test_workflow_execution_fail():
     wfe.events()[-1].event_attributes["reason"].should.equal("my rules")
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01 12:00:00")
 def test_workflow_execution_schedule_activity_task():
     wfe = make_workflow_execution()
@@ -453,6 +458,7 @@ def test_terminate():
     last_event.event_attributes["childPolicy"].should.equal("ABANDON")
 
 
+@skip_in_server_mode
 def test_first_timeout():
     wfe = make_workflow_execution()
     wfe.first_timeout().should.be.none
@@ -468,6 +474,7 @@ def test_first_timeout():
 
 # See moto/swf/models/workflow_execution.py "_process_timeouts()" for more
 # details
+@skip_in_server_mode
 def test_timeouts_are_processed_in_order_and_reevaluated():
     # Let's make a Workflow Execution with the following properties:
     # - execution start to close timeout of 8 mins

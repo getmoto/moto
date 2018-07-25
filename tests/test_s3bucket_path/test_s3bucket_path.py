@@ -12,6 +12,7 @@ import requests
 
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_s3, mock_s3_deprecated
 
 
@@ -128,6 +129,7 @@ def test_set_metadata():
     bucket.get_key('the-key').get_metadata('md').should.equal('Metadatastring')
 
 
+@skip_in_server_mode
 @freeze_time("2012-01-01 12:00:00")
 @mock_s3_deprecated
 def test_last_modified():

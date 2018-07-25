@@ -8,9 +8,12 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 import responses
+
+from tests.helpers import skip_in_server_mode
 from moto import mock_apigateway, settings
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01")
 @mock_apigateway
 def test_create_and_get_rest_api():

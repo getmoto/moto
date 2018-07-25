@@ -1,9 +1,11 @@
 from freezegun import freeze_time
 import sure  # noqa
 
+from tests.helpers import skip_in_server_mode
 from moto.swf.models import HistoryEvent
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01 12:00:00")
 def test_history_event_creation():
     he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)
@@ -12,6 +14,7 @@ def test_history_event_creation():
     he.event_timestamp.should.equal(1420113600.0)
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01 12:00:00")
 def test_history_event_to_dict_representation():
     he = HistoryEvent(123, "DecisionTaskStarted", scheduled_event_id=2)

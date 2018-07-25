@@ -4,9 +4,11 @@ from freezegun import freeze_time
 import sure  # noqa
 import re
 
+from tests.helpers import skip_in_server_mode
 from moto import mock_opsworks
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01")
 @mock_opsworks
 def test_create_layer_response():
@@ -73,6 +75,7 @@ def test_create_layer_response():
     )
 
 
+@skip_in_server_mode
 @freeze_time("2015-01-01")
 @mock_opsworks
 def test_describe_layers():

@@ -7,7 +7,7 @@ import sure  # noqa
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
-from tests.helpers import requires_boto_gte
+from tests.helpers import requires_boto_gte, skip_in_server_mode
 import botocore
 try:
     from boto.dynamodb2.fields import HashKey
@@ -28,6 +28,7 @@ def create_table():
     return table
 
 
+@skip_in_server_mode
 @requires_boto_gte("2.9")
 @mock_dynamodb2_deprecated
 @freeze_time("2012-01-14")

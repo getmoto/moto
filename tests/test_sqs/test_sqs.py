@@ -17,7 +17,7 @@ import time
 import uuid
 
 from moto import settings, mock_sqs, mock_sqs_deprecated
-from tests.helpers import requires_boto_gte
+from tests.helpers import requires_boto_gte, skip_in_server_mode
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 from nose import SkipTest
@@ -837,6 +837,7 @@ def test_delete_message_after_visibility_timeout():
     assert new_queue.count() == 0
 
 
+@skip_in_server_mode
 @mock_sqs
 def test_batch_change_message_visibility():
     if settings.TEST_SERVER_MODE:
@@ -967,6 +968,7 @@ def test_create_fifo_queue_with_dlq():
         )
 
 
+@skip_in_server_mode
 @mock_sqs
 def test_queue_with_dlq():
     if settings.TEST_SERVER_MODE:
@@ -1153,6 +1155,7 @@ def test_receive_messages_with_message_group_id_on_requeue():
     messages[0].message_id.should.equal(message.message_id)
 
 
+@skip_in_server_mode
 @mock_sqs
 def test_receive_messages_with_message_group_id_on_visibility_timeout():
     if settings.TEST_SERVER_MODE:
