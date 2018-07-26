@@ -20,7 +20,6 @@ from moto import settings, mock_sqs, mock_sqs_deprecated
 from tests.helpers import requires_boto_gte, skip_in_server_mode
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
-from nose import SkipTest
 
 
 @mock_sqs
@@ -840,9 +839,6 @@ def test_delete_message_after_visibility_timeout():
 @skip_in_server_mode
 @mock_sqs
 def test_batch_change_message_visibility():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest('Cant manipulate time in server mode')
-
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.client('sqs', region_name='us-east-1')
         resp = sqs.create_queue(
@@ -971,9 +967,6 @@ def test_create_fifo_queue_with_dlq():
 @skip_in_server_mode
 @mock_sqs
 def test_queue_with_dlq():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest('Cant manipulate time in server mode')
-
     sqs = boto3.client('sqs', region_name='us-east-1')
 
     with freeze_time("2015-01-01 12:00:00"):
@@ -1158,9 +1151,6 @@ def test_receive_messages_with_message_group_id_on_requeue():
 @skip_in_server_mode
 @mock_sqs
 def test_receive_messages_with_message_group_id_on_visibility_timeout():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest('Cant manipulate time in server mode')
-
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.resource('sqs', region_name='us-east-1')
         queue = sqs.create_queue(QueueName="test-queue.fifo",
