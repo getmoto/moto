@@ -157,6 +157,11 @@ class OrganizationsBackend(BaseBackend):
         return self.org.describe()
 
     def describe_organization(self):
+        if not self.org:
+            raise RESTError(
+                'AWSOrganizationsNotInUseException',
+                "Your account is not a member of an organization."
+            )
         return self.org.describe()
 
     def list_roots(self):
