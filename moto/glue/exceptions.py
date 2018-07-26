@@ -13,3 +13,12 @@ class DatabaseAlreadyExistsException(GlueClientError):
             'DatabaseAlreadyExistsException',
             'Database already exists.'
         )
+
+
+class TableAlreadyExistsException(GlueClientError):
+    def __init__(self):
+        self.code = 400
+        super(TableAlreadyExistsException, self).__init__(
+            'TableAlreadyExistsException',
+            'Table already exists.'
+        )
