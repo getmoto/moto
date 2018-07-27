@@ -835,8 +835,8 @@
 - [ ] admin_delete_user
 - [ ] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
-- [ ] admin_disable_user
-- [ ] admin_enable_user
+- [X] admin_disable_user
+- [X] admin_enable_user
 - [ ] admin_forget_device
 - [ ] admin_get_device
 - [ ] admin_get_user
