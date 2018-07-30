@@ -1,0 +1,817 @@
+ReservedInstancesOfferings,InstanceType,ProductDescription,InstanceTenancy,OfferingClass,OfferingType,AvailabilityZone,Duration,Scope,Marketplace,FixedPrice,UsagePrice,CurrencyCode,Amount,Frequency
+0e89d57b-42df-42bc-9c42-ee5f15b1b3a0,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1457,Hourly
+1501f3a0-4f11-41a4-aa6f-5451399a5ce2,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1533,Hourly
+248994d2-8b33-409b-8642-6760d9eb23d2,r4.large,SUSE Linux,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1109,Hourly
+3a27ae1d-3f61-4e9d-a00b-a0adb92334b4,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.5657,Hourly
+4672ea13-b8a5-455f-99fa-2308608d2ef1,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.0857,Hourly
+4e305329-4302-477a-a679-6bccd33fcb58,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1455,Hourly
+642216bd-6eb2-4ccc-bb16-488f3cc493fb,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.5579,Hourly
+6ada410e-24f2-4889-9a11-3f40da18c525,r4.large,Linux/UNIX,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.0779,Hourly
+866cee3f-3843-4e5a-8826-9267b9617c65,r4.large,SUSE Linux,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1187,Hourly
+9f8d68e1-7a44-4bfa-a140-500009d60d24,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1379,Hourly
+2104d8e5-8720-47dc-a9d5-0a2555d48b89,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.5477,Hourly
+36d83658-c2d9-4bf8-a73c-c923196260de,r4.large,SUSE Linux,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1075,Hourly
+388cce4a-2139-499e-94c9-193626604a26,r4.large,SUSE Linux,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1007,Hourly
+48760220-7c7d-44de-a236-225902b6bb11,r4.large,Linux/UNIX,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.0745,Hourly
+57bc225b-1cab-46d0-b4bb-1df9d8710a49,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1345,Hourly
+7af69545-5bc8-45e1-b9ed-26e1a1774b5f,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1277,Hourly
+cd74acc5-b0c2-4765-8c1a-ba0d845b45cd,r4.large,Linux/UNIX,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.0677,Hourly
+d1a725c3-6827-4a84-8a7d-570259dd437e,r4.large,Linux with SQL Server Web,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1353,Hourly
+f5828634-45d1-4217-b451-1534cdc76a65,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1421,Hourly
+f5bed757-c04f-4069-b81b-59caa13d74d6,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.5545,Hourly
+9d1d647b-5744-48aa-866f-c248b683b073,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,824.0,0.0,USD,0.0914,Hourly
+c55c86d5-77a6-4a51-8eb4-b7acef2292eb,r4.large,Linux/UNIX,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,824.0,0.0,USD,0.0314,Hourly
+63f6524c-c0f0-49c7-9f6d-bffe27db07f6,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,907.0,0.0,USD,0.0345,Hourly
+bdfda7ec-5472-4e11-b27f-3fff6ec7b855,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,907.0,0.0,USD,0.0945,Hourly
+3ace6bab-c843-4319-8d5c-cc5e0a7b851a,r4.large,Linux/UNIX,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,948.0,0.0,USD,0.0361,Hourly
+4799ed88-c8a5-4a34-b241-7d59d11a396f,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,948.0,0.0,USD,0.0961,Hourly
+01566a14-714b-489e-a0ef-4c04d5b8b85e,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1042.0,0.0,USD,0.0997,Hourly
+d2810ba3-9946-49c5-8d78-50cb199bb538,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1042.0,0.0,USD,0.0397,Hourly
+1ee16d21-4186-411b-82f7-6553929a749d,r4.large,SUSE Linux,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1176.0,0.0,USD,0.0444,Hourly
+1678e529-9075-46f5-8ff7-a578577d5f11,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1259.0,0.0,USD,0.0475,Hourly
+d5413a49-7dc0-43c7-a385-f3169c86f0e5,r4.large,SUSE Linux,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1300.0,0.0,USD,0.0491,Hourly
+b96de83e-62ae-40aa-8661-1605e8d4c753,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1394.0,0.0,USD,0.0527,Hourly
+423997cc-0a46-4f4b-a67c-22732699707a,r4.large,Linux/UNIX,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,1549.0,0.0,USD,0.0,Hourly
+6ebc64b9-26bb-48ce-9b7c-b3f87ebca2d3,r4.large,Linux/UNIX,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,1704.0,0.0,USD,0.0,Hourly
+cf893845-bbf5-4084-8d1e-1d558af695de,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1712.0,0.0,USD,0.0652,Hourly
+5a4d5753-f225-47c4-9154-dd08d5487b96,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1795.0,0.0,USD,0.0683,Hourly
+32dd36b5-6404-46ac-9e2a-ee61b2b405f7,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1836.0,0.0,USD,0.0699,Hourly
+f4a152eb-fb8a-45bb-851b-d25e7b9e81f0,r4.large,Linux/UNIX,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,1857.0,0.0,USD,0.0,Hourly
+1558c45a-a46b-4f20-98c4-a219a81fa063,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,1931.0,0.0,USD,0.0735,Hourly
+37c5f3ba-48ab-4d0b-ba97-c023a3a02d7f,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,2043.0,0.0,USD,0.0,Hourly
+ec4a82a9-fc3d-4370-a62f-9ec072cc1f99,r4.large,SUSE Linux,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,2243.0,0.0,USD,0.0,Hourly
+c3e8b713-d055-4943-9c3c-62cbc46ca9af,r4.large,SUSE Linux,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,2398.0,0.0,USD,0.0,Hourly
+75d0e8aa-45b1-42af-9f63-128175d77a42,r4.large,SUSE Linux,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,2551.0,0.0,USD,0.0,Hourly
+c61328d8-f0b4-4644-80f1-1110805a6ff9,r4.large,SUSE Linux,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,2737.0,0.0,USD,0.0,Hourly
+ca44151e-69b4-437c-a46d-a97084e86ac0,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,3126.0,0.0,USD,0.0,Hourly
+98efb594-4507-454f-b231-d7a2c798b216,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,3281.0,0.0,USD,0.0,Hourly
+4dccffb8-90f2-4afc-9c8f-0604b94ee1f1,r4.large,Linux with SQL Server Web,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,3326.0,0.0,USD,0.0,Hourly
+52cfb866-055b-422c-99b7-e05755cdf843,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,3434.0,0.0,USD,0.0,Hourly
+cf4ee51a-428b-44e8-8aec-2d75093bfbbd,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,3481.0,0.0,USD,0.0,Hourly
+0c9d62b3-2abe-400a-9ac0-a5515ff0583f,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,3620.0,0.0,USD,0.0,Hourly
+61d20411-97c3-4d87-9a5a-e3056f95d4f3,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,3634.0,0.0,USD,0.0,Hourly
+270dc0fa-d0f3-4e11-97e8-e70b1660da54,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,3820.0,0.0,USD,0.0,Hourly
+18765e85-57a3-4b56-b912-7265fded7c2e,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,7131.0,0.0,USD,0.2714,Hourly
+421818ea-fc5b-4bbb-beae-a0d8882c3375,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,7214.0,0.0,USD,0.2745,Hourly
+52aca8d6-223d-4075-9d16-b4576ef35e31,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,7255.0,0.0,USD,0.2761,Hourly
+bb4384e3-39c2-4e4c-9de7-f504f91fd492,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,7350.0,0.0,USD,0.2797,Hourly
+b34e47d8-83d1-453c-8310-b4f2252771d4,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+5a3ddbd3-cd0b-4d09-ae2e-42295f56ade4,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,14319.0,0.0,USD,0.0,Hourly
+83e928a8-0c2b-4ac7-939b-ecaf8e5e55a6,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,14472.0,0.0,USD,0.0,Hourly
+73e75d10-0fbb-4eda-969e-55748284707b,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,14658.0,0.0,USD,0.0,Hourly
+47796a37-6396-4dba-b4fb-ced51285f096,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1922,Hourly
+52792071-8ed2-4a75-b897-3c935bc0e197,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1733,Hourly
+52ad5392-9a34-4889-814d-fdadb076a37e,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.5933,Hourly
+77ed0d3b-243c-4c63-963b-68d0285311ed,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1809,Hourly
+89f36430-a680-4da5-ab03-62a9f4e437aa,r4.large,Linux/UNIX,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1133,Hourly
+8efc171b-923f-4de1-8af9-8b9edc5cc951,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1846,Hourly
+a592f8f5-6c2f-4230-bec0-c90c9dc540f6,r4.large,SUSE Linux,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1576,Hourly
+d12859ef-6493-4367-b3b9-f2cc19a681d4,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1246,Hourly
+ee356cdc-ee78-41b5-88db-7b1eb8cf4a9a,r4.large,SUSE Linux,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1463,Hourly
+fa201139-c8ac-44e9-818a-c129807592bb,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.6046,Hourly
+2b62d7dc-cb76-42dc-a137-7d8324fff377,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.5785,Hourly
+5d02fe7f-3490-41f7-b417-c5cf51ae73a0,r4.large,Linux/UNIX,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.0985,Hourly
+83caf557-849f-4225-8c1a-6d035391e93d,r4.large,SUSE Linux,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1414,Hourly
+be48d511-9c77-40a8-8cbf-7f9ab6e9a055,r4.large,SUSE Linux,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1315,Hourly
+c7cddb30-005f-49e0-8b5a-9aac5b261200,r4.large,Linux/UNIX,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1084,Hourly
+d8d32f6b-808c-407d-b82d-43dab5f1d481,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.176,Hourly
+d9a0e8f3-355b-4e64-98c0-fea5aff065bd,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1684,Hourly
+dde6cfd4-ae15-4ee3-b9b4-f635febd52eb,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1585,Hourly
+e8c1fe10-dad6-435c-94d7-f9b022a8f21b,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.5884,Hourly
+ed5e61e5-2064-4d63-8922-3aa0efd8847d,r4.large,Linux with SQL Server Web,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1661,Hourly
+443749c4-27a0-46dd-b7e4-d278577a9e57,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,411.0,0.0,USD,0.1069,Hourly
+b47d328c-de19-4978-8ea9-4e22de0500c2,r4.large,Linux/UNIX,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,411.0,0.0,USD,0.0469,Hourly
+ad1dd298-3b63-438e-9904-cae478b439ae,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,452.0,0.0,USD,0.0516,Hourly
+ea248f41-0064-44b8-bd76-98a8537c04f6,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,452.0,0.0,USD,0.1116,Hourly
+19b23cc4-e5bd-4713-ba43-91c585009c89,r4.large,Linux/UNIX,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,473.0,0.0,USD,0.0539,Hourly
+1f5eea31-25c1-4de6-9569-95620f7099fb,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,473.0,0.0,USD,0.1139,Hourly
+7a191677-66c7-47c5-b067-52fc2ac97d4b,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,520.0,0.0,USD,0.1193,Hourly
+8fdcb900-a99e-489a-afa3-c6a0c6dfb996,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,520.0,0.0,USD,0.0593,Hourly
+83e8c823-9f2c-482d-8709-75749ba7c82d,r4.large,SUSE Linux,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,587.0,0.0,USD,0.0599,Hourly
+b44c68dd-96e4-4669-9f1d-dc870737eb71,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,628.0,0.0,USD,0.0646,Hourly
+b8a213b8-bc3e-4c7f-b42c-ecac73a9cffa,r4.large,SUSE Linux,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,649.0,0.0,USD,0.0669,Hourly
+e14f65d4-921a-474b-b422-7c5b69fd4132,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,696.0,0.0,USD,0.0723,Hourly
+e9bb20e8-a11a-4946-a623-b021ef91cffd,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,707.0,0.0,USD,0.0807,Hourly
+9b032a1b-c8e0-456e-af8c-c74e7641f1b5,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,748.0,0.0,USD,0.0854,Hourly
+3387f261-bec7-432a-9c57-bbc070816c72,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,769.0,0.0,USD,0.0877,Hourly
+cbd82945-6560-40ef-a63a-de149888e1d3,r4.large,Linux/UNIX,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,805.0,0.0,USD,0.0,Hourly
+1d2ec378-b905-4fe1-82b6-907836a4ba44,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,816.0,0.0,USD,0.0931,Hourly
+4843146c-34bf-4d0d-997a-319a0e9bb332,r4.large,Linux/UNIX,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,886.0,0.0,USD,0.0,Hourly
+245eb4ad-360c-4496-ad99-033cbf737d7d,r4.large,Linux/UNIX,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,926.0,0.0,USD,0.0,Hourly
+f20eaaae-4eba-4f8d-86da-72ed55eb5f6e,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1019.0,0.0,USD,0.0,Hourly
+dbcc4922-fa46-4407-aa05-6beb827dc277,r4.large,SUSE Linux,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1095.0,0.0,USD,0.0,Hourly
+ac99bddc-0bee-45fd-b6e2-06e88c0a64aa,r4.large,SUSE Linux,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1176.0,0.0,USD,0.0,Hourly
+d5799c52-427b-4828-95da-c03e9dc15902,r4.large,SUSE Linux,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1216.0,0.0,USD,0.0,Hourly
+623ffb07-ae49-4df0-9f27-a0d76335a941,r4.large,SUSE Linux,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1309.0,0.0,USD,0.0,Hourly
+05792202-5b45-4784-a161-4d1570277fd6,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1331.0,0.0,USD,0.0,Hourly
+35a087ed-aeb2-4057-b2ba-639312c6eb83,r4.large,Linux with SQL Server Web,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1398.0,0.0,USD,0.0,Hourly
+eeb1de27-62c5-45ab-9dd9-e11392b1230d,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1411.0,0.0,USD,0.0,Hourly
+a923584f-cbd0-4bdf-b30e-12efa786aba3,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1452.0,0.0,USD,0.0,Hourly
+8b5c6388-d76b-4b21-9216-bfe66c7d9689,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1478.0,0.0,USD,0.0,Hourly
+6116dbb4-918b-474b-856d-4491f54df4d0,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1518.0,0.0,USD,0.0,Hourly
+6436810b-70b7-4fec-a061-a962e28f2ab2,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1544.0,0.0,USD,0.0,Hourly
+7c56895b-1797-45b3-a22d-7dff85c3045a,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1611.0,0.0,USD,0.0,Hourly
+8867cadb-a8ab-44c7-8fa1-c9d476c55029,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2513.0,0.0,USD,0.2869,Hourly
+24521866-9f4e-41e6-bcbb-ce19ea607318,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2554.0,0.0,USD,0.2916,Hourly
+40a5a931-bbf5-4a2b-8df9-2237fb176b75,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2575.0,0.0,USD,0.2939,Hourly
+e307382d-a268-4e07-88de-2cc6dc895263,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2622.0,0.0,USD,0.2993,Hourly
+2667f1ee-4e0b-4d0f-8416-1321f911af30,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,5010.0,0.0,USD,0.0,Hourly
+dc1df498-1944-4a08-8080-e244c2f2318f,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,5091.0,0.0,USD,0.0,Hourly
+0b7902f0-e4d7-49ad-869d-41371e779e2c,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,5131.0,0.0,USD,0.0,Hourly
+bc953c94-29a9-4757-bd45-1dfb2b5e662e,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,5224.0,0.0,USD,0.0,Hourly
+3211cedf-64f9-4d6d-9b64-9ea41630e934,r4.large,Windows,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1777,Hourly
+4e88e494-783c-4ab1-865a-52a49e651a5f,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.2409,Hourly
+8597472e-3f8b-4ec6-92a8-cfef9e0f494b,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.6577,Hourly
+91bf94ef-31d7-437b-a420-3ee908943801,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.2487,Hourly
+d5da22ca-cb42-4e55-8281-af401eef0d28,r4.large,Windows,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1699,Hourly
+eed26f21-cd9a-49a5-9796-55c1dfb944b6,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.6499,Hourly
+77049270-4879-4750-a583-7ca99ab11793,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.2375,Hourly
+79e9bb03-91ff-4840-86c5-f4ab31d2299c,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.6465,Hourly
+9a790c31-93f4-4d00-bbf2-8763ef09912d,r4.large,Windows,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1665,Hourly
+adbd7ab9-a11e-4db6-9d17-1fee8f5b2bfc,r4.large,Windows,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.1597,Hourly
+be9af4da-3e9c-4f0e-8886-42548920612a,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.6397,Hourly
+d8c5b43c-407a-467d-9313-bee521f8789f,r4.large,Windows with SQL Server Web,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.2307,Hourly
+f0bdd6f1-c574-462a-87a9-9cd1d3d5eb9c,r4.large,Windows BYOL,dedicated,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.0745,Hourly
+f4630983-fc9d-4dcf-b149-ada2e7006a55,r4.large,Windows BYOL,default,standard,No Upfront,eu-west-3c,94608000,Availability Zone,0,0.0,0.0,USD,0.0677,Hourly
+78e38040-f8f7-4727-a18a-90133cfa428f,r4.large,Windows BYOL,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,824.0,0.0,USD,0.0314,Hourly
+e04993a7-f849-4226-a8b6-f55aace06189,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,907.0,0.0,USD,0.0345,Hourly
+01b70452-7776-4273-af8c-07a22f8ff454,r4.large,Windows BYOL,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,1549.0,0.0,USD,0.0,Hourly
+637d0806-cbf1-48f6-a7f3-a6bd710e3ad0,r4.large,Windows BYOL,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,1704.0,0.0,USD,0.0,Hourly
+06182ef8-4c18-4ccd-ac31-e1aee7c3ec68,r4.large,Windows,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,2033.0,0.0,USD,0.0774,Hourly
+4cd23c25-73f3-4c8c-bc3c-36d0bc7f8922,r4.large,Windows,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,2115.0,0.0,USD,0.0805,Hourly
+fca28959-6759-43cb-85e5-dfb9259e2cfa,r4.large,Windows,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,2157.0,0.0,USD,0.0821,Hourly
+caa25b8b-7ea7-4469-b9d0-aa0f7d7374be,r4.large,Windows,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,2251.0,0.0,USD,0.0857,Hourly
+277c656c-20ff-469d-bdfc-d502604d8024,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,2966.0,0.0,USD,0.1129,Hourly
+f6424679-5d63-42a3-b251-9ec51b64c5cf,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,3048.0,0.0,USD,0.116,Hourly
+d6118964-0abb-40f9-93f5-8b7aa7852e96,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,3090.0,0.0,USD,0.1176,Hourly
+11d537fe-bd28-4d54-9aaa-c8b64c3f45f6,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,3184.0,0.0,USD,0.1212,Hourly
+ec1f2b6b-f607-4f43-adcc-2603d6bd2fa7,r4.large,Windows,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,3967.0,0.0,USD,0.0,Hourly
+0cd63efd-c5c1-4848-a035-68101c731e79,r4.large,Windows,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,4122.0,0.0,USD,0.0,Hourly
+36a2ea68-945d-47c9-ad21-bea443015790,r4.large,Windows,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,4275.0,0.0,USD,0.0,Hourly
+bf95ac08-99ca-408e-8958-cc4e1b5ef693,r4.large,Windows,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,4461.0,0.0,USD,0.0,Hourly
+1dc03f50-182f-4e5a-a268-bf01dbaa9482,r4.large,Windows with SQL Server Web,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,5833.0,0.0,USD,0.0,Hourly
+9c1965e2-9e2c-4e39-b88f-adba6df2b6e8,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,5988.0,0.0,USD,0.0,Hourly
+69607ea8-06cc-416e-97dd-d27b471a36ad,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,6141.0,0.0,USD,0.0,Hourly
+7025df11-cab2-4a19-978c-bf126f02b372,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,6327.0,0.0,USD,0.0,Hourly
+86e74d4b-f337-4529-a4b7-6f7ab31988cd,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,8340.0,0.0,USD,0.3174,Hourly
+7edb67fa-6790-4a81-9fd6-df03391e242d,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,8423.0,0.0,USD,0.3205,Hourly
+fa896569-5177-41bf-be69-b8b57828e154,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,8464.0,0.0,USD,0.3221,Hourly
+59fc3902-b054-4eef-a5c9-a5857a1fd34c,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3c,94608000,Availability Zone,0,8559.0,0.0,USD,0.3257,Hourly
+0508fdf8-eabe-4561-b11b-2f7371337a40,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,16581.0,0.0,USD,0.0,Hourly
+fef03ead-32a2-4704-afda-fbdfd72de66c,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3c,94608000,Availability Zone,0,16736.0,0.0,USD,0.0,Hourly
+9daecbb1-9a9a-43ac-899b-1356c96c3c10,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,16890.0,0.0,USD,0.0,Hourly
+1e0dd5dc-ef11-4325-89eb-8834643460f0,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3c,94608000,Availability Zone,0,17075.0,0.0,USD,0.0,Hourly
+3a8a059a-cbd2-4adc-9c63-cf5ea3781adf,r4.large,Windows,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2166,Hourly
+958d3416-666c-4f88-bee2-46fcb05b6af4,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.6853,Hourly
+97906411-4a02-42c7-b757-d42ba715b255,r4.large,Windows,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2053,Hourly
+d00cba8c-c2a7-401f-917d-89b2e74ff6ba,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.6966,Hourly
+d91eced3-8227-4d23-9fdb-99b9fb86db11,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2876,Hourly
+e6982768-0712-4989-a1a6-0e79d6e75825,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2763,Hourly
+12427298-45b0-452e-8306-4a6740c0f274,r4.large,Windows,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2004,Hourly
+1c8c2391-807e-496f-a3dc-de7780ed325d,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.6705,Hourly
+7080e0d8-87ad-4eb8-9a3d-027e9d3d5aca,r4.large,Windows with SQL Server Web,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2615,Hourly
+9310a70f-6f6c-44a3-8e85-54fa24fd22de,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.6804,Hourly
+94b08e51-4a21-4879-adba-1b998602e7f4,r4.large,Windows BYOL,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.0985,Hourly
+b397d46c-2d01-43d0-bf79-0f43fbf26678,r4.large,Windows BYOL,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1084,Hourly
+e7221adf-44f3-463e-af9a-dadcdd093870,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.2714,Hourly
+ff1af362-47fc-44f6-96bb-2f8a73223e6e,r4.large,Windows,default,standard,No Upfront,eu-west-3c,31536000,Availability Zone,0,0.0,0.0,USD,0.1905,Hourly
+3c160209-759d-4758-a5cd-45da1b3e9f63,r4.large,Windows BYOL,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,411.0,0.0,USD,0.0469,Hourly
+10d0058e-b457-4b75-af7f-c523dbf905ec,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,452.0,0.0,USD,0.0516,Hourly
+ce19f4d9-5222-43d5-919b-ce9a4d0a617e,r4.large,Windows BYOL,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,805.0,0.0,USD,0.0,Hourly
+3873d13b-caea-4f3f-b2b8-4fd51fb7ca4d,r4.large,Windows,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,814.0,0.0,USD,0.0929,Hourly
+207859fd-cab0-4a08-a3ef-bfc9314c1a9a,r4.large,Windows,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,855.0,0.0,USD,0.0976,Hourly
+0c39fd48-a700-4fde-a901-f59432f36509,r4.large,Windows,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,875.0,0.0,USD,0.0999,Hourly
+e1b28be9-40b7-4166-b01e-129d66bdd57d,r4.large,Windows BYOL,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,886.0,0.0,USD,0.0,Hourly
+432141ce-5356-4ec0-8f05-337220c06966,r4.large,Windows,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,923.0,0.0,USD,0.1053,Hourly
+b3a2dedb-8455-44b4-9a2f-1e7a4bf7f288,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,1125.0,0.0,USD,0.1284,Hourly
+3f1b7b1f-bb38-4902-8e7c-d06d4aee7c36,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,1166.0,0.0,USD,0.1331,Hourly
+8599732b-4299-47b3-a114-c44e58b083c1,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,1186.0,0.0,USD,0.1354,Hourly
+d8ce6ebb-a722-4cff-8e05-4fdc571af914,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,1234.0,0.0,USD,0.1408,Hourly
+7b293888-ae86-442d-901d-d7431b740aca,r4.large,Windows,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1611.0,0.0,USD,0.0,Hourly
+354e312f-b5ff-4912-b7b4-dbca3996bc70,r4.large,Windows,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,1692.0,0.0,USD,0.0,Hourly
+b2ea5d59-3bb3-492e-900b-e5fb9d442243,r4.large,Windows,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1732.0,0.0,USD,0.0,Hourly
+da3a7c68-ae87-406b-9769-d13bf7638760,r4.large,Windows,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,1825.0,0.0,USD,0.0,Hourly
+5c83a983-a46b-42b9-a98c-a4da3ef89956,r4.large,Windows with SQL Server Web,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,2233.0,0.0,USD,0.0,Hourly
+1f5986c6-a560-44cb-ae9d-d0964a91e7f7,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,2314.0,0.0,USD,0.0,Hourly
+8c0dc33b-e6dd-4f77-b73c-6bbcebfe6c83,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,2354.0,0.0,USD,0.0,Hourly
+2bc2db8e-dd79-449d-92f4-cf9dc9771f0e,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,2447.0,0.0,USD,0.0,Hourly
+9006c201-ab59-4cbb-ad55-f675c778ac1e,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2916.0,0.0,USD,0.3329,Hourly
+819a6dd9-9a2a-406e-824e-a76d3c182e7d,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2957.0,0.0,USD,0.3376,Hourly
+a3784ebd-f466-4569-9bcc-a9495b557b16,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,2978.0,0.0,USD,0.3399,Hourly
+d4270d26-0fae-4e91-b204-266a8ac4cf65,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3c,31536000,Availability Zone,0,3025.0,0.0,USD,0.3453,Hourly
+c4ee5cdf-a692-4115-9531-94b10c0ae2e5,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,5816.0,0.0,USD,0.0,Hourly
+cc613b3d-c81d-4abf-8852-faf37bc7cb2b,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3c,31536000,Availability Zone,0,5897.0,0.0,USD,0.0,Hourly
+3595c6f2-c12a-4359-815d-d4683d317925,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,5937.0,0.0,USD,0.0,Hourly
+40945db4-f993-4791-b6d7-5e31e64a05b7,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3c,31536000,Availability Zone,0,6029.0,0.0,USD,0.0,Hourly
+156b8721-277f-48c1-9658-ef87ccc8893a,r4.large,Linux/UNIX,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.0779,Hourly
+1663acb9-0723-46a2-9da7-2886004dec1a,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1379,Hourly
+433075f1-e7e6-41c8-8505-41cb5bf7da9d,r4.large,SUSE Linux,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1109,Hourly
+4348f24f-a681-4555-a642-7c3e47696e0c,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1533,Hourly
+4e29d7bf-7a2b-44de-91ee-9edbeb54a38c,r4.large,SUSE Linux,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1187,Hourly
+7957e04d-73fb-4f83-bb50-f8711015e85c,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.5579,Hourly
+90f643f0-ea74-4e83-aeb3-0e4093cff8af,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.5657,Hourly
+9abf46ad-fa74-4474-8bed-a59fde455dfb,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1457,Hourly
+a189d3a4-56b7-46a4-8e95-f6c5fd708ea7,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.0857,Hourly
+aea84688-54bf-41f6-81fb-270f2c8e29c8,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1455,Hourly
+51ca4f6a-bc9a-4b24-ba21-354210bdaff7,r4.large,Linux/UNIX,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.0745,Hourly
+75df7cfa-d382-4a58-b0ab-b6c53c10743f,r4.large,SUSE Linux,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1075,Hourly
+9ba4d208-d760-4af8-b97e-e1e06db23627,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1421,Hourly
+9c31efbc-e835-4196-a9da-2744c29e800f,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.5545,Hourly
+a99e9aaf-af16-43cd-a430-0c99f66d2ea8,r4.large,SUSE Linux,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1007,Hourly
+ba298e7b-6ece-421c-ae51-65659aadadc4,r4.large,Linux with SQL Server Web,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1353,Hourly
+beb81dcc-5b20-40dc-9157-2ba1e677c0a7,r4.large,Linux/UNIX,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.0677,Hourly
+bebf2677-0dcd-42f9-9e23-7fb488751623,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.5477,Hourly
+d3632816-8262-4840-8521-5ff04035e2ca,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1345,Hourly
+f5358c25-a10a-4964-924b-5f035c724e58,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1277,Hourly
+13788b51-8ec9-45e9-8b4c-cf9d7712fe2e,r4.large,Linux/UNIX,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,824.0,0.0,USD,0.0314,Hourly
+fb1d51cb-cda4-468f-89fc-cc9b7dbb9248,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,824.0,0.0,USD,0.0914,Hourly
+07a03705-e766-47d8-b64b-b8c775265005,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,907.0,0.0,USD,0.0945,Hourly
+0aeba65e-e2b4-47af-8733-e3a0b907d4f1,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,907.0,0.0,USD,0.0345,Hourly
+71656a45-a55e-4eb3-bc53-cfcd73349547,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,948.0,0.0,USD,0.0961,Hourly
+8077e28e-a27c-4602-8154-cc8ba2a1809f,r4.large,Linux/UNIX,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,948.0,0.0,USD,0.0361,Hourly
+396737fa-b5d1-4a19-8687-d9a394f2c9d2,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1042.0,0.0,USD,0.0397,Hourly
+d776b2d7-996b-4275-acaf-2c4a70af14ed,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1042.0,0.0,USD,0.0997,Hourly
+04a02903-065d-409d-8f28-df544f078823,r4.large,SUSE Linux,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1176.0,0.0,USD,0.0444,Hourly
+b731cac0-11fa-4d57-ae6e-d28d391e7eea,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1259.0,0.0,USD,0.0475,Hourly
+16758bfe-d21b-40e4-ad07-da86847d5428,r4.large,SUSE Linux,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1300.0,0.0,USD,0.0491,Hourly
+6862d01c-cc7d-4d29-b8cc-e25d037e9374,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1394.0,0.0,USD,0.0527,Hourly
+2777981a-d78a-4d43-b0ca-ddd112424a1a,r4.large,Linux/UNIX,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,1549.0,0.0,USD,0.0,Hourly
+ed533e4a-6e7a-4fb9-87df-8f2f71e57804,r4.large,Linux/UNIX,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,1704.0,0.0,USD,0.0,Hourly
+1c30fbcb-a319-4e4b-b2b9-d5bc7cd06ea7,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1712.0,0.0,USD,0.0652,Hourly
+c70b2068-4a49-469c-8faa-672de64d847b,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1795.0,0.0,USD,0.0683,Hourly
+074e7b3d-f272-4a9c-bc51-08a5942c74f3,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1836.0,0.0,USD,0.0699,Hourly
+d3c626a0-4c93-466c-85f1-333609c9904d,r4.large,Linux/UNIX,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,1857.0,0.0,USD,0.0,Hourly
+8a3f0410-dab4-46dd-bca8-8d7f6c165028,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,1931.0,0.0,USD,0.0735,Hourly
+dcd9a3ba-82e7-469c-976f-f03887c25c2e,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,2043.0,0.0,USD,0.0,Hourly
+de9f6b8d-e6af-4a88-bf2c-62c7f6ce44bf,r4.large,SUSE Linux,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,2243.0,0.0,USD,0.0,Hourly
+837ffe35-0f13-4d5e-b46c-34e59754e16c,r4.large,SUSE Linux,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,2398.0,0.0,USD,0.0,Hourly
+8f0a8d92-867f-4d67-b463-9d36e8b1d75b,r4.large,SUSE Linux,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,2551.0,0.0,USD,0.0,Hourly
+08da497f-c675-44ba-8bec-7f488982ddc6,r4.large,SUSE Linux,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,2737.0,0.0,USD,0.0,Hourly
+b92be66d-3066-4178-84cc-5ccab2fb659a,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,3126.0,0.0,USD,0.0,Hourly
+380ddfe3-fbe1-4c14-b4cf-3c368793340a,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,3281.0,0.0,USD,0.0,Hourly
+787b84ad-d657-46d6-970e-667eeea6bec7,r4.large,Linux with SQL Server Web,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,3326.0,0.0,USD,0.0,Hourly
+30630aaf-8947-4ab8-b9d6-30107621f291,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,3434.0,0.0,USD,0.0,Hourly
+49acd1f9-60f6-4e36-8c04-74ad82896db1,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,3481.0,0.0,USD,0.0,Hourly
+c475f888-14f9-49ea-ab3e-5842b04aa93d,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,3620.0,0.0,USD,0.0,Hourly
+4f6db9fe-5007-4bc3-b6fb-f9ce5b810fa4,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,3634.0,0.0,USD,0.0,Hourly
+fb9cd4fc-ec8a-41a5-9fe9-4eda76b78556,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,3820.0,0.0,USD,0.0,Hourly
+d8b31786-36f2-4ce6-a793-ea2de98f971f,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,7131.0,0.0,USD,0.2714,Hourly
+31eee803-a488-41c1-8b60-53e3b8bf4d4b,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,7214.0,0.0,USD,0.2745,Hourly
+a4571860-b2d4-4c62-8ef3-a3e07c4db2b2,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,7255.0,0.0,USD,0.2761,Hourly
+6926cc88-6364-4c62-8c23-5bb4a9f7d372,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,7350.0,0.0,USD,0.2797,Hourly
+d317e9fd-212e-4f20-9732-33e9d73726db,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+51ed3133-045d-4ab3-8545-4c4b3a71949b,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,14319.0,0.0,USD,0.0,Hourly
+818044d1-2ffb-4b1c-a7fb-7c872021f2e8,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,14472.0,0.0,USD,0.0,Hourly
+3532f80c-a3d7-4da9-bd58-893822037f9c,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,14658.0,0.0,USD,0.0,Hourly
+107d6b8a-9e3d-40f3-84ca-6d28a10e937d,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.6046,Hourly
+1b831148-254e-472c-8a73-5d0fc68d11f3,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1846,Hourly
+55d24db7-54a4-4375-8045-30ebca36f597,r4.large,Linux/UNIX,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1133,Hourly
+64fc8170-d934-47e5-89c7-77cc4d49f9e7,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.5933,Hourly
+7f4caae5-46e5-4c13-b3da-607b1937c32c,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1809,Hourly
+80ec4f5f-f956-43e2-9c99-740c3a159654,r4.large,SUSE Linux,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1576,Hourly
+8584b7bd-759c-48ec-811e-3c4066e48ab9,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1922,Hourly
+8c1ccf85-6097-46ca-b3b9-7d43aba34bcb,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1733,Hourly
+f39b63e4-a23d-402f-833b-cc2a7bd07c7c,r4.large,SUSE Linux,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1463,Hourly
+f4a3b1cd-bf5e-49c9-b9c6-5923ee80da4b,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1246,Hourly
+0c871217-d9a6-4a39-8e88-1a9d95e58018,r4.large,SUSE Linux,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1315,Hourly
+35a1241e-46f8-4a7a-ab3d-32754f4fa931,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.5785,Hourly
+401225a8-93ed-47d8-a005-efbbf98b7d1e,r4.large,SUSE Linux,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1414,Hourly
+460883e1-756b-4374-831e-0e4d4192103f,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.5884,Hourly
+8c0f1cc3-e340-4777-a068-34e0ce4a351c,r4.large,Linux/UNIX,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.0985,Hourly
+8fd5a9eb-53c8-4f67-8966-c344724e1988,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1684,Hourly
+9bf4a324-f725-4135-9faf-d37c8d0acf6c,r4.large,Linux/UNIX,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1084,Hourly
+cc743432-a489-491a-880c-5da1d3098458,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.176,Hourly
+d5c33c1a-38c3-4b56-b2cd-f9190081d0bf,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1585,Hourly
+d72f916c-2a99-41f8-acbe-0455399a432f,r4.large,Linux with SQL Server Web,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1661,Hourly
+77764ee6-74ea-4278-a333-2e30efeb942d,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,411.0,0.0,USD,0.1069,Hourly
+ae7b6ead-ffd5-4bfd-9925-9e8739686ac1,r4.large,Linux/UNIX,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,411.0,0.0,USD,0.0469,Hourly
+712395ee-8dda-47c1-a9dd-11a1f11c2dcd,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,452.0,0.0,USD,0.1116,Hourly
+eaef3a55-9fc5-455b-832f-66b0d24f37ce,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,452.0,0.0,USD,0.0516,Hourly
+14db643a-6648-4e37-9f9a-13842931a537,r4.large,Linux/UNIX,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,473.0,0.0,USD,0.0539,Hourly
+df405e50-9d14-4180-b405-d230b7a04814,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,473.0,0.0,USD,0.1139,Hourly
+73709440-99c4-4f75-824d-785c122e4512,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,520.0,0.0,USD,0.1193,Hourly
+8a7e976f-6316-4254-b661-a6f27f56fdba,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,520.0,0.0,USD,0.0593,Hourly
+43b19d6a-bf51-42a3-bf78-85d03b7c9999,r4.large,SUSE Linux,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,587.0,0.0,USD,0.0599,Hourly
+d2f1307d-f779-4b78-b66e-2cd4c349c55a,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,628.0,0.0,USD,0.0646,Hourly
+3350f4ae-6e2d-4f47-9865-54e35cc51063,r4.large,SUSE Linux,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,649.0,0.0,USD,0.0669,Hourly
+9b784dcc-20f8-4652-ba05-b04b09fd3190,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,696.0,0.0,USD,0.0723,Hourly
+7098d4cd-3b5b-4f15-a215-3a8d1a871030,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,707.0,0.0,USD,0.0807,Hourly
+a1f2476c-98bf-484b-9514-bb42bf6a35ac,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,748.0,0.0,USD,0.0854,Hourly
+142ff283-c54e-4577-ad44-3c361cdfc2d7,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,769.0,0.0,USD,0.0877,Hourly
+d9026bbf-b270-4ddb-b2b4-8b35672d3158,r4.large,Linux/UNIX,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,805.0,0.0,USD,0.0,Hourly
+14737f6a-230a-4d46-86f1-9b07d3cef565,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,816.0,0.0,USD,0.0931,Hourly
+2b870aa1-70d1-4834-8ea5-1f84c2d43ed2,r4.large,Linux/UNIX,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,886.0,0.0,USD,0.0,Hourly
+b9a98f27-f6ea-4930-879d-53c3ffe58f67,r4.large,Linux/UNIX,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,926.0,0.0,USD,0.0,Hourly
+1636aa68-74c2-4b6c-b0ca-d5e7511f5605,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1019.0,0.0,USD,0.0,Hourly
+2b75ca2a-ed04-447e-981b-26fa842d66ec,r4.large,SUSE Linux,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1095.0,0.0,USD,0.0,Hourly
+f6acc07f-4b98-4507-88b6-3b75db5981f7,r4.large,SUSE Linux,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1176.0,0.0,USD,0.0,Hourly
+32f88acb-8f17-4163-9ab6-993f9ac79050,r4.large,SUSE Linux,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1216.0,0.0,USD,0.0,Hourly
+f7ae0fcc-c4a9-4aac-8136-659e58095b88,r4.large,SUSE Linux,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1309.0,0.0,USD,0.0,Hourly
+e4b12174-581d-4b27-bfb8-327b66f9dde2,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1331.0,0.0,USD,0.0,Hourly
+e0389926-f27b-478e-a00c-01ea80eb3cb4,r4.large,Linux with SQL Server Web,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1398.0,0.0,USD,0.0,Hourly
+067ba5b9-39c2-4899-a2ae-c9c368475e9a,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1411.0,0.0,USD,0.0,Hourly
+227697e7-c147-41a8-8944-db72511ab826,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1452.0,0.0,USD,0.0,Hourly
+396b6b4c-0b68-46be-923c-2fbfc042b8cb,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1478.0,0.0,USD,0.0,Hourly
+97f5553e-749d-489c-8f32-32bd23dadb6d,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1518.0,0.0,USD,0.0,Hourly
+c1214d02-5f9e-405e-aa38-f40b5e486764,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1544.0,0.0,USD,0.0,Hourly
+815de3f3-fbf0-45b2-9bd8-b2cbac0754f1,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1611.0,0.0,USD,0.0,Hourly
+7dcd2e8d-49b3-4dc4-a70a-c20b84d5efd6,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2513.0,0.0,USD,0.2869,Hourly
+b44c6eec-27d0-4d45-bcac-e8863558195e,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2554.0,0.0,USD,0.2916,Hourly
+e1708727-9727-44bf-b930-4dcdcfedf294,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2575.0,0.0,USD,0.2939,Hourly
+4b01837f-f1be-4912-ae5a-2de50adf53cc,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2622.0,0.0,USD,0.2993,Hourly
+bd68f121-b94f-4ac5-9105-cd706a21a534,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,5010.0,0.0,USD,0.0,Hourly
+bb6ac43f-7f48-447b-97a5-7859d75d7b17,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,5091.0,0.0,USD,0.0,Hourly
+44c84fe2-76e6-4c26-8276-26cd0ebe307e,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,5131.0,0.0,USD,0.0,Hourly
+54314dbe-d359-49f3-ab2f-2cfbad6a1c11,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,5224.0,0.0,USD,0.0,Hourly
+2934bd72-f4ce-48d9-8bc8-6de9bce05de1,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.6499,Hourly
+74f2193b-b461-48e4-8d4a-37c8ed1393f9,r4.large,Windows,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1777,Hourly
+7b0d7a4e-8cfc-45f8-a253-c2a1152b8f43,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.2487,Hourly
+a7ee27c6-558d-462b-896d-c22f259e19c7,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.2409,Hourly
+bcfbc9c8-cc3f-4971-9cd8-fc29badddb69,r4.large,Windows,default,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1699,Hourly
+ede29923-f8e1-4b24-8456-f95f6b49b7a8,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.6577,Hourly
+07b1ff84-bc6a-4a6a-966e-0ba7c03b1678,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.2375,Hourly
+1bf8bfd1-25d9-4f3e-8768-2a5addfa6237,r4.large,Windows,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1597,Hourly
+58a622f7-1acc-4c69-bee5-8d374bf529a4,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.6397,Hourly
+67d6de7d-9c09-4817-831c-2a0050b2d85e,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.6465,Hourly
+ad047be6-b7f0-4833-817e-e51d20cef815,r4.large,Windows BYOL,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.0745,Hourly
+c653bd17-903e-4564-9433-f94b4f3f699f,r4.large,Windows,dedicated,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.1665,Hourly
+cb646064-faf8-438a-84ff-22560d903fe3,r4.large,Windows BYOL,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.0677,Hourly
+eecf3070-2ce6-481f-84ff-b6ee3f9a3b43,r4.large,Windows with SQL Server Web,default,standard,No Upfront,eu-west-3b,94608000,Availability Zone,0,0.0,0.0,USD,0.2307,Hourly
+68eec1ff-d5ad-418f-a627-f7f175c9b65b,r4.large,Windows BYOL,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,824.0,0.0,USD,0.0314,Hourly
+8c55004d-862a-4bac-8a8b-223ebeb2b30c,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,907.0,0.0,USD,0.0345,Hourly
+1c34a717-304b-4b04-88a3-b74fb7e502cb,r4.large,Windows BYOL,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,1549.0,0.0,USD,0.0,Hourly
+3b19bc60-50bc-4577-8dd3-85213abbce6b,r4.large,Windows BYOL,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,1704.0,0.0,USD,0.0,Hourly
+86a9f89b-b185-4e2b-809b-bcf9ca3e24a1,r4.large,Windows,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,2033.0,0.0,USD,0.0774,Hourly
+06d0a658-299e-4b05-8725-6e2d2b18174c,r4.large,Windows,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,2115.0,0.0,USD,0.0805,Hourly
+02f8e844-928f-417b-b417-8477c1045468,r4.large,Windows,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,2157.0,0.0,USD,0.0821,Hourly
+51f2fa5c-d14b-4af4-aba2-0bacd449bfc7,r4.large,Windows,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,2251.0,0.0,USD,0.0857,Hourly
+7cf79eed-aabf-49cc-b9a8-24268dd18362,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,2966.0,0.0,USD,0.1129,Hourly
+04f85367-38df-4fdf-8c60-c93a654b67e3,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,3048.0,0.0,USD,0.116,Hourly
+170dcf23-7cdf-40cf-84a5-98515dbd680a,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,3090.0,0.0,USD,0.1176,Hourly
+b64d598b-db8b-4747-94a5-dd54b611e5c3,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,3184.0,0.0,USD,0.1212,Hourly
+a80c75d2-4dde-4771-9d4c-8b249db70cc6,r4.large,Windows,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,3967.0,0.0,USD,0.0,Hourly
+d0feed62-2202-4a5d-82f8-cebd16dc8f78,r4.large,Windows,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,4122.0,0.0,USD,0.0,Hourly
+d0b8f1cf-66d9-49a7-8e97-a3b35ade5ea4,r4.large,Windows,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,4275.0,0.0,USD,0.0,Hourly
+6f58de88-6906-404d-ba97-dccc7fa81eef,r4.large,Windows,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,4461.0,0.0,USD,0.0,Hourly
+d071ccda-44e8-43e7-9814-e8ddffc58ecd,r4.large,Windows with SQL Server Web,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,5833.0,0.0,USD,0.0,Hourly
+de4bfd58-ec18-4e4c-b579-91ae2b97fbde,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,5988.0,0.0,USD,0.0,Hourly
+9fdbb5aa-23f5-4639-9d5e-347e7ea4a485,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,6141.0,0.0,USD,0.0,Hourly
+84e6fa23-9eb2-46e4-88b7-b6ec7bc343b6,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,6327.0,0.0,USD,0.0,Hourly
+93b6e7f3-8fe7-4e7f-ad17-7745ed256f04,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,8340.0,0.0,USD,0.3174,Hourly
+d558aaae-18c5-4487-a493-3a94c58ae8b5,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,8423.0,0.0,USD,0.3205,Hourly
+16ec4887-e78e-46db-a8a0-c928db702ef7,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,8464.0,0.0,USD,0.3221,Hourly
+28036050-f6fb-48a0-8d92-41b2965da32f,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3b,94608000,Availability Zone,0,8559.0,0.0,USD,0.3257,Hourly
+ca9dec2d-227a-4cf8-8eff-eabbec99d124,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,16581.0,0.0,USD,0.0,Hourly
+85c56af4-8212-4347-b86e-c51e8373a8f1,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3b,94608000,Availability Zone,0,16736.0,0.0,USD,0.0,Hourly
+3307fe78-1f47-4abe-aeeb-b4a9f65b8b1c,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,16890.0,0.0,USD,0.0,Hourly
+61ad1159-30bb-46de-a9cf-15b162c24958,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3b,94608000,Availability Zone,0,17075.0,0.0,USD,0.0,Hourly
+0cf2e360-910c-4b01-a88a-62ba85a0e554,r4.large,Windows,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2053,Hourly
+43b1d8c6-2b0a-4b3d-932e-bdab586d10d7,r4.large,Windows,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2166,Hourly
+6355985b-8152-4189-9f46-51cbeb83d479,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2876,Hourly
+7569f12c-dd03-4bb7-9f29-c2afbd704e11,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2763,Hourly
+e499a4de-57ec-43bb-aa16-1c219f34ca4f,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.6853,Hourly
+edff9fd9-3401-4fd2-b443-3ae57c401730,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.6966,Hourly
+0b334053-d249-4d4c-8f33-25244fb35266,r4.large,Windows BYOL,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.0985,Hourly
+2a9e191e-d73b-4d0a-850f-b404a4074071,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.6705,Hourly
+2e9c683c-3910-4fdf-9fae-2a2eb258cb5c,r4.large,Windows BYOL,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1084,Hourly
+882fe082-6325-4881-bc44-18b284337359,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2714,Hourly
+bcc206e0-4416-4437-869a-8e8c834092ed,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.6804,Hourly
+c39df76b-3881-4a01-8ed6-eeedb84feaf1,r4.large,Windows,dedicated,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2004,Hourly
+e5ba6d1c-d96b-4659-b9c9-18208e3a300f,r4.large,Windows with SQL Server Web,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.2615,Hourly
+f31e06fd-1080-4049-89e5-150256dca07a,r4.large,Windows,default,standard,No Upfront,eu-west-3b,31536000,Availability Zone,0,0.0,0.0,USD,0.1905,Hourly
+f6ba8940-12bd-4782-b7f4-063a8e0097ee,r4.large,Windows BYOL,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,411.0,0.0,USD,0.0469,Hourly
+e604f251-7dc9-487a-8748-9204a8d39894,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,452.0,0.0,USD,0.0516,Hourly
+eaa67607-d184-4077-a2d5-71972f35007e,r4.large,Windows BYOL,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,805.0,0.0,USD,0.0,Hourly
+5e0dfab7-c8b9-485a-8979-8d4db770e128,r4.large,Windows,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,814.0,0.0,USD,0.0929,Hourly
+0ccc0d05-15ed-4cd4-a8f9-4d938c674fc4,r4.large,Windows,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,855.0,0.0,USD,0.0976,Hourly
+3d6fe7f0-dd9f-4886-ab0b-3580996936d4,r4.large,Windows,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,875.0,0.0,USD,0.0999,Hourly
+4dd1b071-f090-4816-8f5e-f809e4566fd5,r4.large,Windows BYOL,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,886.0,0.0,USD,0.0,Hourly
+f73846c0-6a02-4547-8957-ade5c4d05dba,r4.large,Windows,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,923.0,0.0,USD,0.1053,Hourly
+43235a31-9fdc-4941-bc9a-4ca07a603576,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,1125.0,0.0,USD,0.1284,Hourly
+6a9a0db8-7b5d-4840-aafb-86aa34dfde4c,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,1166.0,0.0,USD,0.1331,Hourly
+b65e51fb-2ad7-4c9d-9e49-95e11290cc23,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,1186.0,0.0,USD,0.1354,Hourly
+a85031eb-18db-4397-8abb-42fae53e692d,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,1234.0,0.0,USD,0.1408,Hourly
+7e7e4854-4ceb-4ca0-9447-3dc1379b3e81,r4.large,Windows,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1611.0,0.0,USD,0.0,Hourly
+2d636123-2650-435d-ae72-562b984409fd,r4.large,Windows,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,1692.0,0.0,USD,0.0,Hourly
+db9101ff-4007-4a73-9a4d-b9fc378fc637,r4.large,Windows,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1732.0,0.0,USD,0.0,Hourly
+6c443a04-b877-4fb2-a370-599f0f3ecf3d,r4.large,Windows,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,1825.0,0.0,USD,0.0,Hourly
+bb173cc4-ac78-4154-ac40-f9164a8a9e66,r4.large,Windows with SQL Server Web,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,2233.0,0.0,USD,0.0,Hourly
+d2cd2f0f-c248-446e-b811-569d0673cd34,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,2314.0,0.0,USD,0.0,Hourly
+1d060027-ff7f-470a-837f-f130ea7baaa1,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,2354.0,0.0,USD,0.0,Hourly
+14347678-2567-413d-938b-f06257af8d53,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,2447.0,0.0,USD,0.0,Hourly
+c48011dc-7962-4a2d-9a79-233d076d42b6,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2916.0,0.0,USD,0.3329,Hourly
+800c8e83-546f-459f-97cf-e078840030c2,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2957.0,0.0,USD,0.3376,Hourly
+8f8cc36e-0d2d-4b4d-95df-343a5e4be750,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,2978.0,0.0,USD,0.3399,Hourly
+e8222db4-ed33-4958-bf62-9a673811a478,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3b,31536000,Availability Zone,0,3025.0,0.0,USD,0.3453,Hourly
+9737b34f-5d1f-46f4-ad06-a7c7b62818fb,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,5816.0,0.0,USD,0.0,Hourly
+f487ec5f-8b2a-4ff1-b0fa-46385bea81b1,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3b,31536000,Availability Zone,0,5897.0,0.0,USD,0.0,Hourly
+c59f3c48-47ea-46aa-a34a-a97554a0e727,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,5937.0,0.0,USD,0.0,Hourly
+15496ef6-341b-4617-be95-aa8955fe040f,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3b,31536000,Availability Zone,0,6029.0,0.0,USD,0.0,Hourly
+09cf9042-bfc8-4348-87aa-56e7554542a3,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.5579,Hourly
+20972c2a-e907-434f-b94a-c6d8456a9691,r4.large,Linux/UNIX,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.0779,Hourly
+2773261f-d5b2-4365-b38b-f3266623d553,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1533,Hourly
+440e90f5-56d4-4aa6-8359-518ef157f20b,r4.large,SUSE Linux,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1109,Hourly
+56de560a-cd81-43fd-999c-200a154d8ac9,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1379,Hourly
+7cd72f21-a132-4eb9-8db4-ca5a797f81e9,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1457,Hourly
+b86137e3-3949-4e7d-b918-586db4df4112,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.0857,Hourly
+be731ac2-aa7f-4ffe-8f7a-c4df3826b163,r4.large,SUSE Linux,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1187,Hourly
+c0101a42-8978-4c64-8a31-9954a905a808,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1455,Hourly
+c0c64d22-1139-4ae4-ad71-b6e9325303c1,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.5657,Hourly
+0535dc55-0541-46dc-839c-c92b9935bef8,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1345,Hourly
+2be817f2-5feb-4d2b-9c82-71e4cef48856,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.5545,Hourly
+91cf1703-1fd4-4075-b00c-c18e705a43bd,r4.large,Linux/UNIX,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.0677,Hourly
+9dfc7b13-9e7c-46c4-a91e-28af1e198e8f,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1277,Hourly
+b8373e94-cbc1-4201-a638-211ff9ab15f8,r4.large,SUSE Linux,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1075,Hourly
+bc42b3d4-1b16-401c-803a-5befea4e40df,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1421,Hourly
+de04a40c-d0c8-4dc1-a41e-b4a57b6141ba,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.5477,Hourly
+faa7fa4d-217e-44cc-ab3a-f48cebdfc70b,r4.large,Linux/UNIX,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.0745,Hourly
+fb51562a-6dc2-45b4-986c-85ee1e5ce934,r4.large,Linux with SQL Server Web,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1353,Hourly
+fd7ee0d8-efd7-475b-82d8-a12dc3133ca0,r4.large,SUSE Linux,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1007,Hourly
+38bc3899-62e7-4ead-a89f-be872eadbfa4,r4.large,Linux/UNIX,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,824.0,0.0,USD,0.0314,Hourly
+a15660cc-d700-481b-8d5f-7be81a7fa6f8,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,824.0,0.0,USD,0.0914,Hourly
+897b315b-9c22-48d5-9727-006f2b4e1fd7,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,907.0,0.0,USD,0.0345,Hourly
+974bd436-5b54-48e4-9c8e-2acc22493c15,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,907.0,0.0,USD,0.0945,Hourly
+1dce38a6-4dfb-4f68-ab34-d83cf95e036c,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,948.0,0.0,USD,0.0961,Hourly
+7d126594-bcbb-4cf7-8ae2-04c45b2bfa9d,r4.large,Linux/UNIX,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,948.0,0.0,USD,0.0361,Hourly
+b245b359-74f3-420f-a748-cbef8dcee380,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1042.0,0.0,USD,0.0397,Hourly
+f52efbfe-2822-4922-84cf-1526d4fb0d87,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1042.0,0.0,USD,0.0997,Hourly
+cf8d1af7-906a-4aa2-9079-ca541a4d218f,r4.large,SUSE Linux,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1176.0,0.0,USD,0.0444,Hourly
+8766e28d-bcd7-4a3b-963c-16bdfb004f6a,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1259.0,0.0,USD,0.0475,Hourly
+6262ba73-29c4-47e1-935f-2b721e9b9bf8,r4.large,SUSE Linux,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1300.0,0.0,USD,0.0491,Hourly
+3fffb147-9de8-42ef-b6a1-cc44becd0578,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1394.0,0.0,USD,0.0527,Hourly
+3a11c03b-0e09-43f4-b57e-aa978468b6f2,r4.large,Linux/UNIX,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,1549.0,0.0,USD,0.0,Hourly
+f22d9868-8e1d-4c80-a3bc-783ed90c0164,r4.large,Linux/UNIX,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,1704.0,0.0,USD,0.0,Hourly
+b9300901-3fe5-4d09-ad68-936c3038d356,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1712.0,0.0,USD,0.0652,Hourly
+505e5d74-d000-476c-b0fe-5bb344eabeaa,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1795.0,0.0,USD,0.0683,Hourly
+a2008f56-0d5b-4739-9416-8e64a72e80dd,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1836.0,0.0,USD,0.0699,Hourly
+ceb6f7cf-7055-4599-b9d9-f0eeb5667da9,r4.large,Linux/UNIX,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,1857.0,0.0,USD,0.0,Hourly
+e11d4fcc-2dd6-495b-8a85-583d01a49966,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,1931.0,0.0,USD,0.0735,Hourly
+4b8cb5a5-9481-4326-8fff-d85a3e3a9906,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,2043.0,0.0,USD,0.0,Hourly
+153e906f-3890-4035-a62e-5fefdfabaf03,r4.large,SUSE Linux,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,2243.0,0.0,USD,0.0,Hourly
+c7d1dbd2-94c5-4fe9-8d54-53c179d2921b,r4.large,SUSE Linux,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,2398.0,0.0,USD,0.0,Hourly
+a31f49f1-833a-4eaf-9076-d438c7008321,r4.large,SUSE Linux,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,2551.0,0.0,USD,0.0,Hourly
+479b1279-74b9-4af0-919e-e74ea49134eb,r4.large,SUSE Linux,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,2737.0,0.0,USD,0.0,Hourly
+1b817b1d-bdf8-4053-932a-14070e2143f2,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,3126.0,0.0,USD,0.0,Hourly
+60e56341-5056-4d02-b14a-3e5263ad3b7e,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,3281.0,0.0,USD,0.0,Hourly
+244eb9a3-b45c-402d-8ac1-3630f3996b37,r4.large,Linux with SQL Server Web,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,3326.0,0.0,USD,0.0,Hourly
+0b7f2a2c-eb2b-4f43-91e2-62d332bb3915,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,3434.0,0.0,USD,0.0,Hourly
+e20276a8-3608-4f95-a355-07c50618fa5a,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,3481.0,0.0,USD,0.0,Hourly
+4f864591-7cf5-4692-b3c0-4642be76dd4d,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,3620.0,0.0,USD,0.0,Hourly
+c02c0a74-022a-4afa-8fb6-736f2f37b8e3,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,3634.0,0.0,USD,0.0,Hourly
+1453ecc9-9c2c-4afa-87e0-dfa3dbac48df,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,3820.0,0.0,USD,0.0,Hourly
+5ee88112-478c-4f85-90c8-98e5fc8df6a8,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,7131.0,0.0,USD,0.2714,Hourly
+ee46f890-f44d-478d-8bc9-cf6e71dca180,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,7214.0,0.0,USD,0.2745,Hourly
+536842c8-6c5d-4ea2-af4d-f27204c0a30d,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,7255.0,0.0,USD,0.2761,Hourly
+c84d17b4-f179-4287-8e61-515fa6613ef5,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,7350.0,0.0,USD,0.2797,Hourly
+6adfa943-2549-4da2-8747-2f937c5619e8,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+b7eb2fb8-95c8-4337-94e0-18dd4253175f,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,14319.0,0.0,USD,0.0,Hourly
+74d3054c-f925-4b4c-851b-558dafa4a3d3,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,14472.0,0.0,USD,0.0,Hourly
+d4da0299-adb0-4bcf-b10b-fcf9cdc9416d,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,14658.0,0.0,USD,0.0,Hourly
+16eee593-a084-4ad7-8a53-b32236090d88,r4.large,SUSE Linux,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1576,Hourly
+498844df-3837-4a20-9760-a0e6ee7abeab,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1846,Hourly
+5079bc15-3363-4f91-b9f3-54946195897a,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1246,Hourly
+747ae630-695b-4827-8183-52e442a1aa21,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.5933,Hourly
+83bc0d89-de47-4b2e-94bc-bd6f6ea58e27,r4.large,Linux/UNIX,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1133,Hourly
+84f28b58-b08b-41bc-9020-5bf80a5639ef,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1922,Hourly
+8971ac17-ad97-4da9-9d92-6eaf62e74f26,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1733,Hourly
+ce376b28-1a78-4459-9d53-5044772fd456,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.6046,Hourly
+d5975373-c552-4ac3-a065-90aebf5045b1,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1809,Hourly
+f04440bb-b1d9-48ab-abec-fe928520cfe3,r4.large,SUSE Linux,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1463,Hourly
+00ae4122-1138-4614-89c3-38139964788f,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.176,Hourly
+14c94bde-0662-437c-b33d-778e7d13b610,r4.large,Linux with SQL Server Web,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1661,Hourly
+17b60235-6e31-41fc-9046-353f7861b03c,r4.large,SUSE Linux,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1414,Hourly
+1afe1498-bbab-4b77-8989-f338ef0b076b,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1585,Hourly
+5159d510-0ea0-4d1d-bbbb-0f3660a27198,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1684,Hourly
+8a0dc5ef-9fa4-4cba-8469-dbbf09d2aba4,r4.large,Linux/UNIX,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.0985,Hourly
+9b34d8e5-91f7-4612-83c3-b8a08785d58b,r4.large,Linux/UNIX,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1084,Hourly
+bc1ec378-f72f-4d80-b002-f9e2e85a89ac,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.5884,Hourly
+e47300d2-5a49-460a-80c7-1397eeddf84c,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.5785,Hourly
+f665d4e2-dea9-4f12-9028-cf1bf81590bc,r4.large,SUSE Linux,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1315,Hourly
+2479188c-9e57-40a6-85be-85450be43b64,r4.large,Linux/UNIX,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,411.0,0.0,USD,0.0469,Hourly
+bf4eded8-8c11-4569-bff1-2ec88cbfd8cd,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,411.0,0.0,USD,0.1069,Hourly
+180c1304-0a91-4195-a2cf-880b17616f68,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,452.0,0.0,USD,0.1116,Hourly
+78b826c2-12dd-414a-a8f5-98f1610eff9e,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,452.0,0.0,USD,0.0516,Hourly
+659f8196-e273-41ad-8f00-daf8a0919c18,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,473.0,0.0,USD,0.1139,Hourly
+d36b6a03-0a99-4732-9410-d7778389729e,r4.large,Linux/UNIX,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,473.0,0.0,USD,0.0539,Hourly
+69258efb-8263-475e-af31-d001017d23ee,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,520.0,0.0,USD,0.0593,Hourly
+d2a07927-b8b9-4e7b-a02b-04d586b771ea,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,520.0,0.0,USD,0.1193,Hourly
+8984446c-3df1-404d-aa3c-d3894e7ce951,r4.large,SUSE Linux,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,587.0,0.0,USD,0.0599,Hourly
+749b19a2-ea53-4dd8-82f1-9d56c390ac05,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,628.0,0.0,USD,0.0646,Hourly
+a3583035-f8b5-41f1-abb0-b8d7b5a1ccd1,r4.large,SUSE Linux,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,649.0,0.0,USD,0.0669,Hourly
+a82c4d02-4bff-47ab-b083-02b0c0f4f129,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,696.0,0.0,USD,0.0723,Hourly
+ee9b0de0-9763-4d27-ba48-3e61d13c8320,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,707.0,0.0,USD,0.0807,Hourly
+bc0bc59b-a68a-4454-9928-fbf685c357ac,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,748.0,0.0,USD,0.0854,Hourly
+c70016de-bc60-4346-b1c2-3c644a617f61,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,769.0,0.0,USD,0.0877,Hourly
+7a493f52-8c11-45f1-8e97-f7330f138a99,r4.large,Linux/UNIX,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,805.0,0.0,USD,0.0,Hourly
+3f9e7fad-8fde-400f-aa6d-4864a7da7713,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,816.0,0.0,USD,0.0931,Hourly
+7a1a8aa3-effb-4481-9c48-7f3483be3eae,r4.large,Linux/UNIX,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,886.0,0.0,USD,0.0,Hourly
+459affd8-7307-4e4d-9af9-3afa477c0c58,r4.large,Linux/UNIX,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,926.0,0.0,USD,0.0,Hourly
+5d9a4304-1a1e-4e2e-845a-7136f3222e4a,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1019.0,0.0,USD,0.0,Hourly
+3d370b0c-ae49-46eb-a0c2-f8e70e76a27b,r4.large,SUSE Linux,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1095.0,0.0,USD,0.0,Hourly
+4aa74d72-1af4-47ef-bff5-3c5fcc9ad5d2,r4.large,SUSE Linux,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1176.0,0.0,USD,0.0,Hourly
+1f08e9ae-722c-4161-99c7-f7047922be72,r4.large,SUSE Linux,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1216.0,0.0,USD,0.0,Hourly
+e2fdfae6-ef7a-4829-ab75-b76777129bfd,r4.large,SUSE Linux,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1309.0,0.0,USD,0.0,Hourly
+e1ff5b54-bc36-41ce-883b-576621480342,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1331.0,0.0,USD,0.0,Hourly
+eed81499-de3a-454b-ba34-c6cffa6d50bd,r4.large,Linux with SQL Server Web,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1398.0,0.0,USD,0.0,Hourly
+ef235c13-2167-4b40-abca-889bfba3dbac,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1411.0,0.0,USD,0.0,Hourly
+971d2002-f802-48c0-abaa-a353fe6e82d9,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1452.0,0.0,USD,0.0,Hourly
+18fabe3a-c368-4427-be85-33be8c8d9abf,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1478.0,0.0,USD,0.0,Hourly
+080f857b-bee6-4bcb-a239-e996e42cc781,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1518.0,0.0,USD,0.0,Hourly
+5ae8c8c3-db21-46fc-abed-de7dd70ad635,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1544.0,0.0,USD,0.0,Hourly
+c0e2d80d-094b-4e3f-96b9-0547ebf7a678,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1611.0,0.0,USD,0.0,Hourly
+56aa44c9-e2d0-43b0-8d72-499dafd1ab91,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2513.0,0.0,USD,0.2869,Hourly
+0681838a-03b2-48ac-98d1-50646e1d877d,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2554.0,0.0,USD,0.2916,Hourly
+36a622c8-a2aa-4337-9487-aad7139a8f91,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2575.0,0.0,USD,0.2939,Hourly
+8c5a43e7-f32b-497c-9391-d4e226eef9f6,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2622.0,0.0,USD,0.2993,Hourly
+1322b57f-129e-4354-a3e5-20435fd9898c,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,5010.0,0.0,USD,0.0,Hourly
+434cc774-985b-4ffa-9191-f0ba5845eb29,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,5091.0,0.0,USD,0.0,Hourly
+04fe7428-05c9-4463-8bc9-b297e704982d,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,5131.0,0.0,USD,0.0,Hourly
+748b9dc4-b581-4b5d-b382-a1e25548431d,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,5224.0,0.0,USD,0.0,Hourly
+1a053f44-fa17-4ca8-955b-4bcd7168fb42,r4.large,Windows,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1699,Hourly
+668bacd9-a6bf-4a94-bccc-98742807911d,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.6577,Hourly
+af1ad3b1-0935-411e-b5d5-4382a209008e,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.6499,Hourly
+b79cfc6e-8018-4099-9225-b05005933284,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.2487,Hourly
+d344af0c-147c-4c98-b498-0d455949d5bb,r4.large,Windows,dedicated,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1777,Hourly
+e04cd065-8366-44f6-845d-168f399feb25,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.2409,Hourly
+15f056b4-2e67-4107-ba0e-30ae5aa94296,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.6397,Hourly
+25b83113-e46b-4a52-a837-613b0a6225f4,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.2375,Hourly
+3eadb300-7e7a-45f5-99d3-972f7a535203,r4.large,Windows BYOL,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.0745,Hourly
+97fec359-6ea0-4ed6-a56b-dc70efde004c,r4.large,Windows BYOL,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.0677,Hourly
+9e86a91c-90e2-4566-8c90-d0464aae70a9,r4.large,Windows,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1597,Hourly
+bc1b7922-94c5-4cb6-8d75-2c2ffe8d4688,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.6465,Hourly
+bd22c42a-c0d2-48ff-aba2-d035b45765c2,r4.large,Windows,dedicated,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.1665,Hourly
+e402b8c1-37e7-4895-96e6-bead45e6c376,r4.large,Windows with SQL Server Web,default,standard,No Upfront,eu-west-3a,94608000,Availability Zone,0,0.0,0.0,USD,0.2307,Hourly
+f58dfd67-18b2-49f5-8206-f83411cb3d21,r4.large,Windows BYOL,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,824.0,0.0,USD,0.0314,Hourly
+4d8e6d5b-d28f-4092-a91c-4a3bbba62433,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,907.0,0.0,USD,0.0345,Hourly
+7acb669f-9b15-45df-be2b-a283e2319383,r4.large,Windows BYOL,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,1549.0,0.0,USD,0.0,Hourly
+855d10b9-71d0-46b8-a32e-a0859991250c,r4.large,Windows BYOL,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,1704.0,0.0,USD,0.0,Hourly
+129291a2-1789-4b4c-a192-b04dd58af877,r4.large,Windows,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,2033.0,0.0,USD,0.0774,Hourly
+f42df7d9-1fe6-4452-8f98-9961d1fe0a3e,r4.large,Windows,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,2115.0,0.0,USD,0.0805,Hourly
+b5aa8e3f-4ae8-4dc7-8f68-339ae32f48ac,r4.large,Windows,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,2157.0,0.0,USD,0.0821,Hourly
+fafe8ec1-90cf-4c35-97c1-2ab097474050,r4.large,Windows,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,2251.0,0.0,USD,0.0857,Hourly
+78a5c0b1-f6d7-4501-93c7-91a170474927,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,2966.0,0.0,USD,0.1129,Hourly
+93e7ccc0-e4fb-42d7-b40d-322f64400f3a,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,3048.0,0.0,USD,0.116,Hourly
+c3ba21a3-789f-4d78-ad3e-98a4042e67da,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,3090.0,0.0,USD,0.1176,Hourly
+71c7f49c-ab30-4426-be8f-7f86dd96ae24,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,3184.0,0.0,USD,0.1212,Hourly
+b0b7ae1e-ddb7-4d46-a1a9-171ba9a9e692,r4.large,Windows,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,3967.0,0.0,USD,0.0,Hourly
+dbfbe975-da84-4b82-ba76-236b7d2263ed,r4.large,Windows,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,4122.0,0.0,USD,0.0,Hourly
+2fdc9e8d-4fc1-49a1-84fb-bcd010b80f22,r4.large,Windows,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,4275.0,0.0,USD,0.0,Hourly
+b5e8b54d-18f6-436d-8073-4b8874308fbe,r4.large,Windows,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,4461.0,0.0,USD,0.0,Hourly
+6cc73e0b-469d-4909-b56a-562da2c872cc,r4.large,Windows with SQL Server Web,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,5833.0,0.0,USD,0.0,Hourly
+42bbe537-05c7-4b44-bd96-7aa36c831dba,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,5988.0,0.0,USD,0.0,Hourly
+7dc4fa57-58b8-46bc-a14c-9e9d4b937602,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,6141.0,0.0,USD,0.0,Hourly
+01f134c7-147e-4ff3-b170-02cd6d59b992,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,6327.0,0.0,USD,0.0,Hourly
+a8f5f784-b273-4f72-a279-a2b372caeeee,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,8340.0,0.0,USD,0.3174,Hourly
+a9a8f604-699a-4af1-a5d2-0559d785b0bd,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,8423.0,0.0,USD,0.3205,Hourly
+10cba373-3e90-48e4-a346-b0cd78735318,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,8464.0,0.0,USD,0.3221,Hourly
+c966f448-62f4-4cf9-8b4c-812b4dc1eb93,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3a,94608000,Availability Zone,0,8559.0,0.0,USD,0.3257,Hourly
+ae333b85-2150-4c89-a053-1d954d60fe19,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,16581.0,0.0,USD,0.0,Hourly
+53ea62f9-ff52-4c08-b9ed-2f1c9eb258cf,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3a,94608000,Availability Zone,0,16736.0,0.0,USD,0.0,Hourly
+16d8f7c3-4be5-4d9f-bc85-c591961c2cd5,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,16890.0,0.0,USD,0.0,Hourly
+f5627001-b4f7-4694-b38f-c0b1462c4b8c,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3a,94608000,Availability Zone,0,17075.0,0.0,USD,0.0,Hourly
+6419a5d6-f14f-40a9-bbff-1ffe9c62115f,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.6966,Hourly
+852dffc0-7356-4635-bd4c-31edda09fe34,r4.large,Windows,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2053,Hourly
+8628681a-c972-4d62-8469-fabdc320b416,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2763,Hourly
+bda8e297-5ba1-4b71-98ff-576f768eab12,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2876,Hourly
+ddab8a8b-9978-4588-895d-817d494169a8,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.6853,Hourly
+f6a8f1d9-2fd3-48c5-a968-648aefaa4bfb,r4.large,Windows,dedicated,convertible,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2166,Hourly
+02782165-cd82-4600-a4b9-a98b8a2855cc,r4.large,Windows BYOL,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1084,Hourly
+232f0089-15ad-4970-ac5f-cff64cbac769,r4.large,Windows with SQL Server Web,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2615,Hourly
+339fd0de-bded-4949-94b7-3fabba7197e3,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.6804,Hourly
+5713665e-653d-49e7-85d5-3cac794c0aea,r4.large,Windows,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2004,Hourly
+6910902b-8e07-4b51-a2f4-7ad3fdf4b960,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.6705,Hourly
+70591ac7-c508-4920-bfe6-1bd4fa6f3f8e,r4.large,Windows,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.1905,Hourly
+9c8ecf05-9e93-4dc5-af22-7aea643c423d,r4.large,Windows BYOL,default,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.0985,Hourly
+fcbfce0f-fd56-4779-80ed-38e8c9b0e103,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,eu-west-3a,31536000,Availability Zone,0,0.0,0.0,USD,0.2714,Hourly
+d445a88f-01bb-440d-b03a-b9e408253735,r4.large,Windows BYOL,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,411.0,0.0,USD,0.0469,Hourly
+56baecb9-ac0c-43ba-bf2f-51f0860af66b,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,452.0,0.0,USD,0.0516,Hourly
+0adfc9e6-2f12-4452-9caa-3b09eb6ccc00,r4.large,Windows BYOL,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,805.0,0.0,USD,0.0,Hourly
+1a0b08ec-1b85-43a7-937b-59ba229f913e,r4.large,Windows,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,814.0,0.0,USD,0.0929,Hourly
+34933018-73d8-49f9-b9ca-e3ec3d4050a1,r4.large,Windows,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,855.0,0.0,USD,0.0976,Hourly
+32a3b34f-40f3-4c69-aba4-596a1cf2de7d,r4.large,Windows,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,875.0,0.0,USD,0.0999,Hourly
+39f8748d-2a0b-412b-8c7c-3abf6727f48e,r4.large,Windows BYOL,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,886.0,0.0,USD,0.0,Hourly
+3162ade0-8607-4d00-bffc-ca501edd571f,r4.large,Windows,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,923.0,0.0,USD,0.1053,Hourly
+06ec237c-8e69-434b-8f66-d3312484fc25,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,1125.0,0.0,USD,0.1284,Hourly
+40ddf47e-9cc0-4ed2-9897-58661e13fe83,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,1166.0,0.0,USD,0.1331,Hourly
+c96a19ad-52fc-4289-a2ff-d742c1f4b75d,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,1186.0,0.0,USD,0.1354,Hourly
+fd0a4e35-dd46-48b8-8417-09dd56c95a41,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,1234.0,0.0,USD,0.1408,Hourly
+be61d73e-fe82-499f-96cd-f4708ed5e6e7,r4.large,Windows,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1611.0,0.0,USD,0.0,Hourly
+13a383de-c8af-4fa5-a810-ac1e5b50faa5,r4.large,Windows,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,1692.0,0.0,USD,0.0,Hourly
+50386f0d-76a7-4da7-972b-33c8f6b67807,r4.large,Windows,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1732.0,0.0,USD,0.0,Hourly
+a8185bb0-0c80-4657-bd98-62f2204b18ab,r4.large,Windows,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,1825.0,0.0,USD,0.0,Hourly
+0b8ac6d6-5ce6-49ee-af2d-8bb9a415f98f,r4.large,Windows with SQL Server Web,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,2233.0,0.0,USD,0.0,Hourly
+6ebe1775-27a1-4f83-8b8b-5f70ab520aa5,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,2314.0,0.0,USD,0.0,Hourly
+7710a6d2-80a5-473e-a500-d34cde6cc20b,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,2354.0,0.0,USD,0.0,Hourly
+72c36ed2-7e74-44f1-be9e-4eb73d2bab4c,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,2447.0,0.0,USD,0.0,Hourly
+7e803de6-4e8f-45a0-a050-d7eb37943efd,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2916.0,0.0,USD,0.3329,Hourly
+35f0d46b-7446-4cb6-9766-f3c182393549,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2957.0,0.0,USD,0.3376,Hourly
+fc51df80-6722-4600-88b3-2db30ea55871,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,2978.0,0.0,USD,0.3399,Hourly
+961cac0a-fc39-423f-9d1f-6cda8f0bcaca,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,eu-west-3a,31536000,Availability Zone,0,3025.0,0.0,USD,0.3453,Hourly
+f6a060b1-bd4c-45a4-bf1d-295b0f304691,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,5816.0,0.0,USD,0.0,Hourly
+0b32725a-4d92-4fb2-824c-9bdad3cdd333,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,eu-west-3a,31536000,Availability Zone,0,5897.0,0.0,USD,0.0,Hourly
+e798b2a4-e49c-4a59-a112-ba63c8fcd495,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,5937.0,0.0,USD,0.0,Hourly
+b469ecb0-83b3-44ac-aa60-fc0adedec50b,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,eu-west-3a,31536000,Availability Zone,0,6029.0,0.0,USD,0.0,Hourly
+01444683-e9c2-4a06-8bfc-c78d0ed911be,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1457,Hourly
+1b37c1d9-07c8-467e-a15e-155cf75c14d1,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1533,Hourly
+57897a9c-cbd3-4cb5-b294-e71d8fcb0ddd,r4.large,Linux/UNIX,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0779,Hourly
+67e8560b-6516-4093-9958-4d3de92d8e05,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.5657,Hourly
+6a1dc2f8-23cb-4602-bc75-eb2b3ac779df,r4.large,SUSE Linux,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1109,Hourly
+9cc11750-c959-4e15-a198-f2798ddd4079,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0857,Hourly
+bd1d2073-602f-40a3-a9e9-323662c35a31,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1455,Hourly
+bd47d20e-2ca3-4dc9-bdb4-ce176ca16b7e,r4.large,SUSE Linux,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1187,Hourly
+e075d5ad-d3ee-4e7c-ad47-f7f093103f95,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.5579,Hourly
+e969c306-0590-413e-815d-a4393e474319,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1379,Hourly
+13ca8b43-84ea-4d64-9320-af88ce54909d,r4.large,Linux/UNIX,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0677,Hourly
+179846ce-6f08-4bfb-b601-9dbe358cdd0f,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1421,Hourly
+2af53fe4-7a82-4185-af64-3c5736dee430,r4.large,Linux with SQL Server Web,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1353,Hourly
+374fe0eb-2885-48ff-919b-607eb1d3a456,r4.large,SUSE Linux,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1007,Hourly
+74a21eae-12a5-4e11-9a44-8c4a4ea3a0e1,r4.large,SUSE Linux,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1075,Hourly
+a8f4fd9a-ac3e-41c4-ba07-2a92b9c0571d,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1345,Hourly
+aa5eac63-d4be-47e5-90b9-2cd374184acf,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.5545,Hourly
+af47f545-f9e2-4532-b536-c7fa91f3e8e8,r4.large,Linux/UNIX,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0745,Hourly
+b4a92991-8bf2-4f92-836f-6e064a038705,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.5477,Hourly
+b7795c32-7d30-4f5e-9560-1efeca99ff96,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1277,Hourly
+3c0386cc-0baf-46f0-98f9-2a07207b6e54,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,,94608000,Region,0,824.0,0.0,USD,0.0914,Hourly
+bb47580e-a750-47c5-b280-29848ead4723,r4.large,Linux/UNIX,default,standard,Partial Upfront,,94608000,Region,0,824.0,0.0,USD,0.0314,Hourly
+4d9936de-7b35-4816-8d57-fcfc22b3970d,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,,94608000,Region,0,907.0,0.0,USD,0.0345,Hourly
+9c188520-c161-466f-a80a-a1a1dcb1a0ad,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,,94608000,Region,0,907.0,0.0,USD,0.0945,Hourly
+7a379c40-2fb4-4108-81eb-0383cdb3ce41,r4.large,Linux/UNIX,default,convertible,Partial Upfront,,94608000,Region,0,948.0,0.0,USD,0.0361,Hourly
+cd38d06b-235c-4d58-ab0b-0d890357f3e1,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,,94608000,Region,0,948.0,0.0,USD,0.0961,Hourly
+270c3f7f-e579-49f9-b327-9b6d523f192c,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,,94608000,Region,0,1042.0,0.0,USD,0.0997,Hourly
+f62efbf9-7bd4-4277-add2-67c1b30ca657,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,,94608000,Region,0,1042.0,0.0,USD,0.0397,Hourly
+dc503c14-5905-43ea-8e98-0941c11a4a34,r4.large,SUSE Linux,default,standard,Partial Upfront,,94608000,Region,0,1176.0,0.0,USD,0.0444,Hourly
+850d2ded-d7ce-42e4-8512-1d440e08643d,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,,94608000,Region,0,1259.0,0.0,USD,0.0475,Hourly
+b140e79a-df4e-48f0-8e0c-d748e2f349d1,r4.large,SUSE Linux,default,convertible,Partial Upfront,,94608000,Region,0,1300.0,0.0,USD,0.0491,Hourly
+82e596ff-cdfb-4a89-98a3-fe891cc858b7,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,,94608000,Region,0,1394.0,0.0,USD,0.0527,Hourly
+54ad7f58-63b4-4484-833f-6d2451849f80,r4.large,Linux/UNIX,default,standard,All Upfront,,94608000,Region,0,1549.0,0.0,USD,0.0,Hourly
+bfa66483-34d8-4f19-ae92-66c9c1c6e986,r4.large,Linux/UNIX,dedicated,standard,All Upfront,,94608000,Region,0,1704.0,0.0,USD,0.0,Hourly
+91a81c82-2976-467d-a182-051ca5aca371,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,,94608000,Region,0,1712.0,0.0,USD,0.0652,Hourly
+766092a0-36c1-4320-8c90-fab4f8666fa7,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,,94608000,Region,0,1795.0,0.0,USD,0.0683,Hourly
+bb4e9487-29c1-4430-bdaf-24fa09abc947,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,,94608000,Region,0,1836.0,0.0,USD,0.0699,Hourly
+5d49c2cd-c326-45c4-a4dd-6757635861e8,r4.large,Linux/UNIX,default,convertible,All Upfront,,94608000,Region,0,1857.0,0.0,USD,0.0,Hourly
+ecfb5061-33ed-48af-91e8-1ceb60ffb6b0,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,,94608000,Region,0,1931.0,0.0,USD,0.0735,Hourly
+e2536d00-3099-4011-ba4b-049fafca23eb,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,,94608000,Region,0,2043.0,0.0,USD,0.0,Hourly
+61765302-14bc-4313-a66c-4467950b4e01,r4.large,SUSE Linux,default,standard,All Upfront,,94608000,Region,0,2243.0,0.0,USD,0.0,Hourly
+a8e4c0c0-d6ed-42d1-84f1-86f953bc1195,r4.large,SUSE Linux,dedicated,standard,All Upfront,,94608000,Region,0,2398.0,0.0,USD,0.0,Hourly
+00559809-b656-4736-b584-ffdb6833058d,r4.large,SUSE Linux,default,convertible,All Upfront,,94608000,Region,0,2551.0,0.0,USD,0.0,Hourly
+95c04364-9fd7-4912-a5e8-24101f9a5879,r4.large,SUSE Linux,dedicated,convertible,All Upfront,,94608000,Region,0,2737.0,0.0,USD,0.0,Hourly
+34cd982e-49d4-4cd2-84f0-05d5b71248a6,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,,94608000,Region,0,3126.0,0.0,USD,0.0,Hourly
+6895f743-a64d-4b5a-8f4a-7b8e201e0e4e,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,,94608000,Region,0,3281.0,0.0,USD,0.0,Hourly
+09d97d82-032c-4f19-ab43-a417c81954e1,r4.large,Linux with SQL Server Web,default,standard,All Upfront,,94608000,Region,0,3326.0,0.0,USD,0.0,Hourly
+2e6eeb55-eda3-463d-beb9-16d37c77bbf9,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,,94608000,Region,0,3434.0,0.0,USD,0.0,Hourly
+498d25c6-d9a4-4cf5-a6b0-7c330b98124c,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,,94608000,Region,0,3481.0,0.0,USD,0.0,Hourly
+a545bc71-091b-46eb-9e0d-bfe09cf2d60b,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,,94608000,Region,0,3620.0,0.0,USD,0.0,Hourly
+19f9850b-8213-4f5a-966f-3073c8b0cb40,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,,94608000,Region,0,3634.0,0.0,USD,0.0,Hourly
+8f5b78c3-3d57-4177-85a6-3ddd518fa663,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,,94608000,Region,0,3820.0,0.0,USD,0.0,Hourly
+48d8a5d3-87d0-4243-ab3f-be6b3f2be206,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,,94608000,Region,0,7131.0,0.0,USD,0.2714,Hourly
+12663fcf-4f2a-454d-b03a-a335f1874a49,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,,94608000,Region,0,7214.0,0.0,USD,0.2745,Hourly
+47bf6f5c-6c7d-4204-a7cf-a7b74c49f627,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,,94608000,Region,0,7255.0,0.0,USD,0.2761,Hourly
+c3a2d5b2-59d5-4863-a0f9-1f6ba660dacb,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,,94608000,Region,0,7350.0,0.0,USD,0.2797,Hourly
+228be401-da20-43ac-b4f4-1b2129902a71,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,,94608000,Region,0,14164.0,0.0,USD,0.0,Hourly
+9c9b00be-99aa-47fa-a77b-37c219ffe823,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,,94608000,Region,0,14319.0,0.0,USD,0.0,Hourly
+7a0d126a-f130-49b6-b827-63ed46f47e4b,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,,94608000,Region,0,14472.0,0.0,USD,0.0,Hourly
+21ccbc46-bf2e-4687-afbf-5c55066ecadc,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,,94608000,Region,0,14658.0,0.0,USD,0.0,Hourly
+19bfcf4d-dbbf-442e-b72c-1e7abd3f5b38,r4.large,SUSE Linux,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1576,Hourly
+4b369685-400a-4dc1-bb6d-c616a729aea0,r4.large,Linux/UNIX,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1246,Hourly
+59b80433-29c0-4152-8321-756b2cb491c6,r4.large,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1846,Hourly
+5c2c0b4b-ca2f-4d46-832c-7adf7cb4e5a5,r4.large,SUSE Linux,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1463,Hourly
+98215ce2-a9b1-40c3-ad70-e6bea2a1c80f,r4.large,Linux with SQL Server Web,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1922,Hourly
+b97aabb5-e485-421e-b1eb-a7ed1c18ea5e,r4.large,Linux with SQL Server Standard,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.5933,Hourly
+d97803c0-5a31-4f72-b2df-7d8dab3f5bf9,r4.large,Linux with SQL Server Web,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1809,Hourly
+e335f94b-2436-4a15-bf69-2b8e928df302,r4.large,Red Hat Enterprise Linux,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1733,Hourly
+eac344b2-497c-4a06-896b-8c0edc4e12e9,r4.large,Linux/UNIX,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1133,Hourly
+ef375a7e-6229-44ac-bc9b-20f1dbe53bb0,r4.large,Linux with SQL Server Standard,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.6046,Hourly
+0da9d0f5-5dcb-4d73-9c78-4027f1a5b533,r4.large,SUSE Linux,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1414,Hourly
+3060064e-db5e-4cc8-afa4-fe303868aabe,r4.large,Linux/UNIX,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0985,Hourly
+42f6de85-c184-4b14-a728-27ae37358e64,r4.large,Linux with SQL Server Standard,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.5785,Hourly
+497d87b1-adcf-4e67-8828-b8a54ba7b493,r4.large,Linux with SQL Server Web,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.176,Hourly
+4ec40bc1-8bfa-4815-a468-d6ba192857c1,r4.large,Linux with SQL Server Web,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1661,Hourly
+59c463d0-2985-4769-8de5-d246e0c7f8a4,r4.large,Linux/UNIX,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1084,Hourly
+79464924-174c-4abc-8829-3ad53411dc9a,r4.large,Red Hat Enterprise Linux,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1585,Hourly
+9dbab4a4-d9e6-4725-bb35-7a43a293ce9a,r4.large,Linux with SQL Server Standard,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.5884,Hourly
+e244fbfb-60c7-440e-b144-c06e55134280,r4.large,SUSE Linux,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1315,Hourly
+ffd02ad3-d562-46c5-885c-3f8dd510ab9a,r4.large,Red Hat Enterprise Linux,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1684,Hourly
+8eae0330-602c-43ee-af1a-4e9d89257f99,r4.large,Red Hat Enterprise Linux,default,standard,Partial Upfront,,31536000,Region,0,411.0,0.0,USD,0.1069,Hourly
+d0533fa6-4b54-4579-8231-8aa7728c3870,r4.large,Linux/UNIX,default,standard,Partial Upfront,,31536000,Region,0,411.0,0.0,USD,0.0469,Hourly
+5af6d971-0180-4ddd-b88c-81cf9225ada6,r4.large,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,,31536000,Region,0,452.0,0.0,USD,0.1116,Hourly
+d5c5f30b-78f4-4a22-8e29-b91a2aa97af9,r4.large,Linux/UNIX,dedicated,standard,Partial Upfront,,31536000,Region,0,452.0,0.0,USD,0.0516,Hourly
+9590351f-9028-41ca-9109-49f6d60522db,r4.large,Red Hat Enterprise Linux,default,convertible,Partial Upfront,,31536000,Region,0,473.0,0.0,USD,0.1139,Hourly
+bffdca60-dcce-4648-b665-31647d844a10,r4.large,Linux/UNIX,default,convertible,Partial Upfront,,31536000,Region,0,473.0,0.0,USD,0.0539,Hourly
+11d0b40a-e65c-48a5-9e67-a94456b40254,r4.large,Linux/UNIX,dedicated,convertible,Partial Upfront,,31536000,Region,0,520.0,0.0,USD,0.0593,Hourly
+b7db4280-30f9-4eb9-9f0d-727f05936947,r4.large,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,,31536000,Region,0,520.0,0.0,USD,0.1193,Hourly
+94ae9d33-8383-412d-9474-f96a0fa1ef43,r4.large,SUSE Linux,default,standard,Partial Upfront,,31536000,Region,0,587.0,0.0,USD,0.0599,Hourly
+bc4fe429-325a-4ba0-aa5a-ce301bd7469f,r4.large,SUSE Linux,dedicated,standard,Partial Upfront,,31536000,Region,0,628.0,0.0,USD,0.0646,Hourly
+d7d5939a-73cc-47af-894b-2c0fceb3345f,r4.large,SUSE Linux,default,convertible,Partial Upfront,,31536000,Region,0,649.0,0.0,USD,0.0669,Hourly
+cccf71a2-23e3-464e-9708-aafa25eedb4e,r4.large,SUSE Linux,dedicated,convertible,Partial Upfront,,31536000,Region,0,696.0,0.0,USD,0.0723,Hourly
+a348311e-a840-47bb-9ddc-6002e3a35bc9,r4.large,Linux with SQL Server Web,default,standard,Partial Upfront,,31536000,Region,0,707.0,0.0,USD,0.0807,Hourly
+54e2431d-ba39-4ddb-9c18-9c28b6e8e6c2,r4.large,Linux with SQL Server Web,dedicated,standard,Partial Upfront,,31536000,Region,0,748.0,0.0,USD,0.0854,Hourly
+c30046a8-912f-4c02-a96d-a0b3368e46db,r4.large,Linux with SQL Server Web,default,convertible,Partial Upfront,,31536000,Region,0,769.0,0.0,USD,0.0877,Hourly
+0ffce9e3-6ae8-4fe1-b090-562bc0067795,r4.large,Linux/UNIX,default,standard,All Upfront,,31536000,Region,0,805.0,0.0,USD,0.0,Hourly
+a83a9a0b-320f-40bc-8624-1c8792d42b26,r4.large,Linux with SQL Server Web,dedicated,convertible,Partial Upfront,,31536000,Region,0,816.0,0.0,USD,0.0931,Hourly
+821e3173-e8d3-4fa7-963e-a0d005567f3b,r4.large,Linux/UNIX,dedicated,standard,All Upfront,,31536000,Region,0,886.0,0.0,USD,0.0,Hourly
+1fa0e5a6-a642-4632-893a-5f37ac510294,r4.large,Linux/UNIX,default,convertible,All Upfront,,31536000,Region,0,926.0,0.0,USD,0.0,Hourly
+4d438f3e-1405-459d-9b26-cc1048d4a10e,r4.large,Linux/UNIX,dedicated,convertible,All Upfront,,31536000,Region,0,1019.0,0.0,USD,0.0,Hourly
+fbfca6f3-54c3-40ca-9d9d-48a01c34ee14,r4.large,SUSE Linux,default,standard,All Upfront,,31536000,Region,0,1095.0,0.0,USD,0.0,Hourly
+f34bd101-c809-4d93-8235-77801516aec1,r4.large,SUSE Linux,dedicated,standard,All Upfront,,31536000,Region,0,1176.0,0.0,USD,0.0,Hourly
+77e7c5e1-ce6c-4785-9367-9152cbdc5d65,r4.large,SUSE Linux,default,convertible,All Upfront,,31536000,Region,0,1216.0,0.0,USD,0.0,Hourly
+c2684822-a659-462b-add3-a3da5c4e1386,r4.large,SUSE Linux,dedicated,convertible,All Upfront,,31536000,Region,0,1309.0,0.0,USD,0.0,Hourly
+4e199173-11c8-4d5c-b96d-3b67daa9046f,r4.large,Red Hat Enterprise Linux,default,standard,All Upfront,,31536000,Region,0,1331.0,0.0,USD,0.0,Hourly
+ba862a3e-76e1-40ad-b559-cf9f95f2f6da,r4.large,Linux with SQL Server Web,default,standard,All Upfront,,31536000,Region,0,1398.0,0.0,USD,0.0,Hourly
+86bd32b8-c02c-43fd-bd41-b641b71823f7,r4.large,Red Hat Enterprise Linux,dedicated,standard,All Upfront,,31536000,Region,0,1411.0,0.0,USD,0.0,Hourly
+5cc56bb3-0e62-4703-91ee-a56a72d69e38,r4.large,Red Hat Enterprise Linux,default,convertible,All Upfront,,31536000,Region,0,1452.0,0.0,USD,0.0,Hourly
+4cb3a3d8-300c-433d-a65f-25e6d4dc2e4a,r4.large,Linux with SQL Server Web,dedicated,standard,All Upfront,,31536000,Region,0,1478.0,0.0,USD,0.0,Hourly
+24d1a82a-aeac-4a90-b59b-0cabbdec24d4,r4.large,Linux with SQL Server Web,default,convertible,All Upfront,,31536000,Region,0,1518.0,0.0,USD,0.0,Hourly
+71d59991-3eef-4002-8e0b-58539851211a,r4.large,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,,31536000,Region,0,1544.0,0.0,USD,0.0,Hourly
+4f613d22-8a6d-471f-a5fb-18e770ec689d,r4.large,Linux with SQL Server Web,dedicated,convertible,All Upfront,,31536000,Region,0,1611.0,0.0,USD,0.0,Hourly
+12feaba9-afa9-4dec-8ef6-83e83853b435,r4.large,Linux with SQL Server Standard,default,standard,Partial Upfront,,31536000,Region,0,2513.0,0.0,USD,0.2869,Hourly
+45154434-421e-49c4-9766-4afd62d33c89,r4.large,Linux with SQL Server Standard,dedicated,standard,Partial Upfront,,31536000,Region,0,2554.0,0.0,USD,0.2916,Hourly
+55aa8746-700e-4172-9802-d9853bb7491b,r4.large,Linux with SQL Server Standard,default,convertible,Partial Upfront,,31536000,Region,0,2575.0,0.0,USD,0.2939,Hourly
+754b5646-fffd-4351-b87b-30e72868b727,r4.large,Linux with SQL Server Standard,dedicated,convertible,Partial Upfront,,31536000,Region,0,2622.0,0.0,USD,0.2993,Hourly
+0f98fa60-f60e-4019-9908-4e0ac50a9f54,r4.large,Linux with SQL Server Standard,default,standard,All Upfront,,31536000,Region,0,5010.0,0.0,USD,0.0,Hourly
+67682658-a295-4f41-b95b-ee56efdd6712,r4.large,Linux with SQL Server Standard,dedicated,standard,All Upfront,,31536000,Region,0,5091.0,0.0,USD,0.0,Hourly
+c66d0f79-7e1d-47e2-bb09-e484c6ac8eb3,r4.large,Linux with SQL Server Standard,default,convertible,All Upfront,,31536000,Region,0,5131.0,0.0,USD,0.0,Hourly
+527a9025-0976-4726-a19c-317bffdda21e,r4.large,Linux with SQL Server Standard,dedicated,convertible,All Upfront,,31536000,Region,0,5224.0,0.0,USD,0.0,Hourly
+54e34115-91ab-4446-9148-c1389760ec6e,r4.large,Windows,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1777,Hourly
+7060411d-dce2-418d-a6cb-db1f7c21e155,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.2487,Hourly
+753ba8a0-de82-4ec9-8bd1-947ae0a56a26,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.6577,Hourly
+8b8eecf1-5b47-4e74-b69a-4d176f1c323b,r4.large,Windows,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1699,Hourly
+9dfa3b6b-e5ba-4a2d-84a9-2a90c78ed4c2,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.2409,Hourly
+dfe63ea4-64fc-426a-a6cc-ede010dabe04,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.6499,Hourly
+0410c86b-e765-4e5c-afad-d2975ffb5d0b,r4.large,Windows BYOL,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0677,Hourly
+0733792c-b055-491e-9015-f0f7e73a9616,r4.large,Windows with SQL Server Web,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.2307,Hourly
+0b42de54-9e5a-40f5-b617-2e6e44d36ad8,r4.large,Windows BYOL,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0745,Hourly
+1f10c8bd-b400-4dda-bb82-b087c9338511,r4.large,Windows,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1665,Hourly
+3365b5cb-924e-4ada-a70f-ce86a9cde731,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.6465,Hourly
+6a7a47c3-e0b9-45a1-ae62-a0acc0172262,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.6397,Hourly
+a1e16e45-1927-4fbb-83d0-575368ee94de,r4.large,Windows,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.1597,Hourly
+cd955759-7b5e-42c7-b0b8-f6783571fc27,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.2375,Hourly
+2af2c71e-3672-4e18-9bd4-2e423f8564a5,r4.large,Windows BYOL,default,standard,Partial Upfront,,94608000,Region,0,824.0,0.0,USD,0.0314,Hourly
+3327aace-0ce8-41a0-8d64-e59ecae13f32,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,,94608000,Region,0,907.0,0.0,USD,0.0345,Hourly
+45f8bf77-fd49-4161-abfd-2e4554acc535,r4.large,Windows BYOL,default,standard,All Upfront,,94608000,Region,0,1549.0,0.0,USD,0.0,Hourly
+58ba68f1-d18e-4eb1-a8f4-1a748b30dedd,r4.large,Windows BYOL,dedicated,standard,All Upfront,,94608000,Region,0,1704.0,0.0,USD,0.0,Hourly
+87b8f5e7-7753-473a-aa5f-9eed3dfdba7f,r4.large,Windows,default,standard,Partial Upfront,,94608000,Region,0,2033.0,0.0,USD,0.0774,Hourly
+1c23fbf3-5024-42bc-a62a-4aaeee5bf3c1,r4.large,Windows,dedicated,standard,Partial Upfront,,94608000,Region,0,2115.0,0.0,USD,0.0805,Hourly
+fccc8b9c-a70d-45b0-962c-911f6bd25244,r4.large,Windows,default,convertible,Partial Upfront,,94608000,Region,0,2157.0,0.0,USD,0.0821,Hourly
+bc5ff483-40e7-42c0-b49f-bbb755bb8111,r4.large,Windows,dedicated,convertible,Partial Upfront,,94608000,Region,0,2251.0,0.0,USD,0.0857,Hourly
+bbb17310-872d-43a6-92ef-9039e0ad2659,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,,94608000,Region,0,2966.0,0.0,USD,0.1129,Hourly
+4ed91315-5ee1-4f54-b867-8879a1f6716c,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,,94608000,Region,0,3048.0,0.0,USD,0.116,Hourly
+84b5fa6a-8583-48d9-a3ec-fe114929d5f4,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,,94608000,Region,0,3090.0,0.0,USD,0.1176,Hourly
+ba7f79f2-ed71-42cc-bee3-08125b372b2a,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,,94608000,Region,0,3184.0,0.0,USD,0.1212,Hourly
+572197ef-4667-429a-8b1c-9a45e7b1f92a,r4.large,Windows,default,standard,All Upfront,,94608000,Region,0,3967.0,0.0,USD,0.0,Hourly
+e9af0f3d-8d4d-4314-9a20-7e891c30b9d0,r4.large,Windows,dedicated,standard,All Upfront,,94608000,Region,0,4122.0,0.0,USD,0.0,Hourly
+893b6b74-0b9c-4be3-a2fe-158b3472ec9d,r4.large,Windows,default,convertible,All Upfront,,94608000,Region,0,4275.0,0.0,USD,0.0,Hourly
+b7a0a7f4-9cb3-425e-a492-8fa6b89b4574,r4.large,Windows,dedicated,convertible,All Upfront,,94608000,Region,0,4461.0,0.0,USD,0.0,Hourly
+3b14c56f-96af-46ce-8721-2bcd2763da1b,r4.large,Windows with SQL Server Web,default,standard,All Upfront,,94608000,Region,0,5833.0,0.0,USD,0.0,Hourly
+0aec0a6d-873a-449f-8740-de4d7fd9b53a,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,,94608000,Region,0,5988.0,0.0,USD,0.0,Hourly
+091904ea-7397-4a1a-9ddb-c8f4ce9c1864,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,,94608000,Region,0,6141.0,0.0,USD,0.0,Hourly
+a08a34ee-49cf-4198-bfed-f803263fd723,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,,94608000,Region,0,6327.0,0.0,USD,0.0,Hourly
+4cbdf31e-263a-4d57-a0bc-2b1d02923d69,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,,94608000,Region,0,8340.0,0.0,USD,0.3174,Hourly
+29b04082-337d-4dfd-9c94-acd536c162bb,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,,94608000,Region,0,8423.0,0.0,USD,0.3205,Hourly
+5e13a6b4-b4d5-4192-8908-c2ce2e159e93,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,,94608000,Region,0,8464.0,0.0,USD,0.3221,Hourly
+dd2075c8-352f-4e5a-a129-f5d161e09436,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,,94608000,Region,0,8559.0,0.0,USD,0.3257,Hourly
+7e386c0e-c5a9-4f55-940c-b754acc0b84c,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,,94608000,Region,0,16581.0,0.0,USD,0.0,Hourly
+207347a0-984f-453c-9b95-658f1756108d,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,,94608000,Region,0,16736.0,0.0,USD,0.0,Hourly
+c316b752-c444-44ee-9194-8c1b2f3b95d6,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,,94608000,Region,0,16890.0,0.0,USD,0.0,Hourly
+c13feee3-6d91-4d0c-a58f-c78a0dbc4fcd,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,,94608000,Region,0,17075.0,0.0,USD,0.0,Hourly
+1f4c4213-22ea-4b0f-8a07-f79393a24ce0,r4.large,Windows with SQL Server Web,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2876,Hourly
+5786010c-33cb-4252-9b09-5581052b9b17,r4.large,Windows with SQL Server Web,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2763,Hourly
+931c9c70-d703-4c0e-9f4b-ad11e06bf246,r4.large,Windows,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2053,Hourly
+b5bfbc4c-7829-40a4-9311-9268751f9266,r4.large,Windows with SQL Server Standard,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.6966,Hourly
+ba8e8a30-a82a-4794-9e76-f12a2c39af30,r4.large,Windows with SQL Server Standard,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.6853,Hourly
+fc830d72-5ad4-4539-9085-9e3427e83c7b,r4.large,Windows,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2166,Hourly
+0fe93183-bf54-4f89-a292-a7ac8d938a6b,r4.large,Windows,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2004,Hourly
+2fc8f6ba-3e5c-4789-a95a-c92b517b5cf2,r4.large,Windows BYOL,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1084,Hourly
+3aaeb1aa-1f4a-4d55-bb18-80bbdc394978,r4.large,Windows with SQL Server Web,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2615,Hourly
+ac55249d-bab1-40bc-872c-00a4be34fac0,r4.large,Windows with SQL Server Standard,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.6705,Hourly
+b9af9f61-0b06-43fb-a270-6a5c677a18ab,r4.large,Windows with SQL Server Standard,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.6804,Hourly
+ce4c1b91-935a-4fc2-adb8-10eeb85dde80,r4.large,Windows with SQL Server Web,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.2714,Hourly
+ddc50d22-969c-42f4-a510-1a9b74c8e12e,r4.large,Windows BYOL,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0985,Hourly
+e8f56ddd-d049-44db-8176-d969a5812352,r4.large,Windows,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.1905,Hourly
+6b7afdde-dce5-46ef-87e4-96fae276be04,r4.large,Windows BYOL,default,standard,Partial Upfront,,31536000,Region,0,411.0,0.0,USD,0.0469,Hourly
+d043b4ac-bd26-47a5-bc04-00fb11ab5f5b,r4.large,Windows BYOL,dedicated,standard,Partial Upfront,,31536000,Region,0,452.0,0.0,USD,0.0516,Hourly
+c8d95102-2c5c-4910-b9af-b40a47f8bea8,r4.large,Windows BYOL,default,standard,All Upfront,,31536000,Region,0,805.0,0.0,USD,0.0,Hourly
+d6c997bf-3a6c-45bc-ac25-921f323301a8,r4.large,Windows,default,standard,Partial Upfront,,31536000,Region,0,814.0,0.0,USD,0.0929,Hourly
+df0b7f59-8079-4893-b7cd-f092b5b8e493,r4.large,Windows,dedicated,standard,Partial Upfront,,31536000,Region,0,855.0,0.0,USD,0.0976,Hourly
+f9e81799-b02f-43b3-ac93-be6e5a3cc65c,r4.large,Windows,default,convertible,Partial Upfront,,31536000,Region,0,875.0,0.0,USD,0.0999,Hourly
+067efa5e-8d81-4f64-b01a-4d423c901b17,r4.large,Windows BYOL,dedicated,standard,All Upfront,,31536000,Region,0,886.0,0.0,USD,0.0,Hourly
+696ebd23-3c4b-4d5d-9300-d26eee97acf4,r4.large,Windows,dedicated,convertible,Partial Upfront,,31536000,Region,0,923.0,0.0,USD,0.1053,Hourly
+5420c067-6a85-444e-aa0b-cfc1470dc804,r4.large,Windows with SQL Server Web,default,standard,Partial Upfront,,31536000,Region,0,1125.0,0.0,USD,0.1284,Hourly
+3eadea8d-02eb-4fe1-9b37-d13ec342641b,r4.large,Windows with SQL Server Web,dedicated,standard,Partial Upfront,,31536000,Region,0,1166.0,0.0,USD,0.1331,Hourly
+ba331d1b-bcdf-4066-855d-b0a2b9bed951,r4.large,Windows with SQL Server Web,default,convertible,Partial Upfront,,31536000,Region,0,1186.0,0.0,USD,0.1354,Hourly
+06e17bca-6865-4eda-bce0-09ce239fda06,r4.large,Windows with SQL Server Web,dedicated,convertible,Partial Upfront,,31536000,Region,0,1234.0,0.0,USD,0.1408,Hourly
+9f3abaf9-1091-479f-89af-a71c2a970e8d,r4.large,Windows,default,standard,All Upfront,,31536000,Region,0,1611.0,0.0,USD,0.0,Hourly
+221668a9-3fb6-4e52-b823-a71e5ecf4edd,r4.large,Windows,dedicated,standard,All Upfront,,31536000,Region,0,1692.0,0.0,USD,0.0,Hourly
+936aa7bf-7c8a-4a35-8b65-de3f5f8bb138,r4.large,Windows,default,convertible,All Upfront,,31536000,Region,0,1732.0,0.0,USD,0.0,Hourly
+bf36dae2-06d1-486b-b50c-083f91ebad26,r4.large,Windows,dedicated,convertible,All Upfront,,31536000,Region,0,1825.0,0.0,USD,0.0,Hourly
+545c7b2b-e416-417f-98bf-d2152855124c,r4.large,Windows with SQL Server Web,default,standard,All Upfront,,31536000,Region,0,2233.0,0.0,USD,0.0,Hourly
+d9f2897d-b988-40fd-91ea-79d139cf3a8f,r4.large,Windows with SQL Server Web,dedicated,standard,All Upfront,,31536000,Region,0,2314.0,0.0,USD,0.0,Hourly
+95e5d45e-7cf0-4bf5-b5e4-24763f24fd48,r4.large,Windows with SQL Server Web,default,convertible,All Upfront,,31536000,Region,0,2354.0,0.0,USD,0.0,Hourly
+065dde7b-9c13-4d42-9da4-2857695534c1,r4.large,Windows with SQL Server Web,dedicated,convertible,All Upfront,,31536000,Region,0,2447.0,0.0,USD,0.0,Hourly
+c28a332a-befe-4411-9f27-f4608654d9a8,r4.large,Windows with SQL Server Standard,default,standard,Partial Upfront,,31536000,Region,0,2916.0,0.0,USD,0.3329,Hourly
+34931cab-362c-47db-9ec7-9b1881854fe7,r4.large,Windows with SQL Server Standard,dedicated,standard,Partial Upfront,,31536000,Region,0,2957.0,0.0,USD,0.3376,Hourly
+e42730ca-2546-4dd3-a76a-3d78a550678e,r4.large,Windows with SQL Server Standard,default,convertible,Partial Upfront,,31536000,Region,0,2978.0,0.0,USD,0.3399,Hourly
+e269e444-9e7c-43fc-8f32-7b580276b8b4,r4.large,Windows with SQL Server Standard,dedicated,convertible,Partial Upfront,,31536000,Region,0,3025.0,0.0,USD,0.3453,Hourly
+bfb9e10f-39af-497c-b5ce-4bcf55e4fd19,r4.large,Windows with SQL Server Standard,default,standard,All Upfront,,31536000,Region,0,5816.0,0.0,USD,0.0,Hourly
+cff08866-66cc-4af6-899a-3798e57b2d16,r4.large,Windows with SQL Server Standard,dedicated,standard,All Upfront,,31536000,Region,0,5897.0,0.0,USD,0.0,Hourly
+3f51b702-e974-4c18-ac78-648fa43db43e,r4.large,Windows with SQL Server Standard,default,convertible,All Upfront,,31536000,Region,0,5937.0,0.0,USD,0.0,Hourly
+990ae2a8-9f3a-463f-b07f-09dd2025a983,r4.large,Windows with SQL Server Standard,dedicated,convertible,All Upfront,,31536000,Region,0,6029.0,0.0,USD,0.0,Hourly

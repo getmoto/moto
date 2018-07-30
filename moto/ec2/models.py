@@ -8,6 +8,7 @@ import os
 import re
 import six
 import warnings
+import sys
 from pkg_resources import resource_filename
 
 import boto.ec2
@@ -15,9 +16,11 @@ import boto.ec2
 from collections import defaultdict
 from datetime import datetime
 from boto.ec2.instance import Instance as BotoInstance, Reservation
+from boto.ec2.reservedinstance import ReservedInstancesOffering as BotoReservedInstancesOffering
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
+from numpy import array, loadtxt, size, isin, any as numpyany, uint32, sum as numpysum, where, abs as numpyabs, full, shape, floor
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -48,6 +51,15 @@ from .exceptions import (
     InvalidNetworkInterfaceIdError,
     InvalidParameterValueError,
     InvalidParameterValueErrorTagNull,
+    InvalidParameterValueErrorInstanceType,
+    InvalidParameterValueErrorInstanceTenancy,
+    InvalidParameterValueErrorOfferingClass,
+    InvalidParameterValueErrorProductDescription,
+    InvalidParameterValueErrorOfferingType,
+    InvalidParameterValueErrorMaxDuration,
+    InvalidParameterValueErrorMinDuration,
+    InvalidParameterValueErrorDurationMisMatch,
+    InvalidParameterValueErrorOfferingId,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
@@ -126,6 +138,20 @@ AMIS = json.load(
     open(os.environ.get('MOTO_AMIS_PATH') or resource_filename(
          __name__, 'resources/amis.json'), 'r')
 )
+INSTANCE_TYPES_HASH_TABLE = loadtxt(resource_filename(__name__, 'resources/instance_types_hash.csv'), dtype="U20", delimiter=",")
+
+PRODUCT_DESCRIPTIONS = ["Linux/UNIX", "SUSE Linux", "Red Hat Enterprise Linux",
+        "Windows", "Windows with SQL Server Standard", "Windows with SQL Server Web",
+        "Windows with SQL Server Enterprise", "Windows BYOL", "Linux with SQL Server Web",
+        "Linux with SQL Server Standard", "Linux with SQL Server Enterprise"]
+
+INSTANCE_TENANCIES = ["default", "dedicated"]
+
+OFFERING_CLASSES = ["standard", "convertible"]
+
+OFFERING_TYPES = ["No Upfront", "Partial Upfront", "All Upfront"]
+
+VALID_DURATIONS = [31536000, 94608000]
 
 
 def utc_date_and_time():
@@ -717,6 +743,11 @@ class InstanceBackend(object):
         tags = kwargs.pop("tags", {})
         instance_tags = tags.get('instance', {})
 
+        if kwargs.get("instance_type") is None:
+            kwargs["instance_type"] = "m1.small"
+
+        self.invalid_instance_type(kwargs.get("instance_type"))
+
         for index in range(count):
             new_instance = Instance(
                 self,
@@ -850,6 +881,421 @@ class InstanceBackend(object):
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
+
+    def invalid_instance_type(self, instance_type):
+        """
+        Returns true if the instance type is invalid.
+
+        A beautiful soup script from http://www.ec2instances.info pulls of the available instance types
+        and puts them into a hash table that is a 2d numpy array.
+
+        Each row of the hash table contains several instance types.
+        To get to the row a small hash function is used that calculates the corresponding
+        row based on the instance family.
+
+        Then it checks if the instance_type is contained in that row of the table.
+        """
+
+        if instance_type is None:
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+        family_split = instance_type.split(".")
+
+        # instance type is always of the format family.size
+        if len(family_split) != 2:
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+        # gets the corresponding row id of the hash table for the instance family
+        def hash_function(instance_family):
+            sum = 0
+
+            char_array = array(list(instance_family))
+            normalized = char_array.view(uint32)
+            sum = int(numpysum(normalized))
+            return sum % 17
+
+        i = hash_function(family_split[0])
+
+        if size(INSTANCE_TYPES_HASH_TABLE[i]) < 1:
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+        if not(numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type))):
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+
+class ReservedInstancesOffering(BotoReservedInstancesOffering):
+    def __init__(self, ec2_backend, **kwargs):
+        super(ReservedInstancesOffering, self).__init__()
+        self.ec2_backend = ec2_backend
+        self.id = kwargs.get("id"),
+        self.instance_type = kwargs.get("instance_type")
+        self.duration = kwargs.get("duration")
+        self.offering_type = kwargs.get("offering_type")
+        self.offering_class = kwargs.get("offering_class")
+        self.region = kwargs.get("region")
+        self.description = kwargs.get("description"),
+        self.instance_tenancy = kwargs.get("instance_tenancy"),
+        self.scope = kwargs.get("scope"),
+        self.availability_zone = kwargs.get("availability_zone"),
+        self.marketplace = kwargs.get("marketplace"),
+        self.fixed_price = kwargs.get("fixed_price"),
+        self.usage_price = kwargs.get("usage_price"),
+        self.currency_code = kwargs.get("currency_code"),
+        self.amount = kwargs.get("amount"),
+        self.frequency = kwargs.get("frequency")
+
+        # BotoReservedInstancesOffering makes these tuples,
+        # but usually this is not necessary, so undoing that
+        if type(self.id) is tuple:
+            self.id = self.id[0]
+        if type(self.description) is tuple:
+            self.description = self.description[0]
+        if type(self.instance_tenancy) is tuple:
+            self.instance_tenancy = self.instance_tenancy[0]
+        if type(self.availability_zone) is tuple:
+            self.availability_zone = self.availability_zone[0]
+        if type(self.fixed_price) is tuple:
+            self.fixed_price = self.fixed_price[0]
+        if type(self.usage_price) is tuple:
+            self.usage_price = self.usage_price[0]
+        if type(self.currency_code) is tuple:
+            self.currency_code = self.currency_code[0]
+        if type(self.amount) is tuple:
+            self.amount = self.amount[0]
+        if type(self.scope) is tuple:
+            self.scope = self.scope[0]
+
+
+class RIOfferingBackend(object):
+    def __init_(self):
+        self.offerings = OrderedDict()
+        super(RIOfferingBackend, self).__init__()
+
+    def get_offering_ids(self, reserved_instances_offering_id, **kwargs):
+        if reserved_instances_offering_id is None or reserved_instances_offering_id == []:
+            instance_type = kwargs.get("instance_type")
+            max_duration = kwargs.get("max_duration")
+            min_duration = kwargs.get("min_duration")
+            offering_type = kwargs.get("offering_type")
+            offering_class = kwargs.get("offering_class")
+            region = kwargs.get("region")
+            description = kwargs.get("description")
+            instance_tenancy = kwargs.get("instance_tenancy")
+
+            self.invalid_instance_type(instance_type)
+            self.invalid_instance_tenancy(instance_tenancy)
+            self.invalid_max_duration(max_duration)
+            self.invalid_min_duration(min_duration)
+            self.invalid_offering_type(offering_type)
+            self.invalid_offering_class(offering_class)
+            self.invalid_product_description(description)
+
+            duration = self.get_duration(max_duration, min_duration)
+            offerings = self.get_offerings_from_details(region, instance_type, instance_tenancy=instance_tenancy,
+                duration=duration, offering_type=offering_type, offering_class=offering_class,
+                description=description)
+
+            return offerings
+        else:
+            self.invalid_reserved_instances_offering_id(reserved_instances_offering_id)
+
+            offerings = self.find_offering_ids_from_ids(reserved_instances_offering_id, kwargs.get("region"))
+
+            return offerings
+
+    def get_file_name(self, region, instance_type):
+
+        return region.replace("-", "_") + "_" + instance_type.replace(".", "_") + ".csv"
+
+    def get_offerings_from_details(self, region, instance_type, **kwargs):
+
+        offerings = []
+
+        file_name = self.get_file_name(region, instance_type)
+
+        if sys.version_info[0] > 2:
+            ri_table_dtype = [("ReservedInstancesOfferings", "U36"),
+                        ("InstanceType", "U20"),
+                        ("ProductDescription", "U36"),
+                        ("InstanceTenancy", "U9"),
+                        ("OfferingClass", "U11"),
+                        ("OfferingType", "U15"),
+                        ("AvailabilityZone", "U20"),
+                        ("Duration", "i4"),
+                        ("Scope", "U18"),
+                        ("Marketplace", "?"),
+                        ("FixedPrice", "f4"),
+                        ("UsagePrice", "f4"),
+                        ("CurrencyCode", "U3"),
+                        ("Amount", "f4"),
+                        ("Frequency", "U6")]
+        else:
+            ri_table_dtype = [(u"ReservedInstancesOfferings".encode("ascii"), "U36"),
+                        (u"InstanceType".encode("ascii"), "U20"),
+                        (u"ProductDescription".encode("ascii"), "U36"),
+                        (u"InstanceTenancy".encode("ascii"), "U9"),
+                        (u"OfferingClass".encode("ascii"), "U11"),
+                        (u"OfferingType".encode("ascii"), "U15"),
+                        (u"AvailabilityZone".encode("ascii"), "U20"),
+                        (u"Duration".encode("ascii"), "i4"),
+                        (u"Scope".encode("ascii"), "U18"),
+                        (u"Marketplace".encode("ascii"), "?"),
+                        (u"FixedPrice".encode("ascii"), "f4"),
+                        (u"UsagePrice".encode("ascii"), "f4"),
+                        (u"CurrencyCode".encode("ascii"), "U3"),
+                        (u"Amount".encode("ascii"), "f4"),
+                        (u"Frequency".encode("ascii"), "U6")]
+        try:
+            offering_ids_table = loadtxt(resource_filename(__name__, "resources/reserved_instances/" +
+                region.replace("-", "_") + "/" + file_name), dtype=ri_table_dtype, delimiter=",", skiprows=1)
+        except IOError:
+            # no reserved instances exist for that type and region. return empty list
+            return []
+        except TypeError:
+            # print("Type Error. Some strange error with numpy in python2")
+            return []
+
+        reserved_instances_offering_id = kwargs.get("reserved_instances_offering_id")
+        instance_tenancy = kwargs.get("instance_tenancy")
+        description = kwargs.get("description")
+        offering_class = kwargs.get("offering_class")
+        offering_type = kwargs.get("offering_type")
+        duration = kwargs.get("duration")
+
+        # conditional lists of boolean numpy arrays
+        conditionals = []
+
+        if not(reserved_instances_offering_id is None):
+            conditionals.append(isin(offering_ids_table["ReservedInstancesOfferings"], reserved_instances_offering_id))
+        if not(instance_tenancy is None):
+            conditionals.append(offering_ids_table["InstanceTenancy"] == instance_tenancy)
+        if not(description is None):
+            conditionals.append(offering_ids_table["ProductDescription"] == description)
+        if not(offering_class is None):
+            conditionals.append(offering_ids_table["OfferingClass"] == offering_class)
+        if not(offering_type is None):
+            conditionals.append(offering_ids_table["OfferingType"] == offering_type)
+        if not(duration is None):
+            conditionals.append(isin(offering_ids_table["Duration"], duration))
+
+        # TODO: vectorize this even more
+        conditionals_prod = full(shape(conditionals[0]), True)
+        for i in range(0, len(conditionals)):
+            conditionals_prod *= conditionals[i]
+
+        index_of_offering_ids = where(conditionals_prod)[0]
+
+        for index in index_of_offering_ids:
+
+            new_offering = ReservedInstancesOffering(
+                self,
+                id=offering_ids_table[index]["ReservedInstancesOfferings"],
+                instance_type=offering_ids_table[index]["InstanceType"],
+                region=region,
+                instance_tenancy=offering_ids_table[index]["InstanceTenancy"],
+                description=offering_ids_table[index]["ProductDescription"],
+                offering_type=offering_ids_table[index]["OfferingType"],
+                offering_class=offering_ids_table[index]["OfferingClass"],
+                availability_zone=offering_ids_table[index]["AvailabilityZone"],
+                duration=offering_ids_table[index]["Duration"],
+                scope=offering_ids_table[index]["Scope"],
+                marketplace=False,
+                fixed_price=offering_ids_table[index]["FixedPrice"],
+                usage_price=offering_ids_table[index]["UsagePrice"],
+                currency_code=offering_ids_table[index]["CurrencyCode"],
+                amount=offering_ids_table[index]["Amount"],
+                frequency=offering_ids_table[index]["Frequency"]
+            )
+            offerings.append(new_offering)
+
+        return offerings
+
+    def find_offering_ids_from_ids(self, reserved_instances_offering_id, region):
+        file_name = None
+        offerings = []
+        for i in range(0, len(reserved_instances_offering_id)):
+            offering_id = reserved_instances_offering_id[i]
+
+            index = self.polyhash_prime(offering_id[0:8], 31, 12011, 2011)
+
+            index_file = self.get_index_of_hash_tables(index)
+
+            index_adjusted = self.get_index_adjusted(index)
+
+            folder_name = region.replace("-", "_")
+
+            offering_ids_table = loadtxt(resource_filename(__name__, "resources/reserved_instances/" + folder_name +
+                    "/offering_ids_hash_" + str(index_file) + ".csv"), dtype="U36", delimiter=",", skiprows=0)
+
+            file_names_list = offering_ids_table[index_adjusted]
+            file_name = None
+            for offering_hash in file_names_list:
+                if offering_hash[0:8] == offering_id[0:8]:
+                    file_name = offering_hash.split("|")[1]
+            if not(file_name is None):
+                loc = self.get_loc_of_first_digit(file_name)
+                region = file_name[0:loc].replace("_", "-")
+                instance_type = file_name[loc + 1:len(file_name)].replace("_", ".")
+                offering = self.get_offerings_from_details(region, instance_type, reserved_instances_offering_id=offering_id)
+                if len(offering) > 0:
+                    offerings.append(offering[0])
+
+        return offerings
+
+    def get_index_of_hash_tables(self, index):
+        index_file = int(floor(index / 202))
+
+        return index_file
+
+    def get_index_adjusted(self, index):
+
+        index_adjusted = (index % 202)
+
+        return index_adjusted
+
+    def invalid_instance_type(self, instance_type):
+        if instance_type is None:
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+        family_split = instance_type.split(".")
+
+        # instance type is always of the format family.size
+        if len(family_split) != 2:
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+        # gets the corresponding row id of the hash table for the instance family
+        def hash_function(instance_family):
+            sum = 0
+
+            char_array = array(list(instance_family))
+            normalized = char_array.view(uint32)
+            sum = int(numpysum(normalized))
+            return sum % 17
+
+        i = hash_function(family_split[0])
+
+        if size(INSTANCE_TYPES_HASH_TABLE[i]) < 1:
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+        if not(numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type))):
+            raise InvalidParameterValueErrorInstanceType(instance_type)
+
+    def invalid_product_description(self, product_description):
+        """
+        These are the available (non-vpc) reserved instances as of 7/7/2018.
+        TODO: write a script that pulls all of the available product descriptions
+        """
+
+        if product_description is None:
+            return
+
+        if not(product_description in PRODUCT_DESCRIPTIONS):
+            raise InvalidParameterValueErrorProductDescription(product_description)
+
+    def invalid_instance_tenancy(self, instance_tenancy):
+        """
+        TODO: impelement host ri (different api calls)
+        """
+
+        if instance_tenancy is None:
+            return
+
+        if not(instance_tenancy in INSTANCE_TENANCIES):
+            raise InvalidParameterValueErrorInstanceTenancy(instance_tenancy)
+
+    def invalid_offering_class(self, offering_class):
+
+        if offering_class is None:
+            return
+
+        if not(offering_class in OFFERING_CLASSES):
+            raise InvalidParameterValueErrorOfferingClass(offering_class)
+
+    def invalid_offering_type(self, offering_type):
+
+        if offering_type is None:
+            return
+
+        if not(offering_type in OFFERING_TYPES):
+            raise InvalidParameterValueErrorOfferingType(offering_type)
+
+    def invalid_max_duration(self, max_duration):
+
+        if max_duration is None:
+            return
+
+        max_duration = int(max_duration)
+
+        if not(max_duration in VALID_DURATIONS):
+            raise InvalidParameterValueErrorMaxDuration(max_duration)
+
+    def invalid_min_duration(self, min_duration):
+
+        if min_duration is None:
+            return
+
+        min_duration = int(min_duration)
+
+        if not(min_duration in VALID_DURATIONS):
+            raise InvalidParameterValueErrorMinDuration(min_duration)
+
+    def get_duration(self, max_duration, min_duration):
+        if max_duration is None:
+            if min_duration is None:
+                return None
+            else:
+                if int(min_duration) == 94608000:
+                    return [94608000]
+                else:
+                    return [31536000, 94608000]
+        else:
+            if min_duration is None:
+                if int(max_duration) == 31536000:
+                    return [31536000]
+                else:
+                    return [31536000, 94608000]
+            else:
+                if int(max_duration) == int(min_duration):
+                    return [int(min_duration)]
+                else:
+                    if int(max_duration) < int(min_duration):
+                        # I think technically AWS will allow this and just return [], but that is a pain to get exact
+                        raise InvalidParameterValueErrorDurationMisMatch(min_duration)
+                    else:
+                        return [31536000, 94608000]
+
+    def polyhash_prime(self, offering_id, a, p, m):
+        # hash function from https://startupnextdoor.com/spending-a-couple-days-on-hashing-functions/
+        hash = 0
+
+        for c in offering_id:
+            hash = (hash * a + ord(c)) % p
+
+        return numpyabs(hash % m)
+
+    def invalid_reserved_instances_offering_id(self, reserved_instances_offering_id):
+        """
+        Checks if offering id format is valid. (not necessarily if the id exists)
+        """
+
+        if reserved_instances_offering_id is None:
+            raise InvalidParameterValueErrorOfferingId(reserved_instances_offering_id)
+
+        # must have at least one offering id
+        if len(reserved_instances_offering_id) < 0:
+            raise InvalidParameterValueErrorOfferingId(reserved_instances_offering_id)
+
+        # offering id must be exactly 36 characters
+        for i in range(0, len(reserved_instances_offering_id)):
+            if len(reserved_instances_offering_id[i]) != 36:
+                raise InvalidParameterValueErrorOfferingId(reserved_instances_offering_id)
+
+    def get_loc_of_first_digit(self, file_name):
+        i = 0
+        for c in file_name:
+            if file_name[i].isdigit():
+                return i + 1
+            i += 1
 
 
 class KeyPair(object):
@@ -3847,7 +4293,7 @@ class NatGatewayBackend(object):
         return self.nat_gateways.pop(nat_gateway_id)
 
 
-class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
+class EC2Backend(BaseBackend, InstanceBackend, RIOfferingBackend, TagBackend, EBSBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, AmiBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
                  NetworkInterfaceBackend, VPNConnectionBackend,

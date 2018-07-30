@@ -1,0 +1,169 @@
+ReservedInstancesOfferings,InstanceType,ProductDescription,InstanceTenancy,OfferingClass,OfferingType,AvailabilityZone,Duration,Scope,Marketplace,FixedPrice,UsagePrice,CurrencyCode,Amount,Frequency
+ad29ee42-6fc9-46ea-838b-d237bf76808c,t2.nano,SUSE Linux,default,convertible,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0119,Hourly
+c57b30c0-6f57-4d76-9006-73be1b15fac2,t2.nano,Linux/UNIX,default,convertible,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0029,Hourly
+080dbad1-61a0-4ff7-9207-72347652f330,t2.nano,SUSE Linux,default,standard,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0115,Hourly
+d5f3d539-8ff1-4388-ae76-457376ff28c0,t2.nano,Linux/UNIX,default,standard,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0025,Hourly
+2bed647d-c46a-45d3-960c-8be66fad1658,t2.nano,Linux/UNIX,default,standard,Partial Upfront,us-west-2a,94608000,Availability Zone,0,30.0,0.0,USD,0.0012,Hourly
+635aa83f-17da-45ed-8615-f2076987e6ba,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,us-west-2a,94608000,Availability Zone,0,35.0,0.0,USD,0.0013,Hourly
+1c7e154f-f9ef-4b1e-b100-3142f6e4e469,t2.nano,Linux/UNIX,default,standard,All Upfront,us-west-2a,94608000,Availability Zone,0,57.0,0.0,USD,0.0,Hourly
+82c0da06-15d6-4bfa-b061-490fa967d089,t2.nano,Linux/UNIX,default,convertible,All Upfront,us-west-2a,94608000,Availability Zone,0,69.0,0.0,USD,0.0,Hourly
+170c5621-eb70-4d3d-ae55-51cc186ea3c5,t2.nano,SUSE Linux,default,standard,Partial Upfront,us-west-2a,94608000,Availability Zone,0,74.0,0.0,USD,0.0072,Hourly
+41182d52-466a-4f0a-8c9c-2dbd1fcc0d21,t2.nano,SUSE Linux,default,convertible,Partial Upfront,us-west-2a,94608000,Availability Zone,0,79.0,0.0,USD,0.0073,Hourly
+b4800068-6268-49e2-9357-f4bcf66defe6,t2.nano,SUSE Linux,default,standard,All Upfront,us-west-2a,94608000,Availability Zone,0,259.0,0.0,USD,0.0,Hourly
+8eb503d4-590b-48cf-ac59-a252b6083952,t2.nano,SUSE Linux,default,convertible,All Upfront,us-west-2a,94608000,Availability Zone,0,271.0,0.0,USD,0.0,Hourly
+eefa3ef3-19a5-4e56-80a5-9e21076f3e3e,t2.nano,SUSE Linux,default,convertible,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0131,Hourly
+f5257447-7a76-4b00-81a3-0ae313c577ff,t2.nano,Linux/UNIX,default,convertible,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0041,Hourly
+74c696cc-4d38-4016-ac57-c12a6564e917,t2.nano,SUSE Linux,default,standard,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0126,Hourly
+e8e51762-64ac-46a1-9207-524e1aae69bc,t2.nano,Linux/UNIX,default,standard,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0036,Hourly
+d93ccef0-e084-4ad9-96b7-64ece073c03a,t2.nano,Linux/UNIX,default,standard,Partial Upfront,us-west-2a,31536000,Availability Zone,0,15.0,0.0,USD,0.0017,Hourly
+5330c3e2-05d4-41d0-8e89-5ab839ba27ea,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,us-west-2a,31536000,Availability Zone,0,17.0,0.0,USD,0.002,Hourly
+1674ed66-1f57-442c-ab28-f7142a303379,t2.nano,Linux/UNIX,default,standard,All Upfront,us-west-2a,31536000,Availability Zone,0,29.0,0.0,USD,0.0,Hourly
+6ebb4e35-604c-4692-a636-c9e193319855,t2.nano,Linux/UNIX,default,convertible,All Upfront,us-west-2a,31536000,Availability Zone,0,34.0,0.0,USD,0.0,Hourly
+db1e1ed4-f8a3-4c85-a42e-891675a5436f,t2.nano,SUSE Linux,default,standard,Partial Upfront,us-west-2a,31536000,Availability Zone,0,37.0,0.0,USD,0.0077,Hourly
+beaf06f5-2cc4-4d95-a370-df9a6920f78a,t2.nano,SUSE Linux,default,convertible,Partial Upfront,us-west-2a,31536000,Availability Zone,0,39.0,0.0,USD,0.008,Hourly
+90a83318-1950-4d61-b696-5c30cdece1cf,t2.nano,SUSE Linux,default,standard,All Upfront,us-west-2a,31536000,Availability Zone,0,104.0,0.0,USD,0.0,Hourly
+c3fee4a4-e726-46c4-a19a-7bd1d79501b1,t2.nano,SUSE Linux,default,convertible,All Upfront,us-west-2a,31536000,Availability Zone,0,109.0,0.0,USD,0.0,Hourly
+9532977e-77b8-481f-8648-f248fc7ad5cc,t2.nano,Windows,default,convertible,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0052,Hourly
+0aefd8c7-e6ad-44b3-b959-86eadd0e857f,t2.nano,Windows,default,standard,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0048,Hourly
+fb166200-1a53-487c-9b50-3b7aa551663e,t2.nano,Windows BYOL,default,standard,No Upfront,us-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,0.0025,Hourly
+0497ce4c-d91a-45e0-a106-f5d0e083ffba,t2.nano,Windows BYOL,default,standard,Partial Upfront,us-west-2a,94608000,Availability Zone,0,30.0,0.0,USD,0.0012,Hourly
+60dd41de-fa5f-49ff-aba8-aa2b3ac6c314,t2.nano,Windows BYOL,default,standard,All Upfront,us-west-2a,94608000,Availability Zone,0,57.0,0.0,USD,0.0,Hourly
+17f2b93f-baf5-4f99-9d18-cf23a88b2076,t2.nano,Windows,default,standard,Partial Upfront,us-west-2a,94608000,Availability Zone,0,61.0,0.0,USD,0.0023,Hourly
+11d5cad4-466c-4a54-8e4e-f96f4365bbff,t2.nano,Windows,default,convertible,Partial Upfront,us-west-2a,94608000,Availability Zone,0,65.0,0.0,USD,0.0025,Hourly
+7f837455-6003-4ba3-be23-d966f7b01173,t2.nano,Windows,default,standard,All Upfront,us-west-2a,94608000,Availability Zone,0,118.0,0.0,USD,0.0,Hourly
+0d4aeade-2d43-45b0-a685-a6059ab5723d,t2.nano,Windows,default,convertible,All Upfront,us-west-2a,94608000,Availability Zone,0,129.0,0.0,USD,0.0,Hourly
+2e4cbde9-c29b-4d95-b6b7-3b877b68ec0b,t2.nano,Windows,default,convertible,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0064,Hourly
+cccd897a-dd52-461b-8864-9468cabef3e6,t2.nano,Windows BYOL,default,standard,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0036,Hourly
+e80d67b2-3ec9-4e01-a263-61ff7fc855ca,t2.nano,Windows,default,standard,No Upfront,us-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,0.0059,Hourly
+944e1942-7443-426a-8ee2-b115304e602c,t2.nano,Windows BYOL,default,standard,Partial Upfront,us-west-2a,31536000,Availability Zone,0,15.0,0.0,USD,0.0017,Hourly
+f46b6af5-1997-41da-9ad4-6a4082cf21fb,t2.nano,Windows,default,standard,Partial Upfront,us-west-2a,31536000,Availability Zone,0,25.0,0.0,USD,0.0029,Hourly
+9a4b3e7a-43c8-4c35-b2f8-b49f79313f47,t2.nano,Windows,default,convertible,Partial Upfront,us-west-2a,31536000,Availability Zone,0,27.0,0.0,USD,0.0031,Hourly
+e903a778-5f80-4c4e-b5cf-c9ad2bd9f989,t2.nano,Windows BYOL,default,standard,All Upfront,us-west-2a,31536000,Availability Zone,0,29.0,0.0,USD,0.0,Hourly
+cf29ca42-70c0-4474-b9fc-bded32e513c0,t2.nano,Windows,default,standard,All Upfront,us-west-2a,31536000,Availability Zone,0,50.0,0.0,USD,0.0,Hourly
+15bf70c9-5b48-47a8-8f09-70e1ac484f80,t2.nano,Windows,default,convertible,All Upfront,us-west-2a,31536000,Availability Zone,0,54.0,0.0,USD,0.0,Hourly
+c3dcc0ad-73ea-4304-901d-e831ccc83d31,t2.nano,SUSE Linux,default,convertible,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0119,Hourly
+ca47fdb2-cdf2-4bd1-8292-dd8a709e2441,t2.nano,Linux/UNIX,default,convertible,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0029,Hourly
+29bd21e4-f4af-470c-9308-aa758f558dcf,t2.nano,Linux/UNIX,default,standard,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0025,Hourly
+d04acaeb-f0ff-4117-84d0-a5f4eac08205,t2.nano,SUSE Linux,default,standard,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0115,Hourly
+c91a6a91-3588-416e-9b2c-6dc3e938df6b,t2.nano,Linux/UNIX,default,standard,Partial Upfront,us-west-2b,94608000,Availability Zone,0,30.0,0.0,USD,0.0012,Hourly
+80a393ff-1bcb-475b-b0cc-cda3d36253ae,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,us-west-2b,94608000,Availability Zone,0,35.0,0.0,USD,0.0013,Hourly
+b8dbc8ae-7e85-4fc1-9f3e-431c52fcd72c,t2.nano,Linux/UNIX,default,standard,All Upfront,us-west-2b,94608000,Availability Zone,0,57.0,0.0,USD,0.0,Hourly
+ef29a390-25eb-4e61-986b-70d7f1729b88,t2.nano,Linux/UNIX,default,convertible,All Upfront,us-west-2b,94608000,Availability Zone,0,69.0,0.0,USD,0.0,Hourly
+8161d645-51cc-407e-8992-defbab687d54,t2.nano,SUSE Linux,default,standard,Partial Upfront,us-west-2b,94608000,Availability Zone,0,74.0,0.0,USD,0.0072,Hourly
+8e3dc608-3527-4067-9e2a-f5d7b27ebb93,t2.nano,SUSE Linux,default,convertible,Partial Upfront,us-west-2b,94608000,Availability Zone,0,79.0,0.0,USD,0.0073,Hourly
+5fe611a5-dad9-4b5c-bd0f-aa7048c63f22,t2.nano,SUSE Linux,default,standard,All Upfront,us-west-2b,94608000,Availability Zone,0,259.0,0.0,USD,0.0,Hourly
+ce67ede6-7246-416d-a219-50b1acc9e48c,t2.nano,SUSE Linux,default,convertible,All Upfront,us-west-2b,94608000,Availability Zone,0,271.0,0.0,USD,0.0,Hourly
+5b6ac3f9-916f-487d-a46f-120d40b74e88,t2.nano,Linux/UNIX,default,convertible,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0041,Hourly
+e2ce43de-f8fd-4aa7-8994-2f9c077f4024,t2.nano,SUSE Linux,default,convertible,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0131,Hourly
+793de685-743d-4401-a82d-4f428cf1b1d9,t2.nano,SUSE Linux,default,standard,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0126,Hourly
+9a76ba7f-865e-4a3c-9366-0a902bad8afb,t2.nano,Linux/UNIX,default,standard,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0036,Hourly
+09d0eceb-6448-478f-9efb-da876f749288,t2.nano,Linux/UNIX,default,standard,Partial Upfront,us-west-2b,31536000,Availability Zone,0,15.0,0.0,USD,0.0017,Hourly
+80c88ed8-7223-482e-b39c-062ff25943e4,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,us-west-2b,31536000,Availability Zone,0,17.0,0.0,USD,0.002,Hourly
+1989ae25-e666-4905-89dd-10a89a5d6264,t2.nano,Linux/UNIX,default,standard,All Upfront,us-west-2b,31536000,Availability Zone,0,29.0,0.0,USD,0.0,Hourly
+c3985074-28b1-476b-aadc-e1b1a6c10dae,t2.nano,Linux/UNIX,default,convertible,All Upfront,us-west-2b,31536000,Availability Zone,0,34.0,0.0,USD,0.0,Hourly
+7295fd00-c4c7-460e-be2d-921a6a1e4861,t2.nano,SUSE Linux,default,standard,Partial Upfront,us-west-2b,31536000,Availability Zone,0,37.0,0.0,USD,0.0077,Hourly
+6060b676-59a7-40d1-b8d9-adbbb136e2ff,t2.nano,SUSE Linux,default,convertible,Partial Upfront,us-west-2b,31536000,Availability Zone,0,39.0,0.0,USD,0.008,Hourly
+ef7ad853-321e-4ba5-956a-ee7787c7d060,t2.nano,SUSE Linux,default,standard,All Upfront,us-west-2b,31536000,Availability Zone,0,104.0,0.0,USD,0.0,Hourly
+ca22920d-34d8-4163-9b65-245ce33fcbbd,t2.nano,SUSE Linux,default,convertible,All Upfront,us-west-2b,31536000,Availability Zone,0,109.0,0.0,USD,0.0,Hourly
+be43193b-87df-4483-9820-a252eff60122,t2.nano,Windows,default,convertible,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0052,Hourly
+84730916-2284-4a64-8c90-be33e894c6d0,t2.nano,Windows BYOL,default,standard,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0025,Hourly
+d775f1dd-9db4-47d1-a4c5-94d98cf85bf7,t2.nano,Windows,default,standard,No Upfront,us-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,0.0048,Hourly
+69c765cd-41a9-499c-8341-17b718c67f9b,t2.nano,Windows BYOL,default,standard,Partial Upfront,us-west-2b,94608000,Availability Zone,0,30.0,0.0,USD,0.0012,Hourly
+24ca5287-e65c-4d82-8a9f-2943dbeafbdb,t2.nano,Windows BYOL,default,standard,All Upfront,us-west-2b,94608000,Availability Zone,0,57.0,0.0,USD,0.0,Hourly
+9367423c-dab0-44b8-8d64-b87668fe103f,t2.nano,Windows,default,standard,Partial Upfront,us-west-2b,94608000,Availability Zone,0,61.0,0.0,USD,0.0023,Hourly
+94bbe41c-4a15-49d3-9d9b-5e93edf3ed0c,t2.nano,Windows,default,convertible,Partial Upfront,us-west-2b,94608000,Availability Zone,0,65.0,0.0,USD,0.0025,Hourly
+fbdc799e-9836-4982-9367-85967ec3e89f,t2.nano,Windows,default,standard,All Upfront,us-west-2b,94608000,Availability Zone,0,118.0,0.0,USD,0.0,Hourly
+08fd5a11-85f8-4335-b2de-f8cc00fdd9f4,t2.nano,Windows,default,convertible,All Upfront,us-west-2b,94608000,Availability Zone,0,129.0,0.0,USD,0.0,Hourly
+8ee7e316-d10e-4df4-8443-ef3f899ff090,t2.nano,Windows,default,convertible,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0064,Hourly
+364177a8-3fc1-4053-a065-2919778ef744,t2.nano,Windows,default,standard,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0059,Hourly
+afe901b3-9dc4-48b6-b30b-c9b6d8f0667f,t2.nano,Windows BYOL,default,standard,No Upfront,us-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,0.0036,Hourly
+a1538a18-b646-4795-99c3-3fb4d49a1490,t2.nano,Windows BYOL,default,standard,Partial Upfront,us-west-2b,31536000,Availability Zone,0,15.0,0.0,USD,0.0017,Hourly
+9fdefab6-4615-4cb6-85b7-9f4778aab0b9,t2.nano,Windows,default,standard,Partial Upfront,us-west-2b,31536000,Availability Zone,0,25.0,0.0,USD,0.0029,Hourly
+1a6de7f0-ec4e-4dd8-afb6-a6131ea176e7,t2.nano,Windows,default,convertible,Partial Upfront,us-west-2b,31536000,Availability Zone,0,27.0,0.0,USD,0.0031,Hourly
+8dab5752-5c65-41f8-bc86-0bf622a20716,t2.nano,Windows BYOL,default,standard,All Upfront,us-west-2b,31536000,Availability Zone,0,29.0,0.0,USD,0.0,Hourly
+af530f23-7cb2-4839-8da1-d94bdbd4b6dd,t2.nano,Windows,default,standard,All Upfront,us-west-2b,31536000,Availability Zone,0,50.0,0.0,USD,0.0,Hourly
+c512e05c-ae80-4923-b9dc-030489965aa9,t2.nano,Windows,default,convertible,All Upfront,us-west-2b,31536000,Availability Zone,0,54.0,0.0,USD,0.0,Hourly
+23f3c71e-faff-46d1-a69b-01d42fb1ccdd,t2.nano,Linux/UNIX,default,convertible,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0029,Hourly
+652d1508-88e2-47c2-b188-8ef55167de70,t2.nano,SUSE Linux,default,convertible,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0119,Hourly
+5871ef85-282b-426b-9a0e-80db030d68c6,t2.nano,SUSE Linux,default,standard,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0115,Hourly
+e24dac0b-65ec-432b-8713-b619737504b9,t2.nano,Linux/UNIX,default,standard,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0025,Hourly
+a31902a4-ddc1-42f3-8545-916746c278b9,t2.nano,Linux/UNIX,default,standard,Partial Upfront,us-west-2c,94608000,Availability Zone,0,30.0,0.0,USD,0.0012,Hourly
+2b829784-285d-4714-b364-c923d63abff6,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,us-west-2c,94608000,Availability Zone,0,35.0,0.0,USD,0.0013,Hourly
+ed11d1cd-ceae-465e-b11f-7293f021b906,t2.nano,Linux/UNIX,default,standard,All Upfront,us-west-2c,94608000,Availability Zone,0,57.0,0.0,USD,0.0,Hourly
+96e90463-4a4a-4023-bed2-0058ccdf635f,t2.nano,Linux/UNIX,default,convertible,All Upfront,us-west-2c,94608000,Availability Zone,0,69.0,0.0,USD,0.0,Hourly
+d1f6b16d-3f13-44d4-bc40-89d65fe2aaa5,t2.nano,SUSE Linux,default,standard,Partial Upfront,us-west-2c,94608000,Availability Zone,0,74.0,0.0,USD,0.0072,Hourly
+31818601-957f-4e13-9a36-f9c7275e3b1a,t2.nano,SUSE Linux,default,convertible,Partial Upfront,us-west-2c,94608000,Availability Zone,0,79.0,0.0,USD,0.0073,Hourly
+379945e8-e139-472b-ae4a-c3562f62d543,t2.nano,SUSE Linux,default,standard,All Upfront,us-west-2c,94608000,Availability Zone,0,259.0,0.0,USD,0.0,Hourly
+5a18159e-1573-48fd-9363-358d5ddc0b25,t2.nano,SUSE Linux,default,convertible,All Upfront,us-west-2c,94608000,Availability Zone,0,271.0,0.0,USD,0.0,Hourly
+c7de97a7-2383-4b26-83f9-7f0735ba08d2,t2.nano,Linux/UNIX,default,convertible,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0041,Hourly
+e8a218b7-831a-4375-a6a5-0effb70b1063,t2.nano,SUSE Linux,default,convertible,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0131,Hourly
+204c89d0-e77e-4999-898c-6e8b8e33535a,t2.nano,SUSE Linux,default,standard,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0126,Hourly
+e07a4aba-5988-4001-bdf0-a99845f4b10b,t2.nano,Linux/UNIX,default,standard,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0036,Hourly
+9ccd8a22-a779-4b5c-a110-f86bfa601eae,t2.nano,Linux/UNIX,default,standard,Partial Upfront,us-west-2c,31536000,Availability Zone,0,15.0,0.0,USD,0.0017,Hourly
+446b7753-00ea-48dc-8055-3d7d6ef4c43a,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,us-west-2c,31536000,Availability Zone,0,17.0,0.0,USD,0.002,Hourly
+c39a52d6-bfb0-4bab-8214-4aef792ab0fa,t2.nano,Linux/UNIX,default,standard,All Upfront,us-west-2c,31536000,Availability Zone,0,29.0,0.0,USD,0.0,Hourly
+71b75e48-1128-468e-8902-1093e7df19eb,t2.nano,Linux/UNIX,default,convertible,All Upfront,us-west-2c,31536000,Availability Zone,0,34.0,0.0,USD,0.0,Hourly
+58d2d98f-0d4a-4624-90c9-111138b7f4cc,t2.nano,SUSE Linux,default,standard,Partial Upfront,us-west-2c,31536000,Availability Zone,0,37.0,0.0,USD,0.0077,Hourly
+253d8abb-f5d6-494f-a728-eeadfb2ca295,t2.nano,SUSE Linux,default,convertible,Partial Upfront,us-west-2c,31536000,Availability Zone,0,39.0,0.0,USD,0.008,Hourly
+c94ce56f-df0e-49f8-9cd1-bae03e14e60d,t2.nano,SUSE Linux,default,standard,All Upfront,us-west-2c,31536000,Availability Zone,0,104.0,0.0,USD,0.0,Hourly
+b225a86a-fe9f-4700-b079-076d7fd3f66d,t2.nano,SUSE Linux,default,convertible,All Upfront,us-west-2c,31536000,Availability Zone,0,109.0,0.0,USD,0.0,Hourly
+909944c7-766d-4222-b388-c86190faa0b1,t2.nano,Windows,default,convertible,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0052,Hourly
+3404ddf7-7ac3-4863-a980-ac76b76b0669,t2.nano,Windows BYOL,default,standard,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0025,Hourly
+c1d711ce-a35c-4492-a77b-f4b6269fa026,t2.nano,Windows,default,standard,No Upfront,us-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,0.0048,Hourly
+fc6675a3-f854-4967-9bea-bc3b7c72626c,t2.nano,Windows BYOL,default,standard,Partial Upfront,us-west-2c,94608000,Availability Zone,0,30.0,0.0,USD,0.0012,Hourly
+44d4787f-dc0f-4e98-8b89-0d6c12650a6a,t2.nano,Windows BYOL,default,standard,All Upfront,us-west-2c,94608000,Availability Zone,0,57.0,0.0,USD,0.0,Hourly
+0248d968-318f-47ef-8668-e8ae0b44408c,t2.nano,Windows,default,standard,Partial Upfront,us-west-2c,94608000,Availability Zone,0,61.0,0.0,USD,0.0023,Hourly
+e12e254a-d8b6-4831-98e8-78f11b10ff2d,t2.nano,Windows,default,convertible,Partial Upfront,us-west-2c,94608000,Availability Zone,0,65.0,0.0,USD,0.0025,Hourly
+110807c8-078b-4126-89ef-00706b4a37f5,t2.nano,Windows,default,standard,All Upfront,us-west-2c,94608000,Availability Zone,0,118.0,0.0,USD,0.0,Hourly
+8b463054-58dd-456f-a7ba-2caf2bfa4924,t2.nano,Windows,default,convertible,All Upfront,us-west-2c,94608000,Availability Zone,0,129.0,0.0,USD,0.0,Hourly
+54df72f5-f2b9-4835-ace0-ac00f4135a58,t2.nano,Windows,default,convertible,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0064,Hourly
+1a6aee6a-32b5-4136-9c68-794288a8d696,t2.nano,Windows,default,standard,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0059,Hourly
+ed7a2ddf-a2e1-4114-81fa-53c017967287,t2.nano,Windows BYOL,default,standard,No Upfront,us-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,0.0036,Hourly
+d66fc0f8-dfd3-484a-aeac-8e7be5203a17,t2.nano,Windows BYOL,default,standard,Partial Upfront,us-west-2c,31536000,Availability Zone,0,15.0,0.0,USD,0.0017,Hourly
+cbe50fd9-9dc7-4fd6-81fd-8bd1e30d61c0,t2.nano,Windows,default,standard,Partial Upfront,us-west-2c,31536000,Availability Zone,0,25.0,0.0,USD,0.0029,Hourly
+f510462c-cba9-4f8f-8be0-0bd715423696,t2.nano,Windows,default,convertible,Partial Upfront,us-west-2c,31536000,Availability Zone,0,27.0,0.0,USD,0.0031,Hourly
+f19e46ff-817d-4ac8-9158-14fc50964554,t2.nano,Windows BYOL,default,standard,All Upfront,us-west-2c,31536000,Availability Zone,0,29.0,0.0,USD,0.0,Hourly
+65d456a3-abda-4039-99bb-db48b45887e8,t2.nano,Windows,default,standard,All Upfront,us-west-2c,31536000,Availability Zone,0,50.0,0.0,USD,0.0,Hourly
+250785c0-4a75-48f0-b48f-aeb79f84ad3d,t2.nano,Windows,default,convertible,All Upfront,us-west-2c,31536000,Availability Zone,0,54.0,0.0,USD,0.0,Hourly
+182bd2ec-1e4e-4a03-b08b-042c4415358b,t2.nano,Linux/UNIX,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0029,Hourly
+7e7fe039-c89a-46f7-b346-19f0c401a571,t2.nano,SUSE Linux,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0119,Hourly
+41cce7a2-5353-4c12-bd33-f73a6f8d2b99,t2.nano,Linux/UNIX,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0025,Hourly
+765929f1-a2c7-4d1b-8a75-a32236909819,t2.nano,SUSE Linux,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0115,Hourly
+d45aa67b-8e61-4812-b83e-ddc3e7511313,t2.nano,Linux/UNIX,default,standard,Partial Upfront,,94608000,Region,0,30.0,0.0,USD,0.0012,Hourly
+04659324-d444-4a12-9e59-4a369f501d98,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,,94608000,Region,0,35.0,0.0,USD,0.0013,Hourly
+ee0a2dc7-222d-46f8-9a22-d91f944186c7,t2.nano,Linux/UNIX,default,standard,All Upfront,,94608000,Region,0,57.0,0.0,USD,0.0,Hourly
+166adb9b-2ff1-4d80-91d0-70a0ab66f769,t2.nano,Linux/UNIX,default,convertible,All Upfront,,94608000,Region,0,69.0,0.0,USD,0.0,Hourly
+8d0b21e6-b301-4c8b-918d-694b94cd859d,t2.nano,SUSE Linux,default,standard,Partial Upfront,,94608000,Region,0,74.0,0.0,USD,0.0072,Hourly
+a441e034-18f5-4ab3-9884-9c51c0adddfd,t2.nano,SUSE Linux,default,convertible,Partial Upfront,,94608000,Region,0,79.0,0.0,USD,0.0073,Hourly
+c4d18d80-4d6a-4c2f-b56a-c4cf2cfe459f,t2.nano,SUSE Linux,default,standard,All Upfront,,94608000,Region,0,259.0,0.0,USD,0.0,Hourly
+29f8846a-0d6b-4fce-9bf6-e62666fcce14,t2.nano,SUSE Linux,default,convertible,All Upfront,,94608000,Region,0,271.0,0.0,USD,0.0,Hourly
+54da7410-6a3f-4aff-a3bf-b66411a1d596,t2.nano,SUSE Linux,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0131,Hourly
+eed0b347-7cef-4562-b56d-5e6022dc0bb2,t2.nano,Linux/UNIX,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0041,Hourly
+5db13ba5-716c-4c30-87f3-b30b758a28ec,t2.nano,Linux/UNIX,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0036,Hourly
+89113552-e04d-4a63-b9c5-2a394f9b55b4,t2.nano,SUSE Linux,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0126,Hourly
+ec88ae5e-45ff-4664-a269-300383592fac,t2.nano,Linux/UNIX,default,standard,Partial Upfront,,31536000,Region,0,15.0,0.0,USD,0.0017,Hourly
+d2d3f3ad-ecd8-4e5d-9f24-3dfb312ec952,t2.nano,Linux/UNIX,default,convertible,Partial Upfront,,31536000,Region,0,17.0,0.0,USD,0.002,Hourly
+0c186d6e-0ec4-4be6-b7cb-6487818db7cd,t2.nano,Linux/UNIX,default,standard,All Upfront,,31536000,Region,0,29.0,0.0,USD,0.0,Hourly
+e1778e5f-795d-4596-aa91-a2f68c094065,t2.nano,Linux/UNIX,default,convertible,All Upfront,,31536000,Region,0,34.0,0.0,USD,0.0,Hourly
+0d7298ca-1045-4211-b110-e189504d98d6,t2.nano,SUSE Linux,default,standard,Partial Upfront,,31536000,Region,0,37.0,0.0,USD,0.0077,Hourly
+ae11c476-8ede-4b22-8710-8350cb43afb8,t2.nano,SUSE Linux,default,convertible,Partial Upfront,,31536000,Region,0,39.0,0.0,USD,0.008,Hourly
+3df17acb-cdf1-40a9-9091-17a733b34773,t2.nano,SUSE Linux,default,standard,All Upfront,,31536000,Region,0,104.0,0.0,USD,0.0,Hourly
+3afa1768-a557-4704-8f29-e07a8c69b6ac,t2.nano,SUSE Linux,default,convertible,All Upfront,,31536000,Region,0,109.0,0.0,USD,0.0,Hourly
+23a480df-39d1-491e-8db7-86e7e4ec2c2a,t2.nano,Windows,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0052,Hourly
+13649b72-59f9-47e8-a8ce-e1c8773cd0d6,t2.nano,Windows BYOL,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0025,Hourly
+2836c4e5-13b1-4062-b21f-1f55709f5e57,t2.nano,Windows,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.0048,Hourly
+aec741df-a879-45fb-8c48-b9ae7f97c4ab,t2.nano,Windows BYOL,default,standard,Partial Upfront,,94608000,Region,0,30.0,0.0,USD,0.0012,Hourly
+b1588ce6-9b75-4908-b945-6c5c3338b8bd,t2.nano,Windows BYOL,default,standard,All Upfront,,94608000,Region,0,57.0,0.0,USD,0.0,Hourly
+79d606d0-33cc-40b1-8af6-919fb7376e7c,t2.nano,Windows,default,standard,Partial Upfront,,94608000,Region,0,61.0,0.0,USD,0.0023,Hourly
+17663267-c879-4cd3-95ce-5b6da97ffb4d,t2.nano,Windows,default,convertible,Partial Upfront,,94608000,Region,0,65.0,0.0,USD,0.0025,Hourly
+c9bf628f-c59a-4a1e-8427-d2f831f467d0,t2.nano,Windows,default,standard,All Upfront,,94608000,Region,0,118.0,0.0,USD,0.0,Hourly
+b88a1add-c184-40cc-b954-332d870b3d5e,t2.nano,Windows,default,convertible,All Upfront,,94608000,Region,0,129.0,0.0,USD,0.0,Hourly
+43ec7961-ffef-4f6d-a22e-bac8ee0b5817,t2.nano,Windows,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0064,Hourly
+1f60c0cd-4c97-4f38-92cb-db141114a436,t2.nano,Windows BYOL,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0036,Hourly
+eedf1ac4-bbdf-4b51-9e4a-7d5450960c75,t2.nano,Windows,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.0059,Hourly
+3185090b-40bc-4f44-87ee-6e8bd139464a,t2.nano,Windows BYOL,default,standard,Partial Upfront,,31536000,Region,0,15.0,0.0,USD,0.0017,Hourly
+9fa2675b-0bb6-48b5-9b81-baea1edce314,t2.nano,Windows,default,standard,Partial Upfront,,31536000,Region,0,25.0,0.0,USD,0.0029,Hourly
+18ab9b8f-c78d-4c09-a490-fbd9702f9e7a,t2.nano,Windows,default,convertible,Partial Upfront,,31536000,Region,0,27.0,0.0,USD,0.0031,Hourly
+8f55613b-25c6-4c10-8753-db32e3dca4ac,t2.nano,Windows BYOL,default,standard,All Upfront,,31536000,Region,0,29.0,0.0,USD,0.0,Hourly
+c2753ee1-5363-4986-b4c0-61944e22ea35,t2.nano,Windows,default,standard,All Upfront,,31536000,Region,0,50.0,0.0,USD,0.0,Hourly
+8dae921d-6de3-4f9a-b27b-ebee03c803a3,t2.nano,Windows,default,convertible,All Upfront,,31536000,Region,0,54.0,0.0,USD,0.0,Hourly

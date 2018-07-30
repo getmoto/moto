@@ -1,0 +1,673 @@
+ReservedInstancesOfferings,InstanceType,ProductDescription,InstanceTenancy,OfferingClass,OfferingType,AvailabilityZone,Duration,Scope,Marketplace,FixedPrice,UsagePrice,CurrencyCode,Amount,Frequency
+4672b3a1-c9cc-4f3f-90d2-d3600de29ae2,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+8040ebab-a0b9-44eb-adc8-509bc8645378,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.581,Hourly
+bb90d192-d44f-482a-bcb7-1b6c1e7898cf,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.561,Hourly
+cb5c6455-7699-44c6-be26-bae928519ae2,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.641,Hourly
+d6578183-8732-429a-88b7-4f2a06873a6b,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.588,Hourly
+e77e3b4b-d334-4afc-a2fd-cdc7550864c7,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.528,Hourly
+0847d2f9-2b71-4730-ad2f-dc64ae7b63ac,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.459,Hourly
+252dbce2-078d-486d-bc37-ccdf6807e944,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.492,Hourly
+a830e264-58a2-44a6-9f00-d550f347678d,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.505,Hourly
+b52e4306-3a82-4917-85c9-a1d43f11e86f,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.565,Hourly
+bc0eb8db-eb3c-4e3f-8c8a-8b7ff43f4c94,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.519,Hourly
+dfb0fdc6-dd6c-4cc0-98b7-389270f56db7,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.538,Hourly
+22f104c1-9b94-462d-a65c-6a70afea57e7,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,5584.0,0.0,USD,0.212,Hourly
+ed3fce99-1b41-4ce6-b1ba-6b89abdabb30,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,5584.0,0.0,USD,0.272,Hourly
+4b68e536-6a3d-48f2-87cc-090afb7672c9,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,5936.0,0.0,USD,0.226,Hourly
+b4243456-e3d6-4f44-988b-003a1296a4cc,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,6143.0,0.0,USD,0.234,Hourly
+dcaa59ab-a008-4069-9b70-d939e6913713,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,6143.0,0.0,USD,0.294,Hourly
+1ebddec2-b694-4434-b2aa-35f2101b52dd,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,6422.0,0.0,USD,0.304,Hourly
+2222c3ce-3c63-41ad-aa9e-033c62e3ff84,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,6422.0,0.0,USD,0.244,Hourly
+dd382d0c-8421-4eeb-9014-a52fa4960603,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,6495.0,0.0,USD,0.247,Hourly
+ecfb461b-1125-45a1-8d31-c757a3aac463,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,6774.0,0.0,USD,0.257,Hourly
+95cd83d6-f92d-4e52-be37-6a5d4fcafe7a,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,7064.0,0.0,USD,0.329,Hourly
+ff14d122-71fe-402e-ac43-7b49743c462d,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,7064.0,0.0,USD,0.269,Hourly
+5ae299f7-7977-42a7-ad50-8c6ba19856b7,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,7416.0,0.0,USD,0.282,Hourly
+7fa9b1b4-017f-440b-9451-74f3302b4658,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,10499.0,0.0,USD,0.0,Hourly
+bfb2b07c-a96e-4b60-ac14-497ae466ed73,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,11193.0,0.0,USD,0.0,Hourly
+dbd4cee8-2341-49e5-8e3a-a86d82d024f2,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,11549.0,0.0,USD,0.0,Hourly
+ad332408-6faa-49cd-8492-afe04b37be85,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,12076.0,0.0,USD,0.0,Hourly
+5316a717-a7a7-4369-ba2f-017ac36fe4fa,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,12243.0,0.0,USD,0.0,Hourly
+027c2210-961f-44c1-a132-bef3089ae9af,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,12588.0,0.0,USD,0.0,Hourly
+4f1bb84f-db04-4997-b75a-eba0460bede6,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,13126.0,0.0,USD,0.0,Hourly
+74181c90-70f5-4777-a527-93e2a343dabc,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,13282.0,0.0,USD,0.0,Hourly
+8569a266-cfdc-4726-897f-456d8298498f,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,13846.0,0.0,USD,0.0,Hourly
+f7aecfe3-30b5-42e0-a3e1-15425b5b914b,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+73ce35b0-c340-4b30-aa70-9698ba50df0d,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,14540.0,0.0,USD,0.0,Hourly
+2fd3e671-4235-41f7-bae1-4c4b47f1adf7,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,15423.0,0.0,USD,0.0,Hourly
+2ea4eb8d-b5fc-47ff-82fe-2ac7bf06e8b3,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.739,Hourly
+2f42589a-1f93-43d0-a30d-fe4321599931,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.81,Hourly
+432e2eb3-dc6a-435c-a751-1594b5ded0eb,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.766,Hourly
+6e7063cd-5680-4eaa-8189-c67902f27ca9,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.706,Hourly
+a8b570ee-1f8e-406c-a4c9-0e0f0200063a,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.837,Hourly
+ada65095-fb11-459e-8462-4988bebf6eb0,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.777,Hourly
+4488abc8-06ff-4c8c-b1fd-d276acd69c5e,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.674,Hourly
+5bf6c372-1348-4903-b009-4b6dd25ba23b,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.647,Hourly
+7d2c3f21-8210-4963-a728-63c3f5ce3063,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+987fd730-80a5-4c32-905f-f3a63d8f291c,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.709,Hourly
+c3d361ce-c248-4d0e-b323-c754ca293088,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.736,Hourly
+ec7c81b3-8899-4d6f-888f-5aa2258a2446,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.676,Hourly
+76b150d9-26d6-4728-b29f-eaa55356612d,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2562.0,0.0,USD,0.292,Hourly
+c3b38970-5c4a-4a7b-b64e-d382a5bf81b3,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2562.0,0.0,USD,0.352,Hourly
+44571f3d-641a-4973-86f0-001a58f18d9b,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2738.0,0.0,USD,0.306,Hourly
+08ac4bc5-0e73-453d-bb59-ada8a157d420,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2819.0,0.0,USD,0.322,Hourly
+4381f8b2-5ba8-412f-8de7-1b06c0e68408,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2819.0,0.0,USD,0.382,Hourly
+2c62c0c5-a09d-4b30-9d66-344a038877ad,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2947.0,0.0,USD,0.396,Hourly
+ebc69ec7-310c-4adf-9e45-acf57d6838dd,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2947.0,0.0,USD,0.336,Hourly
+92726b77-4e73-4818-9ea3-cbcbb427a92a,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,2995.0,0.0,USD,0.335,Hourly
+96803ad4-5b85-4637-a3d3-f75391035f37,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3123.0,0.0,USD,0.349,Hourly
+2ca074ee-bb59-4446-bbeb-2646f5f1d771,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3241.0,0.0,USD,0.43,Hourly
+9afae7ad-7406-4470-af8f-76a8af1d654b,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3241.0,0.0,USD,0.37,Hourly
+d42508d4-eecc-48e4-a787-0a810180cba8,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3417.0,0.0,USD,0.383,Hourly
+9a8c5663-78ff-4210-88b7-344ef1a61e6d,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,5022.0,0.0,USD,0.0,Hourly
+84f2927f-c98c-4e8d-acee-be40c5a3f7e1,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,5312.0,0.0,USD,0.0,Hourly
+dcfb8fc6-3d22-4d3e-b475-55ff900c58ac,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,5524.0,0.0,USD,0.0,Hourly
+871b15ae-0ab1-41af-8ac0-e37cb9fe6f63,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,5548.0,0.0,USD,0.0,Hourly
+23ca2198-f67d-4031-a0bf-de9fc45d49f8,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,5775.0,0.0,USD,0.0,Hourly
+74f74240-8aa8-41b0-8c48-9a79f7829e0b,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,5814.0,0.0,USD,0.0,Hourly
+847815f3-8cf4-4d61-9936-3055c89831ae,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,6050.0,0.0,USD,0.0,Hourly
+d7e23c18-cc9a-42f0-83be-06a2915327ed,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,6065.0,0.0,USD,0.0,Hourly
+725d709a-97ea-4349-b1dd-1a8e018ce988,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,6301.0,0.0,USD,0.0,Hourly
+45ee6f44-d6ff-466e-bf16-5ff026340429,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,6353.0,0.0,USD,0.0,Hourly
+f22dbfe4-5d0f-46ad-b761-8d020f32c9b5,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,6643.0,0.0,USD,0.0,Hourly
+78d08cbe-d8d5-4581-aee1-92904ea9edb4,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,6879.0,0.0,USD,0.0,Hourly
+a74fff1e-5fa6-4ad2-bc00-b3d8534f97fb,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.712,Hourly
+cd07d7f9-8369-4ae8-932e-8569391b3047,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.765,Hourly
+32c380e3-c2ce-4fc3-a349-7a7f2d19515b,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.689,Hourly
+fff57969-2b3b-42db-a2fd-65079a73e671,p2.xlarge,Windows,default,standard,No Upfront,us-east-1e,94608000,Availability Zone,0,0.0,0.0,USD,0.643,Hourly
+5b9362f6-14c8-4348-92f3-d30683b152d6,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,8002.0,0.0,USD,0.304,Hourly
+de9ca8ae-b695-4e4d-8560-b59bd077aa4d,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1e,94608000,Availability Zone,0,8561.0,0.0,USD,0.326,Hourly
+baa845b4-54e2-48cf-8dfd-87dcb9a20685,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,8840.0,0.0,USD,0.336,Hourly
+e25a4cea-b672-4d76-97eb-c4c51e3c4aa6,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1e,94608000,Availability Zone,0,9482.0,0.0,USD,0.361,Hourly
+065a5713-20d8-4ef1-9015-81dd354eaa80,p2.xlarge,Windows,default,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,15334.0,0.0,USD,0.0,Hourly
+57003f32-a7fa-411a-a122-4c8d2cf46237,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1e,94608000,Availability Zone,0,16384.0,0.0,USD,0.0,Hourly
+f827fbf2-b482-4952-b751-08d01ead2814,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,17423.0,0.0,USD,0.0,Hourly
+f678dea7-719b-4610-86e6-289aeb4e97b8,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1e,94608000,Availability Zone,0,18682.0,0.0,USD,0.0,Hourly
+6780e886-5e99-4848-8326-a7c2bf8a9045,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.89,Hourly
+cd6cb879-f92c-4553-b583-63a4f96f4110,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.961,Hourly
+02d9fe2a-d054-4bf0-9abf-6ee82712be63,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.86,Hourly
+ce92b987-84d4-494c-bf16-f7da01a50eb8,p2.xlarge,Windows,default,standard,No Upfront,us-east-1e,31536000,Availability Zone,0,0.0,0.0,USD,0.798,Hourly
+78939ebc-dc40-43fd-ab0f-f29a05476912,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3368.0,0.0,USD,0.384,Hourly
+501dfab9-dffd-4666-ab73-f85639880e64,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3624.0,0.0,USD,0.414,Hourly
+a6e245e2-d948-43f6-b8e8-fed59d64f4ee,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,3753.0,0.0,USD,0.428,Hourly
+cf746b65-26b5-4f8c-8b15-cc413315c5a3,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1e,31536000,Availability Zone,0,4047.0,0.0,USD,0.462,Hourly
+fe534933-6c6f-4c31-b0c8-63061ecd7ff7,p2.xlarge,Windows,default,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,6634.0,0.0,USD,0.0,Hourly
+864d9a88-2ada-44ea-a981-837c179aa47f,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1e,31536000,Availability Zone,0,7136.0,0.0,USD,0.0,Hourly
+4ff69789-5eb5-489e-9442-614b5fbad9d2,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,7387.0,0.0,USD,0.0,Hourly
+a2fc83e6-0561-48a1-ab43-5a27f12dffad,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1e,31536000,Availability Zone,0,7965.0,0.0,USD,0.0,Hourly
+07fd104e-c46a-4912-b20f-e8b2b1d0228e,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.528,Hourly
+0cc8e241-880f-4dcc-8792-b7372c20cced,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.561,Hourly
+29bdca65-9062-43ff-9aa7-6491283f76af,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+4836a2bc-fc49-4bb3-bf8b-0a1a9796630d,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.581,Hourly
+48c410e0-f3d0-41dd-b3a9-7b56cece9e06,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.588,Hourly
+b8c82604-9466-44cc-90dd-e76ef6ac7eab,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.641,Hourly
+2e267c62-ecf3-4564-9c99-98ff57e9f6a5,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.459,Hourly
+38d3b59f-6566-46c8-8772-9c783ecb5353,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.505,Hourly
+8d2744de-4ad5-447a-b5a2-13eaefc9a150,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.492,Hourly
+9d4f1b58-e6b1-422f-b8c3-937a5a4f7907,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.519,Hourly
+bd81741d-e2a6-4411-b2bc-af88748b8083,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.538,Hourly
+bdaba121-c0f8-4811-a240-3852eef6e6b8,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.565,Hourly
+1871d1eb-ff0a-4508-876c-9cc54be80c7c,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,5584.0,0.0,USD,0.212,Hourly
+c3cb7ae3-20b9-43c0-8b22-affe0fddfbe3,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,5584.0,0.0,USD,0.272,Hourly
+bd30bc13-e39f-49d1-ab2b-8815aae1c71f,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,5936.0,0.0,USD,0.226,Hourly
+243bee6d-0166-4625-9ea5-7eebc4f4911c,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,6143.0,0.0,USD,0.294,Hourly
+b322e858-56d3-4283-afee-513262f15ff5,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,6143.0,0.0,USD,0.234,Hourly
+39a2f943-c69b-466d-95fa-64775061ed94,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,6422.0,0.0,USD,0.244,Hourly
+d5ab0854-6463-4a12-84aa-18d4a398c2db,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,6422.0,0.0,USD,0.304,Hourly
+ea65232e-556b-497b-aeae-70d7192191e1,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,6495.0,0.0,USD,0.247,Hourly
+b4cb3950-e1ea-48bc-abb0-422d1b6d42e3,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,6774.0,0.0,USD,0.257,Hourly
+51237683-6cd3-4e14-8abb-380bf96adc1b,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,7064.0,0.0,USD,0.329,Hourly
+e1f612c9-13ad-4c90-9f3c-0ef6eb32d2a3,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,7064.0,0.0,USD,0.269,Hourly
+60f32d21-7837-412e-94db-022f06a1c879,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,7416.0,0.0,USD,0.282,Hourly
+0620c801-6fc5-49a7-bd4c-ba349e3ded77,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,10499.0,0.0,USD,0.0,Hourly
+8e9173ef-d9b8-401e-ad97-9ac1a1aafb9b,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,11193.0,0.0,USD,0.0,Hourly
+a452a7e2-4015-4048-a40d-a4c1a47bde9b,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,11549.0,0.0,USD,0.0,Hourly
+c1ec39e8-c6d8-4b0d-b5eb-410777cea9ac,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,12076.0,0.0,USD,0.0,Hourly
+75f9232e-de6a-44fe-b212-5325e33e0cbc,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,12243.0,0.0,USD,0.0,Hourly
+444658bd-b84d-47c3-ac8a-8adab7a834a8,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,12588.0,0.0,USD,0.0,Hourly
+39d031d3-c586-485e-b2bc-0896369b1958,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,13126.0,0.0,USD,0.0,Hourly
+fa98c95b-b774-45f0-a753-d7a5bf6188d8,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,13282.0,0.0,USD,0.0,Hourly
+a5f82a34-307f-4dad-9c49-fd781d653c67,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,13846.0,0.0,USD,0.0,Hourly
+c6de0e54-f2db-4e5e-a636-d19a487bf2af,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+f773aec8-cc03-4aa9-9b83-b15a3aac709f,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,14540.0,0.0,USD,0.0,Hourly
+81566acf-777d-4305-80ad-9627a6910262,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,15423.0,0.0,USD,0.0,Hourly
+4194f510-c52e-4a02-8a2a-a5a3c437412c,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.766,Hourly
+41c65443-928f-476d-8696-3ec7941b4773,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.837,Hourly
+6f4dd935-bd6c-4d0c-a2e1-a105da762cb8,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.706,Hourly
+78dcb13e-cc76-4a80-b1de-662bfa46198b,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.739,Hourly
+c49a76d2-adc5-44ee-9fbc-37659128f471,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.777,Hourly
+ffd6ccde-4558-41cc-b809-0719cc2a06f4,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.81,Hourly
+021fd6d2-4428-46c0-b30c-dd0a963ad303,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.647,Hourly
+66d42499-4400-4077-a2e9-3bf48f372a6d,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.676,Hourly
+709f6c52-b399-4c04-a2f9-9c2cadacf27f,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.736,Hourly
+a14ae397-2c2e-4b3b-9312-710f27ef5e7f,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+ac48d986-b58a-4c95-8513-b6f44345bba6,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.709,Hourly
+c45a2fdf-7580-43b8-a21b-8c5ef3c3970d,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.674,Hourly
+1ba93e93-6956-47c4-87d9-a2813d64f764,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2562.0,0.0,USD,0.352,Hourly
+839449f1-8651-4f95-a3bb-d9e0ab7ff30e,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2562.0,0.0,USD,0.292,Hourly
+a6c25e3e-a992-41bf-af23-c3b0c4dd8ef7,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2738.0,0.0,USD,0.306,Hourly
+48cfc9c0-190e-4ba6-9fb4-4c580ea2624b,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2819.0,0.0,USD,0.382,Hourly
+608a234f-a7b8-4dae-9b5d-c8a8a0409a39,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2819.0,0.0,USD,0.322,Hourly
+b931812f-ca2f-4601-ad33-27f0df3d612d,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2947.0,0.0,USD,0.396,Hourly
+bcd9a973-d921-46ea-8f25-d0d17b26f51b,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2947.0,0.0,USD,0.336,Hourly
+524f6154-ad0b-47d8-91b9-f2aa79b24993,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,2995.0,0.0,USD,0.335,Hourly
+049aef60-37ad-4b96-a5d7-cc4c200cd015,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3123.0,0.0,USD,0.349,Hourly
+1eabf358-6638-447d-ba0c-268139300c91,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3241.0,0.0,USD,0.37,Hourly
+c0bfce30-23e5-48f4-926a-5674700ba25d,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3241.0,0.0,USD,0.43,Hourly
+5be9473b-780f-4725-b56d-e4f474ce4061,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3417.0,0.0,USD,0.383,Hourly
+83cdc2d2-52df-4f0e-bc22-9719257a3036,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,5022.0,0.0,USD,0.0,Hourly
+c7b5e917-9bc3-4d95-8cea-b8cd007415df,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,5312.0,0.0,USD,0.0,Hourly
+6a6d35b6-0e7e-4712-be23-a76b1b607f42,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,5524.0,0.0,USD,0.0,Hourly
+598c5b4e-d13a-413e-ab87-5f280bff8294,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,5548.0,0.0,USD,0.0,Hourly
+8f1b466b-a3d3-44fa-b4bd-66fd9973d91b,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,5775.0,0.0,USD,0.0,Hourly
+67d09910-2338-4390-ba26-190ffab9cb8a,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,5814.0,0.0,USD,0.0,Hourly
+93e6374a-c452-410a-b076-317d5971ec70,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,6050.0,0.0,USD,0.0,Hourly
+52e9c926-a793-40cf-ad70-25ba8eb2dd56,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,6065.0,0.0,USD,0.0,Hourly
+928887cd-c77e-46c7-9028-cd6cc0273528,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,6301.0,0.0,USD,0.0,Hourly
+063ad2fc-2863-4114-b8c7-7d636b878dc5,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,6353.0,0.0,USD,0.0,Hourly
+dd5c48fb-e09a-4f05-9c64-48dc5bac5aa9,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,6643.0,0.0,USD,0.0,Hourly
+69c93862-9f77-4ec0-b115-7c12b9794c06,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,6879.0,0.0,USD,0.0,Hourly
+d7462d1c-9323-40c9-8514-794e83b871cc,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.712,Hourly
+fce09ae7-9fe0-453e-9770-1bab1f87a14e,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.765,Hourly
+769bcc75-2148-4c8b-9941-802b9c27c21b,p2.xlarge,Windows,default,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.643,Hourly
+c4dbc0ae-3db7-4e4d-8d90-6a6031bf7670,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1d,94608000,Availability Zone,0,0.0,0.0,USD,0.689,Hourly
+871e3325-8476-4414-8c4b-d2ba0242efb6,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,8002.0,0.0,USD,0.304,Hourly
+059cc9f8-4f63-4eb4-918a-1281c23ee0a1,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1d,94608000,Availability Zone,0,8561.0,0.0,USD,0.326,Hourly
+c460a24d-c4ab-4e7e-ae47-440aa777bb14,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,8840.0,0.0,USD,0.336,Hourly
+464f4e92-3141-49b0-a38d-bb8c61b15b76,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1d,94608000,Availability Zone,0,9482.0,0.0,USD,0.361,Hourly
+53c12553-9633-4392-adbe-9952ba1340f9,p2.xlarge,Windows,default,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,15334.0,0.0,USD,0.0,Hourly
+2a95f60c-163e-4995-921e-c18077c4628c,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1d,94608000,Availability Zone,0,16384.0,0.0,USD,0.0,Hourly
+6fa75318-d87f-43b9-b682-2db6b5be1f55,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,17423.0,0.0,USD,0.0,Hourly
+17bb7a76-ac8f-480a-a60f-5398450dd365,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1d,94608000,Availability Zone,0,18682.0,0.0,USD,0.0,Hourly
+a3a53fb6-da49-4f4c-9b78-611ff0fbbf39,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.961,Hourly
+b0a782f7-8720-4b31-9b9f-b8cd451cc184,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.89,Hourly
+478e5603-256f-431b-9f9c-2d41237f7d84,p2.xlarge,Windows,default,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.798,Hourly
+7dd67f76-2677-456b-af3e-4b3fc7cc21e3,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1d,31536000,Availability Zone,0,0.0,0.0,USD,0.86,Hourly
+20a28ed9-f196-4c25-8858-4b87a7a5f8ae,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3368.0,0.0,USD,0.384,Hourly
+ccd141a5-a440-4fa5-bab9-b1e0236ea74d,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3624.0,0.0,USD,0.414,Hourly
+3868c997-cb7b-4846-8044-3453fd7245ca,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,3753.0,0.0,USD,0.428,Hourly
+60381d3f-7524-405a-910b-6d88cc318a88,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1d,31536000,Availability Zone,0,4047.0,0.0,USD,0.462,Hourly
+ef6a47ad-5053-41c8-876b-d6a9052ff8bf,p2.xlarge,Windows,default,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,6634.0,0.0,USD,0.0,Hourly
+4dfd0774-3a49-4f4c-85d2-5e5839444fe2,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1d,31536000,Availability Zone,0,7136.0,0.0,USD,0.0,Hourly
+f1f4055b-113e-44b6-8124-e85327ddba40,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,7387.0,0.0,USD,0.0,Hourly
+96b797e8-52ac-4d75-a901-0d252ddc4e15,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1d,31536000,Availability Zone,0,7965.0,0.0,USD,0.0,Hourly
+5140abea-c3e7-420e-92a5-04b138dd5a84,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.528,Hourly
+6f8ae48d-e3e6-4da4-8a87-286a6c563010,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.561,Hourly
+829d1ca9-edf1-4dd8-b50d-fe4f6d34341b,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+92577e60-1b41-4459-9898-77bfea6cc6ee,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.641,Hourly
+c40455db-4cd5-474a-b001-07b6d2964d8f,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.581,Hourly
+fd6a906d-302e-4bd1-95b4-89d582cfd701,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.588,Hourly
+1a197716-934a-4a57-8a64-ed5646e785ef,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.492,Hourly
+1ef4b66f-4cf1-4088-adf6-6f7a8b377b03,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.565,Hourly
+1f681ebf-0eb5-43fc-91d3-c6999a3bce05,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.505,Hourly
+34f1a428-e5f9-4b17-8efb-aeb994344004,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.538,Hourly
+ab241817-d124-4f30-93aa-dd41e461a59d,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.519,Hourly
+d45aa190-cafa-47e6-8e0e-d398849401ab,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.459,Hourly
+72ab42de-4add-416e-8109-47bed721f106,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,5584.0,0.0,USD,0.272,Hourly
+95aec0aa-ef7b-406f-8a50-e474f86ae65e,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,5584.0,0.0,USD,0.212,Hourly
+81493879-6535-46db-8b2c-d8dcab80e0ab,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,5936.0,0.0,USD,0.226,Hourly
+7d3e68be-c6bd-469b-a599-43af74cdb22e,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,6143.0,0.0,USD,0.234,Hourly
+878900ac-9565-4bce-8327-dedcea3bdd53,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,6143.0,0.0,USD,0.294,Hourly
+6108cd25-4942-4757-877b-d1cfc9a9d1c0,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,6422.0,0.0,USD,0.244,Hourly
+dfb3888c-28b0-407f-9fb7-54987a0ec2f4,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,6422.0,0.0,USD,0.304,Hourly
+c87632cb-9cf7-4092-877c-f79495b372da,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,6495.0,0.0,USD,0.247,Hourly
+95b0a5c7-90ca-4335-b274-73b08b219fb5,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,6774.0,0.0,USD,0.257,Hourly
+6f6351c1-28ab-4f1c-8bce-595378307d45,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,7064.0,0.0,USD,0.269,Hourly
+75d79f81-2060-4629-a81d-1da01784fea1,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,7064.0,0.0,USD,0.329,Hourly
+cb74fb1d-72e0-425b-a714-bc8f1dd1202f,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,7416.0,0.0,USD,0.282,Hourly
+dfd08f3f-e967-4afc-b76c-f487afc641b5,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,10499.0,0.0,USD,0.0,Hourly
+8b22c385-ba89-460b-885a-5fe9b6047278,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,11193.0,0.0,USD,0.0,Hourly
+823a1b16-6780-4314-a8f4-8c05f10459b7,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,11549.0,0.0,USD,0.0,Hourly
+11bbb79e-1e4e-4d49-82d6-583e59ee4529,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,12076.0,0.0,USD,0.0,Hourly
+d6835e80-6e52-4e5c-986d-33be33a38416,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,12243.0,0.0,USD,0.0,Hourly
+6729da79-921c-46fd-90ce-d4c83b1ef8dd,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,12588.0,0.0,USD,0.0,Hourly
+c08de52a-590c-444d-a7a2-ff4216984865,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,13126.0,0.0,USD,0.0,Hourly
+3c724bbb-597b-4ddd-a5bd-a08e37c22531,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,13282.0,0.0,USD,0.0,Hourly
+39ff0448-4dc4-46e6-aa5f-eca5376d2a21,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,13846.0,0.0,USD,0.0,Hourly
+c51d7c1e-1449-4d84-86b6-f67047fdb42f,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+74b86a58-e77b-47c9-ae38-8b6d8e3f270e,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,14540.0,0.0,USD,0.0,Hourly
+1402bb39-3307-4996-bffe-292c54e4e2b2,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,15423.0,0.0,USD,0.0,Hourly
+7d01a1e3-fc0a-486d-98ee-c670b85c3142,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.81,Hourly
+840d8e57-4d52-47c0-987e-9d7a843cb88d,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.777,Hourly
+c766446d-e360-41ca-add8-23e53293e7b6,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.706,Hourly
+d511977e-96d6-4cda-ac60-f5f4cea9d47f,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.739,Hourly
+e4db7dc5-2591-40c0-b060-cc5352f957ec,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.766,Hourly
+f8e27d87-058c-4370-84e6-019a0986c599,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.837,Hourly
+20817941-ad5c-41ba-9d74-7a439cae48de,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.709,Hourly
+27d3a989-0eee-4569-910b-5ceda95d6672,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.674,Hourly
+80b7a89d-7223-4bdc-93c5-8c20e9019559,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+88423c7b-1646-426d-ab42-547f84715e54,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.676,Hourly
+b4d8cf52-a3fd-4edb-9c2e-e4fa63445aff,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.647,Hourly
+c0ebb547-6d05-45b4-8a8b-560d776dd611,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.736,Hourly
+08b20562-4709-402c-bd80-eaf52a80ace1,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2562.0,0.0,USD,0.292,Hourly
+221adb83-a0d1-4039-bdd9-b21cb3130615,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2562.0,0.0,USD,0.352,Hourly
+b1208aad-0a58-4290-9f15-a6770ded0ab1,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2738.0,0.0,USD,0.306,Hourly
+7204153b-705c-45fd-a456-55eb930e9628,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2819.0,0.0,USD,0.382,Hourly
+d56aad46-392e-483a-8546-46b361908678,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2819.0,0.0,USD,0.322,Hourly
+60a2eae6-e2f9-437a-89f4-8e43af347531,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2947.0,0.0,USD,0.336,Hourly
+ac981a76-1a71-47cf-aac3-d64e49d68d83,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2947.0,0.0,USD,0.396,Hourly
+6abab4b4-92d0-4169-9add-fa993a4af126,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,2995.0,0.0,USD,0.335,Hourly
+05988809-f024-409d-b37e-e57fd3e8cd6b,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3123.0,0.0,USD,0.349,Hourly
+135b3936-3b79-4827-b90d-c7de801d5437,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3241.0,0.0,USD,0.37,Hourly
+f33050bb-82f4-498d-90aa-e520cee69581,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3241.0,0.0,USD,0.43,Hourly
+786f32f4-0e25-404d-9d55-523b60fb2096,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3417.0,0.0,USD,0.383,Hourly
+9577aecb-a7e3-41da-9c42-fc5730ddee07,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,5022.0,0.0,USD,0.0,Hourly
+9ec9f724-3f20-436a-a925-e9cea7722266,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,5312.0,0.0,USD,0.0,Hourly
+6bf052b2-a510-4ced-8cbd-40ca1941b295,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,5524.0,0.0,USD,0.0,Hourly
+275328d0-18ec-40a1-b012-beb77e306883,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,5548.0,0.0,USD,0.0,Hourly
+bbf76e74-80b0-42b4-8672-98f146debb15,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,5775.0,0.0,USD,0.0,Hourly
+355a3d33-ae68-417a-8a56-a23f9b982487,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,5814.0,0.0,USD,0.0,Hourly
+d24ef7d9-87d8-48da-afa4-f537def0517d,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,6050.0,0.0,USD,0.0,Hourly
+c3e1bf60-d45d-4481-9a7d-280006e7f144,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,6065.0,0.0,USD,0.0,Hourly
+d63f013f-e736-47d2-8bfc-3b1c4d80fd0a,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,6301.0,0.0,USD,0.0,Hourly
+27f64366-596a-4e4f-83b5-32aae0442be5,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,6353.0,0.0,USD,0.0,Hourly
+2d27174b-3112-449f-b121-730b25cc5385,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,6643.0,0.0,USD,0.0,Hourly
+e214c207-dc4f-4f76-8c8d-b756909134cf,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,6879.0,0.0,USD,0.0,Hourly
+5cd121e8-c92e-46bd-8f77-054d9a97f90e,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.712,Hourly
+81affdaf-4439-41a9-99f2-8e52aa2f4c10,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.765,Hourly
+304ac49b-f7aa-4372-993d-69d2a59a3cf6,p2.xlarge,Windows,default,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.643,Hourly
+ea1f8fc1-03a2-446e-a65c-39ff1f998a3c,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1b,94608000,Availability Zone,0,0.0,0.0,USD,0.689,Hourly
+b9ee4ba4-6116-4699-a971-72fa50a56da1,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,8002.0,0.0,USD,0.304,Hourly
+a6ea32ad-4d96-4a4e-b46e-a4dbf709c19e,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1b,94608000,Availability Zone,0,8561.0,0.0,USD,0.326,Hourly
+c3d329f1-8baf-4170-a077-3995eaef9f5d,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,8840.0,0.0,USD,0.336,Hourly
+7e2539ca-16de-4af4-9773-928e0468b692,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1b,94608000,Availability Zone,0,9482.0,0.0,USD,0.361,Hourly
+a6a8c695-1131-4e5d-b8d7-9aa303ae8d0f,p2.xlarge,Windows,default,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,15334.0,0.0,USD,0.0,Hourly
+4cb520de-67d2-42d6-80cf-2e0d9178b477,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1b,94608000,Availability Zone,0,16384.0,0.0,USD,0.0,Hourly
+0ef28337-ae1b-4a75-bf23-358a685e77e2,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,17423.0,0.0,USD,0.0,Hourly
+8b7ac742-6dcf-462d-aa2c-8d224180004e,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1b,94608000,Availability Zone,0,18682.0,0.0,USD,0.0,Hourly
+6aaef7b8-bd20-4cdc-a35b-5d7972aa571a,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.961,Hourly
+869c1c86-e446-4b06-917d-58330e64b608,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.89,Hourly
+568c2473-d86a-4fe9-a0ba-fde336bb3696,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.86,Hourly
+d8023306-445a-4bcb-b475-3fb1b8d0a9c2,p2.xlarge,Windows,default,standard,No Upfront,us-east-1b,31536000,Availability Zone,0,0.0,0.0,USD,0.798,Hourly
+2b33369f-c031-4a1e-970c-7bbfc3c63697,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3368.0,0.0,USD,0.384,Hourly
+a8fef82c-9aae-40ab-9926-6f4da36a7415,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3624.0,0.0,USD,0.414,Hourly
+bc83c971-a39b-4ea4-a7a3-cef0755c8258,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,3753.0,0.0,USD,0.428,Hourly
+8a795135-400e-49bd-9712-54cca92ed450,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1b,31536000,Availability Zone,0,4047.0,0.0,USD,0.462,Hourly
+0e9db1af-0365-4504-aec3-123df0eab98d,p2.xlarge,Windows,default,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,6634.0,0.0,USD,0.0,Hourly
+5fa37555-9457-490e-be65-911386775c16,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1b,31536000,Availability Zone,0,7136.0,0.0,USD,0.0,Hourly
+4a0e0e7e-d850-4780-9efe-561de78d8289,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,7387.0,0.0,USD,0.0,Hourly
+d6d59878-f60c-43e8-8e08-f7c57b8cf50b,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1b,31536000,Availability Zone,0,7965.0,0.0,USD,0.0,Hourly
+317cbd55-da78-401f-ab11-dcb1cc17b58e,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.528,Hourly
+35bfa5ab-76dc-4ed4-ae5c-a0ca36bb9459,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.588,Hourly
+8b08f94a-321e-42c3-85a4-868e228084b4,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.641,Hourly
+aeba4133-5c99-4073-ae05-f3cc6d5582fd,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.581,Hourly
+b525666c-3330-4369-8365-f970f8527651,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+e0f9608e-40f1-4ed7-bd28-35d091170a5f,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.561,Hourly
+092f6308-53a3-4b16-8b4c-c1e326148c07,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.519,Hourly
+382e7530-134d-4738-b0e3-4fe6e2198e7b,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.459,Hourly
+5ca04f3d-3a39-44ca-a7c3-82d9ec6226d3,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.538,Hourly
+7670a09d-695c-42a5-9349-a64068cc7f7b,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.505,Hourly
+9ea032d0-e5a0-462d-90a2-ba05d3800cda,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.492,Hourly
+f9bdd80f-ffa1-4175-b601-ef62dfa625c4,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.565,Hourly
+0936d8cf-0d99-40e0-8310-093a3a2ee7d4,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,5584.0,0.0,USD,0.212,Hourly
+65a94f9a-c713-456e-8c1a-0caea750ba23,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,5584.0,0.0,USD,0.272,Hourly
+2105bc7d-ed6a-4eb9-9d4c-665fa6b9b8d0,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,5936.0,0.0,USD,0.226,Hourly
+094aa562-865a-4ec8-9dd4-63c2d40acf76,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,6143.0,0.0,USD,0.234,Hourly
+d9660942-2b30-4ed2-ad1a-a42c186cf87d,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,6143.0,0.0,USD,0.294,Hourly
+d1df8254-239d-4d8f-be89-28b170bdc9fc,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,6422.0,0.0,USD,0.244,Hourly
+fdb87764-395f-401e-b8ab-63b2735fe926,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,6422.0,0.0,USD,0.304,Hourly
+3f306e8c-ecb0-407d-ae17-369bcfa158d7,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,6495.0,0.0,USD,0.247,Hourly
+b053b97e-1311-42b6-b784-7f1a9efa3e5a,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,6774.0,0.0,USD,0.257,Hourly
+615dac92-6935-4dca-8239-d8b598bbdc51,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,7064.0,0.0,USD,0.269,Hourly
+76606a2d-9b18-4072-a05a-0dd5dc5f5a22,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,7064.0,0.0,USD,0.329,Hourly
+6c649873-f348-432a-9748-5994a6f4b17c,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,7416.0,0.0,USD,0.282,Hourly
+5527d556-a803-4f55-83af-b910fc6e106f,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,10499.0,0.0,USD,0.0,Hourly
+91be8514-a481-436e-8b20-a3d6aa8e4e56,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,11193.0,0.0,USD,0.0,Hourly
+224fa2c9-360c-4fbf-ac64-4f1f95ee752f,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,11549.0,0.0,USD,0.0,Hourly
+a6e6e292-dfd3-4104-8cce-f7ff091eeaad,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,12076.0,0.0,USD,0.0,Hourly
+2f15d8b9-cf69-4967-9719-68bdf18dda82,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,12243.0,0.0,USD,0.0,Hourly
+4520d8e1-8b7c-455f-99ca-9557e6c16382,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,12588.0,0.0,USD,0.0,Hourly
+bbbee89a-1947-4309-9d26-6959dee61dc7,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,13126.0,0.0,USD,0.0,Hourly
+c2adea11-cceb-448f-a133-2f90df90e8fe,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,13282.0,0.0,USD,0.0,Hourly
+1b116233-416d-4237-a8ae-3010005a01c8,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,13846.0,0.0,USD,0.0,Hourly
+ce1c11d2-b3f2-436d-b3f8-14fbbf798bfa,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+5176cacb-a96b-402c-8ebc-8c94790bb615,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,14540.0,0.0,USD,0.0,Hourly
+0f5a363c-3d98-4984-bd22-9f867364bd66,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,15423.0,0.0,USD,0.0,Hourly
+0bc74c23-f5f6-46ed-9ac8-7c7300dfa1be,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.837,Hourly
+162444f6-4f45-4606-8673-f4160ba02f8a,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.81,Hourly
+3f17f4fe-b893-404b-b0e6-bc7ef0da53d2,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.706,Hourly
+b0604bcc-1c69-4e7c-8c3c-62f74ebcc300,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.766,Hourly
+b95379da-3266-4c3a-8655-5772f7ee7c92,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.777,Hourly
+c5fc9466-0503-4cd1-9ae7-21766a3eb194,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.739,Hourly
+23913de9-81c8-490c-b1bb-0e1c199dd2b1,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.736,Hourly
+7c7fbd85-3424-4aca-be92-4a1074466889,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.674,Hourly
+bee74521-4e1b-4eb3-80fe-dba08de2d8f5,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.676,Hourly
+c625b35a-d07c-4854-9f11-c8bf4da75277,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.647,Hourly
+ce1dbc13-d4de-40fb-b893-7014df685f1b,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.709,Hourly
+f4d533a5-74d4-4c71-97e8-0589c0b2acb6,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+638ae3f8-6bae-4a28-957e-762f9ff7c02e,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2562.0,0.0,USD,0.292,Hourly
+73923ebc-4263-40ee-9ce0-6902be99a778,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2562.0,0.0,USD,0.352,Hourly
+acadddb6-95a6-4feb-b850-5be9296b5bc9,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2738.0,0.0,USD,0.306,Hourly
+0c805dbe-7b0c-44bd-af7b-548f3cce6230,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2819.0,0.0,USD,0.382,Hourly
+34f32f57-39ca-4f70-8d7e-36ad09f1a1e2,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2819.0,0.0,USD,0.322,Hourly
+0cd3d5d3-b1ad-4aa0-83e2-b8723cdc9b48,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2947.0,0.0,USD,0.396,Hourly
+4e7f9865-3fbd-47fa-8f15-0f7253d2cc71,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2947.0,0.0,USD,0.336,Hourly
+21e220bd-8638-4bfa-9b1b-017a3a470713,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,2995.0,0.0,USD,0.335,Hourly
+7e31f107-a761-4aa9-b643-0fa4438721d1,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3123.0,0.0,USD,0.349,Hourly
+5f5a823b-f15e-4ca9-a013-9ee6fb157800,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3241.0,0.0,USD,0.37,Hourly
+acccd0d9-3abc-4e1b-931b-dd3fe721555c,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3241.0,0.0,USD,0.43,Hourly
+eb8114ae-5d9c-4d72-abd8-75cf4af03230,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3417.0,0.0,USD,0.383,Hourly
+724219b0-5560-4e00-9670-b99774244604,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,5022.0,0.0,USD,0.0,Hourly
+0f146de8-8eb1-403c-858f-d6f2d0465bdb,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,5312.0,0.0,USD,0.0,Hourly
+cea15ac6-c4b9-4334-96b4-e47ceab5d3ca,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,5524.0,0.0,USD,0.0,Hourly
+f6cd03a0-9215-4d16-ad6c-448152181e89,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,5548.0,0.0,USD,0.0,Hourly
+bf298d0c-ecd7-490f-819b-c9064a6bcad6,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,5775.0,0.0,USD,0.0,Hourly
+43d3ee64-e56d-40a6-91de-bf21bbbaa8a6,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,5814.0,0.0,USD,0.0,Hourly
+3fa56342-3a53-42b3-8640-2acb80fec69c,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,6050.0,0.0,USD,0.0,Hourly
+21668466-ee11-4292-b9f9-8c95303480b8,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,6065.0,0.0,USD,0.0,Hourly
+eae9c129-53d5-44d5-a19b-94c11ae676ad,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,6301.0,0.0,USD,0.0,Hourly
+f0641fc2-343b-42bd-9a1b-6c83ff943f6a,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,6353.0,0.0,USD,0.0,Hourly
+e0633d0d-5b20-4d7b-95ae-08b7c6256e01,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,6643.0,0.0,USD,0.0,Hourly
+b1b25d74-d863-4df5-9c57-37360baacf11,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,6879.0,0.0,USD,0.0,Hourly
+94cbb0b6-f8a9-48e8-8079-c3dbc6ef4f42,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.765,Hourly
+e0cca01f-9a34-496a-888c-2566af65942f,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.712,Hourly
+09070d98-7c21-481e-98f7-bbe4fe3a0ddd,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.689,Hourly
+ed8b6533-ff68-4b3c-a083-57e420ba401d,p2.xlarge,Windows,default,standard,No Upfront,us-east-1a,94608000,Availability Zone,0,0.0,0.0,USD,0.643,Hourly
+7459ae36-119d-4c54-8cdd-8c0d482b4db3,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,8002.0,0.0,USD,0.304,Hourly
+2665980a-6195-456d-9bfa-631e63ea4d12,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1a,94608000,Availability Zone,0,8561.0,0.0,USD,0.326,Hourly
+647e3516-6097-411c-a13c-a099f9e881aa,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,8840.0,0.0,USD,0.336,Hourly
+83ff5a92-d342-4f04-9d20-cf2a6842eec2,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1a,94608000,Availability Zone,0,9482.0,0.0,USD,0.361,Hourly
+3793347c-d54a-41a7-a756-933982b81740,p2.xlarge,Windows,default,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,15334.0,0.0,USD,0.0,Hourly
+24a71d4f-a118-4a7a-b051-7f5ed201176c,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1a,94608000,Availability Zone,0,16384.0,0.0,USD,0.0,Hourly
+2b124f3b-6db0-4d2a-a952-0c3eacf6bb2f,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,17423.0,0.0,USD,0.0,Hourly
+b99d1eea-6314-467c-887b-fde2253d7084,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1a,94608000,Availability Zone,0,18682.0,0.0,USD,0.0,Hourly
+8268d3be-5a8c-457e-a845-d766e72b9bd8,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.961,Hourly
+a572f0c0-fa34-4a22-a088-b1b54cb7a4b5,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.89,Hourly
+b6ce849d-74f3-4716-a689-82b88a83c27d,p2.xlarge,Windows,default,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.798,Hourly
+e0b21f7b-035e-4dbd-bd9e-a597eee4404c,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1a,31536000,Availability Zone,0,0.0,0.0,USD,0.86,Hourly
+a74eb030-8ea3-4ed1-8770-d165414ce39d,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3368.0,0.0,USD,0.384,Hourly
+2a6464b9-b808-4da8-8381-18853aa139fe,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3624.0,0.0,USD,0.414,Hourly
+241caab1-b6df-4edb-a001-48116ea7f0f9,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,3753.0,0.0,USD,0.428,Hourly
+cc134853-c2d4-420a-81fd-a4c29f202906,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1a,31536000,Availability Zone,0,4047.0,0.0,USD,0.462,Hourly
+0123730a-e840-4b22-a675-120a5a0ac1cf,p2.xlarge,Windows,default,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,6634.0,0.0,USD,0.0,Hourly
+51652dc0-e57d-4968-92e6-03c12677288c,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1a,31536000,Availability Zone,0,7136.0,0.0,USD,0.0,Hourly
+70b72e63-18e4-4ee7-b3bf-cf65d579ffa4,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,7387.0,0.0,USD,0.0,Hourly
+07cf8086-aef5-4ebf-a38f-3173337c735e,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1a,31536000,Availability Zone,0,7965.0,0.0,USD,0.0,Hourly
+27b67563-21b9-47df-a566-6fa7d4bc4d6f,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.581,Hourly
+2de21243-fa54-4fc7-be4b-f8593c7682ea,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.588,Hourly
+3c675450-5d6f-4c96-8a77-215a96f23e46,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.561,Hourly
+8bc7e79c-ac1f-475c-a487-0226b30e63a2,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.528,Hourly
+fed55cc7-ab85-4f89-82f8-3622bf5c6100,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+ff3fb6d5-d3bd-476a-a53a-b18c71db5bbe,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.641,Hourly
+2d63be1a-8620-4183-8fe1-28f67112706b,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.565,Hourly
+4be05f8d-cb2a-4b41-9517-f696c325f90d,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.538,Hourly
+5527d1b2-218f-4726-b789-7f3c3fb82b81,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.492,Hourly
+bafa4796-a90c-4f68-a851-fdc48522331c,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.519,Hourly
+c5c57e60-64cc-4154-9d72-e74b39ef8074,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.505,Hourly
+d2893a70-2cd1-4ce7-a705-a513aad4c3b6,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.459,Hourly
+2546fa75-4b9a-4ee2-a7ab-baf4b587b9f5,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,5584.0,0.0,USD,0.272,Hourly
+f7ce788b-7211-4be8-b802-e016b9a9b29a,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,5584.0,0.0,USD,0.212,Hourly
+23db107f-7e49-4c9c-b3ab-167ddeb4af31,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,5936.0,0.0,USD,0.226,Hourly
+0e08d233-9006-4a0b-bc90-22f52a07dd3e,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,6143.0,0.0,USD,0.234,Hourly
+3e251650-0675-4fbf-b639-2f2ef90f92f6,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,6143.0,0.0,USD,0.294,Hourly
+8a02c162-c4b4-4cd1-87f0-f2890fa870d1,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,6422.0,0.0,USD,0.244,Hourly
+c61eb9f9-091f-45ce-8bd7-153a9ad5bb39,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,6422.0,0.0,USD,0.304,Hourly
+d50966e5-2cf4-454a-9684-427090405bf2,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,6495.0,0.0,USD,0.247,Hourly
+52595464-7e04-4576-b7fd-879321e1e4d7,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,6774.0,0.0,USD,0.257,Hourly
+11e237bc-aa7c-48c4-b333-a3976bbcd0dc,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,7064.0,0.0,USD,0.329,Hourly
+db3b2324-2000-48c9-8efd-c4186d9c85b7,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,7064.0,0.0,USD,0.269,Hourly
+1efe1990-7b34-427b-9c8b-0cd6f69dc4ff,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,7416.0,0.0,USD,0.282,Hourly
+694a56dd-534c-431a-9a85-7fa7a18d5379,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,10499.0,0.0,USD,0.0,Hourly
+432213b4-7aa5-4ed1-958d-eded793cc293,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,11193.0,0.0,USD,0.0,Hourly
+7b4a4ebf-5e26-456f-88c8-cd1facc26e42,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,11549.0,0.0,USD,0.0,Hourly
+0f243bc2-fc31-4cce-8392-5e222e435144,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,12076.0,0.0,USD,0.0,Hourly
+9217fcb5-8446-47e5-84a2-915d9dcefcef,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,12243.0,0.0,USD,0.0,Hourly
+6de73d24-30df-4dcc-aac7-65f35017b29b,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,12588.0,0.0,USD,0.0,Hourly
+6a49d814-e847-4ab4-b039-d929725d05de,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,13126.0,0.0,USD,0.0,Hourly
+8484f023-5da2-4594-86ac-71db22a4f2b0,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,13282.0,0.0,USD,0.0,Hourly
+1a4fbaa1-5587-4bf5-9d65-94e16b8f9b63,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,13846.0,0.0,USD,0.0,Hourly
+6ecd2e6c-e23e-4796-a90b-bc25a187d259,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+1cbc2161-d1df-4408-9c36-6c7f0337ab37,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,14540.0,0.0,USD,0.0,Hourly
+47ab9720-e5f1-4b2d-ad72-ab7b21cfbab4,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,15423.0,0.0,USD,0.0,Hourly
+45fdeead-a975-4d53-8102-034d60041d74,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.766,Hourly
+69eb4ba7-c0b9-4756-b43d-8435476e2160,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.706,Hourly
+9377813c-3f84-41e4-9314-ab50324aa40d,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.777,Hourly
+9c069b8b-e320-4308-9e73-0f256035e88a,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.739,Hourly
+aaa7b6c6-7b6f-4fce-bdbf-5061b2a911c1,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.81,Hourly
+cf632892-9c06-4fbb-882a-03f3f3dd7952,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.837,Hourly
+14d13bad-71b2-4f20-b4f1-6098438eb852,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.676,Hourly
+5e72e07c-fc21-477a-9ce6-a1f5dc2f037d,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.736,Hourly
+a0e5f42d-dde4-46b2-96c4-ed25bb3595be,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.674,Hourly
+ae5c055e-e584-4fb4-8033-f71904b6a901,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+ca43c95e-85bc-4748-a52f-3d410d43e66e,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.647,Hourly
+d376b755-e9cd-454c-830c-a822a1e68e8c,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.709,Hourly
+2111ea99-afc8-4697-a408-71d0014d3cbf,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2562.0,0.0,USD,0.352,Hourly
+5120ee69-e95b-4845-9d32-eaa4dea6c36f,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2562.0,0.0,USD,0.292,Hourly
+f2938730-b1b4-4a0c-9ea9-3621330e8520,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2738.0,0.0,USD,0.306,Hourly
+9167152a-b54a-4850-ba5b-20a0c0c6d396,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2819.0,0.0,USD,0.322,Hourly
+b9222fa9-db3f-4711-96dc-8a973145da43,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2819.0,0.0,USD,0.382,Hourly
+779ce3ec-86dd-4362-80de-f72557e4042c,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2947.0,0.0,USD,0.396,Hourly
+b6f36584-3316-4c8d-a01f-89794158e5eb,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2947.0,0.0,USD,0.336,Hourly
+b27c717e-6368-4e35-b948-c8bdafcd0433,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,2995.0,0.0,USD,0.335,Hourly
+64170fb4-a50c-4603-9675-baeda6a9fdd9,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3123.0,0.0,USD,0.349,Hourly
+d71a67d5-3bc3-4f69-bf7f-bfa8b5807412,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3241.0,0.0,USD,0.37,Hourly
+d797c9ea-a47f-472d-98d2-bebd928af8a4,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3241.0,0.0,USD,0.43,Hourly
+55078326-4c23-4e0d-bbf8-52c6ba27e8b9,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3417.0,0.0,USD,0.383,Hourly
+8e5bb019-602b-4b97-b1f9-84caa6744cc0,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,5022.0,0.0,USD,0.0,Hourly
+61bc3901-a71a-4a4e-9070-1bace7481335,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,5312.0,0.0,USD,0.0,Hourly
+871dfe66-0e0f-42fc-a51e-4b4c85d48918,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,5524.0,0.0,USD,0.0,Hourly
+346d01b2-f9bd-4c2a-ade4-45f082d72cab,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,5548.0,0.0,USD,0.0,Hourly
+f1e24e57-f515-4dc2-a4b9-312bfb3be102,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,5775.0,0.0,USD,0.0,Hourly
+356e2a0c-d812-40db-b689-08d4e65c9150,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,5814.0,0.0,USD,0.0,Hourly
+4685eee3-92c6-48d4-851e-8e0acbfc817a,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,6050.0,0.0,USD,0.0,Hourly
+b151928c-4714-443c-8a62-4eef48499d75,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,6065.0,0.0,USD,0.0,Hourly
+5a0217fc-8777-4554-80b1-a2d51e3ab19d,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,6301.0,0.0,USD,0.0,Hourly
+785cb0f0-e621-4b54-8e80-11c2dedbe052,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,6353.0,0.0,USD,0.0,Hourly
+4c22c73e-2307-4d2d-928f-fe3c48c47204,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,6643.0,0.0,USD,0.0,Hourly
+3eeef93a-3022-4287-8b1a-1a59145e050a,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,6879.0,0.0,USD,0.0,Hourly
+62efe59c-2ac3-4382-959e-576f5ac4f2b4,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.712,Hourly
+b5861a29-4b14-48ae-bfda-52a68d17a9bc,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.765,Hourly
+1fd651f9-a905-4e13-93b4-4e2f761e08ff,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.689,Hourly
+b5d3da54-b245-457c-840f-de0ddb3b9641,p2.xlarge,Windows,default,standard,No Upfront,us-east-1f,94608000,Availability Zone,0,0.0,0.0,USD,0.643,Hourly
+1842230b-16c4-4ae1-8379-1d907d31b17e,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,8002.0,0.0,USD,0.304,Hourly
+f985cb3c-b05b-4c97-b3e6-d3d9f1d6b824,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1f,94608000,Availability Zone,0,8561.0,0.0,USD,0.326,Hourly
+32c8c89e-32d5-4756-830c-36a4c6a68003,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,8840.0,0.0,USD,0.336,Hourly
+dc81dfb1-acba-4da5-bdf7-e97e21b81392,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1f,94608000,Availability Zone,0,9482.0,0.0,USD,0.361,Hourly
+9356acf6-66f5-4d90-a09c-79329106a844,p2.xlarge,Windows,default,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,15334.0,0.0,USD,0.0,Hourly
+6b6de87f-b592-4788-8f8e-301d2dae3b2c,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1f,94608000,Availability Zone,0,16384.0,0.0,USD,0.0,Hourly
+5efb8769-3e8e-44b8-8f4a-c8b49299e4af,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,17423.0,0.0,USD,0.0,Hourly
+71f1f384-870a-4d36-b5b5-4cff19341f3f,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1f,94608000,Availability Zone,0,18682.0,0.0,USD,0.0,Hourly
+3018af99-36dd-43c1-b0e6-ef0b1d8c21ac,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.961,Hourly
+c07d4a70-3a1b-4df6-be5a-9f9ce9ea81d4,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.89,Hourly
+1aa4c44b-7afc-47d2-acc8-c2b2558151c3,p2.xlarge,Windows,default,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.798,Hourly
+53d4c2b2-9306-4fc6-a00c-a2e4cc999d21,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1f,31536000,Availability Zone,0,0.0,0.0,USD,0.86,Hourly
+c9d5a08a-72b5-4ea6-bfdb-890095c01388,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3368.0,0.0,USD,0.384,Hourly
+7e1e598e-daaa-428c-8ee6-5fdf7a120987,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3624.0,0.0,USD,0.414,Hourly
+601161c1-dd92-4fab-9048-51875e6ce7a7,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,3753.0,0.0,USD,0.428,Hourly
+110167ad-1d4e-4361-a6af-cd4652573411,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1f,31536000,Availability Zone,0,4047.0,0.0,USD,0.462,Hourly
+0c6716d5-444b-47ea-91c9-6bdd80de8da4,p2.xlarge,Windows,default,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,6634.0,0.0,USD,0.0,Hourly
+5c7f5277-6980-410e-8c47-3b3739d314ec,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1f,31536000,Availability Zone,0,7136.0,0.0,USD,0.0,Hourly
+20ab4511-5b13-4215-b8d6-980059f75662,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,7387.0,0.0,USD,0.0,Hourly
+101bec95-3af1-43bc-ae31-b6eb99281808,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1f,31536000,Availability Zone,0,7965.0,0.0,USD,0.0,Hourly
+0ea80d9e-2d72-4550-87bd-3725f42e57f3,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.561,Hourly
+22b1b145-fd1d-4b38-b5b9-fac052358ac8,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.581,Hourly
+274e2268-6627-4d26-bc97-a6fe7fc10106,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.641,Hourly
+708a3c45-dd73-4025-98c6-d9419da5baa0,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.588,Hourly
+a1cc02eb-2464-4d54-a824-cf06e05b9a05,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+bf4b41a9-3456-4eb1-8e62-e545b81c3e95,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.528,Hourly
+1df7b822-0e6a-4c5d-b51e-c2d7b2bb50c3,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.505,Hourly
+25e0989c-e126-4d64-be45-fc9879e9d19c,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.492,Hourly
+4e59a45f-d441-4a3b-a93a-afa576bcaa08,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.459,Hourly
+651f5f0a-d38c-4624-ae51-ee9a7f8bb4eb,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.565,Hourly
+7c1bb7b1-4bf4-47ba-b111-ad0bd98c480f,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.538,Hourly
+e177b4a1-a654-4e8e-b8be-868dc984efba,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.519,Hourly
+8d48ce6a-74ab-4e7d-a3af-8f9b2f65daf3,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,5584.0,0.0,USD,0.272,Hourly
+d8fbe8f5-e85c-4a41-b958-82974d8622ba,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,5584.0,0.0,USD,0.212,Hourly
+39f198ef-c501-4480-bb46-e988a85602cb,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,5936.0,0.0,USD,0.226,Hourly
+6214d2fc-c0a2-4f4b-993b-41f13ba0d56e,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,6143.0,0.0,USD,0.294,Hourly
+8b7d0c6b-e1d9-4273-8794-8b0d7fbc27f9,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,6143.0,0.0,USD,0.234,Hourly
+57b0e32c-6bed-4385-b810-faa6917bd32f,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,6422.0,0.0,USD,0.244,Hourly
+b5fef82c-53e7-41df-8ef4-edbb510f1727,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,6422.0,0.0,USD,0.304,Hourly
+fd4ca590-5a87-453d-ad6f-6a7cdaed0a05,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,6495.0,0.0,USD,0.247,Hourly
+1743e4b3-aa61-469a-a6a8-80b0a058a8a3,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,6774.0,0.0,USD,0.257,Hourly
+49b37d22-f52d-4908-8317-4415d8b01f26,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,7064.0,0.0,USD,0.329,Hourly
+f536cba3-fada-40b5-a144-4f5283b7b9c6,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,7064.0,0.0,USD,0.269,Hourly
+117c4345-7a29-473e-9a9d-9ad65c3821b6,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,7416.0,0.0,USD,0.282,Hourly
+77ce3bee-c505-4c49-a946-be6ac5fc4662,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,10499.0,0.0,USD,0.0,Hourly
+432e7b55-87be-4a47-9be1-5bdcdca687a2,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,11193.0,0.0,USD,0.0,Hourly
+1f549c64-06db-450b-a9d9-7c9456bf61ce,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,11549.0,0.0,USD,0.0,Hourly
+e5ad8eb1-a168-4082-9815-55e83c6bc54f,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,12076.0,0.0,USD,0.0,Hourly
+e12752b6-eb73-4dfb-8394-dd1d89125f66,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,12243.0,0.0,USD,0.0,Hourly
+d3ebd04a-13c9-483f-9f42-dae5a10edc44,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,12588.0,0.0,USD,0.0,Hourly
+ea333a7e-e0f0-447b-bb3c-6f8b98ad5750,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,13126.0,0.0,USD,0.0,Hourly
+f269086e-d9c7-4460-b0c9-ad75fb62e9e6,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,13282.0,0.0,USD,0.0,Hourly
+7421acdf-2de2-4af0-a2d4-0aa2b061e818,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,13846.0,0.0,USD,0.0,Hourly
+e63c585c-7f09-4069-bbb4-991962c090dd,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,14164.0,0.0,USD,0.0,Hourly
+93e8ff5f-65ae-4cd7-a289-747ae93c3f71,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,14540.0,0.0,USD,0.0,Hourly
+6af07be4-440d-4e8f-81b9-65fbbd867bb2,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,15423.0,0.0,USD,0.0,Hourly
+56baff20-2c8d-432f-bc52-a83245a3bc09,p2.xlarge,SUSE Linux,default,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.739,Hourly
+6f9dc6fd-d3e4-4f8f-846d-cf81f3cf665e,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.837,Hourly
+74b3860f-d738-47eb-a5f6-e700d16a3647,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.766,Hourly
+77b1d501-4cae-4208-903f-bf81d6ebfd75,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.777,Hourly
+ae471a14-eac6-443b-ac4e-259a44d26c0d,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.706,Hourly
+fa9a0494-6530-4bc4-b4d7-c40f75874996,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.81,Hourly
+046a32ee-c089-4e16-9d1c-54d05d988cdb,p2.xlarge,SUSE Linux,default,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.647,Hourly
+05cf1128-e7c0-470e-9eab-d98a233ba0bc,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.709,Hourly
+1d377aff-b331-46fe-b948-d4cd69b0c54f,p2.xlarge,Linux/UNIX,default,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.614,Hourly
+4a9d07e2-9956-48c0-8261-c774ab44b290,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.736,Hourly
+556b28ab-5bb8-4b3d-bbca-39b6de681d87,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.676,Hourly
+5d959b72-d149-4683-9e45-21cbc1a14f6c,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.674,Hourly
+78ac6786-51c6-4b51-8b47-3d8a261199da,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2562.0,0.0,USD,0.292,Hourly
+b07648a2-01a4-4b3f-8663-65262a7a70ae,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2562.0,0.0,USD,0.352,Hourly
+d3ad4ec8-a7a4-4d72-9c2e-eef0c8457f8d,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2738.0,0.0,USD,0.306,Hourly
+8727c4cb-5151-4cbd-b65a-2b7a1c5550c0,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2819.0,0.0,USD,0.382,Hourly
+a74f11df-378a-4bab-b757-a341844f9390,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2819.0,0.0,USD,0.322,Hourly
+26aeb9c4-a9ec-49bb-a394-c4da99c4958a,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2947.0,0.0,USD,0.336,Hourly
+8e1597f7-deaf-47f7-a119-401e1c83d897,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2947.0,0.0,USD,0.396,Hourly
+dc32caab-310b-4a8f-bb82-51294db577f2,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,2995.0,0.0,USD,0.335,Hourly
+1a330e4e-9417-4e38-b314-11ffe30ea5ba,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3123.0,0.0,USD,0.349,Hourly
+ace220e2-bd90-4400-8476-4c65eba00a00,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3241.0,0.0,USD,0.43,Hourly
+be74c388-bcd8-4699-86e3-be78a3fef8d7,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3241.0,0.0,USD,0.37,Hourly
+5934275c-afaa-4484-9440-0a1e1be0a6c1,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3417.0,0.0,USD,0.383,Hourly
+4fbeeb44-4303-4d42-9ecb-a0e15f2b69de,p2.xlarge,Linux/UNIX,default,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,5022.0,0.0,USD,0.0,Hourly
+e244b095-2d1a-41c9-9a3c-07a84671b7c3,p2.xlarge,SUSE Linux,default,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,5312.0,0.0,USD,0.0,Hourly
+3740a629-363e-4a78-81f8-1804fa699a1a,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,5524.0,0.0,USD,0.0,Hourly
+913b0913-7f92-410a-929b-9ebb1d0576d8,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,5548.0,0.0,USD,0.0,Hourly
+7eba41af-2e39-403e-a131-69c57f51f81d,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,5775.0,0.0,USD,0.0,Hourly
+3328610d-cee5-4446-ba89-c7b90199637f,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,5814.0,0.0,USD,0.0,Hourly
+e3dae837-d4e1-4e75-8aa3-3adb9d053af2,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,6050.0,0.0,USD,0.0,Hourly
+5fa3bd4e-12e0-4ac5-b25f-f2b4b19d3af5,p2.xlarge,SUSE Linux,default,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,6065.0,0.0,USD,0.0,Hourly
+d4fa003f-6283-44f0-8783-76e6bf8a0c40,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,6301.0,0.0,USD,0.0,Hourly
+8764c08d-777b-4cf9-a36b-a9af5128accb,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,6353.0,0.0,USD,0.0,Hourly
+ea354b3a-ef50-4686-8659-178d9fe0e261,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,6643.0,0.0,USD,0.0,Hourly
+a038b230-b7f0-4174-b353-4ed9debf923a,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,6879.0,0.0,USD,0.0,Hourly
+2a341d73-85e6-4046-9082-c86ef12e68af,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.712,Hourly
+ca42253b-0a03-45ba-8899-42aebd549c36,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.765,Hourly
+04eb82dc-8d0c-412a-8e09-66bab112d1ab,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.689,Hourly
+4b9fec40-2e40-42d9-9b69-df11d9d0eb2b,p2.xlarge,Windows,default,standard,No Upfront,us-east-1c,94608000,Availability Zone,0,0.0,0.0,USD,0.643,Hourly
+0d08bfec-078f-40dd-83a7-06bede0b8d57,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,8002.0,0.0,USD,0.304,Hourly
+a09eb744-c39a-4b01-a8a3-386838cc05cd,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1c,94608000,Availability Zone,0,8561.0,0.0,USD,0.326,Hourly
+2bebb858-1adb-472c-81df-763cb3794ac5,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,8840.0,0.0,USD,0.336,Hourly
+d9c39078-e56a-4ea8-a73e-d1fd8af15caa,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1c,94608000,Availability Zone,0,9482.0,0.0,USD,0.361,Hourly
+9ebb3dd1-cee9-4913-9a23-18000281c1fc,p2.xlarge,Windows,default,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,15334.0,0.0,USD,0.0,Hourly
+d2b04b5b-6a43-4828-bbf5-f42825da48a0,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1c,94608000,Availability Zone,0,16384.0,0.0,USD,0.0,Hourly
+bc472212-aa56-4c0e-ab9c-2437567f9d58,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,17423.0,0.0,USD,0.0,Hourly
+33148ea6-a3e0-488c-b72c-c6f2aebdd2c9,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1c,94608000,Availability Zone,0,18682.0,0.0,USD,0.0,Hourly
+0eb5cfb6-1a20-4654-abce-c45ae868b294,p2.xlarge,Windows,dedicated,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.961,Hourly
+9337d7b8-25e6-4f02-a682-c008cff8066f,p2.xlarge,Windows,default,convertible,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.89,Hourly
+870424f1-f870-452b-a1cb-378660e691a6,p2.xlarge,Windows,default,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.798,Hourly
+ccb9b683-7856-45c0-b576-a11950150a84,p2.xlarge,Windows,dedicated,standard,No Upfront,us-east-1c,31536000,Availability Zone,0,0.0,0.0,USD,0.86,Hourly
+09124432-dc2c-49f1-81f9-10dca867403d,p2.xlarge,Windows,default,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3368.0,0.0,USD,0.384,Hourly
+e95ea7e8-b7da-4dd0-98c6-70ba07ad7a7d,p2.xlarge,Windows,dedicated,standard,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3624.0,0.0,USD,0.414,Hourly
+8daf3ebb-5109-4177-adaa-62c30e518cc0,p2.xlarge,Windows,default,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,3753.0,0.0,USD,0.428,Hourly
+0a36e354-7607-4605-a160-02f7fcfb1702,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,us-east-1c,31536000,Availability Zone,0,4047.0,0.0,USD,0.462,Hourly
+f07e8ace-3e7c-41ca-9b90-bf51a2b7f7b7,p2.xlarge,Windows,default,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,6634.0,0.0,USD,0.0,Hourly
+6d9afdb6-bae7-42ab-9f94-2d05d2cfe2d0,p2.xlarge,Windows,dedicated,standard,All Upfront,us-east-1c,31536000,Availability Zone,0,7136.0,0.0,USD,0.0,Hourly
+fb40922f-0965-4ca8-ac36-8407f93f7a0a,p2.xlarge,Windows,default,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,7387.0,0.0,USD,0.0,Hourly
+0d931f1a-d987-4fce-b50f-458df5aeb3b8,p2.xlarge,Windows,dedicated,convertible,All Upfront,us-east-1c,31536000,Availability Zone,0,7965.0,0.0,USD,0.0,Hourly
+0d8ae941-d868-45d6-9155-3f685057760c,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.614,Hourly
+37ac551b-91f4-4795-b9c3-c9ae759eb7a8,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.588,Hourly
+875e07e1-fb7b-4c34-bbcb-407efdfa140c,p2.xlarge,SUSE Linux,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.561,Hourly
+ccef6951-5509-4390-bce0-76132d370585,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.581,Hourly
+d42d8b88-a226-4230-88e4-86665dc76832,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.528,Hourly
+f0e635f8-f557-4647-ac4c-59192f6c175f,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.641,Hourly
+0ca23ed4-44a7-4839-b11e-c7ad77422b10,p2.xlarge,SUSE Linux,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.492,Hourly
+2e218438-05db-4f95-af90-f0d698839bc9,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.505,Hourly
+65735176-8c90-44dd-b69d-d2aea7894374,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.538,Hourly
+acb36924-8e25-4096-a0a9-559901f74a84,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.565,Hourly
+d71e366e-42f8-43b6-907b-984c033c814b,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.519,Hourly
+f51c2e77-96bf-4705-a582-b230ae90fc0a,p2.xlarge,Linux/UNIX,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.459,Hourly
+34d1f05e-9553-48f6-946b-3c07a898abbd,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,,94608000,Region,0,5584.0,0.0,USD,0.212,Hourly
+e6c3845e-da43-4cc0-8dda-ef2117ec062b,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,,94608000,Region,0,5584.0,0.0,USD,0.272,Hourly
+d3b91157-482c-4a92-8824-7d99647f1aac,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,,94608000,Region,0,5936.0,0.0,USD,0.226,Hourly
+908af764-0ae0-4ea7-8606-26b4f981d6d9,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,,94608000,Region,0,6143.0,0.0,USD,0.234,Hourly
+b824b0d0-f732-42a5-be8c-a83e3f403089,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,,94608000,Region,0,6143.0,0.0,USD,0.294,Hourly
+553f6894-485a-4085-9793-dd08bd8c42f6,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,,94608000,Region,0,6422.0,0.0,USD,0.304,Hourly
+974bb43c-fcc6-480e-a496-aa61001a2c91,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,,94608000,Region,0,6422.0,0.0,USD,0.244,Hourly
+cc6cea0e-5edb-4189-855b-ddd8d9c7f50d,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,,94608000,Region,0,6495.0,0.0,USD,0.247,Hourly
+44c04112-37b0-4e42-abd4-4ef242d15fa6,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,,94608000,Region,0,6774.0,0.0,USD,0.257,Hourly
+3362849b-e70d-4c8d-9d60-b0f403ec37f8,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,,94608000,Region,0,7064.0,0.0,USD,0.329,Hourly
+43427d38-1af9-470e-93ad-ff7efe38efe0,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,,94608000,Region,0,7064.0,0.0,USD,0.269,Hourly
+1058d065-ebfb-400a-9b48-60d1556d0551,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,,94608000,Region,0,7416.0,0.0,USD,0.282,Hourly
+126dc9e7-eb21-459e-933f-e4717ef481c9,p2.xlarge,Linux/UNIX,default,standard,All Upfront,,94608000,Region,0,10499.0,0.0,USD,0.0,Hourly
+ccf88c1c-c10f-4bc7-a47f-d5b6b2cd70fe,p2.xlarge,SUSE Linux,default,standard,All Upfront,,94608000,Region,0,11193.0,0.0,USD,0.0,Hourly
+c92dd43c-1b49-4290-9d4c-68ed4acb0e89,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,,94608000,Region,0,11549.0,0.0,USD,0.0,Hourly
+e1fc1879-0dfb-4e20-b71a-068b4cf56f60,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,,94608000,Region,0,12076.0,0.0,USD,0.0,Hourly
+a6ce6e5e-b9cd-44f5-8550-05ad4c0870ff,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,,94608000,Region,0,12243.0,0.0,USD,0.0,Hourly
+be4a2af0-9495-4f80-a3fe-58fd214b341c,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,,94608000,Region,0,12588.0,0.0,USD,0.0,Hourly
+e6112f5d-1304-4247-87a7-f13ffae37f11,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,,94608000,Region,0,13126.0,0.0,USD,0.0,Hourly
+10b16093-74bd-41f9-9a63-8fbecd651be9,p2.xlarge,SUSE Linux,default,convertible,All Upfront,,94608000,Region,0,13282.0,0.0,USD,0.0,Hourly
+f4517384-5aa5-4077-b042-e8ae2999a978,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,,94608000,Region,0,13846.0,0.0,USD,0.0,Hourly
+207c1488-6d77-407c-837f-1807345b7078,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,,94608000,Region,0,14164.0,0.0,USD,0.0,Hourly
+14af5c10-7fba-4974-bedd-9e8b3be743d9,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,,94608000,Region,0,14540.0,0.0,USD,0.0,Hourly
+0c780819-ba14-4d9a-ae85-d4a38b352513,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,,94608000,Region,0,15423.0,0.0,USD,0.0,Hourly
+45da8886-2710-4b05-ba0f-65bf9d0f219c,p2.xlarge,Linux/UNIX,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.706,Hourly
+4857b5c1-bf20-42ed-be4e-6085bd14d183,p2.xlarge,SUSE Linux,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.81,Hourly
+4f1547d8-5054-4211-a3e6-73e0304dbcfe,p2.xlarge,Red Hat Enterprise Linux,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.766,Hourly
+95995d3f-50a0-4493-addc-b276edb26035,p2.xlarge,SUSE Linux,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.739,Hourly
+c2f3b9d0-9d36-46c7-b449-4a2acb0bde9d,p2.xlarge,Linux/UNIX,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.777,Hourly
+e66d13ad-056f-4d92-b510-fea9089d6215,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.837,Hourly
+0cd6a993-4ae1-4307-b3c5-9fb0d9eb2d81,p2.xlarge,Red Hat Enterprise Linux,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.674,Hourly
+1204941b-92a3-42e8-a23d-37905a2e7151,p2.xlarge,Linux/UNIX,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.676,Hourly
+b1b4b9ae-4a68-419f-96fd-4e86c45bf2ad,p2.xlarge,SUSE Linux,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.709,Hourly
+ed57ad48-9a1e-4920-88c1-4d7f0bb0b787,p2.xlarge,SUSE Linux,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.647,Hourly
+f02b65d7-fc2e-4875-b9c1-8312d601a49c,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.736,Hourly
+fa865663-ccd5-42dc-b2ce-21dac8263c28,p2.xlarge,Linux/UNIX,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.614,Hourly
+b24a4508-7988-4dfb-bbce-58457cb86400,p2.xlarge,Linux/UNIX,default,standard,Partial Upfront,,31536000,Region,0,2562.0,0.0,USD,0.292,Hourly
+b9e5332f-51a9-4026-bf47-6613605130aa,p2.xlarge,Red Hat Enterprise Linux,default,standard,Partial Upfront,,31536000,Region,0,2562.0,0.0,USD,0.352,Hourly
+58bd28ba-13b9-47d3-971d-a4d4ec061cdc,p2.xlarge,SUSE Linux,default,standard,Partial Upfront,,31536000,Region,0,2738.0,0.0,USD,0.306,Hourly
+10ddec76-7fc5-4741-bd6f-bfc6a6f9e6cc,p2.xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,,31536000,Region,0,2819.0,0.0,USD,0.322,Hourly
+d61697c0-c415-413c-8c55-fab6665ee315,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,Partial Upfront,,31536000,Region,0,2819.0,0.0,USD,0.382,Hourly
+555d5976-9f7d-44d8-8dc1-30666f38690a,p2.xlarge,Red Hat Enterprise Linux,default,convertible,Partial Upfront,,31536000,Region,0,2947.0,0.0,USD,0.396,Hourly
+96160698-ce70-4790-b3c8-07ce6c490f16,p2.xlarge,Linux/UNIX,default,convertible,Partial Upfront,,31536000,Region,0,2947.0,0.0,USD,0.336,Hourly
+c0228dd7-6fee-4502-a459-67d3d291afa7,p2.xlarge,SUSE Linux,dedicated,standard,Partial Upfront,,31536000,Region,0,2995.0,0.0,USD,0.335,Hourly
+542ebed4-08df-4442-bc6c-971a666369fa,p2.xlarge,SUSE Linux,default,convertible,Partial Upfront,,31536000,Region,0,3123.0,0.0,USD,0.349,Hourly
+11896a2f-a7d5-45f2-a55a-d8162695d303,p2.xlarge,Linux/UNIX,dedicated,convertible,Partial Upfront,,31536000,Region,0,3241.0,0.0,USD,0.37,Hourly
+f0f06b97-0d3c-45c0-8bad-82e7bd7fc950,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,Partial Upfront,,31536000,Region,0,3241.0,0.0,USD,0.43,Hourly
+3450c402-eea7-47c4-8d0a-192402db7be5,p2.xlarge,SUSE Linux,dedicated,convertible,Partial Upfront,,31536000,Region,0,3417.0,0.0,USD,0.383,Hourly
+cdfb6631-2991-4127-94db-552c0e3bd24c,p2.xlarge,Linux/UNIX,default,standard,All Upfront,,31536000,Region,0,5022.0,0.0,USD,0.0,Hourly
+fc11aedb-7397-442f-9225-d3c2d09b128e,p2.xlarge,SUSE Linux,default,standard,All Upfront,,31536000,Region,0,5312.0,0.0,USD,0.0,Hourly
+148992ae-a007-441a-bbdb-e895a3840422,p2.xlarge,Linux/UNIX,dedicated,standard,All Upfront,,31536000,Region,0,5524.0,0.0,USD,0.0,Hourly
+d500a10d-4841-411c-a16c-a61b3682940b,p2.xlarge,Red Hat Enterprise Linux,default,standard,All Upfront,,31536000,Region,0,5548.0,0.0,USD,0.0,Hourly
+b2d39849-ef60-49bc-9572-51c942910d0e,p2.xlarge,Linux/UNIX,default,convertible,All Upfront,,31536000,Region,0,5775.0,0.0,USD,0.0,Hourly
+b04265ba-a33d-4d92-bec2-738de0db9121,p2.xlarge,SUSE Linux,dedicated,standard,All Upfront,,31536000,Region,0,5814.0,0.0,USD,0.0,Hourly
+1c399aa3-1184-43bf-98e9-d2421cb77e19,p2.xlarge,Red Hat Enterprise Linux,dedicated,standard,All Upfront,,31536000,Region,0,6050.0,0.0,USD,0.0,Hourly
+b4e4efb8-adc2-4106-9d2b-fd52f3da4889,p2.xlarge,SUSE Linux,default,convertible,All Upfront,,31536000,Region,0,6065.0,0.0,USD,0.0,Hourly
+989ef0a4-adc2-4f80-9a5c-d055cca754f0,p2.xlarge,Red Hat Enterprise Linux,default,convertible,All Upfront,,31536000,Region,0,6301.0,0.0,USD,0.0,Hourly
+a542102e-5a1d-4e65-80b8-b2553f6edc0e,p2.xlarge,Linux/UNIX,dedicated,convertible,All Upfront,,31536000,Region,0,6353.0,0.0,USD,0.0,Hourly
+a41ab038-be8f-404f-94ea-e2ef19703602,p2.xlarge,SUSE Linux,dedicated,convertible,All Upfront,,31536000,Region,0,6643.0,0.0,USD,0.0,Hourly
+9cb11ee4-1024-40a2-b481-e9db9154962f,p2.xlarge,Red Hat Enterprise Linux,dedicated,convertible,All Upfront,,31536000,Region,0,6879.0,0.0,USD,0.0,Hourly
+674c711c-17de-4455-ac54-56de41644deb,p2.xlarge,Windows,dedicated,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.765,Hourly
+de7dbee4-feab-44a5-8ae3-8c97f4253189,p2.xlarge,Windows,default,convertible,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.712,Hourly
+530172dd-42b2-4719-a0c8-2b977779b571,p2.xlarge,Windows,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.643,Hourly
+8ae60a89-f079-4791-803d-18bbafe24389,p2.xlarge,Windows,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,0.689,Hourly
+1db56665-f3fb-45fc-bf48-69c8c4c0d32b,p2.xlarge,Windows,default,standard,Partial Upfront,,94608000,Region,0,8002.0,0.0,USD,0.304,Hourly
+660a1d89-41d7-45f8-86ff-3ac6cf535fa2,p2.xlarge,Windows,dedicated,standard,Partial Upfront,,94608000,Region,0,8561.0,0.0,USD,0.326,Hourly
+bfc2d097-2a75-458c-b785-7ab506355988,p2.xlarge,Windows,default,convertible,Partial Upfront,,94608000,Region,0,8840.0,0.0,USD,0.336,Hourly
+08c42288-e65d-4675-86a2-032e08cfd992,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,,94608000,Region,0,9482.0,0.0,USD,0.361,Hourly
+bbf741ee-bd33-4837-87d2-77a8f85cd2f5,p2.xlarge,Windows,default,standard,All Upfront,,94608000,Region,0,15334.0,0.0,USD,0.0,Hourly
+39fa98e0-3013-483b-96b8-93ff1fdfcf20,p2.xlarge,Windows,dedicated,standard,All Upfront,,94608000,Region,0,16384.0,0.0,USD,0.0,Hourly
+12f259ca-c1d1-4be4-9748-374b66d523f7,p2.xlarge,Windows,default,convertible,All Upfront,,94608000,Region,0,17423.0,0.0,USD,0.0,Hourly
+0388f5f8-150d-4809-94f3-f422485b9eb6,p2.xlarge,Windows,dedicated,convertible,All Upfront,,94608000,Region,0,18682.0,0.0,USD,0.0,Hourly
+955afd83-69db-457a-8e66-6bcc3d041874,p2.xlarge,Windows,default,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.89,Hourly
+edb15282-f4ad-43b4-ab85-04fc0f7c4556,p2.xlarge,Windows,dedicated,convertible,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.961,Hourly
+1dee517b-39ff-4a23-b71a-a4a694400a64,p2.xlarge,Windows,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.798,Hourly
+21003135-7716-4b8c-b65a-11fdee79fc54,p2.xlarge,Windows,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,0.86,Hourly
+c35a1d0d-c4b6-4a38-9a5b-bfcbd5675575,p2.xlarge,Windows,default,standard,Partial Upfront,,31536000,Region,0,3368.0,0.0,USD,0.384,Hourly
+93f5e1d7-9f43-4399-ac2d-e1ab2a17231f,p2.xlarge,Windows,dedicated,standard,Partial Upfront,,31536000,Region,0,3624.0,0.0,USD,0.414,Hourly
+dd990b5a-a06f-440b-9717-158bffd2b7b6,p2.xlarge,Windows,default,convertible,Partial Upfront,,31536000,Region,0,3753.0,0.0,USD,0.428,Hourly
+70877eb8-b6d3-4ef6-9e7f-8abf90f2b082,p2.xlarge,Windows,dedicated,convertible,Partial Upfront,,31536000,Region,0,4047.0,0.0,USD,0.462,Hourly
+8662e643-96ee-4992-ba7c-72706c3d4a4d,p2.xlarge,Windows,default,standard,All Upfront,,31536000,Region,0,6634.0,0.0,USD,0.0,Hourly
+9393ceed-db37-49b4-95ed-0eb9e6dac8d3,p2.xlarge,Windows,dedicated,standard,All Upfront,,31536000,Region,0,7136.0,0.0,USD,0.0,Hourly
+1d63861a-a06a-4cfc-b93d-e927df874870,p2.xlarge,Windows,default,convertible,All Upfront,,31536000,Region,0,7387.0,0.0,USD,0.0,Hourly
+5afb1363-66a4-42f8-beb9-f42d5caa438c,p2.xlarge,Windows,dedicated,convertible,All Upfront,,31536000,Region,0,7965.0,0.0,USD,0.0,Hourly
