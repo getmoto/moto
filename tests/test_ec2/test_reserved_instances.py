@@ -427,7 +427,7 @@ def test_multiple_offering_classes():
     client = boto3.client("ec2", region_name="ap-south-1")
 
     offerings = client.describe_reserved_instances_offerings(InstanceType="m4.large", ProductDescription="Windows with SQL Server Standard", InstanceTenancy="dedicated", OfferingType="All Upfront", MaxDuration=94608000, MinDuration=94608000)
-
+    # without offering class there are 6 possibilities (1 region + 2 az)*2 = 6. only standard and convertible
     len(offerings["ReservedInstancesOfferings"]).should.equal(6)
 
 
