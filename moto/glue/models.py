@@ -37,7 +37,7 @@ class GlueBackend(BaseBackend):
 
     def get_tables(self, database_name):
         database = self.get_database(database_name)
-        return [table for table_name, table in database.tables.iteritems()]
+        return [table for table_name, table in database.tables.items()]
 
 
 class FakeDatabase(BaseModel):
