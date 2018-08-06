@@ -76,7 +76,7 @@ class SecretsManagerBackend(BaseBackend):
     def describe_secret(self, secret_id):
         if self.secret_id == '':
             raise ResourceNotFoundException
-        
+
         response = json.dumps({
             "ARN": secret_arn(self.region, self.secret_id),
             "Name": self.secret_id,
