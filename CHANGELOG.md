@@ -1,6 +1,10 @@
 Moto Changelog
 ===================
 
+1.3.4-carium.4
+--------------
+    * fix create_jwt to add kid and audience similar to aws cognito
+
 1.3.4-carium.3
 --------------
     * Relaxed python-jose requirement
