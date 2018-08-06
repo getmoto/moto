@@ -726,8 +726,8 @@ def test_describe_instance_health():
 @mock_ec2
 @mock_elb
 def test_describe_instance_health_boto3():
-    elb = boto3.client('elb')
-    ec2 = boto3.client('ec2')
+    elb = boto3.client('elb', region_name="us-east-1")
+    ec2 = boto3.client('ec2', region_name="us-east-1")
     instances = ec2.run_instances(MinCount=2, MaxCount=2)['Instances']
     lb_name = "my_load_balancer"
     elb.create_load_balancer(
