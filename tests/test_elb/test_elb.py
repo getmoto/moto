@@ -723,6 +723,40 @@ def test_describe_instance_health():
     instances_health[0].state.should.equal('InService')
 
 
+@mock_ec2
+@mock_elb
+def test_describe_instance_health_boto3():
+    elb = boto3.client('elb')
+    ec2 = boto3.client('ec2')
+    instances = ec2.run_instances(MinCount=2, MaxCount=2)['Instances']
+    lb_name = "my_load_balancer"
+    elb.create_load_balancer(
+        Listeners=[{
+            'InstancePort': 80,
+            'LoadBalancerPort': 8080,
+            'Protocol': 'HTTP'
+        }],
+        LoadBalancerName=lb_name,
+    )
+    elb.register_instances_with_load_balancer(
+        LoadBalancerName=lb_name,
+        Instances=[{'InstanceId': instances[0]['InstanceId']}]
+    )
+    instances_health = elb.describe_instance_health(
+        LoadBalancerName=lb_name,
+        Instances=[{'InstanceId': instance['InstanceId']} for instance in instances]
+    )
+    instances_health['InstanceStates'].should.have.length_of(2)
+    instances_health['InstanceStates'][0]['InstanceId'].\
+        should.equal(instances[0]['InstanceId'])
+    instances_health['InstanceStates'][0]['State'].\
+        should.equal('InService')
+    instances_health['InstanceStates'][1]['InstanceId'].\
+        should.equal(instances[1]['InstanceId'])
+    instances_health['InstanceStates'][1]['State'].\
+        should.equal('Unknown')
+
+
 @mock_elb
 def test_add_remove_tags():
     client = boto3.client('elb', region_name='us-east-1')
