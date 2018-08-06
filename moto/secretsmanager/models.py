@@ -33,6 +33,9 @@ class SecretsManagerBackend(BaseBackend):
         self.name = kwargs.get('name', '')
         self.createdate = int(time.time())
         self.secret_string = ''
+        self.rotation_enabled = False
+        self.rotation_lambda_arn = ''
+        self.auto_rotate_after_days = 1
 
     def reset(self):
         region_name = self.region
@@ -66,6 +69,34 @@ class SecretsManagerBackend(BaseBackend):
             "ARN": secret_arn(self.region, name),
             "Name": self.secret_id,
             "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
+        })
+
+        return response
+
+    def describe_secret(self, secret_id):
+        if self.secret_id == '':
+            raise ResourceNotFoundException
+        
+        response = json.dumps({
+            "ARN": secret_arn(self.region, self.secret_id),
+            "Name": self.secret_id,
+            "Description": "",
+            "KmsKeyId": "",
+            "RotationEnabled": self.rotation_enabled,
+            "RotationLambdaARN": self.rotation_lambda_arn,
+            "RotationRules": {
+                "AutomaticallyAfterDays": self.auto_rotate_after_days
+            },
+            "LastRotatedDate": None,
+            "LastChangedDate": None,
+            "LastAccessedDate": None,
+            "DeletedDate": None,
+            "Tags": [
+                {
+                    "Key": "",
+                    "Value": ""
+                },
+            ]
         })
 
         return response

@@ -143,3 +143,21 @@ def test_get_random_too_long_password():
 
     with assert_raises(Exception):
         random_password = conn.get_random_password(PasswordLength=5555)
+
+@mock_secretsmanager
+def test_describe_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+    
+    secret_description = conn.describe_secret(SecretId='test-secret')
+    assert secret_description   # Returned dict is not empty
+    assert secret_description['ARN'] == (
+        'arn:aws:secretsmanager:us-west-2:1234567890:secret:test-secret-rIjad')
+
+@mock_secretsmanager
+def test_describe_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.get_secret_value(SecretId='i-dont-exist')
