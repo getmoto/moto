@@ -37,7 +37,7 @@ class Policy(BaseModel):
                  description=None,
                  document=None,
                  path=None):
-        self.document = document or {}
+        #self.document = document or {}
         self.name = name
 
         self.attachment_count = 0
@@ -45,7 +45,7 @@ class Policy(BaseModel):
         self.id = random_policy_id()
         self.path = path or '/'
         self.default_version_id = default_version_id or 'v1'
-        self.versions = []
+        self.versions = [PolicyVersion(self.arn, document, True)]
 
         self.create_datetime = datetime.now(pytz.utc)
         self.update_datetime = datetime.now(pytz.utc)
@@ -582,6 +582,7 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy not found")
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
+        version.version_id = 'v{0}'.format(len(policy.versions))
         if set_as_default:
             policy.default_version_id = version.version_id
         return version
@@ -605,6 +606,9 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
+        if version_id == policy.default_version_id:
+            raise IAMConflictException(
+                "Cannot delete the default version of a policy")
         for i, v in enumerate(policy.versions):
             if v.version_id == version_id:
                 del policy.versions[i]
