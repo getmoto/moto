@@ -72,11 +72,11 @@ class ManagedPolicy(Policy):
 
     def attach_to(self, obj):
         self.attachment_count += 1
-        obj.managed_policies[self.name] = self
+        obj.managed_policies[self.arn] = self
 
     def detach_from(self, obj):
         self.attachment_count -= 1
-        del obj.managed_policies[self.name]
+        del obj.managed_policies[self.arn]
 
     @property
     def arn(self):
@@ -477,11 +477,13 @@ class IAMBackend(BaseBackend):
             document=policy_document,
             path=path,
         )
-        self.managed_policies[policy.name] = policy
+        self.managed_policies[policy.arn] = policy
         return policy
 
-    def get_policy(self, policy_name):
-        return self.managed_policies.get(policy_name)
+    def get_policy(self, policy_arn):
+        if policy_arn not in self.managed_policies:
+            raise IAMNotFoundException("Policy {0} not found".format(policy_arn))
+        return self.managed_policies.get(policy_arn)
 
     def list_attached_role_policies(self, role_name, marker=None, max_items=100, path_prefix='/'):
         policies = self.get_role(role_name).managed_policies.values()
@@ -575,9 +577,7 @@ class IAMBackend(BaseBackend):
         return role.policies.keys()
 
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
-        policy_name = policy_arn.split(':')[-1]
-        policy_name = policy_name.split('/')[1]
-        policy = self.get_policy(policy_name)
+        policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
@@ -587,9 +587,7 @@ class IAMBackend(BaseBackend):
         return version
 
     def get_policy_version(self, policy_arn, version_id):
-        policy_name = policy_arn.split(':')[-1]
-        policy_name = policy_name.split('/')[1]
-        policy = self.get_policy(policy_name)
+        policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
         for version in policy.versions:
@@ -598,17 +596,13 @@ class IAMBackend(BaseBackend):
         raise IAMNotFoundException("Policy version not found")
 
     def list_policy_versions(self, policy_arn):
-        policy_name = policy_arn.split(':')[-1]
-        policy_name = policy_name.split('/')[1]
-        policy = self.get_policy(policy_name)
+        policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
         return policy.versions
 
     def delete_policy_version(self, policy_arn, version_id):
-        policy_name = policy_arn.split(':')[-1]
-        policy_name = policy_name.split('/')[1]
-        policy = self.get_policy(policy_name)
+        policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
         for i, v in enumerate(policy.versions):
