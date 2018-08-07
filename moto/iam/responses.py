@@ -534,6 +534,18 @@ class IamResponse(BaseResponse):
         template = self.response_template(DELETE_ACCOUNT_ALIAS_TEMPLATE)
         return template.render()
 
+    def get_account_authorization_details(self):
+        filter_param = self._get_multi_param('Filter.member')
+        account_details = iam_backend.get_account_authorization_details(filter_param)
+        template = self.response_template(GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE)
+        return template.render(
+            instance_profiles=account_details['instance_profiles'],
+            policies=account_details['managed_policies'],
+            users=account_details['users'],
+            groups=account_details['groups'],
+            roles=account_details['roles']
+        )
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
@@ -1309,3 +1321,144 @@ DELETE_ACCOUNT_ALIAS_TEMPLATE = """<DeleteAccountAliasResponse xmlns="https://ia
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteAccountAliasResponse>"""
+
+
+LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
+  <ListGroupsForUserResult>
+    <Groups>
+        {% for group in groups %}
+        <member>
+            <Path>{{ group.path }}</Path>
+            <GroupName>{{ group.name }}</GroupName>
+            <GroupId>{{ group.id }}</GroupId>
+            <Arn>{{ group.arn }}</Arn>
+        </member>
+        {% endfor %}
+    </Groups>
+    <IsTruncated>false</IsTruncated>
+  </ListGroupsForUserResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListGroupsForUserResponse>"""
+
+
+GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountAuthorizationDetailsResult>
+    <IsTruncated>false</IsTruncated>
+    <UserDetailList>
+    {% for user in users %}
+      <member>
+        <GroupList />
+        <AttachedManagedPolicies/>
+        <UserId>{{ user.id }}</UserId>
+        <Path>{{ user.path }}</Path>
+        <UserName>{{ user.name }}</UserName>
+        <Arn>{{ user.arn }}</Arn>
+        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+      </member>
+    {% endfor %}
+    </UserDetailList>
+    <Marker>
+      EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/
+      bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE
+    </Marker>
+    <GroupDetailList>
+    {% for group in groups %}
+      <member>
+        <GroupId>{{ group.id }}</GroupId>
+        <AttachedManagedPolicies>
+          {% for policy in group.managed_policies %}
+          <member>
+            <PolicyName>{{ policy.name }}</PolicyName>
+            <PolicyArn>{{ policy.arn }}</PolicyArn>
+          </member>
+          {% endfor %}
+        </AttachedManagedPolicies>
+        <GroupName>{{ group.name }}</GroupName>
+        <Path>{{ group.path }}</Path>
+        <Arn>{{ group.arn }}</Arn>
+        <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+        <GroupPolicyList/>
+      </member>
+    {% endfor %}
+    </GroupDetailList>
+    <RoleDetailList>
+    {% for role in roles %}
+      <member>
+        <RolePolicyList/>
+        <AttachedManagedPolicies>
+        {% for policy in role.managed_policies %}
+            <member>
+                <PolicyName>{{ policy.name }}</PolicyName>
+                <PolicyArn>{{ policy.arn }}</PolicyArn>
+            </member>
+        {% endfor %}
+        </AttachedManagedPolicies>
+        <InstanceProfileList>
+            {% for profile in instance_profiles %}
+            <member>
+            <Id>{{ profile.id }}</Id>
+              <Roles>
+                {% for role in profile.roles %}
+                <member>
+                  <Path>{{ role.path }}</Path>
+                  <Arn>{{ role.arn }}</Arn>
+                  <RoleName>{{ role.name }}</RoleName>
+                  <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+                  <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+                  <RoleId>{{ role.id }}</RoleId>
+                </member>
+                {% endfor %}
+              </Roles>
+              <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
+              <Path>{{ profile.path }}</Path>
+              <Arn>{{ profile.arn }}</Arn>
+              <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+            </member>
+            {% endfor %}
+        </InstanceProfileList>
+        <Path>{{ role.path }}</Path>
+        <Arn>{{ role.arn }}</Arn>
+        <RoleName>{{ role.name }}</RoleName>
+        <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+        <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+        <RoleId>{{ role.id }}</RoleId>
+      </member>
+    {% endfor %}
+    </RoleDetailList>
+    <Policies>
+    {% for policy in policies %}
+      <member>
+        <PolicyName>{{ policy.name }}</PolicyName>
+        <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
+        <PolicyId>{{ policy.id }}</PolicyId>
+        <Path>{{ policy.path }}</Path>
+        <PolicyVersionList>
+          <member>
+            <Document>
+              {"Version":"2012-10-17","Statement":{"Effect":"Allow",
+              "Action":["iam:CreatePolicy","iam:CreatePolicyVersion",
+              "iam:DeletePolicy","iam:DeletePolicyVersion","iam:GetPolicy",
+              "iam:GetPolicyVersion","iam:ListPolicies",
+              "iam:ListPolicyVersions","iam:SetDefaultPolicyVersion"],
+              "Resource":"*"}}
+            </Document>
+            <IsDefaultVersion>true</IsDefaultVersion>
+            <VersionId>v1</VersionId>
+            <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+          </member>
+        </PolicyVersionList>
+        <Arn>{{ policy.arn }}</Arn>
+        <AttachmentCount>1</AttachmentCount>
+        <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+        <IsAttachable>true</IsAttachable>
+        <UpdateDate>2012-05-09T16:27:11Z</UpdateDate>
+      </member>
+    {% endfor %}
+    </Policies>
+  </GetAccountAuthorizationDetailsResult>
+  <ResponseMetadata>
+    <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountAuthorizationDetailsResponse>"""
