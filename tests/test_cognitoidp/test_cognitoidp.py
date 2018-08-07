@@ -326,6 +326,7 @@ def test_admin_create_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     username = str(uuid.uuid4())
+    username = str(uuid.uuid4())
     value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.admin_create_user(
@@ -399,15 +400,22 @@ def authentication_flow(conn):
     username = str(uuid.uuid4())
     temporary_password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id,
         ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name]
     )["UserPoolClient"]["ClientId"]
 
     conn.admin_create_user(
         UserPoolId=user_pool_id,
         Username=username,
         TemporaryPassword=temporary_password,
+        UserAttributes=[{
+            'Name': user_attribute_name,
+            'Value': user_attribute_value
+        }]
     )
 
     result = conn.admin_initiate_auth(
@@ -446,6 +454,9 @@ def authentication_flow(conn):
         "access_token": result["AuthenticationResult"]["AccessToken"],
         "username": username,
         "password": new_password,
+        "additional_fields": {
+            user_attribute_name: user_attribute_value
+        }
     }
 
 
@@ -475,6 +486,8 @@ def test_token_legitimacy():
     access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
     access_claims["iss"].should.equal(issuer)
     access_claims["aud"].should.equal(client_id)
+    for k, v in outputs["additional_fields"].items():
+        access_claims[k].should.equal(v)
 
 
 @mock_cognitoidp
