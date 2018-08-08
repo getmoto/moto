@@ -37,7 +37,6 @@ class Policy(BaseModel):
                  description=None,
                  document=None,
                  path=None):
-        #self.document = document or {}
         self.name = name
 
         self.attachment_count = 0

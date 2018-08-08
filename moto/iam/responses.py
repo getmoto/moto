@@ -62,7 +62,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param('PolicyArn')
         policy = iam_backend.get_policy(policy_arn)
         template = self.response_template(GET_POLICY_TEMPLATE)
-        return template.render(policy=policy)    
+        return template.render(policy=policy)
 
     def list_attached_role_policies(self):
         marker = self._get_param('Marker')
@@ -611,7 +611,7 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
   <GetPolicyResult>
     <Policy>
       <PolicyName>{{ policy.name }}</PolicyName>
-      <Description>{{ policy.description }}</Description> 
+      <Description>{{ policy.description }}</Description>
       <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
       <PolicyId>{{ policy.id }}</PolicyId>
       <Path>{{ policy.path }}</Path>
