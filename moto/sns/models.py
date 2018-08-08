@@ -425,6 +425,7 @@ sns_backends = {}
 for region in Session().get_available_regions('sns'):
     sns_backends[region] = SNSBackend(region)
 
+sns_backends['us-gov-west-1'] = SNSBackend('us-gov-west-1')
 
 DEFAULT_TOPIC_POLICY = {
     "Version": "2008-10-17",

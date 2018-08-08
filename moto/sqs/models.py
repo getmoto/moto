@@ -606,3 +606,5 @@ class SQSBackend(BaseBackend):
 sqs_backends = {}
 for region in boto.sqs.regions():
     sqs_backends[region.name] = SQSBackend(region.name)
+
+sqs_backends['us-gov-west-1'] = SQSBackend('us-gov-west-1')
