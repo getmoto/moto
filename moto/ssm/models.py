@@ -202,7 +202,6 @@ class Command(BaseModel):
                     'InvocationDoesNotExist',
                     'An error occurred (InvocationDoesNotExist) when calling the GetCommandInvocation operation')
 
-
         return invocation
 
 
