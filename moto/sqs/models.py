@@ -385,10 +385,22 @@ class SQSBackend(BaseBackend):
     def create_queue(self, name, **kwargs):
         queue = self.queues.get(name)
         if queue:
-            # Queue already exist. If attributes don't match, throw error
-            for key, value in kwargs.items():
-                if getattr(queue, camelcase_to_underscores(key)) != value:
-                    raise QueueAlreadyExists("The specified queue already exists.")
+            try:
+                kwargs.pop('region')
+            except KeyError:
+                pass
+
+            new_queue = Queue(name, region=self.region_name, **kwargs)
+
+            queue_attributes = queue.attributes
+            new_queue_attributes = new_queue.attributes
+
+            for key in ['CreatedTimestamp', 'LastModifiedTimestamp']:
+                queue_attributes.pop(key)
+                new_queue_attributes.pop(key)
+
+            if queue_attributes != new_queue_attributes:
+                raise QueueAlreadyExists("The specified queue already exists.")
         else:
             try:
                 kwargs.pop('region')
