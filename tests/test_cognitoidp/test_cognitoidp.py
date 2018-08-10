@@ -4,8 +4,10 @@ import boto3
 import json
 import os
 import uuid
+import jwt
 
 from jose import jws
+
 from moto import mock_cognitoidp
 import sure  # noqa
 
@@ -446,6 +448,9 @@ def authentication_flow(conn):
 
     result["AuthenticationResult"]["IdToken"].should_not.be.none
     result["AuthenticationResult"]["AccessToken"].should_not.be.none
+    jwt.decode(
+        result["AuthenticationResult"]["AccessToken"], verify=False
+    ).get(user_attribute_name, '').should.be.equal(user_attribute_value)
 
     return {
         "user_pool_id": user_pool_id,
