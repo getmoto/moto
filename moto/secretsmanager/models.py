@@ -35,7 +35,7 @@ class SecretsManagerBackend(BaseBackend):
         self.secret_string = ''
         self.rotation_enabled = False
         self.rotation_lambda_arn = ''
-        self.auto_rotate_after_days = 1
+        self.auto_rotate_after_days = 0
 
     def reset(self):
         region_name = self.region
