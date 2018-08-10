@@ -15,4 +15,3 @@ click==6.7
 inflection==0.3.1
 lxml==4.2.3
 beautifulsoup4==4.6.0
-PyJWT==1.6.4
