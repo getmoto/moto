@@ -62,6 +62,7 @@ from .exceptions import (
     InvalidParameterValueErrorOfferingId,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
+    InvalidReservedInstancesOfferingId,
     InvalidRouteTableIdError,
     InvalidRouteError,
     InvalidSecurityGroupDuplicateError,
@@ -103,6 +104,7 @@ from .utils import (
     random_public_ip,
     random_reservation_id,
     random_route_table_id,
+    random_reserved_instance_id,
     generate_route_id,
     split_route_id,
     random_security_group_id,
@@ -927,21 +929,33 @@ class ReservedInstance(BotoReservedInstance):
     def __init__(self, ec2_backend, instance_count):
         super(ReservedInstance, self).__init__()
         self.ec2_backend = ec2_backend
-        self.id = random_reservation_id()
+        self.id = random_reserved_instance_id()
         self.instance_count = instance_count
 
 
 
 class ReservedInstanceBackend(object):
     def __init__(self):
-        self.reserved_instances = OrderedDict()
+        self.reserved_instances = {}
         super(ReservedInstanceBackend, self).__init__()
     
     def purchase_reserved_instances(self, reserved_instances_offering_id, instance_count, **kwargs):
         region = kwargs.get("region")
-        offerings = self.get_offering_ids([reserved_instances_offering_id], region=region)
-        print(offerings[0])
+        temp_ri_offering_backend = RIOfferingBackend()
+        offerings = temp_ri_offering_backend.get_offering_ids([reserved_instances_offering_id], region=region)
+        self.invalid_reserved_instances_offering_id(offerings)
+        reserved_instance = ReservedInstance(offerings[0], instance_count)
+        print(reserved_instance)
+        print(reserved_instance.instance_type)
+        print(reserved_instance.instance_tenancy)
+        print(reserved_instance.instance_count)
+        print(reserved_instance.id)
+
         return []
+    
+    def invalid_reserved_instances_offering_id(self, offerings):
+        if len(offerings) < 1:
+            raise InvalidReservedInstancesOfferingId()
 
 
 class ReservedInstancesOffering(BotoReservedInstancesOffering):
