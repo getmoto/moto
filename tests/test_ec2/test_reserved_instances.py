@@ -490,3 +490,34 @@ def test_reserved_instance_offering_id_valid_region():
 
     number_of_offerings = len(offerings["ReservedInstancesOfferings"])
     number_of_offerings.should.equal(1)
+
+
+@mock_ec2
+def test_purchase_reserved_instances():
+    client = boto3.client("ec2", region_name="eu-central-1")
+
+    reserved_instance = client.purchase_reserved_instances_offering(ReservedInstanceOfferingId="3818be01-41a1-4ed2-8f2c-75cbd0abf7cc", InstanceCount=1)
+
+    len(reserved_instance["ReservedInstancesId"]).should.equal(36)
+
+
+@mock_ec2
+def test_purchase_invalid_reserved_instance_id():
+    client = boto3.client("ec2", region_name="eu-central-1")
+    
+    with assert_raises(ClientError) as err:
+        client.purchase_reserved_instances_offering(ReservedInstanceOfferingId="9818be01-41a1-4ed2-8f2c-75cbd0abf7cc", InstanceCount=1)
+    
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("InvalidReservedInstancesOfferingId")
+
+
+@mock_ec2
+def test_purchase_invalid_reserved_instance_in_wrong_region():
+    client = boto3.client("ec2", region_name="us-east-1")
+    
+    with assert_raises(ClientError) as err:
+        client.purchase_reserved_instances_offering(ReservedInstanceOfferingId="3818be01-41a1-4ed2-8f2c-75cbd0abf7cc", InstanceCount=1)
+    
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("InvalidReservedInstancesOfferingId")
