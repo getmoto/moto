@@ -346,7 +346,7 @@ def test_reserved_instances_invalid_ri_offering():
     client = boto3.client("ec2", region_name="us-east-1")
 
     with assert_raises(ClientError) as err:
-        client.describe_reserved_instances_offerings(ReservedInstancesOfferingIds=["36239c57-8a19-48ca-ad88-f2399942b1"])
+        client.describe_reserved_instances_offerings(ReservedInstancesOfferingIds=["3239c57-8a19-48ca-ad88-f2399942b1"])
 
     e = err.exception
     e.response["Error"]["Code"].should.equal("InvalidParameterValue")

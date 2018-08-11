@@ -1181,10 +1181,6 @@ class RIOfferingBackend(object):
                 offering = self.get_offerings_from_details(region, instance_type, reserved_instances_offering_id=offering_id)
                 if len(offering) > 0:
                     offerings.append(offering[0])
-                else:
-                    InvalidParameterValueErrorOfferingId(offering_id)
-            else:
-                raise InvalidParameterValueErrorOfferingId(offering_id)
 
         return offerings
 
