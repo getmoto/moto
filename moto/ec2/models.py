@@ -926,12 +926,26 @@ class InstanceBackend(object):
 
 
 class ReservedInstance(BotoReservedInstance):
-    def __init__(self, ec2_backend, instance_count):
-        super(ReservedInstance, self).__init__()
+    def __init__(self, ec2_backend, instance_count, offering):
+        super(ReservedInstance,self).__init__()
         self.ec2_backend = ec2_backend
         self.id = random_reserved_instance_id()
         self.instance_count = instance_count
-
+        self.instance_type = offering.instance_type
+        self.instance_tenancy = offering.instance_tenancy
+        self.offering_type = offering.offering_type
+        self.offering_class = offering.offering_class
+        self.duration = offering.duration
+        self.region = offering.region
+        self.description = offering.description
+        self.scope = offering.scope
+        self.availability_zone = offering.availability_zone
+        self.usage_price = offering.usage_price
+        self.fixed_price = offering.fixed_price
+        self.state = "active"
+        self.start = datetime.utcnow()
+        self.end = None
+        # the above can likely be improved by using inheritance properly
 
 
 class ReservedInstanceBackend(object):
@@ -944,13 +958,7 @@ class ReservedInstanceBackend(object):
         temp_ri_offering_backend = RIOfferingBackend()
         offerings = temp_ri_offering_backend.get_offering_ids([reserved_instances_offering_id], region=region)
         self.invalid_reserved_instances_offering_id(offerings)
-        reserved_instance = ReservedInstance(offerings[0], instance_count)
-        print(reserved_instance)
-        print(reserved_instance.instance_type)
-        print(reserved_instance.instance_tenancy)
-        print(reserved_instance.instance_count)
-        print(reserved_instance.id)
-
+        reserved_instance = ReservedInstance(self, instance_count, offerings[0])
         return []
     
     def invalid_reserved_instances_offering_id(self, offerings):
