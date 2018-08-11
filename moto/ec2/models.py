@@ -1095,9 +1095,6 @@ class RIOfferingBackend(object):
         except IOError:
             # no reserved instances exist for that type and region. return empty list
             return []
-        except TypeError:
-            # print("Type Error. Some strange error with numpy in python2")
-            return []
 
         reserved_instances_offering_id = kwargs.get("reserved_instances_offering_id")
         instance_tenancy = kwargs.get("instance_tenancy")
@@ -1176,6 +1173,7 @@ class RIOfferingBackend(object):
             for offering_hash in file_names_list:
                 if offering_hash[0:8] == offering_id[0:8]:
                     file_name = offering_hash.split("|")[1]
+                    break
             if not(file_name is None):
                 loc = self.get_loc_of_first_digit(file_name)
                 region = file_name[0:loc].replace("_", "-")
@@ -1183,6 +1181,10 @@ class RIOfferingBackend(object):
                 offering = self.get_offerings_from_details(region, instance_type, reserved_instances_offering_id=offering_id)
                 if len(offering) > 0:
                     offerings.append(offering[0])
+                else:
+                    InvalidParameterValueErrorOfferingId(offering_id)
+            else:
+                raise InvalidParameterValueErrorOfferingId(offering_id)
 
         return offerings
 
