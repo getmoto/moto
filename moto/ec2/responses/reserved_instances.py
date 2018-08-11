@@ -42,9 +42,14 @@ class ReservedInstances(BaseResponse):
         return template.render(offerings=offerings)
 
     def purchase_reserved_instances_offering(self):
-        if self.is_not_dryrun('PurchaseReservedInstances'):
-            raise NotImplementedError(
-                'ReservedInstances.purchase_reserved_instances_offering is not yet implemented')
+        region = self.region
+        reserved_instances_offering_id = self._get_param("ReservedInstancesOfferingId")
+        instance_count = self._get_param("InstanceCount")
+
+        reserved_instances = self.ec2_backend.purchase_reserved_instances(reserved_instances_offering_id, instance_count, region=region)
+        template = self.response_template(EC2_DESCRIBE_RESERVED_INSTANCE_OFFERINGS)
+        return template.render(reserved_instances=reserved_instances)
+
 
 
 EC2_DESCRIBE_RESERVED_INSTANCE_OFFERINGS = """<DescribeReservedInstancesOfferingsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

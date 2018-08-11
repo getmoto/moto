@@ -16,7 +16,7 @@ import boto.ec2
 from collections import defaultdict
 from datetime import datetime
 from boto.ec2.instance import Instance as BotoInstance, Reservation
-from boto.ec2.reservedinstance import ReservedInstancesOffering as BotoReservedInstancesOffering
+from boto.ec2.reservedinstance import ReservedInstancesOffering as BotoReservedInstancesOffering, ReservedInstance as BotoReservedInstance
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
@@ -921,6 +921,27 @@ class InstanceBackend(object):
 
         if not(numpyany(isin(INSTANCE_TYPES_HASH_TABLE[i], instance_type))):
             raise InvalidParameterValueErrorInstanceType(instance_type)
+
+
+class ReservedInstance(BotoReservedInstance):
+    def __init__(self, ec2_backend, instance_count):
+        super(ReservedInstance, self).__init__()
+        self.ec2_backend = ec2_backend
+        self.id = random_reservation_id()
+        self.instance_count = instance_count
+
+
+
+class ReservedInstanceBackend(object):
+    def __init__(self):
+        self.reserved_instances = OrderedDict()
+        super(ReservedInstanceBackend, self).__init__()
+    
+    def purchase_reserved_instances(self, reserved_instances_offering_id, instance_count, **kwargs):
+        region = kwargs.get("region")
+        offerings = self.get_offering_ids([reserved_instances_offering_id], region=region)
+        print(offerings[0])
+        return []
 
 
 class ReservedInstancesOffering(BotoReservedInstancesOffering):
@@ -4293,7 +4314,7 @@ class NatGatewayBackend(object):
         return self.nat_gateways.pop(nat_gateway_id)
 
 
-class EC2Backend(BaseBackend, InstanceBackend, RIOfferingBackend, TagBackend, EBSBackend,
+class EC2Backend(BaseBackend, InstanceBackend, ReservedInstanceBackend, RIOfferingBackend, TagBackend, EBSBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, AmiBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
                  NetworkInterfaceBackend, VPNConnectionBackend,
