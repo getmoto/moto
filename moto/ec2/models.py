@@ -927,7 +927,7 @@ class InstanceBackend(object):
 
 class ReservedInstance(BotoReservedInstance):
     def __init__(self, ec2_backend, instance_count, offering):
-        super(ReservedInstance,self).__init__()
+        super(ReservedInstance, self).__init__()
         self.ec2_backend = ec2_backend
         self.id = random_reserved_instance_id()
         self.instance_count = instance_count
@@ -952,7 +952,7 @@ class ReservedInstanceBackend(object):
     def __init__(self):
         self.reserved_instances = {}
         super(ReservedInstanceBackend, self).__init__()
-    
+
     def purchase_reserved_instances(self, reserved_instances_offering_id, instance_count, **kwargs):
         region = kwargs.get("region")
         temp_ri_offering_backend = RIOfferingBackend()
@@ -961,7 +961,7 @@ class ReservedInstanceBackend(object):
         reserved_instance = ReservedInstance(self, instance_count, offerings[0])
         self.reserved_instances[reserved_instance.id] = reserved_instance
         return reserved_instance
-    
+
     def invalid_reserved_instances_offering_id(self, offerings):
         if len(offerings) < 1:
             raise InvalidReservedInstancesOfferingId()

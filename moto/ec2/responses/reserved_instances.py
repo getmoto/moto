@@ -51,7 +51,6 @@ class ReservedInstances(BaseResponse):
         return template.render(reserved_instance=reserved_instance)
 
 
-
 EC2_DESCRIBE_RESERVED_INSTANCE_OFFERINGS = """<DescribeReservedInstancesOfferingsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>fdcdcab1-ae5c-489e-9c33-4637c5dda355</requestId>
   <reservedInstancesOfferingsSet>
