@@ -46,9 +46,9 @@ class ReservedInstances(BaseResponse):
         reserved_instances_offering_id = self._get_param("ReservedInstancesOfferingId")
         instance_count = self._get_param("InstanceCount")
 
-        reserved_instances = self.ec2_backend.purchase_reserved_instances(reserved_instances_offering_id, instance_count, region=region)
-        template = self.response_template(EC2_DESCRIBE_RESERVED_INSTANCE_OFFERINGS)
-        return template.render(reserved_instances=reserved_instances)
+        reserved_instance = self.ec2_backend.purchase_reserved_instances(reserved_instances_offering_id, instance_count, region=region)
+        template = self.response_template(EC2_PURCHASE_RESERVED_INSTANCES_OFFERING)
+        return template.render(reserved_instance=reserved_instance)
 
 
 
@@ -83,3 +83,8 @@ EC2_DESCRIBE_RESERVED_INSTANCE_OFFERINGS = """<DescribeReservedInstancesOffering
     {% endfor %}
   </reservedInstancesOfferingsSet>
 </DescribeReservedInstancesOfferingsResponse>"""
+
+EC2_PURCHASE_RESERVED_INSTANCES_OFFERING = """<PurchaseReservedInstancesOfferingResponse  xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>69dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <reservedInstancesId>{{ reserved_instance.id }}</reservedInstancesId>
+  </PurchaseReservedInstancesOfferingResponse>"""

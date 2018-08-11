@@ -959,7 +959,8 @@ class ReservedInstanceBackend(object):
         offerings = temp_ri_offering_backend.get_offering_ids([reserved_instances_offering_id], region=region)
         self.invalid_reserved_instances_offering_id(offerings)
         reserved_instance = ReservedInstance(self, instance_count, offerings[0])
-        return []
+        self.reserved_instances[reserved_instance.id] = reserved_instance
+        return reserved_instance
     
     def invalid_reserved_instances_offering_id(self, offerings):
         if len(offerings) < 1:
