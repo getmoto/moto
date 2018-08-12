@@ -1016,6 +1016,7 @@ class RIOfferingBackend(object):
         super(RIOfferingBackend, self).__init__()
 
     def get_offering_ids(self, reserved_instances_offering_id, **kwargs):
+        temp_ri_offering_backend = RIOfferingBackend()
         if reserved_instances_offering_id is None or reserved_instances_offering_id == []:
             instance_type = kwargs.get("instance_type")
             max_duration = kwargs.get("max_duration")
@@ -1026,24 +1027,24 @@ class RIOfferingBackend(object):
             description = kwargs.get("description")
             instance_tenancy = kwargs.get("instance_tenancy")
 
-            self.invalid_instance_type(instance_type)
-            self.invalid_instance_tenancy(instance_tenancy)
-            self.invalid_max_duration(max_duration)
-            self.invalid_min_duration(min_duration)
-            self.invalid_offering_type(offering_type)
-            self.invalid_offering_class(offering_class)
-            self.invalid_product_description(description)
+            temp_ri_offering_backend.invalid_instance_type(instance_type)
+            temp_ri_offering_backend.invalid_instance_tenancy(instance_tenancy)
+            temp_ri_offering_backend.invalid_max_duration(max_duration)
+            temp_ri_offering_backend.invalid_min_duration(min_duration)
+            temp_ri_offering_backend.invalid_offering_type(offering_type)
+            temp_ri_offering_backend.invalid_offering_class(offering_class)
+            temp_ri_offering_backend.invalid_product_description(description)
 
-            duration = self.get_duration(max_duration, min_duration)
-            offerings = self.get_offerings_from_details(region, instance_type, instance_tenancy=instance_tenancy,
+            duration = temp_ri_offering_backend.get_duration(max_duration, min_duration)
+            offerings = temp_ri_offering_backend.get_offerings_from_details(region, instance_type, instance_tenancy=instance_tenancy,
                 duration=duration, offering_type=offering_type, offering_class=offering_class,
                 description=description)
 
             return offerings
         else:
-            self.invalid_reserved_instances_offering_id(reserved_instances_offering_id)
+            temp_ri_offering_backend.invalid_reserved_instances_offering_id(reserved_instances_offering_id)
 
-            offerings = self.find_offering_ids_from_ids(reserved_instances_offering_id, kwargs.get("region"))
+            offerings = temp_ri_offering_backend.find_offering_ids_from_ids(reserved_instances_offering_id, kwargs.get("region"))
 
             return offerings
 
@@ -1320,16 +1321,13 @@ class RIOfferingBackend(object):
         Checks if offering id format is valid. (not necessarily if the id exists)
         """
 
-        if reserved_instances_offering_id is None:
-            raise InvalidParameterValueErrorOfferingId(reserved_instances_offering_id)
-
         # must have at least one offering id
         if len(reserved_instances_offering_id) < 0:
             raise InvalidParameterValueErrorOfferingId(reserved_instances_offering_id)
 
         # offering id must be exactly 36 characters
-        for i in range(0, len(reserved_instances_offering_id)):
-            if len(reserved_instances_offering_id[i]) != 36:
+        for offering_id in reserved_instances_offering_id:
+            if len(offering_id) != 36:
                 raise InvalidParameterValueErrorOfferingId(reserved_instances_offering_id)
 
     def get_loc_of_first_digit(self, file_name):
