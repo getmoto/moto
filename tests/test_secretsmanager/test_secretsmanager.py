@@ -161,3 +161,12 @@ def test_describe_secret_that_does_not_exist():
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-exist')
+
+@mock_secretsmanager
+def test_describe_secret_that_does_not_match():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+    
+    with assert_raises(ClientError):
+        result = conn.get_secret_value(SecretId='i-dont-match')
