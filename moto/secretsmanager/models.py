@@ -42,6 +42,9 @@ class SecretsManagerBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
+    def _is_valid_identifier(self, identifier):
+        return identifier in (self.name, self.secret_id)
+
     def get_secret_value(self, secret_id, version_id, version_stage):
 
         if self.secret_id == '':
@@ -74,12 +77,12 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def describe_secret(self, secret_id):
-        if self.secret_id == '':
+        if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException
 
         response = json.dumps({
             "ARN": secret_arn(self.region, self.secret_id),
-            "Name": self.secret_id,
+            "Name": self.name,
             "Description": "",
             "KmsKeyId": "",
             "RotationEnabled": self.rotation_enabled,
