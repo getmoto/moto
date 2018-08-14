@@ -41,12 +41,12 @@ class SecretsManagerBackend(BaseBackend):
 
     def get_secret_value(self, secret_id, version_id, version_stage):
 
-        if self.secret_id == '':
+        if secret_id not in (self.secret_id, self.name):
             raise ResourceNotFoundException()
 
         response = json.dumps({
             "ARN": secret_arn(self.region, self.secret_id),
-            "Name": self.secret_id,
+            "Name": self.name,
             "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
             "SecretString": self.secret_string,
             "VersionStages": [
@@ -61,10 +61,11 @@ class SecretsManagerBackend(BaseBackend):
 
         self.secret_string = secret_string
         self.secret_id = name
+        self.name = name
 
         response = json.dumps({
             "ARN": secret_arn(self.region, name),
-            "Name": self.secret_id,
+            "Name": self.name,
             "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
         })
 
