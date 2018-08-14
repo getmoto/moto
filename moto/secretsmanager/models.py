@@ -47,7 +47,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def get_secret_value(self, secret_id, version_id, version_stage):
 
-        if secret_id not in (self.secret_id, self.name):
+        if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException()
 
         response = json.dumps({

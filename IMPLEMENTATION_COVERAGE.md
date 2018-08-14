@@ -3645,11 +3645,11 @@
 - [ ] put_attributes
 - [ ] select
 
-## secretsmanager - 20% implemented
+## secretsmanager - 27% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
 - [ ] delete_secret
-- [ ] describe_secret
+- [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
 - [ ] list_secret_version_ids
