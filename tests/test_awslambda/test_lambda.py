@@ -113,7 +113,7 @@ def test_invoke_requestresponse_function():
         Payload=json.dumps(in_data),
     )
 
-    success_result["StatusCode"].should.equal(202)
+    success_result["StatusCode"].should.equal(200)
     result_obj = json.loads(
         base64.b64decode(success_result["LogResult"]).decode("utf-8")
     )
@@ -151,6 +151,37 @@ def test_invoke_event_function():
     json.loads(success_result["Payload"].read().decode("utf-8")).should.equal({})
 
 
+@mock_lambda
+def test_invoke_dryrun_function():
+    conn = boto3.client('lambda', 'us-west-2')
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role=get_role_name(),
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file1(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    conn.invoke.when.called_with(
+        FunctionName='notAFunction',
+        InvocationType='Event',
+        Payload='{}'
+    ).should.throw(botocore.client.ClientError)
+
+    in_data = {'msg': 'So long and thanks for all the fish'}
+    success_result = conn.invoke(
+        FunctionName='testFunction', InvocationType='DryRun', Payload=json.dumps(in_data))
+    success_result["StatusCode"].should.equal(204)
+    json.loads(success_result['Payload'].read().decode(
+        'utf-8')).should.equal({})
+
+
 if settings.TEST_SERVER_MODE:
 
     @mock_ec2
@@ -179,7 +210,7 @@ if settings.TEST_SERVER_MODE:
             InvocationType="RequestResponse",
             Payload=json.dumps(in_data),
         )
-        result["StatusCode"].should.equal(202)
+        result["StatusCode"].should.equal(200)
         actual_payload = json.loads(result["Payload"].read().decode("utf-8"))
         expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
         actual_payload.should.equal(expected_payload)
