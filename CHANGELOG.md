@@ -1,6 +1,14 @@
 Moto Changelog
 ===================
 
+1.3.4
+------
+
+    * IAM get account authorization details
+    * adding account id to ManagedPolicy ARN
+    * APIGateway usage plans and usage plan keys
+    * ECR list images
+
 1.3.3
 ------
     
