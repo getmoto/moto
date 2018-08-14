@@ -122,7 +122,15 @@ class LambdaResponse(BaseResponse):
         if fn:
             payload = fn.invoke(self.body, self.headers, response_headers)
             response_headers['Content-Length'] = str(len(payload))
-            return 202, response_headers, payload
+
+            if request.headers['X-Amz-Invocation-Type'] == 'Event':
+                status_code = 202
+            elif request.headers['X-Amz-Invocation-Type'] == 'DryRun':
+                status_code = 204
+            else:
+                status_code = 200
+
+            return status_code, response_headers, payload
         else:
             return 404, response_headers, "{}"
 
