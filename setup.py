@@ -41,7 +41,7 @@ else:
 
 setup(
     name='moto',
-    version='1.3.3',
+    version='1.3.4',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

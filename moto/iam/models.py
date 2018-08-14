@@ -905,5 +905,32 @@ class IAMBackend(BaseBackend):
     def delete_account_alias(self, alias):
         self.account_aliases = []
 
+    def get_account_authorization_details(self, filter):
+        policies = self.managed_policies.values()
+        local_policies = set(policies) - set(aws_managed_policies)
+        returned_policies = []
+
+        if len(filter) == 0:
+            return {
+                'instance_profiles': self.instance_profiles.values(),
+                'roles': self.roles.values(),
+                'groups': self.groups.values(),
+                'users': self.users.values(),
+                'managed_policies': self.managed_policies.values()
+            }
+
+        if 'AWSManagedPolicy' in filter:
+            returned_policies = aws_managed_policies
+        if 'LocalManagedPolicy' in filter:
+            returned_policies = returned_policies + list(local_policies)
+
+        return {
+            'instance_profiles': self.instance_profiles.values(),
+            'roles': self.roles.values() if 'Role' in filter else [],
+            'groups': self.groups.values() if 'Group' in filter else [],
+            'users': self.users.values() if 'User' in filter else [],
+            'managed_policies': returned_policies
+        }
+
 
 iam_backend = IAMBackend()
