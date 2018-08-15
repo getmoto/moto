@@ -3645,7 +3645,7 @@
 - [ ] put_attributes
 - [ ] select
 
-## secretsmanager - 27% implemented
+## secretsmanager - 33% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
 - [ ] delete_secret
@@ -3656,7 +3656,7 @@
 - [ ] list_secrets
 - [ ] put_secret_value
 - [ ] restore_secret
-- [ ] rotate_secret
+- [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_secret
