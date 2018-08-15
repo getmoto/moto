@@ -36,6 +36,7 @@ class SecretsManagerBackend(BaseBackend):
         self.rotation_enabled = False
         self.rotation_lambda_arn = ''
         self.auto_rotate_after_days = 0
+        self.version_id = ''
 
     def reset(self):
         region_name = self.region
@@ -101,6 +102,20 @@ class SecretsManagerBackend(BaseBackend):
                     "Value": ""
                 },
             ]
+        })
+
+        return response
+
+    def rotate_secret(self, secret_id, client_request_token=None,
+                      rotation_lambda_arn=None, rotation_rules=None):
+
+        if not self._is_valid_identifier(secret_id):
+            raise ResourceNotFoundException
+
+        response = json.dumps({
+            "ARN": secret_arn(self.region, self.secret_id),
+            "Name": self.name,
+            "VersionId": self.version_id
         })
 
         return response

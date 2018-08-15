@@ -179,3 +179,19 @@ def test_describe_secret_that_does_not_match():
     
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-match')
+
+@mock_secretsmanager
+def test_rotate_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', 'us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId='i-dont-exist')
+
+@mock_secretsmanager
+def test_rotate_secret_that_does_not_match():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId='i-dont-match')
