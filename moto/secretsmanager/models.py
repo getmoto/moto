@@ -33,15 +33,21 @@ class SecretsManagerBackend(BaseBackend):
         self.name = kwargs.get('name', '')
         self.createdate = int(time.time())
         self.secret_string = ''
+        self.rotation_enabled = False
+        self.rotation_lambda_arn = ''
+        self.auto_rotate_after_days = 0
 
     def reset(self):
         region_name = self.region
         self.__dict__ = {}
         self.__init__(region_name)
 
+    def _is_valid_identifier(self, identifier):
+        return identifier in (self.name, self.secret_id)
+
     def get_secret_value(self, secret_id, version_id, version_stage):
 
-        if secret_id not in (self.secret_id, self.name):
+        if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException()
 
         response = json.dumps({
@@ -67,6 +73,34 @@ class SecretsManagerBackend(BaseBackend):
             "ARN": secret_arn(self.region, name),
             "Name": self.name,
             "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
+        })
+
+        return response
+
+    def describe_secret(self, secret_id):
+        if not self._is_valid_identifier(secret_id):
+            raise ResourceNotFoundException
+
+        response = json.dumps({
+            "ARN": secret_arn(self.region, self.secret_id),
+            "Name": self.name,
+            "Description": "",
+            "KmsKeyId": "",
+            "RotationEnabled": self.rotation_enabled,
+            "RotationLambdaARN": self.rotation_lambda_arn,
+            "RotationRules": {
+                "AutomaticallyAfterDays": self.auto_rotate_after_days
+            },
+            "LastRotatedDate": None,
+            "LastChangedDate": None,
+            "LastAccessedDate": None,
+            "DeletedDate": None,
+            "Tags": [
+                {
+                    "Key": "",
+                    "Value": ""
+                },
+            ]
         })
 
         return response

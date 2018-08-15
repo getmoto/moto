@@ -66,3 +66,70 @@ def test_create_secret():
     assert json_data['ARN'] == (
         'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-rIjad')
     assert json_data['Name'] == 'test-secret'
+
+@mock_secretsmanager
+def test_describe_secret():
+
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    create_secret = test_client.post('/',
+                        data={"Name": "test-secret",
+                              "SecretString": "foosecret"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.CreateSecret"
+                        },
+                    )
+    describe_secret = test_client.post('/',
+                        data={"SecretId": "test-secret"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.DescribeSecret"
+                        },
+                    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    assert json_data   # Returned dict is not empty
+    assert json_data['ARN'] == (
+        'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-rIjad'
+    )
+
+@mock_secretsmanager
+def test_describe_secret_that_does_not_exist():
+
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    describe_secret = test_client.post('/',
+                        data={"SecretId": "i-dont-exist"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.DescribeSecret"
+                        },
+                    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['__type'] == 'ResourceNotFoundException'
+
+@mock_secretsmanager
+def test_describe_secret_that_does_not_match():
+
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    create_secret = test_client.post('/',
+                        data={"Name": "test-secret",
+                              "SecretString": "foosecret"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.CreateSecret"
+                        },
+                    )
+    describe_secret = test_client.post('/',
+                        data={"SecretId": "i-dont-match"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.DescribeSecret"
+                        },
+                    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['__type'] == 'ResourceNotFoundException'

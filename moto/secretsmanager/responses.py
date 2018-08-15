@@ -44,3 +44,9 @@ class SecretsManagerResponse(BaseResponse):
             include_space=include_space,
             require_each_included_type=require_each_included_type
         )
+
+    def describe_secret(self):
+        secret_id = self._get_param('SecretId')
+        return secretsmanager_backends[self.region].describe_secret(
+            secret_id=secret_id
+        )
