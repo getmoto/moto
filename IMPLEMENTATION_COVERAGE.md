@@ -1448,10 +1448,10 @@
 - [ ] describe_prefix_lists
 - [ ] describe_principal_id_format
 - [X] describe_regions
-- [ ] describe_reserved_instances
+- [X] describe_reserved_instances
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
-- [ ] describe_reserved_instances_offerings
+- [X] describe_reserved_instances_offerings
 - [ ] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
@@ -1539,7 +1539,7 @@
 - [ ] monitor_instances
 - [ ] move_address_to_vpc
 - [ ] purchase_host_reservation
-- [ ] purchase_reserved_instances_offering
+- [X] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
 - [X] reboot_instances
 - [ ] register_image
