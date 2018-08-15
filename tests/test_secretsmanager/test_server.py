@@ -50,6 +50,27 @@ def test_get_secret_that_does_not_exist():
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
+def test_get_secret_that_does_not_match():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    create_secret = test_client.post('/',
+                           data={"Name": "test-secret",
+                                 "SecretString": "foo-secret"},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.CreateSecret"},
+                           )
+    get_secret = test_client.post('/',
+                           data={"SecretId": "i-dont-match",
+                                 "VersionStage": "AWSCURRENT"},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.GetSecretValue"},
+                           )
+    json_data = json.loads(get_secret.data.decode("utf-8"))
+    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['__type'] == 'ResourceNotFoundException'
+
+@mock_secretsmanager
 def test_create_secret():
 
     backend = server.create_backend_app("secretsmanager")
