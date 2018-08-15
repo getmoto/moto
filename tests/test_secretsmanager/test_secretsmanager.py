@@ -26,13 +26,13 @@ def test_get_secret_that_does_not_exist():
         result = conn.get_secret_value(SecretId='i-dont-exist')
 
 @mock_secretsmanager
-def test_get_secret_with_mismatched_id():
+def test_get_secret_that_does_not_match():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
     create_secret = conn.create_secret(Name='java-util-test-password',
                                        SecretString="foosecret")
 
     with assert_raises(ClientError):
-        result = conn.get_secret_value(SecretId='i-dont-exist')
+        result = conn.get_secret_value(SecretId='i-dont-match')
 
 @mock_secretsmanager
 def test_create_secret():
