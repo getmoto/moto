@@ -211,3 +211,56 @@ def test_rotate_secret_that_does_not_match():
 
     with assert_raises(ClientError):
         result = conn.rotate_secret(SecretId='i-dont-match')
+
+@mock_secretsmanager
+def test_rotate_secret_client_request_token_too_short():
+    # Test is intentionally empty. Boto3 catches too short ClientRequestToken
+    # and raises ParamValidationError before Moto can see it.
+    # test_server actually handles this error.
+    assert True
+
+@mock_secretsmanager
+def test_rotate_secret_client_request_token_too_long():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    client_request_token = (
+        'ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-'
+        'ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C'
+    )
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId=secret_name,
+                                    ClientRequestToken=client_request_token)
+
+@mock_secretsmanager
+def test_rotate_secret_rotation_lambda_arn_too_long():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    rotation_lambda_arn = '85B7-446A-B7E4' * 147    # == 2058 characters
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId=secret_name,
+                                    RotationLambdaARN=rotation_lambda_arn)
+
+@mock_secretsmanager
+def test_rotate_secret_rotation_period_zero():
+    # Test is intentionally empty. Boto3 catches zero day rotation period
+    # and raises ParamValidationError before Moto can see it.
+    # test_server actually handles this error.
+    assert True
+
+@mock_secretsmanager
+def test_rotate_secret_rotation_period_too_long():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    rotation_rules = {'AutomaticallyAfterDays': 1001}
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId=secret_name,
+                                    RotationRules=rotation_rules)
