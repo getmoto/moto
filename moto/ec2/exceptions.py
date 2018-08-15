@@ -324,6 +324,105 @@ class InvalidParameterValueErrorTagNull(EC2ClientError):
             "Tag value cannot be null. Use empty string instead.")
 
 
+class InvalidParameterValueErrorInstanceType(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorInstanceType, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for InstanceType."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorInstanceTenancy(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorInstanceTenancy, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for InstanceTenancy."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorProductDescription(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorProductDescription, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for ProductDescription."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorOfferingClass(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorOfferingClass, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for OfferingClass."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorOfferingType(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorOfferingType, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for OfferingType."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorMaxDuration(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorMaxDuration, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for MaxDuration."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorMinDuration(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorMinDuration, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for MinDuration."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorDurationMisMatch(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorDurationMisMatch, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for MinDuration. Current Implementation requires MinDuration must less than or equal to MaxDuration."
+            .format(parameter_value)
+        )
+
+
+class InvalidParameterValueErrorOfferingId(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorOfferingId, self).__init__(
+            "InvalidParameterValue",
+            "Invalid value \'{0}\' for ReservedInstancesOfferingId."
+            .format(parameter_value)
+        )
+
+
+class InvalidReservedInstancesOfferingId(EC2ClientError):
+
+    def __init__(self):
+        super(InvalidReservedInstancesOfferingId, self).__init__(
+            "InvalidReservedInstancesOfferingId",
+            "Offering ID not found."
+        )
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
 
     def __init__(self, internet_gateway_id):

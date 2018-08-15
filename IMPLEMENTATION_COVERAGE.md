@@ -1451,7 +1451,7 @@
 - [ ] describe_reserved_instances
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
-- [ ] describe_reserved_instances_offerings
+- [X] describe_reserved_instances_offerings
 - [ ] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
