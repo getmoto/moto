@@ -109,8 +109,44 @@ class SecretsManagerBackend(BaseBackend):
     def rotate_secret(self, secret_id, client_request_token=None,
                       rotation_lambda_arn=None, rotation_rules=None):
 
+        rotation_days = 'AutomaticallyAfterDays'
+
         if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException
+
+        if client_request_token:
+            token_length = len(client_request_token)
+            if token_length < 32 or token_length > 64:
+                msg = (
+                    'ClientRequestToken '
+                    'must be 32-64 characters long.'
+                )
+                raise InvalidParameterException(msg)
+
+        if rotation_lambda_arn:
+            if len(rotation_lambda_arn) > 2048:
+                msg = (
+                    'RotationLambdaARN '
+                    'must <= 2048 characters long.'
+                )
+                raise InvalidParameterException(msg)
+
+        if rotation_rules:
+            if rotation_days in rotation_rules:
+                rotation_period = rotation_rules[rotation_days]
+                if rotation_period < 1 or rotation_period > 1000:
+                    msg = (
+                        'RotationRules.AutomaticallyAfterDays '
+                        'must be within 1-1000.'
+                    )
+                    raise InvalidParameterException(msg)
+
+        self.version_id = client_request_token or ''
+        self.rotation_lambda_arn = rotation_lambda_arn or ''
+        if rotation_rules:
+            self.auto_rotate_after_days = rotation_rules.get(rotation_days, 0)
+        if self.auto_rotate_after_days > 0:
+            self.rotation_enabled = True
 
         response = json.dumps({
             "ARN": secret_arn(self.region, self.secret_id),

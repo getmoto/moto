@@ -181,6 +181,22 @@ def test_describe_secret_that_does_not_match():
         result = conn.get_secret_value(SecretId='i-dont-match')
 
 @mock_secretsmanager
+def test_rotate_secret():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    rotated_secret = conn.rotate_secret(SecretId=secret_name)
+
+    assert rotated_secret
+    assert rotated_secret['ARN'] == (
+        'arn:aws:secretsmanager:us-west-2:1234567890:secret:test-secret-rIjad'
+    )
+    assert rotated_secret['Name'] == secret_name
+    assert rotated_secret['VersionId'] != ''
+
+@mock_secretsmanager
 def test_rotate_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', 'us-west-2')
 
