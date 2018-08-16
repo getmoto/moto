@@ -197,6 +197,26 @@ def test_rotate_secret():
     assert rotated_secret['VersionId'] != ''
 
 @mock_secretsmanager
+def test_rotate_secret_enable_rotation():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    initial_description = conn.describe_secret(SecretId=secret_name)
+    assert initial_description
+    assert initial_description['RotationEnabled'] is False
+    assert initial_description['RotationRules']['AutomaticallyAfterDays'] == 0
+
+    conn.rotate_secret(SecretId=secret_name,
+                       RotationRules={'AutomaticallyAfterDays': 42})
+
+    rotated_description = conn.describe_secret(SecretId=secret_name)
+    assert rotated_description
+    assert rotated_description['RotationEnabled'] is True
+    assert rotated_description['RotationRules']['AutomaticallyAfterDays'] == 42
+
+@mock_secretsmanager
 def test_rotate_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', 'us-west-2')
 

@@ -185,6 +185,63 @@ def test_rotate_secret():
     assert json_data['Name'] == 'test-secret'
     assert json_data['VersionId'] == client_request_token
 
+# @mock_secretsmanager
+# def test_rotate_secret_enable_rotation():
+#     backend = server.create_backend_app('secretsmanager')
+#     test_client = backend.test_client()
+
+#     create_secret = test_client.post(
+#                         '/',
+#                         data={
+#                             "Name": "test-secret",
+#                             "SecretString": "foosecret"
+#                         },
+#                         headers={
+#                             "X-Amz-Target": "secretsmanager.CreateSecret"
+#                         },
+#                     )
+
+#     initial_description = test_client.post(
+#                             '/',
+#                             data={
+#                                 "SecretId": "test-secret"
+#                             },
+#                             headers={
+#                                 "X-Amz-Target": "secretsmanager.DescribeSecret"
+#                             },
+#                           )
+
+#     json_data = json.loads(initial_description.data.decode("utf-8"))
+#     assert json_data   # Returned dict is not empty
+#     assert json_data['RotationEnabled'] is False
+#     assert json_data['RotationRules']['AutomaticallyAfterDays'] == 0
+
+#     rotate_secret = test_client.post(
+#                         '/',
+#                         data={
+#                             "SecretId": "test-secret",
+#                             "RotationRules": {"AutomaticallyAfterDays": 42}
+#                         },
+#                         headers={
+#                             "X-Amz-Target": "secretsmanager.RotateSecret"
+#                         },
+#                     )
+
+#     rotated_description = test_client.post(
+#                             '/',
+#                             data={
+#                                 "SecretId": "test-secret"
+#                             },
+#                             headers={
+#                                 "X-Amz-Target": "secretsmanager.DescribeSecret"
+#                             },
+#                           )
+
+#     json_data = json.loads(rotated_description.data.decode("utf-8"))
+#     assert json_data   # Returned dict is not empty
+#     assert json_data['RotationEnabled'] is True
+#     assert json_data['RotationRules']['AutomaticallyAfterDays'] == 42
+
 @mock_secretsmanager
 def test_rotate_secret_that_does_not_exist():
     backend = server.create_backend_app('secretsmanager')
@@ -335,7 +392,7 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
 #                     )
 
 #     json_data = json.loads(rotate_secret.data.decode("utf-8"))
-#     assert json_data['message'] == "RotationLambdaARN must <= 2048 characters long."
+#     assert json_data['message'] == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
 #     assert json_data['__type'] == 'InvalidParameterException'
 
 # @mock_secretsmanager
@@ -360,5 +417,5 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
 #                     )
 
 #     json_data = json.loads(rotate_secret.data.decode("utf-8"))
-#     assert json_data['message'] == "RotationLambdaARN must <= 2048 characters long."
+#     assert json_data['message'] == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
 #     assert json_data['__type'] == 'InvalidParameterException'
