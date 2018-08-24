@@ -1204,6 +1204,7 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
         <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
         {% endif %}
         <Status>{{ rule.status }}</Status>
+        {% if rule.transitions %}
         {% for transition in rule.transitions %}
         {% if transition.storage_class %}
         <Transition>
@@ -1217,6 +1218,7 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
         </Transition>
         {% endif %}
         {% endfor %}
+        {% endif %}
         {% if rule.expiration_days or rule.expiration_date or rule.expired_object_delete_marker %}
         <Expiration>
             {% if rule.expiration_days %}
