@@ -331,20 +331,25 @@ class LifecycleAndFilter(BaseModel):
         self.prefix = prefix or ''
         self.tags = tags
 
+class LifecycleTransition(BaseModel):
+
+    def __init__(self, transition_days=None, transition_date=None, storage_class=None):
+        self.transition_days = transition_days
+        self.transition_date = transition_date
+        self.storage_class = storage_class
 
 class LifecycleRule(BaseModel):
 
     def __init__(self, id=None, prefix=None, lc_filter=None, status=None, expiration_days=None,
-                 expiration_date=None, transition_days=None, expired_object_delete_marker=None,
-                 transition_date=None, storage_class=None):
+                 expiration_date=None, transitions=None, expired_object_delete_marker=None,
+                 storage_class=None):
         self.id = id
         self.prefix = prefix
         self.filter = lc_filter
         self.status = status
         self.expiration_days = expiration_days
         self.expiration_date = expiration_date
-        self.transition_days = transition_days
-        self.transition_date = transition_date
+        self.transitions = transitions
         self.expired_object_delete_marker = expired_object_delete_marker
         self.storage_class = storage_class
 
@@ -409,7 +414,7 @@ class FakeBucket(BaseModel):
         self.rules = []
         for rule in rules:
             expiration = rule.get('Expiration')
-            transition = rule.get('Transition')
+            transitions = rule.get('Transitions')
 
             eodm = None
             if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
@@ -438,13 +443,43 @@ class FakeBucket(BaseModel):
                         for t in rule["Filter"]["And"]["Tag"]:
                             and_tags.append(FakeTag(t["Key"], t.get("Value", '')))
 
-                    and_filter = LifecycleAndFilter(prefix=rule["Filter"]["And"]["Prefix"], tags=and_tags)
+                    and_filter = LifecycleAndFilter(prefix=rule["Filter"]["And"].get("Prefix"), tags=and_tags)
 
                 filter_tag = None
                 if rule["Filter"].get("Tag"):
                     filter_tag = FakeTag(rule["Filter"]["Tag"]["Key"], rule["Filter"]["Tag"].get("Value", ''))
 
-                lc_filter = LifecycleFilter(prefix=rule["Filter"]["Prefix"], tag=filter_tag, and_filter=and_filter)
+                filter_prefix = rule["Filter"].get("Prefix")
+
+                #Must have exactly one of the Prefix, Tag, or And filters
+                if sum(bool(arg) for arg in [filter_prefix, filter_tag, and_filter]) != 1:
+                    raise MalformedXML()
+
+                lc_filter = LifecycleFilter(prefix=filter_prefix, tag=filter_tag, and_filter=and_filter)
+
+            uses_ia = [False]
+            def validate_transition(transition, uses_ia):
+                if transition:
+                    storage_class = transition.get('StorageClass')
+                    if storage_class:
+                        date = transition.get("Date")
+                        days = transition.get("Days")
+                        if date:
+                            return True
+                        elif days:
+                            if storage_class != "STANDARD_IA" and storage_class != "ONEZONE_IA" and not uses_ia[0]:
+                                return True
+                            elif int(days) >= 30:
+                                if not uses_ia[0]:
+                                    uses_ia.pop()
+                                    uses_ia.append(True)
+                                return True
+                raise MalformedXML()
+            if transitions:
+                transitions = [(LifecycleTransition(transition_days=transition.get('Days'),
+                                                   transition_date=transition.get('Date'),
+                                                   storage_class=transition.get('StorageClass'))
+                                for transition in transitions if validate_transition(transition, uses_ia))]
 
             self.rules.append(LifecycleRule(
                 id=rule.get('ID'),
@@ -454,10 +489,7 @@ class FakeBucket(BaseModel):
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
                 expired_object_delete_marker=eodm,
-                transition_days=transition.get('Days') if transition else None,
-                transition_date=transition.get('Date') if transition else None,
-                storage_class=transition[
-                    'StorageClass'] if transition else None,
+                transitions=transitions,
             ))
 
     def delete_lifecycle(self):

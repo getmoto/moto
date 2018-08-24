@@ -1204,17 +1204,19 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
         <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
         {% endif %}
         <Status>{{ rule.status }}</Status>
-        {% if rule.storage_class %}
+        {% for transition in rule.transitions %}
+        {% if transition.storage_class %}
         <Transition>
-            {% if rule.transition_days %}
-               <Days>{{ rule.transition_days }}</Days>
+            {% if transition.transition_days %}
+               <Days>{{ transition.transition_days }}</Days>
             {% endif %}
-            {% if rule.transition_date %}
-               <Date>{{ rule.transition_date }}</Date>
+            {% if transition.transition_date %}
+               <Date>{{ transition.transition_date }}</Date>
             {% endif %}
-           <StorageClass>{{ rule.storage_class }}</StorageClass>
+            <StorageClass>{{ transition.storage_class }}</StorageClass>
         </Transition>
         {% endif %}
+        {% endfor %}
         {% if rule.expiration_days or rule.expiration_date or rule.expired_object_delete_marker %}
         <Expiration>
             {% if rule.expiration_days %}

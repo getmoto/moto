@@ -40,13 +40,23 @@ def test_lifecycle_with_filters():
         "Rules": [
             {
                 "Expiration": {
-                    "Days": 7
+                    "Days": 62
                 },
                 "ID": "wholebucket",
                 "Filter": {
                     "Prefix": ""
                 },
-                "Status": "Enabled"
+                "Status": "Enabled",
+                "Transitions": [
+                    {
+                        "Days": 30,
+                        "StorageClass": "STANDARD_IA"
+                    },
+                    {
+                        "Days": 31,
+                        "StorageClass": "GLACIER"
+                    }
+                ]
             }
         ]
     }
@@ -64,10 +74,13 @@ def test_lifecycle_with_filters():
         "Key": "mytag",
         "Value": "mytagvalue"
     }
+    #A Filter must have exactly one of Prefix, Tag, or And specified.
+    #https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.put_bucket_lifecycle_configuration
+    del lfc["Rules"][0]["Filter"]["Prefix"]
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["Filter"]["Prefix"] == ''
+    assert not result["Rules"][0]["Filter"].get("Prefix")
     assert not result["Rules"][0]["Filter"].get("And")
     assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
@@ -84,16 +97,17 @@ def test_lifecycle_with_filters():
             }
         ]
     }
+    #A Filter must have exactly one of Prefix, Tag, or And specified.
+    #https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.put_bucket_lifecycle_configuration    del lfc["Rules"][0]["Filter"]["Tag"]
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["Filter"]["Prefix"] == ""
+    assert not result["Rules"][0]["Filter"].get("Prefix")
+    assert not result["Rules"][0]["Filter"].get("Tag")
     assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
     assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 1
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
-    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
-    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
     with assert_raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
@@ -114,17 +128,14 @@ def test_lifecycle_with_filters():
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["Filter"]["Prefix"] == ""
+    assert not result["Rules"][0]["Filter"].get("Prefix")
+    assert not result["Rules"][0]["Filter"].get("Tag")
     assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
     assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 2
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
-    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
-    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Key"] == "mytag2"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
-    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
-    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
     with assert_raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
