@@ -74,8 +74,8 @@ def test_lifecycle_with_filters():
         "Key": "mytag",
         "Value": "mytagvalue"
     }
-    #A Filter must have exactly one of Prefix, Tag, or And specified.
-    #https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.put_bucket_lifecycle_configuration
+    # A Filter must have exactly one of Prefix, Tag, or And specified.
+    # https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.put_bucket_lifecycle_configuration
     del lfc["Rules"][0]["Filter"]["Prefix"]
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
@@ -97,8 +97,9 @@ def test_lifecycle_with_filters():
             }
         ]
     }
-    #A Filter must have exactly one of Prefix, Tag, or And specified.
-    #https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.put_bucket_lifecycle_configuration    del lfc["Rules"][0]["Filter"]["Tag"]
+    # A Filter must have exactly one of Prefix, Tag, or And specified.
+    # https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.put_bucket_lifecycle_configuration
+    del lfc["Rules"][0]["Filter"]["Tag"]
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
