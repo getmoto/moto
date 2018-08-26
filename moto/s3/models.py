@@ -331,12 +331,14 @@ class LifecycleAndFilter(BaseModel):
         self.prefix = prefix or ''
         self.tags = tags
 
+
 class LifecycleTransition(BaseModel):
 
     def __init__(self, transition_days=None, transition_date=None, storage_class=None):
         self.transition_days = transition_days
         self.transition_date = transition_date
         self.storage_class = storage_class
+
 
 class LifecycleRule(BaseModel):
 
@@ -451,13 +453,14 @@ class FakeBucket(BaseModel):
 
                 filter_prefix = rule["Filter"].get("Prefix")
 
-                #Must have exactly one of the Prefix, Tag, or And filters
+                # Must have exactly one of the Prefix, Tag, or And filters
                 if sum(bool(arg) for arg in [filter_prefix, filter_tag, and_filter]) != 1:
                     raise MalformedXML()
 
                 lc_filter = LifecycleFilter(prefix=filter_prefix, tag=filter_tag, and_filter=and_filter)
 
             uses_ia = [False]
+
             def validate_transition(transition, uses_ia):
                 if transition:
                     storage_class = transition.get('StorageClass')
