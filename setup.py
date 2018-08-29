@@ -8,7 +8,7 @@ import sys
 install_requires = [
     "Jinja2>=2.7.3",
     "boto>=2.36.0",
-    "boto3>=1.6.16",
+    "boto3>=1.6.16,<1.8",
     "botocore>=1.9.16,<1.11",
     "cookies",
     "cryptography>=2.0.0",
