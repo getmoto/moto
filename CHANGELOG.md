@@ -1,6 +1,12 @@
 Moto Changelog
 ===================
 
+1.3.5
+-----
+
+    * Pin down botocore issue as temporary fix for #1793.
+    * More features on secrets manager
+
 1.3.4
 ------
 
