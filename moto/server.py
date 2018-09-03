@@ -34,6 +34,9 @@ class DomainDispatcherApplication(object):
         self.service = service
 
     def get_backend_for_host(self, host):
+        if host == 'moto_api':
+            return host
+
         if self.service:
             return self.service
 
