@@ -171,6 +171,7 @@ class convert_flask_to_responses_response(object):
 
         result = self.callback(request, request.url, request.headers)
         status, headers, response = result
+
         return status, headers, response
 
 
