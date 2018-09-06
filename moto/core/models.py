@@ -9,7 +9,7 @@ import re
 import six
 
 from moto import settings
-import responses
+from moto.core import botocore_responses as responses
 from moto.packages.httpretty import HTTPretty
 from .utils import (
     convert_httpretty_response,
@@ -171,7 +171,7 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
+botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.httpsession.URLLib3Session.send')
 responses_mock = responses._default_mock
 
 
