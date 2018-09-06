@@ -98,8 +98,7 @@ def _is_redirect(response):
         # requests > 2.2
         return (
             # use request.sessions conditional
-            response.status_code in REDIRECT_STATI
-            and "location" in response.headers
+            response.status_code in REDIRECT_STATI and "location" in response.headers
         )
 
 
