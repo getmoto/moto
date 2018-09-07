@@ -8,11 +8,9 @@ import six
 import re
 
 from boto3 import Session
-from botocore.httpsession import URLLib3Session
-from botocore.awsrequest import AWSRequest
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, requests
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.sqs import sqs_backends
 from moto.awslambda import lambda_backends
@@ -103,12 +101,7 @@ class Subscription(BaseModel):
             sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id, subject)
-            URLLib3Session().send(AWSRequest(
-                method='POST',
-                url=self.endpoint,
-                data=post_data,
-                headers={'Content-Type': 'text/plain; charset=UTF-8'}
-            ))
+            requests.post(self.endpoint, json=post_data, headers={'Content-Type': 'text/plain; charset=UTF-8'})
         elif self.protocol == 'lambda':
             # TODO: support bad function name
             # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html

@@ -2,11 +2,13 @@ from __future__ import unicode_literals
 
 import base64
 import json
-
-import boto3
 import re
+
+import sure
+import boto3
 from freezegun import freeze_time
 
+from botocore.compat import urlencode
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 from moto import mock_sns, mock_sqs
@@ -253,9 +255,9 @@ def test_publish_to_sqs_in_different_region():
 def test_publish_to_http():
     def callback(request):
         request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
-        json.loads.when.called_with(
-            request.body.decode()
-        ).should_not.throw(Exception)
+        urlencode(
+            request.original.data, doseq=True
+        ).should.equal(request.body)
         return 200, {}, ""
 
     responses.add_callback(

@@ -12,5 +12,5 @@ def get(url):
     return _session.send(AWSRequest(method="GET", url=url).prepare())
 
 
-def post(url, data=None, json=None):
-    return _session.send(AWSRequest(method="POST", url=url, data=(data or json)).prepare())
+def post(url, data=None, json=None, headers=None):
+    return _session.send(AWSRequest(method="POST", url=url, data=(data or json), headers=headers).prepare())
