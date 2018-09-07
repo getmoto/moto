@@ -9,7 +9,7 @@ import re
 import six
 
 from moto import settings
-from moto.core import botocore_responses as responses
+from moto.vendored import responses
 from moto.packages.httpretty import HTTPretty
 from .utils import (
     convert_httpretty_response,

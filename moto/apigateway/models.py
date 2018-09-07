@@ -6,7 +6,7 @@ import string
 import time
 
 from boto3.session import Session
-from moto.core import botocore_responses as responses
+from moto.vendored import responses
 from moto.core import BaseBackend, BaseModel, requests
 from .utils import create_id
 from .exceptions import StageNotFoundException, ApiKeyNotFoundException
