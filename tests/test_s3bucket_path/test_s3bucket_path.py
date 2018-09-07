@@ -8,11 +8,11 @@ from boto.s3.key import Key
 from boto.s3.connection import OrdinaryCallingFormat
 
 from freezegun import freeze_time
-import requests
 
 import sure  # noqa
 
 from moto import mock_s3, mock_s3_deprecated
+from moto.core import requests
 
 
 def create_connection(key=None, secret=None):

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import boto3
 import re
-import requests.adapters
+from botocore.httpsession import URLLib3Session
 from itertools import cycle
 import six
 import datetime
@@ -25,7 +25,7 @@ from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
 
 
-_orig_adapter_send = requests.adapters.HTTPAdapter.send
+_orig_session_send = URLLib3Session.send
 logger = logging.getLogger(__name__)
 DEFAULT_ACCOUNT_ID = 123456789012
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$')
@@ -272,15 +272,11 @@ class Job(threading.Thread, BaseModel):
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
-        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
+        if URLLib3Session.send != _orig_session_send:
             _orig_get_adapter = self.docker_client.api.get_adapter
 
             def replace_adapter_send(*args, **kwargs):
-                adapter = _orig_get_adapter(*args, **kwargs)
-
-                if isinstance(adapter, requests.adapters.HTTPAdapter):
-                    adapter.send = functools.partial(_orig_adapter_send, adapter)
-                return adapter
+                return _orig_get_adapter(*args, **kwargs)
             self.docker_client.api.get_adapter = replace_adapter_send
 
     def describe(self):

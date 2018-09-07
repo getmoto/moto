@@ -2,12 +2,12 @@ from __future__ import unicode_literals
 
 
 import boto3
-from freezegun import freeze_time
-import requests
 import sure  # noqa
+from freezegun import freeze_time
 from botocore.exceptions import ClientError
 
-import responses
+from moto.core import botocore_responses as responses
+from moto.core import requests
 from moto import mock_apigateway, settings
 
 

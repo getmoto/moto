@@ -2,18 +2,15 @@ from __future__ import unicode_literals, print_function
 
 from decimal import Decimal
 
-import six
 import boto
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 import sure  # noqa
-import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError
 from tests.helpers import requires_boto_gte
-import tests.backport_assert_raises
 
 import moto.dynamodb2.comparisons
 import moto.dynamodb2.models

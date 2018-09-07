@@ -14,13 +14,12 @@ import json
 import re
 import zipfile
 import uuid
-import functools
 import tarfile
 import calendar
 import threading
 import traceback
 import weakref
-import requests.adapters
+from botocore.httpsession import URLLib3Session
 
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
@@ -44,7 +43,7 @@ except ImportError:
 
 
 _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
-_orig_adapter_send = requests.adapters.HTTPAdapter.send
+_orig_session_send = URLLib3Session.send
 docker_3 = docker.__version__.startswith("3")
 
 
@@ -148,15 +147,11 @@ class LambdaFunction(BaseModel):
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
-        if requests.adapters.HTTPAdapter.send != _orig_adapter_send:
+        if URLLib3Session.send != _orig_session_send:
             _orig_get_adapter = self.docker_client.api.get_adapter
 
             def replace_adapter_send(*args, **kwargs):
-                adapter = _orig_get_adapter(*args, **kwargs)
-
-                if isinstance(adapter, requests.adapters.HTTPAdapter):
-                    adapter.send = functools.partial(_orig_adapter_send, adapter)
-                return adapter
+                return _orig_get_adapter(*args, **kwargs)
             self.docker_client.api.get_adapter = replace_adapter_send
 
         # optional

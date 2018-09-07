@@ -228,7 +228,7 @@ MockAWS = ResponsesMockAWS
 class ServerModeMockAWS(BaseMockAWS):
 
     def reset(self):
-        import requests
+        from moto.core import requests
         requests.post("http://localhost:5000/moto-api/reset")
 
     def enable_patching(self):

@@ -2,8 +2,8 @@
 import json
 import os
 import subprocess
-import requests
 from bs4 import BeautifulSoup
+from moto.core import requests
 
 
 class Instance(object):

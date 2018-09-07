@@ -3,12 +3,11 @@ from __future__ import unicode_literals
 
 import random
 import string
-import requests
 import time
 
 from boto3.session import Session
-import responses
-from moto.core import BaseBackend, BaseModel
+from moto.core import botocore_responses as responses
+from moto.core import BaseBackend, BaseModel, requests
 from .utils import create_id
 from .exceptions import StageNotFoundException, ApiKeyNotFoundException
 

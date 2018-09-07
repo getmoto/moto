@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
+import json
 import sure  # noqa
-from nose.tools import assert_raises
-import requests
+from moto.core import requests
 
 from moto import mock_ec2, settings
 
@@ -20,7 +20,7 @@ def test_latest_meta_data():
 @mock_ec2
 def test_meta_data_iam():
     res = requests.get("{0}/latest/meta-data/iam".format(BASE_URL))
-    json_response = res.json()
+    json_response = json.loads(res.content.decode('utf-8'))
     default_role = json_response['security-credentials']['default-role']
     default_role.should.contain('AccessKeyId')
     default_role.should.contain('SecretAccessKey')
@@ -39,7 +39,7 @@ def test_meta_data_security_credentials():
 def test_meta_data_default_role():
     res = requests.get(
         "{0}/latest/meta-data/iam/security-credentials/default-role".format(BASE_URL))
-    json_response = res.json()
+    json_response = json.loads(res.content.decode('utf-8'))
     json_response.should.contain('AccessKeyId')
     json_response.should.contain('SecretAccessKey')
     json_response.should.contain('Token')

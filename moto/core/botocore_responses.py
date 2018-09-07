@@ -10,11 +10,11 @@ import six
 from collections import namedtuple, Sequence, Sized
 from functools import update_wrapper
 from cookies import Cookies
-from botocore.httpsession import URLLib3Session
 from requests.exceptions import ConnectionError
 from requests.sessions import REDIRECT_STATI
 from requests.utils import cookiejar_from_dict
 from urllib3.response import HTTPResponse
+from botocore.httpsession import URLLib3Session
 from botocore.awsrequest import AWSResponse
 
 if six.PY2:
@@ -537,6 +537,7 @@ class RequestsMock(object):
             raise response
 
         try:
+            request = self._decorate_request(request)
             response = self._build_response(request, match.get_response(request))
         except Exception as response:
             match.call_count += 1
@@ -559,6 +560,27 @@ class RequestsMock(object):
         match.call_count += 1
         self._calls.add(request, response)
         return response
+
+    def _decorate_request(self, req):
+        """
+        Fill missing attributes of AWSRequest
+        :param req:
+        :return:
+        """
+        url = []
+        p = urlsplit(req.url)
+        path = p.path
+        if not path:
+            path = '/'
+        url.append(path)
+        query = p.query
+        if query:
+            url.append('?')
+            url.append(query)
+        req.path_url = ''.join(url)
+        req.path = path
+        req.query_string = p.query
+        return req
 
     def _build_response(self, req, resp):
         """

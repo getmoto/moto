@@ -20,14 +20,13 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
 import six
-import requests
-import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import sure  # noqa
 
-from moto import settings, mock_s3, mock_s3_deprecated
 import moto.s3.models as s3model
+from moto import settings, mock_s3, mock_s3_deprecated
+from moto.core import requests
 
 if settings.TEST_SERVER_MODE:
     REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE

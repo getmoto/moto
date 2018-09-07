@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-import sure  # noqa
-from nose.tools import assert_raises
-import requests
+import json
 
+import sure  # noqa
 import boto3
 from moto import mock_sqs, settings
+from moto.core import requests
 
 base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else "http://motoapi.amazonaws.com"
 
@@ -27,7 +27,7 @@ def test_data_api():
     conn.create_queue(QueueName="queue1")
 
     res = requests.post("{base_url}/moto-api/data.json".format(base_url=base_url))
-    queues = res.json()['sqs']['Queue']
+    queues = json.loads(res.content.decode('utf-8'))['sqs']['Queue']
     len(queues).should.equal(1)
     queue = queues[0]
     queue['name'].should.equal("queue1")
