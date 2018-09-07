@@ -21,6 +21,7 @@ import traceback
 import weakref
 from botocore.httpsession import URLLib3Session
 
+import requests.exceptions
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError

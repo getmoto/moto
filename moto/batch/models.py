@@ -9,7 +9,6 @@ import time
 import uuid
 import logging
 import docker
-import functools
 import threading
 import dateutil.parser
 from moto.core import BaseBackend, BaseModel
