@@ -50,10 +50,6 @@ class Policy(BaseModel):
         self.create_datetime = datetime.now(pytz.utc)
         self.update_datetime = datetime.now(pytz.utc)
 
-    @property
-    def arn(self):
-        return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
-
 
 class PolicyVersion(object):
 
@@ -82,6 +78,10 @@ class ManagedPolicy(Policy):
         self.attachment_count -= 1
         del obj.managed_policies[self.name]
 
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:policy{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+
 
 class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
@@ -92,6 +92,10 @@ class AWSManagedPolicy(ManagedPolicy):
                    default_version_id=data.get('DefaultVersionId'),
                    path=data.get('Path'),
                    document=data.get('Document'))
+
+    @property
+    def arn(self):
+        return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
 
 
 # AWS defines some of its own managed policies and we periodically
@@ -900,6 +904,33 @@ class IAMBackend(BaseBackend):
 
     def delete_account_alias(self, alias):
         self.account_aliases = []
+
+    def get_account_authorization_details(self, filter):
+        policies = self.managed_policies.values()
+        local_policies = set(policies) - set(aws_managed_policies)
+        returned_policies = []
+
+        if len(filter) == 0:
+            return {
+                'instance_profiles': self.instance_profiles.values(),
+                'roles': self.roles.values(),
+                'groups': self.groups.values(),
+                'users': self.users.values(),
+                'managed_policies': self.managed_policies.values()
+            }
+
+        if 'AWSManagedPolicy' in filter:
+            returned_policies = aws_managed_policies
+        if 'LocalManagedPolicy' in filter:
+            returned_policies = returned_policies + list(local_policies)
+
+        return {
+            'instance_profiles': self.instance_profiles.values(),
+            'roles': self.roles.values() if 'Role' in filter else [],
+            'groups': self.groups.values() if 'Group' in filter else [],
+            'users': self.users.values() if 'User' in filter else [],
+            'managed_policies': returned_policies
+        }
 
 
 iam_backend = IAMBackend()

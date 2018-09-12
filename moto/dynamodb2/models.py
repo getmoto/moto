@@ -409,7 +409,8 @@ class Table(BaseModel):
                 current_attr = current
 
             for key, val in expected.items():
-                if 'Exists' in val and val['Exists'] is False:
+                if 'Exists' in val and val['Exists'] is False \
+                        or 'ComparisonOperator' in val and val['ComparisonOperator'] == 'NULL':
                     if key in current_attr:
                         raise ValueError("The conditional request failed")
                 elif key not in current_attr:
@@ -419,8 +420,10 @@ class Table(BaseModel):
                 elif 'ComparisonOperator' in val:
                     comparison_func = get_comparison_func(
                         val['ComparisonOperator'])
-                    dynamo_types = [DynamoType(ele) for ele in val[
-                        "AttributeValueList"]]
+                    dynamo_types = [
+                        DynamoType(ele) for ele in
+                        val.get("AttributeValueList", [])
+                    ]
                     for t in dynamo_types:
                         if not comparison_func(current_attr[key].value, t.value):
                             raise ValueError('The conditional request failed')
@@ -827,7 +830,8 @@ class DynamoDBBackend(BaseBackend):
             expected = {}
 
         for key, val in expected.items():
-            if 'Exists' in val and val['Exists'] is False:
+            if 'Exists' in val and val['Exists'] is False \
+                    or 'ComparisonOperator' in val and val['ComparisonOperator'] == 'NULL':
                 if key in item_attr:
                     raise ValueError("The conditional request failed")
             elif key not in item_attr:
@@ -837,8 +841,10 @@ class DynamoDBBackend(BaseBackend):
             elif 'ComparisonOperator' in val:
                 comparison_func = get_comparison_func(
                     val['ComparisonOperator'])
-                dynamo_types = [DynamoType(ele) for ele in val[
-                    "AttributeValueList"]]
+                dynamo_types = [
+                    DynamoType(ele) for ele in
+                    val.get("AttributeValueList", [])
+                ]
                 for t in dynamo_types:
                     if not comparison_func(item_attr[key].value, t.value):
                         raise ValueError('The conditional request failed')

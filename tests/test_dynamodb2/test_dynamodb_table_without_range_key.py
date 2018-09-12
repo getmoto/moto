@@ -596,7 +596,50 @@ def test_boto3_conditions():
 
 
 @mock_dynamodb2
-def test_boto3_put_item_conditions_fails():
+def test_boto3_put_item_conditions_pass():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.put_item(
+        Item={'username': 'johndoe', 'foo': 'baz'},
+        Expected={
+            'foo': {
+                'ComparisonOperator': 'EQ',
+                'AttributeValueList': ['bar']
+            }
+        })
+    final_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(final_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_put_item_conditions_pass_because_expect_not_exists_by_compare_to_null():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.put_item(
+        Item={'username': 'johndoe', 'foo': 'baz'},
+        Expected={
+            'whatever': {
+                'ComparisonOperator': 'NULL',
+            }
+        })
+    final_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(final_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_put_item_conditions_pass_because_expect_exists_by_compare_to_not_null():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.put_item(
+        Item={'username': 'johndoe', 'foo': 'baz'},
+        Expected={
+            'foo': {
+                'ComparisonOperator': 'NOT_NULL',
+            }
+        })
+    final_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(final_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_put_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
     table.put_item.when.called_with(
@@ -609,7 +652,7 @@ def test_boto3_put_item_conditions_fails():
         }).should.throw(botocore.client.ClientError)
 
 @mock_dynamodb2
-def test_boto3_update_item_conditions_fails():
+def test_boto3_update_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
     table.update_item.when.called_with(
@@ -622,7 +665,7 @@ def test_boto3_update_item_conditions_fails():
         }).should.throw(botocore.client.ClientError)
 
 @mock_dynamodb2
-def test_boto3_update_item_conditions_fails_because_expect_not_exists():
+def test_boto3_update_item_conditions_fail_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
     table.update_item.when.called_with(
@@ -631,6 +674,19 @@ def test_boto3_update_item_conditions_fails_because_expect_not_exists():
         Expected={
             'foo': {
                 'Exists': False
+            }
+        }).should.throw(botocore.client.ClientError)
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_fail_because_expect_not_exists_by_compare_to_null():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'baz'})
+    table.update_item.when.called_with(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=bar',
+        Expected={
+            'foo': {
+                'ComparisonOperator': 'NULL',
             }
         }).should.throw(botocore.client.ClientError)
 
@@ -650,7 +706,7 @@ def test_boto3_update_item_conditions_pass():
     assert dict(returned_item)['Item']['foo'].should.equal("baz")
 
 @mock_dynamodb2
-def test_boto3_update_item_conditions_pass_because_expext_not_exists():
+def test_boto3_update_item_conditions_pass_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
     table.update_item(
@@ -659,6 +715,36 @@ def test_boto3_update_item_conditions_pass_because_expext_not_exists():
         Expected={
             'whatever': {
                 'Exists': False,
+            }
+        })
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_pass_because_expect_not_exists_by_compare_to_null():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=baz',
+        Expected={
+            'whatever': {
+                'ComparisonOperator': 'NULL',
+            }
+        })
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal("baz")
+
+@mock_dynamodb2
+def test_boto3_update_item_conditions_pass_because_expect_exists_by_compare_to_not_null():
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe', 'foo': 'bar'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=baz',
+        Expected={
+            'foo': {
+                'ComparisonOperator': 'NOT_NULL',
             }
         })
     returned_item = table.get_item(Key={'username': 'johndoe'})

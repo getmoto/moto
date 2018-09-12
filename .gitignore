@@ -14,4 +14,5 @@ build/
 python_env
 .ropeproject/
 .pytest_cache/
+venv/
 

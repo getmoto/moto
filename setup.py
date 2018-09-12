@@ -9,7 +9,7 @@ install_requires = [
     "Jinja2>=2.7.3",
     "boto>=2.36.0",
     "boto3>=1.6.16",
-    "botocore>=1.9.16",
+    "botocore>=1.9.16,<1.11",
     "cookies",
     "cryptography>=2.0.0",
     "requests>=2.5",
@@ -41,7 +41,7 @@ else:
 
 setup(
     name='moto',
-    version='1.3.3',
+    version='1.3.5',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

@@ -89,6 +89,7 @@ def test_basic_shard_iterator():
     response = conn.get_records(shard_iterator)
     shard_iterator = response['NextShardIterator']
     response['Records'].should.equal([])
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis_deprecated
@@ -225,6 +226,7 @@ def test_get_records_after_sequence_number():
     response = conn.get_records(shard_iterator)
     # And the first result returned should be the third item
     response['Records'][0]['Data'].should.equal('3')
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis_deprecated
@@ -262,6 +264,7 @@ def test_get_records_latest():
     response['Records'].should.have.length_of(1)
     response['Records'][0]['PartitionKey'].should.equal('last_record')
     response['Records'][0]['Data'].should.equal('last_record')
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis
@@ -305,6 +308,7 @@ def test_get_records_at_timestamp():
     response['Records'].should.have.length_of(len(keys))
     partition_keys = [r['PartitionKey'] for r in response['Records']]
     partition_keys.should.equal(keys)
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis
@@ -330,10 +334,69 @@ def test_get_records_at_very_old_timestamp():
     shard_iterator = response['ShardIterator']
 
     response = conn.get_records(ShardIterator=shard_iterator)
-
     response['Records'].should.have.length_of(len(keys))
     partition_keys = [r['PartitionKey'] for r in response['Records']]
     partition_keys.should.equal(keys)
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_timestamp_filtering():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.put_record(StreamName=stream_name,
+                    Data='0',
+                    PartitionKey='0')
+
+    time.sleep(1.0)
+    timestamp = datetime.datetime.utcnow()
+
+    conn.put_record(StreamName=stream_name,
+                        Data='1',
+                        PartitionKey='1')
+
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='AT_TIMESTAMP',
+                                       Timestamp=timestamp)
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+    response['Records'].should.have.length_of(1)
+    response['Records'][0]['PartitionKey'].should.equal('1')
+    response['Records'][0]['ApproximateArrivalTimestamp'].should.be.\
+        greater_than(timestamp)
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_millis_behind_latest():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.put_record(StreamName=stream_name,
+                    Data='0',
+                    PartitionKey='0')
+    time.sleep(1.0)
+    conn.put_record(StreamName=stream_name,
+                    Data='1',
+                    PartitionKey='1')
+
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='TRIM_HORIZON')
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator, Limit=1)
+    response['Records'].should.have.length_of(1)
+    response['MillisBehindLatest'].should.be.greater_than(0)
 
 
 @mock_kinesis
@@ -363,6 +426,7 @@ def test_get_records_at_very_new_timestamp():
     response = conn.get_records(ShardIterator=shard_iterator)
 
     response['Records'].should.have.length_of(0)
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis
@@ -385,6 +449,7 @@ def test_get_records_from_empty_stream_at_timestamp():
     response = conn.get_records(ShardIterator=shard_iterator)
 
     response['Records'].should.have.length_of(0)
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis_deprecated

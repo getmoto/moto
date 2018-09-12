@@ -101,6 +101,6 @@ def test_s3_default_storage_class():
 
 	# tests that the default storage class is still STANDARD
 	list_of_objects["Contents"][0]["StorageClass"].should.equal("STANDARD")
-	
+
 
 

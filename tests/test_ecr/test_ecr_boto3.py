@@ -289,9 +289,31 @@ def test_list_images():
     len(response['imageIds']).should.be(1)
     response['imageIds'][0]['imageTag'].should.equal('oldest')
 
-    response = client.list_images(repositoryName='test_repository_2', registryId='109876543210')
-    type(response['imageIds']).should.be(list)
-    len(response['imageIds']).should.be(0)
+
+@mock_ecr
+def test_list_images_from_repository_that_doesnt_exist():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository_1'
+    )
+
+    # non existing repo
+    error_msg = re.compile(
+        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
+        re.MULTILINE)
+    client.list_images.when.called_with(
+        repositoryName='repo-that-doesnt-exist',
+        registryId='123',
+    ).should.throw(Exception, error_msg)
+
+    # repo does not exist in specified registry
+    error_msg = re.compile(
+        r".*The repository with name 'test_repository_1' does not exist in the registry with id '222'.*",
+        re.MULTILINE)
+    client.list_images.when.called_with(
+        repositoryName='test_repository_1',
+        registryId='222',
+    ).should.throw(Exception, error_msg)
 
 
 @mock_ecr

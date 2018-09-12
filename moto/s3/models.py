@@ -175,11 +175,14 @@ class FakeMultipart(BaseModel):
         count = 0
         for pn, etag in body:
             part = self.parts.get(pn)
-            if part is None or part.etag != etag:
+            part_etag = None
+            if part is not None:
+                part_etag = part.etag.replace('"', '')
+                etag = etag.replace('"', '')
+            if part is None or part_etag != etag:
                 raise InvalidPart()
             if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
-            part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
             last = part
@@ -718,7 +721,7 @@ class S3Backend(BaseBackend):
                 if key_name in bucket.keys:
                     key = bucket.keys[key_name]
             else:
-                for key_version in bucket.keys.getlist(key_name):
+                for key_version in bucket.keys.getlist(key_name, default=[]):
                     if str(key_version.version_id) == str(version_id):
                         key = key_version
                         break
