@@ -290,8 +290,8 @@ def amzn_request_id(f):
 
 def merge_taglists(taglist_a, taglist_b):
     ''' Merges two tag lists into a single tag list with Keys in the second list taking precedence'''
-    tags_a = {t['Key']:t for t in taglist_a}
-    tags_b = {t['Key']:t for t in taglist_b}
+    tags_a = {t['Key']: t for t in taglist_a}
+    tags_b = {t['Key']: t for t in taglist_b}
     merged_tags = tags_a.copy()
     merged_tags.update(tags_b)
     return merged_tags.values()
