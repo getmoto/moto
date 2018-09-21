@@ -13,7 +13,6 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.core.utils import merge_taglists
 from moto.ec2.models import ec2_backends
 from .exceptions import (RDSClientError,
                          DBInstanceNotFoundError,
@@ -418,10 +417,10 @@ class Database(BaseModel):
 
 
 class Snapshot(BaseModel):
-    def __init__(self, database, snapshot_id, tags=None):
+    def __init__(self, database, snapshot_id, tags):
         self.database = database
         self.snapshot_id = snapshot_id
-        self.tags = tags or []
+        self.tags = tags
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
@@ -712,8 +711,10 @@ class RDS2Backend(BaseBackend):
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
             raise SnapshotQuotaExceededError()
-        if database.copy_tags_to_snapshot:
-            tags = merge_taglists(database.tags, tags)
+        if tags is None:
+          tags = list()
+        if database.copy_tags_to_snapshot and not tags:
+            tags = database.get_tags()
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
         self.snapshots[db_snapshot_identifier] = snapshot
         return snapshot
@@ -810,13 +811,13 @@ class RDS2Backend(BaseBackend):
 
     def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
+            if db_snapshot_name:
+                self.create_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
             database.status = 'deleting'
-            if db_snapshot_name:
-                self.snapshots[db_snapshot_name] = Snapshot(database, db_snapshot_name)
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
