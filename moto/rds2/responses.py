@@ -19,6 +19,7 @@ class RDS2Response(BaseResponse):
             "allocated_storage": self._get_int_param('AllocatedStorage'),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
+            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param('DBInstanceClass'),
             "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
             "db_name": self._get_param("DBName"),
