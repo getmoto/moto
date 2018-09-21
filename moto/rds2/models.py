@@ -1083,7 +1083,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == 'snapshot':  # DB Snapshot
-                return None
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].remove_tags(tag_keys)
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].remove_tags(tag_keys)
@@ -1112,7 +1113,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].add_tags(tags)
             elif resource_type == 'snapshot':  # DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].add_tags(tags)
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)
