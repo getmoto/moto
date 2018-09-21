@@ -340,7 +340,7 @@ def test_create_db_snapshots():
     snapshot.get('Engine').should.equal('postgres')
     snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
     snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
-    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshot']['DBSnapshotArn'])
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshotArn'])
     result['TagList'].should.equal([])
 
 
@@ -378,7 +378,7 @@ def test_create_db_snapshots_copy_tags():
     snapshot.get('Engine').should.equal('postgres')
     snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
     snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
-    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshot']['DBSnapshotArn'])
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshotArn'])
     result['TagList'].should.equal([{'Value': 'bar',
                                      'Key': 'foo'},
                                     {'Value': 'bar1',
