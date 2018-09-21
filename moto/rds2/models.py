@@ -463,6 +463,20 @@ class Snapshot(BaseModel):
             </DBSnapshot>""")
         return template.render(snapshot=self, database=self.database)
 
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set[
+            'Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set[
+            'Key'] not in tag_keys]
+
 
 class SecurityGroup(BaseModel):
 
@@ -1037,8 +1051,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == 'snapshot':  # DB Snapshot
-                # TODO: Complete call to tags on resource type DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].get_tags()
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
