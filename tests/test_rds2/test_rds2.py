@@ -33,6 +33,7 @@ def test_create_database():
     db_instance['DBInstanceIdentifier'].should.equal("db-master-1")
     db_instance['IAMDatabaseAuthenticationEnabled'].should.equal(False)
     db_instance['DbiResourceId'].should.contain("db-")
+    db_instance['CopyTagsToSnapshot'].should.equal(False)
 
 
 @mock_rds2
@@ -339,6 +340,49 @@ def test_create_db_snapshots():
     snapshot.get('Engine').should.equal('postgres')
     snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
     snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshot']['DBSnapshotArn'])
+    result['TagList'].should.equal([])
+
+
+@mock_rds2
+def test_create_db_snapshots_copy_tags():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_snapshot.when.called_with(
+        DBInstanceIdentifier='db-primary-1',
+        DBSnapshotIdentifier='snapshot-1').should.throw(ClientError)
+
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"],
+                            CopyTagsToSnapshot=True,
+                            Tags=[
+                                {
+                                    'Key': 'foo',
+                                    'Value': 'bar',
+                                },
+                                {
+                                    'Key': 'foo1',
+                                    'Value': 'bar1',
+                                },
+                            ])
+
+    snapshot = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                       DBSnapshotIdentifier='g-1').get('DBSnapshot')
+
+    snapshot.get('Engine').should.equal('postgres')
+    snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
+    snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshot']['DBSnapshotArn'])
+    result['TagList'].should.equal([{'Value': 'bar',
+                                     'Key': 'foo'},
+                                    {'Value': 'bar1',
+                                     'Key': 'foo1'}])
 
 
 @mock_rds2

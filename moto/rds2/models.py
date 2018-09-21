@@ -73,6 +73,9 @@ class Database(BaseModel):
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
+        self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
+        if self.copy_tags_to_snapshot is None:
+            self.copy_tags_to_snapshot = False
         self.backup_retention_period = kwargs.get("backup_retention_period")
         if self.backup_retention_period is None:
             self.backup_retention_period = 1
@@ -208,6 +211,7 @@ class Database(BaseModel):
               </DBSubnetGroup>
               {% endif %}
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
+              <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
               <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>
@@ -304,6 +308,7 @@ class Database(BaseModel):
             "db_parameter_group_name": properties.get('DBParameterGroupName'),
             "port": properties.get('Port', 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
+            "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
             "region": region_name,
             "security_groups": security_groups,
             "storage_encrypted": properties.get("StorageEncrypted"),
@@ -362,6 +367,7 @@ class Database(BaseModel):
         "PreferredBackupWindow": "{{ database.preferred_backup_window }}",
         "PreferredMaintenanceWindow": "{{ database.preferred_maintenance_window }}",
         "PubliclyAccessible": "{{ database.publicly_accessible }}",
+        "CopyTagsToSnapshot": "{{ database.copy_tags_to_snapshot }}",
         "AllocatedStorage": "{{ database.allocated_storage }}",
         "Endpoint": {
             "Address": "{{ database.address }}",
@@ -691,6 +697,8 @@ class RDS2Backend(BaseBackend):
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
             raise SnapshotQuotaExceededError()
+        if not database.copy_tags_to_snapshot:
+            tags = None
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
         self.snapshots[db_snapshot_identifier] = snapshot
         return snapshot
