@@ -712,7 +712,7 @@ class RDS2Backend(BaseBackend):
         if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
             raise SnapshotQuotaExceededError()
         if tags is None:
-          tags = list()
+            tags = list()
         if database.copy_tags_to_snapshot and not tags:
             tags = database.get_tags()
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
