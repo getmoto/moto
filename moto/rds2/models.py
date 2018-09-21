@@ -13,6 +13,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import merge_taglists
 from moto.ec2.models import ec2_backends
 from .exceptions import (RDSClientError,
                          DBInstanceNotFoundError,
@@ -697,8 +698,8 @@ class RDS2Backend(BaseBackend):
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
             raise SnapshotQuotaExceededError()
-        if not database.copy_tags_to_snapshot:
-            tags = None
+        if database.copy_tags_to_snapshot:
+            tags = merge_taglists(database.tags, tags)
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
         self.snapshots[db_snapshot_identifier] = snapshot
         return snapshot
