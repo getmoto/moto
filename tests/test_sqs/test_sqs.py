@@ -41,6 +41,33 @@ def test_create_fifo_queue_fail():
 
 
 @mock_sqs
+def test_create_queue_with_same_attributes():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    dlq_url = sqs.create_queue(QueueName='test-queue-dlq')['QueueUrl']
+    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url)['Attributes']['QueueArn']
+
+    attributes = {
+        'DelaySeconds': '900',
+        'MaximumMessageSize': '262144',
+        'MessageRetentionPeriod': '1209600',
+        'ReceiveMessageWaitTimeSeconds': '20',
+        'RedrivePolicy': '{"deadLetterTargetArn": "%s", "maxReceiveCount": 100}' % (dlq_arn),
+        'VisibilityTimeout': '43200'
+    }
+
+    sqs.create_queue(
+        QueueName='test-queue',
+        Attributes=attributes
+    )
+
+    sqs.create_queue(
+        QueueName='test-queue',
+        Attributes=attributes
+    )
+
+
+@mock_sqs
 def test_create_queue_with_different_attributes_fail():
     sqs = boto3.client('sqs', region_name='us-east-1')
 
