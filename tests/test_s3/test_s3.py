@@ -2472,6 +2472,72 @@ def test_boto3_delete_markers():
 
 
 @mock_s3
+def test_boto3_multiple_delete_markers():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = u'key-with-versions-and-unicode-ó'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+
+    # Delete the object twice to add multiple delete markers
+    s3.delete_object(Bucket=bucket_name, Key=key)
+    s3.delete_object(Bucket=bucket_name, Key=key)
+
+    response = s3.list_object_versions(Bucket=bucket_name)
+    response['DeleteMarkers'].should.have.length_of(2)
+
+    with assert_raises(ClientError) as e:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key
+        )
+        e.response['Error']['Code'].should.equal('404')
+
+    # Remove both delete markers to restore the object
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key,
+        VersionId='2'
+    )
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key,
+        VersionId='3'
+    )
+
+    response = s3.get_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+    response['Body'].read().should.equal(items[-1])
+    response = s3.list_object_versions(Bucket=bucket_name)
+    response['Versions'].should.have.length_of(2)
+
+    # We've asserted there is only 2 records so one is newest, one is oldest
+    latest = list(filter(lambda item: item['IsLatest'], response['Versions']))[0]
+    oldest = list(filter(lambda item: not item['IsLatest'], response['Versions']))[0]
+
+    # Double check ordering of version ID's
+    latest['VersionId'].should.equal('1')
+    oldest['VersionId'].should.equal('0')
+
+    # Double check the name is still unicode
+    latest['Key'].should.equal('key-with-versions-and-unicode-ó')
+    oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
+
+@mock_s3
 def test_get_stream_gzipped():
     payload = b"this is some stuff here"
 
