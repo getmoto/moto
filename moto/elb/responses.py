@@ -259,12 +259,22 @@ class ELBResponse(BaseResponse):
 
     def describe_instance_health(self):
         load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [list(param.values())[0] for param in self._get_list_prefix('Instances.member')]
-        if len(instance_ids) == 0:
-            instance_ids = self.elb_backend.get_load_balancer(
-                load_balancer_name).instance_ids
+        provided_instance_ids = [
+            list(param.values())[0]
+            for param in self._get_list_prefix('Instances.member')
+        ]
+        registered_instances_id = self.elb_backend.get_load_balancer(
+            load_balancer_name).instance_ids
+        if len(provided_instance_ids) == 0:
+            provided_instance_ids = registered_instances_id
         template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
-        return template.render(instance_ids=instance_ids)
+        instances = []
+        for instance_id in provided_instance_ids:
+            state = "InService" \
+                if instance_id in registered_instances_id\
+                else "Unknown"
+            instances.append({"InstanceId": instance_id, "State": state})
+        return template.render(instances=instances)
 
     def add_tags(self):
 
@@ -689,11 +699,11 @@ SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE = """<SetLoadBalancerPoli
 DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeInstanceHealthResult>
     <InstanceStates>
-      {% for instance_id in instance_ids %}
+      {% for instance in instances %}
       <member>
         <Description>N/A</Description>
-        <InstanceId>{{ instance_id }}</InstanceId>
-        <State>InService</State>
+        <InstanceId>{{ instance['InstanceId'] }}</InstanceId>
+        <State>{{ instance['State'] }}</State>
         <ReasonCode>N/A</ReasonCode>
       </member>
       {% endfor %}
