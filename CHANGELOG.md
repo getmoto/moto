@@ -1,6 +1,11 @@
 Moto Changelog
 ===================
 
+1.3.6
+-----
+
+    * Fix boto3 pinning.
+
 1.3.5
 -----
 
