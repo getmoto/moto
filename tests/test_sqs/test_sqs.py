@@ -1222,3 +1222,16 @@ def test_receive_messages_with_message_group_id_on_visibility_timeout():
         messages = queue.receive_messages()
         messages.should.have.length_of(1)
         messages[0].message_id.should.equal(message.message_id)
+
+@mock_sqs
+def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    queue = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'ReceiveMessageWaitTimeSeconds': '2',
+        }
+    )
+
+    queue.receive_messages()
