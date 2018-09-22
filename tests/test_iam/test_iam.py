@@ -315,6 +315,22 @@ def test_get_policy_version():
         VersionId=version.get('PolicyVersion').get('VersionId'))
     retrieved.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
 
+@mock_iam
+def test_get_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_policy(
+        PolicyName="TestGetPolicy",
+        PolicyDocument='{"some":"policy"}')
+    version = conn.create_policy_version(
+        PolicyArn="arn:aws:iam::aws:policy/TestGetPolicy",
+        PolicyDocument='{"some":"policy"}')
+    with assert_raises(ClientError):
+        conn.get_policy(
+            PolicyArn="arn:aws:iam::aws:policy/TestGetPolicy"
+    retrieved = conn.get_policy(
+        PolicyArn="arn:aws:iam::aws:policy/TestGetPolicy",
+        VersionId=version.get('PolicyVersion').get('VersionId'))
+    retrieved.get('Policy').get('Document').should.equal({'some':'policy'})
 
 @mock_iam
 def test_list_policy_versions():
