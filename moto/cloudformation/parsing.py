@@ -387,6 +387,7 @@ class ResourceMap(collections.Mapping):
             "AWS::StackName": stack_name,
             "AWS::URLSuffix": "amazonaws.com",
             "AWS::NoValue": None,
+            "AWS::Partition": "aws",
         }
 
     def __getitem__(self, key):
