@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+import sure  # noqa
 
 import boto3
 
@@ -555,7 +556,10 @@ def test_create_job():
     client = boto3.client('iot', region_name='eu-west-1')
     name = "my-thing"
     job_id = "TestJob"
-    # thing
+    # thing# job document
+    #     job_document = {
+    #         "field": "value"
+    #     }
     thing = client.create_thing(thingName=name)
     thing.should.have.key('thingName').which.should.equal(name)
     thing.should.have.key('thingArn')
@@ -718,16 +722,21 @@ def test_get_job_document_with_document_source():
 def test_get_job_document_with_document():
     client = boto3.client('iot', region_name='eu-west-1')
     name = "my-thing"
-    job_id = "TestJob1"
+    job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
     thing.should.have.key('thingName').which.should.equal(name)
     thing.should.have.key('thingArn')
 
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
     job = client.create_job(
         jobId=job_id,
         targets=[thing["thingArn"]],
-        document=json.dumps({'foo': 'bar'}),
+        document=json.dumps(job_document),
         presignedUrlConfig={
             'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
             'expiresInSec': 123
@@ -742,4 +751,4 @@ def test_get_job_document_with_document():
     job.should.have.key('jobArn')
 
     job_document = client.get_job_document(jobId=job_id)
-    job_document.should.have.key('document').which.should.equal('')
+    job_document.should.have.key('document').which.should.equal("{\"field\": \"value\"}")

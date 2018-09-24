@@ -153,7 +153,7 @@ class IoTResponse(BaseResponse):
         job = self.iot_backend.get_job_document(job_id=self._get_param("jobId"))
 
         if job.document is not None:
-            json.dumps({'document': job.document})
+            return json.dumps({'document': job.document})
         else:
             # job.document_source is not None:
             # TODO: needs to be implemented to get document_source's content from S3
