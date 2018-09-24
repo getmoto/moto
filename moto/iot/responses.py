@@ -149,6 +149,16 @@ class IoTResponse(BaseResponse):
                 targetSelection=job.target_selection
             )))
 
+    def get_job_document(self):
+        job = self.iot_backend.get_job_document(job_id=self._get_param("jobId"))
+
+        if job.document is not None:
+            json.dumps({'document': job.document})
+        else:
+            # job.document_source is not None:
+            # TODO: needs to be implemented to get document_source's content from S3
+            return json.dumps({'document': ''})
+
     def create_keys_and_certificate(self):
         set_as_active = self._get_bool_param("setAsActive")
         cert, key_pair = self.iot_backend.create_keys_and_certificate(

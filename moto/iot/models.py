@@ -610,6 +610,9 @@ class IoTBackend(BaseBackend):
     def describe_job(self, job_id):
         return self.jobs[job_id]
 
+    def get_job_document(self, job_id):
+        return self.jobs[job_id]
+
 
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}

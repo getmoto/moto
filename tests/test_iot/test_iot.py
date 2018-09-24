@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-import sure  # noqa
+
 import boto3
 
 from moto import mock_iot
@@ -681,3 +681,65 @@ def test_describe_job_1():
         "expiresInSec").which.should.equal(123)
     job.should.have.key('job').which.should.have.key("jobExecutionsRolloutConfig").which.should.have.key(
         "maximumPerMinute").which.should.equal(10)
+
+
+@mock_iot
+def test_get_job_document_with_document_source():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job_document = client.get_job_document(jobId=job_id)
+    job_document.should.have.key('document').which.should.equal('')
+
+
+@mock_iot
+def test_get_job_document_with_document():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob1"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps({'foo': 'bar'}),
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job_document = client.get_job_document(jobId=job_id)
+    job_document.should.have.key('document').which.should.equal('')
