@@ -73,6 +73,9 @@ class Database(BaseModel):
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
+        self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
+        if self.copy_tags_to_snapshot is None:
+            self.copy_tags_to_snapshot = False
         self.backup_retention_period = kwargs.get("backup_retention_period")
         if self.backup_retention_period is None:
             self.backup_retention_period = 1
@@ -208,6 +211,7 @@ class Database(BaseModel):
               </DBSubnetGroup>
               {% endif %}
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
+              <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
               <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>
@@ -304,6 +308,7 @@ class Database(BaseModel):
             "db_parameter_group_name": properties.get('DBParameterGroupName'),
             "port": properties.get('Port', 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
+            "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
             "region": region_name,
             "security_groups": security_groups,
             "storage_encrypted": properties.get("StorageEncrypted"),
@@ -362,6 +367,7 @@ class Database(BaseModel):
         "PreferredBackupWindow": "{{ database.preferred_backup_window }}",
         "PreferredMaintenanceWindow": "{{ database.preferred_maintenance_window }}",
         "PubliclyAccessible": "{{ database.publicly_accessible }}",
+        "CopyTagsToSnapshot": "{{ database.copy_tags_to_snapshot }}",
         "AllocatedStorage": "{{ database.allocated_storage }}",
         "Endpoint": {
             "Address": "{{ database.address }}",
@@ -411,10 +417,10 @@ class Database(BaseModel):
 
 
 class Snapshot(BaseModel):
-    def __init__(self, database, snapshot_id, tags=None):
+    def __init__(self, database, snapshot_id, tags):
         self.database = database
         self.snapshot_id = snapshot_id
-        self.tags = tags or []
+        self.tags = tags
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
@@ -455,6 +461,20 @@ class Snapshot(BaseModel):
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
             </DBSnapshot>""")
         return template.render(snapshot=self, database=self.database)
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set[
+            'Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set[
+            'Key'] not in tag_keys]
 
 
 class SecurityGroup(BaseModel):
@@ -691,6 +711,10 @@ class RDS2Backend(BaseBackend):
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
             raise SnapshotQuotaExceededError()
+        if tags is None:
+            tags = list()
+        if database.copy_tags_to_snapshot and not tags:
+            tags = database.get_tags()
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
         self.snapshots[db_snapshot_identifier] = snapshot
         return snapshot
@@ -787,13 +811,13 @@ class RDS2Backend(BaseBackend):
 
     def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
+            if db_snapshot_name:
+                self.create_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
             database.status = 'deleting'
-            if db_snapshot_name:
-                self.snapshots[db_snapshot_name] = Snapshot(database, db_snapshot_name)
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
@@ -1028,8 +1052,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == 'snapshot':  # DB Snapshot
-                # TODO: Complete call to tags on resource type DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].get_tags()
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
@@ -1059,7 +1083,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == 'snapshot':  # DB Snapshot
-                return None
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].remove_tags(tag_keys)
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].remove_tags(tag_keys)
@@ -1088,7 +1113,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].add_tags(tags)
             elif resource_type == 'snapshot':  # DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].add_tags(tags)
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)

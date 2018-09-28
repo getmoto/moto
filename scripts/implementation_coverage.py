@@ -10,12 +10,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_moto_implementation(service_name):
-    if not hasattr(moto, service_name):
+    service_name_standardized = service_name.replace("-", "") if "-" in service_name else service_name
+    if not hasattr(moto, service_name_standardized):
         return None
-    module = getattr(moto, service_name)
+    module = getattr(moto, service_name_standardized)
     if module is None:
         return None
-    mock = getattr(module, "mock_{}".format(service_name))
+    mock = getattr(module, "mock_{}".format(service_name_standardized))
     if mock is None:
         return None
     backends = list(mock().backends.values())

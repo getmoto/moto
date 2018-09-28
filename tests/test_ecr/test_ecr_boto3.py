@@ -45,7 +45,8 @@ def _create_image_manifest():
             {
                 "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
                 "size": 73109,
-                "digest": _create_image_digest("layer3")
+                # randomize image digest
+                "digest": _create_image_digest()
             }
         ]
     }
@@ -197,6 +198,47 @@ def test_put_image():
     response['image']['repositoryName'].should.equal('test_repository')
     response['image']['registryId'].should.equal('012345678910')
 
+@mock_ecr
+def test_put_image_with_multiple_tags():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+    manifest = _create_image_manifest()
+    response = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest),
+        imageTag='v1'
+    )
+
+    response['image']['imageId']['imageTag'].should.equal('v1')
+    response['image']['imageId']['imageDigest'].should.contain("sha")
+    response['image']['repositoryName'].should.equal('test_repository')
+    response['image']['registryId'].should.equal('012345678910')
+
+    response1 = client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest),
+        imageTag='latest'
+    )
+
+    response1['image']['imageId']['imageTag'].should.equal('latest')
+    response1['image']['imageId']['imageDigest'].should.contain("sha")
+    response1['image']['repositoryName'].should.equal('test_repository')
+    response1['image']['registryId'].should.equal('012345678910')
+
+    response2 = client.describe_images(repositoryName='test_repository')
+    type(response2['imageDetails']).should.be(list)
+    len(response2['imageDetails']).should.be(1)
+
+    response2['imageDetails'][0]['imageDigest'].should.contain("sha")
+
+    response2['imageDetails'][0]['registryId'].should.equal("012345678910")
+
+    response2['imageDetails'][0]['repositoryName'].should.equal("test_repository")
+
+    len(response2['imageDetails'][0]['imageTags']).should.be(2)
+    response2['imageDetails'][0]['imageTags'].should.be.equal(['v1', 'latest'])
 
 @mock_ecr
 def test_list_images():
@@ -283,6 +325,11 @@ def test_describe_images():
 
     _ = client.put_image(
         repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest())
+    )
+
+    _ = client.put_image(
+        repositoryName='test_repository',
         imageManifest=json.dumps(_create_image_manifest()),
         imageTag='latest'
     )
@@ -301,32 +348,37 @@ def test_describe_images():
 
     response = client.describe_images(repositoryName='test_repository')
     type(response['imageDetails']).should.be(list)
-    len(response['imageDetails']).should.be(3)
+    len(response['imageDetails']).should.be(4)
 
     response['imageDetails'][0]['imageDigest'].should.contain("sha")
     response['imageDetails'][1]['imageDigest'].should.contain("sha")
     response['imageDetails'][2]['imageDigest'].should.contain("sha")
+    response['imageDetails'][3]['imageDigest'].should.contain("sha")
 
     response['imageDetails'][0]['registryId'].should.equal("012345678910")
     response['imageDetails'][1]['registryId'].should.equal("012345678910")
     response['imageDetails'][2]['registryId'].should.equal("012345678910")
+    response['imageDetails'][3]['registryId'].should.equal("012345678910")
 
     response['imageDetails'][0]['repositoryName'].should.equal("test_repository")
     response['imageDetails'][1]['repositoryName'].should.equal("test_repository")
     response['imageDetails'][2]['repositoryName'].should.equal("test_repository")
+    response['imageDetails'][3]['repositoryName'].should.equal("test_repository")
 
-    len(response['imageDetails'][0]['imageTags']).should.be(1)
+    response['imageDetails'][0].should_not.have.key('imageTags')
     len(response['imageDetails'][1]['imageTags']).should.be(1)
     len(response['imageDetails'][2]['imageTags']).should.be(1)
+    len(response['imageDetails'][3]['imageTags']).should.be(1)
 
     image_tags = ['latest', 'v1', 'v2']
-    set([response['imageDetails'][0]['imageTags'][0],
-         response['imageDetails'][1]['imageTags'][0],
-         response['imageDetails'][2]['imageTags'][0]]).should.equal(set(image_tags))
+    set([response['imageDetails'][1]['imageTags'][0],
+         response['imageDetails'][2]['imageTags'][0],
+         response['imageDetails'][3]['imageTags'][0]]).should.equal(set(image_tags))
 
     response['imageDetails'][0]['imageSizeInBytes'].should.equal(52428800)
     response['imageDetails'][1]['imageSizeInBytes'].should.equal(52428800)
     response['imageDetails'][2]['imageSizeInBytes'].should.equal(52428800)
+    response['imageDetails'][3]['imageSizeInBytes'].should.equal(52428800)
 
 
 @mock_ecr
@@ -353,6 +405,68 @@ def test_describe_images_by_tag():
         image_detail['repositoryName'].should.equal("test_repository")
         image_detail['imageTags'].should.equal([put_response['imageId']['imageTag']])
         image_detail['imageDigest'].should.equal(put_response['imageId']['imageDigest'])
+
+
+@mock_ecr
+def test_describe_images_tags_should_not_contain_empty_tag1():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest)
+    )
+
+    tags = ['v1', 'v2', 'latest']
+    for tag in tags:
+        client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    response = client.describe_images(repositoryName='test_repository', imageIds=[{'imageTag': tag}])
+    len(response['imageDetails']).should.be(1)
+    image_detail = response['imageDetails'][0]
+    len(image_detail['imageTags']).should.equal(3)
+    image_detail['imageTags'].should.be.equal(tags)
+
+
+@mock_ecr
+def test_describe_images_tags_should_not_contain_empty_tag2():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+    tags = ['v1', 'v2']
+    for tag in tags:
+        client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest)
+    )
+
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(manifest),
+        imageTag='latest'
+    )
+
+    response = client.describe_images(repositoryName='test_repository', imageIds=[{'imageTag': tag}])
+    len(response['imageDetails']).should.be(1)
+    image_detail = response['imageDetails'][0]
+    len(image_detail['imageTags']).should.equal(3)
+    image_detail['imageTags'].should.be.equal(['v1', 'v2', 'latest'])
 
 
 @mock_ecr

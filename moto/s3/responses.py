@@ -1273,10 +1273,10 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% endfor %}
     {% for marker in delete_marker_list %}
     <DeleteMarker>
-        <Key>{{ marker.key.name }}</Key>
+        <Key>{{ marker.name }}</Key>
         <VersionId>{{ marker.version_id }}</VersionId>
-        <IsLatest>{% if latest_versions[marker.key.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
-        <LastModified>{{ marker.key.last_modified_ISO8601 }}</LastModified>
+        <IsLatest>{% if latest_versions[marker.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
+        <LastModified>{{ marker.last_modified_ISO8601 }}</LastModified>
         <Owner>
             <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
             <DisplayName>webfile</DisplayName>

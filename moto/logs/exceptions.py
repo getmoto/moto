@@ -29,5 +29,5 @@ class ResourceAlreadyExistsException(LogsClientError):
         self.code = 400
         super(ResourceAlreadyExistsException, self).__init__(
             'ResourceAlreadyExistsException',
-            'The specified resource already exists.'
+            'The specified log group already exists'
         )
