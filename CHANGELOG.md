@@ -1,6 +1,25 @@
 Moto Changelog
 ===================
 
+1.3.6
+-----
+
+    * Fix boto3 pinning.
+
+1.3.5
+-----
+
+    * Pin down botocore issue as temporary fix for #1793.
+    * More features on secrets manager
+
+1.3.4
+------
+
+    * IAM get account authorization details
+    * adding account id to ManagedPolicy ARN
+    * APIGateway usage plans and usage plan keys
+    * ECR list images
+
 1.3.3
 ------
     

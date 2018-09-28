@@ -44,3 +44,21 @@ class SecretsManagerResponse(BaseResponse):
             include_space=include_space,
             require_each_included_type=require_each_included_type
         )
+
+    def describe_secret(self):
+        secret_id = self._get_param('SecretId')
+        return secretsmanager_backends[self.region].describe_secret(
+            secret_id=secret_id
+        )
+
+    def rotate_secret(self):
+        client_request_token = self._get_param('ClientRequestToken')
+        rotation_lambda_arn = self._get_param('RotationLambdaARN')
+        rotation_rules = self._get_param('RotationRules')
+        secret_id = self._get_param('SecretId')
+        return secretsmanager_backends[self.region].rotate_secret(
+            secret_id=secret_id,
+            client_request_token=client_request_token,
+            rotation_lambda_arn=rotation_lambda_arn,
+            rotation_rules=rotation_rules
+        )

@@ -6,13 +6,17 @@ from botocore.session import Session
 import boto3
 
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+
 def get_moto_implementation(service_name):
-    if not hasattr(moto, service_name):
+    service_name_standardized = service_name.replace("-", "") if "-" in service_name else service_name
+    if not hasattr(moto, service_name_standardized):
         return None
-    module = getattr(moto, service_name)
+    module = getattr(moto, service_name_standardized)
     if module is None:
         return None
-    mock = getattr(module, "mock_{}".format(service_name))
+    mock = getattr(module, "mock_{}".format(service_name_standardized))
     if mock is None:
         return None
     backends = list(mock().backends.values())
@@ -72,20 +76,22 @@ def write_implementation_coverage_to_file(coverage):
     except OSError:
         pass
 
-    for service_name in sorted(coverage):
-        implemented = coverage.get(service_name)['implemented']
-        not_implemented = coverage.get(service_name)['not_implemented']
-        operations = sorted(implemented + not_implemented)
+    implementation_coverage_file = "{}/../IMPLEMENTATION_COVERAGE.md".format(script_dir)
+    # rewrite the implementation coverage file with updated values
+    print("Writing to {}".format(implementation_coverage_file))
+    with open(implementation_coverage_file, "a+") as file:
+        for service_name in sorted(coverage):
+            implemented = coverage.get(service_name)['implemented']
+            not_implemented = coverage.get(service_name)['not_implemented']
+            operations = sorted(implemented + not_implemented)
 
-        if implemented and not_implemented:
-            percentage_implemented = int(100.0 * len(implemented) / (len(implemented) + len(not_implemented)))
-        elif implemented:
-            percentage_implemented = 100
-        else:
-            percentage_implemented = 0
+            if implemented and not_implemented:
+                percentage_implemented = int(100.0 * len(implemented) / (len(implemented) + len(not_implemented)))
+            elif implemented:
+                percentage_implemented = 100
+            else:
+                percentage_implemented = 0
 
-        # rewrite the implementation coverage file with updated values
-        with open("../IMPLEMENTATION_COVERAGE.md", "a+") as file:
             file.write("\n")
             file.write("## {} - {}% implemented\n".format(service_name, percentage_implemented))
             for op in operations:

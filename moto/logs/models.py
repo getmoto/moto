@@ -86,7 +86,7 @@ class LogStream:
         self.events += [LogEvent(self.lastIngestionTime, log_event) for log_event in log_events]
         self.uploadSequenceToken += 1
 
-        return self.uploadSequenceToken
+        return '{:056d}'.format(self.uploadSequenceToken)
 
     def get_log_events(self, log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head):
         def filter_func(event):

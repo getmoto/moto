@@ -1,5 +1,6 @@
 import boto3
 import sure  # noqa
+import six
 from botocore.exceptions import ClientError
 
 from moto import mock_logs, settings
@@ -47,7 +48,7 @@ def test_exceptions():
         logEvents=[
             {
                 'timestamp': 0,
-            'message': 'line'
+                'message': 'line'
             },
         ],
     )
@@ -79,7 +80,7 @@ def test_put_logs():
         {'timestamp': 0, 'message': 'hello'},
         {'timestamp': 0, 'message': 'world'}
     ]
-    conn.put_log_events(
+    putRes = conn.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         logEvents=messages
@@ -89,6 +90,9 @@ def test_put_logs():
         logStreamName=log_stream_name
     )
     events = res['events']
+    nextSequenceToken = putRes['nextSequenceToken']
+    assert isinstance(nextSequenceToken, six.string_types) == True
+    assert len(nextSequenceToken) == 56
     events.should.have.length_of(2)
 
 
