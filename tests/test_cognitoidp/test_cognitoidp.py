@@ -327,7 +327,6 @@ def test_admin_create_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     username = str(uuid.uuid4())
-    username = str(uuid.uuid4())
     value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.admin_create_user(
