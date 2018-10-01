@@ -295,8 +295,10 @@ class BotocoreStubber(object):
 
         return response
 
+
 botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(('before-send', botocore_stubber))
+
 
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self):
