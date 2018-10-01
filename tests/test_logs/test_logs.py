@@ -121,4 +121,8 @@ def test_filter_logs_interleaved():
         interleaved=True,
     )
     events = res['events']
-    events.should.have.length_of(2)
+    for original_message, resulting_event in zip(messages, events):
+        resulting_event['eventId'].should.equal(str(resulting_event['eventId']))
+        resulting_event['timestamp'].should.equal(original_message['timestamp'])
+        resulting_event['message'].should.equal(original_message['message'])
+

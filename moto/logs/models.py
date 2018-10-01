@@ -19,7 +19,7 @@ class LogEvent:
 
     def to_filter_dict(self):
         return {
-            "eventId": self.eventId,
+            "eventId": str(self.eventId),
             "ingestionTime": self.ingestionTime,
             # "logStreamName":
             "message": self.message,
