@@ -304,6 +304,52 @@ def test_create_service():
     response['service']['status'].should.equal('ACTIVE')
     response['service']['taskDefinition'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+    response['service']['schedulingStrategy'].should.equal('REPLICA')
+
+@mock_ecs
+def test_create_service_scheduling_strategy():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        schedulingStrategy='DAEMON',
+    )
+    response['service']['clusterArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster')
+    response['service']['desiredCount'].should.equal(2)
+    len(response['service']['events']).should.equal(0)
+    len(response['service']['loadBalancers']).should.equal(0)
+    response['service']['pendingCount'].should.equal(0)
+    response['service']['runningCount'].should.equal(0)
+    response['service']['serviceArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service')
+    response['service']['serviceName'].should.equal('test_ecs_service')
+    response['service']['status'].should.equal('ACTIVE')
+    response['service']['taskDefinition'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+    response['service']['schedulingStrategy'].should.equal('DAEMON')
 
 
 @mock_ecs
@@ -412,6 +458,72 @@ def test_describe_services():
 
 
 @mock_ecs
+def test_describe_services_scheduling_strategy():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    _ = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service1',
+        taskDefinition='test_ecs_task',
+        desiredCount=2
+    )
+    _ = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service2',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        schedulingStrategy='DAEMON'
+    )
+    _ = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service3',
+        taskDefinition='test_ecs_task',
+        desiredCount=2
+    )
+    response = client.describe_services(
+        cluster='test_ecs_cluster',
+        services=['test_ecs_service1',
+                  'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2',
+                  'test_ecs_service3']
+    )
+    len(response['services']).should.equal(3)
+    response['services'][0]['serviceArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
+    response['services'][0]['serviceName'].should.equal('test_ecs_service1')
+    response['services'][1]['serviceArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2')
+    response['services'][1]['serviceName'].should.equal('test_ecs_service2')
+
+    response['services'][0]['deployments'][0]['desiredCount'].should.equal(2)
+    response['services'][0]['deployments'][0]['pendingCount'].should.equal(2)
+    response['services'][0]['deployments'][0]['runningCount'].should.equal(0)
+    response['services'][0]['deployments'][0]['status'].should.equal('PRIMARY')
+
+    response['services'][0]['schedulingStrategy'].should.equal('REPLICA')
+    response['services'][1]['schedulingStrategy'].should.equal('DAEMON')
+    response['services'][2]['schedulingStrategy'].should.equal('REPLICA')
+
+
+@mock_ecs
 def test_update_service():
     client = boto3.client('ecs', region_name='us-east-1')
     _ = client.create_cluster(
@@ -449,6 +561,7 @@ def test_update_service():
         desiredCount=0
     )
     response['service']['desiredCount'].should.equal(0)
+    response['service']['schedulingStrategy'].should.equal('REPLICA')
 
 
 @mock_ecs
@@ -515,8 +628,10 @@ def test_delete_service():
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service')
     response['service']['serviceName'].should.equal('test_ecs_service')
     response['service']['status'].should.equal('ACTIVE')
+    response['service']['schedulingStrategy'].should.equal('REPLICA')
     response['service']['taskDefinition'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+        
 
 
 @mock_ec2

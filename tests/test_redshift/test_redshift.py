@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import datetime
+
 import boto
 import boto3
 from boto.redshift.exceptions import (
@@ -32,6 +34,8 @@ def test_create_cluster_boto3():
         MasterUserPassword='password',
     )
     response['Cluster']['NodeType'].should.equal('ds2.xlarge')
+    create_time = response['Cluster']['ClusterCreateTime']
+    create_time.should.be.lower_than(datetime.datetime.now(create_time.tzinfo))
 
 
 @mock_redshift

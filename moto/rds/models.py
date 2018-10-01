@@ -48,6 +48,10 @@ class Database(BaseModel):
         if self.publicly_accessible is None:
             self.publicly_accessible = True
 
+        self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
+        if self.copy_tags_to_snapshot is None:
+            self.copy_tags_to_snapshot = False
+
         self.backup_retention_period = kwargs.get("backup_retention_period")
         if self.backup_retention_period is None:
             self.backup_retention_period = 1
@@ -137,6 +141,7 @@ class Database(BaseModel):
             "multi_az": properties.get("MultiAZ"),
             "port": properties.get('Port', 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
+            "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
             "region": region_name,
             "security_groups": security_groups,
             "storage_encrypted": properties.get("StorageEncrypted"),
@@ -217,6 +222,7 @@ class Database(BaseModel):
               </DBSubnetGroup>
               {% endif %}
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
+              <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
               <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>

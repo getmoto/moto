@@ -26,13 +26,13 @@ def test_get_secret_that_does_not_exist():
         result = conn.get_secret_value(SecretId='i-dont-exist')
 
 @mock_secretsmanager
-def test_get_secret_with_mismatched_id():
+def test_get_secret_that_does_not_match():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
     create_secret = conn.create_secret(Name='java-util-test-password',
                                        SecretString="foosecret")
 
     with assert_raises(ClientError):
-        result = conn.get_secret_value(SecretId='i-dont-exist')
+        result = conn.get_secret_value(SecretId='i-dont-match')
 
 @mock_secretsmanager
 def test_create_secret():
@@ -179,3 +179,108 @@ def test_describe_secret_that_does_not_match():
     
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-match')
+
+@mock_secretsmanager
+def test_rotate_secret():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    rotated_secret = conn.rotate_secret(SecretId=secret_name)
+
+    assert rotated_secret
+    assert rotated_secret['ARN'] == (
+        'arn:aws:secretsmanager:us-west-2:1234567890:secret:test-secret-rIjad'
+    )
+    assert rotated_secret['Name'] == secret_name
+    assert rotated_secret['VersionId'] != ''
+
+@mock_secretsmanager
+def test_rotate_secret_enable_rotation():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    initial_description = conn.describe_secret(SecretId=secret_name)
+    assert initial_description
+    assert initial_description['RotationEnabled'] is False
+    assert initial_description['RotationRules']['AutomaticallyAfterDays'] == 0
+
+    conn.rotate_secret(SecretId=secret_name,
+                       RotationRules={'AutomaticallyAfterDays': 42})
+
+    rotated_description = conn.describe_secret(SecretId=secret_name)
+    assert rotated_description
+    assert rotated_description['RotationEnabled'] is True
+    assert rotated_description['RotationRules']['AutomaticallyAfterDays'] == 42
+
+@mock_secretsmanager
+def test_rotate_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', 'us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId='i-dont-exist')
+
+@mock_secretsmanager
+def test_rotate_secret_that_does_not_match():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId='i-dont-match')
+
+@mock_secretsmanager
+def test_rotate_secret_client_request_token_too_short():
+    # Test is intentionally empty. Boto3 catches too short ClientRequestToken
+    # and raises ParamValidationError before Moto can see it.
+    # test_server actually handles this error.
+    assert True
+
+@mock_secretsmanager
+def test_rotate_secret_client_request_token_too_long():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    client_request_token = (
+        'ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-'
+        'ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C'
+    )
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId=secret_name,
+                                    ClientRequestToken=client_request_token)
+
+@mock_secretsmanager
+def test_rotate_secret_rotation_lambda_arn_too_long():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    rotation_lambda_arn = '85B7-446A-B7E4' * 147    # == 2058 characters
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId=secret_name,
+                                    RotationLambdaARN=rotation_lambda_arn)
+
+@mock_secretsmanager
+def test_rotate_secret_rotation_period_zero():
+    # Test is intentionally empty. Boto3 catches zero day rotation period
+    # and raises ParamValidationError before Moto can see it.
+    # test_server actually handles this error.
+    assert True
+
+@mock_secretsmanager
+def test_rotate_secret_rotation_period_too_long():
+    secret_name = 'test-secret'
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=secret_name,
+                       SecretString='foosecret')
+
+    rotation_rules = {'AutomaticallyAfterDays': 1001}
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId=secret_name,
+                                    RotationRules=rotation_rules)

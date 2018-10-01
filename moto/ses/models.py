@@ -49,7 +49,8 @@ class SESBackend(BaseBackend):
         self.sent_messages = []
         self.sent_message_count = 0
 
-    def _is_verified_address(self, address):
+    def _is_verified_address(self, source):
+        _, address = parseaddr(source)
         if address in self.addresses:
             return True
         user, host = address.split('@', 1)
