@@ -191,6 +191,135 @@ def test_lifecycle_with_eodm():
     assert err.exception.response["Error"]["Code"] == "MalformedXML"
 
 
+@mock_s3
+def test_lifecycle_with_nve():
+    client = boto3.client("s3")
+    client.create_bucket(Bucket="bucket")
+
+    lfc = {
+        "Rules": [
+            {
+                "NoncurrentVersionExpiration": {
+                    "NoncurrentDays": 30
+                },
+                "ID": "wholebucket",
+                "Filter": {
+                    "Prefix": ""
+                },
+                "Status": "Enabled"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 30
+
+    # Change NoncurrentDays:
+    lfc["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] = 10
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 10
+
+    # With failures for missing children:
+    del lfc["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"]
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+
+@mock_s3
+def test_lifecycle_with_nvt():
+    client = boto3.client("s3")
+    client.create_bucket(Bucket="bucket")
+
+    lfc = {
+        "Rules": [
+            {
+                "NoncurrentVersionTransition": {
+                    "NoncurrentDays": 30,
+                    "StorageClass": "ONEZONE_IA"
+                },
+                "ID": "wholebucket",
+                "Filter": {
+                    "Prefix": ""
+                },
+                "Status": "Enabled"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] == 30
+    assert result["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"] == "ONEZONE_IA"
+
+    # Change NoncurrentDays:
+    lfc["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] = 10
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] == 10
+
+    # Change StorageClass:
+    lfc["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"] = "GLACIER"
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"] == "GLACIER"
+
+    # With failures for missing children:
+    del lfc["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"]
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    lfc["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] = 30
+
+    del lfc["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"]
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+
+@mock_s3
+def test_lifecycle_with_aimu():
+    client = boto3.client("s3")
+    client.create_bucket(Bucket="bucket")
+
+    lfc = {
+        "Rules": [
+            {
+                "AbortIncompleteMultipartUpload": {
+                    "DaysAfterInitiation": 7
+                },
+                "ID": "wholebucket",
+                "Filter": {
+                    "Prefix": ""
+                },
+                "Status": "Enabled"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] == 7
+
+    # Change DaysAfterInitiation:
+    lfc["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] = 30
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] == 30
+
+    # With failures for missing children:
+    del lfc["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+
 @mock_s3_deprecated
 def test_lifecycle_with_glacier_transition():
     conn = boto.s3.connect_to_region("us-west-1")

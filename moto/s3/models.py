@@ -341,8 +341,9 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleRule(BaseModel):
 
     def __init__(self, id=None, prefix=None, lc_filter=None, status=None, expiration_days=None,
-                 expiration_date=None, transition_days=None, expired_object_delete_marker=None,
-                 transition_date=None, storage_class=None):
+                 expiration_date=None, transition_days=None, transition_date=None, storage_class=None,
+                 expired_object_delete_marker=None, nve_noncurrent_days=None, nvt_noncurrent_days=None,
+                 nvt_storage_class=None, aimu_days=None):
         self.id = id
         self.prefix = prefix
         self.filter = lc_filter
@@ -351,8 +352,12 @@ class LifecycleRule(BaseModel):
         self.expiration_date = expiration_date
         self.transition_days = transition_days
         self.transition_date = transition_date
-        self.expired_object_delete_marker = expired_object_delete_marker
         self.storage_class = storage_class
+        self.expired_object_delete_marker = expired_object_delete_marker
+        self.nve_noncurrent_days = nve_noncurrent_days
+        self.nvt_noncurrent_days = nvt_noncurrent_days
+        self.nvt_storage_class = nvt_storage_class
+        self.aimu_days = aimu_days
 
 
 class CorsRule(BaseModel):
@@ -414,8 +419,12 @@ class FakeBucket(BaseModel):
     def set_lifecycle(self, rules):
         self.rules = []
         for rule in rules:
+            # Extract actions from Lifecycle rule
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
+            nve = rule.get('NoncurrentVersionExpiration')
+            nvt = rule.get('NoncurrentVersionTransition')
+            aimu = rule.get('AbortIncompleteMultipartUpload')
 
             eodm = None
             if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
@@ -459,11 +468,14 @@ class FakeBucket(BaseModel):
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
-                expired_object_delete_marker=eodm,
                 transition_days=transition.get('Days') if transition else None,
                 transition_date=transition.get('Date') if transition else None,
-                storage_class=transition[
-                    'StorageClass'] if transition else None,
+                storage_class=transition.get('StorageClass') if transition else None,
+                expired_object_delete_marker=eodm,
+                nve_noncurrent_days = nve.get('NoncurrentDays') if nve else None,
+                nvt_noncurrent_days = nvt.get('NoncurrentDays') if nvt else None,
+                nvt_storage_class = nvt.get('StorageClass') if nvt else None,
+                aimu_days=aimu.get('DaysAfterInitiation') if aimu else None,
             ))
 
     def delete_lifecycle(self):
