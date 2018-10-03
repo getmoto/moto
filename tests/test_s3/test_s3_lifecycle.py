@@ -237,10 +237,10 @@ def test_lifecycle_with_nvt():
     lfc = {
         "Rules": [
             {
-                "NoncurrentVersionTransition": {
+                "NoncurrentVersionTransitions": [{
                     "NoncurrentDays": 30,
                     "StorageClass": "ONEZONE_IA"
-                },
+                }],
                 "ID": "wholebucket",
                 "Filter": {
                     "Prefix": ""
@@ -252,31 +252,31 @@ def test_lifecycle_with_nvt():
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] == 30
-    assert result["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"] == "ONEZONE_IA"
+    assert result["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] == 30
+    assert result["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"] == "ONEZONE_IA"
 
     # Change NoncurrentDays:
-    lfc["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] = 10
+    lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] = 10
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] == 10
+    assert result["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] == 10
 
     # Change StorageClass:
-    lfc["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"] = "GLACIER"
+    lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"] = "GLACIER"
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"] == "GLACIER"
+    assert result["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"] == "GLACIER"
 
     # With failures for missing children:
-    del lfc["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"]
+    del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"]
     with assert_raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     assert err.exception.response["Error"]["Code"] == "MalformedXML"
-    lfc["Rules"][0]["NoncurrentVersionTransition"]["NoncurrentDays"] = 30
+    lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] = 30
 
-    del lfc["Rules"][0]["NoncurrentVersionTransition"]["StorageClass"]
+    del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"]
     with assert_raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     assert err.exception.response["Error"]["Code"] == "MalformedXML"

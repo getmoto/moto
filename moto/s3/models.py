@@ -419,12 +419,31 @@ class FakeBucket(BaseModel):
     def set_lifecycle(self, rules):
         self.rules = []
         for rule in rules:
-            # Extract actions from Lifecycle rule
+            # Extract and validate actions from Lifecycle rule
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
-            nve = rule.get('NoncurrentVersionExpiration')
-            nvt = rule.get('NoncurrentVersionTransition')
-            aimu = rule.get('AbortIncompleteMultipartUpload')
+
+            nve_noncurrent_days = None
+            if rule.get('NoncurrentVersionExpiration'):
+                if not rule["NoncurrentVersionExpiration"].get('NoncurrentDays'):
+                    raise MalformedXML()
+                nve_noncurrent_days = rule["NoncurrentVersionExpiration"]["NoncurrentDays"]
+
+            nvt_noncurrent_days = None
+            nvt_storage_class = None
+            if rule.get('NoncurrentVersionTransition'):
+                if not rule["NoncurrentVersionTransition"].get('NoncurrentDays'):
+                    raise MalformedXML()
+                if not rule["NoncurrentVersionTransition"].get('StorageClass'):
+                    raise MalformedXML()
+                nvt_noncurrent_days = rule["NoncurrentVersionTransition"]["NoncurrentDays"]
+                nvt_storage_class = rule["NoncurrentVersionTransition"]["StorageClass"]
+
+            aimu_days = None
+            if rule.get('AbortIncompleteMultipartUpload'):
+                if not rule["AbortIncompleteMultipartUpload"].get('DaysAfterInitiation'):
+                    raise MalformedXML()
+                aimu_days = rule["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
 
             eodm = None
             if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
@@ -472,10 +491,10 @@ class FakeBucket(BaseModel):
                 transition_date=transition.get('Date') if transition else None,
                 storage_class=transition.get('StorageClass') if transition else None,
                 expired_object_delete_marker=eodm,
-                nve_noncurrent_days=nve.get('NoncurrentDays') if nve else None,
-                nvt_noncurrent_days=nvt.get('NoncurrentDays') if nvt else None,
-                nvt_storage_class=nvt.get('StorageClass') if nvt else None,
-                aimu_days=aimu.get('DaysAfterInitiation') if aimu else None,
+                nve_noncurrent_days=nve_noncurrent_days,
+                nvt_noncurrent_days=nvt_noncurrent_days,
+                nvt_storage_class=nvt_storage_class,
+                aimu_days=aimu_days,
             ))
 
     def delete_lifecycle(self):
