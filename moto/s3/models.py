@@ -472,9 +472,9 @@ class FakeBucket(BaseModel):
                 transition_date=transition.get('Date') if transition else None,
                 storage_class=transition.get('StorageClass') if transition else None,
                 expired_object_delete_marker=eodm,
-                nve_noncurrent_days = nve.get('NoncurrentDays') if nve else None,
-                nvt_noncurrent_days = nvt.get('NoncurrentDays') if nvt else None,
-                nvt_storage_class = nvt.get('StorageClass') if nvt else None,
+                nve_noncurrent_days=nve.get('NoncurrentDays') if nve else None,
+                nvt_noncurrent_days=nvt.get('NoncurrentDays') if nvt else None,
+                nvt_storage_class=nvt.get('StorageClass') if nvt else None,
                 aimu_days=aimu.get('DaysAfterInitiation') if aimu else None,
             ))
 
