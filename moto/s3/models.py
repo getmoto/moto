@@ -424,14 +424,14 @@ class FakeBucket(BaseModel):
             transition = rule.get('Transition')
 
             nve_noncurrent_days = None
-            if rule.get('NoncurrentVersionExpiration'):
+            if rule.get('NoncurrentVersionExpiration') is not None:
                 if rule["NoncurrentVersionExpiration"].get('NoncurrentDays') is None:
                     raise MalformedXML()
                 nve_noncurrent_days = rule["NoncurrentVersionExpiration"]["NoncurrentDays"]
 
             nvt_noncurrent_days = None
             nvt_storage_class = None
-            if rule.get('NoncurrentVersionTransition'):
+            if rule.get('NoncurrentVersionTransition') is not None:
                 if rule["NoncurrentVersionTransition"].get('NoncurrentDays') is None:
                     raise MalformedXML()
                 if rule["NoncurrentVersionTransition"].get('StorageClass') is None:
@@ -440,7 +440,7 @@ class FakeBucket(BaseModel):
                 nvt_storage_class = rule["NoncurrentVersionTransition"]["StorageClass"]
 
             aimu_days = None
-            if rule.get('AbortIncompleteMultipartUpload'):
+            if rule.get('AbortIncompleteMultipartUpload') is not None:
                 if rule["AbortIncompleteMultipartUpload"].get('DaysAfterInitiation') is None:
                     raise MalformedXML()
                 aimu_days = rule["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
