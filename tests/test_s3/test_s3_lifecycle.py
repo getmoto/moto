@@ -222,11 +222,7 @@ def test_lifecycle_with_nve():
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 10
 
-    # With failures for missing children:
-    del lfc["Rules"][0]["NoncurrentVersionExpiration"]["NoncurrentDays"]
-    with assert_raises(ClientError) as err:
-        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    # TODO: Add test for failures due to missing children
 
 
 @mock_s3
@@ -313,11 +309,7 @@ def test_lifecycle_with_aimu():
     assert len(result["Rules"]) == 1
     assert result["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] == 30
 
-    # With failures for missing children:
-    del lfc["Rules"][0]["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
-    with assert_raises(ClientError) as err:
-        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    # TODO: Add test for failures due to missing children
 
 
 @mock_s3_deprecated
