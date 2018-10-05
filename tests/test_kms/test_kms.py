@@ -8,6 +8,8 @@ from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
+from freezegun import freeze_time
+from datetime import datetime, timedelta
 
 
 @mock_kms_deprecated
@@ -652,11 +654,12 @@ def test_enable_key():
 def test_schedule_key_deletion():
     client = boto3.client('kms', region_name='us-east-1')
     key = client.create_key(description='schedule-key-deletion')
-    response = client.schedule_key_deletion(
-        KeyId=key['KeyMetadata']['KeyId']
-    )
-    assert response['KeyId'] == 'schedule-key-deletion'
-    assert response['DeletionDate'] == datetime.now() + timedelta(days=30)
+    with freeze_time("2015-01-01 12:00:00"):
+        response = client.schedule_key_deletion(
+            KeyId=key['KeyMetadata']['KeyId']
+        )
+        assert response['KeyId'] == 'schedule-key-deletion'
+        assert response['DeletionDate'] == datetime.now() + timedelta(days=30)
 
     result = client.describe_key(KeyId='schedule-key-deletion')
     assert result["KeyMetadata"]["Enabled"] == False
@@ -668,12 +671,13 @@ def test_schedule_key_deletion():
 def test_schedule_key_deletion_custom():
     client = boto3.client('kms', region_name='us-east-1')
     key = client.create_key(description='schedule-key-deletion')
-    response = client.schedule_key_deletion(
-        KeyId=key['KeyMetadata']['KeyId'],
-        PendingWindowInDays=7
-    )
-    assert response['KeyId'] == 'schedule-key-deletion'
-    assert response['DeletionDate'] == datetime.now() + timedelta(days=7)
+    with freeze_time("2015-01-01 12:00:00"):
+        response = client.schedule_key_deletion(
+            KeyId=key['KeyMetadata']['KeyId'],
+            PendingWindowInDays=7
+        )
+        assert response['KeyId'] == 'schedule-key-deletion'
+        assert response['DeletionDate'] == datetime.now() + timedelta(days=7)
 
     result = client.describe_key(KeyId='schedule-key-deletion')
     assert result["KeyMetadata"]["Enabled"] == False

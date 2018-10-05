@@ -4,6 +4,7 @@ import boto.kms
 from moto.core import BaseBackend, BaseModel
 from .utils import generate_key_id
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 
 class Key(BaseModel):
