@@ -41,7 +41,8 @@ class Key(BaseModel):
                 "KeyState": self.key_state,
             }
         }
-        key_dict['KeyMetadata']['DeletionDate'] = self.deletion_date if self.key_state == 'PendingDeletion'
+        if self.key_state == 'PendingDeletion':
+            key_dict['KeyMetadata']['DeletionDate'] = self.deletion_date
         return key_dict
 
     def delete(self, region_name):
