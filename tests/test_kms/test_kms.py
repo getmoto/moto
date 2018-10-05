@@ -617,3 +617,83 @@ def test_kms_encrypt_boto3():
 
     response = client.decrypt(CiphertextBlob=response['CiphertextBlob'])
     response['Plaintext'].should.equal(b'bar')
+
+
+@mock_kms
+def test_disable_key():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(description='disable-key')
+    client.disable_key(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+
+    result = client.describe_key(KeyId='disable-key')
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'Disabled'
+
+
+@mock_kms
+def test_enable_key():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(description='enable-key')
+    client.disable_key(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    client.enable_key(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+
+    result = client.describe_key(KeyId='enable-key')
+    assert result["KeyMetadata"]["Enabled"] == True
+    assert result["KeyMetadata"]["KeyState"] == 'Enabled'
+
+
+@mock_kms
+def test_schedule_key_deletion():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(description='schedule-key-deletion')
+    response = client.schedule_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    assert response['KeyId'] == 'schedule-key-deletion'
+    assert response['DeletionDate'] == datetime.now() + timedelta(days=30)
+
+    result = client.describe_key(KeyId='schedule-key-deletion')
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'PendingDeletion'
+    assert 'DeletionDate' in result["KeyMetadata"]
+
+
+@mock_kms
+def test_schedule_key_deletion_custom():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(description='schedule-key-deletion')
+    response = client.schedule_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId'],
+        PendingWindowInDays=7
+    )
+    assert response['KeyId'] == 'schedule-key-deletion'
+    assert response['DeletionDate'] == datetime.now() + timedelta(days=7)
+
+    result = client.describe_key(KeyId='schedule-key-deletion')
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'PendingDeletion'
+    assert 'DeletionDate' in result["KeyMetadata"]
+
+
+@mock_kms
+def test_cancel_key_deletion():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(description='cancel-key-deletion')
+    client.schedule_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    response = client.cancel_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    assert response['KeyId'] == 'cancel-key-deletion'
+
+    result = client.describe_key(KeyId='cancel-key-deletion')
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'Disabled'
+    assert 'DeletionDate' not in result["KeyMetadata"]
