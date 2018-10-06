@@ -160,7 +160,7 @@ class KmsBackend(BaseBackend):
             self.keys[key_id].key_state = 'Disabled'
             self.keys[key_id].deletion_date = None
 
-    def schedule_key_deletion(self, key_id, pending_window_in_days=30):
+    def schedule_key_deletion(self, key_id, pending_window_in_days):
         if key_id in self.keys:
             if 7 <= pending_window_in_days <= 30:
                 self.keys[key_id].enabled = False

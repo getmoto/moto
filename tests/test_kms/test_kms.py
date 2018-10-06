@@ -9,6 +9,7 @@ import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
 from freezegun import freeze_time
+from datetime import datetime, timedelta
 
 
 @mock_kms_deprecated
@@ -658,7 +659,7 @@ def test_schedule_key_deletion():
             KeyId=key['KeyMetadata']['KeyId']
         )
         assert response['KeyId'] == key['KeyMetadata']['KeyId']
-        assert response['DeletionDate'] == '2015-01-31T12:00:00.000Z'
+        assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzlocal())
 
     result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
@@ -676,7 +677,7 @@ def test_schedule_key_deletion_custom():
             PendingWindowInDays=7
         )
         assert response['KeyId'] == key['KeyMetadata']['KeyId']
-        assert response['DeletionDate'] == '2015-01-08T12:00:00.000Z'
+        assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzlocal())
 
     result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False

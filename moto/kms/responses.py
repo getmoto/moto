@@ -269,7 +269,10 @@ class KmsResponse(BaseResponse):
 
     def schedule_key_deletion(self):
         key_id = self.parameters.get('KeyId')
-        pending_window_in_days = self.parameters.get('PendingWindowInDays')
+        if self.parameters.get('PendingWindowInDays') is None:
+            pending_window_in_days = 30
+        else:
+            pending_window_in_days = self.parameters.get('PendingWindowInDays')
         _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             return json.dumps({
