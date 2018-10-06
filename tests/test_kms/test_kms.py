@@ -623,8 +623,8 @@ def test_kms_encrypt_boto3():
 
 @mock_kms
 def test_disable_key():
-    client = boto3.client('kms', region_name='us-east-1')
-    key = client.create_key(description='disable-key')
+    client = boto3.client('kms')
+    key = client.create_key(Description='disable-key')
     client.disable_key(
         KeyId=key['KeyMetadata']['KeyId']
     )
@@ -636,8 +636,8 @@ def test_disable_key():
 
 @mock_kms
 def test_enable_key():
-    client = boto3.client('kms', region_name='us-east-1')
-    key = client.create_key(description='enable-key')
+    client = boto3.client('kms')
+    key = client.create_key(Description='enable-key')
     client.disable_key(
         KeyId=key['KeyMetadata']['KeyId']
     )
@@ -652,8 +652,8 @@ def test_enable_key():
 
 @mock_kms
 def test_schedule_key_deletion():
-    client = boto3.client('kms', region_name='us-east-1')
-    key = client.create_key(description='schedule-key-deletion')
+    client = boto3.client('kms')
+    key = client.create_key(Description='schedule-key-deletion')
     with freeze_time("2015-01-01 12:00:00"):
         response = client.schedule_key_deletion(
             KeyId=key['KeyMetadata']['KeyId']
@@ -669,8 +669,8 @@ def test_schedule_key_deletion():
 
 @mock_kms
 def test_schedule_key_deletion_custom():
-    client = boto3.client('kms', region_name='us-east-1')
-    key = client.create_key(description='schedule-key-deletion')
+    client = boto3.client('kms')
+    key = client.create_key(Description='schedule-key-deletion')
     with freeze_time("2015-01-01 12:00:00"):
         response = client.schedule_key_deletion(
             KeyId=key['KeyMetadata']['KeyId'],
@@ -687,8 +687,8 @@ def test_schedule_key_deletion_custom():
 
 @mock_kms
 def test_cancel_key_deletion():
-    client = boto3.client('kms', region_name='us-east-1')
-    key = client.create_key(description='cancel-key-deletion')
+    client = boto3.client('kms')
+    key = client.create_key(Description='cancel-key-deletion')
     client.schedule_key_deletion(
         KeyId=key['KeyMetadata']['KeyId']
     )
