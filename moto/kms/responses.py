@@ -271,8 +271,8 @@ class KmsResponse(BaseResponse):
         _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             return json.dumps({
-              'KeyId': key_id,
-              'DeletionDate': self.kms_backend.schedule_key_deletion(key_id)
+                'KeyId': key_id,
+                'DeletionDate': self.kms_backend.schedule_key_deletion(key_id)
             })
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
