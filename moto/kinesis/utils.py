@@ -22,7 +22,7 @@ def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting
 
 
 def compose_shard_iterator(stream_name, shard, last_sequence_id):
-    return base64.encodestring(
+    return base64.encodebytes(
         "{0}:{1}:{2}".format(
             stream_name,
             shard.shard_id,
