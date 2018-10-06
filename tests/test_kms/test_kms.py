@@ -10,6 +10,7 @@ from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
 from freezegun import freeze_time
 from datetime import datetime, timedelta
+from dateutil.tz import tzlocal
 
 
 @mock_kms_deprecated
