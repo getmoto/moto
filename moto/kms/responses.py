@@ -269,11 +269,12 @@ class KmsResponse(BaseResponse):
 
     def schedule_key_deletion(self):
         key_id = self.parameters.get('KeyId')
+        pending_window_in_days = self.parameters.get('PendingWindowInDays')
         _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
         try:
             return json.dumps({
                 'KeyId': key_id,
-                'DeletionDate': iso_8601_datetime_without_milliseconds(self.kms_backend.schedule_key_deletion(key_id))
+                'DeletionDate': iso_8601_datetime_without_milliseconds(self.kms_backend.schedule_key_deletion(key_id, pending_window_in_days))
             })
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={
