@@ -9,7 +9,6 @@ from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .models import kms_backends
 
 reserved_aliases = [
@@ -277,7 +276,7 @@ class KmsResponse(BaseResponse):
         try:
             return json.dumps({
                 'KeyId': key_id,
-                'DeletionDate': iso_8601_datetime_without_milliseconds(self.kms_backend.schedule_key_deletion(key_id, pending_window_in_days))
+                'DeletionDate': self.kms_backend.schedule_key_deletion(key_id, pending_window_in_days)
             })
         except KeyError:
             raise JSONResponseError(404, 'Not Found', body={

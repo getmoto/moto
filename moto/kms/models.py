@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import boto.kms
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .utils import generate_key_id
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -43,7 +44,7 @@ class Key(BaseModel):
             }
         }
         if self.key_state == 'PendingDeletion':
-            key_dict['KeyMetadata']['DeletionDate'] = self.deletion_date
+            key_dict['KeyMetadata']['DeletionDate'] = iso_8601_datetime_without_milliseconds(self.deletion_date)
         return key_dict
 
     def delete(self, region_name):
@@ -166,7 +167,7 @@ class KmsBackend(BaseBackend):
                 self.keys[key_id].enabled = False
                 self.keys[key_id].key_state = 'PendingDeletion'
                 self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
-                return self.keys[key_id].deletion_date
+                return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
 
 
 kms_backends = {}
