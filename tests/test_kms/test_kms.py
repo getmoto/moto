@@ -658,10 +658,10 @@ def test_schedule_key_deletion():
         response = client.schedule_key_deletion(
             KeyId=key['KeyMetadata']['KeyId']
         )
-        assert response['KeyId'] == 'schedule-key-deletion'
+        assert response['KeyId'] == key['KeyMetadata']['KeyId']
         assert response['DeletionDate'] == datetime.now() + timedelta(days=30)
 
-    result = client.describe_key(KeyId='schedule-key-deletion')
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
     assert result["KeyMetadata"]["KeyState"] == 'PendingDeletion'
     assert 'DeletionDate' in result["KeyMetadata"]
@@ -676,10 +676,10 @@ def test_schedule_key_deletion_custom():
             KeyId=key['KeyMetadata']['KeyId'],
             PendingWindowInDays=7
         )
-        assert response['KeyId'] == 'schedule-key-deletion'
+        assert response['KeyId'] == key['KeyMetadata']['KeyId']
         assert response['DeletionDate'] == datetime.now() + timedelta(days=7)
 
-    result = client.describe_key(KeyId='schedule-key-deletion')
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
     assert result["KeyMetadata"]["KeyState"] == 'PendingDeletion'
     assert 'DeletionDate' in result["KeyMetadata"]
@@ -695,9 +695,9 @@ def test_cancel_key_deletion():
     response = client.cancel_key_deletion(
         KeyId=key['KeyMetadata']['KeyId']
     )
-    assert response['KeyId'] == 'cancel-key-deletion'
+    assert response['KeyId'] == key['KeyMetadata']['KeyId']
 
-    result = client.describe_key(KeyId='cancel-key-deletion')
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
     assert result["KeyMetadata"]["KeyState"] == 'Disabled'
     assert 'DeletionDate' not in result["KeyMetadata"]
