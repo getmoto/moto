@@ -7,6 +7,7 @@ from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from nose.tools import assert_raises
 from freezegun import freeze_time
 from datetime import datetime, timedelta
@@ -629,7 +630,7 @@ def test_disable_key():
         KeyId=key['KeyMetadata']['KeyId']
     )
 
-    result = client.describe_key(KeyId='disable-key')
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
     assert result["KeyMetadata"]["KeyState"] == 'Disabled'
 
@@ -645,7 +646,7 @@ def test_enable_key():
         KeyId=key['KeyMetadata']['KeyId']
     )
 
-    result = client.describe_key(KeyId='enable-key')
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == True
     assert result["KeyMetadata"]["KeyState"] == 'Enabled'
 
@@ -659,7 +660,7 @@ def test_schedule_key_deletion():
             KeyId=key['KeyMetadata']['KeyId']
         )
         assert response['KeyId'] == key['KeyMetadata']['KeyId']
-        assert response['DeletionDate'] == datetime.now() + timedelta(days=30)
+        assert response['DeletionDate'] == iso_8601_datetime_without_milliseconds(datetime.now() + timedelta(days=30))
 
     result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
@@ -677,7 +678,7 @@ def test_schedule_key_deletion_custom():
             PendingWindowInDays=7
         )
         assert response['KeyId'] == key['KeyMetadata']['KeyId']
-        assert response['DeletionDate'] == datetime.now() + timedelta(days=7)
+        assert response['DeletionDate'] == iso_8601_datetime_without_milliseconds(datetime.now() + timedelta(days=7))
 
     result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
