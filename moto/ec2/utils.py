@@ -4,6 +4,7 @@ import fnmatch
 import random
 import re
 import six
+import uuid
 
 EC2_RESOURCE_TO_PREFIX = {
     'customer-gateway': 'cgw',
@@ -173,6 +174,10 @@ def random_ip():
 
 def random_ipv6_cidr():
     return "2400:6500:{}:{}::/56".format(random_resource_id(4), random_resource_id(4))
+
+
+def random_reserved_instance_id():
+    return str(uuid.uuid4())
 
 
 def generate_route_id(route_table_id, cidr_block):

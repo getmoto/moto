@@ -1,0 +1,49 @@
+ReservedInstancesOfferings,InstanceType,ProductDescription,InstanceTenancy,OfferingClass,OfferingType,AvailabilityZone,Duration,Scope,Marketplace,FixedPrice,UsagePrice,CurrencyCode,Amount,Frequency
+42198468-090f-4601-82da-3899bf4d6c52,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,eu-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,2.834,Hourly
+fcdc03bb-b65f-4674-ac85-b0db3e276940,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,eu-west-2a,94608000,Availability Zone,0,0.0,0.0,USD,2.834,Hourly
+7741ef7b-6d0d-4aca-aaa2-628f91db66fc,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-2a,94608000,Availability Zone,0,34479.0,0.0,USD,1.312,Hourly
+c104fde0-8125-4ebc-a9a2-dc2f2bf4a07f,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,eu-west-2a,94608000,Availability Zone,0,34479.0,0.0,USD,1.312,Hourly
+3cc3be2a-adb3-4979-bcc2-efac3ea24fd1,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,eu-west-2a,94608000,Availability Zone,0,64821.0,0.0,USD,0.0,Hourly
+b4b8eaca-dd8a-487e-963c-24e6eab1172e,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,eu-west-2a,94608000,Availability Zone,0,64821.0,0.0,USD,0.0,Hourly
+2816accc-9524-4c7b-b9ea-8d9971338ecb,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,eu-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,3.965,Hourly
+b5692c21-8080-415c-a16c-7ec4864139ad,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,eu-west-2a,31536000,Availability Zone,0,0.0,0.0,USD,3.965,Hourly
+b18230dd-0ce4-4fb8-af1b-6c320399630c,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,eu-west-2a,31536000,Availability Zone,0,16539.0,0.0,USD,1.888,Hourly
+c0813e73-5d0c-4e57-8d5d-92fd8dd65d21,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-2a,31536000,Availability Zone,0,16539.0,0.0,USD,1.888,Hourly
+1a56edd5-5c6f-4215-92b2-a3034105830d,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,eu-west-2a,31536000,Availability Zone,0,32416.0,0.0,USD,0.0,Hourly
+c1f2b49d-2c3b-4408-a60c-0f0cb88c4d0d,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,eu-west-2a,31536000,Availability Zone,0,32416.0,0.0,USD,0.0,Hourly
+7152856b-e7c3-4896-bb56-2beda452534e,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,eu-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,2.834,Hourly
+871fc93a-809b-4fb1-942b-8b9cba6922b6,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,eu-west-2b,94608000,Availability Zone,0,0.0,0.0,USD,2.834,Hourly
+7eb21eda-3d44-43aa-80aa-aa16cded870a,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-2b,94608000,Availability Zone,0,34479.0,0.0,USD,1.312,Hourly
+e4be29b6-374d-4a31-bb7b-996e9ddbf5da,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,eu-west-2b,94608000,Availability Zone,0,34479.0,0.0,USD,1.312,Hourly
+4aba81b9-a4ec-44c5-9511-e69c8421e465,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,eu-west-2b,94608000,Availability Zone,0,64821.0,0.0,USD,0.0,Hourly
+be195680-e9c7-49cf-8bde-a32759bdf7b2,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,eu-west-2b,94608000,Availability Zone,0,64821.0,0.0,USD,0.0,Hourly
+426c6957-aaf8-4e04-b180-2a21cf73a863,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,eu-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,3.965,Hourly
+4a245987-6b97-4b42-9ac3-32344b18ec8f,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,eu-west-2b,31536000,Availability Zone,0,0.0,0.0,USD,3.965,Hourly
+8e1466c5-29ae-4b75-ab59-a74eb0d470a6,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-2b,31536000,Availability Zone,0,16539.0,0.0,USD,1.888,Hourly
+fd723b9b-1946-446e-923a-9830864f7d7d,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,eu-west-2b,31536000,Availability Zone,0,16539.0,0.0,USD,1.888,Hourly
+062a5ae0-f944-46e0-9b13-0a0fe9b35eaa,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,eu-west-2b,31536000,Availability Zone,0,32416.0,0.0,USD,0.0,Hourly
+38376fe1-bcbc-4378-afbf-bc3d693f0f21,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,eu-west-2b,31536000,Availability Zone,0,32416.0,0.0,USD,0.0,Hourly
+0a86698a-957a-4840-b9be-6ac70e52b4c6,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,eu-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,2.834,Hourly
+ab49d36a-7620-47fb-bd71-4c63ee543dba,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,eu-west-2c,94608000,Availability Zone,0,0.0,0.0,USD,2.834,Hourly
+2294c03d-b93d-48d9-b63d-7d200334aa64,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,eu-west-2c,94608000,Availability Zone,0,34479.0,0.0,USD,1.312,Hourly
+5321cbd9-f93d-4c5d-836e-6df92667d6ea,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-2c,94608000,Availability Zone,0,34479.0,0.0,USD,1.312,Hourly
+31f43a0f-b1e6-4f4b-a6d6-1ff202557b96,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,eu-west-2c,94608000,Availability Zone,0,64821.0,0.0,USD,0.0,Hourly
+b9b0a008-bdad-4747-8cc1-a8ba0c2de4e5,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,eu-west-2c,94608000,Availability Zone,0,64821.0,0.0,USD,0.0,Hourly
+52078ec1-e62e-4fea-ae89-d7092e302f32,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,eu-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,3.965,Hourly
+fbb1a35b-be6b-4c42-af0f-df62fa44939d,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,eu-west-2c,31536000,Availability Zone,0,0.0,0.0,USD,3.965,Hourly
+5f440679-e679-438a-91be-3b1041ce0e5d,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,eu-west-2c,31536000,Availability Zone,0,16539.0,0.0,USD,1.888,Hourly
+a40a86ea-1f33-4a01-817d-68ae725a5105,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,eu-west-2c,31536000,Availability Zone,0,16539.0,0.0,USD,1.888,Hourly
+2c0e34b9-59f7-4354-af2f-3d032a8aff95,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,eu-west-2c,31536000,Availability Zone,0,32416.0,0.0,USD,0.0,Hourly
+f078891e-a779-43a0-b75b-6a8fd03fd6c9,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,eu-west-2c,31536000,Availability Zone,0,32416.0,0.0,USD,0.0,Hourly
+0d7508e5-4453-4d52-8cac-4763b82c498a,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,2.834,Hourly
+d1c63626-8de8-44ba-873c-b4c8568a7310,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,,94608000,Region,0,0.0,0.0,USD,2.834,Hourly
+48edea05-c3a0-45ba-a9ea-d02446c51f5f,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,,94608000,Region,0,34479.0,0.0,USD,1.312,Hourly
+be4a5643-fde3-4d8a-a192-173476241590,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,,94608000,Region,0,34479.0,0.0,USD,1.312,Hourly
+71ba2152-7d4d-4bbc-be41-e14811e4b184,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,,94608000,Region,0,64821.0,0.0,USD,0.0,Hourly
+7eb24dc4-871b-4e8a-a20d-0f9aada981d6,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,,94608000,Region,0,64821.0,0.0,USD,0.0,Hourly
+11e723c6-a40d-4d6d-8086-c9b378beb075,i3p.16xlarge,Linux/UNIX,default,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,3.965,Hourly
+b9a8b2f0-2093-42fb-a713-4bd523b7efe9,i3p.16xlarge,Linux/UNIX,dedicated,standard,No Upfront,,31536000,Region,0,0.0,0.0,USD,3.965,Hourly
+2f279746-8039-4db6-8866-429de044922e,i3p.16xlarge,Linux/UNIX,default,standard,Partial Upfront,,31536000,Region,0,16539.0,0.0,USD,1.888,Hourly
+e9881cef-80b9-4398-804c-f5bbc8d76d0e,i3p.16xlarge,Linux/UNIX,dedicated,standard,Partial Upfront,,31536000,Region,0,16539.0,0.0,USD,1.888,Hourly
+3407ad0f-84b5-43a5-8a4e-eccccc9d54ca,i3p.16xlarge,Linux/UNIX,default,standard,All Upfront,,31536000,Region,0,32416.0,0.0,USD,0.0,Hourly
+389ac85f-1ffe-4b8b-9f69-4a4bc6948ee9,i3p.16xlarge,Linux/UNIX,dedicated,standard,All Upfront,,31536000,Region,0,32416.0,0.0,USD,0.0,Hourly

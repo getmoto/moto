@@ -2,6 +2,22 @@ include README.md LICENSE AUTHORS.md
 include requirements.txt requirements-dev.txt tox.ini
 include moto/ec2/resources/instance_types.json
 include moto/ec2/resources/amis.json
+include moto/ec2/resources/instance_types_hash.csv
+include moto/ec2/resources/reserved_instances/ap_northeast_1/*.csv
+include moto/ec2/resources/reserved_instances/ap_southeast_1/*.csv
+include moto/ec2/resources/reserved_instances/eu_central_1/*.csv
+include moto/ec2/resources/reserved_instances/eu_west_3/*.csv
+include moto/ec2/resources/reserved_instances/us_east_2/*.csv
+include moto/ec2/resources/reserved_instances/ap_northeast_2/*.csv
+include moto/ec2/resources/reserved_instances/ap_southeast_2/*.csv
+include moto/ec2/resources/reserved_instances/eu_west_1/*.csv
+include moto/ec2/resources/reserved_instances/sa_east_1/*.csv
+include moto/ec2/resources/reserved_instances/us_west_1/*.csv
+include moto/ec2/resources/reserved_instances/ca_central_1/*.csv
+include moto/ec2/resources/reserved_instances/ap_south_1/*.csv
+include moto/ec2/resources/reserved_instances/eu_west_2/*.csv
+include moto/ec2/resources/reserved_instances/us_east_1/*.csv
+include moto/ec2/resources/reserved_instances/us_west_2/*.csv
 include moto/cognitoidp/resources/*.json
 recursive-include moto/templates *
 recursive-include tests *
