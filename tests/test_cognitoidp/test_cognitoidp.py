@@ -24,6 +24,7 @@ def test_create_user_pool():
     )
 
     result["UserPool"]["Id"].should_not.be.none
+    result["UserPool"]["Id"].should.match(r'[\w-]+_[0-9a-zA-Z]+')
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
 
