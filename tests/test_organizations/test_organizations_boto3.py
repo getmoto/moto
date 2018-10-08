@@ -32,6 +32,17 @@ def test_describe_organization():
     validate_organization(response)
 
 
+@mock_organizations
+def test_describe_organization_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    with assert_raises(ClientError) as e:
+        response = client.describe_organization()
+    ex = e.exception
+    ex.operation_name.should.equal('DescribeOrganization')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('AWSOrganizationsNotInUseException')
+
+
 # Organizational Units
 
 @mock_organizations
