@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import re
+import os, re
 
 import boto3
 import boto.kms
