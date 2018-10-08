@@ -5,10 +5,12 @@ from collections import defaultdict
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
+from moto.cloudformation import cloudformation_backends
 
 import datetime
 import time
 import uuid
+import itertools
 
 
 class Parameter(BaseModel):
@@ -67,7 +69,7 @@ class Command(BaseModel):
             instance_ids=None, max_concurrency='', max_errors='',
             notification_config=None, output_s3_bucket_name='',
             output_s3_key_prefix='', output_s3_region='', parameters=None,
-            service_role_arn='', targets=None):
+            service_role_arn='', targets=None, backend_region='us-east-1'):
 
         if instance_ids is None:
             instance_ids = []
@@ -88,9 +90,9 @@ class Command(BaseModel):
         self.status = 'Success'
         self.status_details = 'Details placeholder'
 
-        now = datetime.datetime.now()
-        self.requested_date_time = now.isoformat()
-        expires_after = now + datetime.timedelta(0, timeout_seconds)
+        self.requested_date_time = datetime.datetime.now()
+        self.requested_date_time_iso = self.requested_date_time.isoformat()
+        expires_after = self.requested_date_time + datetime.timedelta(0, timeout_seconds)
         self.expires_after = expires_after.isoformat()
 
         self.comment = comment
@@ -105,6 +107,32 @@ class Command(BaseModel):
         self.parameters = parameters
         self.service_role_arn = service_role_arn
         self.targets = targets
+        self.backend_region = backend_region
+
+        # Get instance ids from a cloud formation stack target.
+        stack_instance_ids = [self.get_instance_ids_by_stack_ids(target['Values']) for
+            target in self.targets if
+            target['Key'] == 'tag:aws:cloudformation:stack-name']
+
+        self.instance_ids += list(itertools.chain.from_iterable(stack_instance_ids))
+
+        # Create invocations with a single run command plugin.
+        self.invocations = []
+        for instance_id in self.instance_ids:
+            self.invocations.append(
+                self.invocation_response(instance_id, "aws:runShellScript"))
+
+    def get_instance_ids_by_stack_ids(self, stack_ids):
+        instance_ids = []
+        cloudformation_backend = cloudformation_backends[self.backend_region]
+        for stack_id in stack_ids:
+            stack_resources = cloudformation_backend.list_stack_resources(stack_id)
+            instance_resources = [
+                instance.id for instance in stack_resources
+                if instance.type == "AWS::EC2::Instance"]
+            instance_ids.extend(instance_resources)
+
+        return instance_ids
 
     def response_object(self):
         r = {
@@ -122,7 +150,7 @@ class Command(BaseModel):
             'OutputS3BucketName': self.output_s3_bucket_name,
             'OutputS3KeyPrefix': self.output_s3_key_prefix,
             'Parameters': self.parameters,
-            'RequestedDateTime': self.requested_date_time,
+            'RequestedDateTime': self.requested_date_time_iso,
             'ServiceRole': self.service_role_arn,
             'Status': self.status,
             'StatusDetails': self.status_details,
@@ -132,6 +160,50 @@ class Command(BaseModel):
 
         return r
 
+    def invocation_response(self, instance_id, plugin_name):
+        # Calculate elapsed time from requested time and now. Use a hardcoded
+        # elapsed time since there is no easy way to convert a timedelta to
+        # an ISO 8601 duration string.
+        elapsed_time_iso = "PT5M"
+        elapsed_time_delta = datetime.timedelta(minutes=5)
+        end_time = self.requested_date_time + elapsed_time_delta
+
+        r = {
+            'CommandId': self.command_id,
+            'InstanceId': instance_id,
+            'Comment': self.comment,
+            'DocumentName': self.document_name,
+            'PluginName': plugin_name,
+            'ResponseCode': 0,
+            'ExecutionStartDateTime': self.requested_date_time_iso,
+            'ExecutionElapsedTime': elapsed_time_iso,
+            'ExecutionEndDateTime': end_time.isoformat(),
+            'Status': 'Success',
+            'StatusDetails': 'Success',
+            'StandardOutputContent': '',
+            'StandardOutputUrl': '',
+            'StandardErrorContent': '',
+        }
+
+        return r
+
+    def get_invocation(self, instance_id, plugin_name):
+        invocation = next(
+            (invocation for invocation in self.invocations
+                if invocation['InstanceId'] == instance_id), None)
+
+        if invocation is None:
+            raise RESTError(
+                'InvocationDoesNotExist',
+                'An error occurred (InvocationDoesNotExist) when calling the GetCommandInvocation operation')
+
+        if plugin_name is not None and invocation['PluginName'] != plugin_name:
+                raise RESTError(
+                    'InvocationDoesNotExist',
+                    'An error occurred (InvocationDoesNotExist) when calling the GetCommandInvocation operation')
+
+        return invocation
+
 
 class SimpleSystemManagerBackend(BaseBackend):
 
@@ -139,6 +211,11 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._parameters = {}
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
+
+        # figure out what region we're in
+        for region, backend in ssm_backends.items():
+            if backend == self:
+                self._region = region
 
     def delete_parameter(self, name):
         try:
@@ -260,7 +337,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             output_s3_region=kwargs.get('OutputS3Region', ''),
             parameters=kwargs.get('Parameters', {}),
             service_role_arn=kwargs.get('ServiceRoleArn', ''),
-            targets=kwargs.get('Targets', []))
+            targets=kwargs.get('Targets', []),
+            backend_region=self._region)
 
         self._commands.append(command)
         return {
@@ -297,6 +375,18 @@ class SimpleSystemManagerBackend(BaseBackend):
         return [
             command for command in self._commands
             if instance_id in command.instance_ids]
+
+    def get_command_invocation(self, **kwargs):
+        """
+        https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_GetCommandInvocation.html
+        """
+
+        command_id = kwargs.get('CommandId')
+        instance_id = kwargs.get('InstanceId')
+        plugin_name = kwargs.get('PluginName', None)
+
+        command = self.get_command_by_id(command_id)
+        return command.get_invocation(instance_id, plugin_name)
 
 
 ssm_backends = {}

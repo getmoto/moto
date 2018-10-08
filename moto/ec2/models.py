@@ -14,6 +14,7 @@ from pkg_resources import resource_filename
 import boto.ec2
 
 from collections import defaultdict
+import weakref
 from datetime import datetime, timedelta
 from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.reservedinstance import ReservedInstancesOffering as BotoReservedInstancesOffering, ReservedInstance as BotoReservedInstance
@@ -2664,9 +2665,19 @@ class VPC(TaggedEC2Resource):
 
 
 class VPCBackend(object):
+    __refs__ = defaultdict(list)
+
     def __init__(self):
         self.vpcs = {}
+        self.__refs__[self.__class__].append(weakref.ref(self))
         super(VPCBackend, self).__init__()
+
+    @classmethod
+    def get_instances(cls):
+        for inst_ref in cls.__refs__[cls]:
+            inst = inst_ref()
+            if inst is not None:
+                yield inst
 
     def create_vpc(self, cidr_block, instance_tenancy='default', amazon_provided_ipv6_cidr_block=False):
         vpc_id = random_vpc_id()
@@ -2690,6 +2701,13 @@ class VPCBackend(object):
         if vpc_id not in self.vpcs:
             raise InvalidVPCIdError(vpc_id)
         return self.vpcs.get(vpc_id)
+
+    # get vpc by vpc id and aws region
+    def get_cross_vpc(self, vpc_id, peer_region):
+        for vpcs in self.get_instances():
+            if vpcs.region_name == peer_region:
+                match_vpc = vpcs.get_vpc(vpc_id)
+        return match_vpc
 
     def get_all_vpcs(self, vpc_ids=None, filters=None):
         matches = self.vpcs.values()

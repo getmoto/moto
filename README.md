@@ -175,7 +175,7 @@ def test_add_servers():
 ```
 
 #### Using moto 1.0.X with boto2
-moto 1.0.X mock docorators are defined for boto3 and do not work with boto2. Use the @mock_AWSSVC_deprecated to work with boto2.
+moto 1.0.X mock decorators are defined for boto3 and do not work with boto2. Use the @mock_AWSSVC_deprecated to work with boto2.
 
 Using moto with boto2
 ```python
