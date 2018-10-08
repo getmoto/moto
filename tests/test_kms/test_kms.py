@@ -655,12 +655,19 @@ def test_enable_key():
 def test_schedule_key_deletion():
     client = boto3.client('kms', region_name='us-east-1')
     key = client.create_key(Description='schedule-key-deletion')
-    with freeze_time("2015-01-01 12:00:00"):
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'false':
+        with freeze_time("2015-01-01 12:00:00"):
+            response = client.schedule_key_deletion(
+                KeyId=key['KeyMetadata']['KeyId']
+            )
+            assert response['KeyId'] == key['KeyMetadata']['KeyId']
+            assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzlocal())
+    else:
+        # Can't manipulate time in server mode
         response = client.schedule_key_deletion(
             KeyId=key['KeyMetadata']['KeyId']
         )
         assert response['KeyId'] == key['KeyMetadata']['KeyId']
-        assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzlocal())
 
     result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
@@ -672,13 +679,21 @@ def test_schedule_key_deletion():
 def test_schedule_key_deletion_custom():
     client = boto3.client('kms', region_name='us-east-1')
     key = client.create_key(Description='schedule-key-deletion')
-    with freeze_time("2015-01-01 12:00:00"):
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'false':
+        with freeze_time("2015-01-01 12:00:00"):
+            response = client.schedule_key_deletion(
+                KeyId=key['KeyMetadata']['KeyId'],
+                PendingWindowInDays=7
+            )
+            assert response['KeyId'] == key['KeyMetadata']['KeyId']
+            assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzlocal())
+    else:
+        # Can't manipulate time in server mode
         response = client.schedule_key_deletion(
             KeyId=key['KeyMetadata']['KeyId'],
             PendingWindowInDays=7
         )
         assert response['KeyId'] == key['KeyMetadata']['KeyId']
-        assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzlocal())
 
     result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
     assert result["KeyMetadata"]["Enabled"] == False
