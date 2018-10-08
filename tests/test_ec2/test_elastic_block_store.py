@@ -615,8 +615,8 @@ def test_copy_snapshot():
     dest = dest_ec2.Snapshot(copy_snapshot_response['SnapshotId'])
     
     attribs = ['data_encryption_key_id', 'encrypted',
-                'kms_key_id', 'owner_alias', 'owner_id', 'progress',
-                'start_time', 'state', 'state_message',
+                'kms_key_id', 'owner_alias', 'owner_id',
+                'progress', 'state', 'state_message',
                 'tags', 'volume_id', 'volume_size']
     
     for attrib in attribs:
