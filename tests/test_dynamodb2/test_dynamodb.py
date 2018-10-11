@@ -1220,7 +1220,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists without space
+        UpdateExpression='SET created_at=if_not_exists(created_at,:created_at)',
         ExpressionAttributeValues={
             ':created_at': 123
         }
@@ -1233,7 +1234,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists with space
+        UpdateExpression='SET created_at = if_not_exists (created_at, :created_at)',
         ExpressionAttributeValues={
             ':created_at': 456
         }
