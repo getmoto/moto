@@ -303,6 +303,7 @@ BUILTIN_HANDLERS.append(('before-send', botocore_stubber))
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self):
         botocore_stubber.reset()
+        responses_mock.reset()
 
     def enable_patching(self):
         botocore_stubber.enabled = True
@@ -312,9 +313,31 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     pattern = re.compile(key)
                     botocore_stubber.register_response(method, pattern, value)
 
+        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+            responses_mock.start()
+
+        for method in RESPONSES_METHODS:
+            # for backend in default_backends.values():
+            for backend in self.backends_for_urls.values():
+                for key, value in backend.urls.items():
+                    responses_mock.add(
+                        CallbackResponse(
+                            method=method,
+                            url=re.compile(key),
+                            callback=convert_flask_to_responses_response(value),
+                            stream=True,
+                            match_querystring=False,
+                        )
+                    )
+
     def disable_patching(self):
         botocore_stubber.enabled = False
         self.reset()
+
+        try:
+            responses_mock.stop()
+        except RuntimeError:
+            pass
 
 
 MockAWS = BotocoreEventMockAWS
