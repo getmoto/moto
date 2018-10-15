@@ -28,6 +28,7 @@ from .glue import mock_glue  # flake8: noqa
 from .iam import mock_iam, mock_iam_deprecated  # flake8: noqa
 from .kinesis import mock_kinesis, mock_kinesis_deprecated  # flake8: noqa
 from .kms import mock_kms, mock_kms_deprecated  # flake8: noqa
+from .organizations import mock_organizations  # flake8: noqa
 from .opsworks import mock_opsworks, mock_opsworks_deprecated  # flake8: noqa
 from .polly import mock_polly  # flake8: noqa
 from .rds import mock_rds, mock_rds_deprecated  # flake8: noqa
