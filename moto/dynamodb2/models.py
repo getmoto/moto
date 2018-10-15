@@ -154,7 +154,7 @@ class Item(BaseModel):
                     # If not exists, changes value to a default if needed, else its the same as it was
                     if value.startswith('if_not_exists'):
                         # Function signature
-                        match = re.match(r'.*if_not_exists\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
                         if not match:
                             raise TypeError
 
