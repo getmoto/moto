@@ -1228,6 +1228,22 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% endif %}
         </Expiration>
         {% endif %}
+        {% if rule.nvt_noncurrent_days and rule.nvt_storage_class %}
+        <NoncurrentVersionTransition>
+           <NoncurrentDays>{{ rule.nvt_noncurrent_days }}</NoncurrentDays>
+           <StorageClass>{{ rule.nvt_storage_class }}</StorageClass>
+        </NoncurrentVersionTransition>
+        {% endif %}
+        {% if rule.nve_noncurrent_days %}
+        <NoncurrentVersionExpiration>
+           <NoncurrentDays>{{ rule.nve_noncurrent_days }}</NoncurrentDays>
+        </NoncurrentVersionExpiration>
+        {% endif %}
+        {% if rule.aimu_days %}
+        <AbortIncompleteMultipartUpload>
+           <DaysAfterInitiation>{{ rule.aimu_days }}</DaysAfterInitiation>
+        </AbortIncompleteMultipartUpload>
+        {% endif %}
     </Rule>
     {% endfor %}
 </LifecycleConfiguration>
