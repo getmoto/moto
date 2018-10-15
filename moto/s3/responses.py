@@ -1449,7 +1449,7 @@ S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   </Owner>
   <StorageClass>STANDARD</StorageClass>
   <PartNumberMarker>1</PartNumberMarker>
-  <NextPartNumberMarker>{{ count }} </NextPartNumberMarker>
+  <NextPartNumberMarker>{{ count }}</NextPartNumberMarker>
   <MaxParts>{{ count }}</MaxParts>
   <IsTruncated>false</IsTruncated>
   {% for part in parts %}
