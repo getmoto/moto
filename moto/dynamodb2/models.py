@@ -154,7 +154,7 @@ class Item(BaseModel):
                     # If not exists, changes value to a default if needed, else its the same as it was
                     if value.startswith('if_not_exists'):
                         # Function signature
-                        match = re.match(r'.*if_not_exists\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
                         if not match:
                             raise TypeError
 
@@ -162,12 +162,13 @@ class Item(BaseModel):
 
                         # If it already exists, get its value so we dont overwrite it
                         if path in self.attrs:
-                            value = self.attrs[path].cast_value
+                            value = self.attrs[path]
 
-                    if value in expression_attribute_values:
-                        value = DynamoType(expression_attribute_values[value])
-                    else:
-                        value = DynamoType({"S": value})
+                    if type(value) != DynamoType:
+                        if value in expression_attribute_values:
+                            value = DynamoType(expression_attribute_values[value])
+                        else:
+                            value = DynamoType({"S": value})
 
                     if '.' not in key:
                         self.attrs[key] = value

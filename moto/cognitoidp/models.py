@@ -24,7 +24,7 @@ class CognitoIdpUserPool(BaseModel):
 
     def __init__(self, region, name, extended_config):
         self.region = region
-        self.id = str(uuid.uuid4())
+        self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
         self.name = name
         self.status = None
         self.extended_config = extended_config or {}
@@ -84,7 +84,11 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token
 
     def create_access_token(self, client_id, username):
-        access_token, expires_in = self.create_jwt(client_id, username)
+        extra_data = self.get_user_extra_data_by_client_id(
+            client_id, username
+        )
+        access_token, expires_in = self.create_jwt(client_id, username,
+                                                   extra_data=extra_data)
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
@@ -96,6 +100,21 @@ class CognitoIdpUserPool(BaseModel):
         access_token, expires_in = self.create_access_token(client_id, username)
         id_token, _ = self.create_id_token(client_id, username)
         return access_token, id_token, expires_in
+
+    def get_user_extra_data_by_client_id(self, client_id, username):
+        extra_data = {}
+        current_client = self.clients.get(client_id, None)
+        if current_client:
+            for readable_field in current_client.get_readable_fields():
+                attribute = list(filter(
+                    lambda f: f['Name'] == readable_field,
+                    self.users.get(username).attributes
+                ))
+                if len(attribute) > 0:
+                    extra_data.update({
+                        attribute[0]['Name']: attribute[0]['Value']
+                    })
+        return extra_data
 
 
 class CognitoIdpUserPoolDomain(BaseModel):
@@ -137,6 +156,9 @@ class CognitoIdpUserPoolClient(BaseModel):
             user_pool_client_json.update(self.extended_config)
 
         return user_pool_client_json
+
+    def get_readable_fields(self):
+        return self.extended_config.get('ReadAttributes', [])
 
 
 class CognitoIdpIdentityProvider(BaseModel):

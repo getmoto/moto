@@ -89,6 +89,17 @@ class BaseMockAWS(object):
             if inspect.ismethod(attr_value) and attr_value.__self__ is klass:
                 continue
 
+            # Check if this is a staticmethod. If so, skip patching
+            for cls in inspect.getmro(klass):
+                if attr_value.__name__ not in cls.__dict__:
+                    continue
+                bound_attr_value = cls.__dict__[attr_value.__name__]
+                if not isinstance(bound_attr_value, staticmethod):
+                    break
+            else:
+                # It is a staticmethod, skip patching
+                continue
+
             try:
                 setattr(klass, attr, self(attr_value, reset=False))
             except TypeError:

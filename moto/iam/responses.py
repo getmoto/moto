@@ -58,6 +58,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREATE_POLICY_TEMPLATE)
         return template.render(policy=policy)
 
+    def get_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        policy = iam_backend.get_policy(policy_arn)
+        template = self.response_template(GET_POLICY_TEMPLATE)
+        return template.render(policy=policy)
+
     def list_attached_role_policies(self):
         marker = self._get_param('Marker')
         max_items = self._get_int_param('MaxItems', 100)
@@ -600,6 +606,25 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </CreatePolicyResponse>"""
+
+GET_POLICY_TEMPLATE = """<GetPolicyResponse>
+  <GetPolicyResult>
+    <Policy>
+      <PolicyName>{{ policy.name }}</PolicyName>
+      <Description>{{ policy.description }}</Description>
+      <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
+      <PolicyId>{{ policy.id }}</PolicyId>
+      <Path>{{ policy.path }}</Path>
+      <Arn>{{ policy.arn }}</Arn>
+      <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
+      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+    </Policy>
+  </GetPolicyResult>
+  <ResponseMetadata>
+    <RequestId>684f0917-3d22-11e4-a4a0-cffb9EXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetPolicyResponse>"""
 
 LIST_ATTACHED_ROLE_POLICIES_TEMPLATE = """<ListAttachedRolePoliciesResponse>
   <ListAttachedRolePoliciesResult>

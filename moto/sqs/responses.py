@@ -336,7 +336,7 @@ class SQSResponse(BaseResponse):
         try:
             wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
         except TypeError:
-            wait_time = queue.receive_message_wait_time_seconds
+            wait_time = int(queue.receive_message_wait_time_seconds)
 
         if wait_time < 0 or wait_time > 20:
             return self._error(

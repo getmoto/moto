@@ -27,7 +27,13 @@ class FakeDeleteMarker(BaseModel):
 
     def __init__(self, key):
         self.key = key
+        self.name = key.name
+        self.last_modified = datetime.datetime.utcnow()
         self._version_id = key.version_id + 1
+
+    @property
+    def last_modified_ISO8601(self):
+        return iso_8601_datetime_with_milliseconds(self.last_modified)
 
     @property
     def version_id(self):
@@ -335,8 +341,9 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleRule(BaseModel):
 
     def __init__(self, id=None, prefix=None, lc_filter=None, status=None, expiration_days=None,
-                 expiration_date=None, transition_days=None, expired_object_delete_marker=None,
-                 transition_date=None, storage_class=None):
+                 expiration_date=None, transition_days=None, transition_date=None, storage_class=None,
+                 expired_object_delete_marker=None, nve_noncurrent_days=None, nvt_noncurrent_days=None,
+                 nvt_storage_class=None, aimu_days=None):
         self.id = id
         self.prefix = prefix
         self.filter = lc_filter
@@ -345,8 +352,12 @@ class LifecycleRule(BaseModel):
         self.expiration_date = expiration_date
         self.transition_days = transition_days
         self.transition_date = transition_date
-        self.expired_object_delete_marker = expired_object_delete_marker
         self.storage_class = storage_class
+        self.expired_object_delete_marker = expired_object_delete_marker
+        self.nve_noncurrent_days = nve_noncurrent_days
+        self.nvt_noncurrent_days = nvt_noncurrent_days
+        self.nvt_storage_class = nvt_storage_class
+        self.aimu_days = aimu_days
 
 
 class CorsRule(BaseModel):
@@ -408,8 +419,31 @@ class FakeBucket(BaseModel):
     def set_lifecycle(self, rules):
         self.rules = []
         for rule in rules:
+            # Extract and validate actions from Lifecycle rule
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
+
+            nve_noncurrent_days = None
+            if rule.get('NoncurrentVersionExpiration') is not None:
+                if rule["NoncurrentVersionExpiration"].get('NoncurrentDays') is None:
+                    raise MalformedXML()
+                nve_noncurrent_days = rule["NoncurrentVersionExpiration"]["NoncurrentDays"]
+
+            nvt_noncurrent_days = None
+            nvt_storage_class = None
+            if rule.get('NoncurrentVersionTransition') is not None:
+                if rule["NoncurrentVersionTransition"].get('NoncurrentDays') is None:
+                    raise MalformedXML()
+                if rule["NoncurrentVersionTransition"].get('StorageClass') is None:
+                    raise MalformedXML()
+                nvt_noncurrent_days = rule["NoncurrentVersionTransition"]["NoncurrentDays"]
+                nvt_storage_class = rule["NoncurrentVersionTransition"]["StorageClass"]
+
+            aimu_days = None
+            if rule.get('AbortIncompleteMultipartUpload') is not None:
+                if rule["AbortIncompleteMultipartUpload"].get('DaysAfterInitiation') is None:
+                    raise MalformedXML()
+                aimu_days = rule["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
 
             eodm = None
             if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
@@ -453,11 +487,14 @@ class FakeBucket(BaseModel):
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
-                expired_object_delete_marker=eodm,
                 transition_days=transition.get('Days') if transition else None,
                 transition_date=transition.get('Date') if transition else None,
-                storage_class=transition[
-                    'StorageClass'] if transition else None,
+                storage_class=transition.get('StorageClass') if transition else None,
+                expired_object_delete_marker=eodm,
+                nve_noncurrent_days=nve_noncurrent_days,
+                nvt_noncurrent_days=nvt_noncurrent_days,
+                nvt_storage_class=nvt_storage_class,
+                aimu_days=aimu_days,
             ))
 
     def delete_lifecycle(self):
@@ -630,10 +667,7 @@ class S3Backend(BaseBackend):
         latest_versions = {}
 
         for version in versions:
-            if isinstance(version, FakeDeleteMarker):
-                name = version.key.name
-            else:
-                name = version.name
+            name = version.name
             version_id = version.version_id
             maximum_version_per_key[name] = max(
                 version_id,

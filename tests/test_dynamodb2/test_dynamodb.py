@@ -203,6 +203,48 @@ def test_item_add_empty_string_exception():
 
 @requires_boto_gte("2.9")
 @mock_dynamodb2
+def test_update_item_with_empty_string_exception():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            'forum_name': { 'S': 'LOLCat Forum' },
+            'subject': { 'S': 'Check this out!' },
+            'Body': { 'S': 'http://url_to_lolcat.gif'},
+            'SentBy': { 'S': "test" },
+            'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+        }
+    )
+
+    with assert_raises(ClientError) as ex:
+        conn.update_item(
+            TableName=name,
+            Key={
+                'forum_name': { 'S': 'LOLCat Forum'},
+            },
+            UpdateExpression='set Body=:Body',
+            ExpressionAttributeValues={
+                ':Body': {'S': ''}
+            })
+
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'One or more parameter values were invalid: An AttributeValue may not contain an empty string'
+    )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
 def test_query_invalid_table():
     conn = boto3.client('dynamodb',
                         region_name='us-west-2',
@@ -658,8 +700,8 @@ def test_filter_expression():
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
     filter_expr.expr(row1).should.be(True)
 
-    # attribute function tests
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists(User)', {}, {})
+    # attribute function tests (with extra spaces)
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists (User)', {}, {})
     filter_expr.expr(row1).should.be(True)
 
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_type(Id, N)', {}, {})
@@ -1178,7 +1220,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists without space
+        UpdateExpression='SET created_at=if_not_exists(created_at,:created_at)',
         ExpressionAttributeValues={
             ':created_at': 123
         }
@@ -1191,7 +1234,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists with space
+        UpdateExpression='SET created_at = if_not_exists (created_at, :created_at)',
         ExpressionAttributeValues={
             ':created_at': 456
         }
