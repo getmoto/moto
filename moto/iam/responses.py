@@ -1386,10 +1386,6 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
       </member>
     {% endfor %}
     </UserDetailList>
-    <Marker>
-      EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/
-      bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE
-    </Marker>
     <GroupDetailList>
     {% for group in groups %}
       <member>
