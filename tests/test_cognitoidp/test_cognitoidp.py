@@ -369,6 +369,22 @@ def test_admin_get_user():
 
 
 @mock_cognitoidp
+def test_admin_get_missing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    caught = False
+    try:
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    except conn.exceptions.UserNotFoundException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -423,7 +439,7 @@ def test_admin_delete_user():
     caught = False
     try:
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    except conn.exceptions.ResourceNotFoundException:
+    except conn.exceptions.UserNotFoundException:
         caught = True
 
     caught.should.be.true

@@ -383,7 +383,7 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(user_pool_id)
 
         if username not in user_pool.users:
-            raise ResourceNotFoundError(username)
+            raise UserNotFoundError(username)
 
         return user_pool.users[username]
 
@@ -408,7 +408,7 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(user_pool_id)
 
         if username not in user_pool.users:
-            raise ResourceNotFoundError(username)
+            raise UserNotFoundError(username)
 
         del user_pool.users[username]
 
