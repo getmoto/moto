@@ -285,7 +285,7 @@ class IamResponse(BaseResponse):
 
     def create_group(self):
         group_name = self._get_param('GroupName')
-        path = self._get_param('Path')
+        path = self._get_param('Path', '/')
 
         group = iam_backend.create_group(group_name, path)
         template = self.response_template(CREATE_GROUP_TEMPLATE)
@@ -1007,6 +1007,7 @@ CREATE_GROUP_TEMPLATE = """<CreateGroupResponse>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
          <Arn>{{ group.arn }}</Arn>
+         <CreateDate>{{ group.create_date }}</CreateDate>
       </Group>
    </CreateGroupResult>
    <ResponseMetadata>
@@ -1021,6 +1022,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
          <Arn>{{ group.arn }}</Arn>
+         <CreateDate>{{ group.create_date }}</CreateDate>
       </Group>
       <Users>
         {% for user in group.users %}
