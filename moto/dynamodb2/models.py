@@ -265,9 +265,9 @@ class Item(BaseModel):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
-                elif update_action['Value'].keys() == ['N']:
+                elif set(update_action['Value'].keys()) == set(['N']):
                     self.attrs[attribute_name] = DynamoType({"N": new_value})
-                elif update_action['Value'].keys() == ['NULL']:
+                elif set(update_action['Value'].keys()) == set(['NULL']):
                     if attribute_name in self.attrs:
                         del self.attrs[attribute_name]
                 else:
