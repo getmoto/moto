@@ -606,8 +606,15 @@ class APIGatewayBackend(BaseBackend):
         self.usage_plans[plan['id']] = plan
         return plan
 
-    def get_usage_plans(self):
-        return list(self.usage_plans.values())
+    def get_usage_plans(self, api_key_id=None):
+        plans = list(self.usage_plans.values())
+        if api_key_id is not None:
+            plans = [
+                plan
+                for plan in plans
+                if self.usage_plan_keys.get(plan['id'], {}).get(api_key_id, False)
+            ]
+        return plans
 
     def get_usage_plan(self, usage_plan_id):
         return self.usage_plans[usage_plan_id]
