@@ -117,6 +117,7 @@ class Role(BaseModel):
         self.path = path
         self.policies = {}
         self.managed_policies = {}
+        self.create_date = datetime.now(pytz.utc)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -168,6 +169,7 @@ class InstanceProfile(BaseModel):
         self.name = name
         self.path = path
         self.roles = roles if roles else []
+        self.create_date = datetime.now(pytz.utc)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):

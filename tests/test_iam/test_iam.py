@@ -108,6 +108,10 @@ def test_create_role_and_instance_profile():
 
     conn.list_roles().roles[0].role_name.should.equal('my-role')
 
+    # Test with an empty path:
+    profile = conn.create_instance_profile('my-other-profile')
+    profile.path.should.equal('/')
+
 
 @mock_iam_deprecated()
 def test_remove_role_from_instance_profile():
@@ -700,10 +704,10 @@ def test_get_account_authorization_details():
     import json
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
-    conn.create_user(Path='/', UserName='testCloudAuxUser')
-    conn.create_group(Path='/', GroupName='testCloudAuxGroup')
+    conn.create_user(Path='/', UserName='testUser')
+    conn.create_group(Path='/', GroupName='testGroup')
     conn.create_policy(
-        PolicyName='testCloudAuxPolicy',
+        PolicyName='testPolicy',
         Path='/',
         PolicyDocument=json.dumps({
             "Version": "2012-10-17",
@@ -715,46 +719,47 @@ def test_get_account_authorization_details():
                 }
             ]
         }),
-        Description='Test CloudAux Policy'
+        Description='Test Policy'
     )
 
+    conn.create_instance_profile(InstanceProfileName='ipn')
+    conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
+
     result = conn.get_account_authorization_details(Filter=['Role'])
-    len(result['RoleDetailList']) == 1
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) == 0
+    assert len(result['RoleDetailList']) == 1
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) == 0
+    assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
 
     result = conn.get_account_authorization_details(Filter=['User'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 1
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) == 0
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 1
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) == 0
 
     result = conn.get_account_authorization_details(Filter=['Group'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 1
-    len(result['Policies']) == 0
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 1
+    assert len(result['Policies']) == 0
 
     result = conn.get_account_authorization_details(Filter=['LocalManagedPolicy'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) == 1
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) == 1
 
     # Check for greater than 1 since this should always be greater than one but might change.
     # See iam/aws_managed_policies.py
     result = conn.get_account_authorization_details(Filter=['AWSManagedPolicy'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) > 1
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) > 1
 
     result = conn.get_account_authorization_details()
-    len(result['RoleDetailList']) == 1
-    len(result['UserDetailList']) == 1
-    len(result['GroupDetailList']) == 1
-    len(result['Policies']) > 1
-
-
-
+    assert len(result['RoleDetailList']) == 1
+    assert len(result['UserDetailList']) == 1
+    assert len(result['GroupDetailList']) == 1
+    assert len(result['Policies']) > 1
