@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
+
+import json
+
 from moto.core.responses import BaseResponse
 from .models import iot_backends
-import json
 
 
 class IoTResponse(BaseResponse):
@@ -32,30 +34,39 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict(thingTypeName=thing_type_name, thingTypeArn=thing_type_arn))
 
     def list_thing_types(self):
-        # previous_next_token = self._get_param("nextToken")
-        # max_results = self._get_int_param("maxResults")
+        previous_next_token = self._get_param("nextToken")
+        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
         thing_type_name = self._get_param("thingTypeName")
         thing_types = self.iot_backend.list_thing_types(
             thing_type_name=thing_type_name
         )
-        # TODO: implement pagination in the future
-        next_token = None
-        return json.dumps(dict(thingTypes=[_.to_dict() for _ in thing_types], nextToken=next_token))
+
+        thing_types = [_.to_dict() for _ in thing_types]
+        if previous_next_token is None:
+            result = thing_types[0:max_results]
+            next_token = str(max_results) if len(thing_types) > max_results else None
+        else:
+            token = int(previous_next_token)
+            result = thing_types[token:token + max_results]
+            next_token = str(token + max_results) if len(thing_types) > token + max_results else None
+
+        return json.dumps(dict(thingTypes=result, nextToken=next_token))
 
     def list_things(self):
-        # previous_next_token = self._get_param("nextToken")
-        # max_results = self._get_int_param("maxResults")
+        previous_next_token = self._get_param("nextToken")
+        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
         attribute_name = self._get_param("attributeName")
         attribute_value = self._get_param("attributeValue")
         thing_type_name = self._get_param("thingTypeName")
-        things = self.iot_backend.list_things(
+        things, next_token = self.iot_backend.list_things(
             attribute_name=attribute_name,
             attribute_value=attribute_value,
             thing_type_name=thing_type_name,
+            max_results=max_results,
+            token=previous_next_token
         )
-        # TODO: implement pagination in the future
-        next_token = None
-        return json.dumps(dict(things=[_.to_dict() for _ in things], nextToken=next_token))
+
+        return json.dumps(dict(things=things, nextToken=next_token))
 
     def describe_thing(self):
         thing_name = self._get_param("thingName")

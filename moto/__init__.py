@@ -3,7 +3,7 @@ import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '1.3.3'
+__version__ = '1.3.6'
 
 from .acm import mock_acm  # flake8: noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # flake8: noqa
@@ -24,6 +24,7 @@ from .elbv2 import mock_elbv2  # flake8: noqa
 from .emr import mock_emr, mock_emr_deprecated  # flake8: noqa
 from .events import mock_events  # flake8: noqa
 from .glacier import mock_glacier, mock_glacier_deprecated  # flake8: noqa
+from .glue import mock_glue  # flake8: noqa
 from .iam import mock_iam, mock_iam_deprecated  # flake8: noqa
 from .kinesis import mock_kinesis, mock_kinesis_deprecated  # flake8: noqa
 from .kms import mock_kms, mock_kms_deprecated  # flake8: noqa

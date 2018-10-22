@@ -20,6 +20,17 @@ def has_empty_keys_or_values(_dict):
     )
 
 
+def get_empty_str_error():
+    er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+    return (400,
+            {'server': 'amazon.com'},
+            dynamo_json_dump({'__type': er,
+                              'message': ('One or more parameter values were '
+                                          'invalid: An AttributeValue may not '
+                                          'contain an empty string')}
+                             ))
+
+
 class DynamoHandler(BaseResponse):
 
     def get_endpoint_name(self, headers):
@@ -174,14 +185,7 @@ class DynamoHandler(BaseResponse):
         item = self.body['Item']
 
         if has_empty_keys_or_values(item):
-            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
-            return (400,
-                {'server': 'amazon.com'},
-                dynamo_json_dump({'__type': er,
-                                'message': ('One or more parameter values were '
-                                            'invalid: An AttributeValue may not '
-                                            'contain an empty string')}
-                                 ))
+            return get_empty_str_error()
 
         overwrite = 'Expected' not in self.body
         if not overwrite:
@@ -523,6 +527,7 @@ class DynamoHandler(BaseResponse):
         return dynamo_json_dump(item_dict)
 
     def update_item(self):
+
         name = self.body['TableName']
         key = self.body['Key']
         update_expression = self.body.get('UpdateExpression')
@@ -532,6 +537,9 @@ class DynamoHandler(BaseResponse):
         expression_attribute_values = self.body.get(
             'ExpressionAttributeValues', {})
         existing_item = self.dynamodb_backend.get_item(name, key)
+
+        if has_empty_keys_or_values(expression_attribute_values):
+            return get_empty_str_error()
 
         if 'Expected' in self.body:
             expected = self.body['Expected']

@@ -286,6 +286,16 @@ def test_create_policy_versions():
         PolicyDocument='{"some":"policy"}')
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
 
+@mock_iam
+def test_get_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    response = conn.create_policy(
+        PolicyName="TestGetPolicy",
+        PolicyDocument='{"some":"policy"}')
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicy")
+    response['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestGetPolicy")
+
 
 @mock_iam
 def test_get_policy_version():
@@ -314,17 +324,22 @@ def test_list_policy_versions():
             PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     conn.create_policy(
         PolicyName="TestListPolicyVersions",
-        PolicyDocument='{"some":"policy"}')
-    conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
         PolicyDocument='{"first":"policy"}')
+    versions = conn.list_policy_versions(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
+    versions.get('Versions')[0].get('VersionId').should.equal('v1')
+    
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
         PolicyDocument='{"second":"policy"}')
+    conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
+        PolicyDocument='{"third":"policy"}')
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
-    versions.get('Versions')[0].get('Document').should.equal({'first': 'policy'})
+    print(versions.get('Versions'))
     versions.get('Versions')[1].get('Document').should.equal({'second': 'policy'})
+    versions.get('Versions')[2].get('Document').should.equal({'third': 'policy'})
 
 
 @mock_iam
@@ -332,20 +347,20 @@ def test_delete_policy_version():
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_policy(
         PolicyName="TestDeletePolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument='{"first":"policy"}')
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
-        PolicyDocument='{"first":"policy"}')
+        PolicyDocument='{"second":"policy"}')
     with assert_raises(ClientError):
         conn.delete_policy_version(
             PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
             VersionId='v2-nope-this-does-not-exist')
     conn.delete_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
-        VersionId='v1')
+        VersionId='v2')
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion")
-    len(versions.get('Versions')).should.equal(0)
+    len(versions.get('Versions')).should.equal(1)
 
 
 @mock_iam_deprecated()
@@ -678,3 +693,68 @@ def test_update_access_key():
                              Status='Inactive')
     resp = client.list_access_keys(UserName=username)
     resp['AccessKeyMetadata'][0]['Status'].should.equal('Inactive')
+
+
+@mock_iam
+def test_get_account_authorization_details():
+    import json
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.create_user(Path='/', UserName='testCloudAuxUser')
+    conn.create_group(Path='/', GroupName='testCloudAuxGroup')
+    conn.create_policy(
+        PolicyName='testCloudAuxPolicy',
+        Path='/',
+        PolicyDocument=json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "s3:ListBucket",
+                    "Resource": "*",
+                    "Effect": "Allow",
+                }
+            ]
+        }),
+        Description='Test CloudAux Policy'
+    )
+
+    result = conn.get_account_authorization_details(Filter=['Role'])
+    len(result['RoleDetailList']) == 1
+    len(result['UserDetailList']) == 0
+    len(result['GroupDetailList']) == 0
+    len(result['Policies']) == 0
+
+    result = conn.get_account_authorization_details(Filter=['User'])
+    len(result['RoleDetailList']) == 0
+    len(result['UserDetailList']) == 1
+    len(result['GroupDetailList']) == 0
+    len(result['Policies']) == 0
+
+    result = conn.get_account_authorization_details(Filter=['Group'])
+    len(result['RoleDetailList']) == 0
+    len(result['UserDetailList']) == 0
+    len(result['GroupDetailList']) == 1
+    len(result['Policies']) == 0
+
+    result = conn.get_account_authorization_details(Filter=['LocalManagedPolicy'])
+    len(result['RoleDetailList']) == 0
+    len(result['UserDetailList']) == 0
+    len(result['GroupDetailList']) == 0
+    len(result['Policies']) == 1
+
+    # Check for greater than 1 since this should always be greater than one but might change.
+    # See iam/aws_managed_policies.py
+    result = conn.get_account_authorization_details(Filter=['AWSManagedPolicy'])
+    len(result['RoleDetailList']) == 0
+    len(result['UserDetailList']) == 0
+    len(result['GroupDetailList']) == 0
+    len(result['Policies']) > 1
+
+    result = conn.get_account_authorization_details()
+    len(result['RoleDetailList']) == 1
+    len(result['UserDetailList']) == 1
+    len(result['GroupDetailList']) == 1
+    len(result['Policies']) > 1
+
+
+
