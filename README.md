@@ -259,7 +259,7 @@ It uses flask, which isn't a default dependency. You can install the
 server 'extra' package with:
 
 ```python
-pip install moto[server]
+pip install "moto[server]"
 ```
 
 You can then start it running a service:
