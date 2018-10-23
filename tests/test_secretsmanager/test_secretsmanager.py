@@ -45,6 +45,13 @@ def test_create_secret():
     secret = conn.get_secret_value(SecretId='test-secret')
     assert secret['SecretString'] == 'foosecret'
 
+    result_second_secret = conn.create_secret(Name='test-secret-2', SecretString="foosecret_2") 
+    assert result_second_secret['ARN'] == (
+        'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-2-rIjad')
+    assert result_second_secret['Name'] == 'test-secret-2'
+    second_secret = conn.get_secret_value(SecretId='test-secret-2')
+    assert second_secret['SecretString'] == 'foosecret_2'
+
 @mock_secretsmanager
 def test_get_random_password_default_length():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
