@@ -39,8 +39,7 @@ def test_create_secret():
     conn = boto3.client('secretsmanager', region_name='us-east-1')
 
     result = conn.create_secret(Name='test-secret', SecretString="foosecret")
-    assert result['ARN'] == (
-        'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-rIjad')
+    assert result['ARN']
     assert result['Name'] == 'test-secret'
     secret = conn.get_secret_value(SecretId='test-secret')
     assert secret['SecretString'] == 'foosecret'
@@ -159,10 +158,17 @@ def test_describe_secret():
     conn.create_secret(Name='test-secret',
                        SecretString='foosecret')
     
+    conn.create_secret(Name='test-secret-2',
+                       SecretString='barsecret')
+    
     secret_description = conn.describe_secret(SecretId='test-secret')
+    secret_description_2 = conn.describe_secret(SecretId='test-secret-2')
+
     assert secret_description   # Returned dict is not empty
-    assert secret_description['ARN'] == (
-        'arn:aws:secretsmanager:us-west-2:1234567890:secret:test-secret-rIjad')
+    assert secret_description['Name'] == ('test-secret')
+    assert secret_description['ARN'] != '' # Test arn not empty
+    assert secret_description_2['Name'] == ('test-secret-2')
+    assert secret_description_2['ARN'] != '' # Test arn not empty
 
 @mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
@@ -190,9 +196,7 @@ def test_rotate_secret():
     rotated_secret = conn.rotate_secret(SecretId=secret_name)
 
     assert rotated_secret
-    assert rotated_secret['ARN'] == (
-        'arn:aws:secretsmanager:us-west-2:1234567890:secret:test-secret-rIjad'
-    )
+    assert rotated_secret['ARN'] != '' # Test arn not empty
     assert rotated_secret['Name'] == secret_name
     assert rotated_secret['VersionId'] != ''
 
