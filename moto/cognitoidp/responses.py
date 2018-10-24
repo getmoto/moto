@@ -22,10 +22,17 @@ class CognitoIdpResponse(BaseResponse):
         })
 
     def list_user_pools(self):
-        user_pools = cognitoidp_backends[self.region].list_user_pools()
-        return json.dumps({
-            "UserPools": [user_pool.to_json() for user_pool in user_pools]
-        })
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken", "0")
+        user_pools, next_token = cognitoidp_backends[self.region].list_user_pools(
+            max_results=max_results, next_token=next_token
+        )
+        response = {
+            "UserPools": [user_pool.to_json() for user_pool in user_pools],
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
 
     def describe_user_pool(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -72,10 +79,16 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_user_pool_clients(self):
         user_pool_id = self._get_param("UserPoolId")
-        user_pool_clients = cognitoidp_backends[self.region].list_user_pool_clients(user_pool_id)
-        return json.dumps({
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken", "0")
+        user_pool_clients, next_token = cognitoidp_backends[self.region].list_user_pool_clients(user_pool_id,
+            max_results=max_results, next_token=next_token)
+        response = {
             "UserPoolClients": [user_pool_client.to_json() for user_pool_client in user_pool_clients]
-        })
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
 
     def describe_user_pool_client(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -110,10 +123,17 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_identity_providers(self):
         user_pool_id = self._get_param("UserPoolId")
-        identity_providers = cognitoidp_backends[self.region].list_identity_providers(user_pool_id)
-        return json.dumps({
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken", "0")
+        identity_providers, next_token = cognitoidp_backends[self.region].list_identity_providers(
+            user_pool_id, max_results=max_results, next_token=next_token
+        )
+        response = {
             "Providers": [identity_provider.to_json() for identity_provider in identity_providers]
-        })
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
 
     def describe_identity_provider(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -155,10 +175,15 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_users(self):
         user_pool_id = self._get_param("UserPoolId")
-        users = cognitoidp_backends[self.region].list_users(user_pool_id)
-        return json.dumps({
-            "Users": [user.to_json(extended=True) for user in users]
-        })
+        limit = self._get_param("Limit")
+        token = self._get_param("PaginationToken")
+        users, token = cognitoidp_backends[self.region].list_users(user_pool_id,
+                                                                   limit=limit,
+                                                                   pagination_token=token)
+        response = {"Users": [user.to_json(extended=True) for user in users]}
+        if token:
+            response["PaginationToken"] = str(token)
+        return json.dumps(response)
 
     def admin_disable_user(self):
         user_pool_id = self._get_param("UserPoolId")
