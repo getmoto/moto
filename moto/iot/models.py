@@ -400,6 +400,28 @@ class IoTBackend(BaseBackend):
         self.policies[policy.name] = policy
         return policy
 
+    def attach_policy(self, policy_name, target):
+        principal = self._get_principal(target)
+        policy = self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k in self.principal_policies:
+            return
+        self.principal_policies[k] = (principal, policy)
+
+    def detach_policy(self, policy_name, target):
+        # this may raises ResourceNotFoundException
+        self._get_principal(target)
+        self.get_policy(policy_name)
+
+        k = (target, policy_name)
+        if k not in self.principal_policies:
+            raise ResourceNotFoundException()
+        del self.principal_policies[k]
+
+    def list_attached_policies(self, target):
+        policies = [v[1] for k, v in self.principal_policies.items() if k[0] == target]
+        return policies
+
     def list_policies(self):
         policies = self.policies.values()
         return policies

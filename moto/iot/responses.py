@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import iot_backends
@@ -233,6 +234,35 @@ class IoTResponse(BaseResponse):
             policy_name=policy_name,
         )
         return json.dumps(dict())
+
+    def attach_policy(self):
+        policy_name = self._get_param("policyName")
+        principal = self._get_param('target')
+        self.iot_backend.attach_policy(
+            policy_name=policy_name,
+            target=principal,
+        )
+        return json.dumps(dict())
+
+    def detach_policy(self):
+        policy_name = self._get_param("policyName")
+        principal = self._get_param('target')
+        self.iot_backend.detach_policy(
+            policy_name=policy_name,
+            target=principal,
+        )
+        return json.dumps(dict())
+
+    def list_attached_policies(self):
+        principal = unquote(self._get_param('target'))
+        # marker = self._get_param("marker")
+        # page_size = self._get_int_param("pageSize")
+        policies = self.iot_backend.list_attached_policies(
+            target=principal
+        )
+        # TODO: implement pagination in the future
+        next_marker = None
+        return json.dumps(dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker))
 
     def attach_principal_policy(self):
         policy_name = self._get_param("policyName")

@@ -9,6 +9,50 @@ from moto import mock_iot
 
 
 @mock_iot
+def test_attach_policy():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    policy_name = 'my-policy'
+    doc = '{}'
+
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    res['policies'][0]['policyName'].should.equal('my-policy')
+
+
+@mock_iot
+def test_detach_policy():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    policy_name = 'my-policy'
+    doc = '{}'
+
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    res['policies'][0]['policyName'].should.equal('my-policy')
+
+    client.detach_policy(policyName=policy_name, target=cert_arn)
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key('policies').which.should.be.empty
+
+
+@mock_iot
+def test_list_attached_policies():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    policies = client.list_attached_policies(target=cert['certificateArn'])
+    policies['policies'].should.be.empty
+
+
+@mock_iot
 def test_things():
     client = boto3.client('iot', region_name='ap-northeast-1')
     name = 'my-thing'
