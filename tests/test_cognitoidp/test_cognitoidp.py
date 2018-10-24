@@ -343,6 +343,7 @@ def test_admin_create_user():
     result["User"]["Attributes"].should.have.length_of(1)
     result["User"]["Attributes"][0]["Name"].should.equal("thing")
     result["User"]["Attributes"][0]["Value"].should.equal(value)
+    result["User"]["Enabled"].should.equal(True)
 
 
 @mock_cognitoidp
@@ -368,6 +369,22 @@ def test_admin_get_user():
 
 
 @mock_cognitoidp
+def test_admin_get_missing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    caught = False
+    try:
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    except conn.exceptions.UserNotFoundException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -377,6 +394,37 @@ def test_list_users():
     result = conn.list_users(UserPoolId=user_pool_id)
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username)
+
+
+@mock_cognitoidp
+def test_admin_disable_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
+        ["Enabled"].should.equal(False)
+
+
+@mock_cognitoidp
+def test_admin_enable_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_enable_user(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
+        ["Enabled"].should.equal(True)
 
 
 @mock_cognitoidp
@@ -391,7 +439,7 @@ def test_admin_delete_user():
     caught = False
     try:
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    except conn.exceptions.ResourceNotFoundException:
+    except conn.exceptions.UserNotFoundException:
         caught = True
 
     caught.should.be.true

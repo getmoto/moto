@@ -255,7 +255,15 @@ class Group(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:group/{1}".format(ACCOUNT_ID, self.path)
+        if self.path == '/':
+            return "arn:aws:iam::{0}:group/{1}".format(ACCOUNT_ID, self.name)
+
+        else:
+            return "arn:aws:iam::{0}:group/{1}/{2}".format(ACCOUNT_ID, self.path, self.name)
+
+    @property
+    def create_date(self):
+        return self.created
 
     def get_policy(self, policy_name):
         try:

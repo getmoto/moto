@@ -160,6 +160,18 @@ class CognitoIdpResponse(BaseResponse):
             "Users": [user.to_json(extended=True) for user in users]
         })
 
+    def admin_disable_user(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_disable_user(user_pool_id, username)
+        return ""
+
+    def admin_enable_user(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_enable_user(user_pool_id, username)
+        return ""
+
     def admin_delete_user(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")

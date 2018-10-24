@@ -383,7 +383,7 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(user_pool_id)
 
         if username not in user_pool.users:
-            raise ResourceNotFoundError(username)
+            raise UserNotFoundError(username)
 
         return user_pool.users[username]
 
@@ -394,13 +394,21 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.users.values()
 
+    def admin_disable_user(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        user.enabled = False
+
+    def admin_enable_user(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        user.enabled = True
+
     def admin_delete_user(self, user_pool_id, username):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
         if username not in user_pool.users:
-            raise ResourceNotFoundError(username)
+            raise UserNotFoundError(username)
 
         del user_pool.users[username]
 
