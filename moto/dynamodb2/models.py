@@ -428,11 +428,12 @@ class Table(BaseModel):
                     for t in dynamo_types:
                         if not comparison_func(current_attr[key].value, t.value):
                             raise ValueError('The conditional request failed')
+        prev_item = self.get_item(hash_value, range_value) or {}
         if range_value:
             self.items[hash_value][range_value] = item
         else:
             self.items[hash_value] = item
-        return item
+        return prev_item
 
     def __nonzero__(self):
         return True

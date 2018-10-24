@@ -1336,3 +1336,78 @@ def test_query_global_secondary_index_when_created_via_update_table_resource():
     assert len(forum_and_subject_items) == 1
     assert forum_and_subject_items[0] == {'user_id': Decimal('1'), 'forum_name': 'cats',
                                           'subject': 'my pet is the cutest'}
+
+@mock_dynamodb2
+def test_put_item_return_value():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'user_id',
+                'KeyType': 'HASH'
+            }
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'user_id',
+                'AttributeType': 'S'
+            }
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+
+    # ALL_OLD argument should return the previous value
+    item1 = {
+        'user_id': {'S': '123'},
+        'name': {'S': 'ABC'}
+    }
+    response = dynamodb.put_item(
+        TableName='users',
+        Item=item1,
+        ReturnValues='ALL_OLD'
+    )
+    assert 'Attributes' not in response
+
+    item2 = {
+        'user_id': {'S': '123'},
+        'name': {'S': 'DEF'}
+    }
+    response = dynamodb.put_item(
+        TableName='users',
+        Item=item2,
+        ReturnValues='ALL_OLD'
+    )
+    assert response['Attributes'] == item1
+
+    # NONE argument should result in no attribute returned
+    response = dynamodb.put_item(
+        TableName='users',
+        Item=item1,
+        ReturnValues='NONE'
+    )
+    assert 'Attributes' not in response
+
+    # No argument given should be equivalent to NONE
+    response = dynamodb.put_item(
+        TableName='users',
+        Item=item1
+    )
+    assert 'Attributes' not in response
+
+    # Invalid ReturnValues argument; should only allow ALL_OLD or NONE
+    with assert_raises(ClientError) as ex:
+        dynamodb.put_item(
+            TableName='users',
+            Item=item1,
+            ReturnValues='ALL_NEW'
+        )
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('Return values set to invalid value')
+

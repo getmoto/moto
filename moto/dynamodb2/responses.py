@@ -216,14 +216,29 @@ class DynamoHandler(BaseResponse):
                     elif not_exists_m:
                         expected[not_exists_m.group(1)] = {'Exists': False}
 
+        return_values = self.body.get('ReturnValues', 'NONE')
+        if return_values == 'NONE':
+            return_prev = False
+        elif return_values == 'ALL_OLD':
+            return_prev = True
+        else:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Return values set to invalid value')
+
         try:
             result = self.dynamodb_backend.put_item(name, item, expected, overwrite)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
 
-        if result:
-            item_dict = result.to_json()
+        if result is not None:
+            if return_prev:
+                try:
+                    item_dict = result.to_json()
+                except AttributeError:
+                    item_dict = dict()
+            else:
+                item_dict = dict()
             item_dict['ConsumedCapacity'] = {
                 'TableName': name,
                 'CapacityUnits': 1
