@@ -224,6 +224,15 @@ class IoTResponse(BaseResponse):
         )
         return json.dumps(dict())
 
+    def attach_policy(self):
+        policy_name = self._get_param("policyName")
+        target = self._get_param('target')
+        self.iot_backend.attach_policy(
+            policy_name=policy_name,
+            target=target,
+        )
+        return json.dumps(dict())
+
     def attach_principal_policy(self):
         policy_name = self._get_param("policyName")
         principal = self.headers.get('x-amzn-iot-principal')

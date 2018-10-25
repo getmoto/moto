@@ -2376,11 +2376,11 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 30% implemented
+## iot - 31% implemented
 - [ ] accept_certificate_transfer
 - [X] add_thing_to_thing_group
 - [ ] associate_targets_with_job
-- [ ] attach_policy
+- [X] attach_policy
 - [X] attach_principal_policy
 - [X] attach_thing_principal
 - [ ] cancel_certificate_transfer

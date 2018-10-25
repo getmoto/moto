@@ -429,6 +429,14 @@ class IoTBackend(BaseBackend):
             pass
         raise ResourceNotFoundException()
 
+    def attach_policy(self, policy_name, target):
+        principal = self._get_principal(target)
+        policy = self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k in self.principal_policies:
+            return
+        self.principal_policies[k] = (principal, policy)
+
     def attach_principal_policy(self, policy_name, principal_arn):
         principal = self._get_principal(principal_arn)
         policy = self.get_policy(policy_name)
