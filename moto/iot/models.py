@@ -136,18 +136,19 @@ class FakeCertificate(BaseModel):
 
 
 class FakePolicy(BaseModel):
-    def __init__(self, name, document, region_name):
+    def __init__(self, name, document, region_name, default_version_id='1'):
         self.name = name
         self.document = document
         self.arn = 'arn:aws:iot:%s:1:policy/%s' % (region_name, name)
-        self.version = '1'  # TODO: handle version
+        self.default_version_id = default_version_id
+        self.versions = [FakePolicyVersion(self.name, document, True, region_name)]
 
     def to_get_dict(self):
         return {
             'policyName': self.name,
             'policyArn': self.arn,
             'policyDocument': self.document,
-            'defaultVersionId': self.version
+            'defaultVersionId': self.default_version_id
         }
 
     def to_dict_at_creation(self):
@@ -155,13 +156,57 @@ class FakePolicy(BaseModel):
             'policyName': self.name,
             'policyArn': self.arn,
             'policyDocument': self.document,
-            'policyVersionId': self.version
+            'policyVersionId': self.default_version_id
         }
 
     def to_dict(self):
         return {
             'policyName': self.name,
             'policyArn': self.arn,
+        }
+
+
+class FakePolicyVersion(object):
+
+    def __init__(self,
+                 policy_name,
+                 document,
+                 is_default,
+                 region_name):
+        self.name = policy_name
+        self.arn = 'arn:aws:iot:%s:1:policy/%s' % (region_name, policy_name)
+        self.document = document or {}
+        self.is_default = is_default
+        self.version_id = '1'
+
+        self.create_datetime = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.last_modified_datetime = time.mktime(datetime(2015, 1, 2).timetuple())
+
+    def to_get_dict(self):
+        return {
+            'policyName': self.name,
+            'policyArn': self.arn,
+            'policyDocument': self.document,
+            'policyVersionId': self.version_id,
+            'isDefaultVersion': self.is_default,
+            'creationDate': self.create_datetime,
+            'lastModifiedDate': self.last_modified_datetime,
+            'generationId': self.version_id
+        }
+
+    def to_dict_at_creation(self):
+        return {
+            'policyArn': self.arn,
+            'policyDocument': self.document,
+            'policyVersionId': self.version_id,
+            'isDefaultVersion': self.is_default
+        }
+
+    def to_dict(self):
+        return {
+            'versionId': self.version_id,
+            'isDefaultVersion': self.is_default,
+            'createDate': self.create_datetime,
         }
 
 
@@ -435,6 +480,57 @@ class IoTBackend(BaseBackend):
     def delete_policy(self, policy_name):
         policy = self.get_policy(policy_name)
         del self.policies[policy.name]
+
+    def create_policy_version(self, policy_name, policy_document, set_as_default):
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise ResourceNotFoundException()
+        version = FakePolicyVersion(policy_name, policy_document, set_as_default, self.region_name)
+        policy.versions.append(version)
+        version.version_id = '{0}'.format(len(policy.versions))
+        if set_as_default:
+            self.set_default_policy_version(policy_name, version.version_id)
+        return version
+
+    def set_default_policy_version(self, policy_name, version_id):
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise ResourceNotFoundException()
+        for version in policy.versions:
+            if version.version_id == version_id:
+                version.is_default = True
+                policy.default_version_id = version.version_id
+                policy.document = version.document
+            else:
+                version.is_default = False
+
+    def get_policy_version(self, policy_name, version_id):
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise ResourceNotFoundException()
+        for version in policy.versions:
+            if version.version_id == version_id:
+                return version
+        raise ResourceNotFoundException()
+
+    def list_policy_versions(self, policy_name):
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise ResourceNotFoundException()
+        return policy.versions
+
+    def delete_policy_version(self, policy_name, version_id):
+        policy = self.get_policy(policy_name)
+        if not policy:
+            raise ResourceNotFoundException()
+        if version_id == policy.default_version_id:
+            raise InvalidRequestException(
+                "Cannot delete the default version of a policy")
+        for i, v in enumerate(policy.versions):
+            if v.version_id == version_id:
+                del policy.versions[i]
+                return
+        raise ResourceNotFoundException()
 
     def _get_principal(self, principal_arn):
         """

@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-from urllib.parse import unquote
+from six.moves.urllib.parse import parse_qs, urlparse, unquote
 
 from moto.core.responses import BaseResponse
 from .models import iot_backends
@@ -233,6 +233,40 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_policy(
             policy_name=policy_name,
         )
+        return json.dumps(dict())
+
+    def create_policy_version(self):
+        policy_name = self._get_param('policyName')
+        policy_document = self._get_param('policyDocument')
+        set_as_default = self._get_bool_param('setAsDefault')
+        policy_version = self.iot_backend.create_policy_version(policy_name, policy_document, set_as_default)
+
+        return json.dumps(dict(policy_version.to_dict_at_creation()))
+
+    def set_default_policy_version(self):
+        policy_name = self._get_param('policyName')
+        version_id = self._get_param('policyVersionId')
+        self.iot_backend.set_default_policy_version(policy_name, version_id)
+
+        return json.dumps(dict())
+
+    def get_policy_version(self):
+        policy_name = self._get_param('policyName')
+        version_id = self._get_param('policyVersionId')
+        policy_version = self.iot_backend.get_policy_version(policy_name, version_id)
+        return json.dumps(dict(policy_version.to_get_dict()))
+
+    def list_policy_versions(self):
+        policy_name = self._get_param('policyName')
+        policiy_versions = self.iot_backend.list_policy_versions(policy_name=policy_name)
+
+        return json.dumps(dict(policyVersions=[_.to_dict() for _ in policiy_versions]))
+
+    def delete_policy_version(self):
+        policy_name = self._get_param('policyName')
+        version_id = self._get_param('policyVersionId')
+        self.iot_backend.delete_policy_version(policy_name, version_id)
+
         return json.dumps(dict())
 
     def attach_policy(self):

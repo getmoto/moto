@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-import sure  # noqa
-
+import sure #noqa
 import boto3
 
 from moto import mock_iot
@@ -50,6 +49,85 @@ def test_list_attached_policies():
     cert = client.create_keys_and_certificate(setAsActive=True)
     policies = client.list_attached_policies(target=cert['certificateArn'])
     policies['policies'].should.be.empty
+
+
+@mock_iot
+def test_policy_versions():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    policy_name = 'my-policy'
+    doc = '{}'
+
+    policy = client.create_policy(policyName=policy_name, policyDocument=doc)
+    policy.should.have.key('policyName').which.should.equal(policy_name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(json.dumps({}))
+    policy.should.have.key('policyVersionId').which.should.equal('1')
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key('policyName').which.should.equal(policy_name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(json.dumps({}))
+    policy.should.have.key('defaultVersionId').which.should.equal(policy['defaultVersionId'])
+
+    policy1 = client.create_policy_version(policyName=policy_name, policyDocument=json.dumps({'version': 'version_1'}),
+                                           setAsDefault=True)
+    policy1.should.have.key('policyArn').which.should_not.be.none
+    policy1.should.have.key('policyDocument').which.should.equal(json.dumps({'version': 'version_1'}))
+    policy1.should.have.key('policyVersionId').which.should.equal('2')
+    policy1.should.have.key('isDefaultVersion').which.should.equal(True)
+
+    policy2 = client.create_policy_version(policyName=policy_name, policyDocument=json.dumps({'version': 'version_2'}),
+                                           setAsDefault=False)
+    policy2.should.have.key('policyArn').which.should_not.be.none
+    policy2.should.have.key('policyDocument').which.should.equal(json.dumps({'version': 'version_2'}))
+    policy2.should.have.key('policyVersionId').which.should.equal('3')
+    policy2.should.have.key('isDefaultVersion').which.should.equal(False)
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key('policyName').which.should.equal(policy_name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(json.dumps({'version': 'version_1'}))
+    policy.should.have.key('defaultVersionId').which.should.equal(policy1['policyVersionId'])
+
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key('policyVersions').which.should.have.length_of(3)
+    list(map(lambda item: item['isDefaultVersion'], policy_versions['policyVersions'])).count(True).should.equal(1)
+    default_policy = list(filter(lambda item: item['isDefaultVersion'], policy_versions['policyVersions']))
+    default_policy[0].should.have.key('versionId').should.equal(policy1['policyVersionId'])
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key('policyName').which.should.equal(policy_name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(json.dumps({'version': 'version_1'}))
+    policy.should.have.key('defaultVersionId').which.should.equal(policy1['policyVersionId'])
+
+    client.set_default_policy_version(policyName=policy_name, policyVersionId=policy2['policyVersionId'])
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key('policyVersions').which.should.have.length_of(3)
+    list(map(lambda item: item['isDefaultVersion'], policy_versions['policyVersions'])).count(True).should.equal(1)
+    default_policy = list(filter(lambda item: item['isDefaultVersion'], policy_versions['policyVersions']))
+    default_policy[0].should.have.key('versionId').should.equal(policy2['policyVersionId'])
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key('policyName').which.should.equal(policy_name)
+    policy.should.have.key('policyArn').which.should_not.be.none
+    policy.should.have.key('policyDocument').which.should.equal(json.dumps({'version': 'version_2'}))
+    policy.should.have.key('defaultVersionId').which.should.equal(policy2['policyVersionId'])
+
+    client.delete_policy_version(policyName=policy_name, policyVersionId='1')
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key('policyVersions').which.should.have.length_of(2)
+
+    client.delete_policy_version(policyName=policy_name, policyVersionId=policy1['policyVersionId'])
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key('policyVersions').which.should.have.length_of(1)
+
+    # should fail as it's the default policy. Should use delete_policy instead
+    try:
+        client.delete_policy_version(policyName=policy_name, policyVersionId=policy2['policyVersionId'])
+        assert False, 'Should have failed in previous call'
+    except Exception as exception:
+        exception.response['Error']['Message'].should.equal('Cannot delete the default version of a policy')
 
 
 @mock_iot
