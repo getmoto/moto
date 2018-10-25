@@ -1,14 +1,18 @@
 from __future__ import unicode_literals
 import base64
+import sys
 from datetime import datetime
 import json
+
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 
 import pytz
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 ACCOUNT_ID = 123456789012
@@ -215,6 +219,16 @@ class Certificate(BaseModel):
         return "arn:aws:iam::{0}:server-certificate{1}{2}".format(ACCOUNT_ID, self.path, self.cert_name)
 
 
+class SigningCertificate(BaseModel):
+
+    def __init__(self, id, user_name, body):
+        self.id = id
+        self.user_name = user_name
+        self.body = body
+        self.upload_date = datetime.strftime(datetime.utcnow(), "%Y-%m-%d-%H-%M-%S")
+        self.status = 'Active'
+
+
 class AccessKey(BaseModel):
 
     def __init__(self, user_name):
@@ -299,6 +313,7 @@ class User(BaseModel):
         self.access_keys = []
         self.password = None
         self.password_reset_required = False
+        self.signing_certificates = {}
 
     @property
     def arn(self):
@@ -766,6 +781,48 @@ class IAMBackend(BaseBackend):
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
+
+    def upload_signing_certificate(self, user_name, body):
+        user = self.get_user(user_name)
+        cert_id = random_resource_id(size=32)
+
+        # Validate the signing cert:
+        try:
+            if sys.version_info < (3, 0):
+                data = bytes(body)
+            else:
+                data = bytes(body, 'utf8')
+
+            x509.load_pem_x509_certificate(data, default_backend())
+
+        except Exception:
+            raise MalformedCertificate(body)
+
+        user.signing_certificates[cert_id] = SigningCertificate(cert_id, user_name, body)
+
+        return user.signing_certificates[cert_id]
+
+    def delete_signing_certificate(self, user_name, cert_id):
+        user = self.get_user(user_name)
+
+        try:
+            del user.signing_certificates[cert_id]
+        except KeyError:
+            raise IAMNotFoundException("The Certificate with id {id} cannot be found.".format(id=cert_id))
+
+    def list_signing_certificates(self, user_name):
+        user = self.get_user(user_name)
+
+        return list(user.signing_certificates.values())
+
+    def update_signing_certificate(self, user_name, cert_id, status):
+        user = self.get_user(user_name)
+
+        try:
+            user.signing_certificates[cert_id].status = status
+
+        except KeyError:
+            raise IAMNotFoundException("The Certificate with id {id} cannot be found.".format(id=cert_id))
 
     def create_login_profile(self, user_name, password):
         # This does not currently deal with PasswordPolicyViolation.

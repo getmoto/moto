@@ -14,6 +14,19 @@ from nose.tools import raises
 from tests.helpers import requires_boto_gte
 
 
+MOCK_CERT = """-----BEGIN CERTIFICATE-----
+MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
+b3RvIHRlc3RpbmcwIBcNMTgxMTA1MTkwNTIwWhgPMjI5MjA4MTkxOTA1MjBaMBcx
+FTATBgNVBAoMDG1vdG8gdGVzdGluZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC
+gYEA1Jn3g2h7LD3FLqdpcYNbFXCS4V4eDpuTCje9vKFcC3pi/01147X3zdfPy8Mt
+ZhKxcREOwm4NXykh23P9KW7fBovpNwnbYsbPqj8Hf1ZaClrgku1arTVhEnKjx8zO
+vaR/bVLCss4uE0E0VM1tJn/QGQsfthFsjuHtwx8uIWz35tUCAwEAATANBgkqhkiG
+9w0BAQsFAAOBgQBWdOQ7bDc2nWkUhFjZoNIZrqjyNdjlMUndpwREVD7FQ/DuxJMj
+FyDHrtlrS80dPUQWNYHw++oACDpWO01LGLPPrGmuO/7cOdojPEd852q5gd+7W9xt
+8vUH+pBa6IBLbvBp+szli51V3TLSWcoyy4ceJNQU2vCkTLoFdS0RLd/7tQ==
+-----END CERTIFICATE-----"""
+
+
 @mock_iam_deprecated()
 def test_get_all_server_certs():
     conn = boto.connect_iam()
@@ -763,3 +776,66 @@ def test_get_account_authorization_details():
     assert len(result['UserDetailList']) == 1
     assert len(result['GroupDetailList']) == 1
     assert len(result['Policies']) > 1
+
+
+@mock_iam
+def test_signing_certs():
+    client = boto3.client('iam', region_name='us-east-1')
+
+    # Create the IAM user first:
+    client.create_user(UserName='testing')
+
+    # Upload the cert:
+    resp = client.upload_signing_certificate(UserName='testing', CertificateBody=MOCK_CERT)['Certificate']
+    cert_id = resp['CertificateId']
+
+    assert resp['UserName'] == 'testing'
+    assert resp['Status'] == 'Active'
+    assert resp['CertificateBody'] == MOCK_CERT
+    assert resp['CertificateId']
+
+    # Upload a the cert with an invalid body:
+    with assert_raises(ClientError) as ce:
+        client.upload_signing_certificate(UserName='testing', CertificateBody='notacert')
+    assert ce.exception.response['Error']['Code'] == 'MalformedCertificate'
+
+    # Upload with an invalid user:
+    with assert_raises(ClientError):
+        client.upload_signing_certificate(UserName='notauser', CertificateBody=MOCK_CERT)
+
+    # Update:
+    client.update_signing_certificate(UserName='testing', CertificateId=cert_id, Status='Inactive')
+
+    with assert_raises(ClientError):
+        client.update_signing_certificate(UserName='notauser', CertificateId=cert_id, Status='Inactive')
+
+    with assert_raises(ClientError) as ce:
+        client.update_signing_certificate(UserName='testing', CertificateId='x' * 32, Status='Inactive')
+
+    assert ce.exception.response['Error']['Message'] == 'The Certificate with id {id} cannot be found.'.format(
+        id='x' * 32)
+
+    # List the certs:
+    resp = client.list_signing_certificates(UserName='testing')['Certificates']
+    assert len(resp) == 1
+    assert resp[0]['CertificateBody'] == MOCK_CERT
+    assert resp[0]['Status'] == 'Inactive'  # Changed with the update call above.
+
+    with assert_raises(ClientError):
+        client.list_signing_certificates(UserName='notauser')
+
+    # Delete:
+    client.delete_signing_certificate(UserName='testing', CertificateId=cert_id)
+
+    with assert_raises(ClientError):
+        client.delete_signing_certificate(UserName='notauser', CertificateId=cert_id)
+
+    with assert_raises(ClientError) as ce:
+        client.delete_signing_certificate(UserName='testing', CertificateId=cert_id)
+
+    assert ce.exception.response['Error']['Message'] == 'The Certificate with id {id} cannot be found.'.format(
+        id=cert_id)
+
+    # Verify that it's not in the list:
+    resp = client.list_signing_certificates(UserName='testing')
+    assert not resp['Certificates']

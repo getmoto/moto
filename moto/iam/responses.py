@@ -552,6 +552,38 @@ class IamResponse(BaseResponse):
             roles=account_details['roles']
         )
 
+    def upload_signing_certificate(self):
+        user_name = self._get_param('UserName')
+        cert_body = self._get_param('CertificateBody')
+
+        cert = iam_backend.upload_signing_certificate(user_name, cert_body)
+        template = self.response_template(UPLOAD_SIGNING_CERTIFICATE_TEMPLATE)
+        return template.render(cert=cert)
+
+    def update_signing_certificate(self):
+        user_name = self._get_param('UserName')
+        cert_id = self._get_param('CertificateId')
+        status = self._get_param('Status')
+
+        iam_backend.update_signing_certificate(user_name, cert_id, status)
+        template = self.response_template(UPDATE_SIGNING_CERTIFICATE_TEMPLATE)
+        return template.render()
+
+    def delete_signing_certificate(self):
+        user_name = self._get_param('UserName')
+        cert_id = self._get_param('CertificateId')
+
+        iam_backend.delete_signing_certificate(user_name, cert_id)
+        template = self.response_template(DELETE_SIGNING_CERTIFICATE_TEMPLATE)
+        return template.render()
+
+    def list_signing_certificates(self):
+        user_name = self._get_param('UserName')
+
+        certs = iam_backend.list_signing_certificates(user_name)
+        template = self.response_template(LIST_SIGNING_CERTIFICATES_TEMPLATE)
+        return template.render(user_name=user_name, certificates=certs)
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
@@ -1485,3 +1517,53 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
     <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
   </ResponseMetadata>
 </GetAccountAuthorizationDetailsResponse>"""
+
+
+UPLOAD_SIGNING_CERTIFICATE_TEMPLATE = """<UploadSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <UploadSigningCertificateResult>
+    <Certificate>
+      <UserName>{{ cert.user_name }}</UserName>
+      <CertificateId>{{ cert.id }}</CertificateId>
+      <CertificateBody>{{ cert.body }}</CertificateBody>
+      <Status>{{ cert.status }}</Status>
+    </Certificate>
+ </UploadSigningCertificateResult>
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</UploadSigningCertificateResponse>"""
+
+
+UPDATE_SIGNING_CERTIFICATE_TEMPLATE = """<UpdateSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+ <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+ </ResponseMetadata>
+</UpdateSigningCertificateResponse>"""
+
+
+DELETE_SIGNING_CERTIFICATE_TEMPLATE = """<DeleteSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteSigningCertificateResponse>"""
+
+
+LIST_SIGNING_CERTIFICATES_TEMPLATE = """<ListSigningCertificatesResponse>
+  <ListSigningCertificatesResult>
+    <UserName>{{ user_name }}</UserName>
+    <Certificates>
+       {% for cert in certificates %}
+       <member>
+          <UserName>{{ user_name }}</UserName>
+          <CertificateId>{{ cert.id }}</CertificateId>
+          <CertificateBody>{{ cert.body }}</CertificateBody>
+          <Status>{{ cert.status }}</Status>
+       </member>
+       {% endfor %}
+    </Certificates>
+    <IsTruncated>false</IsTruncated>
+ </ListSigningCertificatesResult>
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</ListSigningCertificatesResponse>"""
