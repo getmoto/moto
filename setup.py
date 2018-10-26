@@ -21,7 +21,7 @@ install_requires = [
     "python-jose<3.0.0",
     "mock",
     "docker>=2.5.1",
-    "jsondiff==1.1.1",
+    "jsondiff==1.1.2",
     "aws-xray-sdk<0.96,>=0.93",
     "responses>=0.9.0",
 ]
