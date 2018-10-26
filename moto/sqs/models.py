@@ -6,6 +6,7 @@ import json
 import re
 import six
 import struct
+from threading import Condition
 from xml.sax.saxutils import escape
 
 import boto.sqs
@@ -363,7 +364,9 @@ class Queue(BaseModel):
         self._messages = []
 
     def add_message(self, message):
-        self._messages.append(message)
+        with self._condition:
+            self._messages.append(message)
+            self._condition.notify_all()
 
     def delete_message(self, receipt_handle):
         new_messages = []
@@ -393,6 +396,10 @@ class Queue(BaseModel):
         for message in messages_to_dlq:
             self._messages.remove(message)
             self.dead_letter_queue.add_message(message)
+
+    def wait_for_messages(self, timeout):
+        with self._condition:
+            self._condition.wait(lambda: self.messages, timeout=timeout)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -564,8 +571,7 @@ class SQSBackend(BaseBackend):
                     # so break to avoid an infinite loop.
                     break
 
-                import time
-                time.sleep(0.001)
+                queue.wait_for_messages()
                 continue
 
             previous_result_count = len(result)
