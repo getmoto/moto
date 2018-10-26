@@ -6,6 +6,7 @@ import json
 import re
 import six
 import struct
+from threading import Condition
 from xml.sax.saxutils import escape
 
 import boto.sqs
@@ -182,6 +183,7 @@ class Queue(BaseModel):
 
         self._messages = []
         self._pending_messages = set()
+        self._condition = Condition()
 
         now = unix_time()
         self.created_timestamp = now
@@ -358,8 +360,40 @@ class Queue(BaseModel):
     def messages(self):
         return [message for message in self._messages if message.visible and not message.delayed]
 
+    def purge(self):
+        self._messages = []
+
     def add_message(self, message):
         self._messages.append(message)
+
+    def delete_message(self, receipt_handle):
+        new_messages = []
+        for message in queue._messages:
+            # Only delete message if it is not visible and the reciept_handle
+            # matches.
+            if message.receipt_handle == receipt_handle:
+                self.pending_messages.remove(message)
+                continue
+            new_messages.append(message)
+        self._messages = new_messages
+
+    def change_visibility(self, receipt_handle, visibility_timeout):
+        for message in queue._messages:
+            if message.receipt_handle == receipt_handle:
+                if message.visible:
+                    raise MessageNotInflight
+                message.change_visibility(visibility_timeout)
+                if message.visible:
+                    # If the message is visible again, remove it from pending
+                    # messages.
+                    queue.pending_messages.remove(message)
+                return
+        raise ReceiptHandleIsInvalid
+
+    def dlq_messages(messages_to_dlq):
+        for message in messages_to_dlq:
+            self._messages.remove(message)
+            self.dead_letter_queue.add_message(message)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -523,9 +557,7 @@ class SQSBackend(BaseBackend):
                 if len(result) >= count:
                     break
 
-            for message in messages_to_dlq:
-                queue._messages.remove(message)
-                queue.dead_letter_queue.add_message(message)
+            queue.dlq_messages(messages_to_dlq)
 
             if previous_result_count == len(result):
                 if wait_seconds_timeout == 0:
@@ -543,33 +575,15 @@ class SQSBackend(BaseBackend):
 
     def delete_message(self, queue_name, receipt_handle):
         queue = self.get_queue(queue_name)
-        new_messages = []
-        for message in queue._messages:
-            # Only delete message if it is not visible and the reciept_handle
-            # matches.
-            if message.receipt_handle == receipt_handle:
-                queue.pending_messages.remove(message)
-                continue
-            new_messages.append(message)
-        queue._messages = new_messages
+        queue.delete_message(receipt_handle)
 
     def change_message_visibility(self, queue_name, receipt_handle, visibility_timeout):
         queue = self.get_queue(queue_name)
-        for message in queue._messages:
-            if message.receipt_handle == receipt_handle:
-                if message.visible:
-                    raise MessageNotInflight
-                message.change_visibility(visibility_timeout)
-                if message.visible:
-                    # If the message is visible again, remove it from pending
-                    # messages.
-                    queue.pending_messages.remove(message)
-                return
-        raise ReceiptHandleIsInvalid
+        queue.change_message_visibility(receipt_handle, visibility_timeout)
 
     def purge_queue(self, queue_name):
         queue = self.get_queue(queue_name)
-        queue._messages = []
+        queue.purge()
 
     def list_dead_letter_source_queues(self, queue_name):
         dlq = self.get_queue(queue_name)
