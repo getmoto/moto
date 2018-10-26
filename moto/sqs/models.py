@@ -6,7 +6,6 @@ import json
 import re
 import six
 import struct
-from threading import Condition
 from xml.sax.saxutils import escape
 
 import boto.sqs
