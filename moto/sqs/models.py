@@ -368,7 +368,7 @@ class Queue(BaseModel):
 
     def delete_message(self, receipt_handle):
         new_messages = []
-        for message in queue._messages:
+        for message in self._messages:
             # Only delete message if it is not visible and the reciept_handle
             # matches.
             if message.receipt_handle == receipt_handle:
@@ -378,7 +378,7 @@ class Queue(BaseModel):
         self._messages = new_messages
 
     def change_visibility(self, receipt_handle, visibility_timeout):
-        for message in queue._messages:
+        for message in self._messages:
             if message.receipt_handle == receipt_handle:
                 if message.visible:
                     raise MessageNotInflight
@@ -386,7 +386,7 @@ class Queue(BaseModel):
                 if message.visible:
                     # If the message is visible again, remove it from pending
                     # messages.
-                    queue.pending_messages.remove(message)
+                    self.pending_messages.remove(message)
                 return
         raise ReceiptHandleIsInvalid
 
