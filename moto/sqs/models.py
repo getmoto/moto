@@ -392,7 +392,7 @@ class Queue(BaseModel):
                 return
         raise ReceiptHandleIsInvalid
 
-    def dlq_messages(messages_to_dlq):
+    def dlq_messages(self, messages_to_dlq):
         for message in messages_to_dlq:
             self._messages.remove(message)
             self.dead_letter_queue.add_message(message)
