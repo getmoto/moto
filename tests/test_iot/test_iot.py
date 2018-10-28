@@ -324,6 +324,15 @@ def test_principal_policy():
         policy.should.have.key('policyName').which.should_not.be.none
         policy.should.have.key('policyArn').which.should_not.be.none
 
+    # do nothing if policy have already attached to certificate
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    for policy in res['policies']:
+        policy.should.have.key('policyName').which.should_not.be.none
+        policy.should.have.key('policyArn').which.should_not.be.none
+
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key('principals').which.should.have.length_of(1)
     for principal in res['principals']:
