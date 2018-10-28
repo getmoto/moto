@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import functools
+import itertools
 import json
 import os
 import time
@@ -43,16 +44,12 @@ def paginate(limit, start_arg="next_token", limit_arg="max_results"):
     def outer_wrapper(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # setup
             start = int(default_start if kwargs.get(start_arg) is None else kwargs[start_arg])
-            stop = int(limit if kwargs.get(limit_arg) is None else kwargs[limit_arg])
-            end = start + stop
-            # call
+            lim = int(limit if kwargs.get(limit_arg) is None else kwargs[limit_arg])
+            stop = start + lim
             result = func(*args, **kwargs)
-            # modify
-            results = list(result)
-            limited_results = results[start: end]
-            next_token = end if end < len(results) else None
+            limited_results = list(itertools.islice(result, start, stop))
+            next_token = stop if stop < len(result) else None
             return limited_results, next_token
         return wrapper
     return outer_wrapper
