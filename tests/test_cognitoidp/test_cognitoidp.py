@@ -884,6 +884,85 @@ def test_list_users_when_limit_more_than_total_items():
 
 
 @mock_cognitoidp
+def test_admin_update_user_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    unmodified_value = str(uuid.uuid4())
+    old_existing_value = str(uuid.uuid4())
+    new_existing_value = str(uuid.uuid4())
+    new_attribute_value = str(uuid.uuid4())
+    custom_attribute_value = str(uuid.uuid4())
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "unmodified_attribute", "Value": unmodified_value},
+            {"Name": "existing_attribute", "Value": old_existing_value},
+        ],
+    )
+
+    result = conn.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "existing_attribute", "Value": new_existing_value},
+            {"Name": "new_attribute", "Value": new_attribute_value},
+            {"Name": "custom:custom_attribute", "Value": custom_attribute_value},
+        ],
+    )
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserAttributes"].should.have.length_of(4)
+    attributes = sorted(result["UserAttributes"], key=lambda x: x["Name"])
+    attributes[0]["Name"].should.equal("custom:custom_attribute")
+    attributes[0]["Value"].should.equal(custom_attribute_value)
+    attributes[1]["Name"].should.equal("existing_attribute")
+    attributes[1]["Value"].should.equal(new_existing_value)
+    attributes[2]["Name"].should.equal("new_attribute")
+    attributes[2]["Value"].should.equal(new_attribute_value)
+    attributes[3]["Name"].should.equal("unmodified_attribute")
+    attributes[3]["Value"].should.equal(unmodified_value)
+
+
+@mock_cognitoidp
+def test_admin_delete_user_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    unmodified_value = str(uuid.uuid4())
+    removed_value = str(uuid.uuid4())
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {"Name": "unmodified_attribute", "Value": unmodified_value},
+            {"Name": "removed_attribute", "Value": removed_value},
+        ],
+    )
+
+    result = conn.admin_delete_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributeNames=[
+            "removed_attribute",
+            "nonexistent_attribute",
+        ],
+    )
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserAttributes"].should.have.length_of(1)
+    result["UserAttributes"][0]["Name"].should.equal("unmodified_attribute")
+    result["UserAttributes"][0]["Value"].should.equal(unmodified_value)
+
+
+@mock_cognitoidp
 def test_admin_disable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 

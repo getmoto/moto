@@ -827,13 +827,13 @@
 - [ ] unlink_identity
 - [ ] update_identity_pool
 
-## cognito-idp - 34% implemented
+## cognito-idp - 37% implemented
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
 - [ ] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
-- [ ] admin_delete_user_attributes
+- [X] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
 - [X] admin_disable_user
 - [X] admin_enable_user
@@ -852,7 +852,7 @@
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status
-- [ ] admin_update_user_attributes
+- [X] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
 - [X] change_password

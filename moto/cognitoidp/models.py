@@ -140,15 +140,10 @@ class CognitoIdpUserPool(BaseModel):
         extra_data = {}
         current_client = self.clients.get(client_id, None)
         if current_client:
+            user = self.users.get(username)
             for readable_field in current_client.get_readable_fields():
-                attribute = list(filter(
-                    lambda f: f['Name'] == readable_field,
-                    self.users.get(username).attributes
-                ))
-                if len(attribute) > 0:
-                    extra_data.update({
-                        attribute[0]['Name']: attribute[0]['Value']
-                    })
+                if readable_field in user.attributes:
+                    extra_data[readable_field] = user.attributes[readable_field]
         return extra_data
 
 
@@ -249,20 +244,26 @@ class CognitoIdpGroup(BaseModel):
 
 class CognitoIdpUser(BaseModel):
 
-    def __init__(self, user_pool_id, username, password, status, attributes):
+    def __init__(self, user_pool_id, username, password, status):
         self.id = str(uuid.uuid4())
         self.user_pool_id = user_pool_id
         self.username = username
         self.password = password
         self.status = status
         self.enabled = True
-        self.attributes = attributes
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
         self.groups = set()
+
+        # User attributes.
+        # Note that we do not validate the attribute names or values.
+        #
+        # We store them as a dictionary so that it is easier to update them,
+        # and convert to/from the AWS-style list of Name-Value pairs as needed
+        self.attributes = {}
 
     def _base_json(self):
         return {
@@ -277,15 +278,24 @@ class CognitoIdpUser(BaseModel):
     def to_json(self, extended=False, attributes_key="Attributes"):
         user_json = self._base_json()
         if extended:
+            output_attributes = [{"Name": key, "Value": value} for key, value in self.attributes.items()]
             user_json.update(
                 {
                     "Enabled": self.enabled,
-                    attributes_key: self.attributes,
+                    attributes_key: output_attributes,
                     "MFAOptions": []
                 }
             )
 
         return user_json
+
+    def delete_attributes(self, attribute_names):
+        for name in attribute_names:
+            self.attributes.pop(name, None)
+
+    def update_attributes(self, list_of_attributes):
+        for attrib in list_of_attributes:
+            self.attributes[attrib["Name"]] = attrib["Value"]
 
 
 class CognitoIdpBackend(BaseBackend):
@@ -508,8 +518,11 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"], attributes)
+        user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"])
         user_pool.users[user.username] = user
+
+        user.update_attributes(attributes)
+
         return user
 
     def admin_get_user(self, user_pool_id, username):
@@ -529,6 +542,14 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(user_pool_id)
 
         return user_pool.users.values()
+
+    def admin_update_user_attributes(self, user_pool_id, username, attributes):
+        user = self.admin_get_user(user_pool_id, username)
+        user.update_attributes(attributes)
+
+    def admin_delete_user_attributes(self, user_pool_id, username, attributes):
+        user = self.admin_get_user(user_pool_id, username)
+        user.delete_attributes(attributes)
 
     def admin_disable_user(self, user_pool_id, username):
         user = self.admin_get_user(user_pool_id, username)
