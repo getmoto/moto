@@ -87,7 +87,8 @@ class CloudFormationResponse(BaseResponse):
         role_arn = self._get_param('RoleARN')
         update_or_create = self._get_param('ChangeSetType', 'CREATE')
         parameters_list = self._get_list_prefix("Parameters.member")
-        tags = {tag[0]: tag[1] for tag in self._get_list_prefix("Tags.member")}
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
         parameters = {param['parameter_key']: param['parameter_value']
                       for param in parameters_list}
         if template_url:
