@@ -465,7 +465,7 @@ class ResourceMap(collections.Mapping):
                 ec2_models.ec2_backends[self._region_name].create_tags(
                     [self[resource].physical_resource_id], self.tags)
 
-    def update(self, template, parameters=None):
+    def diff(self, template, parameters=None):
         if parameters:
             self.input_parameters = parameters
         self.load_mapping()
@@ -474,27 +474,61 @@ class ResourceMap(collections.Mapping):
 
         old_template = self._resource_json_map
         new_template = template['Resources']
+
+        resource_names_by_action = {
+            'Add': set(new_template) - set(old_template),
+            'Modify': set(name for name in new_template if name in old_template and new_template[
+                name] != old_template[name]),
+            'Remove': set(old_template) - set(new_template)
+        }
+        resources_by_action = {
+            'Add': {},
+            'Modify': {},
+            'Remove': {},
+        }
+
+        for resource_name in resource_names_by_action['Add']:
+            resources_by_action['Add'][resource_name] = {
+                'LogicalResourceId': resource_name,
+                'ResourceType': new_template[resource_name]['Type']
+            }
+
+        for resource_name in resource_names_by_action['Modify']:
+            resources_by_action['Modify'][resource_name] = {
+                'LogicalResourceId': resource_name,
+                'ResourceType': new_template[resource_name]['Type']
+            }
+
+        for resource_name in resource_names_by_action['Remove']:
+            resources_by_action['Remove'][resource_name] = {
+                'LogicalResourceId': resource_name,
+                'ResourceType': old_template[resource_name]['Type']
+            }
+
+        return resources_by_action
+
+    def update(self, template, parameters=None):
+        resources_by_action = self.diff(template, parameters)
+
+        old_template = self._resource_json_map
+        new_template = template['Resources']
         self._resource_json_map = new_template
 
-        new_resource_names = set(new_template) - set(old_template)
-        for resource_name in new_resource_names:
+        for resource_name, resource in resources_by_action['Add'].items():
             resource_json = new_template[resource_name]
             new_resource = parse_and_create_resource(
                 resource_name, resource_json, self, self._region_name)
             self._parsed_resources[resource_name] = new_resource
 
-        removed_resource_names = set(old_template) - set(new_template)
-        for resource_name in removed_resource_names:
+        for resource_name, resource in resources_by_action['Remove'].items():
             resource_json = old_template[resource_name]
             parse_and_delete_resource(
                 resource_name, resource_json, self, self._region_name)
             self._parsed_resources.pop(resource_name)
 
-        resources_to_update = set(name for name in new_template if name in old_template and new_template[
-                                  name] != old_template[name])
         tries = 1
-        while resources_to_update and tries < 5:
-            for resource_name in resources_to_update.copy():
+        while resources_by_action['Modify'] and tries < 5:
+            for resource_name, resource in resources_by_action['Modify'].copy().items():
                 resource_json = new_template[resource_name]
                 try:
                     changed_resource = parse_and_update_resource(
@@ -505,7 +539,7 @@ class ResourceMap(collections.Mapping):
                     last_exception = e
                 else:
                     self._parsed_resources[resource_name] = changed_resource
-                    resources_to_update.remove(resource_name)
+                    del resources_by_action['Modify'][resource_name]
             tries += 1
         if tries == 5:
             raise last_exception

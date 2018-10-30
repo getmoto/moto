@@ -120,6 +120,31 @@ class CloudFormationResponse(BaseResponse):
             template = self.response_template(CREATE_CHANGE_SET_RESPONSE_TEMPLATE)
             return template.render(stack_id=stack_id, change_set_id=change_set_id)
 
+    def delete_change_set(self):
+        stack_name = self._get_param('StackName')
+        change_set_name = self._get_param('ChangeSetName')
+
+        self.cloudformation_backend.delete_change_set(change_set_name=change_set_name, stack_name=stack_name)
+        if self.request_json:
+            return json.dumps({
+                'DeleteChangeSetResponse': {
+                    'DeleteChangeSetResult': {},
+                }
+            })
+        else:
+            template = self.response_template(DELETE_CHANGE_SET_RESPONSE_TEMPLATE)
+            return template.render()
+
+    def describe_change_set(self):
+        stack_name = self._get_param('StackName')
+        change_set_name = self._get_param('ChangeSetName')
+        change_set = self.cloudformation_backend.describe_change_set(
+            change_set_name=change_set_name,
+            stack_name=stack_name,
+        )
+        template = self.response_template(DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE)
+        return template.render(change_set=change_set)
+
     @amzn_request_id
     def execute_change_set(self):
         stack_name = self._get_param('StackName')
@@ -186,6 +211,11 @@ class CloudFormationResponse(BaseResponse):
 
         template = self.response_template(DESCRIBE_STACK_EVENTS_RESPONSE)
         return template.render(stack=stack)
+
+    def list_change_sets(self):
+        change_sets = self.cloudformation_backend.list_change_sets()
+        template = self.response_template(LIST_CHANGE_SETS_RESPONSE)
+        return template.render(change_sets=change_sets)
 
     def list_stacks(self):
         stacks = self.cloudformation_backend.list_stacks()
@@ -354,6 +384,66 @@ CREATE_CHANGE_SET_RESPONSE_TEMPLATE = """<CreateStackResponse>
 </CreateStackResponse>
 """
 
+DELETE_CHANGE_SET_RESPONSE_TEMPLATE = """<DeleteChangeSetResponse>
+  <DeleteChangeSetResult>
+  </DeleteChangeSetResult>
+  <ResponseMetadata>
+    <RequestId>3d3200a1-810e-3023-6cc3-example</RequestId>
+  </ResponseMetadata>
+</DeleteChangeSetResponse>
+"""
+
+DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
+  <DescribeChangeSetResult>
+    <ChangeSetId>{{ change_set.change_set_id }}</ChangeSetId>
+    <ChangeSetName>{{ change_set.change_set_name }}</ChangeSetName>
+    <StackId>{{ change_set.stack_id }}</StackId>
+    <StackName>{{ change_set.stack_name }}</StackName>
+    <Description>{{ change_set.description }}</Description>
+    <Parameters>
+      {% for param_name, param_value in change_set.stack_parameters.items() %}
+       <member>
+          <ParameterKey>{{ param_name }}</ParameterKey>
+          <ParameterValue>{{ param_value }}</ParameterValue>
+        </member>
+      {% endfor %}
+    </Parameters>
+    <CreationTime>2011-05-23T15:47:44Z</CreationTime>
+    <ExecutionStatus>{{ change_set.execution_status }}</ExecutionStatus>
+    <Status>{{ change_set.status }}</Status>
+    <StatusReason>{{ change_set.status_reason }}</StatusReason>
+    {% if change_set.notification_arns %}
+    <NotificationARNs>
+      {% for notification_arn in change_set.notification_arns %}
+      <member>{{ notification_arn }}</member>
+      {% endfor %}
+    </NotificationARNs>
+    {% else %}
+    <NotificationARNs/>
+    {% endif %}
+    {% if change_set.role_arn %}
+    <RoleARN>{{ change_set.role_arn }}</RoleARN>
+    {% endif %}
+    {% if change_set.changes %}
+    <Changes>
+      {% for change in change_set.changes %}
+      <member>
+        <Type>Resource</Type>
+        <ResourceChange>
+            <Action>{{ change.action }}</Action>
+            <LogicalResourceId>{{ change.logical_resource_id }}</LogicalResourceId>
+            <ResourceType>{{ change.resource_type }}</ResourceType>
+        </ResourceChange>
+      </member>
+      {% endfor %}
+    </Changes>
+    {% endif %}
+    {% if next_token %}
+    <NextToken>{{ next_token }}</NextToken>
+    {% endif %}
+  </DescribeChangeSetResult>
+</DescribeChangeSetResponse>"""
+
 EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE = """<ExecuteChangeSetResponse>
   <ExecuteChangeSetResult>
       <ExecuteChangeSetResult/>
@@ -477,6 +567,27 @@ DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://c
     <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
   </ResponseMetadata>
 </DescribeStackEventsResponse>"""
+
+
+LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
+ <ListChangeSetsResult>
+  <Summaries>
+    {% for change_set in change_sets %}
+    <member>
+        <StackId>{{ change_set.stack_id }}</StackId>
+        <StackName>{{ change_set.stack_name }}</StackName>
+        <ChangeSetId>{{ change_set.change_set_id }}</ChangeSetId>
+        <ChangeSetName>{{ change_set.change_set_name }}</ChangeSetName>
+        <ExecutionStatus>{{ change_set.execution_status }}</ExecutionStatus>
+        <Status>{{ change_set.status }}</Status>
+        <StatusReason>{{ change_set.status_reason }}</StatusReason>
+        <CreationTime>2011-05-23T15:47:44Z</CreationTime>
+        <Description>{{ change_set.description }}</Description>
+    </member>
+    {% endfor %}
+  </Summaries>
+ </ListChangeSetsResult>
+</ListChangeSetsResponse>"""
 
 
 LIST_STACKS_RESPONSE = """<ListStacksResponse>
