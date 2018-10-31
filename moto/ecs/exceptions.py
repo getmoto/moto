@@ -10,4 +10,4 @@ class ServiceNotFoundException(RESTError):
             error_type="ServiceNotFoundException",
             message="The service {0} does not exist".format(service_name),
             template='error_json',
-            )
+        )
