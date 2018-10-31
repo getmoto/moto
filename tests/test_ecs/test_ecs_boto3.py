@@ -631,7 +631,22 @@ def test_delete_service():
     response['service']['schedulingStrategy'].should.equal('REPLICA')
     response['service']['taskDefinition'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
-        
+
+
+@mock_ecs
+def test_update_non_existant_service():
+    client = boto3.client('ecs', region_name='us-east-1')
+    try:
+        client.update_service(
+            cluster="my-clustet",
+            service="my-service",
+            desiredCount=0,
+        )
+    except ClientError as exc:
+        error_code = exc.response['Error']['Code']
+        error_code.should.equal('ServiceNotFoundException')
+    else:
+        raise Exception("Didn't raise ClientError")
 
 
 @mock_ec2
