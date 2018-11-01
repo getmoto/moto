@@ -1243,8 +1243,8 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
 CREDENTIAL_REPORT_GENERATING = """
 <GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
-        <state>STARTED</state>
-        <description>No report exists. Starting a new report generation task</description>
+        <State>STARTED</State>
+        <Description>No report exists. Starting a new report generation task</Description>
     </GenerateCredentialReportResult>
     <ResponseMetadata>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
@@ -1253,7 +1253,7 @@ CREDENTIAL_REPORT_GENERATING = """
 
 CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
-        <state>COMPLETE</state>
+        <State>COMPLETE</State>
     </GenerateCredentialReportResult>
     <ResponseMetadata>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
@@ -1262,7 +1262,7 @@ CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
 
 CREDENTIAL_REPORT = """<GetCredentialReportResponse>
     <GetCredentialReportResult>
-        <content>{{ report }}</content>
+        <Content>{{ report }}</Content>
         <GeneratedTime>2015-02-02T20:02:02Z</GeneratedTime>
         <ReportFormat>text/csv</ReportFormat>
     </GetCredentialReportResult>
