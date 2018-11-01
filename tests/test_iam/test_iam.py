@@ -537,7 +537,7 @@ def test_generate_credential_report():
         'generate_credential_report_result']['state'].should.equal('COMPLETE')
 
 @mock_iam
-def test_generate_credential_report_boto3():
+def test_boto3_generate_credential_report():
     conn = boto3.client('iam', region_name='us-east-1')
     result = conn.generate_credential_report()
     result['State'].should.equal('STARTED')
@@ -560,7 +560,7 @@ def test_get_credential_report():
     report.should.match(r'.*my-user.*')
 
 @mock_iam
-def test_get_credential_report():
+def test_boto3_get_credential_report():
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_user(UserName='my-user')
     with assert_raises(ClientError):
