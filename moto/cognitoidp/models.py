@@ -13,7 +13,6 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from .exceptions import NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
 
-
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
@@ -32,6 +31,7 @@ class CognitoIdpUserPool(BaseModel):
         self.last_modified_date = datetime.datetime.utcnow()
 
         self.clients = OrderedDict()
+        self.groups = OrderedDict()
         self.identity_providers = OrderedDict()
         self.users = OrderedDict()
         self.refresh_tokens = {}
@@ -159,6 +159,29 @@ class CognitoIdpUserPoolClient(BaseModel):
 
     def get_readable_fields(self):
         return self.extended_config.get('ReadAttributes', [])
+
+
+class CognitoIdpGroup(BaseModel):
+
+    def __init__(self, user_pool_id, group_name):
+        self.user_pool_id = user_pool_id
+        self.name = group_name
+        # self.extended_config = extended_config or {}
+        self.users = OrderedDict()
+
+    def _base_json(self):
+        return {
+            "GroupName": self.name,
+            # "Description": self.extended_config.get("Description"),
+            "UserPoolId": self.user_pool_id,
+        }
+
+    def to_json(self, extended=False):
+        group_json = self._base_json()
+        if extended:
+            group_json.update(self.extended_config)
+
+        return group_json
 
 
 class CognitoIdpIdentityProvider(BaseModel):
@@ -373,7 +396,8 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"], attributes)
+        user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"],
+                              attributes)
         user_pool.users[user.username] = user
         return user
 
@@ -519,6 +543,85 @@ class CognitoIdpBackend(BaseBackend):
                 break
         else:
             raise NotAuthorizedError(access_token)
+
+    def create_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = CognitoIdpGroup(user_pool_id, group_name)
+        user_pool.groups[group.name] = group
+        return group
+
+    def get_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = user_pool.groups[group_name]
+        if not group:
+            raise ResourceNotFoundError(group)
+
+        return group
+
+    def delete_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = user_pool.groups[group_name]
+        if not group:
+            raise ResourceNotFoundError(group)
+
+        del user_pool.groups[group_name]
+
+    def list_groups(self, user_pool_id):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        return user_pool.groups.values()
+
+    def admin_add_user_to_group(self, user_pool_id, group_name, user_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = user_pool.groups[group_name]
+        if not group:
+            raise ResourceNotFoundError(group)
+
+        user = user_pool.users[user_name]
+        if not group:
+            raise UserNotFoundError(user)
+
+        group.users[user_name] = user
+
+    def list_users_in_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = user_pool.groups[group_name]
+        if not group:
+            raise ResourceNotFoundError(group)
+
+        return group.users.values()
+
+    def admin_remove_user_from_group(self, user_pool_id, group_name, user_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = user_pool.groups[group_name]
+        if not group:
+            raise ResourceNotFoundError(group)
+
+        user = user_pool.users[user_name]
+        if not group:
+            raise UserNotFoundError(user)
+
+        del group.users[user_name]
 
 
 cognitoidp_backends = {}
