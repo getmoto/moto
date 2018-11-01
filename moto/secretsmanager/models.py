@@ -31,7 +31,7 @@ class SecretsManagerBackend(BaseBackend):
         self.region = region_name
         self.secret_id = kwargs.get('secret_id', '')
         self.name = kwargs.get('name', '')
-        self.createdate = int(time.time())
+        self.created_date = int(time.time())
         self.secret_string = ''
         self.rotation_enabled = False
         self.rotation_lambda_arn = ''
@@ -59,7 +59,7 @@ class SecretsManagerBackend(BaseBackend):
             "VersionStages": [
                 "AWSCURRENT",
             ],
-            "CreatedDate": "2018-05-23 13:16:57.198000"
+            "CreatedDate": self.created_date,
         })
 
         return response
