@@ -88,7 +88,8 @@ class CognitoIdpResponse(BaseResponse):
     def update_user_pool_client(self):
         user_pool_id = self.parameters.pop("UserPoolId")
         client_id = self.parameters.pop("ClientId")
-        user_pool_client = cognitoidp_backends[self.region].update_user_pool_client(user_pool_id, client_id, self.parameters)
+        user_pool_client = cognitoidp_backends[self.region].update_user_pool_client(user_pool_id, client_id,
+                                                                                    self.parameters)
         return json.dumps({
             "UserPoolClient": user_pool_client.to_json(extended=True)
         })
@@ -103,7 +104,8 @@ class CognitoIdpResponse(BaseResponse):
     def create_identity_provider(self):
         user_pool_id = self._get_param("UserPoolId")
         name = self.parameters.pop("ProviderName")
-        identity_provider = cognitoidp_backends[self.region].create_identity_provider(user_pool_id, name, self.parameters)
+        identity_provider = cognitoidp_backends[self.region].create_identity_provider(user_pool_id, name,
+                                                                                      self.parameters)
         return json.dumps({
             "IdentityProvider": identity_provider.to_json(extended=True)
         })
@@ -234,6 +236,58 @@ class CognitoIdpResponse(BaseResponse):
         proposed_password = self._get_param("ProposedPassword")
         region = find_region_by_value("access_token", access_token)
         cognitoidp_backends[region].change_password(access_token, previous_password, proposed_password)
+        return ""
+
+    def create_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        group = cognitoidp_backends[self.region].create_group(user_pool_id, group_name)
+        return json.dumps({
+            "Group": group.to_json(extended=False)
+        })
+
+    def get_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        group = cognitoidp_backends[self.region].get_group(user_pool_id, group_name)
+        return json.dumps({
+            "Group": group.to_json(extended=False)
+        })
+
+    def delete_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        cognitoidp_backends[self.region].delete_group(user_pool_id, group_name)
+        return ""
+
+    def list_groups(self):
+        user_pool_id = self._get_param("UserPoolId")
+        groups = cognitoidp_backends[self.region].list_groups(user_pool_id)
+
+        return json.dumps({
+            "Groups": [group.to_json() for group in groups]
+        })
+
+    def list_users_in_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        users = cognitoidp_backends[self.region].list_users_in_group(user_pool_id, group_name)
+        return json.dumps({
+            "Users": [user.to_json(extended=True) for user in users]
+        })
+
+    def admin_add_user_to_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_add_user_to_group(user_pool_id, group_name, username)
+        return ""
+
+    def admin_remove_user_from_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_remove_user_from_group(user_pool_id, group_name, username)
         return ""
 
 
