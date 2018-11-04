@@ -10,6 +10,7 @@ from boto3.session import Session
 import responses
 from moto.core import BaseBackend, BaseModel
 from .utils import create_id
+from moto.core.utils import path_url
 from .exceptions import StageNotFoundException, ApiKeyNotFoundException
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -372,7 +373,8 @@ class RestAPI(BaseModel):
         # TODO deal with no matching resource
 
     def resource_callback(self, request):
-        path_after_stage_name = '/'.join(request.path_url.split("/")[2:])
+        path = path_url(request.url)
+        path_after_stage_name = '/'.join(path.split("/")[2:])
         if not path_after_stage_name:
             path_after_stage_name = '/'
 
