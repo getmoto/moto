@@ -5,6 +5,8 @@ import sure  # noqa
 import boto3
 
 from moto import mock_iot
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 
 
 @mock_iot
@@ -338,11 +340,14 @@ def test_principal_policy():
     for principal in res['principals']:
         principal.should_not.be.none
 
-    client.detach_principal_policy(policyName=policy_name, principal=cert_arn)
+    client.detach_policy(policyName=policy_name, target=cert_arn)
     res = client.list_principal_policies(principal=cert_arn)
     res.should.have.key('policies').which.should.have.length_of(0)
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key('principals').which.should.have.length_of(0)
+    with assert_raises(ClientError) as e:
+        client.detach_policy(policyName=policy_name, target=cert_arn)
+    e.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
 
 
 @mock_iot

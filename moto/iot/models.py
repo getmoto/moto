@@ -445,6 +445,15 @@ class IoTBackend(BaseBackend):
             return
         self.principal_policies[k] = (principal, policy)
 
+    def detach_policy(self, policy_name, target):
+        # this may raises ResourceNotFoundException
+        self._get_principal(target)
+        self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k not in self.principal_policies:
+            raise ResourceNotFoundException()
+        del self.principal_policies[k]
+
     def detach_principal_policy(self, policy_name, principal_arn):
         # this may raises ResourceNotFoundException
         self._get_principal(principal_arn)
