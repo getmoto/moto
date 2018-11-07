@@ -292,6 +292,34 @@ class Item(BaseModel):
                         'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
 
 
+class StreamShard(BaseModel):
+    def __init__(self, table):
+        self.table = table
+        self.id = 'shardId-00000001541626099285-f35f62ef'
+        self.starting_sequence_number = 1100000000017454423009
+        self.items = []
+        self.created_on = datetime.datetime.utcnow()
+
+    def to_json(self):
+        return {
+            'ShardId': self.id,
+            'SequenceNumberRange': {
+                'StartingSequenceNumber': str(self.starting_sequence_number)
+            }
+        }
+
+    def add(self, old, new):
+        t = self.table.stream_specification['StreamViewType']
+        if t == 'KEYS_ONLY':
+            self.items.append(new.key)
+        elif t == 'NEW_IMAGE':
+            self.items.append(new)
+        elif t == 'OLD_IMAGE':
+            self.items.append(old)
+        elif t == 'NEW_AND_OLD_IMAGES':
+            self.items.append((old, new))
+                
+
 class Table(BaseModel):
 
     def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None, streams=None):
@@ -334,8 +362,10 @@ class Table(BaseModel):
         self.stream_specification = streams
         if streams and streams.get('StreamEnabled'):
             self.latest_stream_label = datetime.datetime.utcnow().isoformat()
+            self.stream_shard = StreamShard(self)
         else:
             self.latest_stream_label = None
+            self.stream_shard = None
 
     def describe(self, base_key='TableDescription'):
         results = {
@@ -398,6 +428,7 @@ class Table(BaseModel):
         else:
             range_value = None
 
+        current = self.get_item(hash_value, lookup_range_value)
         item = Item(hash_value, self.hash_key_type, range_value,
                     self.range_key_type, item_attrs)
 
@@ -412,8 +443,6 @@ class Table(BaseModel):
                     lookup_range_value = range_value
                 else:
                     lookup_range_value = DynamoType(expected_range_value)
-
-            current = self.get_item(hash_value, lookup_range_value)
 
             if current is None:
                 current_attr = {}
@@ -445,6 +474,10 @@ class Table(BaseModel):
             self.items[hash_value][range_value] = item
         else:
             self.items[hash_value] = item
+            
+        if self.stream_shard is not None:
+            self.stream_shard.add(current, item)
+        
         return item
 
     def __nonzero__(self):
