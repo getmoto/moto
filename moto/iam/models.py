@@ -12,6 +12,7 @@ import re
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from six.moves.urllib.parse import urlparse
+from uuid import uuid4
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
@@ -330,9 +331,10 @@ class Role(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        role_name = properties['RoleName'] if 'RoleName' in properties else str(uuid4())[0:5]
 
         role = iam_backend.create_role(
-            role_name=resource_name,
+            role_name=role_name,
             assume_role_policy_document=properties["AssumeRolePolicyDocument"],
             path=properties.get("Path", "/"),
             permissions_boundary=properties.get("PermissionsBoundary", ""),
