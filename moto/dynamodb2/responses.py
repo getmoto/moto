@@ -104,13 +104,16 @@ class DynamoHandler(BaseResponse):
         # getting the indexes
         global_indexes = body.get("GlobalSecondaryIndexes", [])
         local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
+        # get the stream specification
+        streams = body.get("StreamSpecification")
 
         table = self.dynamodb_backend.create_table(table_name,
                                                    schema=key_schema,
                                                    throughput=throughput,
                                                    attr=attr,
                                                    global_indexes=global_indexes,
-                                                   indexes=local_secondary_indexes)
+                                                   indexes=local_secondary_indexes,
+                                                   streams=streams)
         if table is not None:
             return dynamo_json_dump(table.describe())
         else:
@@ -163,12 +166,16 @@ class DynamoHandler(BaseResponse):
 
     def update_table(self):
         name = self.body['TableName']
+        table = self.dynamodb_backend.get_table(name)
         if 'GlobalSecondaryIndexUpdates' in self.body:
             table = self.dynamodb_backend.update_table_global_indexes(
                 name, self.body['GlobalSecondaryIndexUpdates'])
         if 'ProvisionedThroughput' in self.body:
             throughput = self.body["ProvisionedThroughput"]
             table = self.dynamodb_backend.update_table_throughput(name, throughput)
+        if 'StreamSpecification' in self.body:
+            table = self.dynamodb_backend.update_table_streams(name, self.body['StreamSpecification'])
+        
         return dynamo_json_dump(table.describe())
 
     def describe_table(self):

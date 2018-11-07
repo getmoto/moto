@@ -1336,3 +1336,62 @@ def test_query_global_secondary_index_when_created_via_update_table_resource():
     assert len(forum_and_subject_items) == 1
     assert forum_and_subject_items[0] == {'user_id': Decimal('1'), 'forum_name': 'cats',
                                           'subject': 'my pet is the cutest'}
+
+
+@mock_dynamodb2
+def test_dynamodb_streams_1():
+    conn = boto3.client('dynamodb', region_name='us-east-1')
+
+    resp = conn.create_table(
+        TableName='test-streams',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        StreamSpecification={
+            'StreamEnabled': True,
+            'StreamViewType': 'NEW_AND_OLD_IMAGES'
+        }
+    )
+    
+    assert 'StreamSpecification' in resp['TableDescription']
+    assert resp['TableDescription']['StreamSpecification'] == {
+        'StreamEnabled': True,
+        'StreamViewType': 'NEW_AND_OLD_IMAGES'
+    }
+    assert 'LatestStreamLabel' in resp['TableDescription']
+    assert 'LatestStreamArn' in resp['TableDescription']
+    
+    resp = conn.delete_table(TableName='test-streams')
+
+    assert 'StreamSpecification' in resp['TableDescription']
+    
+
+@mock_dynamodb2
+def test_dynamodb_streams_2():
+    conn = boto3.client('dynamodb', region_name='us-east-1')
+
+    resp = conn.create_table(
+        TableName='test-stream-update',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+    )
+
+    assert 'StreamSpecification' not in resp['TableDescription']
+
+    resp = conn.update_table(
+        TableName='test-stream-update',
+        StreamSpecification={
+            'StreamEnabled': True,
+            'StreamViewType': 'NEW_IMAGE'
+        }
+    )
+
+    assert 'StreamSpecification' in resp['TableDescription']
+    assert resp['TableDescription']['StreamSpecification'] == {
+        'StreamEnabled': True,
+        'StreamViewType': 'NEW_IMAGE'
+    }
+    assert 'LatestStreamLabel' in resp['TableDescription']
+    assert 'LatestStreamArn' in resp['TableDescription']
+    

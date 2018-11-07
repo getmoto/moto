@@ -294,7 +294,7 @@ class Item(BaseModel):
 
 class Table(BaseModel):
 
-    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None):
+    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None, streams=None):
         self.name = table_name
         self.attr = attr
         self.schema = schema
@@ -325,9 +325,17 @@ class Table(BaseModel):
             'TimeToLiveStatus': 'DISABLED'  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
             # 'AttributeName': 'string'  # Can contain this
         }
+        self.set_stream_specification(streams)
 
     def _generate_arn(self, name):
         return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
+
+    def set_stream_specification(self, streams):
+        self.stream_specification = streams
+        if streams and streams.get('StreamEnabled'):
+            self.latest_stream_label = datetime.datetime.utcnow().isoformat()
+        else:
+            self.latest_stream_label = None
 
     def describe(self, base_key='TableDescription'):
         results = {
@@ -345,6 +353,11 @@ class Table(BaseModel):
                 'LocalSecondaryIndexes': [index for index in self.indexes],
             }
         }
+        if self.stream_specification:
+            results[base_key]['StreamSpecification'] = self.stream_specification
+        if self.latest_stream_label:
+            results[base_key]['LatestStreamLabel'] = self.latest_stream_label
+            results[base_key]['LatestStreamArn'] = self.table_arn + '/stream/' + self.latest_stream_label
         return results
 
     def __len__(self):
@@ -678,6 +691,13 @@ class DynamoDBBackend(BaseBackend):
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
         table.throughput = throughput
+        return table
+
+    def update_table_streams(self, name, stream_specification):
+        table = self.tables[name]
+        if stream_specification['StreamEnabled'] and table.latest_stream_label:
+            raise ValueError('Table already has stream enabled')
+        table.set_stream_specification(stream_specification)
         return table
 
     def update_table_global_indexes(self, name, global_index_updates):
