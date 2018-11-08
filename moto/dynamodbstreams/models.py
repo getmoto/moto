@@ -4,7 +4,6 @@ import os
 import json
 import boto3
 import base64
-import datetime
 
 from moto.core import BaseBackend, BaseModel
 from moto.dynamodb2.models import dynamodb_backends
@@ -31,7 +30,7 @@ class ShardIterator(BaseModel):
             self.stream_shard.table.table_arn,
             self.stream_shard.table.latest_stream_label,
             self.id)
-    
+
     def to_json(self):
         return {
             'ShardIterator': self.arn
@@ -67,7 +66,7 @@ class DynamoDBStreamsBackend(BaseBackend):
         region = self.region
         self.__dict__ = {}
         self.__init__(region)
-        
+
     @property
     def dynamodb(self):
         return dynamodb_backends[self.region]
@@ -75,7 +74,7 @@ class DynamoDBStreamsBackend(BaseBackend):
     def _get_table_from_arn(self, arn):
         table_name = arn.split(':', 6)[5].split('/')[1]
         return self.dynamodb.get_table(table_name)
-    
+
     def describe_stream(self, arn):
         table = self._get_table_from_arn(arn)
         resp = {'StreamDescription': {
@@ -90,7 +89,7 @@ class DynamoDBStreamsBackend(BaseBackend):
             'Shards': ([table.stream_shard.to_json()] if table.stream_shard
                        else [])
         }}
-        
+
         return json.dumps(resp)
 
     def list_streams(self, table_name=None):
@@ -105,7 +104,7 @@ class DynamoDBStreamsBackend(BaseBackend):
                     'TableName': d['Table']['TableName'],
                     'StreamLabel': d['Table']['LatestStreamLabel']
                 })
-                
+
         return json.dumps({'Streams': streams})
 
     def get_shard_iterator(self, arn, shard_id, shard_iterator_type, sequence_number=None):
@@ -116,14 +115,13 @@ class DynamoDBStreamsBackend(BaseBackend):
                                        shard_iterator_type,
                                        sequence_number)
         self.shard_iterators[shard_iterator.arn] = shard_iterator
-        
+
         return json.dumps(shard_iterator.to_json())
 
     def get_records(self, iterator_arn, limit):
         shard_iterator = self.shard_iterators[iterator_arn]
         return json.dumps(shard_iterator.get(limit))
 
-    
 
 available_regions = boto3.session.Session().get_available_regions(
     'dynamodbstreams')

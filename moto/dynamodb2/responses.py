@@ -175,7 +175,7 @@ class DynamoHandler(BaseResponse):
             table = self.dynamodb_backend.update_table_throughput(name, throughput)
         if 'StreamSpecification' in self.body:
             table = self.dynamodb_backend.update_table_streams(name, self.body['StreamSpecification'])
-        
+
         return dynamo_json_dump(table.describe())
 
     def describe_table(self):

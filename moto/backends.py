@@ -60,6 +60,7 @@ BACKENDS = {
     'datapipeline': datapipeline_backends,
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
+    'dynamodbstreams': dynamodbstreams_backends,
     'ec2': ec2_backends,
     'ecr': ecr_backends,
     'ecs': ecs_backends,

@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import copy
 import datetime
 import decimal
@@ -302,7 +302,7 @@ class StreamRecord(BaseModel):
         keys = {table.hash_key_attr: rec.hash_key.to_json()}
         if table.range_key_attr is not None:
             keys[table.range_key_attr] = rec.range_key.to_json()
-                
+
         self.record = {
             'eventID': uuid.uuid4().hex,
             'eventName': event_name,
@@ -317,7 +317,7 @@ class StreamRecord(BaseModel):
                 'Keys': keys
             }
         }
-                    
+
         if stream_type in ('NEW_IMAGE', 'NEW_AND_OLD_IMAGES'):
             self.record['dynamodb']['NewImage'] = new_a
         if stream_type in ('OLD_IMAGE', 'NEW_AND_OLD_IMAGES'):
@@ -364,7 +364,7 @@ class StreamShard(BaseModel):
         assert start >= 0
         end = start + quantity
         return [i.to_json() for i in self.items[start:end]]
-            
+
 
 class Table(BaseModel):
 
@@ -485,7 +485,7 @@ class Table(BaseModel):
             else:
                 lookup_range_value = DynamoType(expected_range_value)
         current = self.get_item(hash_value, lookup_range_value)
-        
+
         item = Item(hash_value, self.hash_key_type, range_value,
                     self.range_key_type, item_attrs)
 
@@ -520,10 +520,10 @@ class Table(BaseModel):
             self.items[hash_value][range_value] = item
         else:
             self.items[hash_value] = item
-            
+
         if self.stream_shard is not None:
             self.stream_shard.add(current, item)
-        
+
         return item
 
     def __nonzero__(self):
@@ -560,7 +560,7 @@ class Table(BaseModel):
 
             if self.stream_shard is not None:
                 self.stream_shard.add(item, None)
-            
+
             return item
         except KeyError:
             return None

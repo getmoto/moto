@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 
-import json
-
 from moto.core.responses import BaseResponse
 
 from .models import dynamodbstreams_backends
@@ -12,7 +10,7 @@ class DynamoDBStreamsHandler(BaseResponse):
     @property
     def backend(self):
         return dynamodbstreams_backends[self.region]
-    
+
     def describe_stream(self):
         arn = self._get_param('StreamArn')
         return self.backend.describe_stream(arn)
