@@ -183,6 +183,7 @@ class DynamoHandler(BaseResponse):
     def put_item(self):
         name = self.body['TableName']
         item = self.body['Item']
+        return_values = self.body.get('ReturnValues', 'NONE')
 
         if has_empty_keys_or_values(item):
             return get_empty_str_error()
@@ -192,6 +193,13 @@ class DynamoHandler(BaseResponse):
             expected = self.body['Expected']
         else:
             expected = None
+
+        if return_values == 'ALL_OLD':
+            existing_item = self.dynamodb_backend.get_item(name, item)
+            if existing_item:
+                existing_attributes = existing_item.to_json()['Attributes']
+            else:
+                existing_attributes = {}
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
@@ -228,6 +236,10 @@ class DynamoHandler(BaseResponse):
                 'TableName': name,
                 'CapacityUnits': 1
             }
+            if return_values == 'ALL_OLD':
+                item_dict['Attributes'] = existing_attributes
+            else:
+                item_dict.pop('Attributes', None)
             return dynamo_json_dump(item_dict)
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
@@ -527,9 +539,9 @@ class DynamoHandler(BaseResponse):
         return dynamo_json_dump(item_dict)
 
     def update_item(self):
-
         name = self.body['TableName']
         key = self.body['Key']
+        return_values = self.body.get('ReturnValues', 'NONE')
         update_expression = self.body.get('UpdateExpression')
         attribute_updates = self.body.get('AttributeUpdates')
         expression_attribute_names = self.body.get(
@@ -537,6 +549,10 @@ class DynamoHandler(BaseResponse):
         expression_attribute_values = self.body.get(
             'ExpressionAttributeValues', {})
         existing_item = self.dynamodb_backend.get_item(name, key)
+        if existing_item:
+            existing_attributes = existing_item.to_json()['Attributes']
+        else:
+            existing_attributes = {}
 
         if has_empty_keys_or_values(expression_attribute_values):
             return get_empty_str_error()
@@ -591,8 +607,26 @@ class DynamoHandler(BaseResponse):
             'TableName': name,
             'CapacityUnits': 0.5
         }
-        if not existing_item:
+        unchanged_attributes = {
+            k for k in existing_attributes.keys()
+            if existing_attributes[k] == item_dict['Attributes'].get(k)
+        }
+        changed_attributes = set(existing_attributes.keys()).union(item_dict['Attributes'].keys()).difference(unchanged_attributes)
+
+        if return_values == 'NONE':
             item_dict['Attributes'] = {}
+        elif return_values == 'ALL_OLD':
+            item_dict['Attributes'] = existing_attributes
+        elif return_values == 'UPDATED_OLD':
+            item_dict['Attributes'] = {
+                k: v for k, v in existing_attributes.items()
+                if k in changed_attributes
+            }
+        elif return_values == 'UPDATED_NEW':
+            item_dict['Attributes'] = {
+                k: v for k, v in item_dict['Attributes'].items()
+                if k in changed_attributes
+            }
 
         return dynamo_json_dump(item_dict)
 
