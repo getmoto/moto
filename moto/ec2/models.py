@@ -1150,6 +1150,7 @@ class AmiBackend(object):
 
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
                   name=name, description=description,
+                  creation_date=None,
                   owner_id=context.get_current_user() if context else '111122223333')
         self.amis[ami_id] = ami
         return ami
