@@ -406,10 +406,13 @@ class Table(BaseModel):
 
     def set_stream_specification(self, streams):
         self.stream_specification = streams
-        if streams and streams.get('StreamEnabled'):
+        if streams and (streams.get('StreamEnabled')
+                        or streams.get('StreamViewType')):
+            self.stream_specification['StreamEnabled'] = True
             self.latest_stream_label = datetime.datetime.utcnow().isoformat()
             self.stream_shard = StreamShard(self)
         else:
+            self.stream_specification = {'StreamEnabled': False}
             self.latest_stream_label = None
             self.stream_shard = None
 
@@ -429,11 +432,11 @@ class Table(BaseModel):
                 'LocalSecondaryIndexes': [index for index in self.indexes],
             }
         }
-        if self.stream_specification:
+        if self.stream_specification and self.stream_specification['StreamEnabled']:
             results[base_key]['StreamSpecification'] = self.stream_specification
-        if self.latest_stream_label:
-            results[base_key]['LatestStreamLabel'] = self.latest_stream_label
-            results[base_key]['LatestStreamArn'] = self.table_arn + '/stream/' + self.latest_stream_label
+            if self.latest_stream_label:
+                results[base_key]['LatestStreamLabel'] = self.latest_stream_label
+                results[base_key]['LatestStreamArn'] = self.table_arn + '/stream/' + self.latest_stream_label
         return results
 
     def __len__(self):
@@ -779,7 +782,9 @@ class DynamoDBBackend(BaseBackend):
 
     def update_table_streams(self, name, stream_specification):
         table = self.tables[name]
-        if stream_specification['StreamEnabled'] and table.latest_stream_label:
+        if ((stream_specification.get('StreamEnabled')
+             or stream_specification.get('StreamViewType'))
+             and table.latest_stream_label):
             raise ValueError('Table already has stream enabled')
         table.set_stream_specification(stream_specification)
         return table
