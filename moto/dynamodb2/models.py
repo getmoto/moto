@@ -154,7 +154,7 @@ class Item(BaseModel):
                     # If not exists, changes value to a default if needed, else its the same as it was
                     if value.startswith('if_not_exists'):
                         # Function signature
-                        match = re.match(r'.*if_not_exists\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
                         if not match:
                             raise TypeError
 
@@ -162,12 +162,13 @@ class Item(BaseModel):
 
                         # If it already exists, get its value so we dont overwrite it
                         if path in self.attrs:
-                            value = self.attrs[path].cast_value
+                            value = self.attrs[path]
 
-                    if value in expression_attribute_values:
-                        value = DynamoType(expression_attribute_values[value])
-                    else:
-                        value = DynamoType({"S": value})
+                    if type(value) != DynamoType:
+                        if value in expression_attribute_values:
+                            value = DynamoType(expression_attribute_values[value])
+                        else:
+                            value = DynamoType({"S": value})
 
                     if '.' not in key:
                         self.attrs[key] = value
@@ -264,9 +265,9 @@ class Item(BaseModel):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
-                elif update_action['Value'].keys() == ['N']:
+                elif set(update_action['Value'].keys()) == set(['N']):
                     self.attrs[attribute_name] = DynamoType({"N": new_value})
-                elif update_action['Value'].keys() == ['NULL']:
+                elif set(update_action['Value'].keys()) == set(['NULL']):
                     if attribute_name in self.attrs:
                         del self.attrs[attribute_name]
                 else:
@@ -409,7 +410,8 @@ class Table(BaseModel):
                 current_attr = current
 
             for key, val in expected.items():
-                if 'Exists' in val and val['Exists'] is False:
+                if 'Exists' in val and val['Exists'] is False \
+                        or 'ComparisonOperator' in val and val['ComparisonOperator'] == 'NULL':
                     if key in current_attr:
                         raise ValueError("The conditional request failed")
                 elif key not in current_attr:
@@ -419,8 +421,10 @@ class Table(BaseModel):
                 elif 'ComparisonOperator' in val:
                     comparison_func = get_comparison_func(
                         val['ComparisonOperator'])
-                    dynamo_types = [DynamoType(ele) for ele in val[
-                        "AttributeValueList"]]
+                    dynamo_types = [
+                        DynamoType(ele) for ele in
+                        val.get("AttributeValueList", [])
+                    ]
                     for t in dynamo_types:
                         if not comparison_func(current_attr[key].value, t.value):
                             raise ValueError('The conditional request failed')
@@ -706,7 +710,9 @@ class DynamoDBBackend(BaseBackend):
 
                 gsis_by_name[gsi_to_create['IndexName']] = gsi_to_create
 
-        table.global_indexes = gsis_by_name.values()
+        # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
+        # parts of the codebase
+        table.global_indexes = list(gsis_by_name.values())
         return table
 
     def put_item(self, table_name, item_attrs, expected=None, overwrite=False):
@@ -825,7 +831,8 @@ class DynamoDBBackend(BaseBackend):
             expected = {}
 
         for key, val in expected.items():
-            if 'Exists' in val and val['Exists'] is False:
+            if 'Exists' in val and val['Exists'] is False \
+                    or 'ComparisonOperator' in val and val['ComparisonOperator'] == 'NULL':
                 if key in item_attr:
                     raise ValueError("The conditional request failed")
             elif key not in item_attr:
@@ -835,8 +842,10 @@ class DynamoDBBackend(BaseBackend):
             elif 'ComparisonOperator' in val:
                 comparison_func = get_comparison_func(
                     val['ComparisonOperator'])
-                dynamo_types = [DynamoType(ele) for ele in val[
-                    "AttributeValueList"]]
+                dynamo_types = [
+                    DynamoType(ele) for ele in
+                    val.get("AttributeValueList", [])
+                ]
                 for t in dynamo_types:
                     if not comparison_func(item_attr[key].value, t.value):
                         raise ValueError('The conditional request failed')

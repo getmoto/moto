@@ -10,6 +10,8 @@ from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
 from copy import copy
 
+from .exceptions import ServiceNotFoundException
+
 
 class BaseObject(BaseModel):
 
@@ -177,7 +179,7 @@ class Task(BaseObject):
 
 class Service(BaseObject):
 
-    def __init__(self, cluster, service_name, task_definition, desired_count):
+    def __init__(self, cluster, service_name, task_definition, desired_count, load_balancers=None, scheduling_strategy=None):
         self.cluster_arn = cluster.arn
         self.arn = 'arn:aws:ecs:us-east-1:012345678910:service/{0}'.format(
             service_name)
@@ -199,7 +201,8 @@ class Service(BaseObject):
                 'updatedAt': datetime.now(pytz.utc),
             }
         ]
-        self.load_balancers = []
+        self.load_balancers = load_balancers if load_balancers is not None else []
+        self.scheduling_strategy = scheduling_strategy if scheduling_strategy is not None else 'REPLICA'
         self.pending_count = 0
 
     @property
@@ -212,6 +215,7 @@ class Service(BaseObject):
         del response_object['name'], response_object['arn']
         response_object['serviceName'] = self.name
         response_object['serviceArn'] = self.arn
+        response_object['schedulingStrategy'] = self.scheduling_strategy
 
         for deployment in response_object['deployments']:
             if isinstance(deployment['createdAt'], datetime):
@@ -601,8 +605,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("tasks cannot be empty")
         response = []
         for cluster, cluster_tasks in self.tasks.items():
-            for task_id, task in cluster_tasks.items():
-                if task_id in tasks or task.task_arn in tasks:
+            for task_arn, task in cluster_tasks.items():
+                task_id = task_arn.split("/")[-1]
+                if task_arn in tasks or task.task_arn in tasks or any(task_id in task for task in tasks):
                     response.append(task)
         return response
 
@@ -652,7 +657,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         raise Exception("Could not find task {} on cluster {}".format(
             task_str, cluster_name))
 
-    def create_service(self, cluster_str, service_name, task_definition_str, desired_count):
+    def create_service(self, cluster_str, service_name, task_definition_str, desired_count, load_balancers=None, scheduling_strategy=None):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
@@ -660,10 +665,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a cluster".format(cluster_name))
         task_definition = self.describe_task_definition(task_definition_str)
         desired_count = desired_count if desired_count is not None else 0
+
         service = Service(cluster, service_name,
-                          task_definition, desired_count)
+                          task_definition, desired_count, load_balancers, scheduling_strategy)
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
         self.services[cluster_service_pair] = service
+
         return service
 
     def list_services(self, cluster_str):
@@ -698,8 +705,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     cluster_service_pair].desired_count = desired_count
             return self.services[cluster_service_pair]
         else:
-            raise Exception("cluster {0} or service {1} does not exist".format(
-                cluster_name, service_name))
+            raise ServiceNotFoundException(service_name)
 
     def delete_service(self, cluster_name, service_name):
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)

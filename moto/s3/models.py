@@ -15,18 +15,25 @@ from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination, MalformedXML
+    InvalidNotificationDestination, MalformedXML, InvalidStorageClass
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
+STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
 
 
 class FakeDeleteMarker(BaseModel):
 
     def __init__(self, key):
         self.key = key
+        self.name = key.name
+        self.last_modified = datetime.datetime.utcnow()
         self._version_id = key.version_id + 1
+
+    @property
+    def last_modified_ISO8601(self):
+        return iso_8601_datetime_with_milliseconds(self.last_modified)
 
     @property
     def version_id(self):
@@ -67,8 +74,10 @@ class FakeKey(BaseModel):
     def set_tagging(self, tagging):
         self._tagging = tagging
 
-    def set_storage_class(self, storage_class):
-        self._storage_class = storage_class
+    def set_storage_class(self, storage):
+        if storage is not None and storage not in STORAGE_CLASS:
+            raise InvalidStorageClass(storage=storage)
+        self._storage_class = storage
 
     def set_acl(self, acl):
         self.acl = acl
@@ -172,11 +181,14 @@ class FakeMultipart(BaseModel):
         count = 0
         for pn, etag in body:
             part = self.parts.get(pn)
-            if part is None or part.etag != etag:
+            part_etag = None
+            if part is not None:
+                part_etag = part.etag.replace('"', '')
+                etag = etag.replace('"', '')
+            if part is None or part_etag != etag:
                 raise InvalidPart()
             if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
-            part_etag = part.etag.replace('"', '')
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
             last = part
@@ -329,8 +341,9 @@ class LifecycleAndFilter(BaseModel):
 class LifecycleRule(BaseModel):
 
     def __init__(self, id=None, prefix=None, lc_filter=None, status=None, expiration_days=None,
-                 expiration_date=None, transition_days=None, expired_object_delete_marker=None,
-                 transition_date=None, storage_class=None):
+                 expiration_date=None, transition_days=None, transition_date=None, storage_class=None,
+                 expired_object_delete_marker=None, nve_noncurrent_days=None, nvt_noncurrent_days=None,
+                 nvt_storage_class=None, aimu_days=None):
         self.id = id
         self.prefix = prefix
         self.filter = lc_filter
@@ -339,8 +352,12 @@ class LifecycleRule(BaseModel):
         self.expiration_date = expiration_date
         self.transition_days = transition_days
         self.transition_date = transition_date
-        self.expired_object_delete_marker = expired_object_delete_marker
         self.storage_class = storage_class
+        self.expired_object_delete_marker = expired_object_delete_marker
+        self.nve_noncurrent_days = nve_noncurrent_days
+        self.nvt_noncurrent_days = nvt_noncurrent_days
+        self.nvt_storage_class = nvt_storage_class
+        self.aimu_days = aimu_days
 
 
 class CorsRule(BaseModel):
@@ -402,8 +419,31 @@ class FakeBucket(BaseModel):
     def set_lifecycle(self, rules):
         self.rules = []
         for rule in rules:
+            # Extract and validate actions from Lifecycle rule
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
+
+            nve_noncurrent_days = None
+            if rule.get('NoncurrentVersionExpiration') is not None:
+                if rule["NoncurrentVersionExpiration"].get('NoncurrentDays') is None:
+                    raise MalformedXML()
+                nve_noncurrent_days = rule["NoncurrentVersionExpiration"]["NoncurrentDays"]
+
+            nvt_noncurrent_days = None
+            nvt_storage_class = None
+            if rule.get('NoncurrentVersionTransition') is not None:
+                if rule["NoncurrentVersionTransition"].get('NoncurrentDays') is None:
+                    raise MalformedXML()
+                if rule["NoncurrentVersionTransition"].get('StorageClass') is None:
+                    raise MalformedXML()
+                nvt_noncurrent_days = rule["NoncurrentVersionTransition"]["NoncurrentDays"]
+                nvt_storage_class = rule["NoncurrentVersionTransition"]["StorageClass"]
+
+            aimu_days = None
+            if rule.get('AbortIncompleteMultipartUpload') is not None:
+                if rule["AbortIncompleteMultipartUpload"].get('DaysAfterInitiation') is None:
+                    raise MalformedXML()
+                aimu_days = rule["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"]
 
             eodm = None
             if expiration and expiration.get("ExpiredObjectDeleteMarker") is not None:
@@ -447,11 +487,14 @@ class FakeBucket(BaseModel):
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,
                 expiration_date=expiration.get('Date') if expiration else None,
-                expired_object_delete_marker=eodm,
                 transition_days=transition.get('Days') if transition else None,
                 transition_date=transition.get('Date') if transition else None,
-                storage_class=transition[
-                    'StorageClass'] if transition else None,
+                storage_class=transition.get('StorageClass') if transition else None,
+                expired_object_delete_marker=eodm,
+                nve_noncurrent_days=nve_noncurrent_days,
+                nvt_noncurrent_days=nvt_noncurrent_days,
+                nvt_storage_class=nvt_storage_class,
+                aimu_days=aimu_days,
             ))
 
     def delete_lifecycle(self):
@@ -624,10 +667,7 @@ class S3Backend(BaseBackend):
         latest_versions = {}
 
         for version in versions:
-            if isinstance(version, FakeDeleteMarker):
-                name = version.key.name
-            else:
-                name = version.name
+            name = version.name
             version_id = version.version_id
             maximum_version_per_key[name] = max(
                 version_id,
@@ -676,6 +716,8 @@ class S3Backend(BaseBackend):
 
     def set_key(self, bucket_name, key_name, value, storage=None, etag=None):
         key_name = clean_key_name(key_name)
+        if storage is not None and storage not in STORAGE_CLASS:
+            raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
 
@@ -713,7 +755,7 @@ class S3Backend(BaseBackend):
                 if key_name in bucket.keys:
                     key = bucket.keys[key_name]
             else:
-                for key_version in bucket.keys.getlist(key_name):
+                for key_version in bucket.keys.getlist(key_name, default=[]):
                     if str(key_version.version_id) == str(version_id):
                         key = key_version
                         break

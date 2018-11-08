@@ -20,18 +20,21 @@ from moto.elbv2 import elbv2_backends
 from moto.emr import emr_backends
 from moto.events import events_backends
 from moto.glacier import glacier_backends
+from moto.glue import glue_backends
 from moto.iam import iam_backends
 from moto.instance_metadata import instance_metadata_backends
 from moto.kinesis import kinesis_backends
 from moto.kms import kms_backends
 from moto.logs import logs_backends
 from moto.opsworks import opsworks_backends
+from moto.organizations import organizations_backends
 from moto.polly import polly_backends
 from moto.rds2 import rds2_backends
 from moto.redshift import redshift_backends
 from moto.route53 import route53_backends
 from moto.s3 import s3_backends
 from moto.ses import ses_backends
+from moto.secretsmanager import secretsmanager_backends
 from moto.sns import sns_backends
 from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
@@ -64,6 +67,7 @@ BACKENDS = {
     'events': events_backends,
     'emr': emr_backends,
     'glacier': glacier_backends,
+    'glue': glue_backends,
     'iam': iam_backends,
     'moto_api': moto_api_backends,
     'instance_metadata': instance_metadata_backends,
@@ -71,12 +75,14 @@ BACKENDS = {
     'kinesis': kinesis_backends,
     'kms': kms_backends,
     'opsworks': opsworks_backends,
+    'organizations': organizations_backends,
     'polly': polly_backends,
     'redshift': redshift_backends,
     'rds': rds2_backends,
     's3': s3_backends,
     's3bucket_path': s3_backends,
     'ses': ses_backends,
+    'secretsmanager': secretsmanager_backends,
     'sns': sns_backends,
     'sqs': sqs_backends,
     'ssm': ssm_backends,

@@ -225,6 +225,29 @@ def test_multipart_invalid_order():
     bucket.complete_multipart_upload.when.called_with(
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
+@mock_s3_deprecated
+@reduced_min_part_size
+def test_multipart_etag_quotes_stripped():
+    # Create Bucket so that test can run
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket('mybucket')
+
+    multipart = bucket.initiate_multipart_upload("the-key")
+    part1 = b'0' * REDUCED_PART_SIZE
+    etag1 = multipart.upload_part_from_file(BytesIO(part1), 1).etag
+    # last part, can be less than 5 MB
+    part2 = b'1'
+    etag2 = multipart.upload_part_from_file(BytesIO(part2), 2).etag
+    # Strip quotes from etags
+    etag1 = etag1.replace('"','')
+    etag2 = etag2.replace('"','')
+    xml = "<Part><PartNumber>{0}</PartNumber><ETag>{1}</ETag></Part>"
+    xml = xml.format(1, etag1) + xml.format(2, etag2)
+    xml = "<CompleteMultipartUpload>{0}</CompleteMultipartUpload>".format(xml)
+    bucket.complete_multipart_upload.when.called_with(
+        multipart.key_name, multipart.id, xml).should_not.throw(S3ResponseError)
+    # we should get both parts as the key contents
+    bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
 
 @mock_s3_deprecated
 @reduced_min_part_size
@@ -2363,6 +2386,35 @@ def test_boto3_list_object_versions():
 
 
 @mock_s3
+def test_boto3_bad_prefix_list_object_versions():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    bad_prefix = 'key-that-does-not-exist'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    response = s3.list_object_versions(
+        Bucket=bucket_name,
+        Prefix=bad_prefix,
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    response.should_not.contain('Versions')
+    response.should_not.contain('DeleteMarkers')
+
+
+@mock_s3
 def test_boto3_delete_markers():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
@@ -2418,6 +2470,72 @@ def test_boto3_delete_markers():
     latest['Key'].should.equal('key-with-versions-and-unicode-ó')
     oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
 
+
+@mock_s3
+def test_boto3_multiple_delete_markers():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = u'key-with-versions-and-unicode-ó'
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+
+    # Delete the object twice to add multiple delete markers
+    s3.delete_object(Bucket=bucket_name, Key=key)
+    s3.delete_object(Bucket=bucket_name, Key=key)
+
+    response = s3.list_object_versions(Bucket=bucket_name)
+    response['DeleteMarkers'].should.have.length_of(2)
+
+    with assert_raises(ClientError) as e:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key
+        )
+        e.response['Error']['Code'].should.equal('404')
+
+    # Remove both delete markers to restore the object
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key,
+        VersionId='2'
+    )
+    s3.delete_object(
+        Bucket=bucket_name,
+        Key=key,
+        VersionId='3'
+    )
+
+    response = s3.get_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+    response['Body'].read().should.equal(items[-1])
+    response = s3.list_object_versions(Bucket=bucket_name)
+    response['Versions'].should.have.length_of(2)
+
+    # We've asserted there is only 2 records so one is newest, one is oldest
+    latest = list(filter(lambda item: item['IsLatest'], response['Versions']))[0]
+    oldest = list(filter(lambda item: not item['IsLatest'], response['Versions']))[0]
+
+    # Double check ordering of version ID's
+    latest['VersionId'].should.equal('1')
+    oldest['VersionId'].should.equal('0')
+
+    # Double check the name is still unicode
+    latest['Key'].should.equal('key-with-versions-and-unicode-ó')
+    oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
 
 @mock_s3
 def test_get_stream_gzipped():

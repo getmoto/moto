@@ -1,17 +1,17 @@
 from __future__ import unicode_literals, print_function
 
+from decimal import Decimal
+
 import six
 import boto
 import boto3
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Attr, Key
 import sure  # noqa
 import requests
-from pytest import raises
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError
-from boto3.dynamodb.conditions import Key
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises
 
@@ -193,6 +193,48 @@ def test_item_add_empty_string_exception():
                 'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
             }
         )
+
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'One or more parameter values were invalid: An AttributeValue may not contain an empty string'
+    )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_update_item_with_empty_string_exception():
+    name = 'TestTable'
+    conn = boto3.client('dynamodb',
+                        region_name='us-west-2',
+                        aws_access_key_id="ak",
+                        aws_secret_access_key="sk")
+    conn.create_table(TableName=name,
+                      KeySchema=[{'AttributeName':'forum_name','KeyType':'HASH'}],
+                      AttributeDefinitions=[{'AttributeName':'forum_name','AttributeType':'S'}],
+                      ProvisionedThroughput={'ReadCapacityUnits':5,'WriteCapacityUnits':5})
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            'forum_name': { 'S': 'LOLCat Forum' },
+            'subject': { 'S': 'Check this out!' },
+            'Body': { 'S': 'http://url_to_lolcat.gif'},
+            'SentBy': { 'S': "test" },
+            'ReceivedTime': { 'S': '12/9/2011 11:36:03 PM'},
+        }
+    )
+
+    with assert_raises(ClientError) as ex:
+        conn.update_item(
+            TableName=name,
+            Key={
+                'forum_name': { 'S': 'LOLCat Forum'},
+            },
+            UpdateExpression='set Body=:Body',
+            ExpressionAttributeValues={
+                ':Body': {'S': ''}
+            })
 
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
@@ -658,8 +700,8 @@ def test_filter_expression():
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
     filter_expr.expr(row1).should.be(True)
 
-    # attribute function tests
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists(User)', {}, {})
+    # attribute function tests (with extra spaces)
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists (User)', {}, {})
     filter_expr.expr(row1).should.be(True)
 
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_type(Id, N)', {}, {})
@@ -1119,7 +1161,7 @@ def test_update_item_on_map():
     })
 
     # Test nested value for a nonexistent attribute.
-    with raises(client.exceptions.ConditionalCheckFailedException):
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
         table.update_item(Key={
             'forum_name': 'the-key',
             'subject': '123'
@@ -1178,7 +1220,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists without space
+        UpdateExpression='SET created_at=if_not_exists(created_at,:created_at)',
         ExpressionAttributeValues={
             ':created_at': 123
         }
@@ -1191,7 +1234,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists with space
+        UpdateExpression='SET created_at = if_not_exists (created_at, :created_at)',
         ExpressionAttributeValues={
             ':created_at': 456
         }
@@ -1200,3 +1244,95 @@ def test_update_if_not_exists():
     resp = table.scan()
     # Still the original value
     assert resp['Items'][0]['created_at'] == 123
+
+
+@mock_dynamodb2
+def test_query_global_secondary_index_when_created_via_update_table_resource():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'user_id',
+                'KeyType': 'HASH'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'user_id',
+                'AttributeType': 'N',
+            },
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        },
+    )
+    table = dynamodb.Table('users')
+    table.update(
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+        ],
+        GlobalSecondaryIndexUpdates=[
+            {'Create':
+                {
+                    'IndexName': 'forum_name_index',
+                    'KeySchema': [
+                        {
+                            'AttributeName': 'forum_name',
+                            'KeyType': 'HASH',
+                        },
+                    ],
+                    'Projection': {
+                        'ProjectionType': 'ALL',
+                    },
+                    'ProvisionedThroughput': {
+                        'ReadCapacityUnits': 5,
+                        'WriteCapacityUnits': 5
+                    },
+                }
+            }
+        ]
+    )
+
+    next_user_id = 1
+    for my_forum_name in ['cats', 'dogs']:
+        for my_subject in ['my pet is the cutest', 'wow look at what my pet did', "don't you love my pet?"]:
+            table.put_item(Item={'user_id': next_user_id, 'forum_name': my_forum_name, 'subject': my_subject})
+            next_user_id += 1
+
+    # get all the cat users
+    forum_only_query_response = table.query(
+        IndexName='forum_name_index',
+        Select='ALL_ATTRIBUTES',
+        KeyConditionExpression=Key('forum_name').eq('cats'),
+    )
+    forum_only_items = forum_only_query_response['Items']
+    assert len(forum_only_items) == 3
+    for item in forum_only_items:
+        assert item['forum_name'] == 'cats'
+
+    # query all cat users with a particular subject
+    forum_and_subject_query_results = table.query(
+        IndexName='forum_name_index',
+        Select='ALL_ATTRIBUTES',
+        KeyConditionExpression=Key('forum_name').eq('cats'),
+        FilterExpression=Attr('subject').eq('my pet is the cutest'),
+    )
+    forum_and_subject_items = forum_and_subject_query_results['Items']
+    assert len(forum_and_subject_items) == 1
+    assert forum_and_subject_items[0] == {'user_id': Decimal('1'), 'forum_name': 'cats',
+                                          'subject': 'my pet is the cutest'}

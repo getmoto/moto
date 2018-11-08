@@ -181,6 +181,7 @@ class SNSResponse(BaseResponse):
         topic_arn = self._get_param('TopicArn')
         endpoint = self._get_param('Endpoint')
         protocol = self._get_param('Protocol')
+        attributes = self._get_attributes()
 
         if protocol == 'sms' and not is_e164(endpoint):
             return self._error(
@@ -189,6 +190,10 @@ class SNSResponse(BaseResponse):
             ), dict(status=400)
 
         subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
+
+        if attributes is not None:
+            for attr_name, attr_value in attributes.items():
+                self.backend.set_subscription_attributes(subscription.arn, attr_name, attr_value)
 
         if self.request_json:
             return json.dumps({

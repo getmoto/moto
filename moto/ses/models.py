@@ -13,14 +13,21 @@ RECIPIENT_LIMIT = 50
 
 class Message(BaseModel):
 
-    def __init__(self, message_id):
+    def __init__(self, message_id, source, subject, body, destinations):
         self.id = message_id
+        self.source = source
+        self.subject = subject
+        self.body = body
+        self.destinations = destinations
 
 
 class RawMessage(BaseModel):
 
-    def __init__(self, message_id):
+    def __init__(self, message_id, source, destinations, raw_data):
         self.id = message_id
+        self.source = source
+        self.destinations = destinations
+        self.raw_data = raw_data
 
 
 class SESQuota(BaseModel):
@@ -42,7 +49,8 @@ class SESBackend(BaseBackend):
         self.sent_messages = []
         self.sent_message_count = 0
 
-    def _is_verified_address(self, address):
+    def _is_verified_address(self, source):
+        _, address = parseaddr(source)
         if address in self.addresses:
             return True
         user, host = address.split('@', 1)
@@ -79,7 +87,7 @@ class SESBackend(BaseBackend):
             )
 
         message_id = get_random_message_id()
-        message = Message(message_id)
+        message = Message(message_id, source, subject, body, destinations)
         self.sent_messages.append(message)
         self.sent_message_count += recipient_count
         return message
@@ -116,7 +124,7 @@ class SESBackend(BaseBackend):
 
         self.sent_message_count += recipient_count
         message_id = get_random_message_id()
-        message = RawMessage(message_id)
+        message = RawMessage(message_id, source, destinations, raw_data)
         self.sent_messages.append(message)
         return message
 

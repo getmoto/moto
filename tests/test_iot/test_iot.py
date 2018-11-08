@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 
-import boto3
-import sure  # noqa
 import json
+import sure  # noqa
+import boto3
+
 from moto import mock_iot
 
 
@@ -35,12 +36,14 @@ def test_things():
     res.should.have.key('things').which.should.have.length_of(1)
     for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
+        thing.should.have.key('thingArn').which.should_not.be.none
 
     thing = client.update_thing(thingName=name, attributePayload={'attributes': {'k1': 'v1'}})
     res = client.list_things()
     res.should.have.key('things').which.should.have.length_of(1)
     for thing in res['things']:
         thing.should.have.key('thingName').which.should_not.be.none
+        thing.should.have.key('thingArn').which.should_not.be.none
     res['things'][0]['attributes'].should.have.key('k1').which.should.equal('v1')
 
     thing = client.describe_thing(thingName=name)
@@ -59,6 +62,166 @@ def test_things():
     client.delete_thing_type(thingTypeName=type_name)
     res = client.list_thing_types()
     res.should.have.key('thingTypes').which.should.have.length_of(0)
+
+
+@mock_iot
+def test_list_thing_types():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+
+    for i in range(0, 100):
+        client.create_thing_type(thingTypeName=str(i + 1))
+
+    thing_types = client.list_thing_types()
+    thing_types.should.have.key('nextToken')
+    thing_types.should.have.key('thingTypes').which.should.have.length_of(50)
+    thing_types['thingTypes'][0]['thingTypeName'].should.equal('1')
+    thing_types['thingTypes'][-1]['thingTypeName'].should.equal('50')
+
+    thing_types = client.list_thing_types(nextToken=thing_types['nextToken'])
+    thing_types.should.have.key('thingTypes').which.should.have.length_of(50)
+    thing_types.should_not.have.key('nextToken')
+    thing_types['thingTypes'][0]['thingTypeName'].should.equal('51')
+    thing_types['thingTypes'][-1]['thingTypeName'].should.equal('100')
+
+
+@mock_iot
+def test_list_thing_types_with_typename_filter():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+
+    client.create_thing_type(thingTypeName='thing')
+    client.create_thing_type(thingTypeName='thingType')
+    client.create_thing_type(thingTypeName='thingTypeName')
+    client.create_thing_type(thingTypeName='thingTypeNameGroup')
+    client.create_thing_type(thingTypeName='shouldNotFind')
+    client.create_thing_type(thingTypeName='find me it shall not')
+
+    thing_types = client.list_thing_types(thingTypeName='thing')
+    thing_types.should_not.have.key('nextToken')
+    thing_types.should.have.key('thingTypes').which.should.have.length_of(4)
+    thing_types['thingTypes'][0]['thingTypeName'].should.equal('thing')
+    thing_types['thingTypes'][-1]['thingTypeName'].should.equal('thingTypeNameGroup')
+
+    thing_types = client.list_thing_types(thingTypeName='thingTypeName')
+    thing_types.should_not.have.key('nextToken')
+    thing_types.should.have.key('thingTypes').which.should.have.length_of(2)
+    thing_types['thingTypes'][0]['thingTypeName'].should.equal('thingTypeName')
+    thing_types['thingTypes'][-1]['thingTypeName'].should.equal('thingTypeNameGroup')
+
+
+@mock_iot
+def test_list_things_with_next_token():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+
+    for i in range(0, 200):
+        client.create_thing(thingName=str(i + 1))
+
+    things = client.list_things()
+    things.should.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('1')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/1')
+    things['things'][-1]['thingName'].should.equal('50')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/50')
+
+    things = client.list_things(nextToken=things['nextToken'])
+    things.should.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('51')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/51')
+    things['things'][-1]['thingName'].should.equal('100')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/100')
+
+    things = client.list_things(nextToken=things['nextToken'])
+    things.should.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('101')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/101')
+    things['things'][-1]['thingName'].should.equal('150')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/150')
+
+    things = client.list_things(nextToken=things['nextToken'])
+    things.should_not.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('151')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/151')
+    things['things'][-1]['thingName'].should.equal('200')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/200')
+
+
+@mock_iot
+def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    client.create_thing_type(thingTypeName='my-thing-type')
+
+    for i in range(0, 200):
+        if not (i + 1) % 3:
+            attribute_payload = {
+                'attributes': {
+                    'foo': 'bar'
+                }
+            }
+        elif not (i + 1) % 5:
+            attribute_payload = {
+                'attributes': {
+                    'bar': 'foo'
+                }
+            }
+        else:
+            attribute_payload = {}
+
+        if not (i + 1) % 2:
+            thing_type_name = 'my-thing-type'
+            client.create_thing(thingName=str(i + 1), thingTypeName=thing_type_name, attributePayload=attribute_payload)
+        else:
+            client.create_thing(thingName=str(i + 1), attributePayload=attribute_payload)
+
+    # Test filter for thingTypeName
+    things = client.list_things(thingTypeName=thing_type_name)
+    things.should.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('2')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/2')
+    things['things'][-1]['thingName'].should.equal('100')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/100')
+    all(item['thingTypeName'] == thing_type_name for item in things['things'])
+
+    things = client.list_things(nextToken=things['nextToken'], thingTypeName=thing_type_name)
+    things.should_not.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('102')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/102')
+    things['things'][-1]['thingName'].should.equal('200')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/200')
+    all(item['thingTypeName'] == thing_type_name for item in things['things'])
+
+    # Test filter for attributes
+    things = client.list_things(attributeName='foo', attributeValue='bar')
+    things.should.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(50)
+    things['things'][0]['thingName'].should.equal('3')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/3')
+    things['things'][-1]['thingName'].should.equal('150')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/150')
+    all(item['attributes'] == {'foo': 'bar'} for item in things['things'])
+
+    things = client.list_things(nextToken=things['nextToken'], attributeName='foo', attributeValue='bar')
+    things.should_not.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(16)
+    things['things'][0]['thingName'].should.equal('153')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/153')
+    things['things'][-1]['thingName'].should.equal('198')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/198')
+    all(item['attributes'] == {'foo': 'bar'} for item in things['things'])
+
+    # Test filter for attributes and thingTypeName
+    things = client.list_things(thingTypeName=thing_type_name, attributeName='foo', attributeValue='bar')
+    things.should_not.have.key('nextToken')
+    things.should.have.key('things').which.should.have.length_of(33)
+    things['things'][0]['thingName'].should.equal('6')
+    things['things'][0]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/6')
+    things['things'][-1]['thingName'].should.equal('198')
+    things['things'][-1]['thingArn'].should.equal('arn:aws:iot:ap-northeast-1:1:thing/198')
+    all(item['attributes'] == {'foo': 'bar'} and item['thingTypeName'] == thing_type_name for item in things['things'])
 
 
 @mock_iot
@@ -202,7 +365,6 @@ def test_principal_thing():
 @mock_iot
 def test_thing_groups():
     client = boto3.client('iot', region_name='ap-northeast-1')
-    name = 'my-thing'
     group_name = 'my-group-name'
 
     # thing group
@@ -421,6 +583,7 @@ def test_create_job():
     job.should.have.key('jobId').which.should.equal(job_id)
     job.should.have.key('jobArn')
     job.should.have.key('description')
+
 
 @mock_iot
 def test_describe_job():

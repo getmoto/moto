@@ -1,14 +1,17 @@
 from __future__ import unicode_literals
-import time
-import boto3
-import string
-import random
+
 import hashlib
-import uuid
+import random
 import re
-from datetime import datetime
-from moto.core import BaseBackend, BaseModel
+import string
+import time
+import uuid
 from collections import OrderedDict
+from datetime import datetime
+
+import boto3
+
+from moto.core import BaseBackend, BaseModel
 from .exceptions import (
     ResourceNotFoundException,
     InvalidRequestException,
@@ -32,6 +35,7 @@ class FakeThing(BaseModel):
     def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
+            'thingArn': self.arn,
             'attributes': self.attributes,
             'version': self.version
         }
@@ -270,15 +274,37 @@ class IoTBackend(BaseBackend):
 
     def list_thing_types(self, thing_type_name=None):
         if thing_type_name:
-            # It's wierd but thing_type_name is filterd by forward match, not complete match
+            # It's weird but thing_type_name is filtered by forward match, not complete match
             return [_ for _ in self.thing_types.values() if _.thing_type_name.startswith(thing_type_name)]
-        thing_types = self.thing_types.values()
-        return thing_types
+        return self.thing_types.values()
 
-    def list_things(self, attribute_name, attribute_value, thing_type_name):
-        # TODO: filter by attributess or thing_type
-        things = self.things.values()
-        return things
+    def list_things(self, attribute_name, attribute_value, thing_type_name, max_results, token):
+        all_things = [_.to_dict() for _ in self.things.values()]
+        if attribute_name is not None and thing_type_name is not None:
+            filtered_things = list(filter(lambda elem:
+                                          attribute_name in elem["attributes"] and
+                                          elem["attributes"][attribute_name] == attribute_value and
+                                          "thingTypeName" in elem and
+                                          elem["thingTypeName"] == thing_type_name, all_things))
+        elif attribute_name is not None and thing_type_name is None:
+            filtered_things = list(filter(lambda elem:
+                                          attribute_name in elem["attributes"] and
+                                          elem["attributes"][attribute_name] == attribute_value, all_things))
+        elif attribute_name is None and thing_type_name is not None:
+            filtered_things = list(
+                filter(lambda elem: "thingTypeName" in elem and elem["thingTypeName"] == thing_type_name, all_things))
+        else:
+            filtered_things = all_things
+
+        if token is None:
+            things = filtered_things[0:max_results]
+            next_token = str(max_results) if len(filtered_things) > max_results else None
+        else:
+            token = int(token)
+            things = filtered_things[token:token + max_results]
+            next_token = str(token + max_results) if len(filtered_things) > token + max_results else None
+
+        return things, next_token
 
     def describe_thing(self, thing_name):
         things = [_ for _ in self.things.values() if _.thing_name == thing_name]

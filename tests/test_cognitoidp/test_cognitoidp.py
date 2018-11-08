@@ -6,6 +6,7 @@ import os
 import uuid
 
 from jose import jws
+
 from moto import mock_cognitoidp
 import sure  # noqa
 
@@ -24,6 +25,7 @@ def test_create_user_pool():
     )
 
     result["UserPool"]["Id"].should_not.be.none
+    result["UserPool"]["Id"].should.match(r'[\w-]+_[0-9a-zA-Z]+')
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
 
@@ -341,6 +343,7 @@ def test_admin_create_user():
     result["User"]["Attributes"].should.have.length_of(1)
     result["User"]["Attributes"][0]["Name"].should.equal("thing")
     result["User"]["Attributes"][0]["Value"].should.equal(value)
+    result["User"]["Enabled"].should.equal(True)
 
 
 @mock_cognitoidp
@@ -366,6 +369,22 @@ def test_admin_get_user():
 
 
 @mock_cognitoidp
+def test_admin_get_missing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    caught = False
+    try:
+        conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    except conn.exceptions.UserNotFoundException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -375,6 +394,37 @@ def test_list_users():
     result = conn.list_users(UserPoolId=user_pool_id)
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username)
+
+
+@mock_cognitoidp
+def test_admin_disable_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
+        ["Enabled"].should.equal(False)
+
+
+@mock_cognitoidp
+def test_admin_enable_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_enable_user(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
+        ["Enabled"].should.equal(True)
 
 
 @mock_cognitoidp
@@ -389,7 +439,7 @@ def test_admin_delete_user():
     caught = False
     try:
         conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    except conn.exceptions.ResourceNotFoundException:
+    except conn.exceptions.UserNotFoundException:
         caught = True
 
     caught.should.be.true
@@ -399,15 +449,22 @@ def authentication_flow(conn):
     username = str(uuid.uuid4())
     temporary_password = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id,
         ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name]
     )["UserPoolClient"]["ClientId"]
 
     conn.admin_create_user(
         UserPoolId=user_pool_id,
         Username=username,
         TemporaryPassword=temporary_password,
+        UserAttributes=[{
+            'Name': user_attribute_name,
+            'Value': user_attribute_value
+        }]
     )
 
     result = conn.admin_initiate_auth(
@@ -446,6 +503,9 @@ def authentication_flow(conn):
         "access_token": result["AuthenticationResult"]["AccessToken"],
         "username": username,
         "password": new_password,
+        "additional_fields": {
+            user_attribute_name: user_attribute_value
+        }
     }
 
 
@@ -475,6 +535,8 @@ def test_token_legitimacy():
     access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
     access_claims["iss"].should.equal(issuer)
     access_claims["aud"].should.equal(client_id)
+    for k, v in outputs["additional_fields"].items():
+        access_claims[k].should.equal(v)
 
 
 @mock_cognitoidp

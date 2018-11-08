@@ -58,7 +58,6 @@
 - [ ] get_room
 - [ ] get_room_skill_parameter
 - [ ] get_skill_group
-- [ ] list_device_events
 - [ ] list_skills
 - [ ] list_tags
 - [ ] put_room_skill_parameter
@@ -82,7 +81,7 @@
 - [ ] update_room
 - [ ] update_skill_group
 
-## apigateway - 17% implemented
+## apigateway - 24% implemented
 - [ ] create_api_key
 - [ ] create_authorizer
 - [ ] create_base_path_mapping
@@ -95,8 +94,8 @@
 - [X] create_resource
 - [X] create_rest_api
 - [X] create_stage
-- [ ] create_usage_plan
-- [ ] create_usage_plan_key
+- [X] create_usage_plan
+- [X] create_usage_plan_key
 - [ ] create_vpc_link
 - [ ] delete_api_key
 - [ ] delete_authorizer
@@ -116,8 +115,8 @@
 - [X] delete_resource
 - [X] delete_rest_api
 - [ ] delete_stage
-- [ ] delete_usage_plan
-- [ ] delete_usage_plan_key
+- [X] delete_usage_plan
+- [X] delete_usage_plan_key
 - [ ] delete_vpc_link
 - [ ] flush_stage_authorizers_cache
 - [ ] flush_stage_cache
@@ -162,10 +161,10 @@
 - [X] get_stages
 - [ ] get_tags
 - [ ] get_usage
-- [ ] get_usage_plan
-- [ ] get_usage_plan_key
-- [ ] get_usage_plan_keys
-- [ ] get_usage_plans
+- [X] get_usage_plan
+- [X] get_usage_plan_key
+- [X] get_usage_plan_keys
+- [X] get_usage_plans
 - [ ] get_vpc_link
 - [ ] get_vpc_links
 - [ ] import_api_keys
@@ -352,7 +351,6 @@
 - [ ] delete_scaling_plan
 - [ ] describe_scaling_plan_resources
 - [ ] describe_scaling_plans
-- [ ] update_scaling_plan
 
 ## batch - 93% implemented
 - [ ] cancel_job
@@ -767,8 +765,6 @@
 - [ ] create_pipeline
 - [ ] delete_custom_action_type
 - [ ] delete_pipeline
-- [ ] delete_webhook
-- [ ] deregister_webhook_with_third_party
 - [ ] disable_stage_transition
 - [ ] enable_stage_transition
 - [ ] get_job_details
@@ -779,7 +775,6 @@
 - [ ] list_action_types
 - [ ] list_pipeline_executions
 - [ ] list_pipelines
-- [ ] list_webhooks
 - [ ] poll_for_jobs
 - [ ] poll_for_third_party_jobs
 - [ ] put_action_revision
@@ -788,8 +783,6 @@
 - [ ] put_job_success_result
 - [ ] put_third_party_job_failure_result
 - [ ] put_third_party_job_success_result
-- [ ] put_webhook
-- [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
 - [ ] start_pipeline_execution
 - [ ] update_pipeline
@@ -842,8 +835,8 @@
 - [ ] admin_delete_user
 - [ ] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
-- [ ] admin_disable_user
-- [ ] admin_enable_user
+- [X] admin_disable_user
+- [X] admin_enable_user
 - [ ] admin_forget_device
 - [ ] admin_get_device
 - [ ] admin_get_user
@@ -1065,7 +1058,6 @@
 - [ ] create_project
 - [ ] create_remote_access_session
 - [ ] create_upload
-- [ ] create_vpce_configuration
 - [ ] delete_device_pool
 - [ ] delete_instance_profile
 - [ ] delete_network_profile
@@ -1073,7 +1065,6 @@
 - [ ] delete_remote_access_session
 - [ ] delete_run
 - [ ] delete_upload
-- [ ] delete_vpce_configuration
 - [ ] get_account_settings
 - [ ] get_device
 - [ ] get_device_instance
@@ -1089,7 +1080,6 @@
 - [ ] get_suite
 - [ ] get_test
 - [ ] get_upload
-- [ ] get_vpce_configuration
 - [ ] install_to_remote_access_session
 - [ ] list_artifacts
 - [ ] list_device_instances
@@ -1109,7 +1099,6 @@
 - [ ] list_tests
 - [ ] list_unique_problems
 - [ ] list_uploads
-- [ ] list_vpce_configurations
 - [ ] purchase_offering
 - [ ] renew_offering
 - [ ] schedule_run
@@ -1120,7 +1109,6 @@
 - [ ] update_instance_profile
 - [ ] update_network_profile
 - [ ] update_project
-- [ ] update_vpce_configuration
 
 ## directconnect - 0% implemented
 - [ ] allocate_connection_on_interconnect
@@ -1277,7 +1265,7 @@
 - [ ] update_radius
 - [ ] verify_trust
 
-## dynamodb - 21% implemented
+## dynamodb - 22% implemented
 - [ ] batch_get_item
 - [ ] batch_write_item
 - [ ] create_backup
@@ -1289,7 +1277,6 @@
 - [ ] describe_backup
 - [ ] describe_continuous_backups
 - [ ] describe_global_table
-- [ ] describe_global_table_settings
 - [ ] describe_limits
 - [ ] describe_table
 - [ ] describe_time_to_live
@@ -1307,7 +1294,6 @@
 - [ ] untag_resource
 - [ ] update_continuous_backups
 - [ ] update_global_table
-- [ ] update_global_table_settings
 - [ ] update_item
 - [ ] update_table
 - [ ] update_time_to_live
@@ -1318,7 +1304,7 @@
 - [ ] get_shard_iterator
 - [ ] list_streams
 
-## ec2 - 36% implemented
+## ec2 - 37% implemented
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_vpc_endpoint_connections
 - [X] accept_vpc_peering_connection
@@ -1356,7 +1342,6 @@
 - [ ] create_default_vpc
 - [X] create_dhcp_options
 - [ ] create_egress_only_internet_gateway
-- [ ] create_fleet
 - [ ] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
@@ -1391,7 +1376,6 @@
 - [X] delete_customer_gateway
 - [ ] delete_dhcp_options
 - [ ] delete_egress_only_internet_gateway
-- [ ] delete_fleets
 - [ ] delete_flow_logs
 - [ ] delete_fpga_image
 - [X] delete_internet_gateway
@@ -1433,9 +1417,6 @@
 - [ ] describe_egress_only_internet_gateways
 - [ ] describe_elastic_gpus
 - [ ] describe_export_tasks
-- [ ] describe_fleet_history
-- [ ] describe_fleet_instances
-- [ ] describe_fleets
 - [ ] describe_flow_logs
 - [ ] describe_fpga_image_attribute
 - [ ] describe_fpga_images
@@ -1532,7 +1513,6 @@
 - [X] import_key_pair
 - [ ] import_snapshot
 - [ ] import_volume
-- [ ] modify_fleet
 - [ ] modify_fpga_image_attribute
 - [ ] modify_hosts
 - [ ] modify_id_format
@@ -1905,11 +1885,8 @@
 - [ ] delete_delivery_stream
 - [ ] describe_delivery_stream
 - [ ] list_delivery_streams
-- [ ] list_tags_for_delivery_stream
 - [ ] put_record
 - [ ] put_record_batch
-- [ ] tag_delivery_stream
-- [ ] untag_delivery_stream
 - [ ] update_destination
 
 ## fms - 0% implemented
@@ -2231,7 +2208,7 @@
 - [ ] describe_event_types
 - [ ] describe_events
 
-## iam - 47% implemented
+## iam - 48% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -2281,7 +2258,7 @@
 - [X] enable_mfa_device
 - [ ] generate_credential_report
 - [ ] get_access_key_last_used
-- [ ] get_account_authorization_details
+- [X] get_account_authorization_details
 - [ ] get_account_password_policy
 - [ ] get_account_summary
 - [ ] get_context_keys_for_custom_policy
@@ -2536,38 +2513,6 @@
 - [ ] start_next_pending_job_execution
 - [ ] update_job_execution
 
-## iotanalytics - 0% implemented
-- [ ] batch_put_message
-- [ ] cancel_pipeline_reprocessing
-- [ ] create_channel
-- [ ] create_dataset
-- [ ] create_dataset_content
-- [ ] create_datastore
-- [ ] create_pipeline
-- [ ] delete_channel
-- [ ] delete_dataset
-- [ ] delete_dataset_content
-- [ ] delete_datastore
-- [ ] delete_pipeline
-- [ ] describe_channel
-- [ ] describe_dataset
-- [ ] describe_datastore
-- [ ] describe_logging_options
-- [ ] describe_pipeline
-- [ ] get_dataset_content
-- [ ] list_channels
-- [ ] list_datasets
-- [ ] list_datastores
-- [ ] list_pipelines
-- [ ] put_logging_options
-- [ ] run_pipeline_activity
-- [ ] sample_channel_data
-- [ ] start_pipeline_reprocessing
-- [ ] update_channel
-- [ ] update_dataset
-- [ ] update_datastore
-- [ ] update_pipeline
-
 ## kinesis - 56% implemented
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -2815,7 +2760,7 @@
 - [ ] update_domain_entry
 - [ ] update_load_balancer_attribute
 
-## logs - 24% implemented
+## logs - 27% implemented
 - [ ] associate_kms_key
 - [ ] cancel_export_task
 - [ ] create_export_task
@@ -2830,7 +2775,7 @@
 - [ ] delete_subscription_filter
 - [ ] describe_destinations
 - [ ] describe_export_tasks
-- [ ] describe_log_groups
+- [X] describe_log_groups
 - [X] describe_log_streams
 - [ ] describe_metric_filters
 - [ ] describe_resource_policies
@@ -3147,23 +3092,23 @@
 - [ ] update_server
 - [ ] update_server_engine_attributes
 
-## organizations - 0% implemented
+## organizations - 30% implemented
 - [ ] accept_handshake
 - [ ] attach_policy
 - [ ] cancel_handshake
-- [ ] create_account
-- [ ] create_organization
-- [ ] create_organizational_unit
+- [X] create_account
+- [X] create_organization
+- [X] create_organizational_unit
 - [ ] create_policy
 - [ ] decline_handshake
 - [ ] delete_organization
 - [ ] delete_organizational_unit
 - [ ] delete_policy
-- [ ] describe_account
+- [X] describe_account
 - [ ] describe_create_account_status
 - [ ] describe_handshake
-- [ ] describe_organization
-- [ ] describe_organizational_unit
+- [X] describe_organization
+- [X] describe_organizational_unit
 - [ ] describe_policy
 - [ ] detach_policy
 - [ ] disable_aws_service_access
@@ -3173,20 +3118,20 @@
 - [ ] enable_policy_type
 - [ ] invite_account_to_organization
 - [ ] leave_organization
-- [ ] list_accounts
-- [ ] list_accounts_for_parent
+- [X] list_accounts
+- [X] list_accounts_for_parent
 - [ ] list_aws_service_access_for_organization
-- [ ] list_children
+- [X] list_children
 - [ ] list_create_account_status
 - [ ] list_handshakes_for_account
 - [ ] list_handshakes_for_organization
-- [ ] list_organizational_units_for_parent
-- [ ] list_parents
+- [X] list_organizational_units_for_parent
+- [X] list_parents
 - [ ] list_policies
 - [ ] list_policies_for_target
-- [ ] list_roots
+- [X] list_roots
 - [ ] list_targets_for_policy
-- [ ] move_account
+- [X] move_account
 - [ ] remove_account_from_organization
 - [ ] update_organizational_unit
 - [ ] update_policy
@@ -3569,9 +3514,6 @@
 - [ ] update_tags_for_domain
 - [ ] view_billing
 
-## runtime.sagemaker - 0% implemented
-- [ ] invoke_endpoint
-
 ## s3 - 15% implemented
 - [ ] abort_multipart_upload
 - [ ] complete_multipart_upload
@@ -3703,18 +3645,18 @@
 - [ ] put_attributes
 - [ ] select
 
-## secretsmanager - 0% implemented
+## secretsmanager - 33% implemented
 - [ ] cancel_rotate_secret
-- [ ] create_secret
+- [X] create_secret
 - [ ] delete_secret
-- [ ] describe_secret
-- [ ] get_random_password
-- [ ] get_secret_value
+- [X] describe_secret
+- [X] get_random_password
+- [X] get_secret_value
 - [ ] list_secret_version_ids
 - [ ] list_secrets
 - [ ] put_secret_value
 - [ ] restore_secret
-- [ ] rotate_secret
+- [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_secret
@@ -3984,7 +3926,7 @@
 - [X] tag_queue
 - [X] untag_queue
 
-## ssm - 10% implemented
+## ssm - 11% implemented
 - [X] add_tags_to_resource
 - [ ] cancel_command
 - [ ] create_activation
@@ -3997,7 +3939,6 @@
 - [ ] delete_activation
 - [ ] delete_association
 - [ ] delete_document
-- [ ] delete_inventory
 - [ ] delete_maintenance_window
 - [X] delete_parameter
 - [X] delete_parameters
@@ -4021,7 +3962,6 @@
 - [ ] describe_instance_patch_states
 - [ ] describe_instance_patch_states_for_patch_group
 - [ ] describe_instance_patches
-- [ ] describe_inventory_deletions
 - [ ] describe_maintenance_window_execution_task_invocations
 - [ ] describe_maintenance_window_execution_tasks
 - [ ] describe_maintenance_window_executions
@@ -4053,7 +3993,7 @@
 - [ ] list_association_versions
 - [ ] list_associations
 - [ ] list_command_invocations
-- [ ] list_commands
+- [X] list_commands
 - [ ] list_compliance_items
 - [ ] list_compliance_summaries
 - [ ] list_document_versions
@@ -4464,36 +4404,25 @@
 - [ ] update_resource
 
 ## workspaces - 0% implemented
-- [ ] associate_ip_groups
-- [ ] authorize_ip_rules
-- [ ] create_ip_group
 - [ ] create_tags
 - [ ] create_workspaces
-- [ ] delete_ip_group
 - [ ] delete_tags
-- [ ] describe_ip_groups
 - [ ] describe_tags
 - [ ] describe_workspace_bundles
 - [ ] describe_workspace_directories
 - [ ] describe_workspaces
 - [ ] describe_workspaces_connection_status
-- [ ] disassociate_ip_groups
 - [ ] modify_workspace_properties
-- [ ] modify_workspace_state
 - [ ] reboot_workspaces
 - [ ] rebuild_workspaces
-- [ ] revoke_ip_rules
 - [ ] start_workspaces
 - [ ] stop_workspaces
 - [ ] terminate_workspaces
-- [ ] update_rules_of_ip_group
 
 ## xray - 0% implemented
 - [ ] batch_get_traces
-- [ ] get_encryption_config
 - [ ] get_service_graph
 - [ ] get_trace_graph
 - [ ] get_trace_summaries
-- [ ] put_encryption_config
 - [ ] put_telemetry_records
 - [ ] put_trace_segments

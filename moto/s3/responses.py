@@ -10,6 +10,7 @@ import xmltodict
 
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin
+from moto.core.utils import path_url
 
 from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, \
     parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
@@ -487,7 +488,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if isinstance(request, HTTPrettyRequest):
             path = request.path
         else:
-            path = request.full_path if hasattr(request, 'full_path') else request.path_url
+            path = request.full_path if hasattr(request, 'full_path') else path_url(request.url)
 
         if self.is_delete_keys(request, path, bucket_name):
             return self._bucket_response_delete_keys(request, body, bucket_name, headers)
@@ -708,7 +709,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # Copy key
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
-            src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
+            src_key = request.headers.get("x-amz-copy-source")
+            if isinstance(src_key, six.binary_type):
+                src_key = src_key.decode('utf-8')
+            src_key_parsed = urlparse(src_key)
             src_bucket, src_key = unquote(src_key_parsed.path).\
                 lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
@@ -1228,6 +1232,22 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% endif %}
         </Expiration>
         {% endif %}
+        {% if rule.nvt_noncurrent_days and rule.nvt_storage_class %}
+        <NoncurrentVersionTransition>
+           <NoncurrentDays>{{ rule.nvt_noncurrent_days }}</NoncurrentDays>
+           <StorageClass>{{ rule.nvt_storage_class }}</StorageClass>
+        </NoncurrentVersionTransition>
+        {% endif %}
+        {% if rule.nve_noncurrent_days %}
+        <NoncurrentVersionExpiration>
+           <NoncurrentDays>{{ rule.nve_noncurrent_days }}</NoncurrentDays>
+        </NoncurrentVersionExpiration>
+        {% endif %}
+        {% if rule.aimu_days %}
+        <AbortIncompleteMultipartUpload>
+           <DaysAfterInitiation>{{ rule.aimu_days }}</DaysAfterInitiation>
+        </AbortIncompleteMultipartUpload>
+        {% endif %}
     </Rule>
     {% endfor %}
 </LifecycleConfiguration>
@@ -1273,10 +1293,10 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% endfor %}
     {% for marker in delete_marker_list %}
     <DeleteMarker>
-        <Key>{{ marker.key.name }}</Key>
+        <Key>{{ marker.name }}</Key>
         <VersionId>{{ marker.version_id }}</VersionId>
-        <IsLatest>{% if latest_versions[marker.key.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
-        <LastModified>{{ marker.key.last_modified_ISO8601 }}</LastModified>
+        <IsLatest>{% if latest_versions[marker.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
+        <LastModified>{{ marker.last_modified_ISO8601 }}</LastModified>
         <Owner>
             <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
             <DisplayName>webfile</DisplayName>
@@ -1433,7 +1453,7 @@ S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   </Owner>
   <StorageClass>STANDARD</StorageClass>
   <PartNumberMarker>1</PartNumberMarker>
-  <NextPartNumberMarker>{{ count }} </NextPartNumberMarker>
+  <NextPartNumberMarker>{{ count }}</NextPartNumberMarker>
   <MaxParts>{{ count }}</MaxParts>
   <IsTruncated>false</IsTruncated>
   {% for part in parts %}

@@ -29,8 +29,10 @@ COMPARISON_FUNCS = {
     'GT': GT_FUNCTION,
     '>': GT_FUNCTION,
 
-    'NULL': lambda item_value: item_value is None,
-    'NOT_NULL': lambda item_value: item_value is not None,
+    # NULL means the value should not exist at all
+    'NULL': lambda item_value: False,
+    # NOT_NULL means the value merely has to exist, and values of None are valid
+    'NOT_NULL': lambda item_value: True,
     'CONTAINS': lambda item_value, test_value: test_value in item_value,
     'NOT_CONTAINS': lambda item_value, test_value: test_value not in item_value,
     'BEGINS_WITH': lambda item_value, test_value: item_value.startswith(test_value),

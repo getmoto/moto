@@ -7,7 +7,7 @@ try:
 except ImportError:
     from urllib.parse import unquote
 
-from moto.core.utils import amz_crc32, amzn_request_id
+from moto.core.utils import amz_crc32, amzn_request_id, path_url
 from moto.core.responses import BaseResponse
 from .models import lambda_backends
 
@@ -94,7 +94,7 @@ class LambdaResponse(BaseResponse):
             return self._add_policy(request, full_url, headers)
 
     def _add_policy(self, request, full_url, headers):
-        path = request.path if hasattr(request, 'path') else request.path_url
+        path = request.path if hasattr(request, 'path') else path_url(request.url)
         function_name = path.split('/')[-2]
         if self.lambda_backend.get_function(function_name):
             policy = request.body.decode('utf8')
@@ -104,7 +104,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _get_policy(self, request, full_url, headers):
-        path = request.path if hasattr(request, 'path') else request.path_url
+        path = request.path if hasattr(request, 'path') else path_url(request.url)
         function_name = path.split('/')[-2]
         if self.lambda_backend.get_function(function_name):
             lambda_function = self.lambda_backend.get_function(function_name)

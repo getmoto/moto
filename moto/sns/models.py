@@ -24,6 +24,7 @@ from .utils import make_arn_for_topic, make_arn_for_subscription
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_PAGE_SIZE = 100
+MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
 
 class Topic(BaseModel):
@@ -101,7 +102,7 @@ class Subscription(BaseModel):
             sqs_backends[region].send_message(queue_name, enveloped_message)
         elif self.protocol in ['http', 'https']:
             post_data = self.get_post_data(message, message_id, subject)
-            requests.post(self.endpoint, json=post_data)
+            requests.post(self.endpoint, json=post_data, headers={'Content-Type': 'text/plain; charset=UTF-8'})
         elif self.protocol == 'lambda':
             # TODO: support bad function name
             # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -326,6 +327,9 @@ class SNSBackend(BaseBackend):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
             raise ValueError('Subject must be less than 100 characters')
+
+        if len(message) > MAXIMUM_MESSAGE_LENGTH:
+            raise InvalidParameterValue("An error occurred (InvalidParameter) when calling the Publish operation: Invalid parameter: Message too long")
 
         try:
             topic = self.get_topic(arn)

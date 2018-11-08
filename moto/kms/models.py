@@ -2,8 +2,10 @@ from __future__ import unicode_literals
 
 import boto.kms
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .utils import generate_key_id
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 
 class Key(BaseModel):
@@ -12,11 +14,13 @@ class Key(BaseModel):
         self.id = generate_key_id()
         self.policy = policy
         self.key_usage = key_usage
+        self.key_state = "Enabled"
         self.description = description
         self.enabled = True
         self.region = region
         self.account_id = "0123456789012"
         self.key_rotation_status = False
+        self.deletion_date = None
 
     @property
     def physical_resource_id(self):
@@ -27,7 +31,7 @@ class Key(BaseModel):
         return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
 
     def to_dict(self):
-        return {
+        key_dict = {
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
@@ -36,8 +40,12 @@ class Key(BaseModel):
                 "Enabled": self.enabled,
                 "KeyId": self.id,
                 "KeyUsage": self.key_usage,
+                "KeyState": self.key_state,
             }
         }
+        if self.key_state == 'PendingDeletion':
+            key_dict['KeyMetadata']['DeletionDate'] = iso_8601_datetime_without_milliseconds(self.deletion_date)
+        return key_dict
 
     def delete(self, region_name):
         kms_backends[region_name].delete_key(self.id)
@@ -57,6 +65,12 @@ class Key(BaseModel):
         key.enabled = properties['Enabled']
 
         return key
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            return self.arn
+        raise UnformattedGetAttTemplateException()
 
 
 class KmsBackend(BaseBackend):
@@ -131,6 +145,29 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id):
         return self.keys[self.get_key_id(key_id)].policy
+
+    def disable_key(self, key_id):
+        if key_id in self.keys:
+            self.keys[key_id].enabled = False
+            self.keys[key_id].key_state = 'Disabled'
+
+    def enable_key(self, key_id):
+        if key_id in self.keys:
+            self.keys[key_id].enabled = True
+            self.keys[key_id].key_state = 'Enabled'
+
+    def cancel_key_deletion(self, key_id):
+        if key_id in self.keys:
+            self.keys[key_id].key_state = 'Disabled'
+            self.keys[key_id].deletion_date = None
+
+    def schedule_key_deletion(self, key_id, pending_window_in_days):
+        if key_id in self.keys:
+            if 7 <= pending_window_in_days <= 30:
+                self.keys[key_id].enabled = False
+                self.keys[key_id].key_state = 'PendingDeletion'
+                self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
+                return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
 
 
 kms_backends = {}

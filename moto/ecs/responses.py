@@ -153,8 +153,10 @@ class EC2ContainerServiceResponse(BaseResponse):
         service_name = self._get_param('serviceName')
         task_definition_str = self._get_param('taskDefinition')
         desired_count = self._get_int_param('desiredCount')
+        load_balancers = self._get_param('loadBalancers')
+        scheduling_strategy = self._get_param('schedulingStrategy')
         service = self.ecs_backend.create_service(
-            cluster_str, service_name, task_definition_str, desired_count)
+            cluster_str, service_name, task_definition_str, desired_count, load_balancers, scheduling_strategy)
         return json.dumps({
             'service': service.response_object
         })

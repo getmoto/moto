@@ -10,6 +10,7 @@ import sure  # noqa
 
 import responses
 from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 from moto import mock_sns, mock_sqs
 
 
@@ -253,7 +254,7 @@ def test_publish_to_sqs_in_different_region():
 @mock_sns
 def test_publish_to_http():
     def callback(request):
-        request.headers["Content-Type"].should.equal("application/json")
+        request.headers["Content-Type"].should.equal("text/plain; charset=UTF-8")
         json.loads.when.called_with(
             request.body.decode()
         ).should_not.throw(Exception)
@@ -306,6 +307,20 @@ def test_publish_subject():
         err.response['Error']['Code'].should.equal('InvalidParameter')
     else:
         raise RuntimeError('Should have raised an InvalidParameter exception')
+
+
+@mock_sns
+def test_publish_message_too_long():
+    sns = boto3.resource('sns', region_name='us-east-1')
+    topic = sns.create_topic(Name='some-topic')
+
+    with assert_raises(ClientError):
+        topic.publish(
+            Message="".join(["." for i in range(0, 262145)]))
+
+    # message short enough - does not raise an error
+    topic.publish(
+        Message="".join(["." for i in range(0, 262144)]))
 
 
 def _setup_filter_policy_test(filter_policy):

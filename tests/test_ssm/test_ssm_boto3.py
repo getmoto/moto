@@ -4,8 +4,13 @@ import boto3
 import botocore.exceptions
 import sure   # noqa
 import datetime
+import uuid
+import json
 
-from moto import mock_ssm
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
+
+from moto import mock_ssm, mock_cloudformation
 
 
 @mock_ssm
@@ -94,6 +99,27 @@ def test_get_parameters_by_path():
         Value='my_secret',
         Type='SecureString',
         KeyId='alias/aws/ssm')
+
+    client.put_parameter(
+        Name='foo',
+        Description='A test parameter',
+        Value='bar',
+        Type='String')
+
+    client.put_parameter(
+        Name='baz',
+        Description='A test parameter',
+        Value='qux',
+        Type='String')
+
+    response = client.get_parameters_by_path(Path='/', Recursive=False)
+    len(response['Parameters']).should.equal(2)
+    {p['Value'] for p in response['Parameters']}.should.equal(
+        set(['bar', 'qux'])
+    )
+
+    response = client.get_parameters_by_path(Path='/', Recursive=True)
+    len(response['Parameters']).should.equal(9)
 
     response = client.get_parameters_by_path(Path='/foo')
     len(response['Parameters']).should.equal(2)
@@ -417,6 +443,7 @@ def test_describe_parameters_filter_keyid():
     response['Parameters'][0]['Type'].should.equal('SecureString')
     ''.should.equal(response.get('NextToken', ''))
 
+
 @mock_ssm
 def test_describe_parameters_attributes():
     client = boto3.client('ssm', region_name='us-east-1')
@@ -444,6 +471,7 @@ def test_describe_parameters_attributes():
 
     response['Parameters'][1].get('Description').should.be.none
     response['Parameters'][1]['Version'].should.equal(1)
+
 
 @mock_ssm
 def test_get_parameter_invalid():
@@ -585,3 +613,174 @@ def test_send_command():
     cmd['OutputS3KeyPrefix'].should.equal('pref')
 
     cmd['ExpiresAfter'].should.be.greater_than(before)
+
+    # test sending a command without any optional parameters
+    response = client.send_command(
+        DocumentName=ssm_document)
+
+    cmd = response['Command']
+
+    cmd['CommandId'].should_not.be(None)
+    cmd['DocumentName'].should.equal(ssm_document)
+
+
+@mock_ssm
+def test_list_commands():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    ssm_document = 'AWS-RunShellScript'
+    params = {'commands': ['#!/bin/bash\necho \'hello world\'']}
+
+    response = client.send_command(
+        InstanceIds=['i-123456'],
+        DocumentName=ssm_document,
+        Parameters=params,
+        OutputS3Region='us-east-2',
+        OutputS3BucketName='the-bucket',
+        OutputS3KeyPrefix='pref')
+
+    cmd = response['Command']
+    cmd_id = cmd['CommandId']
+
+    # get the command by id
+    response = client.list_commands(
+        CommandId=cmd_id)
+
+    cmds = response['Commands']
+    len(cmds).should.equal(1)
+    cmds[0]['CommandId'].should.equal(cmd_id)
+
+    # add another command with the same instance id to test listing by
+    # instance id
+    client.send_command(
+        InstanceIds=['i-123456'],
+        DocumentName=ssm_document)
+
+    response = client.list_commands(
+        InstanceId='i-123456')
+
+    cmds = response['Commands']
+    len(cmds).should.equal(2)
+
+    for cmd in cmds:
+        cmd['InstanceIds'].should.contain('i-123456')
+
+    # test the error case for an invalid command id
+    with assert_raises(ClientError):
+        response = client.list_commands(
+            CommandId=str(uuid.uuid4()))
+
+@mock_ssm
+def test_get_command_invocation():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    ssm_document = 'AWS-RunShellScript'
+    params = {'commands': ['#!/bin/bash\necho \'hello world\'']}
+
+    response = client.send_command(
+        InstanceIds=['i-123456', 'i-234567', 'i-345678'],
+        DocumentName=ssm_document,
+        Parameters=params,
+        OutputS3Region='us-east-2',
+        OutputS3BucketName='the-bucket',
+        OutputS3KeyPrefix='pref')
+
+    cmd = response['Command']
+    cmd_id = cmd['CommandId']
+
+    instance_id = 'i-345678'
+    invocation_response = client.get_command_invocation(
+        CommandId=cmd_id,
+        InstanceId=instance_id,
+        PluginName='aws:runShellScript')
+
+    invocation_response['CommandId'].should.equal(cmd_id)
+    invocation_response['InstanceId'].should.equal(instance_id)
+
+    # test the error case for an invalid instance id
+    with assert_raises(ClientError):
+        invocation_response = client.get_command_invocation(
+            CommandId=cmd_id,
+            InstanceId='i-FAKE')
+
+    # test the error case for an invalid plugin name
+    with assert_raises(ClientError):
+        invocation_response = client.get_command_invocation(
+            CommandId=cmd_id,
+            InstanceId=instance_id,
+            PluginName='FAKE')
+
+@mock_ssm
+@mock_cloudformation
+def test_get_command_invocations_from_stack():
+    stack_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Test Stack",
+        "Resources": {
+            "EC2Instance1": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-test-image-id",
+                    "KeyName": "test",
+                    "InstanceType": "t2.micro",
+                    "Tags": [
+                        {
+                            "Key": "Test Description",
+                            "Value": "Test tag"
+                        },
+                        {
+                            "Key": "Test Name",
+                            "Value": "Name tag for tests"
+                        }
+                    ]
+                }
+            }
+        },
+        "Outputs": {
+            "test": {
+                "Description": "Test Output",
+                "Value": "Test output value",
+                "Export": {
+                    "Name": "Test value to export"
+                }
+            },
+            "PublicIP": {
+                "Value": "Test public ip"
+            }
+        }
+    }
+
+    cloudformation_client = boto3.client(
+        'cloudformation',
+        region_name='us-east-1')
+
+    stack_template_str = json.dumps(stack_template)
+
+    response = cloudformation_client.create_stack(
+        StackName='test_stack',
+        TemplateBody=stack_template_str,
+        Capabilities=('CAPABILITY_IAM', ))
+
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    ssm_document = 'AWS-RunShellScript'
+    params = {'commands': ['#!/bin/bash\necho \'hello world\'']}
+
+    response = client.send_command(
+        Targets=[{
+            'Key': 'tag:aws:cloudformation:stack-name',
+            'Values': ('test_stack', )}],
+        DocumentName=ssm_document,
+        Parameters=params,
+        OutputS3Region='us-east-2',
+        OutputS3BucketName='the-bucket',
+        OutputS3KeyPrefix='pref')
+
+    cmd = response['Command']
+    cmd_id = cmd['CommandId']
+    instance_ids = cmd['InstanceIds']
+
+    invocation_response = client.get_command_invocation(
+        CommandId=cmd_id,
+        InstanceId=instance_ids[0],
+        PluginName='aws:runShellScript')
