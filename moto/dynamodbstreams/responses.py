@@ -27,3 +27,10 @@ class DynamoDBStreamsHandler(BaseResponse):
         shard_iterator_type = self._get_param('ShardIteratorType')
         return self.backend.get_shard_iterator(arn, shard_id,
                                                shard_iterator_type)
+
+    def get_records(self):
+        arn = self._get_param('ShardIterator')
+        limit = self._get_param('Limit')
+        if limit is None:
+            limit = 1000
+        return self.backend.get_records(arn, limit)

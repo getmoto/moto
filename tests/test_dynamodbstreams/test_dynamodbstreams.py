@@ -75,7 +75,7 @@ class TestClass():
         )
         assert 'ShardIterator' in resp
                 
-    def test_get_records(self):
+    def test_get_records_empty(self):
         conn = boto3.client('dynamodbstreams', region_name='us-east-1')
 
         resp = conn.describe_stream(StreamArn=self.stream_arn)
@@ -90,7 +90,50 @@ class TestClass():
 
         resp = conn.get_records(ShardIterator=iterator_id)
         assert 'Records' in resp
+        assert len(resp['Records']) == 0
 
-        # TODO: Add tests for inserting records into the stream, and
-        # the various stream types
+    def test_get_records_seq(self):
+        conn = boto3.client('dynamodb', region_name='us-east-1')
+
+        conn.put_item(
+            TableName='test-streams',
+            Item={
+                'id': {'S': 'entry1'},
+                'first_col': {'S': 'foo'}
+            }
+        )
+        conn.put_item(
+            TableName='test-streams',
+            Item={
+                'id': {'S': 'entry1'},
+                'first_col': {'S': 'bar'},
+                'second_col': {'S': 'baz'}
+            }
+        )
+        conn.delete_item(
+            TableName='test-streams',
+            Key={'id': {'S': 'entry1'}}
+        )
         
+        conn = boto3.client('dynamodbstreams', region_name='us-east-1')
+        
+        resp = conn.describe_stream(StreamArn=self.stream_arn)
+        shard_id = resp['StreamDescription']['Shards'][0]['ShardId']
+        
+        resp = conn.get_shard_iterator(
+            StreamArn=self.stream_arn,
+            ShardId=shard_id,
+            ShardIteratorType='TRIM_HORIZON'
+        )
+        iterator_id = resp['ShardIterator']
+
+        resp = conn.get_records(ShardIterator=iterator_id)
+        assert len(resp['Records']) == 3
+        assert resp['Records'][0]['eventName'] == 'INSERT'
+        assert resp['Records'][1]['eventName'] == 'MODIFY'
+        assert resp['Records'][2]['eventName'] == 'DELETE'
+
+        # now try fetching from the next shard iterator, it should be
+        # empty
+        resp = conn.get_records(ShardIterator=resp['NextShardIterator'])
+        assert len(resp['Records']) == 0

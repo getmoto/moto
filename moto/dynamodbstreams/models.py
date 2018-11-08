@@ -11,8 +11,9 @@ from moto.dynamodb2.models import dynamodb_backends
 
 
 class ShardIterator(BaseModel):
-    def __init__(self, stream_shard, shard_iterator_type, sequence_number=None):
+    def __init__(self, streams_backend, stream_shard, shard_iterator_type, sequence_number=None):
         self.id = base64.b64encode(os.urandom(472)).decode('utf-8')
+        self.streams_backend = streams_backend
         self.stream_shard = stream_shard
         self.shard_iterator_type = shard_iterator_type
         if shard_iterator_type == 'TRIM_HORIZON':
@@ -24,18 +25,43 @@ class ShardIterator(BaseModel):
         elif shard_iterator_type == 'AFTER_SEQUENCE_NUMBER':
             self.sequence_number = sequence_number + 1
 
+    @property
+    def arn(self):
+        return '{}/stream/{}|1|{}'.format(
+            self.stream_shard.table.table_arn,
+            self.stream_shard.table.latest_stream_label,
+            self.id)
+    
     def to_json(self):
         return {
-            'ShardIterator': '{}/stream/{}|1|{}'.format(
-                self.stream_shard.table.table_arn,
-                self.stream_shard.table.latest_stream_label,
-                self.id)
+            'ShardIterator': self.arn
+        }
+
+    def get(self, limit=1000):
+        items = self.stream_shard.get(self.sequence_number, limit)
+        try:
+            last_sequence_number = max(i['dynamodb']['SequenceNumber'] for i in items)
+            new_shard_iterator = ShardIterator(self.streams_backend,
+                                               self.stream_shard,
+                                               'AFTER_SEQUENCE_NUMBER',
+                                               last_sequence_number)
+        except ValueError:
+            new_shard_iterator = ShardIterator(self.streams_backend,
+                                               self.stream_shard,
+                                               'AT_SEQUENCE_NUMBER',
+                                               self.sequence_number)
+
+        self.streams_backend.shard_iterators[new_shard_iterator.arn] = new_shard_iterator
+        return {
+            'NextShardIterator': new_shard_iterator.arn,
+            'Records': items
         }
 
 
 class DynamoDBStreamsBackend(BaseBackend):
     def __init__(self, region):
         self.region = region
+        self.shard_iterators = {}
 
     def reset(self):
         region = self.region
@@ -86,10 +112,16 @@ class DynamoDBStreamsBackend(BaseBackend):
         table = self._get_table_from_arn(arn)
         assert table.stream_shard.id == shard_id
 
-        shard_iterator = ShardIterator(table.stream_shard, shard_iterator_type,
+        shard_iterator = ShardIterator(self, table.stream_shard,
+                                       shard_iterator_type,
                                        sequence_number)
+        self.shard_iterators[shard_iterator.arn] = shard_iterator
         
         return json.dumps(shard_iterator.to_json())
+
+    def get_records(self, iterator_arn, limit):
+        shard_iterator = self.shard_iterators[iterator_arn]
+        return json.dumps(shard_iterator.get(limit))
 
     
 
