@@ -180,7 +180,7 @@ class TestEdges():
         assert 'LatestStreamLabel' in resp['TableDescription']
 
         # now try to enable it again
-        with assert_raises(ValueError):
+        with assert_raises(conn.exceptions.ResourceInUseException):
             resp = conn.update_table(
                 TableName='test-streams',
                 StreamSpecification={

@@ -174,7 +174,11 @@ class DynamoHandler(BaseResponse):
             throughput = self.body["ProvisionedThroughput"]
             table = self.dynamodb_backend.update_table_throughput(name, throughput)
         if 'StreamSpecification' in self.body:
-            table = self.dynamodb_backend.update_table_streams(name, self.body['StreamSpecification'])
+            try:
+                table = self.dynamodb_backend.update_table_streams(name, self.body['StreamSpecification'])
+            except ValueError:
+                er = 'com.amazonaws.dynamodb.v20111205#ResourceInUseException'
+                return self.error(er, 'Cannot enable stream')
 
         return dynamo_json_dump(table.describe())
 
