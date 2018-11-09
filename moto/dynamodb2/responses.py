@@ -185,6 +185,10 @@ class DynamoHandler(BaseResponse):
         item = self.body['Item']
         return_values = self.body.get('ReturnValues', 'NONE')
 
+        if return_values not in ('ALL_OLD', 'NONE'):
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Return values set to invalid value')
+
         if has_empty_keys_or_values(item):
             return get_empty_str_error()
 
@@ -524,7 +528,11 @@ class DynamoHandler(BaseResponse):
     def delete_item(self):
         name = self.body['TableName']
         keys = self.body['Key']
-        return_values = self.body.get('ReturnValues', '')
+        return_values = self.body.get('ReturnValues', 'NONE')
+        if return_values not in ('ALL_OLD', 'NONE'):
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Return values set to invalid value')
+
         table = self.dynamodb_backend.get_table(name)
         if not table:
             er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
@@ -553,6 +561,11 @@ class DynamoHandler(BaseResponse):
             existing_attributes = existing_item.to_json()['Attributes']
         else:
             existing_attributes = {}
+
+        if return_values not in ('NONE', 'ALL_OLD', 'ALL_NEW', 'UPDATED_OLD',
+                                 'UPDATED_NEW'):
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Return values set to invalid value')
 
         if has_empty_keys_or_values(expression_attribute_values):
             return get_empty_str_error()

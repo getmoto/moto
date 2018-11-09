@@ -1000,6 +1000,11 @@ def test_delete_item():
     response = table.scan()
     assert response['Count'] == 2
 
+    # Test ReturnValues validation
+    with assert_raises(ClientError) as ex:
+        table.delete_item(Key={'client': 'client1', 'app': 'app1'},
+                          ReturnValues='ALL_NEW')
+    
     # Test deletion and returning old value
     response = table.delete_item(Key={'client': 'client1', 'app': 'app1'}, ReturnValues='ALL_OLD')
     response['Attributes'].should.contain('client')
@@ -1281,6 +1286,9 @@ def test_update_return_attributes():
     r = update('col1', 'val5', 'NONE')
     assert r['Attributes'] == {}
 
+    with assert_raises(ClientError) as ex:
+        r = update('col1', 'val6', 'WRONG')
+
 
 @mock_dynamodb2
 def test_put_return_attributes():
@@ -1306,7 +1314,16 @@ def test_put_return_attributes():
         ReturnValues='ALL_OLD'
     )
     assert r['Attributes'] == {'id': {'S': 'foo'}, 'col1': {'S': 'val1'}}
-    
+
+    with assert_raises(ClientError) as ex:
+        dynamodb.put_item(
+            TableName='moto-test',
+            Item={'id': {'S': 'foo'}, 'col1': {'S': 'val3'}},
+            ReturnValues='ALL_NEW'
+        )
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('Return values set to invalid value')
     
 
 @mock_dynamodb2
