@@ -406,8 +406,7 @@ class Table(BaseModel):
 
     def set_stream_specification(self, streams):
         self.stream_specification = streams
-        if streams and (streams.get('StreamEnabled')
-                        or streams.get('StreamViewType')):
+        if streams and (streams.get('StreamEnabled') or streams.get('StreamViewType')):
             self.stream_specification['StreamEnabled'] = True
             self.latest_stream_label = datetime.datetime.utcnow().isoformat()
             self.stream_shard = StreamShard(self)
@@ -782,9 +781,7 @@ class DynamoDBBackend(BaseBackend):
 
     def update_table_streams(self, name, stream_specification):
         table = self.tables[name]
-        if ((stream_specification.get('StreamEnabled')
-             or stream_specification.get('StreamViewType'))
-             and table.latest_stream_label):
+        if (stream_specification.get('StreamEnabled') or stream_specification.get('StreamViewType')) and table.latest_stream_label:
             raise ValueError('Table already has stream enabled')
         table.set_stream_specification(stream_specification)
         return table
