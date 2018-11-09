@@ -745,20 +745,20 @@ class EC2ContainerServiceBackend(BaseBackend):
                     result.append(existing_service_obj)
         return result
 
-    def update_service(self, cluster_str, service_name, task_definition_str, desired_count):
+    def update_service(self, cluster_str, service_name_or_arn, task_definition_str, desired_count):
         cluster_name = cluster_str.split('/')[-1]
-        cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
-        service: Service = self.services.get(cluster_service_pair)
-        if service:
-            task_definition = None
-            if task_definition_str is not None:
-                task_definition = self.describe_task_definition(task_definition_str)
+        cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name_or_arn)
 
-            service.update_service(task_definition, desired_count)
+        for existing_service_name, existing_service_obj in sorted(self.services.items()):
+            if cluster_service_pair == existing_service_name or existing_service_obj.arn == service_name_or_arn:
+                task_definition = None
+                if task_definition_str is not None:
+                    task_definition = self.describe_task_definition(task_definition_str)
 
-            return service
-        else:
-            raise ServiceNotFoundException(service_name)
+                existing_service_obj.update_service(task_definition, desired_count)
+                return existing_service_obj
+
+        raise ServiceNotFoundException(service_name_or_arn)
 
     def delete_service(self, cluster_name, service_name):
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)

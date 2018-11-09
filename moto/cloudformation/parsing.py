@@ -372,7 +372,7 @@ class ResourceMap(collections.Mapping):
 
     def __init__(self, stack_id, stack_name, parameters, tags, region_name, template, cross_stack_resources):
         self._template = template
-        self._resource_json_map = template['Resources']
+        self._resource_json_map = template['Resources'] or {}
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
