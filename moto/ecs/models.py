@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 import uuid
 from datetime import datetime
 from random import random, randint
+import threading
+
 import boto3
 
 import pytz
@@ -27,6 +29,10 @@ class BaseObject(BaseModel):
     def gen_response_object(self):
         response_object = copy(self.__dict__)
         for key, value in self.__dict__.items():
+            if key.startswith('_'):
+                del response_object[key]
+                continue
+
             if '_' in key:
                 response_object[self.camelCase(key)] = value
                 del response_object[key]
@@ -157,7 +163,7 @@ class TaskDefinition(BaseObject):
 class Task(BaseObject):
 
     def __init__(self, cluster, task_definition, container_instance_arn,
-                 resource_requirements, overrides={}, started_by=''):
+                 resource_requirements, overrides=None, started_by=''):
         self.cluster_arn = cluster.arn
         self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(
             str(uuid.uuid4()))
@@ -165,7 +171,7 @@ class Task(BaseObject):
         self.last_status = 'RUNNING'
         self.desired_status = 'RUNNING'
         self.task_definition_arn = task_definition.arn
-        self.overrides = overrides
+        self.overrides = overrides or {}
         self.containers = []
         self.started_by = started_by
         self.stopped_reason = ''
@@ -180,30 +186,74 @@ class Task(BaseObject):
 class Service(BaseObject):
 
     def __init__(self, cluster, service_name, task_definition, desired_count, load_balancers=None, scheduling_strategy=None):
+        self._deployments_lock = threading.RLock()
         self.cluster_arn = cluster.arn
         self.arn = 'arn:aws:ecs:us-east-1:012345678910:service/{0}'.format(
             service_name)
         self.name = service_name
         self.status = 'ACTIVE'
-        self.running_count = 0
         self.task_definition = task_definition.arn
-        self.desired_count = desired_count
         self.events = []
-        self.deployments = [
-            {
-                'createdAt': datetime.now(pytz.utc),
-                'desiredCount': self.desired_count,
-                'id': 'ecs-svc/{}'.format(randint(0, 32**12)),
-                'pendingCount': self.desired_count,
-                'runningCount': 0,
-                'status': 'PRIMARY',
-                'taskDefinition': task_definition.arn,
-                'updatedAt': datetime.now(pytz.utc),
-            }
-        ]
+        self.deployments = []
+        self.update_service(task_definition, desired_count)
+
         self.load_balancers = load_balancers if load_balancers is not None else []
         self.scheduling_strategy = scheduling_strategy if scheduling_strategy is not None else 'REPLICA'
-        self.pending_count = 0
+
+    def _update_deployment(self, deployment):
+        def doit():
+            with self._deployments_lock:
+                deployment['pendingCount'] = 0
+                deployment['runningCount'] = deployment['desiredCount']
+
+        with self._deployments_lock:
+            # after 10 seconds we'll update the deployment to the required count
+            timer = threading.Timer(10, doit)
+
+        timer.start()
+
+    def update_service(self, task_definition, desired_count):
+        if len(self.deployments) == 0:
+            assert task_definition
+
+        with self._deployments_lock:
+            if task_definition is None:
+                assert self.deployments
+                deployment = self.deployments[-1]
+                deployment['desiredCount'] = desired_count
+            else:
+                # Stop existing deployment
+                if self.deployments:
+                    deployment = self.deployments[-1]
+                    deployment['desiredCount'] = 0
+                    self._update_deployment(deployment)
+
+                # add new deployment
+                deployment = {
+                    'createdAt': datetime.now(pytz.utc),
+                    'desiredCount': desired_count,
+                    'id': 'ecs-svc/{}'.format(randint(0, 32**12)),
+                    'pendingCount': desired_count,
+                    'runningCount': 0,
+                    'status': 'PRIMARY',
+                    'taskDefinition': task_definition.arn,
+                    'updatedAt': datetime.now(pytz.utc),
+                }
+                self.deployments.append(deployment)
+
+            self._update_deployment(deployment)
+
+    @property
+    def desired_count(self):
+        return self.deployments[-1]['desiredCount']
+
+    @property
+    def pending_count(self):
+        return sum(deployment['pendingCount'] for deployment in self.deployments)
+
+    @property
+    def running_count(self):
+        return sum(deployment['runningCount'] for deployment in self.deployments)
 
     @property
     def physical_resource_id(self):
@@ -216,6 +266,9 @@ class Service(BaseObject):
         response_object['serviceName'] = self.name
         response_object['serviceArn'] = self.arn
         response_object['schedulingStrategy'] = self.scheduling_strategy
+        response_object['pendingCount'] = self.pending_count
+        response_object['runningCount'] = self.running_count
+        response_object['desiredCount'] = self.deployments[-1]['desiredCount']
 
         for deployment in response_object['deployments']:
             if isinstance(deployment['createdAt'], datetime):
@@ -695,15 +748,15 @@ class EC2ContainerServiceBackend(BaseBackend):
     def update_service(self, cluster_str, service_name, task_definition_str, desired_count):
         cluster_name = cluster_str.split('/')[-1]
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
-        if cluster_service_pair in self.services:
+        service: Service = self.services.get(cluster_service_pair)
+        if service:
+            task_definition = None
             if task_definition_str is not None:
-                self.describe_task_definition(task_definition_str)
-                self.services[
-                    cluster_service_pair].task_definition = task_definition_str
-            if desired_count is not None:
-                self.services[
-                    cluster_service_pair].desired_count = desired_count
-            return self.services[cluster_service_pair]
+                task_definition = self.describe_task_definition(task_definition_str)
+
+            service.update_service(task_definition, desired_count)
+
+            return service
         else:
             raise ServiceNotFoundException(service_name)
 
