@@ -6,7 +6,8 @@ RUN apk add --no-cache --update \
     python3-dev \
     libffi-dev \
     openssl-dev \
-    python3
+    python3 \
+    pyOpenSSL
 
 ADD . /moto/
 ENV PYTHONUNBUFFERED 1
