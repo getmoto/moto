@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from copy import deepcopy
+import time
 
 from botocore.exceptions import ClientError
 import boto3
@@ -9,7 +10,7 @@ import json
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 
-from moto import mock_cloudformation, mock_elbv2
+from moto import mock_cloudformation
 from moto import mock_ecs
 from moto import mock_ec2
 from nose.tools import assert_raises
@@ -296,7 +297,7 @@ def test_create_service():
     response['service']['desiredCount'].should.equal(2)
     len(response['service']['events']).should.equal(0)
     len(response['service']['loadBalancers']).should.equal(0)
-    response['service']['pendingCount'].should.equal(0)
+    response['service']['pendingCount'].should.equal(2)
     response['service']['runningCount'].should.equal(0)
     response['service']['serviceArn'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service')
@@ -336,12 +337,13 @@ def test_create_service_scheduling_strategy():
         desiredCount=2,
         schedulingStrategy='DAEMON',
     )
+
     response['service']['clusterArn'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster')
     response['service']['desiredCount'].should.equal(2)
     len(response['service']['events']).should.equal(0)
     len(response['service']['loadBalancers']).should.equal(0)
-    response['service']['pendingCount'].should.equal(0)
+    response['service']['pendingCount'].should.equal(2)
     response['service']['runningCount'].should.equal(0)
     response['service']['serviceArn'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service')
@@ -454,6 +456,26 @@ def test_describe_services():
     response['services'][0]['deployments'][0]['desiredCount'].should.equal(2)
     response['services'][0]['deployments'][0]['pendingCount'].should.equal(2)
     response['services'][0]['deployments'][0]['runningCount'].should.equal(0)
+    response['services'][0]['deployments'][0]['status'].should.equal('PRIMARY')
+
+    time.sleep(10)  # tasks move from pending to running after 10s
+
+    response = client.describe_services(
+        cluster='test_ecs_cluster',
+        services=['test_ecs_service1',
+                  'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2']
+    )
+    len(response['services']).should.equal(2)
+    response['services'][0]['serviceArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
+    response['services'][0]['serviceName'].should.equal('test_ecs_service1')
+    response['services'][1]['serviceArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2')
+    response['services'][1]['serviceName'].should.equal('test_ecs_service2')
+
+    response['services'][0]['deployments'][0]['desiredCount'].should.equal(2)
+    response['services'][0]['deployments'][0]['pendingCount'].should.equal(0)
+    response['services'][0]['deployments'][0]['runningCount'].should.equal(2)
     response['services'][0]['deployments'][0]['status'].should.equal('PRIMARY')
 
 
@@ -613,10 +635,14 @@ def test_delete_service():
         service='test_ecs_service',
         desiredCount=0
     )
+
+    time.sleep(10)  # wait for services to stop
+
     response = client.delete_service(
         cluster='test_ecs_cluster',
         service='test_ecs_service'
     )
+
     response['service']['clusterArn'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:cluster/test_ecs_cluster')
     response['service']['desiredCount'].should.equal(0)
@@ -2219,7 +2245,7 @@ def test_create_service_load_balancing():
     response['service']['loadBalancers'][0]['containerName'].should.equal(
         'test_container_name')
     response['service']['loadBalancers'][0]['containerPort'].should.equal(123)
-    response['service']['pendingCount'].should.equal(0)
+    response['service']['pendingCount'].should.equal(2)
     response['service']['runningCount'].should.equal(0)
     response['service']['serviceArn'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service')
