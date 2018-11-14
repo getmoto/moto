@@ -2271,6 +2271,10 @@ class VPCPeeringConnection(TaggedEC2Resource):
         return vpc_pcx
 
     @property
+    def is_cross_region(self):
+        return self.vpc.ec2_backend != self.peer_vpc.ec2_backend
+
+    @property
     def physical_resource_id(self):
         return self.id
 
@@ -2280,11 +2284,18 @@ class VPCPeeringConnectionBackend(object):
         self.vpc_pcxs = {}
         super(VPCPeeringConnectionBackend, self).__init__()
 
-    def create_vpc_peering_connection(self, vpc, peer_vpc):
-        vpc_pcx_id = random_vpc_peering_connection_id()
+    def create_vpc_peering_connection(self, vpc, peer_vpc, update_peer=True, vpc_pcx_id=None):
+        vpc_pcx_id = vpc_pcx_id or random_vpc_peering_connection_id()
         vpc_pcx = VPCPeeringConnection(vpc_pcx_id, vpc, peer_vpc)
         vpc_pcx._status.pending()
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
+        if vpc_pcx.is_cross_region and update_peer:
+            peer_vpc.ec2_backend.create_vpc_peering_connection(
+                vpc=peer_vpc,
+                peer_vpc=vpc,
+                update_peer=False,
+                vpc_pcx_id=vpc_pcx_id,
+            )
         return vpc_pcx
 
     def get_all_vpc_peering_connections(self):
@@ -2295,23 +2306,29 @@ class VPCPeeringConnectionBackend(object):
             raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
         return self.vpc_pcxs.get(vpc_pcx_id)
 
-    def delete_vpc_peering_connection(self, vpc_pcx_id):
+    def delete_vpc_peering_connection(self, vpc_pcx_id, update_peer=True):
         deleted = self.get_vpc_peering_connection(vpc_pcx_id)
         deleted._status.deleted()
+        if deleted.is_cross_region and update_peer:
+            deleted.peer_vpc.ec2_backend.delete_vpc_peering_connection(vpc_pcx_id, update_peer=False)
         return deleted
 
-    def accept_vpc_peering_connection(self, vpc_pcx_id):
+    def accept_vpc_peering_connection(self, vpc_pcx_id, update_peer=True):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
         if vpc_pcx._status.code != 'pending-acceptance':
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.accept()
+        if vpc_pcx.is_cross_region and update_peer:
+            vpc_pcx.peer_vpc.ec2_backend.accept_vpc_peering_connection(vpc_pcx_id, update_peer=False)
         return vpc_pcx
 
-    def reject_vpc_peering_connection(self, vpc_pcx_id):
+    def reject_vpc_peering_connection(self, vpc_pcx_id, update_peer=True):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
         if vpc_pcx._status.code != 'pending-acceptance':
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.reject()
+        if vpc_pcx.is_cross_region and update_peer:
+            vpc_pcx.peer_vpc.ec2_backend.reject_vpc_peering_connection(vpc_pcx_id, update_peer=False)
         return vpc_pcx
 
 

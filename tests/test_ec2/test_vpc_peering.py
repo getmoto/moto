@@ -36,7 +36,6 @@ def test_vpc_peering_connections_get_all():
 
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
     all_vpc_pcxs.should.have.length_of(1)
-    all_vpc_pcxs[0]._status.code.should.equal('pending-acceptance')
 
 
 @requires_boto_gte("2.32.0")
@@ -115,6 +114,10 @@ def test_vpc_peering_connections_cross_region():
     vpc_pcx.status['Code'].should.equal('initiating-request')
     vpc_pcx.requester_vpc.id.should.equal(vpc_usw1.id)
     vpc_pcx.accepter_vpc.id.should.equal(vpc_apn1.id)
+
+    # test peer vpc for peering connection
+    peer_vpc_pcxs = list(vpc_apn1.requested_vpc_peering_connections.all())
+    peer_vpc_pcxs.should.have.length_of(1)
 
 
 @mock_ec2
