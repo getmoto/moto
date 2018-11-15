@@ -35,6 +35,7 @@ from .polly import mock_polly  # flake8: noqa
 from .rds import mock_rds, mock_rds_deprecated  # flake8: noqa
 from .rds2 import mock_rds2, mock_rds2_deprecated  # flake8: noqa
 from .redshift import mock_redshift, mock_redshift_deprecated  # flake8: noqa
+from .resourcegroups import mock_resourcegroups  # flake8: noqa
 from .s3 import mock_s3, mock_s3_deprecated  # flake8: noqa
 from .ses import mock_ses, mock_ses_deprecated  # flake8: noqa
 from .secretsmanager import mock_secretsmanager  # flake8: noqa

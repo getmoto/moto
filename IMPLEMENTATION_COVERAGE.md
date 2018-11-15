@@ -3409,19 +3409,19 @@
 - [ ] start_stream_processor
 - [ ] stop_stream_processor
 
-## resource-groups - 0% implemented
-- [ ] create_group
-- [ ] delete_group
-- [ ] get_group
-- [ ] get_group_query
+## resource-groups - 62% implemented
+- [X] create_group
+- [X] delete_group
+- [X] get_group
+- [X] get_group_query
 - [ ] get_tags
 - [ ] list_group_resources
-- [ ] list_groups
+- [X] list_groups
 - [ ] search_resources
 - [ ] tag
 - [ ] untag
-- [ ] update_group
-- [ ] update_group_query
+- [X] update_group
+- [X] update_group_query
 
 ## resourcegroupstaggingapi - 60% implemented
 - [X] get_resources
