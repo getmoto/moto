@@ -21,6 +21,8 @@ from moto import mock_ec2_deprecated
 from moto import mock_redshift
 from moto import mock_redshift_deprecated
 
+from nose.tools import assert_raises
+
 
 @mock_redshift
 def test_create_cluster_boto3():
@@ -54,7 +56,7 @@ def test_create_snapshot_copy_grant():
 
     client.describe_snapshot_copy_grants.when.called_with(
         SnapshotCopyGrantName='test-us-east-1',
-    ).should.throw(Exception)
+    ).should.throw(ClientError)
 
 
 @mock_redshift
@@ -1169,6 +1171,26 @@ def test_enable_snapshot_copy():
     cluster_snapshot_copy_status['RetentionPeriod'].should.equal(3)
     cluster_snapshot_copy_status['DestinationRegion'].should.equal('us-west-2')
     cluster_snapshot_copy_status['SnapshotCopyGrantName'].should.equal('copy-us-east-1-to-us-west-2')
+
+
+@mock_redshift
+def test_enable_snapshot_copy_missing_grant_name():
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster(
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        DBName='test',
+        Encrypted=True,
+        MasterUsername='user',
+        MasterUserPassword='password',
+        NodeType='ds2.xlarge',
+    )
+    with assert_raises(ClientError):
+        client.enable_snapshot_copy(
+            ClusterIdentifier='test',
+            DestinationRegion='us-west-2',
+            RetentionPeriod=3,
+        )
 
 
 @mock_redshift

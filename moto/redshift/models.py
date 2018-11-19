@@ -474,9 +474,13 @@ class RedshiftBackend(BaseBackend):
         if not hasattr(cluster, 'cluster_snapshot_copy_status'):
             if cluster.encrypted == 'true' and kwargs['snapshot_copy_grant_name'] is None:
                 raise ClientError(
-                    'InvalidParameterValue',
-                    'SnapshotCopyGrantName is required for Snapshot Copy '
-                    'on KMS encrypted clusters.'
+                    {'Error': {
+                        'Message': 'SnapshotCopyGrantName is required for '
+                            'Snapshot Copy on KMS encrypted clusters.',
+                        'Code': 'SnapshotCopyGrantNotFoundFault',
+                        }
+                    },
+                    'EnableSnapshotCopy',
                 )
             status = {
                 'DestinationRegion': kwargs['destination_region'],
