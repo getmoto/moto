@@ -157,8 +157,7 @@ class CloudFormationBackend(BaseBackend):
                     {'Error': {
                         'Message': 'Stack [{}] already exists'.format(name),
                         'Code': 'AlreadyExistsException',
-                        }
-                    },
+                    }},
                     'CreateStack',
                 )
         stack_id = generate_stack_id(name)
