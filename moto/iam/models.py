@@ -50,6 +50,16 @@ class Policy(BaseModel):
         self.update_datetime = datetime.now(pytz.utc)
 
 
+class SAMLProvider(BaseModel):
+    def __init__(self, name, saml_metadata_document=None):
+        self.name = name
+        self.saml_metadata_document = saml_metadata_document
+
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:saml-provider/{1}".format(ACCOUNT_ID, self.name)
+
+
 class PolicyVersion(object):
 
     def __init__(self,
@@ -427,6 +437,7 @@ class IAMBackend(BaseBackend):
         self.credential_report = None
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
+        self.saml_providers = {}
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -936,6 +947,34 @@ class IAMBackend(BaseBackend):
             'users': self.users.values() if 'User' in filter else [],
             'managed_policies': returned_policies
         }
+
+    def create_saml_provider(self, name, saml_metadata_document):
+        saml_provider = SAMLProvider(name, saml_metadata_document)
+        self.saml_providers[name] = saml_provider
+        return saml_provider
+
+    def update_saml_provider(self, saml_provider_arn, saml_metadata_document):
+        saml_provider = self.get_saml_provider(saml_provider_arn)
+        saml_provider.saml_metadata_document = saml_metadata_document
+        return saml_provider
+
+    def delete_saml_provider(self, saml_provider_arn):
+        try:
+            for saml_provider in list(self.list_saml_providers()):
+                if saml_provider.arn == saml_provider_arn:
+                    del self.saml_providers[saml_provider.name]
+        except KeyError:
+            raise IAMNotFoundException(
+                "SAMLProvider {0} not found".format(saml_provider_arn))
+
+    def list_saml_providers(self):
+        return self.saml_providers.values()
+
+    def get_saml_provider(self, saml_provider_arn):
+        for saml_provider in self.list_saml_providers():
+            if saml_provider.arn == saml_provider_arn:
+                return saml_provider
+        raise IAMNotFoundException("SamlProvider {0} not found".format(saml_provider_arn))
 
 
 iam_backend = IAMBackend()
