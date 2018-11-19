@@ -476,10 +476,9 @@ class RedshiftBackend(BaseBackend):
                 raise ClientError(
                     {'Error': {
                         'Message': 'SnapshotCopyGrantName is required for '
-                            'Snapshot Copy on KMS encrypted clusters.',
+                                   'Snapshot Copy on KMS encrypted clusters.',
                         'Code': 'SnapshotCopyGrantNotFoundFault',
-                        }
-                    },
+                    }},
                     'EnableSnapshotCopy',
                 )
             status = {
