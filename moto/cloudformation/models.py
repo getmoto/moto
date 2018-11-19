@@ -155,10 +155,8 @@ class CloudFormationBackend(BaseBackend):
             if stack.name == name:
                 raise ClientError(
                     {'Error': {
-                        'Message': 'An error occurred (AlreadyExistsException)'
-                            ' when calling the CreateStack operation: '
-                            'Stack [{}] already exists'.format(name),
-                        'Code': 400,
+                        'Message': 'Stack [{}] already exists'.format(name),
+                        'Code': 'AlreadyExistsException',
                         }
                     },
                     'CreateStack',
