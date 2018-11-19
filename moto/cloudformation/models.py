@@ -7,6 +7,7 @@ import uuid
 import boto.cloudformation
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from botocore.exceptions import ClientError
 
 from .parsing import ResourceMap, OutputMap
 from .utils import (
@@ -150,6 +151,18 @@ class CloudFormationBackend(BaseBackend):
         self.change_sets = OrderedDict()
 
     def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, create_change_set=False):
+        for _, stack in self.stacks.items():
+            if stack.name == name:
+                raise ClientError(
+                    {'Error': {
+                        'Message': 'An error occurred (AlreadyExistsException)'
+                            ' when calling the CreateStack operation: '
+                            'Stack [{}] already exists'.format(name),
+                        'Code': 400,
+                        }
+                    },
+                    'CreateStack',
+                )
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,

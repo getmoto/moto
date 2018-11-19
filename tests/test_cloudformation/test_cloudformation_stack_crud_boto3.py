@@ -198,6 +198,21 @@ def test_boto3_create_stack():
 
 
 @mock_cloudformation
+def test_boto3_create_duplicate_stack():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+    )
+
+    with assert_raises(ClientError):
+        cf_conn.create_stack(
+            StackName="test_stack",
+            TemplateBody=dummy_template_json,
+        )
+
+
+@mock_cloudformation
 def test_boto3_create_stack_with_yaml():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     cf_conn.create_stack(
@@ -425,7 +440,7 @@ def test_describe_stack_pagination():
     conn = boto3.client('cloudformation', region_name='us-east-1')
     for i in range(100):
         conn.create_stack(
-            StackName="test_stack",
+            StackName="test_stack_{}".format(i),
             TemplateBody=dummy_template_json,
         )
 
@@ -716,7 +731,7 @@ def test_list_exports_with_token():
         # Add index to ensure name is unique
         dummy_output_template['Outputs']['StackVPC']['Export']['Name'] += str(i)
         cf.create_stack(
-            StackName="test_stack",
+            StackName="test_stack_{}".format(i),
             TemplateBody=json.dumps(dummy_output_template),
         )
     exports = cf.list_exports()
