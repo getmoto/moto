@@ -1301,6 +1301,16 @@ def test_bucket_create_duplicate():
 
 
 @mock_s3
+def test_bucket_create_force_us_east_1():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(Bucket="blah", CreateBucketConfiguration={
+            'LocationConstraint': 'us-east-1',
+        })
+    exc.exception.response['Error']['Code'].should.equal('InvalidLocationConstraint')
+
+
+@mock_s3
 def test_boto3_bucket_create_eu_central():
     s3 = boto3.resource('s3', region_name='eu-central-1')
     s3.create_bucket(Bucket="blah")
