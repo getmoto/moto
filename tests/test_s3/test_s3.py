@@ -978,6 +978,15 @@ def test_bucket_location():
 
 
 @mock_s3_deprecated
+def test_bucket_location_us_east_1():
+    cli = boto3.client('s3')
+    bucket_name = 'mybucket'
+    # No LocationConstraint ==> us-east-1
+    cli.create_bucket(Bucket=bucket_name)
+    cli.get_bucket_location(Bucket=bucket_name)['LocationConstraint'].should.equal(None)
+
+
+@mock_s3_deprecated
 def test_ranged_get():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
