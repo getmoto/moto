@@ -432,8 +432,19 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         else:
             if body:
+                # us-east-1, the default AWS region behaves a bit differently
+                # - you should not use it as a location constraint --> it fails
+                # - querying the location constraint returns None
                 try:
-                    region_name = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+                    forced_region = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+
+                    if forced_region == DEFAULT_REGION_NAME:
+                        raise S3ClientError(
+                            'InvalidLocationConstraint',
+                            'The specified location-constraint is not valid'
+                        )
+                    else:
+                        region_name = forced_region
                 except KeyError:
                     pass
 
