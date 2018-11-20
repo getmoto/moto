@@ -193,7 +193,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'location' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_BUCKET_LOCATION)
-            return template.render(location=bucket.location)
+
+            location = bucket.location
+            # us-east-1 is different - returns a None location
+            if location == DEFAULT_REGION_NAME:
+                location = None
+
+            return template.render(location=location)
         elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.rules:
@@ -1187,7 +1193,7 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>"""
 
 S3_BUCKET_LOCATION = """<?xml version="1.0" encoding="UTF-8"?>
-<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{{ location }}</LocationConstraint>"""
+<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{% if location != None %}{{ location }}{% endif %}</LocationConstraint>"""
 
 S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
 <LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
