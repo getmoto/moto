@@ -27,11 +27,12 @@ class DomainDispatcherApplication(object):
     value. We'll match the host header value with the url_bases of each backend.
     """
 
-    def __init__(self, create_app, service=None):
+    def __init__(self, create_app, service=None, base_dir=None):
         self.create_app = create_app
         self.lock = Lock()
         self.app_instances = {}
         self.service = service
+        self.base_dir = base_dir
 
     def get_backend_for_host(self, host):
         if host == 'moto_api':
@@ -214,7 +215,7 @@ def main(argv=sys.argv[1:]):
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(
-        create_backend_app, service=args.service)
+        create_backend_app, service=args.service, base_dir=args.base_dir)
     main_app.debug = True
 
     ssl_context = None
