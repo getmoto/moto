@@ -205,6 +205,10 @@ def main(argv=sys.argv[1:]):
         '-k', '--ssl-key', type=str,
         help='Path to SSL private key',
         default=None)
+    parser.add_argument(
+        '-d', '--base-dir', type=str,
+        help='Directory to deploy files which need to initialize backend',
+        default=None)
 
     args = parser.parse_args(argv)
 
