@@ -27,11 +27,12 @@ class DomainDispatcherApplication(object):
     value. We'll match the host header value with the url_bases of each backend.
     """
 
-    def __init__(self, create_app, service=None):
+    def __init__(self, create_app, service=None, base_dir=None):
         self.create_app = create_app
         self.lock = Lock()
         self.app_instances = {}
         self.service = service
+        self.base_dir = base_dir
 
     def get_backend_for_host(self, host):
         if host == 'moto_api':
@@ -92,7 +93,7 @@ class DomainDispatcherApplication(object):
             backend = self.get_backend_for_host(host)
             app = self.app_instances.get(backend, None)
             if app is None:
-                app = self.create_app(backend)
+                app = self.create_app(backend, base_dir=self.base_dir)
                 self.app_instances[backend] = app
             return app
 
@@ -129,7 +130,7 @@ class AWSTestHelper(FlaskClient):
         return json.loads(self.action_data(action_name, **kwargs))
 
 
-def create_backend_app(service):
+def create_backend_app(service, base_dir=None):
     from werkzeug.routing import Map
 
     # Create the backend_app
@@ -145,6 +146,7 @@ def create_backend_app(service):
     for url_path, handler in backend.flask_paths.items():
         if handler.__name__ == 'dispatch':
             endpoint = '{0}.dispatch'.format(handler.__self__.__name__)
+            handler.__self__.base_dir = base_dir
         else:
             endpoint = None
 
@@ -205,12 +207,16 @@ def main(argv=sys.argv[1:]):
         '-k', '--ssl-key', type=str,
         help='Path to SSL private key',
         default=None)
+    parser.add_argument(
+        '-d', '--base-dir', type=str,
+        help='Directory to deploy files which need to initialize backend',
+        default=None)
 
     args = parser.parse_args(argv)
 
     # Wrap the main application
     main_app = DomainDispatcherApplication(
-        create_backend_app, service=args.service)
+        create_backend_app, service=args.service, base_dir=args.base_dir)
     main_app.debug = True
 
     ssl_context = None

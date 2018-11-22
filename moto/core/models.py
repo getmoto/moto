@@ -459,6 +459,9 @@ class BaseModel(object):
 
 class BaseBackend(object):
 
+    base_dir = None
+    initialized = False
+
     def reset(self):
         for service, models in model_data.items():
             for model_name, model in models.items():
@@ -524,6 +527,15 @@ class BaseBackend(object):
             paths[url_path] = handler
 
         return paths
+
+    def initialize(self, base_dir):
+        if not self.initialized:
+            self.base_dir = base_dir
+            self.initialize_internal(base_dir)
+            self.initialized = True
+
+    def initialize_internal(self, base_dir):
+        pass
 
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:

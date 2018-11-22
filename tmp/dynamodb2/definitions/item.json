@@ -1,0 +1,70 @@
+{
+    "AttributeDefinitions": [
+        {
+            "AttributeName": "id",
+            "AttributeType": "N"
+        },
+        {
+            "AttributeName": "name",
+            "AttributeType": "S"
+        },
+        {
+            "AttributeName": "price",
+            "AttributeType": "N"
+        }
+    ],
+    "TableName": "item",
+    "KeySchema": [
+        {
+            "AttributeName": "id",
+            "KeyType": "HASH"
+        },
+        {
+            "AttributeName": "name",
+            "KeyType": "RANGE"
+        }
+    ],
+    "LocalSecondaryIndexes": [
+        {
+            "IndexName": "localIndex",
+            "KeySchema": [
+                {
+                    "AttributeName": "price",
+                    "KeyType": "RANGE"
+                }
+            ]
+        }
+    ],
+    "GlobalSecondaryIndexes": [
+        {
+            "IndexName": "globalIndex",
+            "KeySchema": [
+                {
+                    "AttributeName": "id",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "price",
+                    "KeyType": "RANGE"
+                }
+            ],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 20
+            }
+        }
+    ],
+    "ProvisionedThroughput": {
+        "ReadCapacityUnits": 30,
+        "WriteCapacityUnits": 40
+    },
+    "StreamSpecification": {
+        "StreamEnabled": true,
+        "StreamViewType": "NEW_IMAGE"
+    },
+    "SSESpecification": {
+        "Enabled": true,
+        "SSEType": "AES256",
+        "KMSMasterKeyId": ""
+    }
+}
