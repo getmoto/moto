@@ -56,7 +56,7 @@ class DynamoHandler(BaseResponse):
         backend = dynamodb_backends[self.region]
         backend.initialize(self.base_dir)
 
-        return dynamodb_backends[self.region]
+        return backend
 
     @amzn_request_id
     def call_action(self):
