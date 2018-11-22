@@ -53,6 +53,9 @@ class DynamoHandler(BaseResponse):
         :return: DynamoDB2 Backend
         :rtype: moto.dynamodb2.models.DynamoDBBackend
         """
+        backend = dynamodb_backends[self.region]
+        backend.initialize(self.base_dir)
+
         return dynamodb_backends[self.region]
 
     @amzn_request_id
