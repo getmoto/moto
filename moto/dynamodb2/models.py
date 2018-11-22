@@ -5,6 +5,7 @@ import datetime
 import decimal
 import json
 import os
+import pickle
 import re
 
 import boto3
@@ -682,6 +683,18 @@ class DynamoDBBackend(BaseBackend):
                     }
                     self.create_table(definition['TableName'], **params)
 
+                    dir_of_records = os.path.join(target_dir, 'records')
+                    if not os.path.exists(dir_of_records):
+                        continue
+
+                    file_of_records = os.path.join(dir_of_records, table)
+                    if not os.path.exists(file_of_records):
+                        continue
+
+                    with open(file_of_records, 'rb') as fp_of_records:
+                        items = pickle.load(fp_of_records)
+                        self.tables[table].items = items
+
     def create_table(self, name, **params):
         if name in self.tables:
             return None
@@ -753,7 +766,11 @@ class DynamoDBBackend(BaseBackend):
         table = self.tables.get(table_name)
         if not table:
             return None
-        return table.put_item(item_attrs, expected, overwrite)
+        return_val = table.put_item(item_attrs, expected, overwrite)
+
+        self.__update_record_file(table)
+
+        return return_val
 
     def get_table_keys_name(self, table_name, keys):
         """
@@ -936,6 +953,19 @@ class DynamoDBBackend(BaseBackend):
             raise JsonRESTError('ResourceNotFound', 'Table not found')
 
         return table.ttl
+
+    def __update_record_file(self, table):
+        target_dir = os.path.join(os.path.abspath(self.base_dir), 'dynamodb2')
+        if not os.path.exists(target_dir):
+            return
+
+        dir_of_records = os.path.join(target_dir, 'records')
+        if not os.path.exists(dir_of_records):
+            return
+
+        file_of_records = os.path.join(dir_of_records, table.name)
+        with open(file_of_records, 'wb') as fp:
+            pickle.dump(table.items, fp)
 
 
 available_regions = boto3.session.Session().get_available_regions("dynamodb")
