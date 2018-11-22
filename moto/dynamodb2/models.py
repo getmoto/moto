@@ -4,6 +4,7 @@ import copy
 import datetime
 import decimal
 import json
+import os
 import re
 
 import boto3
@@ -647,6 +648,39 @@ class DynamoDBBackend(BaseBackend):
 
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def initialize_internal(self, base_dir):
+        if not base_dir:
+            return
+
+        target_dir = os.path.join(os.path.abspath(base_dir), 'dynamodb2')
+        if not os.path.exists(target_dir):
+            return
+
+        file_of_table_names = os.path.join(target_dir, 'tables')
+        if not os.path.exists(file_of_table_names):
+            return
+
+        dir_of_table_definitions = os.path.join(target_dir, 'definitions')
+        if not os.path.exists(dir_of_table_definitions):
+            return
+
+        with open(file_of_table_names) as fp:
+            tables = fp.read()
+            for table in tables.split('\n')[:-1]:
+                file_of_table_def = os.path.join(dir_of_table_definitions, "{}.json".format(table))
+                if not os.path.exists(file_of_table_def):
+                    continue
+
+                with open(file_of_table_def) as fp_of_table:
+                    definition = json.load(fp_of_table)
+                    params = {
+                        'schema': definition['KeySchema'],
+                        'throughput': definition['ProvisionedThroughput'],
+                        'indexes': definition['LocalSecondaryIndexes'],
+                        'global_indexes': definition['GlobalSecondaryIndexes']
+                    }
+                    self.create_table(definition['TableName'], **params)
 
     def create_table(self, name, **params):
         if name in self.tables:
