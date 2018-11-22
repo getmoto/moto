@@ -2581,3 +2581,17 @@ TEST_XML = """\
     </ns0:RoutingRules>
 </ns0:WebsiteConfiguration>
 """
+
+@mock_s3
+def test_boto3_bucket_name_too_long():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(Bucket='x'*64)
+    exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
+
+@mock_s3
+def test_boto3_bucket_name_too_short():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(Bucket='x'*2)
+    exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')

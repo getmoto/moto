@@ -14,10 +14,13 @@ import six
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination, MalformedXML, InvalidStorageClass
+from .exceptions import BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, \
+        EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, \
+        InvalidStorageClass
 from .utils import clean_key_name, _VersionedKeyStore
 
+MAX_BUCKET_NAME_LENGTH = 63
+MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
@@ -634,6 +637,8 @@ class S3Backend(BaseBackend):
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
             raise BucketAlreadyExists(bucket=bucket_name)
+        if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
+            raise InvalidBucketName()
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket
