@@ -15,8 +15,7 @@ from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, \
-        EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, \
-        InvalidStorageClass
+    EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, InvalidStorageClass
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
