@@ -459,6 +459,7 @@ class BaseModel(object):
 
 class BaseBackend(object):
 
+    base_dir = None
     initialized = False
 
     def reset(self):
@@ -529,8 +530,8 @@ class BaseBackend(object):
 
     def initialize(self, base_dir):
         if not self.initialized:
+            self.base_dir = base_dir
             self.initialize_internal(base_dir)
-
             self.initialized = True
 
     def initialize_internal(self, base_dir):
