@@ -1,58 +1,62 @@
 {
     "AttributeDefinitions": [
         {
-            "AttributeName": "",
+            "AttributeName": "id",
+            "AttributeType": "N"
+        },
+        {
+            "AttributeName": "name",
             "AttributeType": "S"
+        },
+        {
+            "AttributeName": "price",
+            "AttributeType": "N"
         }
     ],
-    "TableName": "",
+    "TableName": "item",
     "KeySchema": [
         {
-            "AttributeName": "",
+            "AttributeName": "id",
             "KeyType": "HASH"
+        },
+        {
+            "AttributeName": "name",
+            "KeyType": "RANGE"
         }
     ],
     "LocalSecondaryIndexes": [
         {
-            "IndexName": "",
+            "IndexName": "localIndex",
             "KeySchema": [
                 {
-                    "AttributeName": "",
+                    "AttributeName": "price",
                     "KeyType": "RANGE"
                 }
-            ],
-            "Projection": {
-                "ProjectionType": "INCLUDE",
-                "NonKeyAttributes": [
-                    ""
-                ]
-            }
+            ]
         }
     ],
     "GlobalSecondaryIndexes": [
         {
-            "IndexName": "",
+            "IndexName": "globalIndex",
             "KeySchema": [
                 {
-                    "AttributeName": "",
+                    "AttributeName": "id",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "price",
                     "KeyType": "RANGE"
                 }
             ],
-            "Projection": {
-                "ProjectionType": "KEYS_ONLY",
-                "NonKeyAttributes": [
-                    ""
-                ]
-            },
             "ProvisionedThroughput": {
-                "ReadCapacityUnits": 0,
-                "WriteCapacityUnits": 0
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 20
             }
         }
     ],
     "ProvisionedThroughput": {
-        "ReadCapacityUnits": 0,
-        "WriteCapacityUnits": 0
+        "ReadCapacityUnits": 30,
+        "WriteCapacityUnits": 40
     },
     "StreamSpecification": {
         "StreamEnabled": true,
