@@ -93,7 +93,7 @@ class DomainDispatcherApplication(object):
             backend = self.get_backend_for_host(host)
             app = self.app_instances.get(backend, None)
             if app is None:
-                app = self.create_app(backend)
+                app = self.create_app(backend, base_dir=self.base_dir)
                 self.app_instances[backend] = app
             return app
 
@@ -130,7 +130,7 @@ class AWSTestHelper(FlaskClient):
         return json.loads(self.action_data(action_name, **kwargs))
 
 
-def create_backend_app(service):
+def create_backend_app(service, base_dir=None):
     from werkzeug.routing import Map
 
     # Create the backend_app
@@ -146,6 +146,7 @@ def create_backend_app(service):
     for url_path, handler in backend.flask_paths.items():
         if handler.__name__ == 'dispatch':
             endpoint = '{0}.dispatch'.format(handler.__self__.__name__)
+            handler.__self__.base_dir = base_dir
         else:
             endpoint = None
 
