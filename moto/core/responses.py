@@ -111,6 +111,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
     param_list_regex = re.compile(r'(.*)\.(\d+)\.')
     access_key_regex = re.compile(r'AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]')
     aws_service_spec = None
+    base_dir = None
 
     @classmethod
     def dispatch(cls, *args, **kwargs):
