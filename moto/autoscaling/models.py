@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+import random
+
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -156,13 +159,7 @@ class FakeAutoScalingGroup(BaseModel):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
 
-        if not availability_zones and not vpc_zone_identifier:
-            raise AutoscalingClientError(
-                "ValidationError",
-                "At least one Availability Zone or VPC Subnet is required."
-            )
-        self.availability_zones = availability_zones
-        self.vpc_zone_identifier = vpc_zone_identifier
+        self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
         self.max_size = max_size
         self.min_size = min_size
@@ -183,6 +180,35 @@ class FakeAutoScalingGroup(BaseModel):
         self.instance_states = []
         self.tags = tags if tags else []
         self.set_desired_capacity(desired_capacity)
+
+    def _set_azs_and_vpcs(self, availability_zones, vpc_zone_identifier, update=False):
+        # for updates, if only AZs are provided, they must not clash with
+        # the AZs of existing VPCs
+        if update and availability_zones and not vpc_zone_identifier:
+            vpc_zone_identifier = self.vpc_zone_identifier
+
+        if vpc_zone_identifier:
+            # extract azs for vpcs
+            subnet_ids = vpc_zone_identifier.split(',')
+            subnets = self.autoscaling_backend.ec2_backend.get_all_subnets(subnet_ids=subnet_ids)
+            vpc_zones = [subnet.availability_zone for subnet in subnets]
+
+            if availability_zones and set(availability_zones) != set(vpc_zones):
+                raise AutoscalingClientError(
+                    "ValidationError",
+                    "The availability zones of the specified subnets and the Auto Scaling group do not match",
+                )
+            availability_zones = vpc_zones
+        elif not availability_zones:
+            if not update:
+                raise AutoscalingClientError(
+                    "ValidationError",
+                    "At least one Availability Zone or VPC Subnet is required."
+                )
+            return
+
+        self.availability_zones = availability_zones
+        self.vpc_zone_identifier = vpc_zone_identifier
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -239,8 +265,8 @@ class FakeAutoScalingGroup(BaseModel):
                launch_config_name, vpc_zone_identifier, default_cooldown,
                health_check_period, health_check_type,
                placement_group, termination_policies):
-        if availability_zones:
-            self.availability_zones = availability_zones
+        self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier, update=True)
+
         if max_size is not None:
             self.max_size = max_size
         if min_size is not None:
@@ -250,8 +276,6 @@ class FakeAutoScalingGroup(BaseModel):
             self.launch_config = self.autoscaling_backend.launch_configurations[
                 launch_config_name]
             self.launch_config_name = launch_config_name
-        if vpc_zone_identifier is not None:
-            self.vpc_zone_identifier = vpc_zone_identifier
         if health_check_period is not None:
             self.health_check_period = health_check_period
         if health_check_type is not None:
@@ -306,7 +330,8 @@ class FakeAutoScalingGroup(BaseModel):
             self.launch_config.user_data,
             self.launch_config.security_groups,
             instance_type=self.launch_config.instance_type,
-            tags={'instance': propagated_tags}
+            tags={'instance': propagated_tags},
+            placement=random.choice(self.availability_zones),
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self

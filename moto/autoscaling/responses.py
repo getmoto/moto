@@ -486,7 +486,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           {% for instance_state in group.instance_states %}
           <member>
             <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
-            <AvailabilityZone>us-east-1e</AvailabilityZone>
+            <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
             <InstanceId>{{ instance_state.instance.id }}</InstanceId>
             <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
             <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
@@ -561,7 +561,7 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
       <member>
         <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
         <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
-        <AvailabilityZone>us-east-1e</AvailabilityZone>
+        <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
         <InstanceId>{{ instance_state.instance.id }}</InstanceId>
         <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
         <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
