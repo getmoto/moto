@@ -930,7 +930,11 @@ class DynamoDBBackend(BaseBackend):
         if not table:
             return None
         hash_key, range_key = self.get_keys_value(table, keys)
-        return table.delete_item(hash_key, range_key)
+
+        deleted_item = table.delete_item(hash_key, range_key)
+        self.__update_record_file(table)
+
+        return deleted_item
 
     def update_ttl(self, table_name, ttl_spec):
         table = self.tables.get(table_name)
