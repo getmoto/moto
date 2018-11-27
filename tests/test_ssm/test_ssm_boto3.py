@@ -319,13 +319,15 @@ def test_describe_parameters():
         Name='test',
         Description='A test parameter',
         Value='value',
-        Type='String')
+        Type='String',
+        AllowedPattern=r'.*')
 
     response = client.describe_parameters()
 
     len(response['Parameters']).should.equal(1)
     response['Parameters'][0]['Name'].should.equal('test')
     response['Parameters'][0]['Type'].should.equal('String')
+    response['Parameters'][0]['AllowedPattern'].should.equal(r'.*')
 
 
 @mock_ssm
