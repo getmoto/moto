@@ -15,4 +15,4 @@ python_env
 .ropeproject/
 .pytest_cache/
 venv/
-
+.python-version
