@@ -696,6 +696,19 @@ def test_update_access_key():
 
 
 @mock_iam
+def test_get_access_key_last_used():
+    iam = boto3.resource('iam', region_name='us-east-1')
+    client = iam.meta.client
+    username = 'test-user'
+    iam.create_user(UserName=username)
+    with assert_raises(ClientError):
+        client.get_access_key_last_used(UserName=username, AccessKeyId='non-existent-key')
+    key = client.create_access_key(UserName=username)['AccessKey']
+    resp = client.get_access_key_last_used(UserName=username, AccessKeyId=key['AccessKeyId'])
+    resp.should.equal(key.last_used)
+
+
+@mock_iam
 def test_get_account_authorization_details():
     import json
     conn = boto3.client('iam', region_name='us-east-1')
