@@ -179,6 +179,7 @@ class InvalidStorageClass(S3ClientError):
             "The storage class you specified is not valid",
             *args, **kwargs)
 
+
 class DuplicateTagKeys(S3ClientError):
     code = 400
 
