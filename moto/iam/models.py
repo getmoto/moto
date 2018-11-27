@@ -355,10 +355,6 @@ class User(BaseModel):
     def get_all_access_keys(self):
         return self.access_keys
 
-    def get_access_key_last_used(self, access_key_id):
-        key = self.get_access_key_by_id(access_key_id)
-        return key.last_used
-
     def delete_access_key(self, access_key_id):
         key = self.get_access_key_by_id(access_key_id)
         self.access_keys.remove(key)
@@ -845,10 +841,23 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         user.update_access_key(access_key_id, status)
 
-    def get_access_key_last_used(self, user_name, access_key_id):
-        user = self.get_user(user_name)
-        last_used = user.get_access_key_last_used(access_key_id)
-        return last_used
+    def get_access_key_last_used(self, access_key_id):
+        access_keys_list = self.get_all_access_keys_for_all_users()
+        for key in access_keys_list:
+            if key.access_key_id == access_key_id:
+                return {
+                    'user_name': key.user_name,
+                    'last_used': key.last_used
+                }
+        else:
+            raise IAMNotFoundException(
+                "The Access Key with id {0} cannot be found".format(access_key_id))
+
+    def get_all_access_keys_for_all_users(self):
+        access_keys_list = []
+        for user_name in self.users:
+            access_keys_list += self.get_all_access_keys(user_name)
+        return access_keys_list
 
     def get_all_access_keys(self, user_name, marker=None, max_items=None):
         user = self.get_user(user_name)

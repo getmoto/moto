@@ -11,6 +11,7 @@ from moto.iam.models import aws_managed_policies
 from nose.tools import assert_raises, assert_equals
 from nose.tools import raises
 
+from datetime import datetime
 from tests.helpers import requires_boto_gte
 
 
@@ -702,10 +703,15 @@ def test_get_access_key_last_used():
     username = 'test-user'
     iam.create_user(UserName=username)
     with assert_raises(ClientError):
-        client.get_access_key_last_used(UserName=username, AccessKeyId='non-existent-key')
-    key = client.create_access_key(UserName=username)['AccessKey']
-    resp = client.get_access_key_last_used(UserName=username, AccessKeyId=key['AccessKeyId'])
-    resp.should.equal(key.last_used)
+        client.get_access_key_last_used(AccessKeyId='non-existent-key-id')
+    create_key_response = client.create_access_key(UserName=username)['AccessKey']
+    resp = client.get_access_key_last_used(AccessKeyId=create_key_response['AccessKeyId'])
+
+    datetime.strftime(resp["AccessKeyLastUsed"]["LastUsedDate"], "%Y-%m-%d").should.equal(datetime.strftime(
+        datetime.utcnow(),
+        "%Y-%m-%d"
+    ))
+    resp["UserName"].should.equal(create_key_response["UserName"])
 
 
 @mock_iam
