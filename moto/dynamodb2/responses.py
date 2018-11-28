@@ -311,7 +311,7 @@ class DynamoHandler(BaseResponse):
     def query(self):
         name = self.body['TableName']
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
-        key_condition_expression = self.body.get('KeyConditionExpression')
+        key_condition_expression = self.body.get('KeyConditionExpression').strip('()')
         projection_expression = self.body.get('ProjectionExpression')
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
         filter_expression = self.body.get('FilterExpression')
