@@ -311,7 +311,7 @@ class DynamoHandler(BaseResponse):
     def query(self):
         name = self.body['TableName']
         # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
-        key_condition_expression = self.body.get('KeyConditionExpression').strip('()')
+        key_condition_expression = self.body.get('KeyConditionExpression')
         projection_expression = self.body.get('ProjectionExpression')
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
         filter_expression = self.body.get('FilterExpression')
@@ -385,7 +385,7 @@ class DynamoHandler(BaseResponse):
                     range_values = [value_alias_map[
                         range_key_expression_components[2]]]
             else:
-                hash_key_expression = key_condition_expression
+                hash_key_expression = key_condition_expression.strip('()')
                 range_comparison = None
                 range_values = []
 
