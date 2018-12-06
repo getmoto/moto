@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 
 from .models import cognitoidentity_backends
+from .utils import get_random_identity_id
 
 
 class CognitoIdentityResponse(BaseResponse):
@@ -31,4 +32,6 @@ class CognitoIdentityResponse(BaseResponse):
         return cognitoidentity_backends[self.region].get_credentials_for_identity(self._get_param('IdentityId'))
 
     def get_open_id_token_for_developer_identity(self):
-        return cognitoidentity_backends[self.region].get_open_id_token_for_developer_identity(self._get_param('IdentityId'))
+        return cognitoidentity_backends[self.region].get_open_id_token_for_developer_identity(
+            self._get_param('IdentityId') or get_random_identity_id(self.region)
+        )

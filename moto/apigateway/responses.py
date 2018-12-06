@@ -255,7 +255,8 @@ class APIGatewayResponse(BaseResponse):
         if self.method == 'POST':
             usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
         elif self.method == 'GET':
-            usage_plans_response = self.backend.get_usage_plans()
+            api_key_id = self.querystring.get("keyId", [None])[0]
+            usage_plans_response = self.backend.get_usage_plans(api_key_id=api_key_id)
             return 200, {}, json.dumps({"item": usage_plans_response})
         return 200, {}, json.dumps(usage_plan_response)
 

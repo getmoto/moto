@@ -154,7 +154,7 @@ class Item(BaseModel):
                     # If not exists, changes value to a default if needed, else its the same as it was
                     if value.startswith('if_not_exists'):
                         # Function signature
-                        match = re.match(r'.*if_not_exists\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
                         if not match:
                             raise TypeError
 
@@ -162,12 +162,13 @@ class Item(BaseModel):
 
                         # If it already exists, get its value so we dont overwrite it
                         if path in self.attrs:
-                            value = self.attrs[path].cast_value
+                            value = self.attrs[path]
 
-                    if value in expression_attribute_values:
-                        value = DynamoType(expression_attribute_values[value])
-                    else:
-                        value = DynamoType({"S": value})
+                    if type(value) != DynamoType:
+                        if value in expression_attribute_values:
+                            value = DynamoType(expression_attribute_values[value])
+                        else:
+                            value = DynamoType({"S": value})
 
                     if '.' not in key:
                         self.attrs[key] = value
@@ -264,9 +265,9 @@ class Item(BaseModel):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
-                elif update_action['Value'].keys() == ['N']:
+                elif set(update_action['Value'].keys()) == set(['N']):
                     self.attrs[attribute_name] = DynamoType({"N": new_value})
-                elif update_action['Value'].keys() == ['NULL']:
+                elif set(update_action['Value'].keys()) == set(['NULL']):
                     if attribute_name in self.attrs:
                         del self.attrs[attribute_name]
                 else:

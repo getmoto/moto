@@ -835,8 +835,8 @@
 - [ ] admin_delete_user
 - [ ] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
-- [ ] admin_disable_user
-- [ ] admin_enable_user
+- [X] admin_disable_user
+- [X] admin_enable_user
 - [ ] admin_forget_device
 - [ ] admin_get_device
 - [ ] admin_get_user
@@ -3092,23 +3092,23 @@
 - [ ] update_server
 - [ ] update_server_engine_attributes
 
-## organizations - 0% implemented
+## organizations - 30% implemented
 - [ ] accept_handshake
 - [ ] attach_policy
 - [ ] cancel_handshake
-- [ ] create_account
-- [ ] create_organization
-- [ ] create_organizational_unit
+- [X] create_account
+- [X] create_organization
+- [X] create_organizational_unit
 - [ ] create_policy
 - [ ] decline_handshake
 - [ ] delete_organization
 - [ ] delete_organizational_unit
 - [ ] delete_policy
-- [ ] describe_account
+- [X] describe_account
 - [ ] describe_create_account_status
 - [ ] describe_handshake
-- [ ] describe_organization
-- [ ] describe_organizational_unit
+- [X] describe_organization
+- [X] describe_organizational_unit
 - [ ] describe_policy
 - [ ] detach_policy
 - [ ] disable_aws_service_access
@@ -3118,20 +3118,20 @@
 - [ ] enable_policy_type
 - [ ] invite_account_to_organization
 - [ ] leave_organization
-- [ ] list_accounts
-- [ ] list_accounts_for_parent
+- [X] list_accounts
+- [X] list_accounts_for_parent
 - [ ] list_aws_service_access_for_organization
-- [ ] list_children
+- [X] list_children
 - [ ] list_create_account_status
 - [ ] list_handshakes_for_account
 - [ ] list_handshakes_for_organization
-- [ ] list_organizational_units_for_parent
-- [ ] list_parents
+- [X] list_organizational_units_for_parent
+- [X] list_parents
 - [ ] list_policies
 - [ ] list_policies_for_target
-- [ ] list_roots
+- [X] list_roots
 - [ ] list_targets_for_policy
-- [ ] move_account
+- [X] move_account
 - [ ] remove_account_from_organization
 - [ ] update_organizational_unit
 - [ ] update_policy

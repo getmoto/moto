@@ -233,6 +233,56 @@ class KmsResponse(BaseResponse):
         value = self.parameters.get("CiphertextBlob")
         return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
 
+    def disable_key(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
+        try:
+            self.kms_backend.disable_key(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps(None)
+
+    def enable_key(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
+        try:
+            self.kms_backend.enable_key(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps(None)
+
+    def cancel_key_deletion(self):
+        key_id = self.parameters.get('KeyId')
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
+        try:
+            self.kms_backend.cancel_key_deletion(key_id)
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
+                '__type': 'NotFoundException'})
+        return json.dumps({'KeyId': key_id})
+
+    def schedule_key_deletion(self):
+        key_id = self.parameters.get('KeyId')
+        if self.parameters.get('PendingWindowInDays') is None:
+            pending_window_in_days = 30
+        else:
+            pending_window_in_days = self.parameters.get('PendingWindowInDays')
+        _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
+        try:
+            return json.dumps({
+                'KeyId': key_id,
+                'DeletionDate': self.kms_backend.schedule_key_deletion(key_id, pending_window_in_days)
+            })
+        except KeyError:
+            raise JSONResponseError(404, 'Not Found', body={
+                'message': "Key 'arn:aws:kms:{region}:012345678912:key/{key_id}' does not exist".format(region=self.region, key_id=key_id),
+                '__type': 'NotFoundException'})
+
 
 def _assert_valid_key_id(key_id):
     if not re.match(r'^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$', key_id, re.IGNORECASE):

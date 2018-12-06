@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+from datetime import datetime
+
 import boto
 import boto3
 import sure  # noqa
@@ -23,6 +26,25 @@ def test_get_group():
     conn.get_group('my-group')
     with assert_raises(BotoServerError):
         conn.get_group('not-group')
+
+
+@mock_iam()
+def test_get_group_current():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_group(GroupName='my-group')
+    result = conn.get_group(GroupName='my-group')
+
+    assert result['Group']['Path'] == '/'
+    assert result['Group']['GroupName'] == 'my-group'
+    assert isinstance(result['Group']['CreateDate'], datetime)
+    assert result['Group']['GroupId']
+    assert result['Group']['Arn'] == 'arn:aws:iam::123456789012:group/my-group'
+    assert not result['Users']
+
+    # Make a group with a different path:
+    other_group = conn.create_group(GroupName='my-other-group', Path='some/location')
+    assert other_group['Group']['Path'] == 'some/location'
+    assert other_group['Group']['Arn'] == 'arn:aws:iam::123456789012:group/some/location/my-other-group'
 
 
 @mock_iam_deprecated()

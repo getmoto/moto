@@ -204,9 +204,9 @@ class DynamoHandler(BaseResponse):
                 if cond_items:
                     expected = {}
                     overwrite = False
-                    exists_re = re.compile('^attribute_exists\((.*)\)$')
+                    exists_re = re.compile('^attribute_exists\s*\((.*)\)$')
                     not_exists_re = re.compile(
-                        '^attribute_not_exists\((.*)\)$')
+                        '^attribute_not_exists\s*\((.*)\)$')
 
                 for cond in cond_items:
                     exists_m = exists_re.match(cond)
@@ -556,9 +556,9 @@ class DynamoHandler(BaseResponse):
 
                 if cond_items:
                     expected = {}
-                    exists_re = re.compile('^attribute_exists\((.*)\)$')
+                    exists_re = re.compile('^attribute_exists\s*\((.*)\)$')
                     not_exists_re = re.compile(
-                        '^attribute_not_exists\((.*)\)$')
+                        '^attribute_not_exists\s*\((.*)\)$')
 
                 for cond in cond_items:
                     exists_m = exists_re.match(cond)

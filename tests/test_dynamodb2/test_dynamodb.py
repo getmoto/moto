@@ -700,8 +700,8 @@ def test_filter_expression():
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
     filter_expr.expr(row1).should.be(True)
 
-    # attribute function tests
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists(User)', {}, {})
+    # attribute function tests (with extra spaces)
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists (User)', {}, {})
     filter_expr.expr(row1).should.be(True)
 
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_type(Id, N)', {}, {})
@@ -1220,7 +1220,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists without space
+        UpdateExpression='SET created_at=if_not_exists(created_at,:created_at)',
         ExpressionAttributeValues={
             ':created_at': 123
         }
@@ -1233,7 +1234,8 @@ def test_update_if_not_exists():
         'forum_name': 'the-key',
         'subject': '123'
         },
-        UpdateExpression='SET created_at = if_not_exists(created_at, :created_at)',
+        # if_not_exists with space
+        UpdateExpression='SET created_at = if_not_exists (created_at, :created_at)',
         ExpressionAttributeValues={
             ':created_at': 456
         }
