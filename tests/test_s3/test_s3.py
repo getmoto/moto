@@ -1164,6 +1164,30 @@ def test_boto3_list_keys_xml_escaped():
 
 
 @mock_s3
+def test_boto3_list_objects_v2_common_prefix_pagination():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    max_keys = 1
+    keys = ['test/{i}/{i}'.format(i=i) for i in range(3)]
+    for key in keys:
+        s3.put_object(Bucket='mybucket', Key=key, Body=b'v')
+
+    prefixes = []
+    args = {"Bucket": 'mybucket', "Delimiter": "/", "Prefix": "test/", "MaxKeys": max_keys}
+    resp = {"IsTruncated": True}
+    while resp.get("IsTruncated", False):
+        if "NextContinuationToken" in resp:
+            args["ContinuationToken"] = resp["NextContinuationToken"]
+        resp = s3.list_objects_v2(**args)
+        if "CommonPrefixes" in resp:
+            assert len(resp["CommonPrefixes"]) == max_keys
+            prefixes.extend(i["Prefix"] for i in resp["CommonPrefixes"])
+
+    assert prefixes == [k[:k.rindex('/') + 1] for k in keys]
+
+
+@mock_s3
 def test_boto3_list_objects_v2_truncated_response():
     s3 = boto3.client('s3', region_name='us-east-1')
     s3.create_bucket(Bucket='mybucket')
