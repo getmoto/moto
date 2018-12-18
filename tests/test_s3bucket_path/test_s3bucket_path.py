@@ -198,7 +198,7 @@ def test_post_to_bucket():
 
     requests.post("https://s3.amazonaws.com/foobar", {
         'key': 'the-key',
-        'file': 'nothing'
+        'file': b'nothing'
     })
 
     bucket.get_key('the-key').get_contents_as_string().should.equal(b'nothing')
@@ -212,7 +212,7 @@ def test_post_with_metadata_to_bucket():
 
     requests.post("https://s3.amazonaws.com/foobar", {
         'key': 'the-key',
-        'file': 'nothing',
+        'file': b'nothing',
         'x-amz-meta-test': 'metadata'
     })
 

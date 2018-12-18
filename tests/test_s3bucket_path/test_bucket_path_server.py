@@ -73,7 +73,7 @@ def test_s3_server_post_to_bucket():
 
     test_client.post('/foobar2', "https://localhost:5000/", data={
         'key': 'the-key',
-        'file': 'nothing'
+        'file': b'nothing'
     })
 
     res = test_client.get('/foobar2/the-key', 'http://localhost:5000/')
@@ -89,7 +89,7 @@ def test_s3_server_put_ipv6():
 
     test_client.post('/foobar2', "https://[::]:5000/", data={
         'key': 'the-key',
-        'file': 'nothing'
+        'file': b'nothing'
     })
 
     res = test_client.get('/foobar2/the-key', 'http://[::]:5000/')
@@ -105,7 +105,7 @@ def test_s3_server_put_ipv4():
 
     test_client.post('/foobar2', "https://127.0.0.1:5000/", data={
         'key': 'the-key',
-        'file': 'nothing'
+        'file': b'nothing'
     })
 
     res = test_client.get('/foobar2/the-key', 'http://127.0.0.1:5000/')
