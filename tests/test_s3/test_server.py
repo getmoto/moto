@@ -72,7 +72,7 @@ def test_s3_server_post_to_bucket():
 
     test_client.post('/', "https://tester.localhost:5000/", data={
         'key': 'the-key',
-        'file': b'nothing'
+        'file': 'nothing'
     })
 
     res = test_client.get('/the-key', 'http://tester.localhost:5000/')
