@@ -277,6 +277,18 @@ def test_put_parameter():
     response['Parameters'][0]['Type'].should.equal('String')
     response['Parameters'][0]['Version'].should.equal(2)
 
+@mock_ssm
+def test_put_parameter_china():
+    client = boto3.client('ssm', region_name='cn-north-1')
+
+    response = client.put_parameter(
+        Name='test',
+        Description='A test parameter',
+        Value='value',
+        Type='String')
+
+    response['Version'].should.equal(1)
+
 
 @mock_ssm
 def test_get_parameter():
