@@ -9,6 +9,7 @@ import codecs
 import random
 import string
 import tempfile
+import sys
 
 import six
 
@@ -23,6 +24,7 @@ UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
 DEFAULT_KEY_BUFFER_SIZE = 2 ** 24
+DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 
 
 class FakeDeleteMarker(BaseModel):
@@ -74,6 +76,11 @@ class FakeKey(BaseModel):
     def value(self, new_value):
         self.value_buffer.seek(0)
         self.value_buffer.truncate()
+
+        # Hack for working around moto's own unit tests; this probably won't
+        # actually get hit in normal use.
+        if isinstance(new_value, six.text_type):
+            new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
         self.value_buffer.write(new_value)
 
     def copy(self, new_name=None):
