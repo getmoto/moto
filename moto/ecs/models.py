@@ -262,6 +262,7 @@ class Service(BaseObject):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
+
         del response_object['name'], response_object['arn']
         response_object['serviceName'] = self.name
         response_object['serviceArn'] = self.arn
