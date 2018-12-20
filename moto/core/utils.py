@@ -8,6 +8,7 @@ import random
 import re
 import six
 import string
+from six.moves.urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
@@ -286,3 +287,13 @@ def amzn_request_id(f):
         return status, headers, body
 
     return _wrapper
+
+
+def path_url(url):
+    parsed_url = urlparse(url)
+    path = parsed_url.path
+    if not path:
+        path = '/'
+    if parsed_url.query:
+        path = path + '?' + parsed_url.query
+    return path

@@ -8,8 +8,8 @@ import sys
 install_requires = [
     "Jinja2>=2.7.3",
     "boto>=2.36.0",
-    "boto3>=1.6.16,<1.8",
-    "botocore>=1.9.16,<1.11",
+    "boto3>=1.6.16",
+    "botocore>=1.12.13",
     "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
@@ -22,7 +22,7 @@ install_requires = [
     "mock",
     "docker>=2.5.1",
     "jsondiff==1.1.1",
-    "aws-xray-sdk<0.96,>=0.93",
+    "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
 ]
 
@@ -40,7 +40,7 @@ else:
 
 setup(
     name='moto',
-    version='1.3.6',
+    version='1.3.7',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     author='Steve Pulec',

@@ -1084,3 +1084,36 @@ def test_create_usage_plan_key_non_existent_api_key():
     # Attempt to create a usage plan key for a API key that doesn't exists
     payload = {'usagePlanId': usage_plan_id, 'keyId': 'non-existent', 'keyType': 'API_KEY' }
     client.create_usage_plan_key.when.called_with(**payload).should.throw(ClientError)
+
+
+@mock_apigateway
+def test_get_usage_plans_using_key_id():
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+
+    # Create 2 Usage Plans
+    # one will be attached to an API Key, the other will remain unattached
+    attached_plan = client.create_usage_plan(name='Attached')
+    unattached_plan = client.create_usage_plan(name='Unattached')
+
+    # Create an API key
+    # to attach to the usage plan
+    key_name = 'test-api-key'
+    response = client.create_api_key(name=key_name)
+    key_id = response["id"]
+
+    # Create a Usage Plan Key
+    # Attached the Usage Plan and API Key
+    key_type = 'API_KEY'
+    payload = {'usagePlanId': attached_plan['id'], 'keyId': key_id, 'keyType': key_type}
+    response = client.create_usage_plan_key(**payload)
+
+    # All usage plans should be returned when keyId is not included
+    all_plans = client.get_usage_plans()
+    len(all_plans['items']).should.equal(2)
+
+    # Only the usage plan attached to the given api key are included
+    only_plans_with_key = client.get_usage_plans(keyId=key_id)
+    len(only_plans_with_key['items']).should.equal(1)
+    only_plans_with_key['items'][0]['name'].should.equal(attached_plan['name'])
+    only_plans_with_key['items'][0]['id'].should.equal(attached_plan['id'])

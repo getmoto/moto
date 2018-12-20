@@ -31,6 +31,7 @@ def test_create_identity_pool():
 # testing a helper function
 def test_get_random_identity_id():
     assert len(get_random_identity_id('us-west-2')) > 0
+    assert len(get_random_identity_id('us-west-2').split(':')[1]) == 19
 
 
 @mock_cognitoidentity
@@ -69,3 +70,16 @@ def test_get_open_id_token_for_developer_identity():
     )
     assert len(result['Token'])
     assert result['IdentityId'] == '12345'
+
+@mock_cognitoidentity
+def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id():
+    conn = boto3.client('cognito-identity', 'us-west-2')
+    result = conn.get_open_id_token_for_developer_identity(
+        IdentityPoolId='us-west-2:12345',
+        Logins={
+            'someurl': '12345'
+        },
+        TokenDuration=123
+    )
+    assert len(result['Token']) > 0
+    assert len(result['IdentityId']) > 0

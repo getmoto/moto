@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import re
+import os, re
 
 import boto3
 import boto.kms
@@ -8,6 +8,9 @@ from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
+from freezegun import freeze_time
+from datetime import datetime, timedelta
+from dateutil.tz import tzlocal
 
 
 @mock_kms_deprecated
@@ -617,3 +620,100 @@ def test_kms_encrypt_boto3():
 
     response = client.decrypt(CiphertextBlob=response['CiphertextBlob'])
     response['Plaintext'].should.equal(b'bar')
+
+
+@mock_kms
+def test_disable_key():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='disable-key')
+    client.disable_key(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'Disabled'
+
+
+@mock_kms
+def test_enable_key():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='enable-key')
+    client.disable_key(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    client.enable_key(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
+    assert result["KeyMetadata"]["Enabled"] == True
+    assert result["KeyMetadata"]["KeyState"] == 'Enabled'
+
+
+@mock_kms
+def test_schedule_key_deletion():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='schedule-key-deletion')
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'false':
+        with freeze_time("2015-01-01 12:00:00"):
+            response = client.schedule_key_deletion(
+                KeyId=key['KeyMetadata']['KeyId']
+            )
+            assert response['KeyId'] == key['KeyMetadata']['KeyId']
+            assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzlocal())
+    else:
+        # Can't manipulate time in server mode
+        response = client.schedule_key_deletion(
+            KeyId=key['KeyMetadata']['KeyId']
+        )
+        assert response['KeyId'] == key['KeyMetadata']['KeyId']
+
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'PendingDeletion'
+    assert 'DeletionDate' in result["KeyMetadata"]
+
+
+@mock_kms
+def test_schedule_key_deletion_custom():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='schedule-key-deletion')
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'false':
+        with freeze_time("2015-01-01 12:00:00"):
+            response = client.schedule_key_deletion(
+                KeyId=key['KeyMetadata']['KeyId'],
+                PendingWindowInDays=7
+            )
+            assert response['KeyId'] == key['KeyMetadata']['KeyId']
+            assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzlocal())
+    else:
+        # Can't manipulate time in server mode
+        response = client.schedule_key_deletion(
+            KeyId=key['KeyMetadata']['KeyId'],
+            PendingWindowInDays=7
+        )
+        assert response['KeyId'] == key['KeyMetadata']['KeyId']
+
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'PendingDeletion'
+    assert 'DeletionDate' in result["KeyMetadata"]
+
+
+@mock_kms
+def test_cancel_key_deletion():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='cancel-key-deletion')
+    client.schedule_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    response = client.cancel_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+    assert response['KeyId'] == key['KeyMetadata']['KeyId']
+
+    result = client.describe_key(KeyId=key['KeyMetadata']['KeyId'])
+    assert result["KeyMetadata"]["Enabled"] == False
+    assert result["KeyMetadata"]["KeyState"] == 'Disabled'
+    assert 'DeletionDate' not in result["KeyMetadata"]

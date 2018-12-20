@@ -8,4 +8,6 @@ class ServiceNotFoundException(RESTError):
     def __init__(self, service_name):
         super(ServiceNotFoundException, self).__init__(
             error_type="ServiceNotFoundException",
-            message="The service {0} does not exist".format(service_name))
+            message="The service {0} does not exist".format(service_name),
+            template='error_json',
+        )
