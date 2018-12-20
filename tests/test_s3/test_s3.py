@@ -8,6 +8,7 @@ from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
 import zlib
+import pickle
 
 import json
 import boto
@@ -63,6 +64,16 @@ class MyModel(object):
     def save(self):
         s3 = boto3.client('s3', region_name='us-east-1')
         s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
+
+
+@mock_s3
+def test_keys_are_pickleable():
+    """Keys must be pickleable due to boto3 implementation details."""
+    key = s3model.FakeKey('name', b'data!')
+    pickled = pickle.dumps(key)
+    loaded = pickle.loads(pickled)
+
+    assert loaded.value == key.value
 
 
 @mock_s3

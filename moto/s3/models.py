@@ -23,7 +23,7 @@ from .utils import clean_key_name, _VersionedKeyStore
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
-DEFAULT_KEY_BUFFER_SIZE = 2 ** 24
+DEFAULT_KEY_BUFFER_SIZE = 16 * 1024 * 1024
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 
 
@@ -60,7 +60,8 @@ class FakeKey(BaseModel):
         self._is_versioned = is_versioned
         self._tagging = FakeTagging()
 
-        self.value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
+        self._value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
+        self._max_buffer_size = max_buffer_size
         self.value = value
 
     @property
@@ -69,19 +70,19 @@ class FakeKey(BaseModel):
 
     @property
     def value(self):
-        self.value_buffer.seek(0)
-        return self.value_buffer.read()
+        self._value_buffer.seek(0)
+        return self._value_buffer.read()
 
     @value.setter
     def value(self, new_value):
-        self.value_buffer.seek(0)
-        self.value_buffer.truncate()
+        self._value_buffer.seek(0)
+        self._value_buffer.truncate()
 
         # Hack for working around moto's own unit tests; this probably won't
         # actually get hit in normal use.
         if isinstance(new_value, six.text_type):
             new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
-        self.value_buffer.write(new_value)
+        self._value_buffer.write(new_value)
 
     def copy(self, new_name=None):
         r = copy.deepcopy(self)
@@ -106,8 +107,8 @@ class FakeKey(BaseModel):
         self.acl = acl
 
     def append_to_value(self, value):
-        self.value_buffer.seek(0, os.SEEK_END)
-        self.value_buffer.write(value)
+        self._value_buffer.seek(0, os.SEEK_END)
+        self._value_buffer.write(value)
 
         self.last_modified = datetime.datetime.utcnow()
         self._etag = None  # must recalculate etag
@@ -126,10 +127,9 @@ class FakeKey(BaseModel):
     def etag(self):
         if self._etag is None:
             value_md5 = hashlib.md5()
-
-            self.value_buffer.seek(0)
+            self._value_buffer.seek(0)
             while True:
-                block = self.value_buffer.read(DEFAULT_KEY_BUFFER_SIZE)
+                block = self._value_buffer.read(DEFAULT_KEY_BUFFER_SIZE)
                 if not block:
                     break
                 value_md5.update(block)
@@ -178,8 +178,8 @@ class FakeKey(BaseModel):
 
     @property
     def size(self):
-        self.value_buffer.seek(0, os.SEEK_END)
-        return self.value_buffer.tell()
+        self._value_buffer.seek(0, os.SEEK_END)
+        return self._value_buffer.tell()
 
     @property
     def storage_class(self):
@@ -189,6 +189,26 @@ class FakeKey(BaseModel):
     def expiry_date(self):
         if self._expiry is not None:
             return self._expiry.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    # Keys need to be pickleable due to some implementation details of boto3.
+    # Since file objects aren't pickleable, we need to override the default
+    # behavior. The following is adapted from the Python docs:
+    # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['value'] = self.value
+        del state['_value_buffer']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update({
+            k: v for k, v in six.iteritems(state)
+            if k != 'value'
+        })
+
+        self._value_buffer = \
+            tempfile.SpooledTemporaryFile(max_size=self._max_buffer_size)
+        self.value = state['value']
 
 
 class FakeMultipart(BaseModel):
