@@ -1,6 +1,11 @@
 Moto Changelog
 ===================
 
+1.3.7
+-----
+
+    * Switch from mocking requests to using before-send for AWS calls
+
 1.3.6
 -----
 
