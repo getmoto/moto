@@ -874,3 +874,42 @@ def test_get_job_document_with_document():
 
     job_document = client.get_job_document(jobId=job_id)
     job_document.should.have.key('document').which.should.equal("{\"field\": \"value\"}")
+
+@mock_iot
+def test_list_job_executions_for_job():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+    job.should.have.key('description')
+
+    job_execution = client.list_job_executions_for_job(jobId=job_id)
+    job_execution.should.have.key('executionSummaries')
+    job_execution['executionSummaries'][0].should.have.key('jobId').which.should.equal(job_id)
+

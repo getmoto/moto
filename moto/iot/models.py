@@ -247,6 +247,7 @@ class FakeJob(BaseModel):
         self.document_parameters = document_parameters
 
     def to_dict(self):
+
         obj = {
             'jobArn': self.job_arn,
             'jobId': self.job_id,
@@ -274,12 +275,46 @@ class FakeJob(BaseModel):
         return regex_match and length_match
 
 
+class FakeJobExecution(BaseModel):
+
+    def __init__(self, job_id, thing_arn, status='QUEUED', force_canceled=False, status_details_map={}):
+        self.job_id = job_id
+        self.status = status  # IN_PROGRESS | CANCELED | COMPLETED
+        self.force_canceled = force_canceled
+        self.status_details_map = status_details_map
+        self.thing_arn = thing_arn
+        self.queued_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.started_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.execution_number = 123
+        self.version_number = 123
+        self.approximate_seconds_before_time_out = 123
+
+    def to_dict(self):
+        obj = {
+            'jobId': self.job_id,
+            'status': self.status,
+            'forceCancel': self.force_canceled,
+            'statusDetails': {'detailsMap': self.status_details_map},
+            'thing_arn': self.thing_arn,
+            'queuedAt': self.queued_at,
+            'startedAt': self.started_at,
+            'lastUpdatedAt': self.last_updated_at,
+            'executionNumber': self.execution_number,
+            'versionNumber': self.version_number,
+            'approximateSecondsBeforeTimedOut': self.approximate_seconds_before_time_out
+        }
+
+        return obj
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
         self.region_name = region_name
         self.things = OrderedDict()
         self.jobs = OrderedDict()
+        self.job_executions = OrderedDict()
         self.thing_types = OrderedDict()
         self.thing_groups = OrderedDict()
         self.certificates = OrderedDict()
@@ -723,6 +758,11 @@ class IoTBackend(BaseBackend):
         job = FakeJob(job_id, targets, document_source, document, description, presigned_url_config, target_selection,
                       job_executions_rollout_config, document_parameters, self.region_name)
         self.jobs[job_id] = job
+
+        for thing_arn in targets:
+            thing_name = thing_arn.split(':')[-1]
+            job_execution = FakeJobExecution(job_id, thing_arn)
+            self.job_executions[(job_id, thing_name)] = job_execution
         return job.job_arn, job_id, description
 
     def describe_job(self, job_id):
@@ -730,6 +770,15 @@ class IoTBackend(BaseBackend):
 
     def get_job_document(self, job_id):
         return self.jobs[job_id]
+
+    def describe_job_execution(self, job_id, thing_name, execution_number):
+        # TODO filter with execution number
+        return self.job_executions[(job_id, thing_name)]
+
+    def list_job_executions_for_job(self, job_id, status, max_results, next_token):
+        job_executions = [self.job_executions[je] for je in self.job_executions if je[0] == job_id]
+        # TODO: implement filters
+        return job_executions, next_token
 
 
 available_regions = boto3.session.Session().get_available_regions("iot")

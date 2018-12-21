@@ -160,6 +160,16 @@ class IoTResponse(BaseResponse):
             # TODO: needs to be implemented to get document_source's content from S3
             return json.dumps({'document': ''})
 
+    def list_job_executions_for_job(self):
+        job_executions, next_token = self.iot_backend.list_job_executions_for_job(job_id=self._get_param("jobId"),
+                                                                                  status=self._get_param("status"),
+                                                                                  max_results=self._get_param(
+                                                                                      "maxResults"),
+                                                                                  next_token=self._get_param(
+                                                                                      "nextToken"))
+
+        return json.dumps(dict(executionSummaries=[_.to_dict() for _ in job_executions], nextToken=next_token))
+
     def create_keys_and_certificate(self):
         set_as_active = self._get_bool_param("setAsActive")
         cert, key_pair = self.iot_backend.create_keys_and_certificate(
