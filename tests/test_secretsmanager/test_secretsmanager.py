@@ -45,6 +45,23 @@ def test_create_secret():
     assert secret['SecretString'] == 'foosecret'
 
 @mock_secretsmanager
+def test_create_secret_with_tags():
+    conn = boto3.client('secretsmanager', region_name='us-east-1')
+    secret_name = 'test-secret-with-tags'
+
+    result = conn.create_secret(
+        Name=secret_name,
+        SecretString="foosecret",
+        Tags=[{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}]
+    )
+    assert result['ARN']
+    assert result['Name'] == secret_name 
+    secret_value = conn.get_secret_value(SecretId=secret_name)
+    assert secret_value['SecretString'] == 'foosecret'
+    secret_details = conn.describe_secret(SecretId=secret_name)
+    assert secret_details['Tags'] == [{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}]
+
+@mock_secretsmanager
 def test_get_random_password_default_length():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 

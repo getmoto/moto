@@ -56,7 +56,7 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
-    def create_secret(self, name, secret_string, **kwargs):
+    def create_secret(self, name, secret_string, tags, **kwargs):
 
         generated_version_id = str(uuid.uuid4())
 
@@ -68,7 +68,8 @@ class SecretsManagerBackend(BaseBackend):
             'rotation_enabled': False,
             'rotation_lambda_arn': '',
             'auto_rotate_after_days': 0,
-            'version_id': generated_version_id
+            'version_id': generated_version_id,
+            'tags': tags
         }
 
         self.secrets[name] = secret
@@ -101,12 +102,7 @@ class SecretsManagerBackend(BaseBackend):
             "LastChangedDate": None,
             "LastAccessedDate": None,
             "DeletedDate": None,
-            "Tags": [
-                {
-                    "Key": "",
-                    "Value": ""
-                },
-            ]
+            "Tags": secret['tags']
         })
 
         return response
