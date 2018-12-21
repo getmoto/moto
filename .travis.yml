@@ -1,4 +1,4 @@
-language: python
+pyhlanguage: python
 sudo: false
 services:
   - docker
