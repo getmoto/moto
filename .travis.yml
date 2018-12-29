@@ -23,8 +23,6 @@ matrix:
       sudo: true
 before_install:
   - export BOTO_CONFIG=/dev/null
-  - export AWS_SECRET_ACCESS_KEY=foobar_secret
-  - export AWS_ACCESS_KEY_ID=foobar_key
 install:
   # We build moto first so the docker container doesn't try to compile it as well, also note we don't use
   # -d for docker run so the logs show up in travis
