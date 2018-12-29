@@ -815,6 +815,16 @@ def test_scan_filter():
     )
     assert response['Count'] == 1
 
+    response = table.scan(
+        FilterExpression=Attr('app').ne('app2')
+    )
+    assert response['Count'] == 1
+
+    response = table.scan(
+        FilterExpression=Attr('app').ne('app1')
+    )
+    assert response['Count'] == 0
+
 
 @mock_dynamodb2
 def test_scan_filter2():
@@ -869,6 +879,26 @@ def test_scan_filter3():
     table = dynamodb.Table('test1')
     response = table.scan(
         FilterExpression=Attr('active').eq(True)
+    )
+    assert response['Count'] == 1
+
+    response = table.scan(
+        FilterExpression=Attr('active').ne(True)
+    )
+    assert response['Count'] == 0
+
+    response = table.scan(
+        FilterExpression=Attr('active').ne(False)
+    )
+    assert response['Count'] == 1
+
+    response = table.scan(
+        FilterExpression=Attr('app').ne(1)
+    )
+    assert response['Count'] == 0
+
+    response = table.scan(
+        FilterExpression=Attr('app').ne(2)
     )
     assert response['Count'] == 1
 
