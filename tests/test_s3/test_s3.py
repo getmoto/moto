@@ -1022,7 +1022,7 @@ def test_bucket_location():
     bucket.get_location().should.equal("us-west-2")
 
 
-@mock_s3_deprecated
+@mock_s3
 def test_bucket_location_us_east_1():
     cli = boto3.client('s3')
     bucket_name = 'mybucket'
