@@ -911,20 +911,21 @@ def test_delete_saml_provider():
         SAMLMetadataDocument='a' * 1024
     )
     response = conn.list_saml_providers()
-    print(response)
     len(response['SAMLProviderList']).should.equal(1)
     conn.delete_saml_provider(
         SAMLProviderArn=saml_provider_create['SAMLProviderArn']
     )
     response = conn.list_saml_providers()
     len(response['SAMLProviderList']).should.equal(0)
+    conn.create_user(UserName='testing')
 
+    cert_id = '123456789012345678901234'
     with assert_raises(ClientError) as ce:
-        client.delete_signing_certificate(UserName='testing', CertificateId=cert_id)
+        conn.delete_signing_certificate(UserName='testing', CertificateId=cert_id)
 
     assert ce.exception.response['Error']['Message'] == 'The Certificate with id {id} cannot be found.'.format(
         id=cert_id)
 
     # Verify that it's not in the list:
-    resp = client.list_signing_certificates(UserName='testing')
+    resp = conn.list_signing_certificates(UserName='testing')
     assert not resp['Certificates']
