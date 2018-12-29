@@ -1,3 +1,4 @@
+dist: xenial
 language: python
 sudo: false
 services:
@@ -5,22 +6,10 @@ services:
 python:
   - 2.7
   - 3.6
+  - 3.7
 env:
     - TEST_SERVER_MODE=false
     - TEST_SERVER_MODE=true
-# Due to incomplete Python 3.7 support on Travis CI (
-# https://github.com/travis-ci/travis-ci/issues/9815),
-# using a matrix is necessary
-matrix:
-  include:
-    - python: 3.7
-      env: TEST_SERVER_MODE=false
-      dist: xenial
-      sudo: true
-    - python: 3.7
-      env: TEST_SERVER_MODE=true
-      dist: xenial
-      sudo: true
 before_install:
   - export BOTO_CONFIG=/dev/null
 install:

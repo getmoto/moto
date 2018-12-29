@@ -8,6 +8,8 @@ import itertools
 import codecs
 import random
 import string
+import tempfile
+import sys
 
 import six
 
@@ -23,6 +25,8 @@ MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
+DEFAULT_KEY_BUFFER_SIZE = 16 * 1024 * 1024
+DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 
 
 class FakeDeleteMarker(BaseModel):
@@ -44,9 +48,9 @@ class FakeDeleteMarker(BaseModel):
 
 class FakeKey(BaseModel):
 
-    def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0):
+    def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0,
+                 max_buffer_size=DEFAULT_KEY_BUFFER_SIZE):
         self.name = name
-        self.value = value
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl('private')
         self.website_redirect_location = None
@@ -58,9 +62,29 @@ class FakeKey(BaseModel):
         self._is_versioned = is_versioned
         self._tagging = FakeTagging()
 
+        self._value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
+        self._max_buffer_size = max_buffer_size
+        self.value = value
+
     @property
     def version_id(self):
         return self._version_id
+
+    @property
+    def value(self):
+        self._value_buffer.seek(0)
+        return self._value_buffer.read()
+
+    @value.setter
+    def value(self, new_value):
+        self._value_buffer.seek(0)
+        self._value_buffer.truncate()
+
+        # Hack for working around moto's own unit tests; this probably won't
+        # actually get hit in normal use.
+        if isinstance(new_value, six.text_type):
+            new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
+        self._value_buffer.write(new_value)
 
     def copy(self, new_name=None):
         r = copy.deepcopy(self)
@@ -85,7 +109,9 @@ class FakeKey(BaseModel):
         self.acl = acl
 
     def append_to_value(self, value):
-        self.value += value
+        self._value_buffer.seek(0, os.SEEK_END)
+        self._value_buffer.write(value)
+
         self.last_modified = datetime.datetime.utcnow()
         self._etag = None  # must recalculate etag
         if self._is_versioned:
@@ -103,11 +129,13 @@ class FakeKey(BaseModel):
     def etag(self):
         if self._etag is None:
             value_md5 = hashlib.md5()
-            if isinstance(self.value, six.text_type):
-                value = self.value.encode("utf-8")
-            else:
-                value = self.value
-            value_md5.update(value)
+            self._value_buffer.seek(0)
+            while True:
+                block = self._value_buffer.read(DEFAULT_KEY_BUFFER_SIZE)
+                if not block:
+                    break
+                value_md5.update(block)
+
             self._etag = value_md5.hexdigest()
         return '"{0}"'.format(self._etag)
 
@@ -134,7 +162,7 @@ class FakeKey(BaseModel):
         res = {
             'ETag': self.etag,
             'last-modified': self.last_modified_RFC1123,
-            'content-length': str(len(self.value)),
+            'content-length': str(self.size),
         }
         if self._storage_class != 'STANDARD':
             res['x-amz-storage-class'] = self._storage_class
@@ -152,7 +180,8 @@ class FakeKey(BaseModel):
 
     @property
     def size(self):
-        return len(self.value)
+        self._value_buffer.seek(0, os.SEEK_END)
+        return self._value_buffer.tell()
 
     @property
     def storage_class(self):
@@ -162,6 +191,26 @@ class FakeKey(BaseModel):
     def expiry_date(self):
         if self._expiry is not None:
             return self._expiry.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    # Keys need to be pickleable due to some implementation details of boto3.
+    # Since file objects aren't pickleable, we need to override the default
+    # behavior. The following is adapted from the Python docs:
+    # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['value'] = self.value
+        del state['_value_buffer']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update({
+            k: v for k, v in six.iteritems(state)
+            if k != 'value'
+        })
+
+        self._value_buffer = \
+            tempfile.SpooledTemporaryFile(max_size=self._max_buffer_size)
+        self.value = state['value']
 
 
 class FakeMultipart(BaseModel):
