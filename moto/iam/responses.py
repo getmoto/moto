@@ -454,9 +454,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='UpdateAccessKey')
 
+    def get_access_key_last_used(self):
+        access_key_id = self._get_param('AccessKeyId')
+        last_used_response = iam_backend.get_access_key_last_used(access_key_id)
+        template = self.response_template(GET_ACCESS_KEY_LAST_USED_TEMPLATE)
+        return template.render(user_name=last_used_response["user_name"], last_used=last_used_response["last_used"])
+
     def list_access_keys(self):
         user_name = self._get_param('UserName')
-
         keys = iam_backend.get_all_access_keys(user_name)
         template = self.response_template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
@@ -1307,6 +1312,18 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListAccessKeysResponse>"""
+
+
+GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
+<GetAccessKeyLastUsedResponse>
+    <GetAccessKeyLastUsedResult>
+        <UserName>{{ user_name }}</UserName>
+        <AccessKeyLastUsed>
+            <LastUsedDate>{{ last_used }}</LastUsedDate>
+        </AccessKeyLastUsed>
+    </GetAccessKeyLastUsedResult>
+</GetAccessKeyLastUsedResponse>
+"""
 
 CREDENTIAL_REPORT_GENERATING = """
 <GenerateCredentialReportResponse>

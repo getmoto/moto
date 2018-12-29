@@ -2257,7 +2257,7 @@
 - [X] detach_user_policy
 - [X] enable_mfa_device
 - [ ] generate_credential_report
-- [ ] get_access_key_last_used
+- [X] get_access_key_last_used
 - [X] get_account_authorization_details
 - [ ] get_account_password_policy
 - [ ] get_account_summary

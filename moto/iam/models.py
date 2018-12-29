@@ -250,6 +250,10 @@ class AccessKey(BaseModel):
             datetime.utcnow(),
             "%Y-%m-%dT%H:%M:%SZ"
         )
+        self.last_used = datetime.strftime(
+            datetime.utcnow(),
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -379,21 +383,20 @@ class User(BaseModel):
         return self.access_keys
 
     def delete_access_key(self, access_key_id):
-        for key in self.access_keys:
-            if key.access_key_id == access_key_id:
-                self.access_keys.remove(key)
-                break
-        else:
-            raise IAMNotFoundException(
-                "Key {0} not found".format(access_key_id))
+        key = self.get_access_key_by_id(access_key_id)
+        self.access_keys.remove(key)
 
     def update_access_key(self, access_key_id, status):
+        key = self.get_access_key_by_id(access_key_id)
+        key.status = status
+
+    def get_access_key_by_id(self, access_key_id):
         for key in self.access_keys:
             if key.access_key_id == access_key_id:
-                key.status = status
-                break
+                return key
         else:
-            raise IAMNotFoundException("The Access Key with id {0} cannot be found".format(access_key_id))
+            raise IAMNotFoundException(
+                "The Access Key with id {0} cannot be found".format(access_key_id))
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -907,6 +910,24 @@ class IAMBackend(BaseBackend):
     def update_access_key(self, user_name, access_key_id, status):
         user = self.get_user(user_name)
         user.update_access_key(access_key_id, status)
+
+    def get_access_key_last_used(self, access_key_id):
+        access_keys_list = self.get_all_access_keys_for_all_users()
+        for key in access_keys_list:
+            if key.access_key_id == access_key_id:
+                return {
+                    'user_name': key.user_name,
+                    'last_used': key.last_used
+                }
+        else:
+            raise IAMNotFoundException(
+                "The Access Key with id {0} cannot be found".format(access_key_id))
+
+    def get_all_access_keys_for_all_users(self):
+        access_keys_list = []
+        for user_name in self.users:
+            access_keys_list += self.get_all_access_keys(user_name)
+        return access_keys_list
 
     def get_all_access_keys(self, user_name, marker=None, max_items=None):
         user = self.get_user(user_name)
