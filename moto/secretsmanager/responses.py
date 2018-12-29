@@ -19,9 +19,11 @@ class SecretsManagerResponse(BaseResponse):
     def create_secret(self):
         name = self._get_param('Name')
         secret_string = self._get_param('SecretString')
+        tags = self._get_param('Tags', if_none=[])
         return secretsmanager_backends[self.region].create_secret(
             name=name,
-            secret_string=secret_string
+            secret_string=secret_string,
+            tags=tags
         )
 
     def get_random_password(self):
