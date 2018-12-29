@@ -534,7 +534,7 @@ class SQSBackend(BaseBackend):
                     break
 
                 import time
-                time.sleep(0.001)
+                time.sleep(0.01)
                 continue
 
             previous_result_count = len(result)

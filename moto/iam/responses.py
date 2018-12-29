@@ -201,7 +201,7 @@ class IamResponse(BaseResponse):
 
     def create_instance_profile(self):
         profile_name = self._get_param('InstanceProfileName')
-        path = self._get_param('Path')
+        path = self._get_param('Path', '/')
 
         profile = iam_backend.create_instance_profile(
             profile_name, path, role_ids=[])
@@ -454,9 +454,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='UpdateAccessKey')
 
+    def get_access_key_last_used(self):
+        access_key_id = self._get_param('AccessKeyId')
+        last_used_response = iam_backend.get_access_key_last_used(access_key_id)
+        template = self.response_template(GET_ACCESS_KEY_LAST_USED_TEMPLATE)
+        return template.render(user_name=last_used_response["user_name"], last_used=last_used_response["last_used"])
+
     def list_access_keys(self):
         user_name = self._get_param('UserName')
-
         keys = iam_backend.get_all_access_keys(user_name)
         template = self.response_template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
@@ -551,6 +556,74 @@ class IamResponse(BaseResponse):
             groups=account_details['groups'],
             roles=account_details['roles']
         )
+
+    def create_saml_provider(self):
+        saml_provider_name = self._get_param('Name')
+        saml_metadata_document = self._get_param('SAMLMetadataDocument')
+        saml_provider = iam_backend.create_saml_provider(saml_provider_name, saml_metadata_document)
+
+        template = self.response_template(CREATE_SAML_PROVIDER_TEMPLATE)
+        return template.render(saml_provider=saml_provider)
+
+    def update_saml_provider(self):
+        saml_provider_arn = self._get_param('SAMLProviderArn')
+        saml_metadata_document = self._get_param('SAMLMetadataDocument')
+        saml_provider = iam_backend.update_saml_provider(saml_provider_arn, saml_metadata_document)
+
+        template = self.response_template(UPDATE_SAML_PROVIDER_TEMPLATE)
+        return template.render(saml_provider=saml_provider)
+
+    def delete_saml_provider(self):
+        saml_provider_arn = self._get_param('SAMLProviderArn')
+        iam_backend.delete_saml_provider(saml_provider_arn)
+
+        template = self.response_template(DELETE_SAML_PROVIDER_TEMPLATE)
+        return template.render()
+
+    def list_saml_providers(self):
+        saml_providers = iam_backend.list_saml_providers()
+
+        template = self.response_template(LIST_SAML_PROVIDERS_TEMPLATE)
+        return template.render(saml_providers=saml_providers)
+
+    def get_saml_provider(self):
+        saml_provider_arn = self._get_param('SAMLProviderArn')
+        saml_provider = iam_backend.get_saml_provider(saml_provider_arn)
+
+        template = self.response_template(GET_SAML_PROVIDER_TEMPLATE)
+        return template.render(saml_provider=saml_provider)
+
+    def upload_signing_certificate(self):
+        user_name = self._get_param('UserName')
+        cert_body = self._get_param('CertificateBody')
+
+        cert = iam_backend.upload_signing_certificate(user_name, cert_body)
+        template = self.response_template(UPLOAD_SIGNING_CERTIFICATE_TEMPLATE)
+        return template.render(cert=cert)
+
+    def update_signing_certificate(self):
+        user_name = self._get_param('UserName')
+        cert_id = self._get_param('CertificateId')
+        status = self._get_param('Status')
+
+        iam_backend.update_signing_certificate(user_name, cert_id, status)
+        template = self.response_template(UPDATE_SIGNING_CERTIFICATE_TEMPLATE)
+        return template.render()
+
+    def delete_signing_certificate(self):
+        user_name = self._get_param('UserName')
+        cert_id = self._get_param('CertificateId')
+
+        iam_backend.delete_signing_certificate(user_name, cert_id)
+        template = self.response_template(DELETE_SIGNING_CERTIFICATE_TEMPLATE)
+        return template.render()
+
+    def list_signing_certificates(self):
+        user_name = self._get_param('UserName')
+
+        certs = iam_backend.list_signing_certificates(user_name)
+        template = self.response_template(LIST_SIGNING_CERTIFICATES_TEMPLATE)
+        return template.render(user_name=user_name, certificates=certs)
 
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
@@ -734,7 +807,7 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
-      <CreateDate>2012-05-09T16:11:10.222Z</CreateDate>
+      <CreateDate>{{ profile.create_date }}</CreateDate>
     </InstanceProfile>
   </CreateInstanceProfileResult>
   <ResponseMetadata>
@@ -753,7 +826,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
           <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
           <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-          <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+          <CreateDate>{{ role.create_date }}</CreateDate>
           <RoleId>{{ role.id }}</RoleId>
         </member>
         {% endfor %}
@@ -761,7 +834,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
-      <CreateDate>2012-05-09T16:11:10Z</CreateDate>
+      <CreateDate>{{ profile.create_date }}</CreateDate>
     </InstanceProfile>
   </GetInstanceProfileResult>
   <ResponseMetadata>
@@ -776,7 +849,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <CreateDate>2012-05-08T23:34:01.495Z</CreateDate>
+      <CreateDate>{{ role.create_date }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
     </Role>
   </CreateRoleResult>
@@ -803,7 +876,7 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+      <CreateDate>{{ role.create_date }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
     </Role>
   </GetRoleResult>
@@ -834,7 +907,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+        <CreateDate>{{ role.create_date }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
       {% endfor %}
@@ -865,7 +938,7 @@ CREATE_POLICY_VERSION_TEMPLATE = """<CreatePolicyVersionResponse xmlns="https://
       <Document>{{ policy_version.document }}</Document>
       <VersionId>{{ policy_version.version_id }}</VersionId>
       <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
-      <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+      <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
     </PolicyVersion>
   </CreatePolicyVersionResult>
   <ResponseMetadata>
@@ -879,7 +952,7 @@ GET_POLICY_VERSION_TEMPLATE = """<GetPolicyVersionResponse xmlns="https://iam.am
       <Document>{{ policy_version.document }}</Document>
       <VersionId>{{ policy_version.version_id }}</VersionId>
       <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
-      <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+      <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
     </PolicyVersion>
   </GetPolicyVersionResult>
   <ResponseMetadata>
@@ -896,7 +969,7 @@ LIST_POLICY_VERSIONS_TEMPLATE = """<ListPolicyVersionsResponse xmlns="https://ia
         <Document>{{ policy_version.document }}</Document>
         <VersionId>{{ policy_version.version_id }}</VersionId>
         <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
-        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+        <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
       </member>
       {% endfor %}
     </Versions>
@@ -912,7 +985,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
     <InstanceProfiles>
       {% for instance in instance_profiles %}
       <member>
-        <Id>{{ instance.id }}</Id>
+        <InstanceProfileId>{{ instance.id }}</InstanceProfileId>
         <Roles>
           {% for role in instance.roles %}
           <member>
@@ -920,7 +993,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
             <Arn>{{ role.arn }}</Arn>
             <RoleName>{{ role.name }}</RoleName>
             <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-            <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+            <CreateDate>{{ role.create_date }}</CreateDate>
             <RoleId>{{ role.id }}</RoleId>
           </member>
           {% endfor %}
@@ -928,7 +1001,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
         <InstanceProfileName>{{ instance.name }}</InstanceProfileName>
         <Path>{{ instance.path }}</Path>
         <Arn>{{ instance.arn }}</Arn>
-        <CreateDate>2012-05-09T16:27:03Z</CreateDate>
+        <CreateDate>{{ instance.create_date }}</CreateDate>
       </member>
       {% endfor %}
     </InstanceProfiles>
@@ -1199,8 +1272,8 @@ LIST_USER_POLICIES_TEMPLATE = """<ListUserPoliciesResponse>
          <member>{{ policy }}</member>
         {% endfor %}
       </PolicyNames>
+      <IsTruncated>false</IsTruncated>
    </ListUserPoliciesResult>
-   <IsTruncated>false</IsTruncated>
    <ResponseMetadata>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
@@ -1240,11 +1313,23 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
    </ResponseMetadata>
 </ListAccessKeysResponse>"""
 
+
+GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
+<GetAccessKeyLastUsedResponse>
+    <GetAccessKeyLastUsedResult>
+        <UserName>{{ user_name }}</UserName>
+        <AccessKeyLastUsed>
+            <LastUsedDate>{{ last_used }}</LastUsedDate>
+        </AccessKeyLastUsed>
+    </GetAccessKeyLastUsedResult>
+</GetAccessKeyLastUsedResponse>
+"""
+
 CREDENTIAL_REPORT_GENERATING = """
 <GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
-        <state>STARTED</state>
-        <description>No report exists. Starting a new report generation task</description>
+        <State>STARTED</State>
+        <Description>No report exists. Starting a new report generation task</Description>
     </GenerateCredentialReportResult>
     <ResponseMetadata>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
@@ -1253,7 +1338,7 @@ CREDENTIAL_REPORT_GENERATING = """
 
 CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
-        <state>COMPLETE</state>
+        <State>COMPLETE</State>
     </GenerateCredentialReportResult>
     <ResponseMetadata>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
@@ -1262,7 +1347,7 @@ CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
 
 CREDENTIAL_REPORT = """<GetCredentialReportResponse>
     <GetCredentialReportResult>
-        <content>{{ report }}</content>
+        <Content>{{ report }}</Content>
         <GeneratedTime>2015-02-02T20:02:02Z</GeneratedTime>
         <ReportFormat>text/csv</ReportFormat>
     </GetCredentialReportResult>
@@ -1277,23 +1362,23 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
   <InstanceProfiles>
     {% for profile in instance_profiles %}
     <member>
-    <Id>{{ profile.id }}</Id>
-      <Roles>
-        {% for role in profile.roles %}
-        <member>
-          <Path>{{ role.path }}</Path>
-          <Arn>{{ role.arn }}</Arn>
-          <RoleName>{{ role.name }}</RoleName>
-          <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
-          <CreateDate>2012-05-09T15:45:35Z</CreateDate>
-          <RoleId>{{ role.id }}</RoleId>
-        </member>
-        {% endfor %}
-      </Roles>
-      <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
-      <Path>{{ profile.path }}</Path>
-      <Arn>{{ profile.arn }}</Arn>
-      <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+    <InstanceProfileId>{{ profile.id }}</InstanceProfileId>
+    <Roles>
+      {% for role in profile.roles %}
+      <member>
+        <Path>{{ role.path }}</Path>
+        <Arn>{{ role.arn }}</Arn>
+        <RoleName>{{ role.name }}</RoleName>
+        <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
+        <CreateDate>{{ role.create_date }}</CreateDate>
+        <RoleId>{{ role.id }}</RoleId>
+      </member>
+      {% endfor %}
+    </Roles>
+    <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
+    <Path>{{ profile.path }}</Path>
+    <Arn>{{ profile.arn }}</Arn>
+    <CreateDate>{{ profile.create_date }}</CreateDate>
     </member>
     {% endfor %}
   </InstanceProfiles>
@@ -1382,7 +1467,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <Path>{{ user.path }}</Path>
         <UserName>{{ user.name }}</UserName>
         <Arn>{{ user.arn }}</Arn>
-        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+        <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
       </member>
     {% endfor %}
     </UserDetailList>
@@ -1401,7 +1486,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <GroupName>{{ group.name }}</GroupName>
         <Path>{{ group.path }}</Path>
         <Arn>{{ group.arn }}</Arn>
-        <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+        <CreateDate>{{ group.create_date }}</CreateDate>
         <GroupPolicyList/>
       </member>
     {% endfor %}
@@ -1421,23 +1506,23 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <InstanceProfileList>
             {% for profile in instance_profiles %}
             <member>
-            <Id>{{ profile.id }}</Id>
-              <Roles>
-                {% for role in profile.roles %}
-                <member>
-                  <Path>{{ role.path }}</Path>
-                  <Arn>{{ role.arn }}</Arn>
-                  <RoleName>{{ role.name }}</RoleName>
-                  <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-                  <CreateDate>2012-05-09T15:45:35Z</CreateDate>
-                  <RoleId>{{ role.id }}</RoleId>
-                </member>
-                {% endfor %}
-              </Roles>
-              <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
-              <Path>{{ profile.path }}</Path>
-              <Arn>{{ profile.arn }}</Arn>
-              <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+            <InstanceProfileId>{{ profile.id }}</InstanceProfileId>
+            <Roles>
+              {% for role in profile.roles %}
+              <member>
+                <Path>{{ role.path }}</Path>
+                <Arn>{{ role.arn }}</Arn>
+                <RoleName>{{ role.name }}</RoleName>
+                <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+                <CreateDate>{{ role.create_date }}</CreateDate>
+                <RoleId>{{ role.id }}</RoleId>
+              </member>
+              {% endfor %}
+            </Roles>
+            <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
+            <Path>{{ profile.path }}</Path>
+            <Arn>{{ profile.arn }}</Arn>
+            <CreateDate>{{ profile.create_date }}</CreateDate>
             </member>
             {% endfor %}
         </InstanceProfileList>
@@ -1445,7 +1530,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-        <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+        <CreateDate>{{ role.create_date }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
     {% endfor %}
@@ -1474,9 +1559,9 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         </PolicyVersionList>
         <Arn>{{ policy.arn }}</Arn>
         <AttachmentCount>1</AttachmentCount>
-        <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+        <CreateDate>{{ policy.create_datetime }}</CreateDate>
         <IsAttachable>true</IsAttachable>
-        <UpdateDate>2012-05-09T16:27:11Z</UpdateDate>
+        <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
       </member>
     {% endfor %}
     </Policies>
@@ -1485,3 +1570,105 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
     <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
   </ResponseMetadata>
 </GetAccountAuthorizationDetailsResponse>"""
+
+CREATE_SAML_PROVIDER_TEMPLATE = """<CreateSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateSAMLProviderResult>
+    <SAMLProviderArn>{{ saml_provider.arn }}</SAMLProviderArn>
+  </CreateSAMLProviderResult>
+  <ResponseMetadata>
+    <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</CreateSAMLProviderResponse>"""
+
+LIST_SAML_PROVIDERS_TEMPLATE = """<ListSAMLProvidersResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListSAMLProvidersResult>
+  <SAMLProviderList>
+    {% for saml_provider in saml_providers %}
+    <member>
+      <Arn>{{ saml_provider.arn }}</Arn>
+      <ValidUntil>2032-05-09T16:27:11Z</ValidUntil>
+      <CreateDate>2012-05-09T16:27:03Z</CreateDate>
+    </member>
+    {% endfor %}
+  </SAMLProviderList>
+</ListSAMLProvidersResult>
+<ResponseMetadata>
+  <RequestId>fd74fa8d-99f3-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</ListSAMLProvidersResponse>"""
+
+GET_SAML_PROVIDER_TEMPLATE = """<GetSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<GetSAMLProviderResult>
+  <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+  <ValidUntil>2015-12-31T21:59:59Z</ValidUntil>
+  <SAMLMetadataDocument>{{ saml_provider.saml_metadata_document }}</SAMLMetadataDocument>
+</GetSAMLProviderResult>
+<ResponseMetadata>
+  <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</GetSAMLProviderResponse>"""
+
+DELETE_SAML_PROVIDER_TEMPLATE = """<DeleteSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>c749ee7f-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</DeleteSAMLProviderResponse>"""
+
+UPDATE_SAML_PROVIDER_TEMPLATE = """<UpdateSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<UpdateSAMLProviderResult>
+  <SAMLProviderArn>{{ saml_provider.arn }}</SAMLProviderArn>
+</UpdateSAMLProviderResult>
+<ResponseMetadata>
+  <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</UpdateSAMLProviderResponse>"""
+=======
+
+UPLOAD_SIGNING_CERTIFICATE_TEMPLATE = """<UploadSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <UploadSigningCertificateResult>
+    <Certificate>
+      <UserName>{{ cert.user_name }}</UserName>
+      <CertificateId>{{ cert.id }}</CertificateId>
+      <CertificateBody>{{ cert.body }}</CertificateBody>
+      <Status>{{ cert.status }}</Status>
+    </Certificate>
+ </UploadSigningCertificateResult>
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</UploadSigningCertificateResponse>"""
+
+
+UPDATE_SIGNING_CERTIFICATE_TEMPLATE = """<UpdateSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+ <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+ </ResponseMetadata>
+</UpdateSigningCertificateResponse>"""
+
+
+DELETE_SIGNING_CERTIFICATE_TEMPLATE = """<DeleteSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteSigningCertificateResponse>"""
+
+
+LIST_SIGNING_CERTIFICATES_TEMPLATE = """<ListSigningCertificatesResponse>
+  <ListSigningCertificatesResult>
+    <UserName>{{ user_name }}</UserName>
+    <Certificates>
+       {% for cert in certificates %}
+       <member>
+          <UserName>{{ user_name }}</UserName>
+          <CertificateId>{{ cert.id }}</CertificateId>
+          <CertificateBody>{{ cert.body }}</CertificateBody>
+          <Status>{{ cert.status }}</Status>
+       </member>
+       {% endfor %}
+    </Certificates>
+    <IsTruncated>false</IsTruncated>
+ </ListSigningCertificatesResult>
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</ListSigningCertificatesResponse>"""

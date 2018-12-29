@@ -3,6 +3,9 @@ import uuid
 import six
 import random
 import yaml
+import os
+
+from cfnlint import decode, core
 
 
 def generate_stack_id(stack_name):
@@ -38,3 +41,33 @@ def yaml_tag_constructor(loader, tag, node):
         key = 'Fn::{}'.format(tag[1:])
 
     return {key: _f(loader, tag, node)}
+
+
+def validate_template_cfn_lint(template):
+
+    # Save the template to a temporary file -- cfn-lint requires a file
+    filename = "file.tmp"
+    with open(filename, "w") as file:
+        file.write(template)
+    abs_filename = os.path.abspath(filename)
+
+    # decode handles both yaml and json
+    template, matches = decode.decode(abs_filename, False)
+
+    # Set cfn-lint to info
+    core.configure_logging(None)
+
+    # Initialize the ruleset to be applied (no overrules, no excludes)
+    rules = core.get_rules([], [], [])
+
+    # Use us-east-1 region (spec file) for validation
+    regions = ['us-east-1']
+
+    # Process all the rules and gather the errors
+    matches = core.run_checks(
+        abs_filename,
+        template,
+        rules,
+        regions)
+
+    return matches

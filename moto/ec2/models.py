@@ -1115,7 +1115,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == 'image-id':
             return self.id
         elif filter_name == 'is-public':
-            return str(self.is_public)
+            return self.is_public_string
         elif filter_name == 'state':
             return self.state
         elif filter_name == 'name':
@@ -2230,6 +2230,10 @@ class VPCPeeringConnectionStatus(object):
         self.code = code
         self.message = message
 
+    def deleted(self):
+        self.code = 'deleted'
+        self.message = 'Deleted by {deleter ID}'
+
     def initiating(self):
         self.code = 'initiating-request'
         self.message = 'Initiating Request to {accepter ID}'
@@ -2292,9 +2296,8 @@ class VPCPeeringConnectionBackend(object):
         return self.vpc_pcxs.get(vpc_pcx_id)
 
     def delete_vpc_peering_connection(self, vpc_pcx_id):
-        deleted = self.vpc_pcxs.pop(vpc_pcx_id, None)
-        if not deleted:
-            raise InvalidVPCPeeringConnectionIdError(vpc_pcx_id)
+        deleted = self.get_vpc_peering_connection(vpc_pcx_id)
+        deleted._status.deleted()
         return deleted
 
     def accept_vpc_peering_connection(self, vpc_pcx_id):

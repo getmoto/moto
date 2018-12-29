@@ -3,7 +3,9 @@ import base64
 
 import boto
 import boto3
+import os
 import sure  # noqa
+import sys
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
@@ -11,7 +13,21 @@ from moto.iam.models import aws_managed_policies
 from nose.tools import assert_raises, assert_equals
 from nose.tools import raises
 
+from datetime import datetime
 from tests.helpers import requires_boto_gte
+
+
+MOCK_CERT = """-----BEGIN CERTIFICATE-----
+MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
+b3RvIHRlc3RpbmcwIBcNMTgxMTA1MTkwNTIwWhgPMjI5MjA4MTkxOTA1MjBaMBcx
+FTATBgNVBAoMDG1vdG8gdGVzdGluZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC
+gYEA1Jn3g2h7LD3FLqdpcYNbFXCS4V4eDpuTCje9vKFcC3pi/01147X3zdfPy8Mt
+ZhKxcREOwm4NXykh23P9KW7fBovpNwnbYsbPqj8Hf1ZaClrgku1arTVhEnKjx8zO
+vaR/bVLCss4uE0E0VM1tJn/QGQsfthFsjuHtwx8uIWz35tUCAwEAATANBgkqhkiG
+9w0BAQsFAAOBgQBWdOQ7bDc2nWkUhFjZoNIZrqjyNdjlMUndpwREVD7FQ/DuxJMj
+FyDHrtlrS80dPUQWNYHw++oACDpWO01LGLPPrGmuO/7cOdojPEd852q5gd+7W9xt
+8vUH+pBa6IBLbvBp+szli51V3TLSWcoyy4ceJNQU2vCkTLoFdS0RLd/7tQ==
+-----END CERTIFICATE-----"""
 
 
 @mock_iam_deprecated()
@@ -107,6 +123,10 @@ def test_create_role_and_instance_profile():
     role_from_profile['role_name'].should.equal("my-role")
 
     conn.list_roles().roles[0].role_name.should.equal('my-role')
+
+    # Test with an empty path:
+    profile = conn.create_instance_profile('my-other-profile')
+    profile.path.should.equal('/')
 
 
 @mock_iam_deprecated()
@@ -536,6 +556,14 @@ def test_generate_credential_report():
     result['generate_credential_report_response'][
         'generate_credential_report_result']['state'].should.equal('COMPLETE')
 
+@mock_iam
+def test_boto3_generate_credential_report():
+    conn = boto3.client('iam', region_name='us-east-1')
+    result = conn.generate_credential_report()
+    result['State'].should.equal('STARTED')
+    result = conn.generate_credential_report()
+    result['State'].should.equal('COMPLETE')
+
 
 @mock_iam_deprecated()
 def test_get_credential_report():
@@ -549,6 +577,19 @@ def test_get_credential_report():
     result = conn.get_credential_report()
     report = base64.b64decode(result['get_credential_report_response'][
                               'get_credential_report_result']['content'].encode('ascii')).decode('ascii')
+    report.should.match(r'.*my-user.*')
+
+@mock_iam
+def test_boto3_get_credential_report():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_user(UserName='my-user')
+    with assert_raises(ClientError):
+        conn.get_credential_report()
+    result = conn.generate_credential_report()
+    while result['State'] != 'COMPLETE':
+        result = conn.generate_credential_report()
+    result = conn.get_credential_report()
+    report = result['Content'].decode('utf-8')
     report.should.match(r'.*my-user.*')
 
 
@@ -696,14 +737,32 @@ def test_update_access_key():
 
 
 @mock_iam
+def test_get_access_key_last_used():
+    iam = boto3.resource('iam', region_name='us-east-1')
+    client = iam.meta.client
+    username = 'test-user'
+    iam.create_user(UserName=username)
+    with assert_raises(ClientError):
+        client.get_access_key_last_used(AccessKeyId='non-existent-key-id')
+    create_key_response = client.create_access_key(UserName=username)['AccessKey']
+    resp = client.get_access_key_last_used(AccessKeyId=create_key_response['AccessKeyId'])
+
+    datetime.strftime(resp["AccessKeyLastUsed"]["LastUsedDate"], "%Y-%m-%d").should.equal(datetime.strftime(
+        datetime.utcnow(),
+        "%Y-%m-%d"
+    ))
+    resp["UserName"].should.equal(create_key_response["UserName"])
+
+
+@mock_iam
 def test_get_account_authorization_details():
     import json
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
-    conn.create_user(Path='/', UserName='testCloudAuxUser')
-    conn.create_group(Path='/', GroupName='testCloudAuxGroup')
+    conn.create_user(Path='/', UserName='testUser')
+    conn.create_group(Path='/', GroupName='testGroup')
     conn.create_policy(
-        PolicyName='testCloudAuxPolicy',
+        PolicyName='testPolicy',
         Path='/',
         PolicyDocument=json.dumps({
             "Version": "2012-10-17",
@@ -715,46 +774,157 @@ def test_get_account_authorization_details():
                 }
             ]
         }),
-        Description='Test CloudAux Policy'
+        Description='Test Policy'
     )
 
+    conn.create_instance_profile(InstanceProfileName='ipn')
+    conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
+
     result = conn.get_account_authorization_details(Filter=['Role'])
-    len(result['RoleDetailList']) == 1
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) == 0
+    assert len(result['RoleDetailList']) == 1
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) == 0
+    assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
 
     result = conn.get_account_authorization_details(Filter=['User'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 1
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) == 0
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 1
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) == 0
 
     result = conn.get_account_authorization_details(Filter=['Group'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 1
-    len(result['Policies']) == 0
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 1
+    assert len(result['Policies']) == 0
 
     result = conn.get_account_authorization_details(Filter=['LocalManagedPolicy'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) == 1
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) == 1
 
     # Check for greater than 1 since this should always be greater than one but might change.
     # See iam/aws_managed_policies.py
     result = conn.get_account_authorization_details(Filter=['AWSManagedPolicy'])
-    len(result['RoleDetailList']) == 0
-    len(result['UserDetailList']) == 0
-    len(result['GroupDetailList']) == 0
-    len(result['Policies']) > 1
+    assert len(result['RoleDetailList']) == 0
+    assert len(result['UserDetailList']) == 0
+    assert len(result['GroupDetailList']) == 0
+    assert len(result['Policies']) > 1
 
     result = conn.get_account_authorization_details()
-    len(result['RoleDetailList']) == 1
-    len(result['UserDetailList']) == 1
-    len(result['GroupDetailList']) == 1
-    len(result['Policies']) > 1
+    assert len(result['RoleDetailList']) == 1
+    assert len(result['UserDetailList']) == 1
+    assert len(result['GroupDetailList']) == 1
+    assert len(result['Policies']) > 1
 
 
+@mock_iam
+def test_signing_certs():
+    client = boto3.client('iam', region_name='us-east-1')
 
+    # Create the IAM user first:
+    client.create_user(UserName='testing')
+
+    # Upload the cert:
+    resp = client.upload_signing_certificate(UserName='testing', CertificateBody=MOCK_CERT)['Certificate']
+    cert_id = resp['CertificateId']
+
+    assert resp['UserName'] == 'testing'
+    assert resp['Status'] == 'Active'
+    assert resp['CertificateBody'] == MOCK_CERT
+    assert resp['CertificateId']
+
+    # Upload a the cert with an invalid body:
+    with assert_raises(ClientError) as ce:
+        client.upload_signing_certificate(UserName='testing', CertificateBody='notacert')
+    assert ce.exception.response['Error']['Code'] == 'MalformedCertificate'
+
+    # Upload with an invalid user:
+    with assert_raises(ClientError):
+        client.upload_signing_certificate(UserName='notauser', CertificateBody=MOCK_CERT)
+
+    # Update:
+    client.update_signing_certificate(UserName='testing', CertificateId=cert_id, Status='Inactive')
+
+    with assert_raises(ClientError):
+        client.update_signing_certificate(UserName='notauser', CertificateId=cert_id, Status='Inactive')
+
+    with assert_raises(ClientError) as ce:
+        client.update_signing_certificate(UserName='testing', CertificateId='x' * 32, Status='Inactive')
+
+    assert ce.exception.response['Error']['Message'] == 'The Certificate with id {id} cannot be found.'.format(
+        id='x' * 32)
+
+    # List the certs:
+    resp = client.list_signing_certificates(UserName='testing')['Certificates']
+    assert len(resp) == 1
+    assert resp[0]['CertificateBody'] == MOCK_CERT
+    assert resp[0]['Status'] == 'Inactive'  # Changed with the update call above.
+
+    with assert_raises(ClientError):
+        client.list_signing_certificates(UserName='notauser')
+
+    # Delete:
+    client.delete_signing_certificate(UserName='testing', CertificateId=cert_id)
+
+    with assert_raises(ClientError):
+        client.delete_signing_certificate(UserName='notauser', CertificateId=cert_id)
+
+@mock_iam()
+def test_create_saml_provider():
+    conn = boto3.client('iam', region_name='us-east-1')
+    response = conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response['SAMLProviderArn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
+@mock_iam()
+def test_get_saml_provider():
+    conn = boto3.client('iam', region_name='us-east-1')
+    saml_provider_create = conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response = conn.get_saml_provider(
+        SAMLProviderArn=saml_provider_create['SAMLProviderArn']
+    )
+    response['SAMLMetadataDocument'].should.equal('a' * 1024)
+
+@mock_iam()
+def test_list_saml_providers():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response = conn.list_saml_providers()
+    response['SAMLProviderList'][0]['Arn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
+@mock_iam()
+def test_delete_saml_provider():
+    conn = boto3.client('iam', region_name='us-east-1')
+    saml_provider_create = conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response = conn.list_saml_providers()
+    print(response)
+    len(response['SAMLProviderList']).should.equal(1)
+    conn.delete_saml_provider(
+        SAMLProviderArn=saml_provider_create['SAMLProviderArn']
+    )
+    response = conn.list_saml_providers()
+    len(response['SAMLProviderList']).should.equal(0)
+
+    with assert_raises(ClientError) as ce:
+        client.delete_signing_certificate(UserName='testing', CertificateId=cert_id)
+
+    assert ce.exception.response['Error']['Message'] == 'The Certificate with id {id} cannot be found.'.format(
+        id=cert_id)
+
+    # Verify that it's not in the list:
+    resp = client.list_signing_certificates(UserName='testing')
+    assert not resp['Certificates']

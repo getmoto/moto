@@ -978,6 +978,15 @@ def test_bucket_location():
 
 
 @mock_s3_deprecated
+def test_bucket_location_us_east_1():
+    cli = boto3.client('s3')
+    bucket_name = 'mybucket'
+    # No LocationConstraint ==> us-east-1
+    cli.create_bucket(Bucket=bucket_name)
+    cli.get_bucket_location(Bucket=bucket_name)['LocationConstraint'].should.equal(None)
+
+
+@mock_s3_deprecated
 def test_ranged_get():
     conn = boto.connect_s3()
     bucket = conn.create_bucket('mybucket')
@@ -1164,6 +1173,30 @@ def test_boto3_list_keys_xml_escaped():
 
 
 @mock_s3
+def test_boto3_list_objects_v2_common_prefix_pagination():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    max_keys = 1
+    keys = ['test/{i}/{i}'.format(i=i) for i in range(3)]
+    for key in keys:
+        s3.put_object(Bucket='mybucket', Key=key, Body=b'v')
+
+    prefixes = []
+    args = {"Bucket": 'mybucket', "Delimiter": "/", "Prefix": "test/", "MaxKeys": max_keys}
+    resp = {"IsTruncated": True}
+    while resp.get("IsTruncated", False):
+        if "NextContinuationToken" in resp:
+            args["ContinuationToken"] = resp["NextContinuationToken"]
+        resp = s3.list_objects_v2(**args)
+        if "CommonPrefixes" in resp:
+            assert len(resp["CommonPrefixes"]) == max_keys
+            prefixes.extend(i["Prefix"] for i in resp["CommonPrefixes"])
+
+    assert prefixes == [k[:k.rindex('/') + 1] for k in keys]
+
+
+@mock_s3
 def test_boto3_list_objects_v2_truncated_response():
     s3 = boto3.client('s3', region_name='us-east-1')
     s3.create_bucket(Bucket='mybucket')
@@ -1298,6 +1331,16 @@ def test_bucket_create_duplicate():
             }
         )
     exc.exception.response['Error']['Code'].should.equal('BucketAlreadyExists')
+
+
+@mock_s3
+def test_bucket_create_force_us_east_1():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(Bucket="blah", CreateBucketConfiguration={
+            'LocationConstraint': 'us-east-1',
+        })
+    exc.exception.response['Error']['Code'].should.equal('InvalidLocationConstraint')
 
 
 @mock_s3
@@ -1553,6 +1596,24 @@ def test_boto3_put_bucket_tagging():
     })
     resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
 
+    # With duplicate tag keys:
+    with assert_raises(ClientError) as err:
+        resp = s3.put_bucket_tagging(Bucket=bucket_name,
+                                     Tagging={
+                                         "TagSet": [
+                                             {
+                                                 "Key": "TagOne",
+                                                 "Value": "ValueOne"
+                                             },
+                                             {
+                                                 "Key": "TagOne",
+                                                 "Value": "ValueOneAgain"
+                                             }
+                                         ]
+                                     })
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("InvalidTag")
+    e.response["Error"]["Message"].should.equal("Cannot provide multiple Tags with the same key")
 
 @mock_s3
 def test_boto3_get_bucket_tagging():
@@ -2581,3 +2642,17 @@ TEST_XML = """\
     </ns0:RoutingRules>
 </ns0:WebsiteConfiguration>
 """
+
+@mock_s3
+def test_boto3_bucket_name_too_long():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(Bucket='x'*64)
+    exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
+
+@mock_s3
+def test_boto3_bucket_name_too_short():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    with assert_raises(ClientError) as exc:
+        s3.create_bucket(Bucket='x'*2)
+    exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
