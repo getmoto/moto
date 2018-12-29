@@ -391,6 +391,9 @@ def test_create_change_set_from_s3_url():
         TemplateURL=key_url,
         ChangeSetName='NewChangeSet',
         ChangeSetType='CREATE',
+        Tags=[
+            {'Key': 'tag-key', 'Value': 'tag-value'}
+        ],
     )
     assert 'arn:aws:cloudformation:us-west-1:123456789:changeSet/NewChangeSet/' in response['Id']
     assert 'arn:aws:cloudformation:us-east-1:123456789:stack/NewStack' in response['StackId']

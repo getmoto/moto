@@ -160,11 +160,12 @@ class SimpleSystemManagerResponse(BaseResponse):
         description = self._get_param('Description')
         value = self._get_param('Value')
         type_ = self._get_param('Type')
+        allowed_pattern = self._get_param('AllowedPattern')
         keyid = self._get_param('KeyId')
         overwrite = self._get_param('Overwrite', False)
 
         result = self.ssm_backend.put_parameter(
-            name, description, value, type_, keyid, overwrite)
+            name, description, value, type_, allowed_pattern, keyid, overwrite)
 
         if result is None:
             error = {

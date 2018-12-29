@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+import yaml
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
@@ -87,7 +88,8 @@ class CloudFormationResponse(BaseResponse):
         role_arn = self._get_param('RoleARN')
         update_or_create = self._get_param('ChangeSetType', 'CREATE')
         parameters_list = self._get_list_prefix("Parameters.member")
-        tags = {tag[0]: tag[1] for tag in self._get_list_prefix("Tags.member")}
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
         parameters = {param['parameter_key']: param['parameter_value']
                       for param in parameters_list}
         if template_url:
@@ -294,6 +296,32 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_EXPORTS_RESPONSE)
         return template.render(exports=exports, next_token=next_token)
 
+    def validate_template(self):
+        cfn_lint = self.cloudformation_backend.validate_template(self._get_param('TemplateBody'))
+        if cfn_lint:
+            raise ValidationError(cfn_lint[0].message)
+        description = ""
+        try:
+            description = json.loads(self._get_param('TemplateBody'))['Description']
+        except (ValueError, KeyError):
+            pass
+        try:
+            description = yaml.load(self._get_param('TemplateBody'))['Description']
+        except (yaml.ParserError, KeyError):
+            pass
+        template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
+        return template.render(description=description)
+
+
+VALIDATE_STACK_RESPONSE_TEMPLATE = """<ValidateTemplateResponse>
+        <ValidateTemplateResult>
+        <Capabilities></Capabilities>
+<CapabilitiesReason></CapabilitiesReason>
+<DeclaredTransforms></DeclaredTransforms>
+<Description>{{ description }}</Description>
+<Parameters></Parameters>
+</ValidateTemplateResult>
+</ValidateTemplateResponse>"""
 
 CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
   <CreateStackResult>

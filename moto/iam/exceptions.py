@@ -24,3 +24,11 @@ class IAMReportNotPresentException(RESTError):
     def __init__(self, message):
         super(IAMReportNotPresentException, self).__init__(
             "ReportNotPresent", message)
+
+
+class MalformedCertificate(RESTError):
+    code = 400
+
+    def __init__(self, cert):
+        super(MalformedCertificate, self).__init__(
+            'MalformedCertificate', 'Certificate {cert} is malformed'.format(cert=cert))

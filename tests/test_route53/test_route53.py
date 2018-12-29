@@ -164,8 +164,8 @@ def test_alias_rrset():
     rrsets = conn.get_all_rrsets(zoneid, type="A")
     rrset_records = [(rr_set.name, rr) for rr_set in rrsets for rr in rr_set.resource_records]
     rrset_records.should.have.length_of(2)
-    rrset_records.should.contain(('foo.alias.testdns.aws.com', 'foo.testdns.aws.com'))
-    rrset_records.should.contain(('bar.alias.testdns.aws.com', 'bar.testdns.aws.com'))
+    rrset_records.should.contain(('foo.alias.testdns.aws.com.', 'foo.testdns.aws.com'))
+    rrset_records.should.contain(('bar.alias.testdns.aws.com.', 'bar.testdns.aws.com'))
     rrsets[0].resource_records[0].should.equal('foo.testdns.aws.com')
     rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
     rrsets.should.have.length_of(1)
@@ -525,7 +525,7 @@ def test_change_resource_record_sets_crud_valid():
             {
                 'Action': 'CREATE',
                 'ResourceRecordSet': {
-                    'Name': 'prod.redis.db',
+                    'Name': 'prod.redis.db.',
                     'Type': 'A',
                     'TTL': 10,
                     'ResourceRecords': [{
@@ -540,7 +540,7 @@ def test_change_resource_record_sets_crud_valid():
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response['ResourceRecordSets']).should.equal(1)
     a_record_detail = response['ResourceRecordSets'][0]
-    a_record_detail['Name'].should.equal('prod.redis.db')
+    a_record_detail['Name'].should.equal('prod.redis.db.')
     a_record_detail['Type'].should.equal('A')
     a_record_detail['TTL'].should.equal(10)
     a_record_detail['ResourceRecords'].should.equal([{'Value': '127.0.0.1'}])
@@ -552,7 +552,7 @@ def test_change_resource_record_sets_crud_valid():
             {
                 'Action': 'UPSERT',
                 'ResourceRecordSet': {
-                    'Name': 'prod.redis.db',
+                    'Name': 'prod.redis.db.',
                     'Type': 'CNAME',
                     'TTL': 60,
                     'ResourceRecords': [{
@@ -567,7 +567,7 @@ def test_change_resource_record_sets_crud_valid():
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response['ResourceRecordSets']).should.equal(1)
     cname_record_detail = response['ResourceRecordSets'][0]
-    cname_record_detail['Name'].should.equal('prod.redis.db')
+    cname_record_detail['Name'].should.equal('prod.redis.db.')
     cname_record_detail['Type'].should.equal('CNAME')
     cname_record_detail['TTL'].should.equal(60)
     cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
@@ -688,12 +688,12 @@ def test_list_resource_record_sets_name_type_filters():
 
     # record_type, record_name
     all_records = [
-        ('A', 'a.a.db'),
-        ('A', 'a.b.db'),
-        ('A', 'b.b.db'),
-        ('CNAME', 'b.b.db'),
-        ('CNAME', 'b.c.db'),
-        ('CNAME', 'c.c.db')
+        ('A', 'a.a.db.'),
+        ('A', 'a.b.db.'),
+        ('A', 'b.b.db.'),
+        ('CNAME', 'b.b.db.'),
+        ('CNAME', 'b.c.db.'),
+        ('CNAME', 'c.c.db.')
     ]
     for record_type, record_name in all_records:
         create_resource_record_set(record_type, record_name)
