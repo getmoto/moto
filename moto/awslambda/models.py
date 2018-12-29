@@ -386,7 +386,7 @@ class LambdaFunction(BaseModel):
             'Role': properties['Role'],
             'Runtime': properties['Runtime'],
         }
-        optional_properties = 'Description MemorySize Publish Timeout VpcConfig'.split()
+        optional_properties = 'Description MemorySize Publish Timeout VpcConfig Environment'.split()
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
         # default logic
         for prop in optional_properties:
