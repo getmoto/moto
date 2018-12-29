@@ -1000,6 +1000,11 @@ def test_delete_item():
     response = table.scan()
     assert response['Count'] == 2
 
+    # Test ReturnValues validation
+    with assert_raises(ClientError) as ex:
+        table.delete_item(Key={'client': 'client1', 'app': 'app1'},
+                          ReturnValues='ALL_NEW')
+    
     # Test deletion and returning old value
     response = table.delete_item(Key={'client': 'client1', 'app': 'app1'}, ReturnValues='ALL_OLD')
     response['Attributes'].should.contain('client')
@@ -1245,6 +1250,81 @@ def test_update_if_not_exists():
     # Still the original value
     assert resp['Items'][0]['created_at'] == 123
 
+
+# https://github.com/spulec/moto/issues/1937
+@mock_dynamodb2
+def test_update_return_attributes():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    dynamodb.create_table(
+        TableName='moto-test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+    )
+
+    def update(col, to, rv):
+        return dynamodb.update_item(
+            TableName='moto-test',
+            Key={'id': {'S': 'foo'}},
+            AttributeUpdates={col: {'Value': {'S': to}, 'Action': 'PUT'}},
+            ReturnValues=rv
+        )
+
+    r = update('col1', 'val1', 'ALL_NEW')
+    assert r['Attributes'] == {'id': {'S': 'foo'}, 'col1': {'S': 'val1'}}
+
+    r = update('col1', 'val2', 'ALL_OLD')
+    assert r['Attributes'] == {'id': {'S': 'foo'}, 'col1': {'S': 'val1'}}
+
+    r = update('col2', 'val3', 'UPDATED_NEW')
+    assert r['Attributes'] == {'col2': {'S': 'val3'}}
+
+    r = update('col2', 'val4', 'UPDATED_OLD')
+    assert r['Attributes'] == {'col2': {'S': 'val3'}}
+
+    r = update('col1', 'val5', 'NONE')
+    assert r['Attributes'] == {}
+
+    with assert_raises(ClientError) as ex:
+        r = update('col1', 'val6', 'WRONG')
+
+
+@mock_dynamodb2
+def test_put_return_attributes():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    dynamodb.create_table(
+        TableName='moto-test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+    )
+
+    r = dynamodb.put_item(
+        TableName='moto-test',
+        Item={'id': {'S': 'foo'}, 'col1': {'S': 'val1'}},
+        ReturnValues='NONE'
+    )
+    assert 'Attributes' not in r
+    
+    r = dynamodb.put_item(
+        TableName='moto-test',
+        Item={'id': {'S': 'foo'}, 'col1': {'S': 'val2'}},
+        ReturnValues='ALL_OLD'
+    )
+    assert r['Attributes'] == {'id': {'S': 'foo'}, 'col1': {'S': 'val1'}}
+
+    with assert_raises(ClientError) as ex:
+        dynamodb.put_item(
+            TableName='moto-test',
+            Item={'id': {'S': 'foo'}, 'col1': {'S': 'val3'}},
+            ReturnValues='ALL_NEW'
+        )
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('Return values set to invalid value')
+    
 
 @mock_dynamodb2
 def test_query_global_secondary_index_when_created_via_update_table_resource():
