@@ -1115,7 +1115,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == 'image-id':
             return self.id
         elif filter_name == 'is-public':
-            return str(self.is_public)
+            return self.is_public_string
         elif filter_name == 'state':
             return self.state
         elif filter_name == 'name':
