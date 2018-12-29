@@ -404,6 +404,47 @@ def test_principal_policy():
     client = boto3.client('iot', region_name='ap-northeast-1')
     policy_name = 'my-policy'
     doc = '{}'
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    for policy in res['policies']:
+        policy.should.have.key('policyName').which.should_not.be.none
+        policy.should.have.key('policyArn').which.should_not.be.none
+
+    # do nothing if policy have already attached to certificate
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    for policy in res['policies']:
+        policy.should.have.key('policyName').which.should_not.be.none
+        policy.should.have.key('policyArn').which.should_not.be.none
+
+    res = client.list_policy_principals(policyName=policy_name)
+    res.should.have.key('principals').which.should.have.length_of(1)
+    for principal in res['principals']:
+        principal.should_not.be.none
+
+    client.detach_policy(policyName=policy_name, target=cert_arn)
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(0)
+    res = client.list_policy_principals(policyName=policy_name)
+    res.should.have.key('principals').which.should.have.length_of(0)
+    with assert_raises(ClientError) as e:
+        client.detach_policy(policyName=policy_name, target=cert_arn)
+    e.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+
+
+@mock_iot
+def test_principal_policy_deprecated():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    policy_name = 'my-policy'
+    doc = '{}'
     policy = client.create_policy(policyName=policy_name, policyDocument=doc)
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert['certificateArn']
