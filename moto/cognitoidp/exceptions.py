@@ -24,6 +24,16 @@ class UserNotFoundError(BadRequest):
         })
 
 
+class GroupExistsException(BadRequest):
+
+    def __init__(self, message):
+        super(GroupExistsException, self).__init__()
+        self.description = json.dumps({
+            "message": message,
+            '__type': 'GroupExistsException',
+        })
+
+
 class NotAuthorizedError(BadRequest):
 
     def __init__(self, message):

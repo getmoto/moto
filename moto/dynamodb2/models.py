@@ -5,6 +5,7 @@ import datetime
 import decimal
 import json
 import re
+import uuid
 
 import boto3
 from moto.compat import OrderedDict
@@ -292,9 +293,82 @@ class Item(BaseModel):
                         'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
 
 
+class StreamRecord(BaseModel):
+    def __init__(self, table, stream_type, event_name, old, new, seq):
+        old_a = old.to_json()['Attributes'] if old is not None else {}
+        new_a = new.to_json()['Attributes'] if new is not None else {}
+
+        rec = old if old is not None else new
+        keys = {table.hash_key_attr: rec.hash_key.to_json()}
+        if table.range_key_attr is not None:
+            keys[table.range_key_attr] = rec.range_key.to_json()
+
+        self.record = {
+            'eventID': uuid.uuid4().hex,
+            'eventName': event_name,
+            'eventSource': 'aws:dynamodb',
+            'eventVersion': '1.0',
+            'awsRegion': 'us-east-1',
+            'dynamodb': {
+                'StreamViewType': stream_type,
+                'ApproximateCreationDateTime': datetime.datetime.utcnow().isoformat(),
+                'SequenceNumber': seq,
+                'SizeBytes': 1,
+                'Keys': keys
+            }
+        }
+
+        if stream_type in ('NEW_IMAGE', 'NEW_AND_OLD_IMAGES'):
+            self.record['dynamodb']['NewImage'] = new_a
+        if stream_type in ('OLD_IMAGE', 'NEW_AND_OLD_IMAGES'):
+            self.record['dynamodb']['OldImage'] = old_a
+
+        # This is a substantial overestimate but it's the easiest to do now
+        self.record['dynamodb']['SizeBytes'] = len(
+            json.dumps(self.record['dynamodb']))
+
+    def to_json(self):
+        return self.record
+
+
+class StreamShard(BaseModel):
+    def __init__(self, table):
+        self.table = table
+        self.id = 'shardId-00000001541626099285-f35f62ef'
+        self.starting_sequence_number = 1100000000017454423009
+        self.items = []
+        self.created_on = datetime.datetime.utcnow()
+
+    def to_json(self):
+        return {
+            'ShardId': self.id,
+            'SequenceNumberRange': {
+                'StartingSequenceNumber': str(self.starting_sequence_number)
+            }
+        }
+
+    def add(self, old, new):
+        t = self.table.stream_specification['StreamViewType']
+        if old is None:
+            event_name = 'INSERT'
+        elif new is None:
+            event_name = 'DELETE'
+        else:
+            event_name = 'MODIFY'
+        seq = len(self.items) + self.starting_sequence_number
+        self.items.append(
+            StreamRecord(self.table, t, event_name, old, new, seq))
+
+    def get(self, start, quantity):
+        start -= self.starting_sequence_number
+        assert start >= 0
+        end = start + quantity
+        return [i.to_json() for i in self.items[start:end]]
+
+
 class Table(BaseModel):
 
-    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None):
+    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None, streams=None):
         self.name = table_name
         self.attr = attr
         self.schema = schema
@@ -325,9 +399,21 @@ class Table(BaseModel):
             'TimeToLiveStatus': 'DISABLED'  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
             # 'AttributeName': 'string'  # Can contain this
         }
+        self.set_stream_specification(streams)
 
     def _generate_arn(self, name):
         return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
+
+    def set_stream_specification(self, streams):
+        self.stream_specification = streams
+        if streams and (streams.get('StreamEnabled') or streams.get('StreamViewType')):
+            self.stream_specification['StreamEnabled'] = True
+            self.latest_stream_label = datetime.datetime.utcnow().isoformat()
+            self.stream_shard = StreamShard(self)
+        else:
+            self.stream_specification = {'StreamEnabled': False}
+            self.latest_stream_label = None
+            self.stream_shard = None
 
     def describe(self, base_key='TableDescription'):
         results = {
@@ -345,6 +431,11 @@ class Table(BaseModel):
                 'LocalSecondaryIndexes': [index for index in self.indexes],
             }
         }
+        if self.stream_specification and self.stream_specification['StreamEnabled']:
+            results[base_key]['StreamSpecification'] = self.stream_specification
+            if self.latest_stream_label:
+                results[base_key]['LatestStreamLabel'] = self.latest_stream_label
+                results[base_key]['LatestStreamArn'] = self.table_arn + '/stream/' + self.latest_stream_label
         return results
 
     def __len__(self):
@@ -385,23 +476,22 @@ class Table(BaseModel):
         else:
             range_value = None
 
+        if expected is None:
+            expected = {}
+            lookup_range_value = range_value
+        else:
+            expected_range_value = expected.get(
+                self.range_key_attr, {}).get("Value")
+            if(expected_range_value is None):
+                lookup_range_value = range_value
+            else:
+                lookup_range_value = DynamoType(expected_range_value)
+        current = self.get_item(hash_value, lookup_range_value)
+
         item = Item(hash_value, self.hash_key_type, range_value,
                     self.range_key_type, item_attrs)
 
         if not overwrite:
-            if expected is None:
-                expected = {}
-                lookup_range_value = range_value
-            else:
-                expected_range_value = expected.get(
-                    self.range_key_attr, {}).get("Value")
-                if(expected_range_value is None):
-                    lookup_range_value = range_value
-                else:
-                    lookup_range_value = DynamoType(expected_range_value)
-
-            current = self.get_item(hash_value, lookup_range_value)
-
             if current is None:
                 current_attr = {}
             elif hasattr(current, 'attrs'):
@@ -432,6 +522,10 @@ class Table(BaseModel):
             self.items[hash_value][range_value] = item
         else:
             self.items[hash_value] = item
+
+        if self.stream_shard is not None:
+            self.stream_shard.add(current, item)
+
         return item
 
     def __nonzero__(self):
@@ -462,9 +556,14 @@ class Table(BaseModel):
     def delete_item(self, hash_key, range_key):
         try:
             if range_key:
-                return self.items[hash_key].pop(range_key)
+                item = self.items[hash_key].pop(range_key)
             else:
-                return self.items.pop(hash_key)
+                item = self.items.pop(hash_key)
+
+            if self.stream_shard is not None:
+                self.stream_shard.add(item, None)
+
+            return item
         except KeyError:
             return None
 
@@ -678,6 +777,13 @@ class DynamoDBBackend(BaseBackend):
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
         table.throughput = throughput
+        return table
+
+    def update_table_streams(self, name, stream_specification):
+        table = self.tables[name]
+        if (stream_specification.get('StreamEnabled') or stream_specification.get('StreamViewType')) and table.latest_stream_label:
+            raise ValueError('Table already has stream enabled')
+        table.set_stream_specification(stream_specification)
         return table
 
     def update_table_global_indexes(self, name, global_index_updates):

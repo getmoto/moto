@@ -178,3 +178,13 @@ class InvalidStorageClass(S3ClientError):
             "InvalidStorageClass",
             "The storage class you specified is not valid",
             *args, **kwargs)
+
+
+class DuplicateTagKeys(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(DuplicateTagKeys, self).__init__(
+            "InvalidTag",
+            "Cannot provide multiple Tags with the same key",
+            *args, **kwargs)

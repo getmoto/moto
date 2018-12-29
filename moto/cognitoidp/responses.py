@@ -22,10 +22,17 @@ class CognitoIdpResponse(BaseResponse):
         })
 
     def list_user_pools(self):
-        user_pools = cognitoidp_backends[self.region].list_user_pools()
-        return json.dumps({
-            "UserPools": [user_pool.to_json() for user_pool in user_pools]
-        })
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken", "0")
+        user_pools, next_token = cognitoidp_backends[self.region].list_user_pools(
+            max_results=max_results, next_token=next_token
+        )
+        response = {
+            "UserPools": [user_pool.to_json() for user_pool in user_pools],
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
 
     def describe_user_pool(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -72,10 +79,16 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_user_pool_clients(self):
         user_pool_id = self._get_param("UserPoolId")
-        user_pool_clients = cognitoidp_backends[self.region].list_user_pool_clients(user_pool_id)
-        return json.dumps({
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken", "0")
+        user_pool_clients, next_token = cognitoidp_backends[self.region].list_user_pool_clients(user_pool_id,
+            max_results=max_results, next_token=next_token)
+        response = {
             "UserPoolClients": [user_pool_client.to_json() for user_pool_client in user_pool_clients]
-        })
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
 
     def describe_user_pool_client(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -110,10 +123,17 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_identity_providers(self):
         user_pool_id = self._get_param("UserPoolId")
-        identity_providers = cognitoidp_backends[self.region].list_identity_providers(user_pool_id)
-        return json.dumps({
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken", "0")
+        identity_providers, next_token = cognitoidp_backends[self.region].list_identity_providers(
+            user_pool_id, max_results=max_results, next_token=next_token
+        )
+        response = {
             "Providers": [identity_provider.to_json() for identity_provider in identity_providers]
-        })
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
 
     def describe_identity_provider(self):
         user_pool_id = self._get_param("UserPoolId")
@@ -127,6 +147,89 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_id = self._get_param("UserPoolId")
         name = self._get_param("ProviderName")
         cognitoidp_backends[self.region].delete_identity_provider(user_pool_id, name)
+        return ""
+
+    # Group
+    def create_group(self):
+        group_name = self._get_param("GroupName")
+        user_pool_id = self._get_param("UserPoolId")
+        description = self._get_param("Description")
+        role_arn = self._get_param("RoleArn")
+        precedence = self._get_param("Precedence")
+
+        group = cognitoidp_backends[self.region].create_group(
+            user_pool_id,
+            group_name,
+            description,
+            role_arn,
+            precedence,
+        )
+
+        return json.dumps({
+            "Group": group.to_json(),
+        })
+
+    def get_group(self):
+        group_name = self._get_param("GroupName")
+        user_pool_id = self._get_param("UserPoolId")
+        group = cognitoidp_backends[self.region].get_group(user_pool_id, group_name)
+        return json.dumps({
+            "Group": group.to_json(),
+        })
+
+    def list_groups(self):
+        user_pool_id = self._get_param("UserPoolId")
+        groups = cognitoidp_backends[self.region].list_groups(user_pool_id)
+        return json.dumps({
+            "Groups": [group.to_json() for group in groups],
+        })
+
+    def delete_group(self):
+        group_name = self._get_param("GroupName")
+        user_pool_id = self._get_param("UserPoolId")
+        cognitoidp_backends[self.region].delete_group(user_pool_id, group_name)
+        return ""
+
+    def admin_add_user_to_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        group_name = self._get_param("GroupName")
+
+        cognitoidp_backends[self.region].admin_add_user_to_group(
+            user_pool_id,
+            group_name,
+            username,
+        )
+
+        return ""
+
+    def list_users_in_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        group_name = self._get_param("GroupName")
+        users = cognitoidp_backends[self.region].list_users_in_group(user_pool_id, group_name)
+        return json.dumps({
+            "Users": [user.to_json(extended=True) for user in users],
+        })
+
+    def admin_list_groups_for_user(self):
+        username = self._get_param("Username")
+        user_pool_id = self._get_param("UserPoolId")
+        groups = cognitoidp_backends[self.region].admin_list_groups_for_user(user_pool_id, username)
+        return json.dumps({
+            "Groups": [group.to_json() for group in groups],
+        })
+
+    def admin_remove_user_from_group(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        group_name = self._get_param("GroupName")
+
+        cognitoidp_backends[self.region].admin_remove_user_from_group(
+            user_pool_id,
+            group_name,
+            username,
+        )
+
         return ""
 
     # User
@@ -155,10 +258,15 @@ class CognitoIdpResponse(BaseResponse):
 
     def list_users(self):
         user_pool_id = self._get_param("UserPoolId")
-        users = cognitoidp_backends[self.region].list_users(user_pool_id)
-        return json.dumps({
-            "Users": [user.to_json(extended=True) for user in users]
-        })
+        limit = self._get_param("Limit")
+        token = self._get_param("PaginationToken")
+        users, token = cognitoidp_backends[self.region].list_users(user_pool_id,
+                                                                   limit=limit,
+                                                                   pagination_token=token)
+        response = {"Users": [user.to_json(extended=True) for user in users]}
+        if token:
+            response["PaginationToken"] = str(token)
+        return json.dumps(response)
 
     def admin_disable_user(self):
         user_pool_id = self._get_param("UserPoolId")

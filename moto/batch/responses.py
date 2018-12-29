@@ -27,7 +27,7 @@ class BatchResponse(BaseResponse):
         elif not hasattr(self, '_json'):
             try:
                 self._json = json.loads(self.body)
-            except json.JSONDecodeError:
+            except ValueError:
                 print()
         return self._json
 
