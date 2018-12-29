@@ -16,3 +16,4 @@ python_env
 .pytest_cache/
 venv/
 .python-version
+.vscode/
