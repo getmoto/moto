@@ -412,7 +412,7 @@ class DynamoHandler(BaseResponse):
                     range_values = [value_alias_map[
                         range_key_expression_components[2]]]
             else:
-                hash_key_expression = key_condition_expression
+                hash_key_expression = key_condition_expression.strip('()')
                 range_comparison = None
                 range_values = []
 
