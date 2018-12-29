@@ -224,7 +224,11 @@ class CloudFormationBackend(BaseBackend):
             return list(stacks)
 
     def list_stacks(self):
-        return self.stacks.values()
+        return [
+            v for v in self.stacks.values()
+        ] + [
+            v for v in self.deleted_stacks.values()
+        ]
 
     def get_stack(self, name_or_stack_id):
         all_stacks = dict(self.deleted_stacks, **self.stacks)

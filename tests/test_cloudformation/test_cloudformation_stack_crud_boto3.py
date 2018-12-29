@@ -536,6 +536,21 @@ def test_delete_stack_by_name():
 
 
 @mock_cloudformation
+def test_delete_stack():
+    cf = boto3.client('cloudformation', region_name='us-east-1')
+    cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+    )
+
+    cf.delete_stack(
+        StackName="test_stack",
+    )
+    stacks = cf.list_stacks()
+    assert stacks['StackSummaries'][0]['StackStatus'] == 'DELETE_COMPLETE'
+
+
+@mock_cloudformation
 def test_describe_deleted_stack():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     cf_conn.create_stack(
