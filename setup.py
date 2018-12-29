@@ -37,6 +37,7 @@ install_requires = [
     "jsondiff==1.1.2",
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
+    "cfn-lint"
 ]
 
 extras_require = {

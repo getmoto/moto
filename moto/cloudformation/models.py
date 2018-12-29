@@ -13,6 +13,7 @@ from .utils import (
     generate_changeset_id,
     generate_stack_id,
     yaml_tag_constructor,
+    validate_template_cfn_lint,
 )
 from .exceptions import ValidationError
 
@@ -269,6 +270,9 @@ class CloudFormationBackend(BaseBackend):
             exports = all_exports[token:token + 100]
             next_token = str(token + 100) if len(all_exports) > token + 100 else None
         return exports, next_token
+
+    def validate_template(self, template):
+        return validate_template_cfn_lint(template)
 
     def _validate_export_uniqueness(self, stack):
         new_stack_export_names = [x.name for x in stack.exports]
