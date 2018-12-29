@@ -118,7 +118,7 @@ class Role(BaseModel):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
-        self.path = path
+        self.path = path or '/'
         self.policies = {}
         self.managed_policies = {}
         self.create_date = datetime.now(pytz.utc)
@@ -171,7 +171,7 @@ class InstanceProfile(BaseModel):
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
         self.name = name
-        self.path = path
+        self.path = path or '/'
         self.roles = roles if roles else []
         self.create_date = datetime.now(pytz.utc)
 
