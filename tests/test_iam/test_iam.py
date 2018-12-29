@@ -553,6 +553,14 @@ def test_generate_credential_report():
     result['generate_credential_report_response'][
         'generate_credential_report_result']['state'].should.equal('COMPLETE')
 
+@mock_iam
+def test_boto3_generate_credential_report():
+    conn = boto3.client('iam', region_name='us-east-1')
+    result = conn.generate_credential_report()
+    result['State'].should.equal('STARTED')
+    result = conn.generate_credential_report()
+    result['State'].should.equal('COMPLETE')
+
 
 @mock_iam_deprecated()
 def test_get_credential_report():
@@ -566,6 +574,19 @@ def test_get_credential_report():
     result = conn.get_credential_report()
     report = base64.b64decode(result['get_credential_report_response'][
                               'get_credential_report_result']['content'].encode('ascii')).decode('ascii')
+    report.should.match(r'.*my-user.*')
+
+@mock_iam
+def test_boto3_get_credential_report():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_user(UserName='my-user')
+    with assert_raises(ClientError):
+        conn.get_credential_report()
+    result = conn.generate_credential_report()
+    while result['State'] != 'COMPLETE':
+        result = conn.generate_credential_report()
+    result = conn.get_credential_report()
+    report = result['Content'].decode('utf-8')
     report.should.match(r'.*my-user.*')
 
 
