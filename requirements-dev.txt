@@ -8,7 +8,7 @@ freezegun
 flask
 boto>=2.45.0
 boto3>=1.4.4
-botocore>=1.8.36
+botocore>=1.12.13
 six>=1.9
 prompt-toolkit==1.0.14
 click==6.7

@@ -508,6 +508,15 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         {% else %}
           <LoadBalancerNames/>
         {% endif %}
+        {% if group.target_group_arns %}
+          <TargetGroupARNs>
+          {% for target_group_arn in group.target_group_arns %}
+            <member>{{ target_group_arn }}</member>
+          {% endfor %}
+          </TargetGroupARNs>
+        {% else %}
+          <TargetGroupARNs/>
+        {% endif %}
         <MinSize>{{ group.min_size }}</MinSize>
         {% if group.vpc_zone_identifier %}
           <VPCZoneIdentifier>{{ group.vpc_zone_identifier }}</VPCZoneIdentifier>

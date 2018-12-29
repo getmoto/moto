@@ -42,6 +42,56 @@ def test_list_user_pools():
 
 
 @mock_cognitoidp
+def test_list_user_pools_returns_max_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    # Given 10 user pools
+    pool_count = 10
+    for i in range(pool_count):
+        conn.create_user_pool(PoolName=str(uuid.uuid4()))
+
+    max_results = 5
+    result = conn.list_user_pools(MaxResults=max_results)
+    result["UserPools"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_user_pools_returns_next_tokens():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    # Given 10 user pool clients
+    pool_count = 10
+    for i in range(pool_count):
+        conn.create_user_pool(PoolName=str(uuid.uuid4()))
+
+    max_results = 5
+    result = conn.list_user_pools(MaxResults=max_results)
+    result["UserPools"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+    next_token = result["NextToken"]
+    result_2 = conn.list_user_pools(MaxResults=max_results, NextToken=next_token)
+    result_2["UserPools"].should.have.length_of(max_results)
+    result_2.shouldnt.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_user_pools_when_max_items_more_than_total_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    # Given 10 user pool clients
+    pool_count = 10
+    for i in range(pool_count):
+        conn.create_user_pool(PoolName=str(uuid.uuid4()))
+
+    max_results = pool_count + 5
+    result = conn.list_user_pools(MaxResults=max_results)
+    result["UserPools"].should.have.length_of(pool_count)
+    result.shouldnt.have.key("NextToken")
+
+
+@mock_cognitoidp
 def test_describe_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -138,6 +188,67 @@ def test_list_user_pool_clients():
     result = conn.list_user_pool_clients(UserPoolId=user_pool_id, MaxResults=10)
     result["UserPoolClients"].should.have.length_of(1)
     result["UserPoolClients"][0]["ClientName"].should.equal(client_name)
+
+
+@mock_cognitoidp
+def test_list_user_pool_clients_returns_max_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 user pool clients
+    client_count = 10
+    for i in range(client_count):
+        client_name = str(uuid.uuid4())
+        conn.create_user_pool_client(UserPoolId=user_pool_id,
+                                     ClientName=client_name)
+    max_results = 5
+    result = conn.list_user_pool_clients(UserPoolId=user_pool_id,
+                                         MaxResults=max_results)
+    result["UserPoolClients"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_user_pool_clients_returns_next_tokens():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 user pool clients
+    client_count = 10
+    for i in range(client_count):
+        client_name = str(uuid.uuid4())
+        conn.create_user_pool_client(UserPoolId=user_pool_id,
+                                     ClientName=client_name)
+    max_results = 5
+    result = conn.list_user_pool_clients(UserPoolId=user_pool_id,
+                                         MaxResults=max_results)
+    result["UserPoolClients"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+    next_token = result["NextToken"]
+    result_2 = conn.list_user_pool_clients(UserPoolId=user_pool_id,
+                                           MaxResults=max_results,
+                                           NextToken=next_token)
+    result_2["UserPoolClients"].should.have.length_of(max_results)
+    result_2.shouldnt.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_user_pool_clients_when_max_items_more_than_total_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 user pool clients
+    client_count = 10
+    for i in range(client_count):
+        client_name = str(uuid.uuid4())
+        conn.create_user_pool_client(UserPoolId=user_pool_id,
+                                     ClientName=client_name)
+    max_results = client_count + 5
+    result = conn.list_user_pool_clients(UserPoolId=user_pool_id,
+                                         MaxResults=max_results)
+    result["UserPoolClients"].should.have.length_of(client_count)
+    result.shouldnt.have.key("NextToken")
 
 
 @mock_cognitoidp
@@ -262,6 +373,83 @@ def test_list_identity_providers():
     result["Providers"].should.have.length_of(1)
     result["Providers"][0]["ProviderName"].should.equal(provider_name)
     result["Providers"][0]["ProviderType"].should.equal(provider_type)
+
+
+@mock_cognitoidp
+def test_list_identity_providers_returns_max_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 identity providers linked to a user pool
+    identity_provider_count = 10
+    for i in range(identity_provider_count):
+        provider_name = str(uuid.uuid4())
+        provider_type = "Facebook"
+        conn.create_identity_provider(
+            UserPoolId=user_pool_id,
+            ProviderName=provider_name,
+            ProviderType=provider_type,
+            ProviderDetails={},
+        )
+
+    max_results = 5
+    result = conn.list_identity_providers(UserPoolId=user_pool_id,
+                                          MaxResults=max_results)
+    result["Providers"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_identity_providers_returns_next_tokens():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 identity providers linked to a user pool
+    identity_provider_count = 10
+    for i in range(identity_provider_count):
+        provider_name = str(uuid.uuid4())
+        provider_type = "Facebook"
+        conn.create_identity_provider(
+            UserPoolId=user_pool_id,
+            ProviderName=provider_name,
+            ProviderType=provider_type,
+            ProviderDetails={},
+        )
+
+    max_results = 5
+    result = conn.list_identity_providers(UserPoolId=user_pool_id, MaxResults=max_results)
+    result["Providers"].should.have.length_of(max_results)
+    result.should.have.key("NextToken")
+
+    next_token = result["NextToken"]
+    result_2 = conn.list_identity_providers(UserPoolId=user_pool_id,
+                                           MaxResults=max_results,
+                                           NextToken=next_token)
+    result_2["Providers"].should.have.length_of(max_results)
+    result_2.shouldnt.have.key("NextToken")
+
+
+@mock_cognitoidp
+def test_list_identity_providers_when_max_items_more_than_total_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 identity providers linked to a user pool
+    identity_provider_count = 10
+    for i in range(identity_provider_count):
+        provider_name = str(uuid.uuid4())
+        provider_type = "Facebook"
+        conn.create_identity_provider(
+            UserPoolId=user_pool_id,
+            ProviderName=provider_name,
+            ProviderType=provider_type,
+            ProviderDetails={},
+        )
+
+    max_results = identity_provider_count + 5
+    result = conn.list_identity_providers(UserPoolId=user_pool_id, MaxResults=max_results)
+    result["Providers"].should.have.length_of(identity_provider_count)
+    result.shouldnt.have.key("NextToken")
 
 
 @mock_cognitoidp
@@ -394,6 +582,62 @@ def test_list_users():
     result = conn.list_users(UserPoolId=user_pool_id)
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username)
+
+
+@mock_cognitoidp
+def test_list_users_returns_limit_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 users
+    user_count = 10
+    for i in range(user_count):
+        conn.admin_create_user(UserPoolId=user_pool_id,
+                               Username=str(uuid.uuid4()))
+    max_results = 5
+    result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
+    result["Users"].should.have.length_of(max_results)
+    result.should.have.key("PaginationToken")
+
+
+@mock_cognitoidp
+def test_list_users_returns_pagination_tokens():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 users
+    user_count = 10
+    for i in range(user_count):
+        conn.admin_create_user(UserPoolId=user_pool_id,
+                               Username=str(uuid.uuid4()))
+
+    max_results = 5
+    result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
+    result["Users"].should.have.length_of(max_results)
+    result.should.have.key("PaginationToken")
+
+    next_token = result["PaginationToken"]
+    result_2 = conn.list_users(UserPoolId=user_pool_id,
+                               Limit=max_results, PaginationToken=next_token)
+    result_2["Users"].should.have.length_of(max_results)
+    result_2.shouldnt.have.key("PaginationToken")
+
+
+@mock_cognitoidp
+def test_list_users_when_limit_more_than_total_items():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given 10 users
+    user_count = 10
+    for i in range(user_count):
+        conn.admin_create_user(UserPoolId=user_pool_id,
+                               Username=str(uuid.uuid4()))
+
+    max_results = user_count + 5
+    result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
+    result["Users"].should.have.length_of(user_count)
+    result.shouldnt.have.key("PaginationToken")
 
 
 @mock_cognitoidp

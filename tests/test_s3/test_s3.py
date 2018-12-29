@@ -1553,6 +1553,24 @@ def test_boto3_put_bucket_tagging():
     })
     resp['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
 
+    # With duplicate tag keys:
+    with assert_raises(ClientError) as err:
+        resp = s3.put_bucket_tagging(Bucket=bucket_name,
+                                     Tagging={
+                                         "TagSet": [
+                                             {
+                                                 "Key": "TagOne",
+                                                 "Value": "ValueOne"
+                                             },
+                                             {
+                                                 "Key": "TagOne",
+                                                 "Value": "ValueOneAgain"
+                                             }
+                                         ]
+                                     })
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("InvalidTag")
+    e.response["Error"]["Message"].should.equal("Cannot provide multiple Tags with the same key")
 
 @mock_s3
 def test_boto3_get_bucket_tagging():
