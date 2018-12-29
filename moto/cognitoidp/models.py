@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 import datetime
+import functools
+import itertools
 import json
 import os
 import time
@@ -18,6 +20,39 @@ UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
 }
+
+
+def paginate(limit, start_arg="next_token", limit_arg="max_results"):
+    """Returns a limited result list, and an offset into list of remaining items
+
+    Takes the next_token, and max_results kwargs given to a function and handles
+    the slicing of the results. The kwarg `next_token` is the offset into the
+    list to begin slicing from. `max_results` is the size of the result required
+
+    If the max_results is not supplied then the `limit` parameter is used as a
+    default
+
+    :param limit_arg: the name of argument in the decorated function that
+    controls amount of items returned
+    :param start_arg: the name of the argument in the decorated that provides
+    the starting offset
+    :param limit: A default maximum items to return
+    :return: a tuple containing a list of items, and the offset into the list
+    """
+    default_start = 0
+
+    def outer_wrapper(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start = int(default_start if kwargs.get(start_arg) is None else kwargs[start_arg])
+            lim = int(limit if kwargs.get(limit_arg) is None else kwargs[limit_arg])
+            stop = start + lim
+            result = func(*args, **kwargs)
+            limited_results = list(itertools.islice(result, start, stop))
+            next_token = stop if stop < len(result) else None
+            return limited_results, next_token
+        return wrapper
+    return outer_wrapper
 
 
 class CognitoIdpUserPool(BaseModel):
@@ -242,7 +277,8 @@ class CognitoIdpBackend(BaseBackend):
         self.user_pools[user_pool.id] = user_pool
         return user_pool
 
-    def list_user_pools(self):
+    @paginate(60)
+    def list_user_pools(self, max_results=None, next_token=None):
         return self.user_pools.values()
 
     def describe_user_pool(self, user_pool_id):
@@ -289,7 +325,8 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.clients[user_pool_client.id] = user_pool_client
         return user_pool_client
 
-    def list_user_pool_clients(self, user_pool_id):
+    @paginate(60)
+    def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
@@ -339,7 +376,8 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.identity_providers[name] = identity_provider
         return identity_provider
 
-    def list_identity_providers(self, user_pool_id):
+    @paginate(60)
+    def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
@@ -387,7 +425,8 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.users[username]
 
-    def list_users(self, user_pool_id):
+    @paginate(60, "pagination_token", "limit")
+    def list_users(self, user_pool_id, pagination_token=None, limit=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
