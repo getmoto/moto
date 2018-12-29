@@ -3,7 +3,9 @@ import base64
 
 import boto
 import boto3
+import os
 import sure  # noqa
+import sys
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
@@ -850,6 +852,53 @@ def test_signing_certs():
 
     with assert_raises(ClientError):
         client.delete_signing_certificate(UserName='notauser', CertificateId=cert_id)
+
+@mock_iam()
+def test_create_saml_provider():
+    conn = boto3.client('iam', region_name='us-east-1')
+    response = conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response['SAMLProviderArn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
+@mock_iam()
+def test_get_saml_provider():
+    conn = boto3.client('iam', region_name='us-east-1')
+    saml_provider_create = conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response = conn.get_saml_provider(
+        SAMLProviderArn=saml_provider_create['SAMLProviderArn']
+    )
+    response['SAMLMetadataDocument'].should.equal('a' * 1024)
+
+@mock_iam()
+def test_list_saml_providers():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response = conn.list_saml_providers()
+    response['SAMLProviderList'][0]['Arn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
+@mock_iam()
+def test_delete_saml_provider():
+    conn = boto3.client('iam', region_name='us-east-1')
+    saml_provider_create = conn.create_saml_provider(
+        Name="TestSAMLProvider",
+        SAMLMetadataDocument='a' * 1024
+    )
+    response = conn.list_saml_providers()
+    print(response)
+    len(response['SAMLProviderList']).should.equal(1)
+    conn.delete_saml_provider(
+        SAMLProviderArn=saml_provider_create['SAMLProviderArn']
+    )
+    response = conn.list_saml_providers()
+    len(response['SAMLProviderList']).should.equal(0)
 
     with assert_raises(ClientError) as ce:
         client.delete_signing_certificate(UserName='testing', CertificateId=cert_id)

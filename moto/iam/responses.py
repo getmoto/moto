@@ -552,6 +552,42 @@ class IamResponse(BaseResponse):
             roles=account_details['roles']
         )
 
+    def create_saml_provider(self):
+        saml_provider_name = self._get_param('Name')
+        saml_metadata_document = self._get_param('SAMLMetadataDocument')
+        saml_provider = iam_backend.create_saml_provider(saml_provider_name, saml_metadata_document)
+
+        template = self.response_template(CREATE_SAML_PROVIDER_TEMPLATE)
+        return template.render(saml_provider=saml_provider)
+
+    def update_saml_provider(self):
+        saml_provider_arn = self._get_param('SAMLProviderArn')
+        saml_metadata_document = self._get_param('SAMLMetadataDocument')
+        saml_provider = iam_backend.update_saml_provider(saml_provider_arn, saml_metadata_document)
+
+        template = self.response_template(UPDATE_SAML_PROVIDER_TEMPLATE)
+        return template.render(saml_provider=saml_provider)
+
+    def delete_saml_provider(self):
+        saml_provider_arn = self._get_param('SAMLProviderArn')
+        iam_backend.delete_saml_provider(saml_provider_arn)
+
+        template = self.response_template(DELETE_SAML_PROVIDER_TEMPLATE)
+        return template.render()
+
+    def list_saml_providers(self):
+        saml_providers = iam_backend.list_saml_providers()
+
+        template = self.response_template(LIST_SAML_PROVIDERS_TEMPLATE)
+        return template.render(saml_providers=saml_providers)
+
+    def get_saml_provider(self):
+        saml_provider_arn = self._get_param('SAMLProviderArn')
+        saml_provider = iam_backend.get_saml_provider(saml_provider_arn)
+
+        template = self.response_template(GET_SAML_PROVIDER_TEMPLATE)
+        return template.render(saml_provider=saml_provider)
+
     def upload_signing_certificate(self):
         user_name = self._get_param('UserName')
         cert_body = self._get_param('CertificateBody')
@@ -1518,6 +1554,58 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
   </ResponseMetadata>
 </GetAccountAuthorizationDetailsResponse>"""
 
+CREATE_SAML_PROVIDER_TEMPLATE = """<CreateSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateSAMLProviderResult>
+    <SAMLProviderArn>{{ saml_provider.arn }}</SAMLProviderArn>
+  </CreateSAMLProviderResult>
+  <ResponseMetadata>
+    <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</CreateSAMLProviderResponse>"""
+
+LIST_SAML_PROVIDERS_TEMPLATE = """<ListSAMLProvidersResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListSAMLProvidersResult>
+  <SAMLProviderList>
+    {% for saml_provider in saml_providers %}
+    <member>
+      <Arn>{{ saml_provider.arn }}</Arn>
+      <ValidUntil>2032-05-09T16:27:11Z</ValidUntil>
+      <CreateDate>2012-05-09T16:27:03Z</CreateDate>
+    </member>
+    {% endfor %}
+  </SAMLProviderList>
+</ListSAMLProvidersResult>
+<ResponseMetadata>
+  <RequestId>fd74fa8d-99f3-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</ListSAMLProvidersResponse>"""
+
+GET_SAML_PROVIDER_TEMPLATE = """<GetSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<GetSAMLProviderResult>
+  <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+  <ValidUntil>2015-12-31T21:59:59Z</ValidUntil>
+  <SAMLMetadataDocument>{{ saml_provider.saml_metadata_document }}</SAMLMetadataDocument>
+</GetSAMLProviderResult>
+<ResponseMetadata>
+  <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</GetSAMLProviderResponse>"""
+
+DELETE_SAML_PROVIDER_TEMPLATE = """<DeleteSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>c749ee7f-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+  </ResponseMetadata>
+</DeleteSAMLProviderResponse>"""
+
+UPDATE_SAML_PROVIDER_TEMPLATE = """<UpdateSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<UpdateSAMLProviderResult>
+  <SAMLProviderArn>{{ saml_provider.arn }}</SAMLProviderArn>
+</UpdateSAMLProviderResult>
+<ResponseMetadata>
+  <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</UpdateSAMLProviderResponse>"""
+=======
 
 UPLOAD_SIGNING_CERTIFICATE_TEMPLATE = """<UploadSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <UploadSigningCertificateResult>

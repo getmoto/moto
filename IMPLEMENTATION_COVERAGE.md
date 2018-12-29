@@ -2225,7 +2225,7 @@
 - [X] create_policy
 - [X] create_policy_version
 - [X] create_role
-- [ ] create_saml_provider
+- [X] create_saml_provider
 - [ ] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
@@ -2243,7 +2243,7 @@
 - [X] delete_policy_version
 - [X] delete_role
 - [X] delete_role_policy
-- [ ] delete_saml_provider
+- [X] delete_saml_provider
 - [X] delete_server_certificate
 - [ ] delete_service_linked_role
 - [ ] delete_service_specific_credential
@@ -2273,7 +2273,7 @@
 - [X] get_policy_version
 - [X] get_role
 - [X] get_role_policy
-- [ ] get_saml_provider
+- [X] get_saml_provider
 - [X] get_server_certificate
 - [ ] get_service_linked_role_deletion_status
 - [ ] get_ssh_public_key
@@ -2296,7 +2296,7 @@
 - [X] list_policy_versions
 - [X] list_role_policies
 - [ ] list_roles
-- [ ] list_saml_providers
+- [X] list_saml_providers
 - [ ] list_server_certificates
 - [ ] list_service_specific_credentials
 - [ ] list_signing_certificates
@@ -2323,7 +2323,7 @@
 - [ ] update_open_id_connect_provider_thumbprint
 - [ ] update_role
 - [ ] update_role_description
-- [ ] update_saml_provider
+- [X] update_saml_provider
 - [ ] update_server_certificate
 - [ ] update_service_specific_credential
 - [ ] update_signing_certificate
