@@ -344,9 +344,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
-            result_keys = self._get_results_from_token(result_keys, limit)
+            if not delimiter:
+                result_keys = self._get_results_from_token(result_keys, limit)
+            else:
+                result_folders = self._get_results_from_token(result_folders, limit)
 
-        result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
+        if not delimiter:
+            result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
+        else:
+            result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
 
         return template.render(
             bucket=bucket,
@@ -364,7 +370,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _get_results_from_token(self, result_keys, token):
         continuation_index = 0
         for key in result_keys:
-            if key.name > token:
+            if (key.name if isinstance(key, FakeKey) else key) > token:
                 break
             continuation_index += 1
         return result_keys[continuation_index:]
@@ -373,7 +379,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if len(result_keys) > max_keys:
             is_truncated = 'true'
             result_keys = result_keys[:max_keys]
-            next_continuation_token = result_keys[-1].name
+            item = result_keys[-1]
+            next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
             next_continuation_token = None
