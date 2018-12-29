@@ -1622,7 +1622,6 @@ UPDATE_SAML_PROVIDER_TEMPLATE = """<UpdateSAMLProviderResponse xmlns="https://ia
   <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
 </ResponseMetadata>
 </UpdateSAMLProviderResponse>"""
-=======
 
 UPLOAD_SIGNING_CERTIFICATE_TEMPLATE = """<UploadSigningCertificateResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <UploadSigningCertificateResult>
