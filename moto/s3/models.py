@@ -15,7 +15,7 @@ from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination, MalformedXML, InvalidStorageClass
+    InvalidNotificationDestination, MalformedXML, InvalidStorageClass, DuplicateTagKeys
 from .utils import clean_key_name, _VersionedKeyStore
 
 UPLOAD_ID_BYTES = 43
@@ -773,6 +773,9 @@ class S3Backend(BaseBackend):
         return key
 
     def put_bucket_tagging(self, bucket_name, tagging):
+        tag_keys = [tag.key for tag in tagging.tag_set.tags]
+        if len(tag_keys) != len(set(tag_keys)):
+            raise DuplicateTagKeys()
         bucket = self.get_bucket(bucket_name)
         bucket.set_tags(tagging)
 
