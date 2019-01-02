@@ -42,7 +42,10 @@ def test_create_autoscaling_group():
         launch_config=config,
         load_balancers=["test_lb"],
         placement_group="test_placement",
-        vpc_zone_identifier=f"{mocked_networking['subnet1']},{mocked_networking['subnet2']}",
+        vpc_zone_identifier="{subnet1},{subnet2}".format(
+            subnet1=mocked_networking['subnet1'],
+            subnet2=mocked_networking['subnet2'],
+        ),
         termination_policies=["OldestInstance", "NewestInstance"],
         tags=[Tag(
             resource_id='tester_group',
@@ -62,7 +65,10 @@ def test_create_autoscaling_group():
     group.max_size.should.equal(2)
     group.min_size.should.equal(2)
     group.instances.should.have.length_of(2)
-    group.vpc_zone_identifier.should.equal(f"{mocked_networking['subnet1']},{mocked_networking['subnet2']}")
+    group.vpc_zone_identifier.should.equal("{subnet1},{subnet2}".format(
+        subnet1=mocked_networking['subnet1'],
+        subnet2=mocked_networking['subnet2'],
+    ))
     group.launch_config_name.should.equal('tester')
     group.default_cooldown.should.equal(60)
     group.health_check_period.should.equal(100)
@@ -792,7 +798,10 @@ def test_update_autoscaling_group_boto3():
     response = client.update_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         MinSize=1,
-        VPCZoneIdentifier=f"{mocked_networking['subnet1']},{mocked_networking['subnet2']}",
+        VPCZoneIdentifier="{subnet1},{subnet2}".format(
+            subnet1=mocked_networking['subnet1'],
+            subnet2=mocked_networking['subnet2'],
+        ),
     )
 
     response = client.describe_auto_scaling_groups(
