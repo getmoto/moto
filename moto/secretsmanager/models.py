@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import time
 import json
+import uuid
 
 import boto3
 
@@ -18,10 +19,6 @@ class SecretsManager(BaseModel):
 
     def __init__(self, region_name, **kwargs):
         self.region = region_name
-        self.secret_id = kwargs.get('secret_id', '')
-        self.version_id = kwargs.get('version_id', '')
-        self.version_stage = kwargs.get('version_stage', '')
-        self.secret_string = ''
 
 
 class SecretsManagerBackend(BaseBackend):
@@ -29,14 +26,7 @@ class SecretsManagerBackend(BaseBackend):
     def __init__(self, region_name=None, **kwargs):
         super(SecretsManagerBackend, self).__init__()
         self.region = region_name
-        self.secret_id = kwargs.get('secret_id', '')
-        self.name = kwargs.get('name', '')
-        self.createdate = int(time.time())
-        self.secret_string = ''
-        self.rotation_enabled = False
-        self.rotation_lambda_arn = ''
-        self.auto_rotate_after_days = 0
-        self.version_id = ''
+        self.secrets = {}
 
     def reset(self):
         region_name = self.region
@@ -44,36 +34,50 @@ class SecretsManagerBackend(BaseBackend):
         self.__init__(region_name)
 
     def _is_valid_identifier(self, identifier):
-        return identifier in (self.name, self.secret_id)
+        return identifier in self.secrets
 
     def get_secret_value(self, secret_id, version_id, version_stage):
 
         if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException()
 
+        secret = self.secrets[secret_id]
+
         response = json.dumps({
-            "ARN": secret_arn(self.region, self.secret_id),
-            "Name": self.name,
-            "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
-            "SecretString": self.secret_string,
+            "ARN": secret_arn(self.region, secret['secret_id']),
+            "Name": secret['name'],
+            "VersionId": secret['version_id'],
+            "SecretString": secret['secret_string'],
             "VersionStages": [
                 "AWSCURRENT",
             ],
-            "CreatedDate": "2018-05-23 13:16:57.198000"
+            "CreatedDate": secret['createdate']
         })
 
         return response
 
-    def create_secret(self, name, secret_string, **kwargs):
+    def create_secret(self, name, secret_string, tags, **kwargs):
 
-        self.secret_string = secret_string
-        self.secret_id = name
-        self.name = name
+        generated_version_id = str(uuid.uuid4())
+
+        secret = {
+            'secret_string': secret_string,
+            'secret_id': name,
+            'name': name,
+            'createdate': int(time.time()),
+            'rotation_enabled': False,
+            'rotation_lambda_arn': '',
+            'auto_rotate_after_days': 0,
+            'version_id': generated_version_id,
+            'tags': tags
+        }
+
+        self.secrets[name] = secret
 
         response = json.dumps({
             "ARN": secret_arn(self.region, name),
-            "Name": self.name,
-            "VersionId": "A435958A-D821-4193-B719-B7769357AER4",
+            "Name": name,
+            "VersionId": generated_version_id,
         })
 
         return response
@@ -82,26 +86,23 @@ class SecretsManagerBackend(BaseBackend):
         if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException
 
+        secret = self.secrets[secret_id]
+
         response = json.dumps({
-            "ARN": secret_arn(self.region, self.secret_id),
-            "Name": self.name,
+            "ARN": secret_arn(self.region, secret['secret_id']),
+            "Name": secret['name'],
             "Description": "",
             "KmsKeyId": "",
-            "RotationEnabled": self.rotation_enabled,
-            "RotationLambdaARN": self.rotation_lambda_arn,
+            "RotationEnabled": secret['rotation_enabled'],
+            "RotationLambdaARN": secret['rotation_lambda_arn'],
             "RotationRules": {
-                "AutomaticallyAfterDays": self.auto_rotate_after_days
+                "AutomaticallyAfterDays": secret['auto_rotate_after_days']
             },
             "LastRotatedDate": None,
             "LastChangedDate": None,
             "LastAccessedDate": None,
             "DeletedDate": None,
-            "Tags": [
-                {
-                    "Key": "",
-                    "Value": ""
-                },
-            ]
+            "Tags": secret['tags']
         })
 
         return response
@@ -141,17 +142,19 @@ class SecretsManagerBackend(BaseBackend):
                     )
                     raise InvalidParameterException(msg)
 
-        self.version_id = client_request_token or ''
-        self.rotation_lambda_arn = rotation_lambda_arn or ''
+        secret = self.secrets[secret_id]
+
+        secret['version_id'] = client_request_token or ''
+        secret['rotation_lambda_arn'] = rotation_lambda_arn or ''
         if rotation_rules:
-            self.auto_rotate_after_days = rotation_rules.get(rotation_days, 0)
-        if self.auto_rotate_after_days > 0:
-            self.rotation_enabled = True
+            secret['auto_rotate_after_days'] = rotation_rules.get(rotation_days, 0)
+        if secret['auto_rotate_after_days'] > 0:
+            secret['rotation_enabled'] = True
 
         response = json.dumps({
-            "ARN": secret_arn(self.region, self.secret_id),
-            "Name": self.name,
-            "VersionId": self.version_id
+            "ARN": secret_arn(self.region, secret['secret_id']),
+            "Name": secret['name'],
+            "VersionId": secret['version_id']
         })
 
         return response

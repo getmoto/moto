@@ -258,11 +258,11 @@ def test_ami_filters():
     amis_by_name = conn.get_all_images(filters={'name': imageA.name})
     set([ami.id for ami in amis_by_name]).should.equal(set([imageA.id]))
 
-    amis_by_public = conn.get_all_images(filters={'is-public': True})
+    amis_by_public = conn.get_all_images(filters={'is-public': 'true'})
     set([ami.id for ami in amis_by_public]).should.contain(imageB.id)
     len(amis_by_public).should.equal(35)
 
-    amis_by_nonpublic = conn.get_all_images(filters={'is-public': False})
+    amis_by_nonpublic = conn.get_all_images(filters={'is-public': 'false'})
     set([ami.id for ami in amis_by_nonpublic]).should.contain(imageA.id)
     len(amis_by_nonpublic).should.equal(1)
 

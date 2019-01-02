@@ -391,6 +391,9 @@ def test_create_change_set_from_s3_url():
         TemplateURL=key_url,
         ChangeSetName='NewChangeSet',
         ChangeSetType='CREATE',
+        Tags=[
+            {'Key': 'tag-key', 'Value': 'tag-value'}
+        ],
     )
     assert 'arn:aws:cloudformation:us-west-1:123456789:changeSet/NewChangeSet/' in response['Id']
     assert 'arn:aws:cloudformation:us-east-1:123456789:stack/NewStack' in response['StackId']
@@ -530,6 +533,21 @@ def test_delete_stack_by_name():
     cf_conn.describe_stacks()['Stacks'].should.have.length_of(1)
     cf_conn.delete_stack(StackName="test_stack")
     cf_conn.describe_stacks()['Stacks'].should.have.length_of(0)
+
+
+@mock_cloudformation
+def test_delete_stack():
+    cf = boto3.client('cloudformation', region_name='us-east-1')
+    cf.create_stack(
+        StackName="test_stack",
+        TemplateBody=dummy_template_json,
+    )
+
+    cf.delete_stack(
+        StackName="test_stack",
+    )
+    stacks = cf.list_stacks()
+    assert stacks['StackSummaries'][0]['StackStatus'] == 'DELETE_COMPLETE'
 
 
 @mock_cloudformation
