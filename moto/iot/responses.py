@@ -160,15 +160,83 @@ class IoTResponse(BaseResponse):
             # TODO: needs to be implemented to get document_source's content from S3
             return json.dumps({'document': ''})
 
-    def list_job_executions_for_job(self):
-        job_executions, next_token = self.iot_backend.list_job_executions_for_job(job_id=self._get_param("jobId"),
-                                                                                  status=self._get_param("status"),
-                                                                                  max_results=self._get_param(
-                                                                                      "maxResults"),
-                                                                                  next_token=self._get_param(
-                                                                                      "nextToken"))
+    def list_jobs(self):
+        status = self._get_param("status"),
+        target_selection = self._get_param("targetSelection"),
+        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
+        previous_next_token = self._get_param("nextToken")
+        thing_group_name = self._get_param("thingGroupName"),
+        thing_group_id = self._get_param("thingGroupId")
+        jobs, next_token = self.iot_backend.list_jobs(status=status,
+                                                      target_selection=target_selection,
+                                                      max_results=max_results,
+                                                      token=previous_next_token,
+                                                      thing_group_name=thing_group_name,
+                                                      thing_group_id=thing_group_id)
 
-        return json.dumps(dict(executionSummaries=[_.to_dict() for _ in job_executions], nextToken=next_token))
+        return json.dumps(dict(jobs=jobs, nextToken=next_token))
+
+    def describe_job_execution(self):
+        job_id = self._get_param("jobId")
+        thing_name = self._get_param("thingName")
+        execution_number = self._get_int_param("executionNumber")
+        job_execution = self.iot_backend.describe_job_execution(job_id=job_id,
+                                                                thing_name=thing_name,
+                                                                execution_number=execution_number)
+
+        return json.dumps(dict(execution=job_execution.to_get_dict()))
+
+    def cancel_job_execution(self):
+        job_id = self._get_param("jobId")
+        thing_name = self._get_param("thingName")
+        force = self._get_bool_param("force")
+        expected_version = self._get_int_param("expectedVersion")
+        status_details = self._get_param("statusDetails")
+
+        self.iot_backend.cancel_job_execution(job_id=job_id,
+                                              thing_name=thing_name,
+                                              force=force,
+                                              expected_version=expected_version,
+                                              status_details=status_details)
+
+        return json.dumps(dict())
+
+    def delete_job_execution(self):
+        job_id = self._get_param("jobId")
+        thing_name = self._get_param("thingName")
+        execution_number = self._get_int_param("executionNumber")
+        force = self._get_bool_param("force")
+
+        self.iot_backend.delete_job_execution(job_id=job_id,
+                                              thing_name=thing_name,
+                                              execution_number=execution_number,
+                                              force=force)
+
+        return json.dumps(dict())
+
+    def list_job_executions_for_job(self):
+        job_id = self._get_param("jobId")
+        status = self._get_param("status")
+        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
+        next_token = self._get_param("nextToken")
+        job_executions, next_token = self.iot_backend.list_job_executions_for_job(job_id=job_id,
+                                                                                  status=status,
+                                                                                  max_results=max_results,
+                                                                                  next_token=next_token)
+
+        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
+
+    def list_job_executions_for_thing(self):
+        thing_name = self._get_param("thingName")
+        status = self._get_param("status")
+        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
+        next_token = self._get_param("nextToken")
+        job_executions, next_token = self.iot_backend.list_job_executions_for_thing(thing_name=thing_name,
+                                                                                    status=status,
+                                                                                    max_results=max_results,
+                                                                                    next_token=next_token)
+
+        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
 
     def create_keys_and_certificate(self):
         set_as_active = self._get_bool_param("setAsActive")

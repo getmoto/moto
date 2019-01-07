@@ -4,8 +4,8 @@ import json
 import sure #noqa
 import boto3
 
+from botocore.exceptions import ClientError
 from moto import mock_iot
-
 
 @mock_iot
 def test_attach_policy():
@@ -712,6 +712,69 @@ def test_create_job():
 
 
 @mock_iot
+def test_list_jobs():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing# job document
+    #     job_document = {
+    #         "field": "value"
+    #     }
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job1 = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job1.should.have.key('jobId').which.should.equal(job_id)
+    job1.should.have.key('jobArn')
+    job1.should.have.key('description')
+
+    job2 = client.create_job(
+        jobId=job_id+"1",
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job2.should.have.key('jobId').which.should.equal(job_id+"1")
+    job2.should.have.key('jobArn')
+    job2.should.have.key('description')
+
+    jobs = client.list_jobs()
+    jobs.should.have.key('jobs')
+    jobs.should_not.have.key('nextToken')
+    jobs['jobs'][0].should.have.key('jobId').which.should.equal(job_id)
+    jobs['jobs'][1].should.have.key('jobId').which.should.equal(job_id+"1")
+
+
+@mock_iot
 def test_describe_job():
     client = boto3.client('iot', region_name='eu-west-1')
     name = "my-thing"
@@ -875,6 +938,162 @@ def test_get_job_document_with_document():
     job_document = client.get_job_document(jobId=job_id)
     job_document.should.have.key('document').which.should.equal("{\"field\": \"value\"}")
 
+
+@mock_iot
+def test_describe_job_execution():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+    job.should.have.key('description')
+
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
+    job_execution.should.have.key('execution')
+    job_execution['execution'].should.have.key('jobId').which.should.equal(job_id)
+    job_execution['execution'].should.have.key('status').which.should.equal('QUEUED')
+    job_execution['execution'].should.have.key('forceCanceled').which.should.equal(False)
+    job_execution['execution'].should.have.key('statusDetails').which.should.equal({'detailsMap': {}})
+    job_execution['execution'].should.have.key('thingArn').which.should.equal(thing["thingArn"])
+    job_execution['execution'].should.have.key('queuedAt')
+    job_execution['execution'].should.have.key('startedAt')
+    job_execution['execution'].should.have.key('lastUpdatedAt')
+    job_execution['execution'].should.have.key('executionNumber').which.should.equal(123)
+    job_execution['execution'].should.have.key('versionNumber').which.should.equal(123)
+    job_execution['execution'].should.have.key('approximateSecondsBeforeTimedOut').which.should.equal(123)
+
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    job_execution.should.have.key('execution')
+    job_execution['execution'].should.have.key('jobId').which.should.equal(job_id)
+    job_execution['execution'].should.have.key('status').which.should.equal('QUEUED')
+    job_execution['execution'].should.have.key('forceCanceled').which.should.equal(False)
+    job_execution['execution'].should.have.key('statusDetails').which.should.equal({'detailsMap': {}})
+    job_execution['execution'].should.have.key('thingArn').which.should.equal(thing["thingArn"])
+    job_execution['execution'].should.have.key('queuedAt')
+    job_execution['execution'].should.have.key('startedAt')
+    job_execution['execution'].should.have.key('lastUpdatedAt')
+    job_execution['execution'].should.have.key('executionNumber').which.should.equal(123)
+    job_execution['execution'].should.have.key('versionNumber').which.should.equal(123)
+    job_execution['execution'].should.have.key('approximateSecondsBeforeTimedOut').which.should.equal(123)
+
+    try:
+        client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=456)
+    except ClientError as exc:
+        error_code = exc.response['Error']['Code']
+        error_code.should.equal('ResourceNotFoundException')
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_cancel_job_execution():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+    job.should.have.key('description')
+
+    client.cancel_job_execution(jobId=job_id, thingName=name)
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
+    job_execution.should.have.key('execution')
+    job_execution['execution'].should.have.key('status').which.should.equal('CANCELED')
+
+
+@mock_iot
+def test_delete_job_execution():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+    job.should.have.key('description')
+
+    client.delete_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    try:
+        client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    except ClientError as exc:
+        error_code = exc.response['Error']['Code']
+        error_code.should.equal('ResourceNotFoundException')
+    else:
+        raise Exception("Should have raised error")
+
+
 @mock_iot
 def test_list_job_executions_for_job():
     client = boto3.client('iot', region_name='eu-west-1')
@@ -910,6 +1129,45 @@ def test_list_job_executions_for_job():
     job.should.have.key('description')
 
     job_execution = client.list_job_executions_for_job(jobId=job_id)
+    job_execution.should.have.key('executionSummaries')
+    job_execution['executionSummaries'][0].should.have.key('thingArn').which.should.equal(thing["thingArn"])
+
+
+@mock_iot
+def test_list_job_executions_for_thing():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    # job document
+    job_document = {
+        "field": "value"
+    }
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+    job.should.have.key('description')
+
+    job_execution = client.list_job_executions_for_thing(thingName=name)
     job_execution.should.have.key('executionSummaries')
     job_execution['executionSummaries'][0].should.have.key('jobId').which.should.equal(job_id)
 

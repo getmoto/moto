@@ -15,6 +15,7 @@ from moto.core import BaseBackend, BaseModel
 from .exceptions import (
     ResourceNotFoundException,
     InvalidRequestException,
+    InvalidStateTransitionException,
     VersionConflictException
 )
 
@@ -247,7 +248,6 @@ class FakeJob(BaseModel):
         self.document_parameters = document_parameters
 
     def to_dict(self):
-
         obj = {
             'jobArn': self.job_arn,
             'jobId': self.job_id,
@@ -260,7 +260,7 @@ class FakeJob(BaseModel):
             'comment': self.comment,
             'createdAt': self.created_at,
             'lastUpdatedAt': self.last_updated_at,
-            'completedAt': self.completedAt,
+            'completedAt': self.completed_at,
             'jobProcessDetails': self.job_process_details,
             'documentParameters': self.document_parameters,
             'document': self.document,
@@ -290,19 +290,34 @@ class FakeJobExecution(BaseModel):
         self.version_number = 123
         self.approximate_seconds_before_time_out = 123
 
-    def to_dict(self):
+    def to_get_dict(self):
         obj = {
             'jobId': self.job_id,
             'status': self.status,
-            'forceCancel': self.force_canceled,
+            'forceCanceled': self.force_canceled,
             'statusDetails': {'detailsMap': self.status_details_map},
-            'thing_arn': self.thing_arn,
+            'thingArn': self.thing_arn,
             'queuedAt': self.queued_at,
             'startedAt': self.started_at,
             'lastUpdatedAt': self.last_updated_at,
             'executionNumber': self.execution_number,
             'versionNumber': self.version_number,
             'approximateSecondsBeforeTimedOut': self.approximate_seconds_before_time_out
+        }
+
+        return obj
+
+    def to_dict(self):
+        obj = {
+            'jobId': self.job_id,
+            'thingArn': self.thing_arn,
+            'jobExecutionSummary': {
+                'status': self.status,
+                'queuedAt': self.queued_at,
+                'startedAt': self.started_at,
+                'lastUpdatedAt': self.last_updated_at,
+                'executionNumber': self.execution_number,
+            }
         }
 
         return obj
@@ -760,24 +775,114 @@ class IoTBackend(BaseBackend):
         self.jobs[job_id] = job
 
         for thing_arn in targets:
-            thing_name = thing_arn.split(':')[-1]
+            thing_name = thing_arn.split(':')[-1].split('/')[-1]
             job_execution = FakeJobExecution(job_id, thing_arn)
             self.job_executions[(job_id, thing_name)] = job_execution
         return job.job_arn, job_id, description
 
     def describe_job(self, job_id):
-        return self.jobs[job_id]
+        jobs = [_ for _ in self.jobs.values() if _.job_id == job_id]
+        if len(jobs) == 0:
+            raise ResourceNotFoundException()
+        return jobs[0]
 
     def get_job_document(self, job_id):
         return self.jobs[job_id]
 
+    def list_jobs(self, status, target_selection, max_results, token, thing_group_name, thing_group_id):
+        # TODO: implement filters
+        all_jobs = [_.to_dict() for _ in self.jobs.values()]
+        filtered_jobs = all_jobs
+
+        if token is None:
+            jobs = filtered_jobs[0:max_results]
+            next_token = str(max_results) if len(filtered_jobs) > max_results else None
+        else:
+            token = int(token)
+            jobs = filtered_jobs[token:token + max_results]
+            next_token = str(token + max_results) if len(filtered_jobs) > token + max_results else None
+
+        return jobs, next_token
+
     def describe_job_execution(self, job_id, thing_name, execution_number):
-        # TODO filter with execution number
-        return self.job_executions[(job_id, thing_name)]
+        try:
+            job_execution = self.job_executions[(job_id, thing_name)]
+        except KeyError:
+            raise ResourceNotFoundException()
+
+        if job_execution is None or \
+                (execution_number is not None and job_execution.execution_number != execution_number):
+            raise ResourceNotFoundException()
+
+        return job_execution
+
+    def cancel_job_execution(self, job_id, thing_name, force, expected_version, status_details):
+        job_execution = self.job_executions[(job_id, thing_name)]
+
+        if job_execution is None:
+            raise ResourceNotFoundException()
+
+        job_execution.force_canceled = force if force is not None else job_execution.force_canceled
+        # TODO: implement expected_version and status_details (at most 10 can be specified)
+
+        if job_execution.status == 'IN_PROGRESS' and force:
+            job_execution.status = 'CANCELED'
+            self.job_executions[(job_id, thing_name)] = job_execution
+        elif job_execution.status != 'IN_PROGRESS':
+            job_execution.status = 'CANCELED'
+            self.job_executions[(job_id, thing_name)] = job_execution
+        else:
+            raise InvalidStateTransitionException()
+
+    def delete_job_execution(self, job_id, thing_name, execution_number, force):
+        job_execution = self.job_executions[(job_id, thing_name)]
+
+        if job_execution.execution_number != execution_number:
+            raise ResourceNotFoundException()
+
+        if job_execution.status == 'IN_PROGRESS' and force:
+            del self.job_executions[(job_id, thing_name)]
+        elif job_execution.status != 'IN_PROGRESS':
+            del self.job_executions[(job_id, thing_name)]
+        else:
+            raise InvalidStateTransitionException()
 
     def list_job_executions_for_job(self, job_id, status, max_results, next_token):
-        job_executions = [self.job_executions[je] for je in self.job_executions if je[0] == job_id]
-        # TODO: implement filters
+        job_executions = [self.job_executions[je].to_dict() for je in self.job_executions if je[0] == job_id]
+
+        if status is not None:
+            job_executions = list(filter(lambda elem:
+                                         status in elem["status"] and
+                                         elem["status"] == status, job_executions))
+
+        token = next_token
+        if token is None:
+            job_executions = job_executions[0:max_results]
+            next_token = str(max_results) if len(job_executions) > max_results else None
+        else:
+            token = int(token)
+            job_executions = job_executions[token:token + max_results]
+            next_token = str(token + max_results) if len(job_executions) > token + max_results else None
+
+        return job_executions, next_token
+
+    def list_job_executions_for_thing(self, thing_name, status, max_results, next_token):
+        job_executions = [self.job_executions[je].to_dict() for je in self.job_executions if je[1] == thing_name]
+
+        if status is not None:
+            job_executions = list(filter(lambda elem:
+                                         status in elem["status"] and
+                                         elem["status"] == status, job_executions))
+
+        token = next_token
+        if token is None:
+            job_executions = job_executions[0:max_results]
+            next_token = str(max_results) if len(job_executions) > max_results else None
+        else:
+            token = int(token)
+            job_executions = job_executions[token:token + max_results]
+            next_token = str(token + max_results) if len(job_executions) > token + max_results else None
+
         return job_executions, next_token
 
 
