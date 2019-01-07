@@ -718,6 +718,7 @@ def test_create_autoscaling_group_boto3():
              'PropagateAtLaunch': False
              }],
         VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=False,
     )
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
 
@@ -736,7 +737,9 @@ def test_describe_autoscaling_groups_boto3():
         MaxSize=20,
         DesiredCapacity=5,
         VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=True,
     )
+
     response = client.describe_auto_scaling_groups(
         AutoScalingGroupNames=["test_asg"]
     )
@@ -745,8 +748,10 @@ def test_describe_autoscaling_groups_boto3():
     group['AutoScalingGroupName'].should.equal('test_asg')
     group['AvailabilityZones'].should.equal(['us-east-1a'])
     group['VPCZoneIdentifier'].should.equal(mocked_networking['subnet1'])
+    group['NewInstancesProtectedFromScaleIn'].should.equal(True)
     for instance in group['Instances']:
         instance['AvailabilityZone'].should.equal('us-east-1a')
+        instance['ProtectedFromScaleIn'].should.equal(True)
 
 
 @mock_autoscaling
@@ -763,6 +768,7 @@ def test_describe_autoscaling_instances_boto3():
         MaxSize=20,
         DesiredCapacity=5,
         VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=True,
     )
 
     response = client.describe_auto_scaling_groups(
@@ -777,6 +783,7 @@ def test_describe_autoscaling_instances_boto3():
     for instance in response['AutoScalingInstances']:
         instance['AutoScalingGroupName'].should.equal('test_asg')
         instance['AvailabilityZone'].should.equal('us-east-1a')
+        instance['ProtectedFromScaleIn'].should.equal(True)
 
 
 @mock_autoscaling
@@ -793,15 +800,17 @@ def test_update_autoscaling_group_boto3():
         MaxSize=20,
         DesiredCapacity=5,
         VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=True,
     )
 
-    response = client.update_auto_scaling_group(
+    _ = client.update_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         MinSize=1,
         VPCZoneIdentifier="{subnet1},{subnet2}".format(
             subnet1=mocked_networking['subnet1'],
             subnet2=mocked_networking['subnet2'],
         ),
+        NewInstancesProtectedFromScaleIn=False,
     )
 
     response = client.describe_auto_scaling_groups(
@@ -810,6 +819,7 @@ def test_update_autoscaling_group_boto3():
     group = response['AutoScalingGroups'][0]
     group['MinSize'].should.equal(1)
     set(group['AvailabilityZones']).should.equal({'us-east-1a', 'us-east-1b'})
+    group['NewInstancesProtectedFromScaleIn'].should.equal(False)
 
 
 @mock_autoscaling
@@ -1040,9 +1050,7 @@ def test_attach_one_instance():
             'PropagateAtLaunch': True
         }],
         VPCZoneIdentifier=mocked_networking['subnet1'],
-    )
-    response = client.describe_auto_scaling_groups(
-        AutoScalingGroupNames=['test_asg']
+        NewInstancesProtectedFromScaleIn=True,
     )
 
     ec2 = boto3.resource('ec2', 'us-east-1')
@@ -1057,7 +1065,11 @@ def test_attach_one_instance():
     response = client.describe_auto_scaling_groups(
         AutoScalingGroupNames=['test_asg']
     )
-    response['AutoScalingGroups'][0]['Instances'].should.have.length_of(3)
+    instances = response['AutoScalingGroups'][0]['Instances']
+    instances.should.have.length_of(3)
+    for instance in instances:
+        instance['ProtectedFromScaleIn'].should.equal(True)
+
 
 @mock_autoscaling
 @mock_ec2
@@ -1148,3 +1160,111 @@ def test_suspend_processes():
             launch_suspended = True
 
     assert launch_suspended is True
+
+@mock_autoscaling
+def test_set_instance_protection():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=False,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    instance_ids = [
+        instance['InstanceId']
+        for instance in response['AutoScalingGroups'][0]['Instances']
+    ]
+    protected = instance_ids[:3]
+
+    _ = client.set_instance_protection(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=protected,
+        ProtectedFromScaleIn=True,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    for instance in response['AutoScalingGroups'][0]['Instances']:
+        instance['ProtectedFromScaleIn'].should.equal(
+            instance['InstanceId'] in protected
+        )
+
+
+@mock_autoscaling
+def test_set_desired_capacity_up_boto3():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=True,
+    )
+
+    _ = client.set_desired_capacity(
+        AutoScalingGroupName='test_asg',
+        DesiredCapacity=10,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    instances = response['AutoScalingGroups'][0]['Instances']
+    instances.should.have.length_of(10)
+    for instance in instances:
+        instance['ProtectedFromScaleIn'].should.equal(True)
+
+
+@mock_autoscaling
+def test_set_desired_capacity_down_boto3():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=True,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    instance_ids = [
+        instance['InstanceId']
+        for instance in response['AutoScalingGroups'][0]['Instances']
+    ]
+    unprotected, protected = instance_ids[:2], instance_ids[2:]
+
+    _ = client.set_instance_protection(
+        AutoScalingGroupName='test_asg',
+        InstanceIds=unprotected,
+        ProtectedFromScaleIn=False,
+    )
+
+    _ = client.set_desired_capacity(
+        AutoScalingGroupName='test_asg',
+        DesiredCapacity=1,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    group = response['AutoScalingGroups'][0]
+    group['DesiredCapacity'].should.equal(1)
+    instance_ids = {instance['InstanceId'] for instance in group['Instances']}
+    set(protected).should.equal(instance_ids)
+    set(unprotected).should_not.be.within(instance_ids)  # only unprotected killed

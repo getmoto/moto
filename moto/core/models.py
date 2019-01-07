@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import functools
 import inspect
+import os
 import re
 import six
 from io import BytesIO
@@ -19,6 +20,11 @@ from .utils import (
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
+
+
+# "Mock" the AWS credentials as they can't be mocked in Botocore currently
+os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
+os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
 
 class BaseMockAWS(object):

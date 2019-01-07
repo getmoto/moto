@@ -20,10 +20,12 @@ ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 
 class InstanceState(object):
-    def __init__(self, instance, lifecycle_state="InService", health_status="Healthy"):
+    def __init__(self, instance, lifecycle_state="InService",
+                 health_status="Healthy", protected_from_scale_in=False):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
         self.health_status = health_status
+        self.protected_from_scale_in = protected_from_scale_in
 
 
 class FakeScalingPolicy(BaseModel):
@@ -155,7 +157,8 @@ class FakeAutoScalingGroup(BaseModel):
                  min_size, launch_config_name, vpc_zone_identifier,
                  default_cooldown, health_check_period, health_check_type,
                  load_balancers, target_group_arns, placement_group, termination_policies,
-                 autoscaling_backend, tags):
+                 autoscaling_backend, tags,
+                 new_instances_protected_from_scale_in=False):
         self.autoscaling_backend = autoscaling_backend
         self.name = name
 
@@ -175,6 +178,7 @@ class FakeAutoScalingGroup(BaseModel):
         self.target_group_arns = target_group_arns
         self.placement_group = placement_group
         self.termination_policies = termination_policies
+        self.new_instances_protected_from_scale_in = new_instances_protected_from_scale_in
 
         self.suspended_processes = []
         self.instance_states = []
@@ -236,6 +240,8 @@ class FakeAutoScalingGroup(BaseModel):
             placement_group=None,
             termination_policies=properties.get("TerminationPolicies", []),
             tags=properties.get("Tags", []),
+            new_instances_protected_from_scale_in=properties.get(
+                "NewInstancesProtectedFromScaleIn", False)
         )
         return group
 
@@ -264,7 +270,8 @@ class FakeAutoScalingGroup(BaseModel):
     def update(self, availability_zones, desired_capacity, max_size, min_size,
                launch_config_name, vpc_zone_identifier, default_cooldown,
                health_check_period, health_check_type,
-               placement_group, termination_policies):
+               placement_group, termination_policies,
+               new_instances_protected_from_scale_in=None):
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier, update=True)
 
         if max_size is not None:
@@ -273,13 +280,15 @@ class FakeAutoScalingGroup(BaseModel):
             self.min_size = min_size
 
         if launch_config_name:
-            self.launch_config = self.autoscaling_backend.launch_configurations[
+            self.launch_config = self.autoscaling_backenaunch_configurations[
                 launch_config_name]
             self.launch_config_name = launch_config_name
         if health_check_period is not None:
             self.health_check_period = health_check_period
         if health_check_type is not None:
             self.health_check_type = health_check_type
+        if new_instances_protected_from_scale_in is not None:
+            self.new_instances_protected_from_scale_in = new_instances_protected_from_scale_in
 
         if desired_capacity is not None:
             self.set_desired_capacity(desired_capacity)
@@ -304,12 +313,16 @@ class FakeAutoScalingGroup(BaseModel):
         else:
             # Need to remove some instances
             count_to_remove = curr_instance_count - self.desired_capacity
-            instances_to_remove = self.instance_states[:count_to_remove]
-            instance_ids_to_remove = [
-                instance.instance.id for instance in instances_to_remove]
-            self.autoscaling_backend.ec2_backend.terminate_instances(
-                instance_ids_to_remove)
-            self.instance_states = self.instance_states[count_to_remove:]
+            instances_to_remove = [  # only remove unprotected
+                state for state in self.instance_states
+                if not state.protected_from_scale_in
+            ][:count_to_remove]
+            if instances_to_remove:  # just in case not instances to remove
+                instance_ids_to_remove = [
+                    instance.instance.id for instance in instances_to_remove]
+                self.autoscaling_backend.ec2_backend.terminate_instances(
+                    instance_ids_to_remove)
+                self.instance_states = list(set(self.instance_states) - set(instances_to_remove))
 
     def get_propagated_tags(self):
         propagated_tags = {}
@@ -335,7 +348,10 @@ class FakeAutoScalingGroup(BaseModel):
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self
-            self.instance_states.append(InstanceState(instance))
+            self.instance_states.append(InstanceState(
+                instance,
+                protected_from_scale_in=self.new_instances_protected_from_scale_in,
+            ))
 
     def append_target_groups(self, target_group_arns):
         append = [x for x in target_group_arns if x not in self.target_group_arns]
@@ -397,7 +413,8 @@ class AutoScalingBackend(BaseBackend):
                                  default_cooldown, health_check_period,
                                  health_check_type, load_balancers,
                                  target_group_arns, placement_group,
-                                 termination_policies, tags):
+                                 termination_policies, tags,
+                                 new_instances_protected_from_scale_in=False):
 
         def make_int(value):
             return int(value) if value is not None else value
@@ -428,6 +445,7 @@ class AutoScalingBackend(BaseBackend):
             termination_policies=termination_policies,
             autoscaling_backend=self,
             tags=tags,
+            new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
         )
 
         self.autoscaling_groups[name] = group
@@ -440,12 +458,14 @@ class AutoScalingBackend(BaseBackend):
                                  launch_config_name, vpc_zone_identifier,
                                  default_cooldown, health_check_period,
                                  health_check_type, placement_group,
-                                 termination_policies):
+                                 termination_policies,
+                                 new_instances_protected_from_scale_in=None):
         group = self.autoscaling_groups[name]
         group.update(availability_zones, desired_capacity, max_size,
                      min_size, launch_config_name, vpc_zone_identifier,
                      default_cooldown, health_check_period, health_check_type,
-                     placement_group, termination_policies)
+                     placement_group, termination_policies,
+                     new_instances_protected_from_scale_in=new_instances_protected_from_scale_in)
         return group
 
     def describe_auto_scaling_groups(self, names):
@@ -473,7 +493,13 @@ class AutoScalingBackend(BaseBackend):
             raise ResourceContentionError
         else:
             group.desired_capacity = original_size + len(instance_ids)
-            new_instances = [InstanceState(self.ec2_backend.get_instance(x)) for x in instance_ids]
+            new_instances = [
+                InstanceState(
+                    self.ec2_backend.get_instance(x),
+                    protected_from_scale_in=group.new_instances_protected_from_scale_in,
+                )
+                for x in instance_ids
+            ]
             for instance in new_instances:
                 self.ec2_backend.create_tags([instance.instance.id], {ASG_NAME_TAG: group.name})
             group.instance_states.extend(new_instances)
@@ -650,6 +676,13 @@ class AutoScalingBackend(BaseBackend):
     def suspend_processes(self, group_name, scaling_processes):
         group = self.autoscaling_groups[group_name]
         group.suspended_processes = scaling_processes or []
+
+    def set_instance_protection(self, group_name, instance_ids, protected_from_scale_in):
+        group = self.autoscaling_groups[group_name]
+        protected_instances = [
+            x for x in group.instance_states if x.instance.id in instance_ids]
+        for instance in protected_instances:
+            instance.protected_from_scale_in = protected_from_scale_in
 
 
 autoscaling_backends = {}
