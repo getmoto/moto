@@ -2819,7 +2819,7 @@ class Subnet(TaggedEC2Resource):
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
         self.cidr = ipaddress.IPv4Network(six.text_type(self.cidr_block), strict=False)
-        self.available_ips = ipaddress.IPv4Network(cidr_block).num_addresses - 5
+        self.available_ip_addresses = str(ipaddress.IPv4Network(six.text_type(self.cidr_block)).num_addresses - 5)
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
