@@ -5,6 +5,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
+from .exceptions import InvalidIndexNameError
 from .models import dynamodb_backends, dynamo_json_dump
 
 
@@ -502,6 +503,7 @@ class DynamoHandler(BaseResponse):
 
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
+        index_name = self.body.get('IndexName')
 
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(name, filters,
@@ -509,7 +511,11 @@ class DynamoHandler(BaseResponse):
                                                                                   exclusive_start_key,
                                                                                   filter_expression,
                                                                                   expression_attribute_names,
-                                                                                  expression_attribute_values)
+                                                                                  expression_attribute_values,
+                                                                                  index_name)
+        except InvalidIndexNameError as err:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, str(err))
         except ValueError as err:
             er = 'com.amazonaws.dynamodb.v20111205#ValidationError'
             return self.error(er, 'Bad Filter Expression: {0}'.format(err))

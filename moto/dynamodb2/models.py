@@ -13,6 +13,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
 from .comparisons import get_comparison_func, get_filter_expression, Op
+from .exceptions import InvalidIndexNameError
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -572,7 +573,7 @@ class Table(BaseModel):
               index_name=None, filter_expression=None, **filter_kwargs):
         results = []
         if index_name:
-            all_indexes = (self.global_indexes or []) + (self.indexes or [])
+            all_indexes = self.all_indexes()
             indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
             if index_name not in indexes_by_name:
                 raise ValueError('Invalid index: %s for table: %s. Available indexes are: %s' % (
@@ -668,11 +669,39 @@ class Table(BaseModel):
             else:
                 yield hash_set
 
-    def scan(self, filters, limit, exclusive_start_key, filter_expression=None):
+    def all_indexes(self):
+        return (self.global_indexes or []) + (self.indexes or [])
+
+    def has_idx_items(self, index_name):
+
+        all_indexes = self.all_indexes()
+        indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+        idx = indexes_by_name[index_name]
+        idx_col_set = set([i['AttributeName'] for i in idx['KeySchema']])
+
+        for hash_set in self.items.values():
+            if self.range_key_attr:
+                for item in hash_set.values():
+                    if idx_col_set.issubset(set(item.attrs)):
+                        yield item
+            else:
+                if idx_col_set.issubset(set(hash_set.attrs)):
+                    yield hash_set
+
+    def scan(self, filters, limit, exclusive_start_key, filter_expression=None, index_name=None):
         results = []
         scanned_count = 0
+        all_indexes = self.all_indexes()
+        indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
 
-        for item in self.all_items():
+        if index_name:
+            if index_name not in indexes_by_name:
+                raise InvalidIndexNameError('The table does not have the specified index: %s' % index_name)
+            items = self.has_idx_items(index_name)
+        else:
+            items = self.all_items()
+
+        for item in items:
             scanned_count += 1
             passes_all_conditions = True
             for attribute_name, (comparison_operator, comparison_objs) in filters.items():
@@ -699,10 +728,10 @@ class Table(BaseModel):
                 results.append(item)
 
         results, last_evaluated_key = self._trim_results(results, limit,
-                                                         exclusive_start_key)
+                                                         exclusive_start_key, index_name)
         return results, scanned_count, last_evaluated_key
 
-    def _trim_results(self, results, limit, exclusive_start_key):
+    def _trim_results(self, results, limit, exclusive_start_key, scaned_index=None):
         if exclusive_start_key is not None:
             hash_key = DynamoType(exclusive_start_key.get(self.hash_key_attr))
             range_key = exclusive_start_key.get(self.range_key_attr)
@@ -721,6 +750,14 @@ class Table(BaseModel):
             }
             if results[-1].range_key is not None:
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
+
+            if scaned_index:
+                all_indexes = self.all_indexes()
+                indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+                idx = indexes_by_name[scaned_index]
+                idx_col_list = [i['AttributeName'] for i in idx['KeySchema']]
+                for col in idx_col_list:
+                    last_evaluated_key[col] = results[-1].attrs[col]
 
         return results, last_evaluated_key
 
@@ -889,7 +926,7 @@ class DynamoDBBackend(BaseBackend):
         return table.query(hash_key, range_comparison, range_values, limit,
                            exclusive_start_key, scan_index_forward, projection_expression, index_name, filter_expression, **filter_kwargs)
 
-    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values):
+    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values, index_name):
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -904,7 +941,7 @@ class DynamoDBBackend(BaseBackend):
         else:
             filter_expression = Op(None, None)  # Will always eval to true
 
-        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression)
+        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression, index_name)
 
     def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,
                     expression_attribute_values, expected=None):

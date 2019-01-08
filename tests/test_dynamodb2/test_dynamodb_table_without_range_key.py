@@ -788,3 +788,77 @@ def test_scan_pagination():
     results = page1['Items'] + page2['Items']
     usernames = set([r['username'] for r in results])
     usernames.should.equal(set(expected_usernames))
+
+
+@mock_dynamodb2
+def test_scan_by_index():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    dynamodb.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_col', 'AttributeType': 'S'}
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        GlobalSecondaryIndexes=[
+            {
+                'IndexName': 'test_gsi',
+                'KeySchema': [
+                    {
+                        'AttributeName': 'gsi_col',
+                        'KeyType': 'HASH'
+                    },
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 1,
+                    'WriteCapacityUnits': 1
+                }
+            },
+        ]
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '1'},
+            'col1': {'S': 'val1'},
+            'gsi_col': {'S': 'gsi_val1'},
+        }
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '2'},
+            'col1': {'S': 'val2'},
+            'gsi_col': {'S': 'gsi_val2'},
+        }
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '3'},
+            'col1': {'S': 'val3'},
+        }
+    )
+
+    res = dynamodb.scan(TableName='test')
+    assert res['Count'] == 3
+    assert len(res['Items']) == 3
+
+    res = dynamodb.scan(TableName='test', IndexName='test_gsi')
+    assert res['Count'] == 2
+    assert len(res['Items']) == 2
+
+    res = dynamodb.scan(TableName='test', IndexName='test_gsi', Limit=1)
+    assert res['Count'] == 1
+    assert len(res['Items']) == 1
+    last_eval_key = res['LastEvaluatedKey']
+    assert last_eval_key['id']['S'] == '1'
+    assert last_eval_key['gsi_col']['S'] == 'gsi_val1'
