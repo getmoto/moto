@@ -226,12 +226,14 @@ class FakeJob(BaseModel):
         self.targets = targets
         self.document_source = document_source
         self.document = document
+        self.force = False
         self.description = description
         self.presigned_url_config = presigned_url_config
         self.target_selection = target_selection
         self.job_executions_rollout_config = job_executions_rollout_config
-        self.status = None  # IN_PROGRESS | CANCELED | COMPLETED
+        self.status = 'QUEUED'  # IN_PROGRESS | CANCELED | COMPLETED
         self.comment = None
+        self.reason_code = None
         self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
         self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
         self.completed_at = None
@@ -258,6 +260,8 @@ class FakeJob(BaseModel):
             'jobExecutionsRolloutConfig': self.job_executions_rollout_config,
             'status': self.status,
             'comment': self.comment,
+            'forceCanceled': self.force,
+            'reasonCode': self.reason_code,
             'createdAt': self.created_at,
             'lastUpdatedAt': self.last_updated_at,
             'completedAt': self.completed_at,
@@ -778,13 +782,40 @@ class IoTBackend(BaseBackend):
             thing_name = thing_arn.split(':')[-1].split('/')[-1]
             job_execution = FakeJobExecution(job_id, thing_arn)
             self.job_executions[(job_id, thing_name)] = job_execution
-        return job.job_arn, job_id, description
+        return job
 
     def describe_job(self, job_id):
         jobs = [_ for _ in self.jobs.values() if _.job_id == job_id]
         if len(jobs) == 0:
             raise ResourceNotFoundException()
         return jobs[0]
+
+    def delete_job(self, job_id, force):
+        job = self.jobs[job_id]
+
+        if job.status == 'IN_PROGRESS' and force:
+            del self.jobs[job_id]
+        elif job.status != 'IN_PROGRESS':
+            del self.jobs[job_id]
+        else:
+            raise InvalidStateTransitionException()
+
+    def cancel_job(self, job_id, reason_code, comment, force):
+        job = self.jobs[job_id]
+
+        job.reason_code = reason_code if reason_code is not None else job.reason_code
+        job.comment = comment if comment is not None else job.comment
+        job.force = force if force is not None and force != job.force else job.force
+        job.status = 'CANCELED'
+
+        if job.status == 'IN_PROGRESS' and force:
+            self.jobs[job_id] = job
+        elif job.status != 'IN_PROGRESS':
+            self.jobs[job_id] = job
+        else:
+            raise InvalidStateTransitionException()
+
+        return job
 
     def get_job_document(self, job_id):
         return self.jobs[job_id]

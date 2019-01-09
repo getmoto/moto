@@ -873,6 +873,86 @@ def test_describe_job_1():
 
 
 @mock_iot
+def test_delete_job():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key('job')
+    job.should.have.key('job').which.should.have.key("jobId").which.should.equal(job_id)
+
+    client.delete_job(jobId=job_id)
+
+    client.list_jobs()['jobs'].should.have.length_of(0)
+
+
+@mock_iot
+def test_cancel_job():
+    client = boto3.client('iot', region_name='eu-west-1')
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key('thingName').which.should.equal(name)
+    thing.should.have.key('thingArn')
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            'roleArn': 'arn:aws:iam::1:role/service-role/iot_job_role',
+            'expiresInSec': 123
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={
+            'maximumPerMinute': 10
+        }
+    )
+
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key('job')
+    job.should.have.key('job').which.should.have.key("jobId").which.should.equal(job_id)
+
+    job = client.cancel_job(jobId=job_id, reasonCode='Because', comment='You are')
+    job.should.have.key('jobId').which.should.equal(job_id)
+    job.should.have.key('jobArn')
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key('job')
+    job.should.have.key('job').which.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key('job').which.should.have.key("status").which.should.equal('CANCELED')
+    job.should.have.key('job').which.should.have.key("forceCanceled").which.should.equal(False)
+    job.should.have.key('job').which.should.have.key("reasonCode").which.should.equal('Because')
+    job.should.have.key('job').which.should.have.key("comment").which.should.equal('You are')
+
+
+@mock_iot
 def test_get_job_document_with_document_source():
     client = boto3.client('iot', region_name='eu-west-1')
     name = "my-thing"
