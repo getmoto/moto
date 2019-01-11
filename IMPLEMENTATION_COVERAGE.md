@@ -475,19 +475,19 @@
 - [ ] continue_update_rollback
 - [X] create_change_set
 - [X] create_stack
-- [ ] create_stack_instances
-- [ ] create_stack_set
+- [X] create_stack_instances
+- [X] create_stack_set
 - [ ] delete_change_set
 - [X] delete_stack
-- [ ] delete_stack_instances
-- [ ] delete_stack_set
+- [X] delete_stack_instances
+- [X] delete_stack_set
 - [ ] describe_account_limits
 - [ ] describe_change_set
 - [ ] describe_stack_events
-- [ ] describe_stack_instance
+- [X] describe_stack_instance
 - [ ] describe_stack_resource
 - [ ] describe_stack_resources
-- [ ] describe_stack_set
+- [X] describe_stack_set
 - [ ] describe_stack_set_operation
 - [X] describe_stacks
 - [ ] estimate_template_cost
@@ -498,18 +498,18 @@
 - [ ] list_change_sets
 - [X] list_exports
 - [ ] list_imports
-- [ ] list_stack_instances
+- [X] list_stack_instances
 - [X] list_stack_resources
 - [ ] list_stack_set_operation_results
-- [ ] list_stack_set_operations
-- [ ] list_stack_sets
+- [X] list_stack_set_operations
+- [X] list_stack_sets
 - [X] list_stacks
 - [ ] set_stack_policy
 - [ ] signal_resource
 - [ ] stop_stack_set_operation
 - [X] update_stack
-- [ ] update_stack_instances
-- [ ] update_stack_set
+- [X] update_stack_instances
+- [X] update_stack_set
 - [ ] update_termination_protection
 - [ ] validate_template
 
