@@ -145,20 +145,14 @@ class SESBackend(BaseBackend):
         domain = str(source)
         if "@" in domain:
             domain = domain.split("@")[1]
-        print(domain, self.sns_topics)
         if domain in self.sns_topics:
-            print("SNS Feedback configured for %s => %s" % (domain, self.sns_topics[domain]))
             msg_type = self.__type_of_message__(destinations)
-            print("Message type for destinations %s => %s" % (destinations, msg_type))
             if msg_type is not None:
                 sns_topic = self.sns_topics[domain].get(msg_type, None)
                 if sns_topic is not None:
                     message = self.__generate_feedback__(msg_type)
                     if message:
-                        print("Message generated for %s => %s" % (message, msg_type))
                         sns_backends[region].publish(sns_topic, message)
-        else:
-            print("SNS Feedback not configured")
 
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
