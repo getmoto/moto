@@ -11,6 +11,7 @@ from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
 RECIPIENT_LIMIT = 50
 
+
 class SESFeedback(BaseModel):
 
     BOUNCE = "Bounce"
