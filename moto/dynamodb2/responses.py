@@ -8,6 +8,9 @@ from moto.core.utils import camelcase_to_underscores, amzn_request_id
 from .models import dynamodb_backends, dynamo_json_dump
 
 
+TRANSACTION_MAX_ITEMS = 10
+
+
 def has_empty_keys_or_values(_dict):
     if _dict == "":
         return True
@@ -676,3 +679,69 @@ class DynamoHandler(BaseResponse):
         ttl_spec = self.dynamodb_backend.describe_ttl(name)
 
         return json.dumps({'TimeToLiveDescription': ttl_spec})
+
+    def transact_get_items(self):
+        transact_items = self.body['TransactItems']
+        responses = list()
+
+        if len(transact_items) > TRANSACTION_MAX_ITEMS:
+            msg = "1 validation error detected: Value '["
+            err_list = list()
+            request_id = 268435456
+            for _ in transact_items:
+                request_id += 1
+                hex_request_id = format(request_id, 'x')
+                err_list.append('com.amazonaws.dynamodb.v20120810.TransactGetItem@%s' % hex_request_id)
+            msg += ', '.join(err_list)
+            msg += "'] at 'transactItems' failed to satisfy constraint: " \
+                   "Member must have length less than or equal to %s" % TRANSACTION_MAX_ITEMS
+
+            return self.error('ValidationException', msg)
+
+        dedup_list = [i for n, i in enumerate(transact_items) if i not in transact_items[n + 1:]]
+        if len(transact_items) != len(dedup_list):
+            er = 'com.amazon.coral.validate#ValidationException'
+            return self.error(er, 'Transaction request cannot include multiple operations on one item')
+
+        ret_consumed_capacity = self.body.get('ReturnConsumedCapacity', 'NONE')
+        consumed_capacity = dict()
+
+        for transact_item in transact_items:
+
+            table_name = transact_item['Get']['TableName']
+            key = transact_item['Get']['Key']
+            try:
+                item = self.dynamodb_backend.get_item(table_name, key)
+            except ValueError as e:
+                er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
+                return self.error(er, 'Requested resource not found')
+
+            if not item:
+                continue
+
+            item_describe = item.describe_attrs(False)
+            responses.append(item_describe)
+
+            table_capacity = consumed_capacity.get(table_name, {})
+            table_capacity['TableName'] = table_name
+            capacity_units = table_capacity.get('CapacityUnits', 0) + 2.0
+            table_capacity['CapacityUnits'] = capacity_units
+            read_capacity_units = table_capacity.get('ReadCapacityUnits', 0) + 2.0
+            table_capacity['ReadCapacityUnits'] = read_capacity_units
+            consumed_capacity[table_name] = table_capacity
+
+            if ret_consumed_capacity == 'INDEXES':
+                table_capacity['Table'] = {
+                    'CapacityUnits': capacity_units,
+                    'ReadCapacityUnits': read_capacity_units
+                }
+
+        result = dict()
+        result.update({
+            'Responses': responses})
+        if ret_consumed_capacity != 'NONE':
+            result.update({
+                'ConsumedCapacity': [v for v in consumed_capacity.values()]
+            })
+
+        return dynamo_json_dump(result)

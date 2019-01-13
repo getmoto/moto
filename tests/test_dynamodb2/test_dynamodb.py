@@ -6,8 +6,9 @@ import six
 import boto
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
-import sure  # noqa
+import re
 import requests
+import sure  # noqa
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
@@ -1504,4 +1505,308 @@ def test_dynamodb_streams_2():
     }
     assert 'LatestStreamLabel' in resp['TableDescription']
     assert 'LatestStreamArn' in resp['TableDescription']
-    
+
+
+@mock_dynamodb2
+def test_invalid_transact_get_items():
+
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    dynamodb.create_table(
+        TableName='test1',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
+    )
+    table =  dynamodb.Table('test1')
+    table.put_item(Item={
+        'id': '1',
+        'val': '1',
+    })
+
+    table.put_item(Item={
+        'id': '1',
+        'val': '2',
+    })
+
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    with assert_raises(ClientError) as ex:
+        client.transact_get_items(TransactItems=[
+            {
+                'Get': {
+                    'Key': {
+                        'id': {'S': '1'},
+                    },
+                    'TableName': 'test1'
+                }
+            },
+            {
+                'Get': {
+                    'Key': {
+                        'id': {'S': '1'},
+                    },
+                    'TableName': 'test1'
+                }
+            }
+        ])
+
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'Transaction request cannot include multiple operations on one item'
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.transact_get_items(TransactItems=[
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+        ])
+
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.match(
+        r'failed to satisfy constraint: Member must have length less than or equal to 10', re.I
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.transact_get_items(TransactItems=[
+            {
+                'Get': {
+                    'Key': {
+                        'id': {'S': '1'},
+                    },
+                    'TableName': 'test1'
+                }
+            },
+            {
+                'Get': {
+                    'Key': {
+                        'id': {'S': '1'},
+                    },
+                    'TableName': 'non_exists_table'
+                }
+            }
+        ])
+
+    ex.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'Requested resource not found'
+    )
+
+
+@mock_dynamodb2
+def test_valid_transact_get_items():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    dynamodb.create_table(
+        TableName='test1',
+        KeySchema=[
+            {'AttributeName': 'id', 'KeyType': 'HASH'},
+            {'AttributeName': 'sort_key', 'KeyType': 'RANGE'},
+        ],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'sort_key', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
+    )
+    table1 = dynamodb.Table('test1')
+    table1.put_item(Item={
+        'id': '1',
+        'sort_key': '1',
+    })
+
+    table1.put_item(Item={
+        'id': '1',
+        'sort_key': '2',
+    })
+
+    dynamodb.create_table(
+        TableName='test2',
+        KeySchema=[
+            {'AttributeName': 'id', 'KeyType': 'HASH'},
+            {'AttributeName': 'sort_key', 'KeyType': 'RANGE'},
+        ],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'sort_key', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
+    )
+    table2 = dynamodb.Table('test2')
+    table2.put_item(Item={
+        'id': '1',
+        'sort_key': '1',
+    })
+
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    res = client.transact_get_items(TransactItems=[
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': 'non_exists_key'},
+                    'sort_key': {'S': '2'}
+                },
+                'TableName': 'test1'
+            }
+        }
+    ])
+    res['Responses'][0]['Item'].should.equal({
+        'id': {'S': '1'},
+        'sort_key': {'S': '1'}
+    })
+    len(res['Responses']).should.equal(1)
+
+    res = client.transact_get_items(TransactItems=[
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '2'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test2'
+            }
+        },
+    ])
+
+    res['Responses'][0]['Item'].should.equal({
+        'id': {'S': '1'},
+        'sort_key': {'S': '1'}
+    })
+
+    res['Responses'][1]['Item'].should.equal({
+        'id': {'S': '1'},
+        'sort_key': {'S': '2'}
+    })
+
+    res['Responses'][2]['Item'].should.equal({
+        'id': {'S': '1'},
+        'sort_key': {'S': '1'}
+    })
+
+    res = client.transact_get_items(TransactItems=[
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '2'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test2'
+            }
+        },
+    ], ReturnConsumedCapacity='TOTAL')
+
+    res['ConsumedCapacity'][0].should.equal({
+        'TableName': 'test1',
+        'CapacityUnits': 4.0,
+        'ReadCapacityUnits': 4.0
+    })
+
+    res['ConsumedCapacity'][1].should.equal({
+        'TableName': 'test2',
+        'CapacityUnits': 2.0,
+        'ReadCapacityUnits': 2.0
+    })
+
+    res = client.transact_get_items(TransactItems=[
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '2'}
+                },
+                'TableName': 'test1'
+            }
+        },
+        {
+            'Get': {
+                'Key': {
+                    'id': {'S': '1'},
+                    'sort_key': {'S': '1'}
+                },
+                'TableName': 'test2'
+            }
+        },
+    ], ReturnConsumedCapacity='INDEXES')
+
+    res['ConsumedCapacity'][0].should.equal({
+        'TableName': 'test1',
+        'CapacityUnits': 4.0,
+        'ReadCapacityUnits': 4.0,
+        'Table': {
+            'CapacityUnits': 4.0,
+            'ReadCapacityUnits': 4.0,
+        }
+    })
+
+    res['ConsumedCapacity'][1].should.equal({
+        'TableName': 'test2',
+        'CapacityUnits': 2.0,
+        'ReadCapacityUnits': 2.0,
+        'Table': {
+            'CapacityUnits': 2.0,
+            'ReadCapacityUnits': 2.0,
+        }
+    })
