@@ -712,7 +712,7 @@ class DynamoHandler(BaseResponse):
             key = transact_item['Get']['Key']
             try:
                 item = self.dynamodb_backend.get_item(table_name, key)
-            except ValueError as e:
+            except ValueError:
                 er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
                 return self.error(er, 'Requested resource not found')
 
