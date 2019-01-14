@@ -2871,7 +2871,7 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 31% implemented
+## iot - 33% implemented
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
 - [X] add_thing_to_thing_group
@@ -2882,7 +2882,7 @@
 - [X] attach_thing_principal
 - [ ] cancel_audit_task
 - [ ] cancel_certificate_transfer
-- [ ] cancel_job
+- [X] cancel_job
 - [X] cancel_job_execution
 - [ ] clear_default_authorizer
 - [ ] create_authorizer
@@ -2908,7 +2908,7 @@
 - [ ] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_dynamic_thing_group
-- [ ] delete_job
+- [X] delete_job
 - [X] delete_job_execution
 - [ ] delete_ota_update
 - [X] delete_policy
@@ -5213,11 +5213,14 @@
 - [ ] list_activities
 - [ ] list_executions
 - [ ] list_state_machines
+- [ ] list_tags_for_resource
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
 - [ ] start_execution
 - [ ] stop_execution
+- [ ] tag_resource
+- [ ] untag_resource
 - [ ] update_state_machine
 
 ## storagegateway - 0% implemented
