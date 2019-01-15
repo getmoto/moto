@@ -866,6 +866,9 @@ class S3Backend(BaseBackend):
         bucket.set_notification_configuration(notification_config)
 
     def put_bucket_accelerate_configuration(self, bucket_name, accelerate_configuration):
+        if accelerate_configuration not in ['Enabled', 'Suspended']:
+            raise MalformedXML()
+
         bucket = self.get_bucket(bucket_name)
         bucket.set_accelerate_configuration(accelerate_configuration)
 

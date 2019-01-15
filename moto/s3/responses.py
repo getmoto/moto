@@ -451,8 +451,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 raise e
         elif "accelerate" in querystring:
             try:
-                self.backend.put_bucket_accelerate_configuration(bucket_name,
-                                                                 self._accelerate_config_from_xml(body))
+                accelerate_status = self._accelerate_config_from_xml(body)
+                self.backend.put_bucket_accelerate_configuration(bucket_name, accelerate_status)
                 return ""
             except KeyError:
                 raise MalformedXML()

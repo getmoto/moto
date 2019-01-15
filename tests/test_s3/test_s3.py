@@ -2873,3 +2873,15 @@ def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.shouldnt.have.key('Status')
+
+@mock_s3
+def test_accelerate_configuration_status_validation():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as exc:
+        s3.put_bucket_accelerate_configuration(
+            Bucket=bucket_name,
+            AccelerateConfiguration={'Status': 'bad_status'},
+        )
+    exc.exception.response['Error']['Code'].should.equal('MalformedXML')
