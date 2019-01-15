@@ -2820,3 +2820,11 @@ def test_boto3_bucket_name_too_short():
     with assert_raises(ClientError) as exc:
         s3.create_bucket(Bucket='x'*2)
     exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
+
+@mock_s3
+def test_accelerated_none_when_unspecified():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
+    resp.shouldnt.have.key('Status')

@@ -257,6 +257,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 200, {}, ""
             template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
             return template.render(bucket=bucket)
+        elif "accelerate" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if bucket.accelerated is None:
+                template = self.response_template(S3_BUCKET_ACCELERATE_NOT_SET)
+                return 200, {}, template.render()
+            template = self.response_template(S3_BUCKET_ACCELERATE)
+            return template.render(bucket=bucket)
 
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
@@ -1685,4 +1692,14 @@ S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </CloudFunctionConfiguration>
   {% endfor %}
 </NotificationConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Status>{% if bucket.accelerated %}Enabled{% else %}Suspended{% endif %}</Status>
+</AccelerateConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE_NOT_SET = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 """

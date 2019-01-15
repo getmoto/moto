@@ -463,6 +463,7 @@ class FakeBucket(BaseModel):
         self.cors = []
         self.logging = {}
         self.notification_configuration = None
+        self.accelerated = None
 
     @property
     def location(self):
