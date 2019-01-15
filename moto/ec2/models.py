@@ -720,6 +720,7 @@ class InstanceBackend(object):
         instance_tags = tags.get('instance', {})
 
         for index in range(count):
+            kwargs["ami_launch_index"] = index
             new_instance = Instance(
                 self,
                 image_id,
