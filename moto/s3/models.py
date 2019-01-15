@@ -17,8 +17,11 @@ import six
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, \
-    EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, InvalidStorageClass, DuplicateTagKeys
+from .exceptions import (
+    BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, InvalidRequest,
+    EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, InvalidStorageClass,
+    InvalidTargetBucketForLogging, DuplicateTagKeys, CrossLocationLoggingProhibitted
+)
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -558,7 +561,6 @@ class FakeBucket(BaseModel):
         self.rules = []
 
     def set_cors(self, rules):
-        from moto.s3.exceptions import InvalidRequest, MalformedXML
         self.cors = []
 
         if len(rules) > 100:
@@ -608,7 +610,6 @@ class FakeBucket(BaseModel):
             self.logging = {}
             return
 
-        from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
         # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
         if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
             raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
@@ -870,6 +871,8 @@ class S3Backend(BaseBackend):
             raise MalformedXML()
 
         bucket = self.get_bucket(bucket_name)
+        if bucket.name.find('.') != -1:
+            raise InvalidRequest('PutBucketAccelerateConfiguration')
         bucket.set_accelerate_configuration(accelerate_configuration)
 
     def initiate_multipart(self, bucket_name, key_name, metadata):

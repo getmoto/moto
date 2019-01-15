@@ -2885,3 +2885,15 @@ def test_accelerate_configuration_status_validation():
             AccelerateConfiguration={'Status': 'bad_status'},
         )
     exc.exception.response['Error']['Code'].should.equal('MalformedXML')
+
+@mock_s3
+def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
+    bucket_name = 'some.bucket.with.dots'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as exc:
+        s3.put_bucket_accelerate_configuration(
+            Bucket=bucket_name,
+            AccelerateConfiguration={'Status': 'Enabled'},
+        )
+    exc.exception.response['Error']['Code'].should.equal('InvalidRequest')
