@@ -463,7 +463,7 @@ class FakeBucket(BaseModel):
         self.cors = []
         self.logging = {}
         self.notification_configuration = None
-        self.accelerated = None
+        self.accelerate_configuration = None
 
     @property
     def location(self):
@@ -655,6 +655,9 @@ class FakeBucket(BaseModel):
                 region = t.arn.split(":")[3]
                 if region != self.region_name:
                     raise InvalidNotificationDestination()
+
+    def set_accelerate_configuration(self, accelerate_config):
+        self.accelerate_configuration = accelerate_config
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -857,6 +860,10 @@ class S3Backend(BaseBackend):
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
+
+    def put_bucket_accelerate_configuration(self, bucket_name, accelerate_configuration):
+        bucket = self.get_bucket(bucket_name)
+        bucket.set_accelerate_configuration(accelerate_configuration)
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
