@@ -657,6 +657,10 @@ class FakeBucket(BaseModel):
                     raise InvalidNotificationDestination()
 
     def set_accelerate_configuration(self, accelerate_config):
+        if self.accelerate_configuration is None and accelerate_config == 'Suspended':
+            # Cannot "suspend" a not active acceleration. Leaves it undefined
+            return
+
         self.accelerate_configuration = accelerate_config
 
     def set_website_configuration(self, website_configuration):

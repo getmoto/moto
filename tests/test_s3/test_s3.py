@@ -2860,3 +2860,16 @@ def test_can_suspend_bucket_acceleration():
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.should.have.key('Status')
     resp['Status'].should.equal('Suspended')
+
+@mock_s3
+def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    resp = s3.put_bucket_accelerate_configuration(
+        Bucket=bucket_name,
+        AccelerateConfiguration={'Status': 'Suspended'},
+    )
+    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
+    resp.shouldnt.have.key('Status')
