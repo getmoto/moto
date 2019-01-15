@@ -412,6 +412,30 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE)
         return template.render(stackset=stackset)
 
+    def stop_stack_set_operation(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        stackset.update_operation(operation_id, 'STOPPED')
+        template = self.response_template(STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE)
+        return template.render()
+
+    def describe_stack_set_operation(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        operation = stackset.get_operation(operation_id)
+        template = self.response_template(DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE)
+        return template.render(stackset=stackset, operation=operation)
+
+    def list_stack_set_operation_results(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        operation = stackset.get_operation(operation_id)
+        template = self.response_template(LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE)
+        return template.render(operation=operation)
+
     def update_stack_set(self):
         stackset_name = self._get_param('StackSetName')
         operation_id = self._get_param('OperationId')
@@ -877,4 +901,57 @@ LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE = """<ListStackSetOperationsResponse
     <RequestId>65b9d9be-08bb-4a43-9a21-example</RequestId>
   </ResponseMetadata>
 </ListStackSetOperationsResponse>
+"""
+
+STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <StopStackSetOperationResult/>
+  <ResponseMetadata>
+    <RequestId>2188554a-07c6-4396-b2c5-example</RequestId>
+  </ResponseMetadata>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </StopStackSetOperationResponse>
+"""
+
+DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <DescribeStackSetOperationResult>
+    <StackSetOperation>
+      <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
+      <AdministrationRoleARN>arn:aws:iam::123456789012:role/{{ stackset.admin_role }}</AdministrationRoleARN>
+      <StackSetId>{{ stackset.id }}</StackSetId>
+      <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
+      <OperationId>{{ operation.OperationId }}</OperationId>
+      <Action>{{ operation.Action }}</Action>
+      <OperationPreferences>
+        <RegionOrder/>
+      </OperationPreferences>
+      <EndTimestamp>{{ operation.EndTimestamp }}</EndTimestamp>
+      <Status>{{ operation.Status }}</Status>
+    </StackSetOperation>
+  </DescribeStackSetOperationResult>
+  <ResponseMetadata>
+    <RequestId>2edc27b6-9ce2-486a-a192-example</RequestId>
+  </ResponseMetadata>
+</DescribeStackSetOperationResponse>
+"""
+
+LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationResultsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <ListStackSetOperationResultsResult>
+    <Summaries>
+    {% for instance in operation.Instances %}
+    {% for account, region in instance.items() %}
+      <member>
+        <AccountGateResult>
+          <StatusReason>Function not found: arn:aws:lambda:us-west-2:123456789012:function:AWSCloudFormationStackSetAccountGate</StatusReason>
+          <Status>SKIPPED</Status>
+        </AccountGateResult>
+        <Region>{{ region }}</Region>
+        <Account>{{ account }}</Account>
+        <Status>{{ operation.Status }}</Status>
+      </member>
+    {% endfor %}
+    {% endfor %}
+    </Summaries>
+  </ListStackSetOperationResultsResult>
+  <ResponseMetadata>
+    <RequestId>ac05a9ce-5f98-4197-a29b-example</RequestId>
+  </ResponseMetadata>
+</ListStackSetOperationResultsResponse>
 """

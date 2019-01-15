@@ -241,6 +241,86 @@ def test_boto3_list_stacksets_contents():
 
 
 @mock_cloudformation
+def test_boto3_stop_stack_set_operation():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_json,
+    )
+    cf_conn.create_stack_instances(
+        StackSetName="test_stack_set",
+        Accounts=['123456789012'],
+        Regions=['us-east-1', 'us-west-1', 'us-west-2'],
+    )
+    operation_id = cf_conn.list_stack_set_operations(
+        StackSetName="test_stack_set")['Summaries'][-1]['OperationId']
+    cf_conn.stop_stack_set_operation(
+        StackSetName="test_stack_set",
+        OperationId=operation_id
+    )
+    list_operation = cf_conn.list_stack_set_operations(
+        StackSetName="test_stack_set"
+    )
+    list_operation['Summaries'][-1]['Status'].should.equal('STOPPED')
+
+
+@mock_cloudformation
+def test_boto3_describe_stack_set_operation():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_json,
+    )
+    cf_conn.create_stack_instances(
+        StackSetName="test_stack_set",
+        Accounts=['123456789012'],
+        Regions=['us-east-1', 'us-west-1', 'us-west-2'],
+    )
+    operation_id = cf_conn.list_stack_set_operations(
+        StackSetName="test_stack_set")['Summaries'][-1]['OperationId']
+    cf_conn.stop_stack_set_operation(
+        StackSetName="test_stack_set",
+        OperationId=operation_id
+    )
+    response = cf_conn.describe_stack_set_operation(
+        StackSetName="test_stack_set",
+        OperationId=operation_id,
+    )
+
+    response['StackSetOperation']['Status'].should.equal('STOPPED')
+    response['StackSetOperation']['Action'].should.equal('CREATE')
+
+
+@mock_cloudformation
+def test_boto3_list_stack_set_operation_results():
+    cf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    cf_conn.create_stack_set(
+        StackSetName="test_stack_set",
+        TemplateBody=dummy_template_json,
+    )
+    cf_conn.create_stack_instances(
+        StackSetName="test_stack_set",
+        Accounts=['123456789012'],
+        Regions=['us-east-1', 'us-west-1', 'us-west-2'],
+    )
+    operation_id = cf_conn.list_stack_set_operations(
+        StackSetName="test_stack_set")['Summaries'][-1]['OperationId']
+
+    cf_conn.stop_stack_set_operation(
+        StackSetName="test_stack_set",
+        OperationId=operation_id
+    )
+    response = cf_conn.list_stack_set_operation_results(
+        StackSetName="test_stack_set",
+        OperationId=operation_id,
+    )
+
+    response['Summaries'].should.have.length_of(3)
+    response['Summaries'][0].should.have.key('Account').which.should.equal('123456789012')
+    response['Summaries'][1].should.have.key('Status').which.should.equal('STOPPED')
+
+
+@mock_cloudformation
 def test_boto3_update_stack_instances():
     cf_conn = boto3.client('cloudformation', region_name='us-east-1')
     param = [

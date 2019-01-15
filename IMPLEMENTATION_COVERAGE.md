@@ -470,7 +470,7 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 21% implemented
+## cloudformation - 56% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
@@ -488,7 +488,7 @@
 - [ ] describe_stack_resource
 - [ ] describe_stack_resources
 - [X] describe_stack_set
-- [ ] describe_stack_set_operation
+- [X] describe_stack_set_operation
 - [X] describe_stacks
 - [ ] estimate_template_cost
 - [X] execute_change_set
@@ -500,13 +500,13 @@
 - [ ] list_imports
 - [X] list_stack_instances
 - [X] list_stack_resources
-- [ ] list_stack_set_operation_results
+- [X] list_stack_set_operation_results
 - [X] list_stack_set_operations
 - [X] list_stack_sets
 - [X] list_stacks
 - [ ] set_stack_policy
 - [ ] signal_resource
-- [ ] stop_stack_set_operation
+- [X] stop_stack_set_operation
 - [X] update_stack
 - [X] update_stack_instances
 - [X] update_stack_set

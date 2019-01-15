@@ -22,7 +22,10 @@ from .exceptions import ValidationError
 
 class FakeStackSet(BaseModel):
 
-    def __init__(self, stackset_id, name, template, region='us-east-1', status='ACTIVE', description=None, parameters=None, tags=None, admin_role=None, execution_role=None):
+    def __init__(self, stackset_id, name, template, region='us-east-1',
+            status='ACTIVE', description=None, parameters=None, tags=None,
+            admin_role='AWSCloudFormationStackSetAdministrationRole',
+            execution_role='AWSCloudFormationStackSetExecutionRole'):
         self.id = stackset_id
         self.arn = generate_stackset_arn(stackset_id, region)
         self.name = name
@@ -34,23 +37,32 @@ class FakeStackSet(BaseModel):
         self.execution_role = execution_role
         self.status = status
         self.instances = FakeStackInstances(parameters, self.id, self.name)
+        self.stack_instances = self.instances.stack_instances
         self.operations = []
 
-    @property
-    def stack_instances(self):
-        return self.instances.stack_instances
-
-    def _create_operation(self, operation_id, action, status):
+    def _create_operation(self, operation_id, action, status, accounts=[], regions=[]):
         operation = {
             'OperationId': str(operation_id),
             'Action': action,
             'Status': status,
             'CreationTimestamp': datetime.now(),
             'EndTimestamp': datetime.now() + timedelta(minutes=2),
+            'Instances': [{account: region} for account in accounts for region in regions],
         }
 
         self.operations += [operation]
         return operation
+
+    def get_operation(self, operation_id):
+        for operation in self.operations:
+            if operation_id == operation['OperationId']:
+                return operation
+        raise ValidationError(operation_id)
+
+    def update_operation(self, operation_id, status):
+        operation = self.get_operation(operation_id)
+        operation['Status'] = status
+        return operation_id
 
     def delete(self):
         self.status = 'DELETED'
@@ -70,7 +82,9 @@ class FakeStackSet(BaseModel):
         if accounts and regions:
             self.update_instances(accounts, regions, self.parameters)
 
-        operation = self._create_operation(operation_id=operation_id, action='UPDATE', status='SUCCEEDED')
+        operation = self._create_operation(operation_id=operation_id,
+                action='UPDATE', status='SUCCEEDED', accounts=accounts,
+                regions=regions)
         return operation
 
     def create_stack_instances(self, accounts, regions, parameters, operation_id=None):
@@ -80,7 +94,8 @@ class FakeStackSet(BaseModel):
             parameters = self.parameters
 
         self.instances.create_instances(accounts, regions, parameters, operation_id)
-        self._create_operation(operation_id=operation_id, action='CREATE', status='SUCCEEDED')
+        self._create_operation(operation_id=operation_id, action='CREATE',
+                status='SUCCEEDED', accounts=accounts, regions=regions)
 
     def delete_stack_instances(self, accounts, regions, operation_id=None):
         if not operation_id:
@@ -88,14 +103,17 @@ class FakeStackSet(BaseModel):
 
         self.instances.delete(accounts, regions)
 
-        self._create_operation(operation_id=operation_id, action='DELETE', status='SUCCEEDED')
+        self._create_operation(operation_id=operation_id, action='DELETE',
+                status='SUCCEEDED', accounts=accounts, regions=regions)
 
     def update_instances(self, accounts, regions, parameters, operation_id=None):
         if not operation_id:
             operation_id = uuid.uuid4()
 
         self.instances.update(accounts, regions, parameters)
-        operation = self._create_operation(operation_id=operation_id, action='UPDATE', status='SUCCEEDED')
+        operation = self._create_operation(operation_id=operation_id,
+                action='UPDATE', status='SUCCEEDED', accounts=accounts,
+                regions=regions)
         return operation
 
 
