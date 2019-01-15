@@ -103,8 +103,9 @@ class FakeStackSet(BaseModel):
 
         self.instances.delete(accounts, regions)
 
-        self._create_operation(operation_id=operation_id, action='DELETE',
+        operation = self._create_operation(operation_id=operation_id, action='DELETE',
                 status='SUCCEEDED', accounts=accounts, regions=regions)
+        return operation
 
     def update_instances(self, accounts, regions, parameters, operation_id=None):
         if not operation_id:

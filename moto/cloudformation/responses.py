@@ -368,10 +368,10 @@ class CloudFormationResponse(BaseResponse):
         stackset_name = self._get_param('StackSetName')
         accounts = self._get_multi_param('Accounts.member')
         regions = self._get_multi_param('Regions.member')
-        self.cloudformation_backend.delete_stack_instances(stackset_name, accounts, regions)
+        operation = self.cloudformation_backend.delete_stack_instances(stackset_name, accounts, regions)
 
         template = self.response_template(DELETE_STACK_INSTANCES_TEMPLATE)
-        return template.render()
+        return template.render(operation=operation)
 
     def describe_stack_set(self):
         stackset_name = self._get_param('StackSetName')
@@ -806,7 +806,7 @@ LIST_STACK_INSTANCES_TEMPLATE = """<ListStackInstancesResponse xmlns="http://int
 
 DELETE_STACK_INSTANCES_TEMPLATE = """<DeleteStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <DeleteStackInstancesResult>
-    <OperationId>d76a070d-279a-45f3-b9b4-example</OperationId>
+    <OperationId>{{ operation.OperationId }}</OperationId>
   </DeleteStackInstancesResult>
   <ResponseMetadata>
     <RequestId>e5325090-66f6-4ecd-a531-example</RequestId>
