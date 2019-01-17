@@ -83,6 +83,18 @@ get_availability_zones_output = {
     }
 }
 
+parameters = {
+    "Parameters": {
+        "Param": {
+            "Type": "String",
+        },
+        "NoEchoParam": {
+            "Type": "String",
+            "NoEcho": True
+        }
+    }
+}
+
 split_select_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -157,6 +169,9 @@ get_attribute_outputs_template = dict(
 get_availability_zones_template = dict(
     list(dummy_template.items()) + list(get_availability_zones_output.items()))
 
+parameters_template = dict(
+    list(dummy_template.items()) + list(parameters.items()))
+
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
 output_type_template_json = json.dumps(outputs_template)
@@ -165,6 +180,7 @@ get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
 get_availability_zones_template_json = json.dumps(
     get_availability_zones_template)
+parameters_template_json = json.dumps(parameters_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
 export_value_template_json = json.dumps(export_value_template)
@@ -288,6 +304,18 @@ def test_parse_stack_with_get_availability_zones():
 def test_parse_stack_with_bad_get_attribute_outputs():
     FakeStack.when.called_with(
         "test_id", "test_stack", bad_output_template_json, {}, "us-west-1").should.throw(ValidationError)
+
+
+def test_parse_stack_with_parameters():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=parameters_template_json,
+        parameters={"Param": "visible value", "NoEchoParam": "hidden value"},
+        region_name='us-west-1')
+
+    stack.resource_map.no_echo_parameter_keys.should.have("NoEchoParam")
+    stack.resource_map.no_echo_parameter_keys.should_not.have("Param")
 
 
 def test_parse_equals_condition():

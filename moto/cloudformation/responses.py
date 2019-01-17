@@ -395,7 +395,11 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
         {% for param_name, param_value in stack.stack_parameters.items() %}
           <member>
             <ParameterKey>{{ param_name }}</ParameterKey>
-            <ParameterValue>{{ param_value }}</ParameterValue>
+            {% if param_name in stack.resource_map.no_echo_parameter_keys %}
+                <ParameterValue>****</ParameterValue>
+            {% else %}
+                <ParameterValue>{{ param_value }}</ParameterValue>
+            {% endif %}
           </member>
         {% endfor %}
         </Parameters>
