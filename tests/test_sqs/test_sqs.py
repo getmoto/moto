@@ -416,7 +416,9 @@ def test_send_receive_message_timestamps():
     conn.create_queue(QueueName="test-queue")
     queue = sqs.Queue("test-queue")
 
-    queue.send_message(MessageBody="derp")
+    response = queue.send_message(MessageBody="derp")
+    assert response['ResponseMetadata']['RequestId']
+
     messages = conn.receive_message(
         QueueUrl=queue.url, MaxNumberOfMessages=1)['Messages']
 
