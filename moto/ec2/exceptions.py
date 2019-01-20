@@ -438,3 +438,12 @@ class InvalidCIDRBlockParameterError(EC2ClientError):
             "InvalidParameterValue",
             "Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
         )
+
+
+class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidDestinationCIDRBlockParameterError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
+        )

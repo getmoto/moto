@@ -38,6 +38,7 @@ from .exceptions import (
     InvalidCIDRBlockParameterError,
     InvalidCIDRSubnetError,
     InvalidCustomerGatewayIdError,
+    InvalidDestinationCIDRBlockParameterError,
     InvalidDHCPOptionsIdError,
     InvalidDomainError,
     InvalidID,
@@ -2727,6 +2728,11 @@ class RouteBackend(object):
                 gateway = self.get_vpn_gateway(gateway_id)
             elif EC2_RESOURCE_TO_PREFIX['internet-gateway'] in gateway_id:
                 gateway = self.get_internet_gateway(gateway_id)
+
+        try:
+            ipaddress.ip_network(six.text_type(destination_cidr_block), strict=False)
+        except ValueError:
+            raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
         route = Route(route_table, destination_cidr_block, local=local,
                       gateway=gateway,
