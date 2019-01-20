@@ -429,3 +429,12 @@ class InvalidSubnetRangeError(EC2ClientError):
             "InvalidSubnet.Range",
             "The CIDR '{}' is invalid.".format(cidr_block)
         )
+
+
+class InvalidCIDRBlockParameterError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidCIDRBlockParameterError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
+        )

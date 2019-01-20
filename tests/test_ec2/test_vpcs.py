@@ -539,3 +539,15 @@ def test_ipv6_cidr_block_association_filters():
     filtered_vpcs = list(ec2.vpcs.filter(Filters=[{'Name': 'ipv6-cidr-block-association.state',
                                                    'Values': ['associated']}]))
     filtered_vpcs.should.be.length_of(2)   # 2 of 4 VPCs
+
+
+@mock_ec2
+def test_create_vpc_with_invalid_cidr_block_parameter():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc_cidr_block = '1000.1.0.0/20'
+    with assert_raises(ClientError) as ex:
+        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidParameterValue) when calling the CreateVpc "
+        "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(vpc_cidr_block))

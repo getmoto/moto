@@ -35,6 +35,7 @@ from .exceptions import (
     InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidAssociationIdError,
+    InvalidCIDRBlockParameterError,
     InvalidCIDRSubnetError,
     InvalidCustomerGatewayIdError,
     InvalidDHCPOptionsIdError,
@@ -2133,6 +2134,10 @@ class VPCBackend(object):
 
     def create_vpc(self, cidr_block, instance_tenancy='default', amazon_provided_ipv6_cidr_block=False):
         vpc_id = random_vpc_id()
+        try:
+            ipaddress.ip_network(six.text_type(cidr_block))
+        except ValueError:
+            raise InvalidCIDRBlockParameterError(cidr_block)
         vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0, instance_tenancy, amazon_provided_ipv6_cidr_block)
         self.vpcs[vpc_id] = vpc
 
@@ -2457,7 +2462,10 @@ class SubnetBackend(object):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
         vpc_cidr_block = ipaddress.ip_network(six.text_type(vpc.cidr_block))
-        subnet_cidr_block = ipaddress.ip_network(six.text_type(cidr_block))
+        try:
+            subnet_cidr_block = ipaddress.ip_network(six.text_type(cidr_block))
+        except ValueError:
+            raise InvalidCIDRBlockParameterError(cidr_block)
         if not (vpc_cidr_block.network_address <= subnet_cidr_block.network_address and
                 vpc_cidr_block.broadcast_address >= subnet_cidr_block.broadcast_address):
             raise InvalidSubnetRangeError(cidr_block)
