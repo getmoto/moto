@@ -27,7 +27,7 @@ def test_new_subnet_associates_with_default_network_acl():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.get_all_vpcs()[0]
 
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    subnet = conn.create_subnet(vpc.id, "172.31.0.0/18")
     all_network_acls = conn.get_all_network_acls()
     all_network_acls.should.have.length_of(1)
 

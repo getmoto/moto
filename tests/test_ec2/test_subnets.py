@@ -7,7 +7,7 @@ import boto3
 import boto
 import boto.vpc
 from boto.exception import EC2ResponseError
-from botocore.exceptions import ParamValidationError
+from botocore.exceptions import ParamValidationError, ClientError
 import json
 import sure  # noqa
 
@@ -126,7 +126,7 @@ def test_modify_subnet_attribute():
     vpc = list(ec2.vpcs.all())[0]
 
     subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+        VpcId=vpc.id, CidrBlock="172.31.0.0/24", AvailabilityZone='us-west-1a')
 
     # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
     subnet.reload()
@@ -289,3 +289,19 @@ def test_subnet_tags_through_cloudformation():
     subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
     subnet.tags["foo"].should.equal("bar")
     subnet.tags["blah"].should.equal("baz")
+
+
+@mock_ec2
+def test_create_subnet_with_invalid_cidr_range():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block = '10.1.0.0/20'
+    with assert_raises(ClientError) as ex:
+        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
+        "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block))

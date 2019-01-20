@@ -57,6 +57,7 @@ from .exceptions import (
     InvalidSecurityGroupNotFoundError,
     InvalidSnapshotIdError,
     InvalidSubnetIdError,
+    InvalidSubnetRangeError,
     InvalidVolumeIdError,
     InvalidVolumeAttachmentError,
     InvalidVpcCidrBlockAssociationIdError,
@@ -2454,7 +2455,12 @@ class SubnetBackend(object):
 
     def create_subnet(self, vpc_id, cidr_block, availability_zone):
         subnet_id = random_subnet_id()
-        self.get_vpc(vpc_id)  # Validate VPC exists
+        vpc = self.get_vpc(vpc_id)  # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
+        vpc_cidr_block = ipaddress.ip_network(six.text_type(vpc.cidr_block))
+        subnet_cidr_block = ipaddress.ip_network(six.text_type(cidr_block))
+        if not (vpc_cidr_block.network_address <= subnet_cidr_block.network_address and
+                vpc_cidr_block.broadcast_address >= subnet_cidr_block.broadcast_address):
+            raise InvalidSubnetRangeError(cidr_block)
 
         # if this is the first subnet for an availability zone,
         # consider it the default

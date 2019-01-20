@@ -420,3 +420,12 @@ class OperationNotPermitted(EC2ClientError):
             "The vpc CIDR block with association ID {} may not be disassociated. "
             "It is the primary IPv4 CIDR block of the VPC".format(association_id)
         )
+
+
+class InvalidSubnetRangeError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidSubnetRangeError, self).__init__(
+            "InvalidSubnet.Range",
+            "The CIDR '{}' is invalid.".format(cidr_block)
+        )
