@@ -2136,7 +2136,7 @@ class VPCBackend(object):
     def create_vpc(self, cidr_block, instance_tenancy='default', amazon_provided_ipv6_cidr_block=False):
         vpc_id = random_vpc_id()
         try:
-            ipaddress.ip_network(six.text_type(cidr_block))
+            ipaddress.IPv4Network(six.text_type(cidr_block), strict=False)
         except ValueError:
             raise InvalidCIDRBlockParameterError(cidr_block)
         vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0, instance_tenancy, amazon_provided_ipv6_cidr_block)
@@ -2329,7 +2329,7 @@ class Subnet(TaggedEC2Resource):
         self.id = subnet_id
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
-        self.cidr = ipaddress.ip_network(six.text_type(self.cidr_block))
+        self.cidr = ipaddress.IPv4Network(six.text_type(self.cidr_block), strict=False)
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
@@ -2462,9 +2462,9 @@ class SubnetBackend(object):
     def create_subnet(self, vpc_id, cidr_block, availability_zone):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(vpc_id)  # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
-        vpc_cidr_block = ipaddress.ip_network(six.text_type(vpc.cidr_block))
+        vpc_cidr_block = ipaddress.IPv4Network(six.text_type(vpc.cidr_block), strict=False)
         try:
-            subnet_cidr_block = ipaddress.ip_network(six.text_type(cidr_block))
+            subnet_cidr_block = ipaddress.IPv4Network(six.text_type(cidr_block), strict=False)
         except ValueError:
             raise InvalidCIDRBlockParameterError(cidr_block)
         if not (vpc_cidr_block.network_address <= subnet_cidr_block.network_address and
@@ -2730,7 +2730,7 @@ class RouteBackend(object):
                 gateway = self.get_internet_gateway(gateway_id)
 
         try:
-            ipaddress.ip_network(six.text_type(destination_cidr_block), strict=False)
+            ipaddress.IPv4Network(six.text_type(destination_cidr_block), strict=False)
         except ValueError:
             raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
