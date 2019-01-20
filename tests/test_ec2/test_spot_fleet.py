@@ -7,7 +7,7 @@ from moto import mock_ec2
 
 
 def get_subnet_id(conn):
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']

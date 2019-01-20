@@ -67,6 +67,7 @@ from .exceptions import (
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
     InvalidVPCIdError,
+    InvalidVPCRangeError,
     InvalidVpnGatewayIdError,
     InvalidVpnConnectionIdError,
     MalformedAMIIdError,
@@ -2137,9 +2138,11 @@ class VPCBackend(object):
     def create_vpc(self, cidr_block, instance_tenancy='default', amazon_provided_ipv6_cidr_block=False):
         vpc_id = random_vpc_id()
         try:
-            ipaddress.IPv4Network(six.text_type(cidr_block), strict=False)
+            vpc_cidr_block = ipaddress.IPv4Network(six.text_type(cidr_block), strict=False)
         except ValueError:
             raise InvalidCIDRBlockParameterError(cidr_block)
+        if vpc_cidr_block.prefixlen < 16 or vpc_cidr_block.prefixlen > 28:
+            raise InvalidVPCRangeError(cidr_block)
         vpc = VPC(self, vpc_id, cidr_block, len(self.vpcs) == 0, instance_tenancy, amazon_provided_ipv6_cidr_block)
         self.vpcs[vpc_id] = vpc
 

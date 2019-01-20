@@ -551,3 +551,15 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
     str(ex.exception).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(vpc_cidr_block))
+
+
+@mock_ec2
+def test_create_vpc_with_invalid_cidr_range():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc_cidr_block = '10.1.0.0/29'
+    with assert_raises(ClientError) as ex:
+        vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
+        "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block))

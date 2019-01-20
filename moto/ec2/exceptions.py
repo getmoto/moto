@@ -456,3 +456,12 @@ class InvalidSubnetConflictError(EC2ClientError):
             "InvalidSubnet.Conflict",
             "The CIDR '{}' conflicts with another subnet".format(cidr_block)
         )
+
+
+class InvalidVPCRangeError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidVPCRangeError, self).__init__(
+            "InvalidVpc.Range",
+            "The CIDR '{}' is invalid.".format(cidr_block)
+        )

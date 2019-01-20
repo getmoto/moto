@@ -2085,7 +2085,7 @@ def test_stack_kms():
 def test_stack_spot_fleet():
     conn = boto3.client('ec2', 'us-east-1')
 
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
@@ -2169,7 +2169,7 @@ def test_stack_spot_fleet():
 def test_stack_spot_fleet_should_figure_out_default_price():
     conn = boto3.client('ec2', 'us-east-1')
 
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
