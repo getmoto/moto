@@ -27,7 +27,7 @@ def test_create_load_balancer():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -69,7 +69,7 @@ def test_describe_load_balancers():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
@@ -112,7 +112,7 @@ def test_add_remove_tags():
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
     subnet1 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
@@ -234,7 +234,7 @@ def test_create_elb_in_multiple_region():
             InstanceTenancy='default')
         subnet1 = ec2.create_subnet(
             VpcId=vpc.id,
-            CidrBlock='172.28.7.192/26',
+            CidrBlock='172.28.7.0/26',
             AvailabilityZone=region + 'a')
         subnet2 = ec2.create_subnet(
             VpcId=vpc.id,
@@ -275,7 +275,7 @@ def test_create_target_group_and_listeners():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -434,7 +434,7 @@ def test_create_target_group_without_non_required_parameters():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -538,7 +538,7 @@ def test_describe_paginated_balancers():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     for i in range(51):
@@ -573,7 +573,7 @@ def test_delete_load_balancer():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -606,7 +606,7 @@ def test_register_targets():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
@@ -682,7 +682,7 @@ def test_target_group_attributes():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -773,7 +773,7 @@ def test_handle_listener_rules():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1078,7 +1078,7 @@ def test_describe_invalid_target_group():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1124,7 +1124,7 @@ def test_describe_target_groups_no_arguments():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1188,7 +1188,7 @@ def test_set_ip_address_type():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1238,7 +1238,7 @@ def test_set_security_groups():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1275,11 +1275,11 @@ def test_set_subnets():
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
     subnet1 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.64/26',
         AvailabilityZone='us-east-1b')
     subnet3 = ec2.create_subnet(
         VpcId=vpc.id,
@@ -1332,7 +1332,7 @@ def test_set_subnets():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1421,7 +1421,7 @@ def test_modify_listener_http_to_https():
         AvailabilityZone='eu-central-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='eu-central-1b')
 
     response = client.create_load_balancer(

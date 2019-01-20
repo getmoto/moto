@@ -239,7 +239,7 @@ def test_get_resources_elbv2():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(

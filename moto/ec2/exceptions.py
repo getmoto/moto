@@ -447,3 +447,12 @@ class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
             "InvalidParameterValue",
             "Value ({}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
         )
+
+
+class InvalidSubnetConflictError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidSubnetConflictError, self).__init__(
+            "InvalidSubnet.Conflict",
+            "The CIDR '{}' conflicts with another subnet".format(cidr_block)
+        )

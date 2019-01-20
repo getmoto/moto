@@ -58,6 +58,7 @@ from .exceptions import (
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidSnapshotIdError,
+    InvalidSubnetConflictError,
     InvalidSubnetIdError,
     InvalidSubnetRangeError,
     InvalidVolumeIdError,
@@ -2470,6 +2471,10 @@ class SubnetBackend(object):
         if not (vpc_cidr_block.network_address <= subnet_cidr_block.network_address and
                 vpc_cidr_block.broadcast_address >= subnet_cidr_block.broadcast_address):
             raise InvalidSubnetRangeError(cidr_block)
+
+        for subnet in self.get_all_subnets(filters={'vpc-id': vpc_id}):
+            if subnet.cidr.overlaps(subnet_cidr_block):
+                raise InvalidSubnetConflictError(cidr_block)
 
         # if this is the first subnet for an availability zone,
         # consider it the default
