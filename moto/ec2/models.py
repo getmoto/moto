@@ -2464,7 +2464,7 @@ class SubnetBackend(object):
                         default_for_az, map_public_ip_on_launch)
 
         # AWS associates a new subnet with the default Network ACL
-        self.associate_default_network_acl_with_subnet(subnet_id)
+        self.associate_default_network_acl_with_subnet(subnet_id, vpc_id)
         self.subnets[availability_zone][subnet_id] = subnet
         return subnet
 
@@ -3636,9 +3636,9 @@ class NetworkAclBackend(object):
         new_acl.associations[new_assoc_id] = association
         return association
 
-    def associate_default_network_acl_with_subnet(self, subnet_id):
+    def associate_default_network_acl_with_subnet(self, subnet_id, vpc_id):
         association_id = random_network_acl_subnet_association_id()
-        acl = next(acl for acl in self.network_acls.values() if acl.default)
+        acl = next(acl for acl in self.network_acls.values() if acl.default and acl.vpc_id == vpc_id)
         acl.associations[association_id] = NetworkAclAssociation(self, association_id,
                                                                  subnet_id, acl.id)
 
