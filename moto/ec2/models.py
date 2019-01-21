@@ -3560,7 +3560,21 @@ class NetworkAclBackend(object):
         self.get_vpc(vpc_id)
         network_acl = NetworkAcl(self, network_acl_id, vpc_id, default)
         self.network_acls[network_acl_id] = network_acl
+        if default:
+            self.add_default_entries(network_acl_id)
         return network_acl
+
+    def add_default_entries(self, network_acl_id):
+        default_acl_entries = [
+            {'rule_number': 100, 'rule_action': 'allow', 'egress': 'true'},
+            {'rule_number': 32767, 'rule_action': 'deny', 'egress': 'true'},
+            {'rule_number': 100, 'rule_action': 'allow', 'egress': 'false'},
+            {'rule_number': 32767, 'rule_action': 'deny', 'egress': 'false'}
+        ]
+        for entry in default_acl_entries:
+            self.create_network_acl_entry(network_acl_id=network_acl_id, rule_number=entry['rule_number'], protocol='-1',
+                                          rule_action=entry['rule_action'], egress=entry['egress'], cidr_block='0.0.0.0/0',
+                                          icmp_code=None, icmp_type=None, port_range_from=None, port_range_to=None)
 
     def get_all_network_acls(self, network_acl_ids=None, filters=None):
         network_acls = self.network_acls.values()

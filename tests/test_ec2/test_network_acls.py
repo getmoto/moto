@@ -190,3 +190,27 @@ def test_new_subnet_in_new_vpc_associates_with_default_network_acl():
     new_vpcs_default_network_acl.vpc_id.should.equal(new_vpc.id)
     new_vpcs_default_network_acl.associations.should.have.length_of(1)
     new_vpcs_default_network_acl.associations[0]['SubnetId'].should.equal(subnet.id)
+
+
+@mock_ec2
+def test_default_network_acl_default_entries():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    default_network_acl = next(iter(ec2.network_acls.all()), None)
+    default_network_acl.is_default.should.be.ok
+
+    default_network_acl.entries.should.have.length_of(4)
+    unique_entries = []
+    for entry in default_network_acl.entries:
+        entry['CidrBlock'].should.equal('0.0.0.0/0')
+        entry['Protocol'].should.equal('-1')
+        entry['RuleNumber'].should.be.within([100, 32767])
+        entry['RuleAction'].should.be.within(['allow', 'deny'])
+        assert type(entry['Egress']) is bool
+        if entry['RuleAction'] == 'allow':
+            entry['RuleNumber'].should.be.equal(100)
+        else:
+            entry['RuleNumber'].should.be.equal(32767)
+        if entry not in unique_entries:
+            unique_entries.append(entry)
+
+    unique_entries.should.have.length_of(4)
