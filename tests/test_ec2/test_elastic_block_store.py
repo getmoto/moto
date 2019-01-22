@@ -16,7 +16,7 @@ from moto import mock_ec2_deprecated, mock_ec2
 
 @mock_ec2_deprecated
 def test_create_and_delete_volume():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
 
     all_volumes = conn.get_all_volumes()
@@ -52,7 +52,7 @@ def test_create_and_delete_volume():
 
 @mock_ec2_deprecated
 def test_create_encrypted_volume_dryrun():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     with assert_raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
@@ -63,7 +63,7 @@ def test_create_encrypted_volume_dryrun():
 
 @mock_ec2_deprecated
 def test_create_encrypted_volume():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
 
     with assert_raises(EC2ResponseError) as ex:
@@ -79,7 +79,7 @@ def test_create_encrypted_volume():
 
 @mock_ec2_deprecated
 def test_filter_volume_by_id():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume1 = conn.create_volume(80, "us-east-1a")
     volume2 = conn.create_volume(36, "us-east-1b")
     volume3 = conn.create_volume(20, "us-east-1c")
@@ -99,7 +99,7 @@ def test_filter_volume_by_id():
 
 @mock_ec2_deprecated
 def test_volume_filters():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
 
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
@@ -196,7 +196,7 @@ def test_volume_filters():
 
 @mock_ec2_deprecated
 def test_volume_attach_and_detach():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
     volume = conn.create_volume(80, "us-east-1a")
@@ -252,7 +252,7 @@ def test_volume_attach_and_detach():
 
 @mock_ec2_deprecated
 def test_create_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
 
     with assert_raises(EC2ResponseError) as ex:
@@ -291,7 +291,7 @@ def test_create_snapshot():
 
 @mock_ec2_deprecated
 def test_create_encrypted_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
     snapshot = volume.create_snapshot('a test snapshot')
     snapshot.update()
@@ -306,7 +306,7 @@ def test_create_encrypted_snapshot():
 
 @mock_ec2_deprecated
 def test_filter_snapshot_by_id():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume1 = conn.create_volume(36, "us-east-1a")
     snap1 = volume1.create_snapshot('a test snapshot 1')
     volume2 = conn.create_volume(42, 'us-east-1a')
@@ -333,7 +333,7 @@ def test_filter_snapshot_by_id():
 
 @mock_ec2_deprecated
 def test_snapshot_filters():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume1 = conn.create_volume(20, "us-east-1a", encrypted=False)
     volume2 = conn.create_volume(25, "us-east-1a", encrypted=True)
 
@@ -399,7 +399,7 @@ def test_snapshot_filters():
 def test_snapshot_attribute():
     import copy
 
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
     snapshot = volume.create_snapshot()
 
@@ -502,7 +502,7 @@ def test_snapshot_attribute():
 
 @mock_ec2_deprecated
 def test_create_volume_from_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
     snapshot = volume.create_snapshot('a test snapshot')
 
@@ -524,7 +524,7 @@ def test_create_volume_from_snapshot():
 
 @mock_ec2_deprecated
 def test_create_volume_from_encrypted_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
 
     snapshot = volume.create_snapshot('a test snapshot')
@@ -569,7 +569,7 @@ def test_modify_attribute_blockDeviceMapping():
 
 @mock_ec2_deprecated
 def test_volume_tag_escaping():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     vol = conn.create_volume(10, 'us-east-1a')
     snapshot = conn.create_snapshot(vol.id, 'Desc')
 

@@ -177,30 +177,29 @@ def test_default_cluster_attributes():
     cluster['NumberOfNodes'].should.equal(1)
 
 
-@mock_redshift_deprecated
-@mock_ec2_deprecated
+@mock_redshift
+@mock_ec2
 def test_create_cluster_in_subnet_group():
-    vpc_conn = boto.connect_vpc()
-    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet = vpc_conn.create_subnet(vpc.id, "10.0.0.0/24")
-    redshift_conn = boto.connect_redshift()
-    redshift_conn.create_cluster_subnet_group(
-        "my_subnet_group",
-        "This is my subnet group",
-        subnet_ids=[subnet.id],
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/24")
+    client = boto3.client('redshift', region_name='us-east-1')
+    client.create_cluster_subnet_group(
+        ClusterSubnetGroupName="my_subnet_group",
+        Description="This is my subnet group",
+        SubnetIds=[subnet.id],
     )
 
-    redshift_conn.create_cluster(
-        "my_cluster",
-        node_type="dw.hs1.xlarge",
-        master_username="username",
-        master_user_password="password",
-        cluster_subnet_group_name='my_subnet_group',
+    client.create_cluster(
+        ClusterIdentifier="my_cluster",
+        NodeType="dw.hs1.xlarge",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        ClusterSubnetGroupName='my_subnet_group',
     )
 
-    cluster_response = redshift_conn.describe_clusters("my_cluster")
-    cluster = cluster_response['DescribeClustersResponse'][
-        'DescribeClustersResult']['Clusters'][0]
+    cluster_response = client.describe_clusters(ClusterIdentifier="my_cluster")
+    cluster = cluster_response['Clusters'][0]
     cluster['ClusterSubnetGroupName'].should.equal('my_subnet_group')
 
 
@@ -464,28 +463,26 @@ def test_modify_cluster():
     cluster['NumberOfNodes'].should.equal(1)
 
 
-@mock_redshift_deprecated
-@mock_ec2_deprecated
+@mock_redshift
+@mock_ec2
 def test_create_cluster_subnet_group():
-    vpc_conn = boto.connect_vpc()
-    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet1 = vpc_conn.create_subnet(vpc.id, "10.0.0.0/24")
-    subnet2 = vpc_conn.create_subnet(vpc.id, "10.0.1.0/24")
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/24")
+    subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.1.0/24")
+    client = boto3.client('redshift', region_name='us-east-1')
 
-    redshift_conn = boto.connect_redshift()
-
-    redshift_conn.create_cluster_subnet_group(
-        "my_subnet",
-        "This is my subnet group",
-        subnet_ids=[subnet1.id, subnet2.id],
+    client.create_cluster_subnet_group(
+        ClusterSubnetGroupName='my_subnet_group',
+        Description='This is my subnet group',
+        SubnetIds=[subnet1.id, subnet2.id],
     )
 
-    subnets_response = redshift_conn.describe_cluster_subnet_groups(
-        "my_subnet")
-    my_subnet = subnets_response['DescribeClusterSubnetGroupsResponse'][
-        'DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups'][0]
+    subnets_response = client.describe_cluster_subnet_groups(
+        ClusterSubnetGroupName="my_subnet_group")
+    my_subnet = subnets_response['ClusterSubnetGroups'][0]
 
-    my_subnet['ClusterSubnetGroupName'].should.equal("my_subnet")
+    my_subnet['ClusterSubnetGroupName'].should.equal("my_subnet_group")
     my_subnet['Description'].should.equal("This is my subnet group")
     subnet_ids = [subnet['SubnetIdentifier']
                   for subnet in my_subnet['Subnets']]
@@ -510,35 +507,33 @@ def test_describe_non_existent_subnet_group():
         "not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
 
 
-@mock_redshift_deprecated
-@mock_ec2_deprecated
+@mock_redshift
+@mock_ec2
 def test_delete_cluster_subnet_group():
-    vpc_conn = boto.connect_vpc()
-    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet = vpc_conn.create_subnet(vpc.id, "10.0.0.0/24")
-    redshift_conn = boto.connect_redshift()
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/24")
+    client = boto3.client('redshift', region_name='us-east-1')
 
-    redshift_conn.create_cluster_subnet_group(
-        "my_subnet",
-        "This is my subnet group",
-        subnet_ids=[subnet.id],
+    client.create_cluster_subnet_group(
+        ClusterSubnetGroupName='my_subnet_group',
+        Description='This is my subnet group',
+        SubnetIds=[subnet.id],
     )
 
-    subnets_response = redshift_conn.describe_cluster_subnet_groups()
-    subnets = subnets_response['DescribeClusterSubnetGroupsResponse'][
-        'DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups']
+    subnets_response = client.describe_cluster_subnet_groups()
+    subnets = subnets_response['ClusterSubnetGroups']
     subnets.should.have.length_of(1)
 
-    redshift_conn.delete_cluster_subnet_group("my_subnet")
+    client.delete_cluster_subnet_group(ClusterSubnetGroupName="my_subnet_group")
 
-    subnets_response = redshift_conn.describe_cluster_subnet_groups()
-    subnets = subnets_response['DescribeClusterSubnetGroupsResponse'][
-        'DescribeClusterSubnetGroupsResult']['ClusterSubnetGroups']
+    subnets_response = client.describe_cluster_subnet_groups()
+    subnets = subnets_response['ClusterSubnetGroups']
     subnets.should.have.length_of(0)
 
     # Delete invalid id
-    redshift_conn.delete_cluster_subnet_group.when.called_with(
-        "not-a-subnet-group").should.throw(ClusterSubnetGroupNotFound)
+    client.delete_cluster_subnet_group.when.called_with(
+        ClusterSubnetGroupName="not-a-subnet-group").should.throw(ClientError)
 
 
 @mock_redshift_deprecated

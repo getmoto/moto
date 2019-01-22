@@ -42,7 +42,7 @@ def test_add_servers():
 @freeze_time("2014-01-01 05:00:00")
 @mock_ec2_deprecated
 def test_instance_launch_and_terminate():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
 
     with assert_raises(EC2ResponseError) as ex:
         reservation = conn.run_instances('ami-1234abcd', dry_run=True)
@@ -820,7 +820,7 @@ def test_run_instance_with_instance_type():
 
 @mock_ec2_deprecated
 def test_run_instance_with_default_placement():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 

@@ -280,7 +280,7 @@ class FakeAutoScalingGroup(BaseModel):
             self.min_size = min_size
 
         if launch_config_name:
-            self.launch_config = self.autoscaling_backenaunch_configurations[
+            self.launch_config = self.autoscaling_backend.launch_configurations[
                 launch_config_name]
             self.launch_config_name = launch_config_name
         if health_check_period is not None:
