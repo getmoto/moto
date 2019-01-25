@@ -485,6 +485,38 @@ def test_describe_identity_providers():
 
 
 @mock_cognitoidp
+def test_update_identity_provider():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    provider_name = str(uuid.uuid4())
+    provider_type = "Facebook"
+    value = str(uuid.uuid4())
+    new_value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.create_identity_provider(
+        UserPoolId=user_pool_id,
+        ProviderName=provider_name,
+        ProviderType=provider_type,
+        ProviderDetails={
+            "thing": value
+        },
+    )
+
+    result = conn.update_identity_provider(
+        UserPoolId=user_pool_id,
+        ProviderName=provider_name,
+        ProviderDetails={
+            "thing": new_value
+        },
+    )
+
+    result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
+    result["IdentityProvider"]["ProviderName"].should.equal(provider_name)
+    result["IdentityProvider"]["ProviderType"].should.equal(provider_type)
+    result["IdentityProvider"]["ProviderDetails"]["thing"].should.equal(new_value)
+
+
+@mock_cognitoidp
 def test_delete_identity_providers():
     conn = boto3.client("cognito-idp", "us-west-2")
 
