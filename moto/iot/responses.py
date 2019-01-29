@@ -183,6 +183,20 @@ class IoTResponse(BaseResponse):
         # TODO: implement pagination in the future
         return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
 
+    def register_certificate(self):
+        certificate_pem = self._get_param("certificatePem")
+        ca_certificate_pem = self._get_param("caCertificatePem")
+        set_as_active = self._get_bool_param("setAsActive")
+        status = self._get_param("status")
+
+        cert = self.iot_backend.register_certificate(
+            certificate_pem=certificate_pem,
+            ca_certificate_pem=ca_certificate_pem,
+            set_as_active=set_as_active,
+            status=status
+        )
+        return json.dumps(dict(certificateId=cert.certificate_id, certificateArn=cert.arn))
+
     def update_certificate(self):
         certificate_id = self._get_param("certificateId")
         new_status = self._get_param("newStatus")

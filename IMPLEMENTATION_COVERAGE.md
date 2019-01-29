@@ -2376,7 +2376,7 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 32% implemented
+## iot - 33% implemented
 - [ ] accept_certificate_transfer
 - [X] add_thing_to_thing_group
 - [ ] associate_targets_with_job
@@ -2474,7 +2474,7 @@
 - [ ] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] register_ca_certificate
-- [ ] register_certificate
+- [X] register_certificate
 - [ ] register_thing
 - [ ] reject_certificate_transfer
 - [X] remove_thing_from_thing_group
