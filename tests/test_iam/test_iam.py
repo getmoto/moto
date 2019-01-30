@@ -306,6 +306,7 @@ def test_create_policy_versions():
         PolicyDocument='{"some":"policy"}')
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
 
+
 @mock_iam
 def test_get_policy():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -579,6 +580,7 @@ def test_get_credential_report():
                               'get_credential_report_result']['content'].encode('ascii')).decode('ascii')
     report.should.match(r'.*my-user.*')
 
+
 @mock_iam
 def test_boto3_get_credential_report():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -780,12 +782,24 @@ def test_get_account_authorization_details():
     conn.create_instance_profile(InstanceProfileName='ipn')
     conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
 
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+
     result = conn.get_account_authorization_details(Filter=['Role'])
     assert len(result['RoleDetailList']) == 1
     assert len(result['UserDetailList']) == 0
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 0
     assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
+    assert len(result['RoleDetailList'][0]['Tags']) == 2
 
     result = conn.get_account_authorization_details(Filter=['User'])
     assert len(result['RoleDetailList']) == 0
@@ -872,6 +886,7 @@ def test_signing_certs():
     with assert_raises(ClientError):
         client.delete_signing_certificate(UserName='notauser', CertificateId=cert_id)
 
+
 @mock_iam()
 def test_create_saml_provider():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -880,6 +895,7 @@ def test_create_saml_provider():
         SAMLMetadataDocument='a' * 1024
     )
     response['SAMLProviderArn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
 
 @mock_iam()
 def test_get_saml_provider():
@@ -893,6 +909,7 @@ def test_get_saml_provider():
     )
     response['SAMLMetadataDocument'].should.equal('a' * 1024)
 
+
 @mock_iam()
 def test_list_saml_providers():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -902,6 +919,7 @@ def test_list_saml_providers():
     )
     response = conn.list_saml_providers()
     response['SAMLProviderList'][0]['Arn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
 
 @mock_iam()
 def test_delete_saml_provider():
@@ -929,3 +947,178 @@ def test_delete_saml_provider():
     # Verify that it's not in the list:
     resp = conn.list_signing_certificates(UserName='testing')
     assert not resp['Certificates']
+
+
+@mock_iam()
+def test_tag_role():
+    """Tests both the tag_role and get_role_tags capability"""
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
+
+    # Get without tags:
+    role = conn.get_role(RoleName='my-role')['Role']
+    assert not role.get('Tags')
+
+    # With proper tag values:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+
+    # Get role:
+    role = conn.get_role(RoleName='my-role')['Role']
+    assert len(role['Tags']) == 2
+    assert role['Tags'][0]['Key'] == 'somekey'
+    assert role['Tags'][0]['Value'] == 'somevalue'
+    assert role['Tags'][1]['Key'] == 'someotherkey'
+    assert role['Tags'][1]['Value'] == 'someothervalue'
+
+    # Same -- but for list_role_tags:
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 2
+    assert role['Tags'][0]['Key'] == 'somekey'
+    assert role['Tags'][0]['Value'] == 'somevalue'
+    assert role['Tags'][1]['Key'] == 'someotherkey'
+    assert role['Tags'][1]['Value'] == 'someothervalue'
+    assert not tags['IsTruncated']
+    assert not tags.get('Marker')
+
+    # Test pagination:
+    tags = conn.list_role_tags(RoleName='my-role', MaxItems=1)
+    assert len(tags['Tags']) == 1
+    assert tags['IsTruncated']
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == 'somevalue'
+    assert tags['Marker'] == '1'
+
+    tags = conn.list_role_tags(RoleName='my-role', Marker=tags['Marker'])
+    assert len(tags['Tags']) == 1
+    assert tags['Tags'][0]['Key'] == 'someotherkey'
+    assert tags['Tags'][0]['Value'] == 'someothervalue'
+    assert not tags['IsTruncated']
+    assert not tags.get('Marker')
+
+    # Test updating an existing tag:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somenewvalue'
+        }
+    ])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 2
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == 'somenewvalue'
+
+    # Empty is good:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': ''
+        }
+    ])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 2
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == ''
+
+    # Test creating tags with invalid values:
+    # With more than 50 tags:
+    with assert_raises(ClientError) as ce:
+        too_many_tags = list(map(lambda x: {'Key': str(x), 'Value': str(x)}, range(0, 51)))
+        conn.tag_role(RoleName='my-role', Tags=too_many_tags)
+    assert 'failed to satisfy constraint: Member must have length less than or equal to 50.' \
+           in ce.exception.response['Error']['Message']
+
+    # With a duplicate tag:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': '0', 'Value': ''}, {'Key': '0', 'Value': ''}])
+    assert 'Duplicate tag keys found. Please note that Tag keys are case insensitive.' \
+           in ce.exception.response['Error']['Message']
+
+    # Duplicate tag with different casing:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': 'a', 'Value': ''}, {'Key': 'A', 'Value': ''}])
+    assert 'Duplicate tag keys found. Please note that Tag keys are case insensitive.' \
+           in ce.exception.response['Error']['Message']
+
+    # With a really big key:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': '0' * 129, 'Value': ''}])
+    assert 'Member must have length less than or equal to 128.' in ce.exception.response['Error']['Message']
+
+    # With a really big value:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': '0', 'Value': '0' * 257}])
+    assert 'Member must have length less than or equal to 256.' in ce.exception.response['Error']['Message']
+
+    # With an invalid character:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': 'NOWAY!', 'Value': ''}])
+    assert 'Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+' \
+           in ce.exception.response['Error']['Message']
+
+    # With a role that doesn't exist:
+    with assert_raises(ClientError):
+        conn.tag_role(RoleName='notarole', Tags=[{'Key': 'some', 'Value': 'value'}])
+
+
+@mock_iam
+def test_untag_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
+
+    # With proper tag values:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+
+    # Remove them:
+    conn.untag_role(RoleName='my-role', TagKeys=['somekey'])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 1
+    assert tags['Tags'][0]['Key'] == 'someotherkey'
+    assert tags['Tags'][0]['Value'] == 'someothervalue'
+
+    # And again:
+    conn.untag_role(RoleName='my-role', TagKeys=['someotherkey'])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert not tags['Tags']
+
+    # Test removing tags with invalid values:
+    # With more than 50 tags:
+    with assert_raises(ClientError) as ce:
+        conn.untag_role(RoleName='my-role', TagKeys=[str(x) for x in range(0, 51)])
+    assert 'failed to satisfy constraint: Member must have length less than or equal to 50.' \
+           in ce.exception.response['Error']['Message']
+    assert 'tagKeys' in ce.exception.response['Error']['Message']
+
+    # With a really big key:
+    with assert_raises(ClientError) as ce:
+        conn.untag_role(RoleName='my-role', TagKeys=['0' * 129])
+    assert 'Member must have length less than or equal to 128.' in ce.exception.response['Error']['Message']
+    assert 'tagKeys' in ce.exception.response['Error']['Message']
+
+    # With an invalid character:
+    with assert_raises(ClientError) as ce:
+        conn.untag_role(RoleName='my-role', TagKeys=['NOWAY!'])
+    assert 'Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+' \
+           in ce.exception.response['Error']['Message']
+    assert 'tagKeys' in ce.exception.response['Error']['Message']
+
+    # With a role that doesn't exist:
+    with assert_raises(ClientError):
+        conn.untag_role(RoleName='notarole', TagKeys=['somevalue'])

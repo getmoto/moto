@@ -625,6 +625,34 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_SIGNING_CERTIFICATES_TEMPLATE)
         return template.render(user_name=user_name, certificates=certs)
 
+    def list_role_tags(self):
+        role_name = self._get_param('RoleName')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems', 100)
+
+        tags, marker = iam_backend.list_role_tags(role_name, marker, max_items)
+
+        template = self.response_template(LIST_ROLE_TAG_TEMPLATE)
+        return template.render(tags=tags, marker=marker)
+
+    def tag_role(self):
+        role_name = self._get_param('RoleName')
+        tags = self._get_multi_param('Tags.member')
+
+        iam_backend.tag_role(role_name, tags)
+
+        template = self.response_template(TAG_ROLE_TEMPLATE)
+        return template.render()
+
+    def untag_role(self):
+        role_name = self._get_param('RoleName')
+        tag_keys = self._get_multi_param('TagKeys.member')
+
+        iam_backend.untag_role(role_name, tag_keys)
+
+        template = self.response_template(UNTAG_ROLE_TEMPLATE)
+        return template.render()
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
@@ -878,6 +906,16 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>{{ role.create_date }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      {% if role.tags %}
+      <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
+      {% endif %}
     </Role>
   </GetRoleResult>
   <ResponseMetadata>
@@ -1503,6 +1541,14 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
             </member>
         {% endfor %}
         </AttachedManagedPolicies>
+        <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+        </Tags>
         <InstanceProfileList>
             {% for profile in instance_profiles %}
             <member>
@@ -1671,3 +1717,38 @@ LIST_SIGNING_CERTIFICATES_TEMPLATE = """<ListSigningCertificatesResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
  </ResponseMetadata>
 </ListSigningCertificatesResponse>"""
+
+
+TAG_ROLE_TEMPLATE = """<TagRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagRoleResponse>"""
+
+
+LIST_ROLE_TAG_TEMPLATE = """<ListRoleTagsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListRoleTagsResult>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Tags>
+      {% for tag in tags %}
+      <member>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListRoleTagsResult>
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListRoleTagsResponse>"""
+
+
+UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagRoleResponse>"""
