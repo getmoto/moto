@@ -307,3 +307,4 @@ def test_create_subnet_response_fields():
     subnet.should.have.key('SubnetId')
     subnet.should.have.key('VpcId')
     subnet.shouldnt.have.key('Tags')
+    subnet.should.have.key('DefaultForAz').which.should.equal(False)

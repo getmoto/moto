@@ -50,6 +50,7 @@ CREATE_SUBNET_RESPONSE = """
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
     <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
+    <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
   </subnet>
 </CreateSubnetResponse>"""
 
