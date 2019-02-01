@@ -51,6 +51,7 @@ CREATE_SUBNET_RESPONSE = """
     <availableIpAddressCount>251</availableIpAddressCount>
     <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
+    <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
   </subnet>
 </CreateSubnetResponse>"""
 
