@@ -477,12 +477,12 @@
 - [X] create_stack
 - [ ] create_stack_instances
 - [ ] create_stack_set
-- [ ] delete_change_set
+- [X] delete_change_set
 - [X] delete_stack
 - [ ] delete_stack_instances
 - [ ] delete_stack_set
 - [ ] describe_account_limits
-- [ ] describe_change_set
+- [X] describe_change_set
 - [ ] describe_stack_events
 - [ ] describe_stack_instance
 - [ ] describe_stack_resource
@@ -495,7 +495,7 @@
 - [ ] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
-- [ ] list_change_sets
+- [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
 - [ ] list_stack_instances
