@@ -2317,7 +2317,7 @@ class VPCPeeringConnectionBackend(object):
 
 class Subnet(TaggedEC2Resource):
     def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az,
-                 map_public_ip_on_launch):
+                 map_public_ip_on_launch, owner_id=111122223333):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
@@ -2326,6 +2326,7 @@ class Subnet(TaggedEC2Resource):
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
+        self.owner_id = owner_id
 
         # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
         self._subnet_ip_generator = self.cidr.hosts()
@@ -2452,7 +2453,7 @@ class SubnetBackend(object):
                 return subnets[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
 
-    def create_subnet(self, vpc_id, cidr_block, availability_zone):
+    def create_subnet(self, vpc_id, cidr_block, availability_zone, context=None):
         subnet_id = random_subnet_id()
         self.get_vpc(vpc_id)  # Validate VPC exists
 
@@ -2461,7 +2462,7 @@ class SubnetBackend(object):
         default_for_az = str(availability_zone not in self.subnets).lower()
         map_public_ip_on_launch = default_for_az
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone,
-                        default_for_az, map_public_ip_on_launch)
+                        default_for_az, map_public_ip_on_launch, owner_id=context.get_current_user() if context else '111122223333')
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)

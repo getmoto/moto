@@ -309,3 +309,4 @@ def test_create_subnet_response_fields():
     subnet.shouldnt.have.key('Tags')
     subnet.should.have.key('DefaultForAz').which.should.equal(False)
     subnet.should.have.key('MapPublicIpOnLaunch').which.should.equal(False)
+    subnet.should.have.key('OwnerId')

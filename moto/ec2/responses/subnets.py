@@ -16,6 +16,7 @@ class Subnets(BaseResponse):
             vpc_id,
             cidr_block,
             availability_zone,
+            context=self,
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
@@ -52,6 +53,7 @@ CREATE_SUBNET_RESPONSE = """
     <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
     <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
+    <ownerId>{{ subnet.owner_id }}</ownerId>
   </subnet>
 </CreateSubnetResponse>"""
 
