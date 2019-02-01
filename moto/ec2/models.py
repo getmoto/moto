@@ -2879,7 +2879,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
     def __init__(self, ec2_backend, spot_request_id, price, image_id, type,
                  valid_from, valid_until, launch_group, availability_zone_group,
                  key_name, security_groups, user_data, instance_type, placement,
-                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id, spot_fleet_id,
+                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id, tags, spot_fleet_id,
                  **kwargs):
         super(SpotInstanceRequest, self).__init__(**kwargs)
         ls = LaunchSpecification()
@@ -2903,6 +2903,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         ls.monitored = monitoring_enabled
         ls.subnet_id = subnet_id
         self.spot_fleet_id = spot_fleet_id
+        self.tags = tags
 
         if security_groups:
             for group_name in security_groups:
@@ -2936,6 +2937,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             security_group_names=[],
             security_group_ids=self.launch_specification.groups,
             spot_fleet_id=self.spot_fleet_id,
+            tags=self.tags,
         )
         instance = reservation.instances[0]
         return instance
@@ -2951,15 +2953,16 @@ class SpotRequestBackend(object):
                                valid_until, launch_group, availability_zone_group,
                                key_name, security_groups, user_data,
                                instance_type, placement, kernel_id, ramdisk_id,
-                               monitoring_enabled, subnet_id, spot_fleet_id=None):
+                               monitoring_enabled, subnet_id, tags=None, spot_fleet_id=None):
         requests = []
+        tags = tags or {}
         for _ in range(count):
             spot_request_id = random_spot_request_id()
             request = SpotInstanceRequest(self,
                                           spot_request_id, price, image_id, type, valid_from, valid_until,
                                           launch_group, availability_zone_group, key_name, security_groups,
                                           user_data, instance_type, placement, kernel_id, ramdisk_id,
-                                          monitoring_enabled, subnet_id, spot_fleet_id)
+                                          monitoring_enabled, subnet_id, tags, spot_fleet_id)
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
         return requests
@@ -2979,8 +2982,8 @@ class SpotRequestBackend(object):
 
 class SpotFleetLaunchSpec(object):
     def __init__(self, ebs_optimized, group_set, iam_instance_profile, image_id,
-                 instance_type, key_name, monitoring, spot_price, subnet_id, user_data,
-                 weighted_capacity):
+                 instance_type, key_name, monitoring, spot_price, subnet_id, tag_specifications,
+                 user_data, weighted_capacity):
         self.ebs_optimized = ebs_optimized
         self.group_set = group_set
         self.iam_instance_profile = iam_instance_profile
@@ -2990,6 +2993,7 @@ class SpotFleetLaunchSpec(object):
         self.monitoring = monitoring
         self.spot_price = spot_price
         self.subnet_id = subnet_id
+        self.tag_specifications = tag_specifications
         self.user_data = user_data
         self.weighted_capacity = float(weighted_capacity)
 
@@ -3020,6 +3024,7 @@ class SpotFleetRequest(TaggedEC2Resource):
                 monitoring=spec.get('monitoring._enabled'),
                 spot_price=spec.get('spot_price', self.spot_price),
                 subnet_id=spec['subnet_id'],
+                tag_specifications=self._parse_tag_specifications(spec),
                 user_data=spec.get('user_data'),
                 weighted_capacity=spec['weighted_capacity'],
             )
@@ -3102,6 +3107,7 @@ class SpotFleetRequest(TaggedEC2Resource):
                 monitoring_enabled=launch_spec.monitoring,
                 subnet_id=launch_spec.subnet_id,
                 spot_fleet_id=self.id,
+                tags=launch_spec.tag_specifications,
             )
             self.spot_requests.extend(requests)
         self.fulfilled_capacity += added_weight
@@ -3123,6 +3129,25 @@ class SpotFleetRequest(TaggedEC2Resource):
 
         self.spot_requests = [req for req in self.spot_requests if req.instance.id not in instance_ids]
         self.ec2_backend.terminate_instances(instance_ids)
+
+    def _parse_tag_specifications(self, spec):
+        try:
+            tag_spec_num = max([int(key.split('.')[1]) for key in spec if key.startswith("tag_specification_set")])
+        except ValueError:  # no tag specifications
+            return {}
+
+        tag_specifications = {}
+        for si in range(1, tag_spec_num + 1):
+            resource_type = spec["tag_specification_set.{si}._resource_type".format(si=si)]
+
+            tags = [key for key in spec if key.startswith("tag_specification_set.{si}._tag".format(si=si))]
+            tag_num = max([int(key.split('.')[3]) for key in tags])
+            tag_specifications[resource_type] = dict((
+                spec["tag_specification_set.{si}._tag.{ti}._key".format(si=si, ti=ti)],
+                spec["tag_specification_set.{si}._tag.{ti}._value".format(si=si, ti=ti)],
+            ) for ti in range(1, tag_num + 1))
+
+        return tag_specifications
 
 
 class SpotFleetBackend(object):
