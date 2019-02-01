@@ -50,16 +50,6 @@ CREATE_SUBNET_RESPONSE = """
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
     <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
-    <tagSet>
-      {% for tag in subnet.get_tags() %}
-        <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
-          <key>{{ tag.key }}</key>
-          <value>{{ tag.value }}</value>
-        </item>
-      {% endfor %}
-    </tagSet>
   </subnet>
 </CreateSubnetResponse>"""
 

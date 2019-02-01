@@ -289,3 +289,21 @@ def test_subnet_tags_through_cloudformation():
     subnet = vpc_conn.get_all_subnets(filters={'cidrBlock': '10.0.0.0/24'})[0]
     subnet.tags["foo"].should.equal("bar")
     subnet.tags["blah"].should.equal("baz")
+
+
+@mock_ec2
+def test_create_subnet_response_fields():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = client.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')['Subnet']
+
+    subnet.should.have.key('AvailabilityZone')
+    subnet.should.have.key('AvailableIpAddressCount')
+    subnet.should.have.key('CidrBlock')
+    subnet.should.have.key('State')
+    subnet.should.have.key('SubnetId')
+    subnet.should.have.key('VpcId')
+    subnet.shouldnt.have.key('Tags')
