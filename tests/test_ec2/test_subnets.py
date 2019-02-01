@@ -118,7 +118,7 @@ def test_boto3_non_default_subnet():
 
 
 @mock_ec2
-def test_modify_subnet_attribute():
+def test_modify_subnet_attribute_public_ip_on_launch():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     client = boto3.client('ec2', region_name='us-west-1')
 
@@ -143,6 +143,34 @@ def test_modify_subnet_attribute():
         SubnetId=subnet.id, MapPublicIpOnLaunch={'Value': True})
     subnet.reload()
     subnet.map_public_ip_on_launch.should.be.ok
+
+
+@mock_ec2
+def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+
+    # Get the default VPC
+    vpc = list(ec2.vpcs.all())[0]
+
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+
+    # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
+    subnet.reload()
+
+    # For non default subnet, attribute value should be 'False'
+    subnet.assign_ipv6_address_on_creation.shouldnt.be.ok
+
+    client.modify_subnet_attribute(
+        SubnetId=subnet.id, AssignIpv6AddressOnCreation={'Value': False})
+    subnet.reload()
+    subnet.assign_ipv6_address_on_creation.shouldnt.be.ok
+
+    client.modify_subnet_attribute(
+        SubnetId=subnet.id, AssignIpv6AddressOnCreation={'Value': True})
+    subnet.reload()
+    subnet.assign_ipv6_address_on_creation.should.be.ok
 
 
 @mock_ec2
@@ -310,3 +338,4 @@ def test_create_subnet_response_fields():
     subnet.should.have.key('DefaultForAz').which.should.equal(False)
     subnet.should.have.key('MapPublicIpOnLaunch').which.should.equal(False)
     subnet.should.have.key('OwnerId')
+    subnet.should.have.key('AssignIpv6AddressOnCreation')

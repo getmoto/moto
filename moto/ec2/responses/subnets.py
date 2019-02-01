@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import random
 from moto.core.responses import BaseResponse
+from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring
 
 
@@ -36,9 +37,14 @@ class Subnets(BaseResponse):
 
     def modify_subnet_attribute(self):
         subnet_id = self._get_param('SubnetId')
-        map_public_ip = self._get_param('MapPublicIpOnLaunch.Value')
-        self.ec2_backend.modify_subnet_attribute(subnet_id, map_public_ip)
-        return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
+
+        for attribute in ('MapPublicIpOnLaunch', 'AssignIpv6AddressOnCreation'):
+            if self.querystring.get('%s.Value' % attribute):
+                attr_name = camelcase_to_underscores(attribute)
+                attr_value = self.querystring.get('%s.Value' % attribute)[0]
+                self.ec2_backend.modify_subnet_attribute(
+                    subnet_id, attr_name, attr_value)
+                return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
 
 
 CREATE_SUBNET_RESPONSE = """
@@ -54,6 +60,7 @@ CREATE_SUBNET_RESPONSE = """
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
     <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
     <ownerId>{{ subnet.owner_id }}</ownerId>
+    <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
   </subnet>
 </CreateSubnetResponse>"""
 
@@ -77,6 +84,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
+        <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
         <tagSet>
           {% for tag in subnet.get_tags() %}
             <item>

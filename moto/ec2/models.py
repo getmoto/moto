@@ -2317,7 +2317,7 @@ class VPCPeeringConnectionBackend(object):
 
 class Subnet(TaggedEC2Resource):
     def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az,
-                 map_public_ip_on_launch, owner_id=111122223333):
+                 map_public_ip_on_launch, owner_id=111122223333, assign_ipv6_address_on_creation=False):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
@@ -2327,6 +2327,7 @@ class Subnet(TaggedEC2Resource):
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
         self.owner_id = owner_id
+        self.assign_ipv6_address_on_creation = assign_ipv6_address_on_creation
 
         # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
         self._subnet_ip_generator = self.cidr.hosts()
@@ -2462,7 +2463,7 @@ class SubnetBackend(object):
         default_for_az = str(availability_zone not in self.subnets).lower()
         map_public_ip_on_launch = default_for_az
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone,
-                        default_for_az, map_public_ip_on_launch, owner_id=context.get_current_user() if context else '111122223333')
+                        default_for_az, map_public_ip_on_launch, owner_id=context.get_current_user() if context else '111122223333', assign_ipv6_address_on_creation=False)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)
@@ -2490,11 +2491,12 @@ class SubnetBackend(object):
                 return subnets.pop(subnet_id, None)
         raise InvalidSubnetIdError(subnet_id)
 
-    def modify_subnet_attribute(self, subnet_id, map_public_ip):
+    def modify_subnet_attribute(self, subnet_id,  attr_name, attr_value):
         subnet = self.get_subnet(subnet_id)
-        if map_public_ip not in ('true', 'false'):
-            raise InvalidParameterValueError(map_public_ip)
-        subnet.map_public_ip_on_launch = map_public_ip
+        if attr_name in ('map_public_ip_on_launch', 'assign_ipv6_address_on_creation'):
+            setattr(subnet, attr_name, attr_value)
+        else:
+            raise InvalidParameterValueError(attr_name)
 
 
 class SubnetRouteTableAssociation(object):
