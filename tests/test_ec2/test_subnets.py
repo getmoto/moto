@@ -338,4 +338,9 @@ def test_create_subnet_response_fields():
     subnet.should.have.key('DefaultForAz').which.should.equal(False)
     subnet.should.have.key('MapPublicIpOnLaunch').which.should.equal(False)
     subnet.should.have.key('OwnerId')
-    subnet.should.have.key('AssignIpv6AddressOnCreation')
+    subnet.should.have.key('AssignIpv6AddressOnCreation').which.should.equal(False)
+
+    subnet_arn = "arn:aws:ec2:{region}:{owner_id}:subnet/{subnet_id}".format(region=subnet['AvailabilityZone'][0:-1],
+                                                                             owner_id=subnet['OwnerId'],
+                                                                             subnet_id=subnet['SubnetId'])
+    subnet.should.have.key('SubnetArn').which.should.equal(subnet_arn)

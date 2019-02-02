@@ -61,6 +61,7 @@ CREATE_SUBNET_RESPONSE = """
     <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
     <ownerId>{{ subnet.owner_id }}</ownerId>
     <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
+    <subnetArn>arn:aws:ec2:{{ subnet.availability_zone[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
   </subnet>
 </CreateSubnetResponse>"""
 
