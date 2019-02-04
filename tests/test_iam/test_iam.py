@@ -759,6 +759,17 @@ def test_get_access_key_last_used():
 @mock_iam
 def test_get_account_authorization_details():
     import json
+    test_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "s3:ListBucket",
+                "Resource": "*",
+                "Effect": "Allow",
+            }
+        ]
+    })
+
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
     conn.create_user(Path='/', UserName='testUser')
@@ -766,22 +777,22 @@ def test_get_account_authorization_details():
     conn.create_policy(
         PolicyName='testPolicy',
         Path='/',
-        PolicyDocument=json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Action": "s3:ListBucket",
-                    "Resource": "*",
-                    "Effect": "Allow",
-                }
-            ]
-        }),
+        PolicyDocument=test_policy,
         Description='Test Policy'
     )
 
+    # Attach things to the user and group:
+    conn.put_user_policy(UserName='testUser', PolicyName='testPolicy', PolicyDocument=test_policy)
+    conn.put_group_policy(GroupName='testGroup', PolicyName='testPolicy', PolicyDocument=test_policy)
+
+    conn.attach_user_policy(UserName='testUser', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+    conn.attach_group_policy(GroupName='testGroup', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+
+    conn.add_user_to_group(UserName='testUser', GroupName='testGroup')
+
+    # Add things to the role:
     conn.create_instance_profile(InstanceProfileName='ipn')
     conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
-
     conn.tag_role(RoleName='my-role', Tags=[
         {
             'Key': 'somekey',
@@ -792,6 +803,7 @@ def test_get_account_authorization_details():
             'Value': 'someothervalue'
         }
     ])
+    conn.put_role_policy(RoleName='my-role', PolicyName='test-policy', PolicyDocument=test_policy)
 
     result = conn.get_account_authorization_details(Filter=['Role'])
     assert len(result['RoleDetailList']) == 1
@@ -800,10 +812,13 @@ def test_get_account_authorization_details():
     assert len(result['Policies']) == 0
     assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
     assert len(result['RoleDetailList'][0]['Tags']) == 2
+    assert len(result['RoleDetailList'][0]['RolePolicyList']) == 1
 
     result = conn.get_account_authorization_details(Filter=['User'])
     assert len(result['RoleDetailList']) == 0
     assert len(result['UserDetailList']) == 1
+    assert len(result['UserDetailList'][0]['GroupList']) == 1
+    assert len(result['UserDetailList'][0]['AttachedManagedPolicies']) == 1
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 0
 
@@ -811,6 +826,8 @@ def test_get_account_authorization_details():
     assert len(result['RoleDetailList']) == 0
     assert len(result['UserDetailList']) == 0
     assert len(result['GroupDetailList']) == 1
+    assert len(result['GroupDetailList'][0]['GroupPolicyList']) == 1
+    assert len(result['GroupDetailList'][0]['AttachedManagedPolicies']) == 1
     assert len(result['Policies']) == 0
 
     result = conn.get_account_authorization_details(Filter=['LocalManagedPolicy'])
@@ -818,6 +835,7 @@ def test_get_account_authorization_details():
     assert len(result['UserDetailList']) == 0
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 1
+    assert len(result['Policies'][0]['PolicyVersionList']) == 1
 
     # Check for greater than 1 since this should always be greater than one but might change.
     # See iam/aws_managed_policies.py

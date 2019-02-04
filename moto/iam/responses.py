@@ -554,7 +554,8 @@ class IamResponse(BaseResponse):
             policies=account_details['managed_policies'],
             users=account_details['users'],
             groups=account_details['groups'],
-            roles=account_details['roles']
+            roles=account_details['roles'],
+            get_groups_for_user=iam_backend.get_groups_for_user
         )
 
     def create_saml_provider(self):
@@ -1499,8 +1500,19 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
     <UserDetailList>
     {% for user in users %}
       <member>
-        <GroupList />
-        <AttachedManagedPolicies/>
+        <GroupList>
+        {% for group in get_groups_for_user(user.name) %}
+          <member>{{ group.name }}</member>
+        {% endfor %}
+        </GroupList>
+        <AttachedManagedPolicies>
+        {% for policy in user.managed_policies %}
+          <member>
+            <PolicyName>{{ user.managed_policies[policy].name }}</PolicyName>
+            <PolicyArn>{{ policy }}</PolicyArn>
+          </member>
+        {% endfor %}
+        </AttachedManagedPolicies>
         <UserId>{{ user.id }}</UserId>
         <Path>{{ user.path }}</Path>
         <UserName>{{ user.name }}</UserName>
@@ -1514,25 +1526,39 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
       <member>
         <GroupId>{{ group.id }}</GroupId>
         <AttachedManagedPolicies>
-          {% for policy in group.managed_policies %}
-          <member>
-            <PolicyName>{{ policy.name }}</PolicyName>
-            <PolicyArn>{{ policy.arn }}</PolicyArn>
-          </member>
+          {% for policy_arn in group.managed_policies %}
+            <member>
+                <PolicyName>{{ group.managed_policies[policy_arn].name }}</PolicyName>
+                <PolicyArn>{{ policy_arn }}</PolicyArn>
+            </member>
           {% endfor %}
         </AttachedManagedPolicies>
         <GroupName>{{ group.name }}</GroupName>
         <Path>{{ group.path }}</Path>
         <Arn>{{ group.arn }}</Arn>
         <CreateDate>{{ group.create_date }}</CreateDate>
-        <GroupPolicyList/>
+        <GroupPolicyList>
+        {% for policy in group.policies %}
+            <member>
+                <PolicyName>{{ policy }}</PolicyName>
+                <PolicyDocument>{{ group.get_policy(policy) }}</PolicyDocument>
+            </member>
+        {% endfor %}
+        </GroupPolicyList>
       </member>
     {% endfor %}
     </GroupDetailList>
     <RoleDetailList>
     {% for role in roles %}
       <member>
-        <RolePolicyList/>
+        <RolePolicyList>
+        {% for inline_policy in role.policies %}
+            <member>
+                <PolicyName>{{ inline_policy }}</PolicyName>
+                <PolicyDocument>{{ role.policies[inline_policy] }}</PolicyDocument>
+            </member>
+        {% endfor %}
+        </RolePolicyList>
         <AttachedManagedPolicies>
         {% for policy in role.managed_policies %}
             <member>
@@ -1589,19 +1615,14 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <PolicyId>{{ policy.id }}</PolicyId>
         <Path>{{ policy.path }}</Path>
         <PolicyVersionList>
+        {% for policy_version in policy.versions %}
           <member>
-            <Document>
-              {"Version":"2012-10-17","Statement":{"Effect":"Allow",
-              "Action":["iam:CreatePolicy","iam:CreatePolicyVersion",
-              "iam:DeletePolicy","iam:DeletePolicyVersion","iam:GetPolicy",
-              "iam:GetPolicyVersion","iam:ListPolicies",
-              "iam:ListPolicyVersions","iam:SetDefaultPolicyVersion"],
-              "Resource":"*"}}
-            </Document>
-            <IsDefaultVersion>true</IsDefaultVersion>
-            <VersionId>v1</VersionId>
-            <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+            <Document>{{ policy_version.document }}</Document>
+            <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+            <VersionId>{{ policy_version.version_id }}</VersionId>
+            <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
           </member>
+        {% endfor %}
         </PolicyVersionList>
         <Arn>{{ policy.arn }}</Arn>
         <AttachmentCount>1</AttachmentCount>
