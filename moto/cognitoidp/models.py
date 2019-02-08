@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 import datetime
+import functools
+import itertools
 import json
 import os
 import time
@@ -11,13 +13,45 @@ from jose import jws
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from .exceptions import NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
-
+from .exceptions import GroupExistsException, NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
 }
+
+
+def paginate(limit, start_arg="next_token", limit_arg="max_results"):
+    """Returns a limited result list, and an offset into list of remaining items
+
+    Takes the next_token, and max_results kwargs given to a function and handles
+    the slicing of the results. The kwarg `next_token` is the offset into the
+    list to begin slicing from. `max_results` is the size of the result required
+
+    If the max_results is not supplied then the `limit` parameter is used as a
+    default
+
+    :param limit_arg: the name of argument in the decorated function that
+    controls amount of items returned
+    :param start_arg: the name of the argument in the decorated that provides
+    the starting offset
+    :param limit: A default maximum items to return
+    :return: a tuple containing a list of items, and the offset into the list
+    """
+    default_start = 0
+
+    def outer_wrapper(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            start = int(default_start if kwargs.get(start_arg) is None else kwargs[start_arg])
+            lim = int(limit if kwargs.get(limit_arg) is None else kwargs[limit_arg])
+            stop = start + lim
+            result = func(*args, **kwargs)
+            limited_results = list(itertools.islice(result, start, stop))
+            next_token = stop if stop < len(result) else None
+            return limited_results, next_token
+        return wrapper
+    return outer_wrapper
 
 
 class CognitoIdpUserPool(BaseModel):
@@ -33,6 +67,7 @@ class CognitoIdpUserPool(BaseModel):
 
         self.clients = OrderedDict()
         self.identity_providers = OrderedDict()
+        self.groups = OrderedDict()
         self.users = OrderedDict()
         self.refresh_tokens = {}
         self.access_tokens = {}
@@ -185,6 +220,33 @@ class CognitoIdpIdentityProvider(BaseModel):
         return identity_provider_json
 
 
+class CognitoIdpGroup(BaseModel):
+
+    def __init__(self, user_pool_id, group_name, description, role_arn, precedence):
+        self.user_pool_id = user_pool_id
+        self.group_name = group_name
+        self.description = description or ""
+        self.role_arn = role_arn
+        self.precedence = precedence
+        self.last_modified_date = datetime.datetime.now()
+        self.creation_date = self.last_modified_date
+
+        # Users who are members of this group.
+        # Note that these links are bidirectional.
+        self.users = set()
+
+    def to_json(self):
+        return {
+            "GroupName": self.group_name,
+            "UserPoolId": self.user_pool_id,
+            "Description": self.description,
+            "RoleArn": self.role_arn,
+            "Precedence": self.precedence,
+            "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "CreationDate": time.mktime(self.creation_date.timetuple()),
+        }
+
+
 class CognitoIdpUser(BaseModel):
 
     def __init__(self, user_pool_id, username, password, status, attributes):
@@ -197,6 +259,10 @@ class CognitoIdpUser(BaseModel):
         self.attributes = attributes
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
+
+        # Groups this user is a member of.
+        # Note that these links are bidirectional.
+        self.groups = set()
 
     def _base_json(self):
         return {
@@ -242,7 +308,8 @@ class CognitoIdpBackend(BaseBackend):
         self.user_pools[user_pool.id] = user_pool
         return user_pool
 
-    def list_user_pools(self):
+    @paginate(60)
+    def list_user_pools(self, max_results=None, next_token=None):
         return self.user_pools.values()
 
     def describe_user_pool(self, user_pool_id):
@@ -289,7 +356,8 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.clients[user_pool_client.id] = user_pool_client
         return user_pool_client
 
-    def list_user_pool_clients(self, user_pool_id):
+    @paginate(60)
+    def list_user_pool_clients(self, user_pool_id, max_results=None, next_token=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
@@ -339,7 +407,8 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.identity_providers[name] = identity_provider
         return identity_provider
 
-    def list_identity_providers(self, user_pool_id):
+    @paginate(60)
+    def list_identity_providers(self, user_pool_id, max_results=None, next_token=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
@@ -367,6 +436,72 @@ class CognitoIdpBackend(BaseBackend):
 
         del user_pool.identity_providers[name]
 
+    # Group
+    def create_group(self, user_pool_id, group_name, description, role_arn, precedence):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        group = CognitoIdpGroup(user_pool_id, group_name, description, role_arn, precedence)
+        if group.group_name in user_pool.groups:
+            raise GroupExistsException("A group with the name already exists")
+        user_pool.groups[group.group_name] = group
+
+        return group
+
+    def get_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if group_name not in user_pool.groups:
+            raise ResourceNotFoundError(group_name)
+
+        return user_pool.groups[group_name]
+
+    def list_groups(self, user_pool_id):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        return user_pool.groups.values()
+
+    def delete_group(self, user_pool_id, group_name):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if group_name not in user_pool.groups:
+            raise ResourceNotFoundError(group_name)
+
+        group = user_pool.groups[group_name]
+        for user in group.users:
+            user.groups.remove(group)
+
+        del user_pool.groups[group_name]
+
+    def admin_add_user_to_group(self, user_pool_id, group_name, username):
+        group = self.get_group(user_pool_id, group_name)
+        user = self.admin_get_user(user_pool_id, username)
+
+        group.users.add(user)
+        user.groups.add(group)
+
+    def list_users_in_group(self, user_pool_id, group_name):
+        group = self.get_group(user_pool_id, group_name)
+        return list(group.users)
+
+    def admin_list_groups_for_user(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        return list(user.groups)
+
+    def admin_remove_user_from_group(self, user_pool_id, group_name, username):
+        group = self.get_group(user_pool_id, group_name)
+        user = self.admin_get_user(user_pool_id, username)
+
+        group.users.discard(user)
+        user.groups.discard(group)
+
     # User
     def admin_create_user(self, user_pool_id, username, temporary_password, attributes):
         user_pool = self.user_pools.get(user_pool_id)
@@ -387,7 +522,8 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.users[username]
 
-    def list_users(self, user_pool_id):
+    @paginate(60, "pagination_token", "limit")
+    def list_users(self, user_pool_id, pagination_token=None, limit=None):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
@@ -409,6 +545,10 @@ class CognitoIdpBackend(BaseBackend):
 
         if username not in user_pool.users:
             raise UserNotFoundError(username)
+
+        user = user_pool.users[username]
+        for group in user.groups:
+            group.users.remove(user)
 
         del user_pool.users[username]
 

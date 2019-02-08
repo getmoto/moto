@@ -477,12 +477,12 @@
 - [X] create_stack
 - [ ] create_stack_instances
 - [ ] create_stack_set
-- [ ] delete_change_set
+- [X] delete_change_set
 - [X] delete_stack
 - [ ] delete_stack_instances
 - [ ] delete_stack_set
 - [ ] describe_account_limits
-- [ ] describe_change_set
+- [X] describe_change_set
 - [ ] describe_stack_events
 - [ ] describe_stack_instance
 - [ ] describe_stack_resource
@@ -495,7 +495,7 @@
 - [ ] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
-- [ ] list_change_sets
+- [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
 - [ ] list_stack_instances
@@ -827,25 +827,25 @@
 - [ ] unlink_identity
 - [ ] update_identity_pool
 
-## cognito-idp - 0% implemented
+## cognito-idp - 34% implemented
 - [ ] add_custom_attributes
-- [ ] admin_add_user_to_group
+- [X] admin_add_user_to_group
 - [ ] admin_confirm_sign_up
-- [ ] admin_create_user
-- [ ] admin_delete_user
+- [X] admin_create_user
+- [X] admin_delete_user
 - [ ] admin_delete_user_attributes
 - [ ] admin_disable_provider_for_user
 - [X] admin_disable_user
 - [X] admin_enable_user
 - [ ] admin_forget_device
 - [ ] admin_get_device
-- [ ] admin_get_user
-- [ ] admin_initiate_auth
+- [X] admin_get_user
+- [X] admin_initiate_auth
 - [ ] admin_link_provider_for_user
 - [ ] admin_list_devices
-- [ ] admin_list_groups_for_user
+- [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
-- [ ] admin_remove_user_from_group
+- [X] admin_remove_user_from_group
 - [ ] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
@@ -855,37 +855,37 @@
 - [ ] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
-- [ ] change_password
+- [X] change_password
 - [ ] confirm_device
-- [ ] confirm_forgot_password
+- [X] confirm_forgot_password
 - [ ] confirm_sign_up
-- [ ] create_group
-- [ ] create_identity_provider
+- [X] create_group
+- [X] create_identity_provider
 - [ ] create_resource_server
 - [ ] create_user_import_job
-- [ ] create_user_pool
-- [ ] create_user_pool_client
-- [ ] create_user_pool_domain
-- [ ] delete_group
-- [ ] delete_identity_provider
+- [X] create_user_pool
+- [X] create_user_pool_client
+- [X] create_user_pool_domain
+- [X] delete_group
+- [X] delete_identity_provider
 - [ ] delete_resource_server
 - [ ] delete_user
 - [ ] delete_user_attributes
-- [ ] delete_user_pool
-- [ ] delete_user_pool_client
-- [ ] delete_user_pool_domain
-- [ ] describe_identity_provider
+- [X] delete_user_pool
+- [X] delete_user_pool_client
+- [X] delete_user_pool_domain
+- [X] describe_identity_provider
 - [ ] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_user_import_job
-- [ ] describe_user_pool
-- [ ] describe_user_pool_client
-- [ ] describe_user_pool_domain
+- [X] describe_user_pool
+- [X] describe_user_pool_client
+- [X] describe_user_pool_domain
 - [ ] forget_device
 - [ ] forgot_password
 - [ ] get_csv_header
 - [ ] get_device
-- [ ] get_group
+- [X] get_group
 - [ ] get_identity_provider_by_identifier
 - [ ] get_signing_certificate
 - [ ] get_ui_customization
@@ -895,16 +895,16 @@
 - [ ] global_sign_out
 - [ ] initiate_auth
 - [ ] list_devices
-- [ ] list_groups
-- [ ] list_identity_providers
+- [X] list_groups
+- [X] list_identity_providers
 - [ ] list_resource_servers
 - [ ] list_user_import_jobs
-- [ ] list_user_pool_clients
-- [ ] list_user_pools
-- [ ] list_users
-- [ ] list_users_in_group
+- [X] list_user_pool_clients
+- [X] list_user_pools
+- [X] list_users
+- [X] list_users_in_group
 - [ ] resend_confirmation_code
-- [ ] respond_to_auth_challenge
+- [X] respond_to_auth_challenge
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [ ] set_user_mfa_preference
@@ -920,7 +920,7 @@
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
-- [ ] update_user_pool_client
+- [X] update_user_pool_client
 - [ ] verify_software_token
 - [ ] verify_user_attribute
 
@@ -2208,7 +2208,7 @@
 - [ ] describe_event_types
 - [ ] describe_events
 
-## iam - 48% implemented
+## iam - 62% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -2225,7 +2225,7 @@
 - [X] create_policy
 - [X] create_policy_version
 - [X] create_role
-- [ ] create_saml_provider
+- [X] create_saml_provider
 - [ ] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
@@ -2243,11 +2243,11 @@
 - [X] delete_policy_version
 - [X] delete_role
 - [X] delete_role_policy
-- [ ] delete_saml_provider
+- [X] delete_saml_provider
 - [X] delete_server_certificate
 - [ ] delete_service_linked_role
 - [ ] delete_service_specific_credential
-- [ ] delete_signing_certificate
+- [X] delete_signing_certificate
 - [ ] delete_ssh_public_key
 - [X] delete_user
 - [X] delete_user_policy
@@ -2257,7 +2257,7 @@
 - [X] detach_user_policy
 - [X] enable_mfa_device
 - [ ] generate_credential_report
-- [ ] get_access_key_last_used
+- [X] get_access_key_last_used
 - [X] get_account_authorization_details
 - [ ] get_account_password_policy
 - [ ] get_account_summary
@@ -2273,13 +2273,13 @@
 - [X] get_policy_version
 - [X] get_role
 - [X] get_role_policy
-- [ ] get_saml_provider
+- [X] get_saml_provider
 - [X] get_server_certificate
 - [ ] get_service_linked_role_deletion_status
 - [ ] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
-- [ ] list_access_keys
+- [X] list_access_keys
 - [X] list_account_aliases
 - [X] list_attached_group_policies
 - [X] list_attached_role_policies
@@ -2287,19 +2287,21 @@
 - [ ] list_entities_for_policy
 - [X] list_group_policies
 - [X] list_groups
-- [ ] list_groups_for_user
-- [ ] list_instance_profiles
-- [ ] list_instance_profiles_for_role
+- [X] list_groups_for_user
+- [X] list_instance_profiles
+- [X] list_instance_profiles_for_role
 - [X] list_mfa_devices
 - [ ] list_open_id_connect_providers
 - [X] list_policies
 - [X] list_policy_versions
 - [X] list_role_policies
-- [ ] list_roles
-- [ ] list_saml_providers
-- [ ] list_server_certificates
+- [X] list_roles
+- [X] list_role_tags
+- [ ] list_user_tags
+- [X] list_saml_providers
+- [X] list_server_certificates
 - [ ] list_service_specific_credentials
-- [ ] list_signing_certificates
+- [X] list_signing_certificates
 - [ ] list_ssh_public_keys
 - [X] list_user_policies
 - [X] list_users
@@ -2315,6 +2317,10 @@
 - [ ] set_default_policy_version
 - [ ] simulate_custom_policy
 - [ ] simulate_principal_policy
+- [X] tag_role
+- [ ] tag_user
+- [X] untag_role
+- [ ] untag_user
 - [X] update_access_key
 - [ ] update_account_password_policy
 - [ ] update_assume_role_policy
@@ -2323,14 +2329,14 @@
 - [ ] update_open_id_connect_provider_thumbprint
 - [ ] update_role
 - [ ] update_role_description
-- [ ] update_saml_provider
+- [X] update_saml_provider
 - [ ] update_server_certificate
 - [ ] update_service_specific_credential
-- [ ] update_signing_certificate
+- [X] update_signing_certificate
 - [ ] update_ssh_public_key
 - [ ] update_user
-- [ ] upload_server_certificate
-- [ ] upload_signing_certificate
+- [X] upload_server_certificate
+- [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
 
 ## importexport - 0% implemented
@@ -2376,11 +2382,11 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 30% implemented
+## iot - 32% implemented
 - [ ] accept_certificate_transfer
 - [X] add_thing_to_thing_group
 - [ ] associate_targets_with_job
-- [ ] attach_policy
+- [X] attach_policy
 - [X] attach_principal_policy
 - [X] attach_thing_principal
 - [ ] cancel_certificate_transfer
@@ -2429,7 +2435,7 @@
 - [X] describe_thing_group
 - [ ] describe_thing_registration_task
 - [X] describe_thing_type
-- [ ] detach_policy
+- [X] detach_policy
 - [X] detach_principal_policy
 - [X] detach_thing_principal
 - [ ] disable_topic_rule
@@ -3542,7 +3548,7 @@
 - [ ] get_bucket_inventory_configuration
 - [ ] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
-- [ ] get_bucket_location
+- [X] get_bucket_location
 - [ ] get_bucket_logging
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification

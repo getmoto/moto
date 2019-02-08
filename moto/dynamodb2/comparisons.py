@@ -383,7 +383,7 @@ class OpNotEqual(Op):
     def expr(self, item):
         lhs = self._lhs(item)
         rhs = self._rhs(item)
-        return lhs == rhs
+        return lhs != rhs
 
 
 class OpLessThanOrEqual(Op):

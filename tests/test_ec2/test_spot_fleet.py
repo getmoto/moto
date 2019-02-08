@@ -54,7 +54,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
             },
             'EbsOptimized': False,
             'WeightedCapacity': 2.0,
-            'SpotPrice': '0.13'
+            'SpotPrice': '0.13',
         }, {
             'ImageId': 'ami-123',
             'KeyName': 'my-key',
@@ -146,6 +146,48 @@ def test_create_diversified_spot_fleet():
     instance_types = set([instance['InstanceType'] for instance in instances])
     instance_types.should.equal(set(["t2.small", "t2.large"]))
     instances[0]['InstanceId'].should.contain("i-")
+
+
+@mock_ec2
+def test_create_spot_fleet_request_with_tag_spec():
+    conn = boto3.client("ec2", region_name='us-west-2')
+    subnet_id = get_subnet_id(conn)
+
+    tag_spec = [
+        {
+            'ResourceType': 'instance',
+            'Tags': [
+                {
+                    'Key': 'tag-1',
+                    'Value': 'foo',
+                },
+                {
+                    'Key': 'tag-2',
+                    'Value': 'bar',
+                },
+            ]
+        },
+    ]
+    config = spot_config(subnet_id)
+    config['LaunchSpecifications'][0]['TagSpecifications'] = tag_spec
+    spot_fleet_res = conn.request_spot_fleet(
+        SpotFleetRequestConfig=config
+    )
+    spot_fleet_id = spot_fleet_res['SpotFleetRequestId']
+    spot_fleet_requests = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
+    spot_fleet_config = spot_fleet_requests[0]['SpotFleetRequestConfig']
+    spot_fleet_config['LaunchSpecifications'][0]['TagSpecifications'][0][
+            'ResourceType'].should.equal('instance')
+    for tag in tag_spec[0]['Tags']:
+        spot_fleet_config['LaunchSpecifications'][0]['TagSpecifications'][0]['Tags'].should.contain(tag)
+
+    instance_res = conn.describe_spot_fleet_instances(
+        SpotFleetRequestId=spot_fleet_id)
+    instances = conn.describe_instances(InstanceIds=[i['InstanceId'] for i in instance_res['ActiveInstances']])
+    for instance in instances['Reservations'][0]['Instances']:
+        for tag in tag_spec[0]['Tags']:
+            instance['Tags'].should.contain(tag)
 
 
 @mock_ec2

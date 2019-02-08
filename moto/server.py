@@ -80,10 +80,13 @@ class DomainDispatcherApplication(object):
 
                 region = 'us-east-1'
             if service == 'dynamodb':
-                dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
-                # If Newer API version, use dynamodb2
-                if dynamo_api_version > "20111205":
-                    host = "dynamodb2"
+                if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
+                    host = 'dynamodbstreams'
+                else:
+                    dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
+                    # If Newer API version, use dynamodb2
+                    if dynamo_api_version > "20111205":
+                        host = "dynamodb2"
             else:
                 host = "{service}.{region}.amazonaws.com".format(
                     service=service, region=region)
