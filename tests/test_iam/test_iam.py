@@ -804,6 +804,7 @@ def test_get_account_authorization_details():
         }
     ])
     conn.put_role_policy(RoleName='my-role', PolicyName='test-policy', PolicyDocument=test_policy)
+    conn.attach_role_policy(RoleName='my-role', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
 
     result = conn.get_account_authorization_details(Filter=['Role'])
     assert len(result['RoleDetailList']) == 1
@@ -813,6 +814,10 @@ def test_get_account_authorization_details():
     assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
     assert len(result['RoleDetailList'][0]['Tags']) == 2
     assert len(result['RoleDetailList'][0]['RolePolicyList']) == 1
+    assert len(result['RoleDetailList'][0]['AttachedManagedPolicies']) == 1
+    assert result['RoleDetailList'][0]['AttachedManagedPolicies'][0]['PolicyName'] == 'testPolicy'
+    assert result['RoleDetailList'][0]['AttachedManagedPolicies'][0]['PolicyArn'] == \
+        'arn:aws:iam::123456789012:policy/testPolicy'
 
     result = conn.get_account_authorization_details(Filter=['User'])
     assert len(result['RoleDetailList']) == 0
@@ -821,6 +826,9 @@ def test_get_account_authorization_details():
     assert len(result['UserDetailList'][0]['AttachedManagedPolicies']) == 1
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 0
+    assert result['UserDetailList'][0]['AttachedManagedPolicies'][0]['PolicyName'] == 'testPolicy'
+    assert result['UserDetailList'][0]['AttachedManagedPolicies'][0]['PolicyArn'] == \
+        'arn:aws:iam::123456789012:policy/testPolicy'
 
     result = conn.get_account_authorization_details(Filter=['Group'])
     assert len(result['RoleDetailList']) == 0
@@ -829,6 +837,9 @@ def test_get_account_authorization_details():
     assert len(result['GroupDetailList'][0]['GroupPolicyList']) == 1
     assert len(result['GroupDetailList'][0]['AttachedManagedPolicies']) == 1
     assert len(result['Policies']) == 0
+    assert result['GroupDetailList'][0]['AttachedManagedPolicies'][0]['PolicyName'] == 'testPolicy'
+    assert result['GroupDetailList'][0]['AttachedManagedPolicies'][0]['PolicyArn'] == \
+        'arn:aws:iam::123456789012:policy/testPolicy'
 
     result = conn.get_account_authorization_details(Filter=['LocalManagedPolicy'])
     assert len(result['RoleDetailList']) == 0
