@@ -2419,6 +2419,7 @@ class Subnet(TaggedEC2Resource):
         self.map_public_ip_on_launch = map_public_ip_on_launch
         self.owner_id = owner_id
         self.assign_ipv6_address_on_creation = assign_ipv6_address_on_creation
+        self.ipv6_cidr_block_associations = []
 
         # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
         self._subnet_ip_generator = self.cidr.hosts()

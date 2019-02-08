@@ -345,6 +345,7 @@ def test_create_subnet_response_fields():
                                                                              owner_id=subnet['OwnerId'],
                                                                              subnet_id=subnet['SubnetId'])
     subnet.should.have.key('SubnetArn').which.should.equal(subnet_arn)
+    subnet.should.have.key('Ipv6CidrBlockAssociationSet').which.should.equal([])
 
 
 @mock_ec2
