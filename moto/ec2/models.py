@@ -35,6 +35,7 @@ from .exceptions import (
     InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
     InvalidAssociationIdError,
+    InvalidAvailabilityZoneError,
     InvalidCIDRSubnetError,
     InvalidCustomerGatewayIdError,
     InvalidDHCPOptionsIdError,
@@ -1265,17 +1266,107 @@ class Region(object):
 
 
 class Zone(object):
-    def __init__(self, name, region_name):
+    def __init__(self, name, region_name, zone_id):
         self.name = name
         self.region_name = region_name
+        self.zone_id = zone_id
 
 
 class RegionsAndZonesBackend(object):
     regions = [Region(ri.name, ri.endpoint) for ri in boto.ec2.regions()]
 
-    zones = dict(
-        (region, [Zone(region + c, region) for c in 'abc'])
-        for region in [r.name for r in regions])
+    zones = {
+        'ap-south-1': [
+            Zone(region_name="ap-south-1", name="ap-south-1a", zone_id="aps1-az1"),
+            Zone(region_name="ap-south-1", name="ap-south-1b", zone_id="aps1-az3")
+        ],
+        'eu-west-3': [
+            Zone(region_name="eu-west-3", name="eu-west-3a", zone_id="euw3-az1"),
+            Zone(region_name="eu-west-3", name="eu-west-3b", zone_id="euw3-az2"),
+            Zone(region_name="eu-west-3", name="eu-west-3c", zone_id="euw3-az3")
+        ],
+        'eu-north-1': [
+            Zone(region_name="eu-north-1", name="eu-north-1a", zone_id="eun1-az1"),
+            Zone(region_name="eu-north-1", name="eu-north-1b", zone_id="eun1-az2"),
+            Zone(region_name="eu-north-1", name="eu-north-1c", zone_id="eun1-az3")
+        ],
+        'eu-west-2': [
+            Zone(region_name="eu-west-2", name="eu-west-2a", zone_id="euw2-az2"),
+            Zone(region_name="eu-west-2", name="eu-west-2b", zone_id="euw2-az3"),
+            Zone(region_name="eu-west-2", name="eu-west-2c", zone_id="euw2-az1")
+        ],
+        'eu-west-1': [
+            Zone(region_name="eu-west-1", name="eu-west-1a", zone_id="euw1-az3"),
+            Zone(region_name="eu-west-1", name="eu-west-1b", zone_id="euw1-az1"),
+            Zone(region_name="eu-west-1", name="eu-west-1c", zone_id="euw1-az2")
+        ],
+        'ap-northeast-3': [
+            Zone(region_name="ap-northeast-3", name="ap-northeast-2a", zone_id="apne3-az1")
+        ],
+        'ap-northeast-2': [
+            Zone(region_name="ap-northeast-2", name="ap-northeast-2a", zone_id="apne2-az1"),
+            Zone(region_name="ap-northeast-2", name="ap-northeast-2c", zone_id="apne2-az3")
+        ],
+        'ap-northeast-1': [
+            Zone(region_name="ap-northeast-1", name="ap-northeast-1a", zone_id="apne1-az4"),
+            Zone(region_name="ap-northeast-1", name="ap-northeast-1c", zone_id="apne1-az1"),
+            Zone(region_name="ap-northeast-1", name="ap-northeast-1d", zone_id="apne1-az2")
+        ],
+        'sa-east-1': [
+            Zone(region_name="sa-east-1", name="sa-east-1a", zone_id="sae1-az1"),
+            Zone(region_name="sa-east-1", name="sa-east-1c", zone_id="sae1-az3")
+        ],
+        'ca-central-1': [
+            Zone(region_name="ca-central-1", name="ca-central-1a", zone_id="cac1-az1"),
+            Zone(region_name="ca-central-1", name="ca-central-1b", zone_id="cac1-az2")
+        ],
+        'ap-southeast-1': [
+            Zone(region_name="ap-southeast-1", name="ap-southeast-1a", zone_id="apse1-az1"),
+            Zone(region_name="ap-southeast-1", name="ap-southeast-1b", zone_id="apse1-az2"),
+            Zone(region_name="ap-southeast-1", name="ap-southeast-1c", zone_id="apse1-az3")
+        ],
+        'ap-southeast-2': [
+            Zone(region_name="ap-southeast-2", name="ap-southeast-2a", zone_id="apse2-az1"),
+            Zone(region_name="ap-southeast-2", name="ap-southeast-2b", zone_id="apse2-az3"),
+            Zone(region_name="ap-southeast-2", name="ap-southeast-2c", zone_id="apse2-az2")
+        ],
+        'eu-central-1': [
+            Zone(region_name="eu-central-1", name="eu-central-1a", zone_id="euc1-az2"),
+            Zone(region_name="eu-central-1", name="eu-central-1b", zone_id="euc1-az3"),
+            Zone(region_name="eu-central-1", name="eu-central-1c", zone_id="euc1-az1")
+        ],
+        'us-east-1': [
+            Zone(region_name="us-east-1", name="us-east-1a", zone_id="use1-az6"),
+            Zone(region_name="us-east-1", name="us-east-1b", zone_id="use1-az1"),
+            Zone(region_name="us-east-1", name="us-east-1c", zone_id="use1-az2"),
+            Zone(region_name="us-east-1", name="us-east-1d", zone_id="use1-az4"),
+            Zone(region_name="us-east-1", name="us-east-1e", zone_id="use1-az3"),
+            Zone(region_name="us-east-1", name="us-east-1f", zone_id="use1-az5")
+        ],
+        'us-east-2': [
+            Zone(region_name="us-east-2", name="us-east-2a", zone_id="use2-az1"),
+            Zone(region_name="us-east-2", name="us-east-2b", zone_id="use2-az2"),
+            Zone(region_name="us-east-2", name="us-east-2c", zone_id="use2-az3")
+        ],
+        'us-west-1': [
+            Zone(region_name="us-west-1", name="us-west-1a", zone_id="usw1-az3"),
+            Zone(region_name="us-west-1", name="us-west-1b", zone_id="usw1-az1")
+        ],
+        'us-west-2': [
+            Zone(region_name="us-west-2", name="us-west-2a", zone_id="usw2-az2"),
+            Zone(region_name="us-west-2", name="us-west-2b", zone_id="usw2-az1"),
+            Zone(region_name="us-west-2", name="us-west-2c", zone_id="usw2-az3")
+        ],
+        'cn-north-1': [
+            Zone(region_name="cn-north-1", name="cn-north-1a", zone_id="cnn1-az1"),
+            Zone(region_name="cn-north-1", name="cn-north-1b", zone_id="cnn1-az2")
+        ],
+        'us-gov-west-1': [
+            Zone(region_name="us-gov-west-1", name="us-gov-west-1a", zone_id="usgw1-az1"),
+            Zone(region_name="us-gov-west-1", name="us-gov-west-1b", zone_id="usgw1-az2"),
+            Zone(region_name="us-gov-west-1", name="us-gov-west-1c", zone_id="usgw1-az3")
+        ]
+    }
 
     def describe_regions(self, region_names=[]):
         if len(region_names) == 0:
@@ -2357,7 +2448,7 @@ class Subnet(TaggedEC2Resource):
 
     @property
     def availability_zone(self):
-        return self._availability_zone
+        return self._availability_zone.name
 
     @property
     def physical_resource_id(self):
@@ -2462,8 +2553,15 @@ class SubnetBackend(object):
         # consider it the default
         default_for_az = str(availability_zone not in self.subnets).lower()
         map_public_ip_on_launch = default_for_az
-        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone,
-                        default_for_az, map_public_ip_on_launch, owner_id=context.get_current_user() if context else '111122223333', assign_ipv6_address_on_creation=False)
+        if availability_zone is None:
+            availability_zone = 'us-east-1a'
+        try:
+            availability_zone_data = next(zone for zones in RegionsAndZonesBackend.zones.values() for zone in zones if zone.name == availability_zone)
+        except StopIteration:
+            raise InvalidAvailabilityZoneError(availability_zone, ", ".join([zone.name for zones in RegionsAndZonesBackend.zones.values() for zone in zones]))
+        subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone_data,
+                        default_for_az, map_public_ip_on_launch,
+                        owner_id=context.get_current_user() if context else '111122223333', assign_ipv6_address_on_creation=False)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id)

@@ -7,7 +7,7 @@ import boto3
 import boto
 import boto.vpc
 from boto.exception import EC2ResponseError
-from botocore.exceptions import ParamValidationError
+from botocore.exceptions import ParamValidationError, ClientError
 import json
 import sure  # noqa
 
@@ -329,6 +329,7 @@ def test_create_subnet_response_fields():
         VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')['Subnet']
 
     subnet.should.have.key('AvailabilityZone')
+    subnet.should.have.key('AvailabilityZoneId')
     subnet.should.have.key('AvailableIpAddressCount')
     subnet.should.have.key('CidrBlock')
     subnet.should.have.key('State')
@@ -344,3 +345,20 @@ def test_create_subnet_response_fields():
                                                                              owner_id=subnet['OwnerId'],
                                                                              subnet_id=subnet['SubnetId'])
     subnet.should.have.key('SubnetArn').which.should.equal(subnet_arn)
+
+
+@mock_ec2
+def test_create_subnet_with_invalid_availability_zone():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    subnet_availability_zone = 'asfasfas'
+    with assert_raises(ClientError) as ex:
+        subnet = client.create_subnet(
+            VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone=subnet_availability_zone)
+    assert str(ex.exception).startswith(
+        "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
+        "operation: Value ({}) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: ".format(subnet_availability_zone))
+

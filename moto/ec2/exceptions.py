@@ -420,3 +420,13 @@ class OperationNotPermitted(EC2ClientError):
             "The vpc CIDR block with association ID {} may not be disassociated. "
             "It is the primary IPv4 CIDR block of the VPC".format(association_id)
         )
+
+
+class InvalidAvailabilityZoneError(EC2ClientError):
+
+    def __init__(self, availability_zone_value, valid_availability_zones):
+        super(InvalidAvailabilityZoneError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({0}) for parameter availabilityZone is invalid. "
+            "Subnets can currently only be created in the following availability zones: {1}.".format(availability_zone_value, valid_availability_zones)
+        )

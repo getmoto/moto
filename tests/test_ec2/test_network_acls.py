@@ -32,7 +32,7 @@ def test_new_subnet_associates_with_default_network_acl():
     all_network_acls.should.have.length_of(1)
 
     acl = all_network_acls[0]
-    acl.associations.should.have.length_of(4)
+    acl.associations.should.have.length_of(7)
     [a.subnet_id for a in acl.associations].should.contain(subnet.id)
 
 

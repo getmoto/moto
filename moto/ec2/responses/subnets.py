@@ -56,12 +56,13 @@ CREATE_SUBNET_RESPONSE = """
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
-    <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
+    <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
+    <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
     <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
     <ownerId>{{ subnet.owner_id }}</ownerId>
     <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
-    <subnetArn>arn:aws:ec2:{{ subnet.availability_zone[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
+    <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
   </subnet>
 </CreateSubnetResponse>"""
 
@@ -82,7 +83,8 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
-        <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
+        <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
+        <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>   
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
         <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
