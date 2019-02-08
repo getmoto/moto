@@ -1466,7 +1466,7 @@
 - [X] describe_spot_instance_requests
 - [ ] describe_spot_price_history
 - [ ] describe_stale_security_groups
-- [ ] describe_subnets
+- [X] describe_subnets
 - [X] describe_tags
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
