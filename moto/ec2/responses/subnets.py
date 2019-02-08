@@ -85,7 +85,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
         <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
-        <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>   
+        <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
         <ownerId>{{ subnet.owner_id }}</ownerId>

@@ -2590,7 +2590,7 @@ class SubnetBackend(object):
                 return subnets.pop(subnet_id, None)
         raise InvalidSubnetIdError(subnet_id)
 
-    def modify_subnet_attribute(self, subnet_id,  attr_name, attr_value):
+    def modify_subnet_attribute(self, subnet_id, attr_name, attr_value):
         subnet = self.get_subnet(subnet_id)
         if attr_name in ('map_public_ip_on_launch', 'assign_ipv6_address_on_creation'):
             setattr(subnet, attr_name, attr_value)
