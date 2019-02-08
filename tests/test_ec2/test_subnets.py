@@ -349,6 +349,39 @@ def test_create_subnet_response_fields():
 
 
 @mock_ec2
+def test_describe_subnet_response_fields():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    client = boto3.client('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet_object = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+
+    subnets = client.describe_subnets(SubnetIds=[subnet_object.id])['Subnets']
+    subnets.should.have.length_of(1)
+    subnet = subnets[0]
+
+    subnet.should.have.key('AvailabilityZone')
+    subnet.should.have.key('AvailabilityZoneId')
+    subnet.should.have.key('AvailableIpAddressCount')
+    subnet.should.have.key('CidrBlock')
+    subnet.should.have.key('State')
+    subnet.should.have.key('SubnetId')
+    subnet.should.have.key('VpcId')
+    subnet.shouldnt.have.key('Tags')
+    subnet.should.have.key('DefaultForAz').which.should.equal(False)
+    subnet.should.have.key('MapPublicIpOnLaunch').which.should.equal(False)
+    subnet.should.have.key('OwnerId')
+    subnet.should.have.key('AssignIpv6AddressOnCreation').which.should.equal(False)
+
+    subnet_arn = "arn:aws:ec2:{region}:{owner_id}:subnet/{subnet_id}".format(region=subnet['AvailabilityZone'][0:-1],
+                                                                             owner_id=subnet['OwnerId'],
+                                                                             subnet_id=subnet['SubnetId'])
+    subnet.should.have.key('SubnetArn').which.should.equal(subnet_arn)
+    subnet.should.have.key('Ipv6CidrBlockAssociationSet').which.should.equal([])
+
+
+@mock_ec2
 def test_create_subnet_with_invalid_availability_zone():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     client = boto3.client('ec2', region_name='us-west-1')

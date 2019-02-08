@@ -88,17 +88,22 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>   
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
+        <ownerId>{{ subnet.owner_id }}</ownerId>
         <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
-        <tagSet>
-          {% for tag in subnet.get_tags() %}
-            <item>
-              <resourceId>{{ tag.resource_id }}</resourceId>
-              <resourceType>{{ tag.resource_type }}</resourceType>
-              <key>{{ tag.key }}</key>
-              <value>{{ tag.value }}</value>
-            </item>
-          {% endfor %}
-        </tagSet>
+        <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
+        <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
+        {% if subnet.get_tags() %}
+          <tagSet>
+            {% for tag in subnet.get_tags() %}
+              <item>
+                <resourceId>{{ tag.resource_id }}</resourceId>
+                <resourceType>{{ tag.resource_type }}</resourceType>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
+        {% endif %}
       </item>
     {% endfor %}
   </subnetSet>
