@@ -1560,10 +1560,10 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% endfor %}
         </RolePolicyList>
         <AttachedManagedPolicies>
-        {% for policy in role.managed_policies %}
+        {% for policy_arn in role.managed_policies %}
             <member>
-                <PolicyName>{{ policy.name }}</PolicyName>
-                <PolicyArn>{{ policy.arn }}</PolicyArn>
+                <PolicyName>{{ role.managed_policies[policy_arn].name }}</PolicyName>
+                <PolicyArn>{{ policy_arn }}</PolicyArn>
             </member>
         {% endfor %}
         </AttachedManagedPolicies>
