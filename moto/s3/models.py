@@ -889,12 +889,11 @@ class S3Backend(BaseBackend):
         return multipart.set_part(part_id, value)
 
     def copy_part(self, dest_bucket_name, multipart_id, part_id,
-                  src_bucket_name, src_key_name, start_byte, end_byte):
-        src_key_name = clean_key_name(src_key_name)
-        src_bucket = self.get_bucket(src_bucket_name)
+                  src_bucket_name, src_key_name, src_version_id, start_byte, end_byte):
         dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
-        src_value = src_bucket.keys[src_key_name].value
+
+        src_value = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id).value
         if start_byte is not None:
             src_value = src_value[start_byte:end_byte + 1]
         return multipart.set_part(part_id, src_value)
@@ -971,13 +970,17 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         key = self.get_key(src_bucket_name, src_key_name,
                            version_id=src_version_id)
-        if dest_key_name != src_key_name:
-            key = key.copy(dest_key_name)
+
+        key = key.copy(dest_key_name)
+
+        if dest_bucket.is_versioned and dest_key_name in dest_bucket.keys:
+            key._version_id = dest_bucket.keys[dest_key_name].version_id + 1
+        else:
+            key._version_id = 0
+
         dest_bucket.keys[dest_key_name] = key
 
         # By this point, the destination key must exist, or KeyError
-        if dest_bucket.is_versioned:
-            dest_bucket.keys[dest_key_name].increment_version()
         if storage is not None:
             key.set_storage_class(storage)
         if acl is not None:

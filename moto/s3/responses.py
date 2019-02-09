@@ -691,6 +691,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if 'x-amz-copy-source' in request.headers:
                 src = unquote(request.headers.get("x-amz-copy-source")).lstrip("/")
                 src_bucket, src_key = src.split("/", 1)
+
+                src_key, src_version_id = src_key.split("?versionId=") if "?versionId=" in src_key else (src_key, None)
                 src_range = request.headers.get(
                     'x-amz-copy-source-range', '').split("bytes=")[-1]
 
@@ -700,9 +702,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 except ValueError:
                     start_byte, end_byte = None, None
 
-                key = self.backend.copy_part(
-                    bucket_name, upload_id, part_number, src_bucket,
-                    src_key, start_byte, end_byte)
+                if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+                    key = self.backend.copy_part(
+                        bucket_name, upload_id, part_number, src_bucket,
+                        src_key, src_version_id, start_byte, end_byte)
+                else:
+                    return 404, reponse_headers, ""
+
                 template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
             else:
@@ -741,8 +747,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
-            self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
-                                  storage=storage_class, acl=acl, src_version_id=src_version_id)
+
+            if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
+                                      storage=storage_class, acl=acl, src_version_id=src_version_id)
+            else:
+                return 404, response_headers, ""
+
             new_key = self.backend.get_key(bucket_name, key_name)
             mdirective = request.headers.get('x-amz-metadata-directive')
             if mdirective is not None and mdirective == 'REPLACE':
