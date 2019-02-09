@@ -214,3 +214,18 @@ def test_default_network_acl_default_entries():
             unique_entries.append(entry)
 
     unique_entries.should.have.length_of(4)
+
+
+@mock_ec2
+def test_delete_default_network_acl_default_entry():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    default_network_acl = next(iter(ec2.network_acls.all()), None)
+    default_network_acl.is_default.should.be.ok
+
+    default_network_acl.entries.should.have.length_of(4)
+    first_default_network_acl_entry = default_network_acl.entries[0]
+
+    default_network_acl.delete_entry(Egress=first_default_network_acl_entry['Egress'],
+                                     RuleNumber=first_default_network_acl_entry['RuleNumber'])
+
+    default_network_acl.entries.should.have.length_of(3)

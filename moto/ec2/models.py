@@ -3566,10 +3566,10 @@ class NetworkAclBackend(object):
 
     def add_default_entries(self, network_acl_id):
         default_acl_entries = [
-            {'rule_number': 100, 'rule_action': 'allow', 'egress': 'true'},
-            {'rule_number': 32767, 'rule_action': 'deny', 'egress': 'true'},
-            {'rule_number': 100, 'rule_action': 'allow', 'egress': 'false'},
-            {'rule_number': 32767, 'rule_action': 'deny', 'egress': 'false'}
+            {'rule_number': "100", 'rule_action': 'allow', 'egress': 'true'},
+            {'rule_number': "32767", 'rule_action': 'deny', 'egress': 'true'},
+            {'rule_number': "100", 'rule_action': 'allow', 'egress': 'false'},
+            {'rule_number': "32767", 'rule_action': 'deny', 'egress': 'false'}
         ]
         for entry in default_acl_entries:
             self.create_network_acl_entry(network_acl_id=network_acl_id, rule_number=entry['rule_number'], protocol='-1',
