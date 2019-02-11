@@ -420,3 +420,12 @@ class OperationNotPermitted(EC2ClientError):
             "The vpc CIDR block with association ID {} may not be disassociated. "
             "It is the primary IPv4 CIDR block of the VPC".format(association_id)
         )
+
+
+class NetworkAclEntryAlreadyExistsError(EC2ClientError):
+
+    def __init__(self, rule_number):
+        super(NetworkAclEntryAlreadyExistsError, self).__init__(
+            "NetworkAclEntryAlreadyExists",
+            "The network acl entry identified by {} already exists.".format(rule_number)
+        )

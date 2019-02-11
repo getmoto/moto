@@ -69,6 +69,7 @@ from .exceptions import (
     MalformedDHCPOptionsIdError,
     MissingParameterError,
     MotoNotImplementedError,
+    NetworkAclEntryAlreadyExistsError,
     OperationNotPermitted,
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
@@ -3600,12 +3601,14 @@ class NetworkAclBackend(object):
                                  icmp_code, icmp_type, port_range_from,
                                  port_range_to):
 
+        network_acl = self.get_network_acl(network_acl_id)
+        if any(entry.egress == egress and entry.rule_number == rule_number for entry in network_acl.network_acl_entries):
+            raise NetworkAclEntryAlreadyExistsError(rule_number)
         network_acl_entry = NetworkAclEntry(self, network_acl_id, rule_number,
                                             protocol, rule_action, egress,
                                             cidr_block, icmp_code, icmp_type,
                                             port_range_from, port_range_to)
 
-        network_acl = self.get_network_acl(network_acl_id)
         network_acl.network_acl_entries.append(network_acl_entry)
         return network_acl_entry
 

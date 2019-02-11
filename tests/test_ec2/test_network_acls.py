@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 import boto
 import boto3
 import sure  # noqa
+from nose.tools import assert_raises
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2_deprecated, mock_ec2
 
@@ -229,3 +231,22 @@ def test_delete_default_network_acl_default_entry():
                                      RuleNumber=first_default_network_acl_entry['RuleNumber'])
 
     default_network_acl.entries.should.have.length_of(3)
+
+
+@mock_ec2
+def test_duplicate_network_acl_entry():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    default_network_acl = next(iter(ec2.network_acls.all()), None)
+    default_network_acl.is_default.should.be.ok
+
+    rule_number = 200
+    egress = True
+    default_network_acl.create_entry(CidrBlock="0.0.0.0/0", Egress=egress, Protocol="-1", RuleAction="allow", RuleNumber=rule_number)
+
+    with assert_raises(ClientError) as ex:
+        default_network_acl.create_entry(CidrBlock="10.0.0.0/0", Egress=egress, Protocol="-1", RuleAction="deny", RuleNumber=rule_number)
+    str(ex.exception).should.equal(
+        "An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry "
+        "operation: The network acl entry identified by {} already exists.".format(rule_number))
+
+
