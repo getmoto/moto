@@ -21,8 +21,8 @@ def read(*parts):
 install_requires = [
     "Jinja2>=2.7.3",
     "boto>=2.36.0",
-    "boto3>=1.6.16",
-    "botocore>=1.12.13",
+    "boto3>=1.9.86",
+    "botocore>=1.12.86",
     "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
