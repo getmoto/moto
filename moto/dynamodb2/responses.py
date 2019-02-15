@@ -50,11 +50,10 @@ def condition_expression_to_expected(condition_expression, expression_attribute_
 
         cond_items = [c.strip() for c in condition_expression.split('AND')]
         if cond_items:
-            overwrite = False
             exists_re = re.compile('^attribute_exists\s*\((.*)\)$')
             not_exists_re = re.compile(
                 '^attribute_not_exists\s*\((.*)\)$')
-            equals_re= re.compile('^(#?\w+)\s*=\s*(\:?\w+)')
+            equals_re = re.compile('^(#?\w+)\s*=\s*(\:?\w+)')
 
         for cond in cond_items:
             exists_m = exists_re.match(cond)
