@@ -64,7 +64,6 @@ class Key(BaseModel):
         )
         key.key_rotation_status = properties['EnableKeyRotation']
         key.enabled = properties['Enabled']
-
         return key
 
     def get_cfn_attribute(self, attribute_name):
@@ -92,7 +91,6 @@ class KmsBackend(BaseBackend):
     def tag_resource(self, key_id, tags):
         key = self.keys[self.get_key_id(key_id)]
         key.tags = tags
-
 
     def list_resource_tags(self, key_id):
         key = self.keys[self.get_key_id(key_id)]
