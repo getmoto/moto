@@ -38,6 +38,28 @@ class KmsResponse(BaseResponse):
             policy, key_usage, description, self.region)
         return json.dumps(key.to_dict())
 
+    def update_key_description(self):
+        key_id = self.parameters.get('KeyId')
+        description = self.parameters.get('Description')
+
+        self.kms_backend.update_key_description(key_id,description)
+        return json.dumps(None)
+
+    def tag_resource(self):
+        key_id = self.parameters.get('KeyId')
+        tags = self.parameters.get('Tags')
+        self.kms_backend.tag_resource(key_id,tags)
+        return json.dumps({})
+
+    def list_resource_tags(self):
+        key_id = self.parameters.get('KeyId')
+        tags = self.kms_backend.list_resource_tags(key_id)
+        return json.dumps({
+            "Tags": tags,
+            "NextMarker": None,
+            "Truncated": False,
+        })
+
     def describe_key(self):
         key_id = self.parameters.get('KeyId')
         try:
