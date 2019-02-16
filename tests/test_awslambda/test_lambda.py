@@ -853,3 +853,56 @@ def test_list_versions_by_function():
 
     assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST'
 
+
+
+@mock_lambda
+@mock_s3
+def test_create_function_with_already_exists():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-west-2')
+
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    assert response['FunctionName'] == 'testFunction'
+
+
+@mock_lambda
+@mock_s3
+def test_list_versions_by_function_for_nonexistent_function():
+    conn = boto3.client('lambda', 'us-west-2')
+
+    versions = conn.list_versions_by_function(FunctionName='testFunction')
+
+    assert len(versions['Versions']) == 0

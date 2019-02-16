@@ -160,9 +160,11 @@ class LambdaResponse(BaseResponse):
             'Versions': []
         }
 
-        for fn in self.lambda_backend.list_versions_by_function(function_name):
-            json_data = fn.get_configuration()
-            result['Versions'].append(json_data)
+        functions = self.lambda_backend.list_versions_by_function(function_name)
+        if functions:
+            for fn in functions:
+                json_data = fn.get_configuration()
+                result['Versions'].append(json_data)
 
         return 200, {}, json.dumps(result)
 
