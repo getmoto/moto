@@ -858,7 +858,7 @@ LIST_POLICIES_TEMPLATE = """<ListPoliciesResponse>
         <Path>{{ policy.path }}</Path>
         <PolicyId>{{ policy.id }}</PolicyId>
         <PolicyName>{{ policy.name }}</PolicyName>
-        <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
+        <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
       </member>
       {% endfor %}
     </Policies>
