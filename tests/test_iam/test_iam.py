@@ -1177,6 +1177,17 @@ def test_update_role():
     assert response['Role']['RoleName'] == 'my-role'
 
 @mock_iam()
+def test_update_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    response = conn.update_role(RoleName="my-role", Description="test")
+    assert response['Role']['RoleName'] == 'my-role'
+
+@mock_iam()
 def test_list_entities_for_policy():
     conn = boto3.client('iam', region_name='us-east-1')
 
