@@ -477,6 +477,7 @@ class IAMBackend(BaseBackend):
     def update_role_description(self, role_name, role_description):
         role = self.get_role(role_name)
         role.description = role_description
+        return role
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
