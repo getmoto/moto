@@ -1151,3 +1151,30 @@ def test_untag_role():
     # With a role that doesn't exist:
     with assert_raises(ClientError):
         conn.untag_role(RoleName='notarole', TagKeys=['somevalue'])
+
+
+@mock_iam()
+def test_update_role_description():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    role = conn.get_role(RoleName="my-role")
+    response = conn.update_role_description(RoleName="my-role", Description="test")
+
+    assert response['Role']['RoleName'] == 'my-role'
+
+@mock_iam()
+def test_update_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    role = conn.get_role(RoleName="my-role")
+    response = conn.update_role_description(RoleName="my-role", Description="test")
+
+    assert response['Role']['RoleName'] == 'my-role'

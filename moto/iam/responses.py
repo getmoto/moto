@@ -176,14 +176,14 @@ class IamResponse(BaseResponse):
     def update_role_description(self):
         role_name = self._get_param('RoleName')
         description = self._get_param('Description')
-        role = iam_backend.update_role_description(role_name,description)
+        role = iam_backend.update_role_description(role_name, description)
         template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
         return template.render(role=role)
 
     def update_role(self):
         role_name = self._get_param('RoleName')
         description = self._get_param('Description')
-        role = iam_backend.update_role_description(role_name,description)
+        role = iam_backend.update_role_description(role_name, description)
         template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
         return template.render(role=role)
 
@@ -671,6 +671,7 @@ class IamResponse(BaseResponse):
 
         template = self.response_template(UNTAG_ROLE_TEMPLATE)
         return template.render()
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
