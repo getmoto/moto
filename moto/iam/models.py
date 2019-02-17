@@ -51,8 +51,8 @@ class Policy(BaseModel):
         self.default_version_id = default_version_id or 'v1'
         self.versions = [PolicyVersion(self.arn, document, True)]
 
-        self.create_datetime = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
-        self.update_datetime = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
+        self.create_datetime = datetime.now(pytz.utc)
+        self.update_datetime = datetime.now(pytz.utc)
 
 
 class SAMLProvider(BaseModel):
@@ -76,7 +76,7 @@ class PolicyVersion(object):
         self.is_default = is_default
         self.version_id = 'v1'
 
-        self.create_datetime = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
+        self.create_datetime = datetime.now(pytz.utc)
 
 
 class ManagedPolicy(Policy):
@@ -132,7 +132,7 @@ class Role(BaseModel):
         self.path = path or '/'
         self.policies = {}
         self.managed_policies = {}
-        self.create_date = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
+        self.create_date = datetime.now(pytz.utc)
         self.tags = {}
         self.description = ""
 

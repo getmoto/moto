@@ -1161,7 +1161,6 @@ def test_update_role_description():
         conn.delete_role(RoleName="my-role")
 
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
-    role = conn.get_role(RoleName="my-role")
     response = conn.update_role_description(RoleName="my-role", Description="test")
 
     assert response['Role']['RoleName'] == 'my-role'
@@ -1174,7 +1173,6 @@ def test_update_role():
         conn.delete_role(RoleName="my-role")
 
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
-    role = conn.get_role(RoleName="my-role")
     response = conn.update_role_description(RoleName="my-role", Description="test")
 
     assert response['Role']['RoleName'] == 'my-role'

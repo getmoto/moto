@@ -742,12 +742,12 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
     <Policy>
       <Arn>{{ policy.arn }}</Arn>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-      <CreateDate>{{ policy.create_datetime }}</CreateDate>
+      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
       <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
       <Path>{{ policy.path }}</Path>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
-      <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
+      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>
@@ -765,8 +765,8 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
       <Path>{{ policy.path }}</Path>
       <Arn>{{ policy.arn }}</Arn>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-      <CreateDate>{{ policy.create_datetime }}</CreateDate>
-      <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
+      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
     </Policy>
   </GetPolicyResult>
   <ResponseMetadata>
@@ -858,7 +858,7 @@ LIST_POLICIES_TEMPLATE = """<ListPoliciesResponse>
         <Path>{{ policy.path }}</Path>
         <PolicyId>{{ policy.id }}</PolicyId>
         <PolicyName>{{ policy.name }}</PolicyName>
-        <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+        <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
       </member>
       {% endfor %}
     </Policies>
@@ -951,7 +951,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <CreateDate>{{ role.create_date }}</CreateDate>
+      <CreateDate>{{ role.create_date.isoformat() }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       {% if role.tags %}
       <Tags>
