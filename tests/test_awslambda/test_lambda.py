@@ -821,7 +821,6 @@ def get_function_policy():
     assert res['Statement'][0]['Action'] == 'lambda:InvokeFunction'
 
 
-
 @mock_lambda
 @mock_s3
 def test_list_versions_by_function():
@@ -852,7 +851,6 @@ def test_list_versions_by_function():
     versions = conn.list_versions_by_function(FunctionName='testFunction')
 
     assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST'
-
 
 
 @mock_lambda

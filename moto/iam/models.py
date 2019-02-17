@@ -51,8 +51,8 @@ class Policy(BaseModel):
         self.default_version_id = default_version_id or 'v1'
         self.versions = [PolicyVersion(self.arn, document, True)]
 
-        self.create_datetime = datetime.now(pytz.utc)
-        self.update_datetime = datetime.now(pytz.utc)
+        self.create_datetime = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
+        self.update_datetime = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
 
 
 class SAMLProvider(BaseModel):
@@ -76,7 +76,7 @@ class PolicyVersion(object):
         self.is_default = is_default
         self.version_id = 'v1'
 
-        self.create_datetime = datetime.now(pytz.utc)
+        self.create_datetime = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
 
 
 class ManagedPolicy(Policy):
@@ -132,8 +132,9 @@ class Role(BaseModel):
         self.path = path or '/'
         self.policies = {}
         self.managed_policies = {}
-        self.create_date = datetime.now(pytz.utc)
+        self.create_date = datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ")
         self.tags = {}
+        self.description = ""
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -472,6 +473,10 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         policy = arns[policy_arn]
         policy.attach_to(self.get_role(role_name))
+
+    def update_role_description(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())

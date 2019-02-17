@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import os, re
-
 import boto3
 import boto.kms
 from boto.exception import JSONResponseError

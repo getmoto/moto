@@ -107,6 +107,10 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
+    def list_entities_for_policy(self):
+        template = self.response_template(LIST_ENTITIES_FOR_POLICY_TEMPLATE)
+        return template.render()
+
     def create_role(self):
         role_name = self._get_param('RoleName')
         path = self._get_param('Path')
@@ -168,6 +172,20 @@ class IamResponse(BaseResponse):
         role.assume_role_policy_document = self._get_param('PolicyDocument')
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicyResponse")
+
+    def update_role_description(self):
+        role_name = self._get_param('RoleName')
+        description = self._get_param('Description')
+        role = iam_backend.update_role_description(role_name,description)
+        template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
+        return template.render(role=role)
+
+    def update_role(self):
+        role_name = self._get_param('RoleName')
+        description = self._get_param('Description')
+        role = iam_backend.update_role_description(role_name,description)
+        template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
+        return template.render(role=role)
 
     def create_policy_version(self):
         policy_arn = self._get_param('PolicyArn')
@@ -654,6 +672,33 @@ class IamResponse(BaseResponse):
         template = self.response_template(UNTAG_ROLE_TEMPLATE)
         return template.render()
 
+LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
+ <ListEntitiesForPolicyResult>
+ <PolicyRoles>
+ <member>
+ <RoleName>DevRole</RoleName>
+ </member>
+ </PolicyRoles>
+ <PolicyGroups>
+ <member>
+ <GroupName>Dev</GroupName>
+ </member>
+ </PolicyGroups>
+ <IsTruncated>false</IsTruncated>
+ <PolicyUsers>
+ <member>
+ <UserName>Alice</UserName>
+ </member>
+ <member>
+ <UserName>Bob</UserName>
+ </member>
+ </PolicyUsers>
+ </ListEntitiesForPolicyResult>
+ <ResponseMetadata>
+ <RequestId>eb358e22-9d1f-11e4-93eb-190ecEXAMPLE</RequestId>
+ </ResponseMetadata>
+</ListEntitiesForPolicyResponse>"""
+
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
   <ResponseMetadata>
@@ -696,12 +741,12 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
     <Policy>
       <Arn>{{ policy.arn }}</Arn>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+      <CreateDate>{{ policy.create_datetime }}</CreateDate>
       <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
       <Path>{{ policy.path }}</Path>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
-      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+      <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>
@@ -719,8 +764,8 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
       <Path>{{ policy.path }}</Path>
       <Arn>{{ policy.arn }}</Arn>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
-      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+      <CreateDate>{{ policy.create_datetime }}</CreateDate>
+      <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
     </Policy>
   </GetPolicyResult>
   <ResponseMetadata>
@@ -897,6 +942,32 @@ GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaw
   <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
 </ResponseMetadata>
 </GetRolePolicyResponse>"""
+
+UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <UpdateRoleDescriptionResult>
+    <Role>
+      <Path>{{ role.path }}</Path>
+      <Arn>{{ role.arn }}</Arn>
+      <RoleName>{{ role.name }}</RoleName>
+      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <CreateDate>{{ role.create_date }}</CreateDate>
+      <RoleId>{{ role.id }}</RoleId>
+      {% if role.tags %}
+      <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
+      {% endif %}
+    </Role>
+  </UpdateRoleDescriptionResult>
+  <ResponseMetadata>
+    <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
+  </ResponseMetadata>
+</UpdateRoleDescriptionResponse>"""
 
 GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <GetRoleResult>

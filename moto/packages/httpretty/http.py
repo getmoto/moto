@@ -133,7 +133,6 @@ def parse_requestline(s):
         ...
     ValueError: Not a Request-Line
     """
-
     methods = '|'.join(HttpBaseClass.METHODS)
     m = re.match(r'(' + methods + ')\s+(.*)\s+HTTP/(1.[0|1])', s, re.I)
     if m:
@@ -146,7 +145,6 @@ def last_requestline(sent_data):
     """
     Find the last line in sent_data that can be parsed with parse_requestline
     """
-
     for line in reversed(sent_data):
         try:
             parse_requestline(decode_utf8(line))
