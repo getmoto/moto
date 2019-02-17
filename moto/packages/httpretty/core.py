@@ -72,6 +72,19 @@ from datetime import datetime
 from datetime import timedelta
 from errno import EAGAIN
 
+import logging
+from inspect import currentframe
+import inspect
+
+logging.basicConfig(filename='/tmp/models.log',level=logging.DEBUG)
+
+DEBUG=0
+
+def get_linenumber():
+    cf = currentframe()
+    return " - "+str(cf.f_back.f_lineno)
+
+
 # Some versions of python internally shadowed the
 # SocketType variable incorrectly https://bugs.python.org/issue20386
 BAD_SOCKET_SHADOW = socket.socket != socket.SocketType
@@ -155,21 +168,44 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
     """
 
     def __init__(self, headers, body=''):
+
+        if DEBUG:
+            logging.debug('__init__ - '
+                          ' -caller: ' + str(
+                inspect.stack()[1][3]) + "-" + get_linenumber())
+            logging.debug('headers: '+str(headers))
+
         # first of all, lets make sure that if headers or body are
         # unicode strings, it must be converted into a utf-8 encoded
         # byte string
         self.raw_headers = utf8(headers.strip())
+
+        if DEBUG:
+            logging.debug('raw_headers: '+str(self.raw_headers))
+
         self.body = utf8(body)
+
+        if DEBUG:
+            logging.debug('body: '+str(self.body))
 
         # Now let's concatenate the headers with the body, and create
         # `rfile` based on it
         self.rfile = StringIO(b'\r\n\r\n'.join([self.raw_headers, self.body]))
+
+        if DEBUG:
+            logging.debug('rfile: '+str(self.rfile))
+
+
         self.wfile = StringIO()  # Creating `wfile` as an empty
         # StringIO, just to avoid any real
         # I/O calls
 
         # parsing the request line preemptively
         self.raw_requestline = self.rfile.readline()
+
+        if DEBUG:
+            logging.debug('raw_requestline: '+str(self.raw_requestline))
+
 
         # initiating the error attributes with None
         self.error_code = None
@@ -181,6 +217,9 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
 
         # making the HTTP method string available as the command
         self.method = self.command
+
+        if DEBUG:
+            logging.debug('method: '+str(self.method))
 
         # Now 2 convenient attributes for the HTTPretty API:
 
@@ -207,8 +246,23 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
         )
 
     def parse_querystring(self, qs):
+
+        if DEBUG:
+            logging.debug('parse_querystring - '
+                          ' -caller: ' + str(
+                inspect.stack()[1][3]) + "-" + get_linenumber())
+            logging.debug('qs: '+str(qs))
+
         expanded = unquote_utf8(qs)
+
+        if DEBUG:
+            logging.debug('expanded: '+str(expanded))
+
         parsed = parse_qs(expanded)
+
+        if DEBUG:
+            logging.debug('parsed: '+str(parsed))
+
         result = {}
         for k in parsed:
             result[k] = list(map(decode_utf8, parsed[k]))
@@ -217,6 +271,12 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
 
     def parse_request_body(self, body):
         """ Attempt to parse the post based on the content-type passed. Return the regular body if not """
+
+        if DEBUG:
+            logging.debug('parse_request_body - '
+                          ' -caller: ' + str(
+                inspect.stack()[1][3]) + "-" + get_linenumber())
+            logging.debug('body: '+str(body))
 
         PARSING_FUNCTIONS = {
             'application/json': json.loads,
