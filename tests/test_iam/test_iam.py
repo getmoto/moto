@@ -1174,7 +1174,6 @@ def test_update_role():
 
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
     response = conn.update_role_description(RoleName="my-role", Description="test")
-
     assert response['Role']['RoleName'] == 'my-role'
 
 @mock_iam()
@@ -1192,5 +1191,4 @@ def test_list_entities_for_policy():
     response = conn.list_entities_for_policy(
         PolicyArn=arn
     )
-
     assert response['PolicyGroups'][0]['GroupName'] == 'Dev'
