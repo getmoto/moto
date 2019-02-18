@@ -12,6 +12,8 @@ import sure  # noqa
 
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings
+from nose.tools import assert_raises
+from botocore.exceptions import ClientError
 
 _lambda_region = 'us-west-2'
 
@@ -396,6 +398,11 @@ def test_get_function():
     # Test get function with
     result = conn.get_function(FunctionName='testFunction', Qualifier='$LATEST')
     result['Configuration']['Version'].should.equal('$LATEST')
+
+    # Test get function when can't find function name
+    with assert_raises(ClientError):
+        conn.get_function(FunctionName='junk', Qualifier='$LATEST')
+
 
 
 @mock_lambda
