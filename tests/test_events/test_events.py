@@ -1,5 +1,4 @@
 import random
-
 import boto3
 import json
 
