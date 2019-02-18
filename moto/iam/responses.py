@@ -183,8 +183,8 @@ class IamResponse(BaseResponse):
     def update_role(self):
         role_name = self._get_param('RoleName')
         description = self._get_param('Description')
-        role = iam_backend.update_role_description(role_name, description)
-        template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
+        role = iam_backend.update_role(role_name, description)
+        template = self.response_template(UPDATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
     def create_policy_version(self):
@@ -943,6 +943,14 @@ GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaw
   <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
 </ResponseMetadata>
 </GetRolePolicyResponse>"""
+
+UPDATE_ROLE_TEMPLATE = """<UpdateRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <UpdateRoleResult>
+  </UpdateRoleResult>
+  <ResponseMetadata>
+    <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
+  </ResponseMetadata>
+</UpdateRoleResponse>"""
 
 UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <UpdateRoleDescriptionResult>
