@@ -892,6 +892,16 @@ class IAMBackend(BaseBackend):
 
         return users
 
+    def list_roles(self, path_prefix, marker, max_items):
+        roles = None
+        try:
+            roles = self.roles.values()
+        except KeyError:
+            raise IAMNotFoundException(
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+
+        return roles
+
     def upload_signing_certificate(self, user_name, body):
         user = self.get_user(user_name)
         cert_id = random_resource_id(size=32)

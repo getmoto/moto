@@ -1187,19 +1187,82 @@ def test_update_role():
     response = conn.update_role(RoleName="my-role", Description="test")
     assert len(response.keys()) == 1
 
+
 @mock_iam()
 def test_list_entities_for_policy():
+    import json
+    test_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "s3:ListBucket",
+                "Resource": "*",
+                "Effect": "Allow",
+            }
+        ]
+    })
+
     conn = boto3.client('iam', region_name='us-east-1')
-
-    with assert_raises(ClientError):
-        conn.delete_role(RoleName="my-role")
-
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.create_user(Path='/', UserName='testUser')
+    conn.create_group(Path='/', GroupName='testGroup')
+    conn.create_policy(
+        PolicyName='testPolicy',
+        Path='/',
+        PolicyDocument=test_policy,
+        Description='Test Policy'
+    )
 
-    role = conn.get_role(RoleName="my-role")
-    arn = role.get('Role').get('Arn')
+    # Attach things to the user and group:
+    conn.put_user_policy(UserName='testUser', PolicyName='testPolicy', PolicyDocument=test_policy)
+    conn.put_group_policy(GroupName='testGroup', PolicyName='testPolicy', PolicyDocument=test_policy)
+
+    conn.attach_user_policy(UserName='testUser', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+    conn.attach_group_policy(GroupName='testGroup', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+
+    conn.add_user_to_group(UserName='testUser', GroupName='testGroup')
+
+    # Add things to the role:
+    conn.create_instance_profile(InstanceProfileName='ipn')
+    conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+    conn.put_role_policy(RoleName='my-role', PolicyName='test-policy', PolicyDocument=test_policy)
+    conn.attach_role_policy(RoleName='my-role', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
 
     response = conn.list_entities_for_policy(
-        PolicyArn=arn
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='Role'
     )
-    assert response['PolicyGroups'][0]['GroupName'] == 'Dev'
+    assert response['PolicyRoles'] == [{'RoleName': 'my-role'}]
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='User',
+    )
+    assert response['PolicyUsers'] ==  [{'UserName': 'testUser'}]
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='Group',
+    )
+    assert response['PolicyGroups'] == [{'GroupName': 'testGroup'}]
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='LocalManagedPolicy',
+    )
+    assert response['PolicyGroups'] == [{'GroupName': 'testGroup'}]
+    assert response['PolicyUsers'] ==  [{'UserName': 'testUser'}]
+    assert response['PolicyRoles'] == [{'RoleName': 'my-role'}]
+
+
+

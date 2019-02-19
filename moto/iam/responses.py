@@ -108,8 +108,69 @@ class IamResponse(BaseResponse):
         return template.render(policies=policies, marker=marker)
 
     def list_entities_for_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+
+        # Options 'User'|'Role'|'Group'|'LocalManagedPolicy'|'AWSManagedPolicy
+        entity = self._get_param('EntityFilter')
+        path_prefix = self._get_param('PathPrefix')
+        policy_usage_filter = self._get_param('PolicyUsageFilter')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems')
+
+        entity_roles = []
+        entity_groups = []
+        entity_users = []
+
+        if entity == 'User':
+            users = iam_backend.list_users(path_prefix, marker, max_items)
+            if users:
+                for user in users:
+                    for p in user.managed_policies:
+                        if p == policy_arn:
+                            entity_users.append(user.name)
+
+        elif entity == 'Role':
+            roles = iam_backend.list_roles(path_prefix, marker, max_items)
+            if roles:
+                for role in roles:
+                    for p in role.managed_policies:
+                        if p == policy_arn:
+                            entity_roles.append(role.name)
+
+        elif entity == 'Group':
+            groups = iam_backend.list_groups()
+            if groups:
+                for group in groups:
+                    for p in group.managed_policies:
+                        if p == policy_arn:
+                            entity_groups.append(group.name)
+
+        elif entity == 'LocalManagedPolicy' or entity == 'AWSManagedPolicy':
+            users = iam_backend.list_users(path_prefix, marker, max_items)
+            if users:
+                for user in users:
+                    for p in user.managed_policies:
+                        if p == policy_arn:
+                            entity_users.append(user.name)
+
+            roles = iam_backend.list_roles(path_prefix, marker, max_items)
+            if roles:
+                for role in roles:
+                    for p in role.managed_policies:
+                        if p == policy_arn:
+                            entity_roles.append(role.name)
+
+            groups = iam_backend.list_groups()
+            if groups:
+                for group in groups:
+                    for p in group.managed_policies:
+                        if p == policy_arn:
+                            entity_groups.append(group.name)
+
+
         template = self.response_template(LIST_ENTITIES_FOR_POLICY_TEMPLATE)
-        return template.render()
+        return template.render(roles=entity_roles, users=entity_users, groups=entity_groups)
+
 
     def create_role(self):
         role_name = self._get_param('RoleName')
@@ -676,23 +737,26 @@ class IamResponse(BaseResponse):
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
  <PolicyRoles>
- <member>
- <RoleName>DevRole</RoleName>
- </member>
+       {% for role in roles %}
+      <member>
+        <RoleName>{{ role }}</RoleName>
+      </member>
+      {% endfor %}      
  </PolicyRoles>
  <PolicyGroups>
- <member>
- <GroupName>Dev</GroupName>
- </member>
+       {% for group in groups %}
+      <member>
+        <GroupName>{{ group }}</GroupName>
+      </member>
+      {% endfor %}
  </PolicyGroups>
  <IsTruncated>false</IsTruncated>
  <PolicyUsers>
- <member>
- <UserName>Alice</UserName>
- </member>
- <member>
- <UserName>Bob</UserName>
- </member>
+      {% for user in users %}
+      <member>
+        <UserName>{{ user }}</UserName>
+      </member>
+      {% endfor %}
  </PolicyUsers>
  </ListEntitiesForPolicyResult>
  <ResponseMetadata>
