@@ -41,7 +41,7 @@ def test_create_load_balancer():
 
     lb.get('DNSName').should.equal("my-lb-1.us-east-1.elb.amazonaws.com")
     lb.get('LoadBalancerArn').should.equal(
-        'arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/my-lb/50dc6c495c0c9188')
+        'arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-lb/50dc6c495c0c9188')
     lb.get('SecurityGroups').should.equal([security_group.id])
     lb.get('AvailabilityZones').should.equal([
         {'SubnetId': subnet1.id, 'ZoneName': 'us-east-1a'},
