@@ -113,7 +113,7 @@ class IamResponse(BaseResponse):
         # Options 'User'|'Role'|'Group'|'LocalManagedPolicy'|'AWSManagedPolicy
         entity = self._get_param('EntityFilter')
         path_prefix = self._get_param('PathPrefix')
-        #policy_usage_filter = self._get_param('PolicyUsageFilter')
+        # policy_usage_filter = self._get_param('PolicyUsageFilter')
         marker = self._get_param('Marker')
         max_items = self._get_param('MaxItems')
 
@@ -739,7 +739,7 @@ LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
       <member>
         <RoleName>{{ role }}</RoleName>
       </member>
-      {% endfor %}      
+      {% endfor %}
  </PolicyRoles>
  <PolicyGroups>
        {% for group in groups %}
