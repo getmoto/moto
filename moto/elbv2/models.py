@@ -578,7 +578,7 @@ class ELBv2Backend(BaseBackend):
         for load_balancer in self.load_balancers.values():
             for listener_arn in listener_arns:
                 listener = load_balancer.listeners.get(listener_arn)
-                if listener: 
+                if listener:
                     matched.append(listener)
         if not matched:
             raise ListenerNotFoundError()
