@@ -403,11 +403,13 @@ def test_create_target_group_and_listeners():
     response.get('LoadBalancers').should.have.length_of(0)
 
     # And it deleted the remaining listener
-    response = conn.describe_listeners(
-        ListenerArns=[
-            http_listener_arn,
-            https_listener_arn])
-    response.get('Listeners').should.have.length_of(0)
+    with assert_raises(ClientError) as e:    
+        conn.describe_listeners(
+            ListenerArns=[
+                http_listener_arn,
+                https_listener_arn])
+    e.exception.operation_name.should.equal('DescribeListeners')
+    e.exception.args.should.equal(('An error occurred (ListenerNotFound) when calling the DescribeListeners operation: The specified listener does not exist.', ))
 
     # But not the target groups
     response = conn.describe_target_groups()
@@ -1586,3 +1588,65 @@ def test_create_target_groups_through_cloudformation():
     assert len(
         [tg for tg in target_group_dicts if tg['TargetGroupName'].startswith('test-stack')]
     ) == 2
+
+@mock_ec2
+@mock_elbv2
+def test_describe_listener_handles_search_across_multiple_load_balancers():
+     # create VPC
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+    resp = ec2_client.create_vpc(
+        CidrBlock='10.0.0.0/16',
+    )
+    vpc_id = resp['Vpc']['VpcId']
+
+    # create Subnet on VPC
+    resp = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        CidrBlock='10.0.0.0/16',
+    )
+    subnet_id = resp['Subnet']['SubnetId']
+
+    # create ALBs within Subnet
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+    alb_names = ['test1_alb', 'test2_alb']
+    load_balancer_arns = []
+    for name in alb_names:
+        resp = elbv2_client.create_load_balancer(
+            Name=name,
+            Subnets=[subnet_id]
+        )
+        load_balancer_arns.append(resp['LoadBalancers'][0]['LoadBalancerArn'])
+    
+
+    # create Listeners on ALBs
+    port = 123
+    listener_arns = []
+    for alb_arn in load_balancer_arns:
+        resp = elbv2_client.create_listener(
+            LoadBalancerArn=alb_arn,
+            Protocol='HTTPS',
+            Port = port,
+            DefaultActions=[
+                {
+                    'Type': 'fixed-response',
+                    'TargetGroupArn': '',
+                    'FixedResponseConfig': {
+                        'MessageBody': '<html><body>Hello, world.</body></html>',
+                        'StatusCode': '200',
+                        'ContentType': 'text/html; charset utf-8'
+                    }
+                }
+            ]
+        )
+        listener_arns.append(resp['Listeners'][0]['ListenerArn'])
+        port += 1
+
+    for listner_arn in listener_arns:
+        resp = elbv2_client.describe_listeners(
+            ListenerArns=[listner_arn]
+        )
+        assert len(resp['Listeners']) == 1
+        assert resp['Listeners'][0]['ListenerArn'] == listner_arn
+
+
+
