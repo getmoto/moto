@@ -12,7 +12,7 @@ from boto3 import Session
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, camelcase_to_underscores
 from moto.sqs import sqs_backends
 from moto.awslambda import lambda_backends
 
@@ -243,11 +243,14 @@ class SNSBackend(BaseBackend):
     def update_sms_attributes(self, attrs):
         self.sms_attributes.update(attrs)
 
-    def create_topic(self, name):
+    def create_topic(self, name, attributes=None):
         fails_constraints = not re.match(r'^[a-zA-Z0-9_-]{1,256}$', name)
         if fails_constraints:
             raise InvalidParameterValue("Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long.")
         candidate_topic = Topic(name, self)
+        if attributes:
+            for attribute in attributes:
+                setattr(candidate_topic, camelcase_to_underscores(attribute), attributes[attribute])
         if candidate_topic.arn in self.topics:
             return self.topics[candidate_topic.arn]
         else:
