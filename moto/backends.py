@@ -46,7 +46,7 @@ from moto.iot import iot_backends
 from moto.iotdata import iotdata_backends
 from moto.batch import batch_backends
 from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
-
+from moto.config import config_backends
 
 BACKENDS = {
     'acm': acm_backends,
@@ -57,6 +57,7 @@ BACKENDS = {
     'cloudwatch': cloudwatch_backends,
     'cognito-identity': cognitoidentity_backends,
     'cognito-idp': cognitoidp_backends,
+    'config': config_backends,
     'datapipeline': datapipeline_backends,
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
