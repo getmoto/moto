@@ -21,6 +21,7 @@ class Key(BaseModel):
         self.account_id = "0123456789012"
         self.key_rotation_status = False
         self.deletion_date = None
+        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -35,7 +36,7 @@ class Key(BaseModel):
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": "2015-01-01 00:00:00",
+                "CreationDate": datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ"),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
@@ -63,7 +64,6 @@ class Key(BaseModel):
         )
         key.key_rotation_status = properties['EnableKeyRotation']
         key.enabled = properties['Enabled']
-
         return key
 
     def get_cfn_attribute(self, attribute_name):
@@ -83,6 +83,18 @@ class KmsBackend(BaseBackend):
         key = Key(policy, key_usage, description, region)
         self.keys[key.id] = key
         return key
+
+    def update_key_description(self, key_id, description):
+        key = self.keys[self.get_key_id(key_id)]
+        key.description = description
+
+    def tag_resource(self, key_id, tags):
+        key = self.keys[self.get_key_id(key_id)]
+        key.tags = tags
+
+    def list_resource_tags(self, key_id):
+        key = self.keys[self.get_key_id(key_id)]
+        return key.tags
 
     def delete_key(self, key_id):
         if key_id in self.keys:
