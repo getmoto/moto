@@ -428,9 +428,6 @@ class EC2ContainerServiceBackend(BaseBackend):
                 if cluster_name in self.clusters:
                     list_clusters.append(
                         self.clusters[cluster_name].response_object)
-                else:
-                    raise Exception(
-                        "{0} is not a cluster".format(cluster_name))
         return list_clusters
 
     def delete_cluster(self, cluster_str):
