@@ -6,6 +6,7 @@ import re
 import string
 import time
 import uuid
+from moto.iot.utils import get_certificate_fingerprint, get_ca_arn
 from collections import OrderedDict
 from datetime import datetime
 
@@ -231,6 +232,76 @@ class FakeJob(BaseModel):
         return regex_match and length_match
 
 
+class FakeDeviceCert(BaseBackend):
+    def __init__(self, certificate_pem, ca_certificate_pem, status, region_name):
+        self.certificate_pem = certificate_pem
+        self.ca_certificate_pem = ca_certificate_pem
+        self.status = status
+        self.certificate_id = get_certificate_fingerprint(certificate_pem)
+        self.ca_certificate_id = get_certificate_fingerprint(ca_certificate_pem)
+        self.arn = 'arn:aws:iot:%s:1:cert/%s' % (region_name, self.certificate_id)
+
+        self.creation_date = time.time()
+        self.last_modified_date = self.creation_date
+        self.owner = '1'
+        self.transfer_data = {}
+
+    def to_dict(self):
+        return {
+            'certificateArn': self.arn,
+            'certificateId': self.certificate_id,
+            'status': self.status,
+            'creationDate': self.creation_date
+        }
+
+    def to_description_dict(self):
+        return {
+            'certificateArn': self.arn,
+            'certificateId': self.certificate_id,
+            'status': self.status,
+            'certificatePem': self.certificate_pem,
+            'caCertificateId': self.ca_certificate_id,
+            'ownedBy': self.owner,
+            'creationDate': self.creation_date,
+            'lastModifiedDate': self.last_modified_date,
+            'transferData': self.transfer_data
+        }
+
+
+class FakeCA(BaseBackend):
+    def __init__(self, certificate_pem, set_as_active, region_name):
+        self.certificate_id = get_certificate_fingerprint(certificate_pem)
+        self.arn = get_ca_arn(region_name, self.certificate_id)
+        self.certificate_pem = certificate_pem
+        if set_as_active:
+            self.status = "ACTIVE"
+        else:
+            self.status = "INACTIVE"
+        self.device_certs = []
+
+        self.creation_date = time.time()
+        self.last_modified_date = self.creation_date
+        self.owner = '1'
+
+    def to_dict(self):
+        return {
+            'certificateArn': self.arn,
+            'certificateId': self.certificate_id,
+            'status': self.status,
+            'creationDate': self.creation_date
+        }
+
+    def to_description_dict(self):
+        return {
+            'certificateArn': self.arn,
+            'certificateId': self.certificate_id,
+            'status': self.status,
+            'certificatePem': self.certificate_pem,
+            'ownedBy': self.owner,
+            'creationDate': self.creation_date,
+        }
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
@@ -243,6 +314,7 @@ class IoTBackend(BaseBackend):
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
         self.principal_things = OrderedDict()
+        self.cas = OrderedDict()
 
     def reset(self):
         region_name = self.region_name
@@ -319,6 +391,59 @@ class IoTBackend(BaseBackend):
         if len(thing_types) == 0:
             raise ResourceNotFoundException()
         return thing_types[0]
+
+    def register_ca_certificate(self, ca_certificate, verification_cert, set_as_active):
+        ca = FakeCA(ca_certificate, set_as_active, self.region_name)
+        self.cas[ca.arn] = ca
+        return ca.arn, ca.certificate_id
+
+    def register_certificate(self, certificate_pem, ca_certificate_pem, status):
+        device_cert = FakeDeviceCert(certificate_pem, ca_certificate_pem, status, self.region_name)
+        self.certificates[device_cert.certificate_id] = device_cert
+
+        if ca_certificate_pem != '':
+            ca_certificate_id = get_certificate_fingerprint(ca_certificate_pem)
+            ca_certificate_arn = get_ca_arn(self.region_name, ca_certificate_id)
+            # ca has to be registered first
+            if ca_certificate_arn in self.cas:
+                self.cas[ca_certificate_arn].device_certs.append(device_cert)
+
+        return device_cert.arn, device_cert.certificate_id
+
+    def describe_ca_certificate(self, certificate_id):
+        certs = [_ for _ in self.cas.values() if _.certificate_id == certificate_id]
+        if len(certs) == 0:
+            raise ResourceNotFoundException()
+
+        return certs[0]
+
+    def list_certificates_by_ca(self, certificate_id):
+        list_certs = []
+        certificate_arn = get_ca_arn(self.region_name, certificate_id)
+
+        if certificate_arn in self.cas:
+            for device_cert in self.cas[certificate_arn].device_certs:
+                list_certs.append(device_cert.to_dict())
+
+        return list_certs
+
+    def delete_ca_certificate(self, certificate_id):
+        del self.cas[get_ca_arn(self.region_name, certificate_id)]
+
+    def update_ca_certificate(self, certificate_id, new_status):
+        certificate_arn = get_ca_arn(self.region_name, certificate_id)
+        if certificate_arn in self.cas:
+            self.cas[certificate_arn].status = new_status
+
+    def get_registration_code(self):
+        return str(uuid.uuid4())
+
+    def list_ca_certificates(self):
+        list_cas = []
+        for ca in self.cas.values():
+            list_cas.append(ca.to_dict())
+
+        return list_cas
 
     def delete_thing(self, thing_name, expected_version):
         # TODO: handle expected_version
