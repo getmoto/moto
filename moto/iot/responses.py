@@ -192,6 +192,65 @@ class IoTResponse(BaseResponse):
         )
         return json.dumps(dict())
 
+    def register_ca_certificate(self):
+        ca_certificate = self._get_param("caCertificate")
+        verification_cert = self._get_param("verificationCertificate")
+        set_as_active = self._get_param("setAsActive")
+        cert_arn, cert_id = self.iot_backend.register_ca_certificate(
+            ca_certificate=ca_certificate,
+            verification_cert=verification_cert,
+            set_as_active=set_as_active,
+        )
+        return json.dumps(dict(certificateArn=cert_arn, certificateId=cert_id))
+
+    def register_certificate(self):
+        certificate_pem = self._get_param("certificatePem")
+        ca_certificate_pem = self._get_param("caCertificatePem")
+        status = self._get_param("status")
+        cert_arn, cert_id = self.iot_backend.register_certificate(
+            certificate_pem=certificate_pem,
+            ca_certificate_pem=ca_certificate_pem,
+            status=status,
+        )
+        return json.dumps(dict(certificateArn=cert_arn, certificateId=cert_id))
+
+    def describe_ca_certificate(self):
+        certificate_id = self._get_param("caCertificateId")
+        certificate = self.iot_backend.describe_ca_certificate(
+            certificate_id=certificate_id,
+        )
+        return json.dumps(dict(certificateDescription=certificate.to_description_dict()))
+
+    def list_certificates_by_ca(self):
+        certificate_id = self._get_param("caCertificateId")
+        cert_list = self.iot_backend.list_certificates_by_ca(
+            certificate_id=certificate_id
+        )
+        return json.dumps(dict(certificates=cert_list))
+
+    def delete_ca_certificate(self):
+        certificate_id = self._get_param("caCertificateId")
+        self.iot_backend.delete_ca_certificate(
+            certificate_id=certificate_id
+        )
+        return json.dumps(dict())
+
+    def update_ca_certificate(self):
+        certificate_id = self._get_param("caCertificateId")
+        new_status = self._get_param("newStatus")
+        self.iot_backend.update_ca_certificate(
+            certificate_id=certificate_id,
+            new_status=new_status
+        )
+        return json.dumps(dict())
+
+    def get_registration_code(self):
+        code = self.iot_backend.get_registration_code()
+        return json.dumps(dict(registrationCode=code))
+
+    def list_ca_certificates(self):
+        return json.dumps(dict(certificates=self.iot_backend.list_ca_certificates()))
+
     def create_policy(self):
         policy_name = self._get_param("policyName")
         policy_document = self._get_param("policyDocument")
