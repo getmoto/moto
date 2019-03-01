@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import json
 import sure  # noqa
 import boto3
@@ -8,6 +9,72 @@ from moto import mock_iot
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
+
+CA_CERTIFICATE_FINGERPRINT = '5113ecc927015f5180768f79b1904b3e6368e05607fcb89a9f231884cfa47fc0'
+DEVICE_CERTIFICATE_FINGERPRINT = '8ecde6884f3d87b1125ba31ac3fcb13d7016de7f57cc904fe1cb97c6ae98196e'
+RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), 'resources')
+_GET_RESOURCE = lambda x: open(os.path.join(RESOURCE_FOLDER, x), 'rb').read()
+CA_CRT = _GET_RESOURCE('aws_iot_device.pem')
+DEVICE_CRT = _GET_RESOURCE('aws_iot_ca.pem')
+
+@mock_iot
+def test_certificate_authority():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+
+    # certificate authority
+    res = client.register_ca_certificate(
+        caCertificate=CA_CRT,
+        verificationCertificate=CA_CRT,
+        setAsActive=True,
+    )
+    res.should.have.key('certificateArn')
+    res.should.have.key('certificateId')
+    res.should.have.key('certificateId').which.should.equal(CA_CERTIFICATE_FINGERPRINT)
+    res.should.have.key('certificateArn').which.should.equal(
+        'arn:aws:iot:ap-northeast-1:1:cacert/%s' % CA_CERTIFICATE_FINGERPRINT)
+
+    res = client.describe_ca_certificate(certificateId=CA_CERTIFICATE_FINGERPRINT)
+    res.should.have.key('certificateDescription')
+    res['certificateDescription'].should.have.key('certificateId').which.should.equal(CA_CERTIFICATE_FINGERPRINT)
+    res['certificateDescription'].should.have.key('certificateArn').which.should.equal(
+        'arn:aws:iot:ap-northeast-1:1:cacert/%s' % CA_CERTIFICATE_FINGERPRINT)
+    res['certificateDescription'].should.have.key('status').which.should.equal('ACTIVE')
+    res['certificateDescription'].should.have.key('certificatePem').which.should.equal(CA_CRT)
+
+    client.update_ca_certificate(certificateId=CA_CERTIFICATE_FINGERPRINT, newStatus='INACTIVE')
+    res = client.describe_ca_certificate(certificateId=CA_CERTIFICATE_FINGERPRINT)
+    res['certificateDescription'].should.have.key('status').which.should.equal('INACTIVE')
+    client.update_ca_certificate(certificateId=CA_CERTIFICATE_FINGERPRINT, newStatus='ACTIVE')
+
+    res = client.list_ca_certificates()
+    res.should.have.key('certificates').which.should.have.length_of(1)
+
+    # device certificate signed by the ca
+    # register_certificate
+    res = client.register_certificate(
+        certificatePem=DEVICE_CRT,
+        caCertificatePem=CA_CRT,
+        setAsActive=True,
+        status='ACTIVE'
+    )
+    res.should.have.key('certificateId').which.should.equal(DEVICE_CERTIFICATE_FINGERPRINT)
+    res.should.have.key('certificateArn').which.should.equal('arn:aws:iot:ap-northeast-1:1:cert/%s' % DEVICE_CERTIFICATE_FINGERPRINT)
+
+    res = client.list_certificates_by_ca(caCertificateId=CA_CERTIFICATE_FINGERPRINT)
+    res.should.have.key('certificates').which.should.have.length_of(1)
+    str(res['certificates'][0]['certificateArn']).which.should.equal('arn:aws:iot:ap-northeast-1:1:cert/%s' % DEVICE_CERTIFICATE_FINGERPRINT)
+    str(res['certificates'][0]['certificateId']).which.should.equal(DEVICE_CERTIFICATE_FINGERPRINT)
+
+    client. delete_ca_certificate(certificateId=CA_CERTIFICATE_FINGERPRINT)
+    res = client.list_certificates_by_ca(caCertificateId=CA_CERTIFICATE_FINGERPRINT)
+    res.should.have.key('certificates')
+    res['certificates'].which.should.have.length_of(0)
+
+@mock_iot
+def get_registration_code():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    res = client.get_registration_code()
+    res.should.have.key('registrationCode')
 
 @mock_iot
 def test_things():
