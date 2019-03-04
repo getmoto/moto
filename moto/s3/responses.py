@@ -19,8 +19,7 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, \
-    parse_region_from_url
+from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
 
