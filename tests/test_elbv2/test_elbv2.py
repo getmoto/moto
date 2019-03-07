@@ -814,6 +814,20 @@ def test_handle_listener_rules():
         UnhealthyThresholdCount=2,
         Matcher={'HttpCode': '200'})
     target_group = response.get('TargetGroups')[0]
+    response = conn.create_target_group(
+        Name='b-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    target_group2 = response.get('TargetGroups')[0]
 
     # Plain HTTP listener
     response = conn.create_listener(
@@ -929,7 +943,7 @@ def test_handle_listener_rules():
             RuleArns=[first_rule['RuleArn']]
         )
 
-    # modify rule partially
+    # modify forward rule
     new_host = 'new.example.com'
     new_path_pattern = 'new_path'
     modified_rule = conn.modify_rule(
@@ -941,6 +955,10 @@ def test_handle_listener_rules():
             {
                 'Field': 'path-pattern',
                 'Values': [new_path_pattern]
+        }],
+        Actions=[{
+            'Type': 'forward',
+            'TargetGroupArn': target_group2.get('TargetGroupArn')
         }]
     )['Rules'][0]
 
@@ -950,7 +968,7 @@ def test_handle_listener_rules():
     obtained_rule['Conditions'][0]['Values'][0].should.equal(new_host)
     obtained_rule['Conditions'][1]['Values'][0].should.equal(new_path_pattern)
     obtained_rule['Actions'][0]['TargetGroupArn'].should.equal(
-        target_group.get('TargetGroupArn'))
+        target_group2.get('TargetGroupArn'))
 
     # modify priority
     conn.set_rule_priorities(
@@ -1011,6 +1029,14 @@ def test_handle_listener_rules():
             Actions=[{
                 'TargetGroupArn': invalid_target_group_arn,
                 'Type': 'forward'
+            }]
+        )
+    with assert_raises(ClientError):
+        conn.modify_rule(
+            RuleArn=first_rule['RuleArn'],
+            Actions=[{
+                'Type': 'forward',
+                'TargetGroupArn': invalid_target_group_arn
             }]
         )
 
@@ -1649,6 +1675,37 @@ def test_redirect_action_listener_rule():
     modify_listener_actions = modify_listener_response['Listeners'][0]['DefaultActions']
     modify_listener_actions.should.equal(expected_default_actions)
 
+    # test create rule
+    created_rule = conn.create_rule(
+        ListenerArn=listener_arn,
+        Priority=20,
+        Conditions=[{
+            'Field': 'host-header',
+            'Values': ['xxx.example.com']
+        },
+            {
+            'Field': 'path-pattern',
+            'Values': ['foobar']
+        }],
+        Actions=expected_default_actions
+    )['Rules'][0]
+    response = conn.describe_rules(ListenerArn=listener_arn)['Rules']
+    response.should.have.length_of(2)
+
+    # test modify rule
+    modify_rule_response = conn.modify_rule(
+        RuleArn=created_rule['RuleArn'],
+        Actions=[{
+            'Type': 'redirect',
+            'RedirectConfig': {
+                'Protocol': 'HTTPS',
+                'Port': '443',
+                'StatusCode': 'HTTP_302'
+            }
+        }]
+    )['Rules'][0]
+    modify_rule_response['Actions'][0]['RedirectConfig']['StatusCode'].should.equal('HTTP_302')
+
 
 @mock_elbv2
 @mock_cloudformation
@@ -1788,6 +1845,33 @@ def test_fixed_response_listener_rule():
     modify_listener_response = conn.modify_listener(ListenerArn=listener_arn, Port=81)
     modify_listener_actions = modify_listener_response['Listeners'][0]['DefaultActions']
     modify_listener_actions.should.equal(expected_default_actions)
+
+    # test create rule
+    created_rule = conn.create_rule(
+        ListenerArn=listener_arn,
+        Priority=20,
+        Conditions=[{
+            'Field': 'host-header',
+            'Values': ['xxx.example.com']
+        },
+            {
+            'Field': 'path-pattern',
+            'Values': ['foobar']
+        }],
+        Actions=expected_default_actions
+    )['Rules'][0]
+    response = conn.describe_rules(ListenerArn=listener_arn)['Rules']
+    response.should.have.length_of(2)
+
+    # test modify rule
+    modify_rule_response = conn.modify_rule(
+        RuleArn=created_rule['RuleArn'],
+        Actions=[{
+            'Type': 'fixed-response',
+            'FixedResponseConfig': {'StatusCode': '502'}
+        }]
+    )['Rules'][0]
+    modify_rule_response['Actions'][0]['FixedResponseConfig']['StatusCode'].should.equal('502')
 
 
 @mock_elbv2

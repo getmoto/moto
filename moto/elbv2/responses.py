@@ -1067,7 +1067,21 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
           {% for action in rule.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
+            {% if action["type"] == "forward" %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% elif action["type"] == "redirect" %}
+            <RedirectConfig>
+                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
+                <Port>{{ action["redirect_config._port"] }}</Port>
+                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
+            </RedirectConfig>
+            {% elif action["type"] == "fixed-response" %}
+            <FixedResponseConfig>
+                <MessageBody><![CDATA[{{ action["fixed_response_config._message_body"] }}]]></MessageBody>
+                <StatusCode>{{ action["fixed_response_config._status_code"] }}</StatusCode>
+                <ContentType>{{ action["fixed_response_config._content_type"] }}</ContentType>
+            </FixedResponseConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Actions>
