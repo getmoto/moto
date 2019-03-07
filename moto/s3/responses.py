@@ -19,7 +19,7 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
+from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
 
@@ -733,7 +733,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # Copy key
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
-            src_key = request.headers.get("x-amz-copy-source")
+            src_key = clean_key_name(request.headers.get("x-amz-copy-source"))
             if isinstance(src_key, six.binary_type):
                 src_key = src_key.decode('utf-8')
             src_key_parsed = urlparse(src_key)

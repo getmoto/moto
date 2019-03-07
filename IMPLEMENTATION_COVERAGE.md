@@ -3919,7 +3919,7 @@
 - [ ] delete_message_batch
 - [X] delete_queue
 - [ ] get_queue_attributes
-- [ ] get_queue_url
+- [X] get_queue_url
 - [X] list_dead_letter_source_queues
 - [ ] list_queue_tags
 - [X] list_queues

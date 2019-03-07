@@ -419,6 +419,22 @@ def test_copy_key():
 
 
 @mock_s3_deprecated
+def test_copy_key_with_unicode():
+    conn = boto.connect_s3('the_key', 'the_secret')
+    bucket = conn.create_bucket("foobar")
+    key = Key(bucket)
+    key.key = "the-unicode-💩-key"
+    key.set_contents_from_string("some value")
+
+    bucket.copy_key('new-key', 'foobar', 'the-unicode-💩-key')
+
+    bucket.get_key(
+        "the-unicode-💩-key").get_contents_as_string().should.equal(b"some value")
+    bucket.get_key(
+        "new-key").get_contents_as_string().should.equal(b"some value")
+
+
+@mock_s3_deprecated
 def test_copy_key_with_version():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
