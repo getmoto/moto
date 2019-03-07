@@ -9,6 +9,7 @@ from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
 from .utils import make_arn_for_target_group
 from .utils import make_arn_for_load_balancer
+from .utils import lowercase
 from .exceptions import (
     DuplicateLoadBalancerName,
     DuplicateListenerError,
@@ -208,14 +209,13 @@ class FakeListener(BaseModel):
                 action_type = action['Type']
                 if action_type == 'forward':
                     default_actions.append({'type': action_type, 'target_group_arn': action['TargetGroupArn']})
-                elif action_type == 'redirect':
-                    redirect_action = {'type': action_type, }
-                    for redirect_config_key, redirect_config_value in action['RedirectConfig'].items():
+                elif action_type == 'redirect' or action_type == 'fixed-response':
+                    build_action = {'type': action_type, }
+                    type_config = 'RedirectConfig' if action_type == 'redirect' else 'FixedResponseConfig'
+                    for config_key, config_value in action[type_config].items():
                         # need to match the output of _get_list_prefix
-                        if redirect_config_key == 'StatusCode':
-                            redirect_config_key = 'status_code'
-                        redirect_action['redirect_config._' + redirect_config_key.lower()] = redirect_config_value
-                    default_actions.append(redirect_action)
+                        build_action[lowercase(type_config) + '._' + lowercase(config_key)] = config_value
+                    default_actions.append(build_action)
                 else:
                     raise InvalidActionTypeError(action_type, i + 1)
         else:
@@ -433,7 +433,7 @@ class ELBv2Backend(BaseBackend):
                 action_target_group_arn = action['target_group_arn']
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
-            elif action_type == 'redirect':
+            elif action_type == 'redirect' or action_type == 'fixed-response':
                 # nothing to do
                 pass
             else:
@@ -505,7 +505,7 @@ class ELBv2Backend(BaseBackend):
                 if action['target_group_arn'] in self.target_groups.keys():
                     target_group = self.target_groups[action['target_group_arn']]
                     target_group.load_balancer_arns.append(load_balancer_arn)
-            elif action_type == 'redirect':
+            elif action_type == 'redirect' or action_type == 'fixed-response':
                 # nothing to do
                 pass
             else:
@@ -677,7 +677,7 @@ class ELBv2Backend(BaseBackend):
                     action_target_group_arn = action['target_group_arn']
                     if action_target_group_arn not in target_group_arns:
                         raise ActionTargetGroupNotFoundError(action_target_group_arn)
-                elif action_type == 'redirect':
+                elif action_type == 'redirect' or action_type == 'fixed-response':
                     # nothing to do
                     pass
                 else:

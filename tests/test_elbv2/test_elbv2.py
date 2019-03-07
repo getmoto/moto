@@ -1726,3 +1726,145 @@ def test_redirect_action_listener_rule_cloudformation():
             'Port': '443', 'Protocol': 'HTTPS', 'StatusCode': 'HTTP_301',
         }
     },])
+
+
+@mock_elbv2
+@mock_ec2
+def test_fixed_response_listener_rule():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    response = conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                    Protocol='HTTP',
+                                    Port=80,
+                                    DefaultActions=[
+                                        {'Type': 'fixed-response',
+                                         'FixedResponseConfig': {
+                                             'MessageBody': '<html><body>Temporarily Unavailable</body></html>',
+                                             'StatusCode': '503',
+                                             'ContentType': 'text/html'
+                                         }}])
+
+    listener = response.get('Listeners')[0]
+    expected_default_actions = [{
+        'Type': 'fixed-response',
+        'FixedResponseConfig': {
+            'MessageBody': '<html><body>Temporarily Unavailable</body></html>',
+            'StatusCode': '503',
+            'ContentType': 'text/html'
+        }
+    }]
+    listener.get('DefaultActions').should.equal(expected_default_actions)
+    listener_arn = listener.get('ListenerArn')
+
+    describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
+    describe_rules_response['Rules'][0]['Actions'].should.equal(expected_default_actions)
+
+    describe_listener_response = conn.describe_listeners(ListenerArns=[listener_arn, ])
+    describe_listener_actions = describe_listener_response['Listeners'][0]['DefaultActions']
+    describe_listener_actions.should.equal(expected_default_actions)
+
+    modify_listener_response = conn.modify_listener(ListenerArn=listener_arn, Port=81)
+    modify_listener_actions = modify_listener_response['Listeners'][0]['DefaultActions']
+    modify_listener_actions.should.equal(expected_default_actions)
+
+
+@mock_elbv2
+@mock_cloudformation
+def test_fixed_response_listener_rule_cloudformation():
+    cnf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                },
+            },
+            "subnet1": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "subnet2": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.1.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "testLb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "my-lb",
+                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
+                    "Type": "application",
+                    "SecurityGroups": [],
+                }
+            },
+            "testListener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "LoadBalancerArn": {"Ref": "testLb"},
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "DefaultActions": [{
+                        "Type": "fixed-response",
+                        "FixedResponseConfig": {
+                            "MessageBody": "<html><body>Temporarily Unavailable</body></html>",
+                            "StatusCode": "503",
+                            "ContentType": "text/html",
+                        }
+                    }]
+                }
+
+            }
+        }
+    }
+    template_json = json.dumps(template)
+    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
+
+    describe_load_balancers_response = elbv2_client.describe_load_balancers(Names=['my-lb',])
+    describe_load_balancers_response['LoadBalancers'].should.have.length_of(1)
+    load_balancer_arn = describe_load_balancers_response['LoadBalancers'][0]['LoadBalancerArn']
+
+    describe_listeners_response = elbv2_client.describe_listeners(LoadBalancerArn=load_balancer_arn)
+
+    describe_listeners_response['Listeners'].should.have.length_of(1)
+    describe_listeners_response['Listeners'][0]['DefaultActions'].should.equal([{
+        'Type': 'fixed-response',
+        'FixedResponseConfig': {
+            'MessageBody': '<html><body>Temporarily Unavailable</body></html>',
+            'StatusCode': '503',
+            'ContentType': 'text/html'
+        }
+    },])

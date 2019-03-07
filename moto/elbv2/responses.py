@@ -784,6 +784,12 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
                 <Port>{{ action["redirect_config._port"] }}</Port>
                 <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
             </RedirectConfig>
+            {% elif action["type"] == "fixed-response" %}
+            <FixedResponseConfig>
+                <MessageBody><![CDATA[{{ action["fixed_response_config._message_body"] }}]]></MessageBody>
+                <StatusCode>{{ action["fixed_response_config._status_code"] }}</StatusCode>
+                <ContentType>{{ action["fixed_response_config._content_type"] }}</ContentType>
+            </FixedResponseConfig>
             {% endif %}
           </member>
           {% endfor %}
@@ -897,6 +903,12 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
                 <Port>{{ action["redirect_config._port"] }}</Port>
                 <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
             </RedirectConfig>
+            {% elif action["type"] == "fixed-response" %}
+            <FixedResponseConfig>
+                <MessageBody><![CDATA[{{ action["fixed_response_config._message_body"] }}]]></MessageBody>
+                <StatusCode>{{ action["fixed_response_config._status_code"] }}</StatusCode>
+                <ContentType>{{ action["fixed_response_config._content_type"] }}</ContentType>
+            </FixedResponseConfig>
             {% endif %}
           </member>
           {% endfor %}
@@ -998,6 +1010,12 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
                 <Port>{{ action["redirect_config._port"] }}</Port>
                 <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
             </RedirectConfig>
+            {% elif action["type"] == "fixed-response" %}
+            <FixedResponseConfig>
+                <MessageBody><![CDATA[{{ action["fixed_response_config._message_body"] }}]]></MessageBody>
+                <StatusCode>{{ action["fixed_response_config._status_code"] }}</StatusCode>
+                <ContentType>{{ action["fixed_response_config._content_type"] }}</ContentType>
+            </FixedResponseConfig>
             {% endif %}
           </member>
           {% endfor %}
@@ -1435,6 +1453,12 @@ MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadb
                 <Port>{{ action["redirect_config._port"] }}</Port>
                 <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
             </RedirectConfig>
+            {% elif action["type"] == "fixed-response" %}
+            <FixedResponseConfig>
+                <MessageBody><![CDATA[{{ action["fixed_response_config._message_body"] }}]]></MessageBody>
+                <StatusCode>{{ action["fixed_response_config._status_code"] }}</StatusCode>
+                <ContentType>{{ action["fixed_response_config._content_type"] }}</ContentType>
+            </FixedResponseConfig>
             {% endif %}
           </member>
           {% endfor %}
