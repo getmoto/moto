@@ -14,7 +14,7 @@ from moto import mock_kinesis, mock_kinesis_deprecated
 def test_create_cluster():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
-    conn.create_stream("my_stream", 2)
+    conn.create_stream("my_stream", 3)
 
     stream_response = conn.describe_stream("my_stream")
 
@@ -26,7 +26,7 @@ def test_create_cluster():
     stream["StreamStatus"].should.equal("ACTIVE")
 
     shards = stream['Shards']
-    shards.should.have.length_of(2)
+    shards.should.have.length_of(3)
 
 
 @mock_kinesis_deprecated

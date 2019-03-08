@@ -121,17 +121,11 @@ class Stream(BaseModel):
         self.shards = {}
         self.tags = {}
 
-        if six.PY3:
-            izip_longest = itertools.zip_longest
-        else:
-            izip_longest = itertools.izip_longest
+        step = 2**128 // shard_count
+        for index, start, end in itertools.chain(
+                                map(lambda i: (i, i*step, (i+1) * step), range(shard_count - 1)),
+                                [(shard_count - 1, (shard_count -1) * step, 2**128)]):
 
-        for index, start, end in izip_longest(range(shard_count),
-                                              range(0, 2**128, 2 **
-                                                    128 // shard_count),
-                                              range(2**128 // shard_count, 2 **
-                                                    128, 2**128 // shard_count),
-                                              fillvalue=2**128):
             shard = Shard(index, start, end)
             self.shards[shard.shard_id] = shard
 
