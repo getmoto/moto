@@ -444,7 +444,12 @@ def test_copy_key_with_version():
     key.set_contents_from_string("some value")
     key.set_contents_from_string("another value")
 
-    bucket.copy_key('new-key', 'foobar', 'the-key', src_version_id='0')
+    key = [
+        key.version_id
+        for key in bucket.get_all_versions()
+        if not key.is_latest
+    ][0]
+    bucket.copy_key('new-key', 'foobar', 'the-key', src_version_id=key)
 
     bucket.get_key(
         "the-key").get_contents_as_string().should.equal(b"another value")
@@ -818,16 +823,19 @@ def test_key_version():
     bucket = conn.create_bucket('foobar')
     bucket.configure_versioning(versioning=True)
 
+    versions = []
+
     key = Key(bucket)
     key.key = 'the-key'
     key.version_id.should.be.none
     key.set_contents_from_string('some string')
-    key.version_id.should.equal('0')
+    versions.append(key.version_id)
     key.set_contents_from_string('some string')
-    key.version_id.should.equal('1')
+    versions.append(key.version_id)
+    set(versions).should.have.length_of(2)
 
     key = bucket.get_key('the-key')
-    key.version_id.should.equal('1')
+    key.version_id.should.equal(versions[-1])
 
 
 @mock_s3_deprecated
@@ -836,23 +844,25 @@ def test_list_versions():
     bucket = conn.create_bucket('foobar')
     bucket.configure_versioning(versioning=True)
 
+    key_versions = []
+
     key = Key(bucket, 'the-key')
     key.version_id.should.be.none
     key.set_contents_from_string("Version 1")
-    key.version_id.should.equal('0')
+    key_versions.append(key.version_id)
     key.set_contents_from_string("Version 2")
-    key.version_id.should.equal('1')
+    key_versions.append(key.version_id)
+    key_versions.should.have.length_of(2)
 
     versions = list(bucket.list_versions())
-
     versions.should.have.length_of(2)
 
     versions[0].name.should.equal('the-key')
-    versions[0].version_id.should.equal('0')
+    versions[0].version_id.should.equal(key_versions[0])
     versions[0].get_contents_as_string().should.equal(b"Version 1")
 
     versions[1].name.should.equal('the-key')
-    versions[1].version_id.should.equal('1')
+    versions[1].version_id.should.equal(key_versions[1])
     versions[1].get_contents_as_string().should.equal(b"Version 2")
 
     key = Key(bucket, 'the2-key')
@@ -1483,15 +1493,21 @@ def test_boto3_head_object_with_versioning():
     s3.Object('blah', 'hello.txt').put(Body=old_content)
     s3.Object('blah', 'hello.txt').put(Body=new_content)
 
+    versions = list(s3.Bucket('blah').object_versions.all())
+    latest = list(filter(lambda item: item.is_latest, versions))[0]
+    oldest = list(filter(lambda item: not item.is_latest, versions))[0]
+
     head_object = s3.Object('blah', 'hello.txt').meta.client.head_object(
         Bucket='blah', Key='hello.txt')
-    head_object['VersionId'].should.equal('1')
+    head_object['VersionId'].should.equal(latest.id)
     head_object['ContentLength'].should.equal(len(new_content))
 
     old_head_object = s3.Object('blah', 'hello.txt').meta.client.head_object(
-        Bucket='blah', Key='hello.txt', VersionId='0')
-    old_head_object['VersionId'].should.equal('0')
+        Bucket='blah', Key='hello.txt', VersionId=oldest.id)
+    old_head_object['VersionId'].should.equal(oldest.id)
     old_head_object['ContentLength'].should.equal(len(old_content))
+
+    old_head_object['VersionId'].should_not.equal(head_object['VersionId'])
 
 
 @mock_s3
@@ -1506,9 +1522,6 @@ def test_boto3_copy_object_with_versioning():
 
     obj1_version = client.get_object(Bucket='blah', Key='test1')['VersionId']
     obj2_version = client.get_object(Bucket='blah', Key='test2')['VersionId']
-
-    # Versions should be the same
-    obj1_version.should.equal(obj2_version)
 
     client.copy_object(CopySource={'Bucket': 'blah', 'Key': 'test1'}, Bucket='blah', Key='test2')
     obj2_version_new = client.get_object(Bucket='blah', Key='test2')['VersionId']
@@ -2508,6 +2521,75 @@ def test_boto3_list_object_versions():
 
 
 @mock_s3
+def test_boto3_list_object_versions_with_versioning_disabled():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    items = (six.b('v1'), six.b('v2'))
+    for body in items:
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+
+    # One object version should be returned
+    len(response['Versions']).should.equal(1)
+    response['Versions'][0]['Key'].should.equal(key)
+
+    # The version id should be the string null
+    response['Versions'][0]['VersionId'].should.equal('null')
+
+    # Test latest object version is returned
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal(items[-1])
+
+
+@mock_s3
+def test_boto3_list_object_versions_with_versioning_enabled_late():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    key = 'key-with-versions'
+    s3.create_bucket(Bucket=bucket_name)
+    items = (six.b('v1'), six.b('v2'))
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body=six.b('v1')
+    )
+    s3.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            'Status': 'Enabled'
+        }
+    )
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body=six.b('v2')
+    )
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+
+    # Two object versions should be returned
+    len(response['Versions']).should.equal(2)
+    keys = set([item['Key'] for item in response['Versions']])
+    keys.should.equal({key})
+
+    # There should still be a null version id.
+    versionsId = set([item['VersionId'] for item in response['Versions']])
+    versionsId.should.contain('null')
+
+    # Test latest object version is returned
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal(items[-1])
+
+@mock_s3
 def test_boto3_bad_prefix_list_object_versions():
     s3 = boto3.client('s3', region_name='us-east-1')
     bucket_name = 'mybucket'
@@ -2563,18 +2645,25 @@ def test_boto3_delete_markers():
             Bucket=bucket_name,
             Key=key
         )
-        e.response['Error']['Code'].should.equal('404')
+    e.exception.response['Error']['Code'].should.equal('NoSuchKey')
+
+    response = s3.list_object_versions(
+        Bucket=bucket_name
+    )
+    response['Versions'].should.have.length_of(2)
+    response['DeleteMarkers'].should.have.length_of(1)
 
     s3.delete_object(
         Bucket=bucket_name,
         Key=key,
-        VersionId='2'
+        VersionId=response['DeleteMarkers'][0]['VersionId']
     )
     response = s3.get_object(
         Bucket=bucket_name,
         Key=key
     )
     response['Body'].read().should.equal(items[-1])
+
     response = s3.list_object_versions(
         Bucket=bucket_name
     )
@@ -2583,10 +2672,8 @@ def test_boto3_delete_markers():
     # We've asserted there is only 2 records so one is newest, one is oldest
     latest = list(filter(lambda item: item['IsLatest'], response['Versions']))[0]
     oldest = list(filter(lambda item: not item['IsLatest'], response['Versions']))[0]
-
     # Double check ordering of version ID's
-    latest['VersionId'].should.equal('1')
-    oldest['VersionId'].should.equal('0')
+    latest['VersionId'].should_not.equal(oldest['VersionId'])
 
     # Double check the name is still unicode
     latest['Key'].should.equal('key-with-versions-and-unicode-ó')
@@ -2631,12 +2718,12 @@ def test_boto3_multiple_delete_markers():
     s3.delete_object(
         Bucket=bucket_name,
         Key=key,
-        VersionId='2'
+        VersionId=response['DeleteMarkers'][0]['VersionId']
     )
     s3.delete_object(
         Bucket=bucket_name,
         Key=key,
-        VersionId='3'
+        VersionId=response['DeleteMarkers'][1]['VersionId']
     )
 
     response = s3.get_object(
@@ -2652,8 +2739,7 @@ def test_boto3_multiple_delete_markers():
     oldest = list(filter(lambda item: not item['IsLatest'], response['Versions']))[0]
 
     # Double check ordering of version ID's
-    latest['VersionId'].should.equal('1')
-    oldest['VersionId'].should.equal('0')
+    latest['VersionId'].should_not.equal(oldest['VersionId'])
 
     # Double check the name is still unicode
     latest['Key'].should.equal('key-with-versions-and-unicode-ó')
