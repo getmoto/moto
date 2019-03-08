@@ -122,9 +122,10 @@ class Stream(BaseModel):
         self.tags = {}
 
         step = 2**128 // shard_count
-        for index, start, end in itertools.chain(
-                                map(lambda i: (i, i*step, (i+1) * step), range(shard_count - 1)),
-                                [(shard_count - 1, (shard_count -1) * step, 2**128)]):
+        hash_ranges = itertools.chain(map(lambda i: (i, i * step, (i + 1) * step),
+                                          range(shard_count - 1)),
+                                [(shard_count - 1, (shard_count - 1) * step, 2**128)])
+        for index, start, end in hash_ranges:
 
             shard = Shard(index, start, end)
             self.shards[shard.shard_id] = shard
