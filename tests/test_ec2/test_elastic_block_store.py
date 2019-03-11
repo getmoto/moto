@@ -589,6 +589,18 @@ def test_volume_tag_escaping():
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
 
 
+@mock_ec2
+def test_volume_property_hidden_when_no_tags_exist():
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+
+    volume_response = ec2_client.create_volume(
+        Size=10,
+        AvailabilityZone='us-east-1a'
+    )
+
+    volume_response.get('Tags').should.equal(None)
+
+
 @freeze_time
 @mock_ec2
 def test_copy_snapshot():
@@ -602,26 +614,26 @@ def test_copy_snapshot():
     create_snapshot_response = ec2_client.create_snapshot(
         VolumeId=volume_response['VolumeId']
     )
-    
+
     copy_snapshot_response = dest_ec2_client.copy_snapshot(
         SourceSnapshotId=create_snapshot_response['SnapshotId'],
         SourceRegion="eu-west-1"
     )
-    
+
     ec2 = boto3.resource('ec2', region_name='eu-west-1')
     dest_ec2 = boto3.resource('ec2', region_name='eu-west-2')
-    
+
     source = ec2.Snapshot(create_snapshot_response['SnapshotId'])
     dest = dest_ec2.Snapshot(copy_snapshot_response['SnapshotId'])
-    
+
     attribs = ['data_encryption_key_id', 'encrypted',
                 'kms_key_id', 'owner_alias', 'owner_id',
                 'progress', 'state', 'state_message',
                 'tags', 'volume_id', 'volume_size']
-    
+
     for attrib in attribs:
         getattr(source, attrib).should.equal(getattr(dest, attrib))
-    
+
     # Copy from non-existent source ID.
     with assert_raises(ClientError) as cm:
         create_snapshot_error = ec2_client.create_snapshot(
