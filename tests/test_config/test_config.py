@@ -28,7 +28,11 @@ def test_put_configuration_recorder():
         {'allSupported': True, 'includeGlobalResourceTypes': True, 'resourceTypes': ['item']},
         {'allSupported': False, 'includeGlobalResourceTypes': True, 'resourceTypes': ['item']},
         {'allSupported': True, 'includeGlobalResourceTypes': False, 'resourceTypes': ['item']},
-        {'allSupported': False, 'includeGlobalResourceTypes': False, 'resourceTypes': []}
+        {'allSupported': False, 'includeGlobalResourceTypes': False, 'resourceTypes': []},
+        {'includeGlobalResourceTypes': False, 'resourceTypes': []},
+        {'includeGlobalResourceTypes': True},
+        {'resourceTypes': []},
+        {}
     ]
 
     for bg in bad_groups:

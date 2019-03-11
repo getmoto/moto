@@ -166,21 +166,23 @@ class ConfigBackend(BaseBackend):
             recorder_status = self.recorders[config_recorder['name']].status
 
         # Validate the Recording Group:
-        if not config_recorder.get('recordingGroup'):
+        if config_recorder.get('recordingGroup') is None:
             recording_group = RecordingGroup()
         else:
             rg = config_recorder['recordingGroup']
 
+            # If an empty dict is passed in, then bad:
+            if not rg:
+                raise InvalidRecordingGroupException()
+
             # Can't have both the resource types specified and the other flags as True.
             if rg.get('resourceTypes') and (
-                    rg.get('allSupported', True) or
+                    rg.get('allSupported', False) or
                     rg.get('includeGlobalResourceTypes', False)):
                 raise InvalidRecordingGroupException()
 
-            # If an empty dict is provided, then bad:
-            if not rg.get('resourceTypes', False) \
-                    and not rg.get('resourceTypes') \
-                    and not rg.get('includeGlobalResourceTypes', False):
+            # Must supply resourceTypes if 'allSupported' is not supplied:
+            if not rg.get('allSupported') and not rg.get('resourceTypes'):
                 raise InvalidRecordingGroupException()
 
             # Validate that the list provided is correct:
