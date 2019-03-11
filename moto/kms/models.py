@@ -36,7 +36,7 @@ class Key(BaseModel):
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": datetime.strftime(datetime.utcnow(), "%Y-%m-%dT%H:%M:%SZ"),
+                "CreationDate": datetime.strftime(datetime.utcnow(), "%s"),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
