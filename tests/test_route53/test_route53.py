@@ -99,6 +99,16 @@ def test_rrset():
     rrsets[0].resource_records[0].should.equal('5.6.7.8')
 
     changes = ResourceRecordSets(conn, zoneid)
+    change = changes.add_change("UPSERT", "foo.bar.testdns.aws.com", "TXT")
+    change.add_value("foo")
+    changes.commit()
+
+    rrsets = conn.get_all_rrsets(zoneid)
+    rrsets.should.have.length_of(2)
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
+    rrsets[1].resource_records[0].should.equal('foo')
+
+    changes = ResourceRecordSets(conn, zoneid)
     changes.add_change("DELETE", "foo.bar.testdns.aws.com", "A")
     changes.commit()
 
@@ -520,7 +530,7 @@ def test_change_resource_record_sets_crud_valid():
 
     # Create A Record.
     a_record_endpoint_payload = {
-        'Comment': 'create A record prod.redis.db',
+        'Comment': 'Create A record prod.redis.db',
         'Changes': [
             {
                 'Action': 'CREATE',
@@ -545,15 +555,15 @@ def test_change_resource_record_sets_crud_valid():
     a_record_detail['TTL'].should.equal(10)
     a_record_detail['ResourceRecords'].should.equal([{'Value': '127.0.0.1'}])
 
-    # Update type to CNAME
+    # Update A Record.
     cname_record_endpoint_payload = {
-        'Comment': 'Update to CNAME prod.redis.db',
+        'Comment': 'Update A record prod.redis.db',
         'Changes': [
             {
                 'Action': 'UPSERT',
                 'ResourceRecordSet': {
                     'Name': 'prod.redis.db.',
-                    'Type': 'CNAME',
+                    'Type': 'A',
                     'TTL': 60,
                     'ResourceRecords': [{
                         'Value': '192.168.1.1'
@@ -568,7 +578,7 @@ def test_change_resource_record_sets_crud_valid():
     len(response['ResourceRecordSets']).should.equal(1)
     cname_record_detail = response['ResourceRecordSets'][0]
     cname_record_detail['Name'].should.equal('prod.redis.db.')
-    cname_record_detail['Type'].should.equal('CNAME')
+    cname_record_detail['Type'].should.equal('A')
     cname_record_detail['TTL'].should.equal(60)
     cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
 
