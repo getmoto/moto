@@ -401,6 +401,19 @@ def test_get_user():
     conn.get_user('my-user')
 
 
+@mock_iam()
+def test_update_user():
+    conn = boto3.client('iam', region_name='us-east-1')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.update_user(UserName='my-user')
+    conn.create_user(UserName='my-user')
+    conn.update_user(UserName='my-user', NewPath='/new-path/', NewUserName='new-user')
+    response = conn.get_user(UserName='new-user')
+    response['User'].get('Path').should.equal('/new-path/')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_user(UserName='my-user')
+
+
 @mock_iam_deprecated()
 def test_get_current_user():
     """If no user is specific, IAM returns the current user"""

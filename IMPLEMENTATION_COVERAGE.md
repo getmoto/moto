@@ -2334,7 +2334,7 @@
 - [ ] update_service_specific_credential
 - [X] update_signing_certificate
 - [ ] update_ssh_public_key
-- [ ] update_user
+- [X] update_user
 - [X] upload_server_certificate
 - [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
