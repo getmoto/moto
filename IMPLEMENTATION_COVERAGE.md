@@ -916,7 +916,7 @@
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
 - [ ] update_group
-- [ ] update_identity_provider
+- [x] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
