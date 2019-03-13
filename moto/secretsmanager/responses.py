@@ -64,3 +64,10 @@ class SecretsManagerResponse(BaseResponse):
             rotation_lambda_arn=rotation_lambda_arn,
             rotation_rules=rotation_rules
         )
+
+    def put_secret_value(self):
+        id = "test:arn"
+        return secretsmanager_backends[self.region].put_secret_value(
+            id=id,
+            secret_string=self._get_param('SecretString')
+        )

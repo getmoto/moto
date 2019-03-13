@@ -57,7 +57,6 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def create_secret(self, name, secret_string, tags, **kwargs):
-
         generated_version_id = str(uuid.uuid4())
 
         secret = {
@@ -81,6 +80,11 @@ class SecretsManagerBackend(BaseBackend):
         })
 
         return response
+
+    def put_secret_value(self, id, secret_string):
+        print("meow")
+
+        response
 
     def describe_secret(self, secret_id):
         if not self._is_valid_identifier(secret_id):

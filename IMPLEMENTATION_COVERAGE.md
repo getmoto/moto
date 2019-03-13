@@ -3660,7 +3660,7 @@
 - [X] get_secret_value
 - [ ] list_secret_version_ids
 - [ ] list_secrets
-- [ ] put_secret_value
+- [X] put_secret_value
 - [ ] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
