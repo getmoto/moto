@@ -39,6 +39,7 @@ install_requires = [
     "responses>=0.9.0",
     "idna<2.9,>=2.5",
     "cfn-lint",
+    "sshpubkeys>=3.1.0,<4.0"
 ]
 
 extras_require = {
