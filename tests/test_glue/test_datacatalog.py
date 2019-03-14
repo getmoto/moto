@@ -230,7 +230,6 @@ def test_delete_table():
     exc.exception.response['Error']['Message'].should.match('Table myspecialtable not found')
 
 
-
 @mock_glue
 def test_get_partitions_empty():
     client = boto3.client('glue', region_name='us-east-1')
