@@ -84,6 +84,13 @@ class GlueResponse(BaseResponse):
             ]
         })
 
+    def delete_table(self):
+        database_name = self.parameters.get('DatabaseName')
+        table_name = self.parameters.get('Name')
+        resp = self.glue_backend.delete_table(database_name, table_name)
+        return json.dumps(resp)
+
+
     def get_partitions(self):
         database_name = self.parameters.get('DatabaseName')
         table_name = self.parameters.get('TableName')

@@ -210,6 +210,28 @@ def test_get_table_when_database_not_exits():
 
 
 @mock_glue
+def test_delete_table():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    helpers.create_database(client, database_name)
+
+    table_name = 'myspecialtable'
+    table_input = helpers.create_table_input(database_name, table_name)
+    helpers.create_table(client, database_name, table_name, table_input)
+
+    result = client.delete_table(DatabaseName=database_name, Name=table_name)
+    result['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    # confirm table is deleted
+    with assert_raises(ClientError) as exc:
+        helpers.get_table(client, database_name, table_name)
+
+    exc.exception.response['Error']['Code'].should.equal('EntityNotFoundException')
+    exc.exception.response['Error']['Message'].should.match('Table myspecialtable not found')
+
+
+
+@mock_glue
 def test_get_partitions_empty():
     client = boto3.client('glue', region_name='us-east-1')
     database_name = 'myspecialdatabase'
