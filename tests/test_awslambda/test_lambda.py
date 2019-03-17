@@ -4,6 +4,7 @@ import base64
 import botocore.client
 import boto3
 import hashlib
+from http import HTTPStatus
 import io
 import json
 import time
@@ -471,7 +472,8 @@ def test_publish():
     function_list['Functions'].should.have.length_of(1)
     latest_arn = function_list['Functions'][0]['FunctionArn']
 
-    conn.publish_version(FunctionName='testFunction')
+    res = conn.publish_version(FunctionName='testFunction')
+    assert res['ResponseMetadata']['HTTPStatusCode'] == HTTPStatus.CREATED
 
     function_list = conn.list_functions()
     function_list['Functions'].should.have.length_of(2)
@@ -853,8 +855,8 @@ def test_list_versions_by_function():
         Publish=True,
     )
 
-    conn.publish_version(FunctionName='testFunction')
-
+    res = conn.publish_version(FunctionName='testFunction')
+    assert res['ResponseMetadata']['HTTPStatusCode'] == HTTPStatus.CREATED
     versions = conn.list_versions_by_function(FunctionName='testFunction')
 
     assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST'

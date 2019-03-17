@@ -183,7 +183,7 @@ class LambdaResponse(BaseResponse):
         fn = self.lambda_backend.publish_function(function_name)
         if fn:
             config = fn.get_configuration()
-            return 200, {}, json.dumps(config)
+            return 201, {}, json.dumps(config)
         else:
             return 404, {}, "{}"
 
