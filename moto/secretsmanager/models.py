@@ -53,7 +53,9 @@ class SecretsManagerBackend(BaseBackend):
                 raise ResourceNotFoundException()
 
         secret = self.secrets[secret_id]
-        secret_version = secret['versions'][secret['default_version_id']]
+        version_id = version_id or secret['default_version_id']
+
+        secret_version = secret['versions'][version_id]
 
         response = json.dumps({
             "ARN": secret_arn(self.region, secret['secret_id']),
@@ -70,7 +72,7 @@ class SecretsManagerBackend(BaseBackend):
 
         # error if secret exists
         if name in self.secrets.keys():
-            raise ResourceExistsException('a') # TODO make this match real boto's error
+            raise ResourceExistsException('A resource with the ID you requested already exists.')
 
         version_id = self._add_secret(name, secret_string, tags=tags)
 
@@ -100,10 +102,10 @@ class SecretsManagerBackend(BaseBackend):
         else:
             self.secrets[secret_id] = {
                 'versions': {
-                version_id: secret_version
-            },
-            'default_version_id': version_id,
-        }
+                    version_id: secret_version
+                },
+                'default_version_id': version_id,
+            }
 
         secret = self.secrets[secret_id]
         secret['secret_id'] = secret_id
@@ -115,9 +117,9 @@ class SecretsManagerBackend(BaseBackend):
 
         return version_id
 
-    def put_secret_value(self, secret_id, secret_string, version_id, version_stages):
+    def put_secret_value(self, secret_id, secret_string, version_stages):
 
-        version_id = self._add_secret(secret_id, secret_string, version_id=version_id, version_stages=version_stages)
+        version_id = self._add_secret(secret_id, secret_string, version_stages=version_stages)
 
         response = json.dumps({
             'ARN': secret_arn(self.region, secret_id),
@@ -190,17 +192,24 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
-        secret['version_id'] = client_request_token or ''
+        old_secret_version = secret['versions'][secret['default_version_id']]
+        new_version_id = client_request_token or str(uuid.uuid4())
+
+        self._add_secret(secret_id, old_secret_version['secret_string'], secret['tags'], version_id=new_version_id, version_stages=['AWSCURRENT'])
+
         secret['rotation_lambda_arn'] = rotation_lambda_arn or ''
         if rotation_rules:
             secret['auto_rotate_after_days'] = rotation_rules.get(rotation_days, 0)
         if secret['auto_rotate_after_days'] > 0:
             secret['rotation_enabled'] = True
 
+        if 'AWSCURRENT' in old_secret_version['version_stages']:
+            old_secret_version['version_stages'].remove('AWSCURRENT')
+
         response = json.dumps({
             "ARN": secret_arn(self.region, secret['secret_id']),
             "Name": secret['name'],
-            "VersionId": secret['version_id']
+            "VersionId": new_version_id
         })
 
         return response
@@ -245,7 +254,6 @@ class SecretsManagerBackend(BaseBackend):
                 'VersionId': version_id,
                 'VersionStages': version['version_stages'],
             })
-
 
         response = json.dumps({
             'ARN': secret['secret_id'],

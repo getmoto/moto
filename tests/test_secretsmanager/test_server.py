@@ -10,6 +10,8 @@ from moto import mock_secretsmanager
 Test the different server responses for secretsmanager
 '''
 
+DEFAULT_SECRET_NAME = 'test-secret'
+
 
 @mock_secretsmanager
 def test_get_secret_value():
@@ -18,19 +20,23 @@ def test_get_secret_value():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                           data={"Name": "test-secret",
+                           data={"Name": DEFAULT_SECRET_NAME,
                                  "SecretString": "foo-secret"},
                            headers={
                                "X-Amz-Target": "secretsmanager.CreateSecret"},
                            )
     get_secret = test_client.post('/',
-                           data={"SecretId": "test-secret",
-                                 "VersionStage": "AWSCURRENT"},
-                           headers={
-                               "X-Amz-Target": "secretsmanager.GetSecretValue"},
-                           )
+                                  data={"SecretId": DEFAULT_SECRET_NAME,
+                                        "VersionStage": "AWSCURRENT"},
+                                  headers={
+                                      "X-Amz-Target": "secretsmanager.GetSecretValue"},
+                                  )
 
     json_data = json.loads(get_secret.data.decode("utf-8"))
+    print("~~data~~")
+    print(json_data)
+    print("~~~")
+
     assert json_data['SecretString'] == 'foo-secret'
 
 @mock_secretsmanager
@@ -55,7 +61,7 @@ def test_get_secret_that_does_not_match():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                           data={"Name": "test-secret",
+                           data={"Name": DEFAULT_SECRET_NAME,
                                  "SecretString": "foo-secret"},
                            headers={
                                "X-Amz-Target": "secretsmanager.CreateSecret"},
@@ -165,7 +171,7 @@ def test_describe_secret_that_does_not_match():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                        data={"Name": "test-secret",
+                        data={"Name": DEFAULT_SECRET_NAME,
                               "SecretString": "foosecret"},
                         headers={
                             "X-Amz-Target": "secretsmanager.CreateSecret"
@@ -188,7 +194,7 @@ def test_rotate_secret():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                        data={"Name": "test-secret",
+                        data={"Name": DEFAULT_SECRET_NAME,
                               "SecretString": "foosecret"},
                         headers={
                             "X-Amz-Target": "secretsmanager.CreateSecret"
@@ -197,7 +203,7 @@ def test_rotate_secret():
 
     client_request_token = "EXAMPLE2-90ab-cdef-fedc-ba987SECRET2"
     rotate_secret = test_client.post('/',
-                        data={"SecretId": "test-secret",
+                        data={"SecretId": DEFAULT_SECRET_NAME,
                               "ClientRequestToken": client_request_token},
                         headers={
                             "X-Amz-Target": "secretsmanager.RotateSecret"
@@ -207,7 +213,7 @@ def test_rotate_secret():
     json_data = json.loads(rotate_secret.data.decode("utf-8"))
     assert json_data   # Returned dict is not empty
     assert json_data['ARN'] != ''
-    assert json_data['Name'] == 'test-secret'
+    assert json_data['Name'] == DEFAULT_SECRET_NAME
     assert json_data['VersionId'] == client_request_token
 
 # @mock_secretsmanager
@@ -289,7 +295,7 @@ def test_rotate_secret_that_does_not_match():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                        data={"Name": "test-secret",
+                        data={"Name": DEFAULT_SECRET_NAME,
                               "SecretString": "foosecret"},
                         headers={
                             "X-Amz-Target": "secretsmanager.CreateSecret"
@@ -313,7 +319,7 @@ def test_rotate_secret_client_request_token_too_short():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                        data={"Name": "test-secret",
+                        data={"Name": DEFAULT_SECRET_NAME,
                               "SecretString": "foosecret"},
                         headers={
                             "X-Amz-Target": "secretsmanager.CreateSecret"
@@ -322,7 +328,7 @@ def test_rotate_secret_client_request_token_too_short():
 
     client_request_token = "ED9F8B6C-85B7-B7E4-38F2A3BEB13C"
     rotate_secret = test_client.post('/',
-                        data={"SecretId": "test-secret",
+                        data={"SecretId": DEFAULT_SECRET_NAME,
                               "ClientRequestToken": client_request_token},
                         headers={
                             "X-Amz-Target": "secretsmanager.RotateSecret"
@@ -339,7 +345,7 @@ def test_rotate_secret_client_request_token_too_long():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                        data={"Name": "test-secret",
+                        data={"Name": DEFAULT_SECRET_NAME,
                               "SecretString": "foosecret"},
                         headers={
                             "X-Amz-Target": "secretsmanager.CreateSecret"
@@ -351,7 +357,7 @@ def test_rotate_secret_client_request_token_too_long():
         'ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C'
     )
     rotate_secret = test_client.post('/',
-                        data={"SecretId": "test-secret",
+                        data={"SecretId": DEFAULT_SECRET_NAME,
                               "ClientRequestToken": client_request_token},
                         headers={
                             "X-Amz-Target": "secretsmanager.RotateSecret"
@@ -368,7 +374,7 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     test_client = backend.test_client()
 
     create_secret = test_client.post('/',
-                        data={"Name": "test-secret",
+                        data={"Name": DEFAULT_SECRET_NAME,
                               "SecretString": "foosecret"},
                         headers={
                             "X-Amz-Target": "secretsmanager.CreateSecret"
@@ -377,7 +383,7 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
 
     rotation_lambda_arn = '85B7-446A-B7E4' * 147    # == 2058 characters
     rotate_secret = test_client.post('/',
-                        data={"SecretId": "test-secret",
+                        data={"SecretId": DEFAULT_SECRET_NAME,
                               "RotationLambdaARN": rotation_lambda_arn},
                         headers={
                             "X-Amz-Target": "secretsmanager.RotateSecret"
@@ -389,7 +395,165 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     assert json_data['__type'] == 'InvalidParameterException'
 
 
-# 
+
+
+
+@mock_secretsmanager
+def test_put_secret_value_puts_new_secret():
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    test_client.post('/',
+                     data={
+                         "SecretId": DEFAULT_SECRET_NAME,
+                         "SecretString": "foosecret",
+                         "VersionStages": ["AWSCURRENT"]},
+                     headers={
+                         "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                     )
+
+    put_second_secret_value_json = test_client.post('/',
+                                             data={
+                                                 "SecretId": DEFAULT_SECRET_NAME,
+                                                 "SecretString": "foosecret",
+                                                 "VersionStages": ["AWSCURRENT"]},
+                                             headers={
+                                                 "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                                             )
+    second_secret_json_data = json.loads(put_second_secret_value_json.data.decode("utf-8"))
+
+    version_id = second_secret_json_data['VersionId']
+
+    secret_value_json = test_client.post('/',
+                                         data={
+                                             "SecretId": DEFAULT_SECRET_NAME,
+                                             "VersionId": version_id,
+                                             "VersionStage": 'AWSCURRENT'},
+                                         headers={
+                                             "X-Amz-Target": "secretsmanager.GetSecretValue"},
+                                         )
+
+    second_secret_json_data = json.loads(secret_value_json.data.decode("utf-8"))
+
+    assert second_secret_json_data
+    assert second_secret_json_data['SecretString'] == 'foosecret'
+
+
+@mock_secretsmanager
+def test_put_secret_value_can_get_first_version_if_put_twice():
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    first_secret_string = 'first_secret'
+    second_secret_string = 'second_secret'
+
+    put_first_secret_value_json = test_client.post('/',
+                                                   data={
+                                                       "SecretId": DEFAULT_SECRET_NAME,
+                                                       "SecretString": first_secret_string,
+                                                       "VersionStages": ["AWSCURRENT"]},
+                                                   headers={
+                                                       "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                                                   )
+
+    first_secret_json_data = json.loads(put_first_secret_value_json.data.decode("utf-8"))
+
+    first_secret_version_id = first_secret_json_data['VersionId']
+
+    test_client.post('/',
+                     data={
+                         "SecretId": DEFAULT_SECRET_NAME,
+                         "SecretString": second_secret_string,
+                         "VersionStages": ["AWSCURRENT"]},
+                     headers={
+                         "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                     )
+
+    get_first_secret_value_json = test_client.post('/',
+                                                   data={
+                                                       "SecretId": DEFAULT_SECRET_NAME,
+                                                       "VersionId": first_secret_version_id,
+                                                       "VersionStage": 'AWSCURRENT'},
+                                                   headers={
+                                                       "X-Amz-Target": "secretsmanager.GetSecretValue"},
+                                                   )
+
+    get_first_secret_json_data = json.loads(get_first_secret_value_json.data.decode("utf-8"))
+
+    assert get_first_secret_json_data
+    assert get_first_secret_json_data['SecretString'] == first_secret_string
+
+
+@mock_secretsmanager
+def test_put_secret_value_versions_differ_if_same_secret_put_twice():
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    put_first_secret_value_json = test_client.post('/',
+                                                   data={
+                                                       "SecretId": DEFAULT_SECRET_NAME,
+                                                       "SecretString": "secret",
+                                                       "VersionStages": ["AWSCURRENT"]},
+                                                   headers={
+                                                       "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                                                   )
+    first_secret_json_data = json.loads(put_first_secret_value_json.data.decode("utf-8"))
+    first_secret_version_id = first_secret_json_data['VersionId']
+
+    put_second_secret_value_json = test_client.post('/',
+                                                    data={
+                                                        "SecretId": DEFAULT_SECRET_NAME,
+                                                        "SecretString": "secret",
+                                                        "VersionStages": ["AWSCURRENT"]},
+                                                    headers={
+                                                        "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                                                    )
+    second_secret_json_data = json.loads(put_second_secret_value_json.data.decode("utf-8"))
+    second_secret_version_id = second_secret_json_data['VersionId']
+
+    assert first_secret_version_id != second_secret_version_id
+
+
+@mock_secretsmanager
+def test_can_list_secret_version_ids():
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    put_first_secret_value_json = test_client.post('/',
+                                                   data={
+                                                       "SecretId": DEFAULT_SECRET_NAME,
+                                                       "SecretString": "secret",
+                                                       "VersionStages": ["AWSCURRENT"]},
+                                                   headers={
+                                                       "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                                                   )
+    first_secret_json_data = json.loads(put_first_secret_value_json.data.decode("utf-8"))
+    first_secret_version_id = first_secret_json_data['VersionId']
+    put_second_secret_value_json = test_client.post('/',
+                                                    data={
+                                                        "SecretId": DEFAULT_SECRET_NAME,
+                                                        "SecretString": "secret",
+                                                        "VersionStages": ["AWSCURRENT"]},
+                                                    headers={
+                                                        "X-Amz-Target": "secretsmanager.PutSecretValue"},
+                                                    )
+    second_secret_json_data = json.loads(put_second_secret_value_json.data.decode("utf-8"))
+    second_secret_version_id = second_secret_json_data['VersionId']
+
+    list_secret_versions_json = test_client.post('/',
+                                                 data={
+                                                     "SecretId": DEFAULT_SECRET_NAME, },
+                                                 headers={
+                                                     "X-Amz-Target": "secretsmanager.ListSecretVersionIds"},
+                                                 )
+
+    versions_list = json.loads(list_secret_versions_json.data.decode("utf-8"))
+
+    returned_version_ids = [v['VersionId'] for v in versions_list['Versions']]
+
+    assert [first_secret_version_id, second_secret_version_id].sort() == returned_version_ids.sort()
+
+#
 # The following tests should work, but fail on the embedded dict in
 # RotationRules. The error message suggests a problem deeper in the code, which
 # needs further investigation.

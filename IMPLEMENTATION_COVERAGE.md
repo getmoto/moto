@@ -3658,7 +3658,7 @@
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
-- [ ] list_secret_version_ids
+- [X] list_secret_version_ids
 - [ ] list_secrets
 - [X] put_secret_value
 - [ ] restore_secret
