@@ -33,9 +33,6 @@ def test_get_secret_value():
                                   )
 
     json_data = json.loads(get_secret.data.decode("utf-8"))
-    print("~~data~~")
-    print(json_data)
-    print("~~~")
 
     assert json_data['SecretString'] == 'foo-secret'
 
