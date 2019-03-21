@@ -613,13 +613,11 @@ DESCRIBE_STEP_TEMPLATE = """<DescribeStepResponse xmlns="http://elasticmapreduce
       <Id>{{ step.id }}</Id>
       <Name>{{ step.name | escape }}</Name>
       <Status>
-<!-- does not exist for botocore 1.4.28
         <FailureDetails>
           <Reason/>
           <Message/>
           <LogFile/>
         </FailureDetails>
--->
         <State>{{ step.state }}</State>
         <StateChangeReason>{{ step.state_change_reason }}</StateChangeReason>
         <Timeline>

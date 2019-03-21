@@ -1,29 +1,44 @@
 #!/usr/bin/env python
 from __future__ import unicode_literals
+import codecs
+import os
+import re
 import setuptools
 from setuptools import setup, find_packages
 import sys
 
 
+# Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
+here = os.path.abspath(os.path.dirname(__file__))
+
+def read(*parts):
+    # intentionally *not* adding an encoding option to open, See:
+    #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
+    with codecs.open(os.path.join(here, *parts), 'r') as fp:
+        return fp.read()
+
+
 install_requires = [
     "Jinja2>=2.7.3",
     "boto>=2.36.0",
-    "boto3>=1.6.16",
-    "botocore>=1.12.13",
+    "boto3>=1.9.86",
+    "botocore>=1.12.86",
     "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
     "werkzeug",
-    "pyaml",
+    "PyYAML",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "python-jose<3.0.0",
+    "python-jose<4.0.0",
     "mock",
     "docker>=2.5.1",
-    "jsondiff==1.1.1",
-    "aws-xray-sdk<0.96,>=0.93",
+    "jsondiff==1.1.2",
+    "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
+    "idna<2.9,>=2.5",
+    "cfn-lint",
 ]
 
 extras_require = {
@@ -43,6 +58,8 @@ setup(
     version='1.3.7',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
+    long_description=read('README.md'),
+    long_description_content_type='text/markdown',
     author='Steve Pulec',
     author_email='spulec@gmail.com',
     url='https://github.com/spulec/moto',

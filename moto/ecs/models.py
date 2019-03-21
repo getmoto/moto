@@ -823,6 +823,8 @@ class EC2ContainerServiceBackend(BaseBackend):
                             Container instances status should be one of [ACTIVE,DRAINING]")
         failures = []
         container_instance_objects = []
+        list_container_instance_ids = [x.split('/')[-1]
+                            for x in list_container_instance_ids]
         for container_instance_id in list_container_instance_ids:
             container_instance = self.container_instances[cluster_name].get(container_instance_id, None)
             if container_instance is not None:

@@ -70,9 +70,11 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | CloudwatchEvents      | @mock_events     | all endpoints done                |
 |------------------------------------------------------------------------------|
-| Cognito Identity      | @mock_cognitoidentity| basic endpoints done           |
+| Cognito Identity      | @mock_cognitoidentity| basic endpoints done          |
 |------------------------------------------------------------------------------|
 | Cognito Identity Provider | @mock_cognitoidp| basic endpoints done           |
+|------------------------------------------------------------------------------|
+| Config | @mock_config | basic endpoints done                                 |
 |------------------------------------------------------------------------------|
 | Data Pipeline         | @mock_datapipeline| basic endpoints done             |
 |------------------------------------------------------------------------------|
@@ -259,7 +261,7 @@ It uses flask, which isn't a default dependency. You can install the
 server 'extra' package with:
 
 ```python
-pip install moto[server]
+pip install "moto[server]"
 ```
 
 You can then start it running a service:

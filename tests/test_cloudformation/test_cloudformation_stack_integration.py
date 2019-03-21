@@ -1952,7 +1952,12 @@ def lambda_handler(event, context):
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": "test-role",
-                    "Runtime": "python2.7"
+                    "Runtime": "python2.7",
+                    "Environment": {
+                        "Variables": {
+                            "TEST_ENV_KEY": "test-env-val",
+                        }
+                    },
                 }
             }
         }
@@ -1973,6 +1978,9 @@ def lambda_handler(event, context):
     result['Functions'][0]['MemorySize'].should.equal(128)
     result['Functions'][0]['Role'].should.equal('test-role')
     result['Functions'][0]['Runtime'].should.equal('python2.7')
+    result['Functions'][0]['Environment'].should.equal({
+        "Variables": {"TEST_ENV_KEY": "test-env-val"}
+    })
 
 
 @mock_cloudformation

@@ -243,7 +243,7 @@ class CertBundle(BaseModel):
                 'KeyAlgorithm': key_algo,
                 'NotAfter': datetime_to_epoch(self._cert.not_valid_after),
                 'NotBefore': datetime_to_epoch(self._cert.not_valid_before),
-                'Serial': self._cert.serial,
+                'Serial': self._cert.serial_number,
                 'SignatureAlgorithm': self._cert.signature_algorithm_oid._name.upper().replace('ENCRYPTION', ''),
                 'Status': self.status,  # One of PENDING_VALIDATION, ISSUED, INACTIVE, EXPIRED, VALIDATION_TIMED_OUT, REVOKED, FAILED.
                 'Subject': 'CN={0}'.format(self.common_name),
