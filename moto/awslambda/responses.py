@@ -52,7 +52,11 @@ class LambdaResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == 'GET':
             # This is ListVersionByFunction
-            raise ValueError("Cannot handle request")
+
+            path = request.path if hasattr(request, 'path') else path_url(request.url)
+            function_name = path.split('/')[-2]
+            return self._list_versions_by_function(function_name)
+
         elif request.method == 'POST':
             return self._publish_function(request, full_url, headers)
         else:
@@ -148,6 +152,19 @@ class LambdaResponse(BaseResponse):
             json_data = fn.get_configuration()
 
             result['Functions'].append(json_data)
+
+        return 200, {}, json.dumps(result)
+
+    def _list_versions_by_function(self, function_name):
+        result = {
+            'Versions': []
+        }
+
+        functions = self.lambda_backend.list_versions_by_function(function_name)
+        if functions:
+            for fn in functions:
+                json_data = fn.get_configuration()
+                result['Versions'].append(json_data)
 
         return 200, {}, json.dumps(result)
 

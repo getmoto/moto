@@ -134,6 +134,7 @@ class Role(BaseModel):
         self.managed_policies = {}
         self.create_date = datetime.now(pytz.utc)
         self.tags = {}
+        self.description = ""
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -472,6 +473,16 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         policy = arns[policy_arn]
         policy.attach_to(self.get_role(role_name))
+
+    def update_role_description(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
+        return role
+
+    def update_role(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
+        return role
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -880,6 +891,16 @@ class IAMBackend(BaseBackend):
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
+
+    def list_roles(self, path_prefix, marker, max_items):
+        roles = None
+        try:
+            roles = self.roles.values()
+        except KeyError:
+            raise IAMNotFoundException(
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+
+        return roles
 
     def upload_signing_certificate(self, user_name, body):
         user = self.get_user(user_name)

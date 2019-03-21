@@ -1505,3 +1505,110 @@ def test_dynamodb_streams_2():
     assert 'LatestStreamLabel' in resp['TableDescription']
     assert 'LatestStreamArn' in resp['TableDescription']
     
+@mock_dynamodb2
+def test_condition_expressions():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'match': {'S': 'match'},
+            'existing': {'S': 'existing'},
+        }
+    )
+
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'match': {'S': 'match'},
+            'existing': {'S': 'existing'},
+        },
+        ConditionExpression='attribute_exists(#existing) AND attribute_not_exists(#nonexistent) AND #match = :match',
+        ExpressionAttributeNames={
+            '#existing': 'existing',
+            '#nonexistent': 'nope',
+            '#match': 'match',
+        },
+        ExpressionAttributeValues={
+            ':match': {'S': 'match'}
+        }
+    )
+
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'match': {'S': 'match'},
+            'existing': {'S': 'existing'},
+        },
+        ConditionExpression='NOT(attribute_exists(#nonexistent1) AND attribute_exists(#nonexistent2))',
+        ExpressionAttributeNames={
+            '#nonexistent1': 'nope',
+            '#nonexistent2': 'nope2'
+        }
+    )
+
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.put_item(
+            TableName='test1',
+            Item={
+                'client': {'S': 'client1'},
+                'app': {'S': 'app1'},
+                'match': {'S': 'match'},
+                'existing': {'S': 'existing'},
+            },
+            ConditionExpression='attribute_exists(#nonexistent1) AND attribute_exists(#nonexistent2)',
+            ExpressionAttributeNames={
+                '#nonexistent1': 'nope',
+                '#nonexistent2': 'nope2'
+            }
+        )
+
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.put_item(
+            TableName='test1',
+            Item={
+                'client': {'S': 'client1'},
+                'app': {'S': 'app1'},
+                'match': {'S': 'match'},
+                'existing': {'S': 'existing'},
+            },
+            ConditionExpression='NOT(attribute_not_exists(#nonexistent1) AND attribute_not_exists(#nonexistent2))',
+            ExpressionAttributeNames={
+                '#nonexistent1': 'nope',
+                '#nonexistent2': 'nope2'
+            }
+        )
+
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.put_item(
+            TableName='test1',
+            Item={
+                'client': {'S': 'client1'},
+                'app': {'S': 'app1'},
+                'match': {'S': 'match'},
+                'existing': {'S': 'existing'},
+            },
+            ConditionExpression='attribute_exists(#existing) AND attribute_not_exists(#nonexistent) AND #match = :match',
+            ExpressionAttributeNames={
+                '#existing': 'existing',
+                '#nonexistent': 'nope',
+                '#match': 'match',
+            },
+            ExpressionAttributeValues={
+                ':match': {'S': 'match2'}
+            }
+        )
