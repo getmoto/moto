@@ -3604,7 +3604,7 @@
 - [ ] add_tags
 - [ ] create_endpoint
 - [ ] create_endpoint_config
-- [ ] create_model
+- [x] create_model
 - [ ] create_notebook_instance
 - [ ] create_notebook_instance_lifecycle_config
 - [ ] create_presigned_notebook_instance_url
@@ -3617,7 +3617,7 @@
 - [ ] delete_tags
 - [ ] describe_endpoint
 - [ ] describe_endpoint_config
-- [ ] describe_model
+- [x] describe_model
 - [ ] describe_notebook_instance
 - [ ] describe_notebook_instance_lifecycle_config
 - [ ] describe_training_job

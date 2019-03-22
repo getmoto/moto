@@ -1,0 +1,6 @@
+from __future__ import unicode_literals
+from .models import sagemaker_backends
+
+sagemaker_backend = sagemaker_backends['us-east-1']
+mock_sagemaker = sagemaker_backend.decorator
+mock_sagemaker_deprecated = sagemaker_backend.deprecated_decorator
