@@ -94,6 +94,12 @@ class Cluster(BaseObject):
             # no-op when nothing changed between old and new resources
             return original_resource
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
 
 class TaskDefinition(BaseObject):
 
@@ -270,6 +276,12 @@ class Service(BaseObject):
                 cluster_name, new_service_name, task_definition, desired_count)
         else:
             return ecs_backend.update_service(cluster_name, service_name, task_definition, desired_count)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Name':
+            return self.name
+        raise UnformattedGetAttTemplateException()
 
 
 class ContainerInstance(BaseObject):
