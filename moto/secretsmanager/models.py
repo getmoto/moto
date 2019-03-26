@@ -100,6 +100,11 @@ class SecretsManagerBackend(BaseBackend):
         }
 
         if secret_id in self.secrets:
+            # remove all old AWSPREVIOUS stages
+            for secret_verion_to_look_at in self.secrets[secret_id]['versions'].values():
+                if 'AWSPREVIOUS' in secret_verion_to_look_at['version_stages']:
+                    secret_verion_to_look_at['version_stages'].remove('AWSPREVIOUS')
+
             # set old AWSCURRENT secret to AWSPREVIOUS
             previous_current_version_id = self.secrets[secret_id]['default_version_id']
             self.secrets[secret_id]['versions'][previous_current_version_id]['version_stages'] = ['AWSPREVIOUS']
