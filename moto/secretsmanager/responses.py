@@ -68,7 +68,7 @@ class SecretsManagerResponse(BaseResponse):
     def put_secret_value(self):
         secret_id = self._get_param('SecretId', if_none='')
         secret_string = self._get_param('SecretString', if_none='')
-        version_stages = self._get_param('VersionStages', if_none=[])
+        version_stages = self._get_param('VersionStages', if_none=['AWSCURRENT'])
         return secretsmanager_backends[self.region].put_secret_value(
             secret_id=secret_id,
             secret_string=secret_string,
