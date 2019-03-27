@@ -36,7 +36,8 @@ def test_elastic_network_interfaces():
     all_enis.should.have.length_of(1)
     eni = all_enis[0]
     eni.groups.should.have.length_of(0)
-    eni.private_ip_addresses.should.have.length_of(0)
+    eni.private_ip_addresses.should.have.length_of(1)
+    eni.private_ip_addresses[0].private_ip_address.startswith('10.').should.be.true
 
     with assert_raises(EC2ResponseError) as ex:
         conn.delete_network_interface(eni.id, dry_run=True)
