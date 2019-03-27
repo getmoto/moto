@@ -355,9 +355,13 @@ def test_elastic_network_interfaces_cloudformation():
     )
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eni = ec2_conn.get_all_network_interfaces()[0]
+    eni.private_ip_addresses.should.have.length_of(1)
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
     cfn_eni = [resource for resource in resources if resource.resource_type ==
                'AWS::EC2::NetworkInterface'][0]
     cfn_eni.physical_resource_id.should.equal(eni.id)
+
+    outputs = {output.key: output.value for output in stack.outputs}
+    outputs['ENIIpAddress'].should.equal(eni.private_ip_addresses[0].private_ip_address)
