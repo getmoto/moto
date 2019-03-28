@@ -85,9 +85,9 @@ class FakeStack(BaseModel):
     def _parse_template(self):
         yaml.add_multi_constructor('', yaml_tag_constructor)
         try:
-            self.template_dict = yaml.load(self.template)
+            self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
         except yaml.parser.ParserError:
-            self.template_dict = json.loads(self.template)
+            self.template_dict = json.loads(self.template, Loader=yaml.Loader)
 
     @property
     def stack_parameters(self):
