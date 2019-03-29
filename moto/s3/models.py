@@ -976,9 +976,9 @@ class S3Backend(BaseBackend):
         key = key.copy(dest_key_name)
 
         if dest_bucket.is_versioned and dest_key_name in dest_bucket.keys:
-            key._version_id = dest_bucket.keys[dest_key_name].version_id + 1
+            key.refresh_version()
         else:
-            key._version_id = 0
+            key._version_id = None
 
         dest_bucket.keys[dest_key_name] = key
 
