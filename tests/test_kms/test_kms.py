@@ -8,8 +8,8 @@ import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
 from freezegun import freeze_time
-from datetime import datetime, timedelta
-from dateutil.tz import tzlocal
+from datetime import datetime
+from dateutil.tz import tzutc
 
 
 @mock_kms_deprecated
@@ -660,7 +660,7 @@ def test_schedule_key_deletion():
                 KeyId=key['KeyMetadata']['KeyId']
             )
             assert response['KeyId'] == key['KeyMetadata']['KeyId']
-            assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzlocal())
+            assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzutc())
     else:
         # Can't manipulate time in server mode
         response = client.schedule_key_deletion(
@@ -685,7 +685,7 @@ def test_schedule_key_deletion_custom():
                 PendingWindowInDays=7
             )
             assert response['KeyId'] == key['KeyMetadata']['KeyId']
-            assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzlocal())
+            assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzutc())
     else:
         # Can't manipulate time in server mode
         response = client.schedule_key_deletion(

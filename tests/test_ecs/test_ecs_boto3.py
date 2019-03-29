@@ -48,6 +48,15 @@ def test_list_clusters():
 
 
 @mock_ecs
+def test_describe_clusters():
+    client = boto3.client('ecs', region_name='us-east-1')
+    response = client.describe_clusters(clusters=["some-cluster"])
+    response['failures'].should.contain({
+        'arn': 'arn:aws:ecs:us-east-1:012345678910:cluster/some-cluster',
+        'reason': 'MISSING'
+    })
+
+@mock_ecs
 def test_delete_cluster():
     client = boto3.client('ecs', region_name='us-east-1')
     _ = client.create_cluster(
