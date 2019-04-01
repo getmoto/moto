@@ -1621,6 +1621,24 @@ def test_condition_expressions():
         }
     )
 
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'match': {'S': 'match'},
+            'existing': {'S': 'existing'},
+        },
+        ConditionExpression='#client IN (:client1, :client2)',
+        ExpressionAttributeNames={
+            '#client': 'client',
+        },
+        ExpressionAttributeValues={
+            ':client1': {'S': 'client1'},
+            ':client2': {'S': 'client2'},
+        }
+    )
+
     with assert_raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
             TableName='test1',
