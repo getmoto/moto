@@ -503,7 +503,9 @@ class Table(BaseModel):
             keys.append(range_key)
         return keys
 
-    def put_item(self, item_attrs, expected=None, overwrite=False):
+    def put_item(self, item_attrs, expected=None, condition_expression=None,
+                 expression_attribute_names=None,
+                 expression_attribute_values=None, overwrite=False):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
             range_value = DynamoType(item_attrs.get(self.range_key_attr))
@@ -527,6 +529,12 @@ class Table(BaseModel):
 
         if not overwrite:
             if not get_expected(expected).expr(current):
+                raise ValueError('The conditional request failed')
+            condition_op = get_filter_expression(
+                condition_expression,
+                expression_attribute_names,
+                expression_attribute_values)
+            if not condition_op.expr(current):
                 raise ValueError('The conditional request failed')
 
         if range_value:
@@ -832,11 +840,15 @@ class DynamoDBBackend(BaseBackend):
         table.global_indexes = list(gsis_by_name.values())
         return table
 
-    def put_item(self, table_name, item_attrs, expected=None, overwrite=False):
+    def put_item(self, table_name, item_attrs, expected=None,
+                 condition_expression=None, expression_attribute_names=None,
+                 expression_attribute_values=None, overwrite=False):
         table = self.tables.get(table_name)
         if not table:
             return None
-        return table.put_item(item_attrs, expected, overwrite)
+        return table.put_item(item_attrs, expected, condition_expression,
+                              expression_attribute_names,
+                              expression_attribute_values, overwrite)
 
     def get_table_keys_name(self, table_name, keys):
         """
@@ -913,7 +925,7 @@ class DynamoDBBackend(BaseBackend):
         return table.scan(scan_filters, limit, exclusive_start_key, filter_expression)
 
     def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,
-                    expression_attribute_values, expected=None):
+                    expression_attribute_values, expected=None, condition_expression=None):
         table = self.get_table(table_name)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
@@ -937,6 +949,12 @@ class DynamoDBBackend(BaseBackend):
 
         if not get_expected(expected).expr(item):
             raise ValueError('The conditional request failed')
+            condition_op = get_filter_expression(
+                condition_expression,
+                expression_attribute_names,
+                expression_attribute_values)
+            if not condition_op.expr(current):
+                raise ValueError('The conditional request failed')
 
         # Update does not fail on new items, so create one
         if item is None:

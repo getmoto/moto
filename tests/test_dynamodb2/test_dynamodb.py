@@ -1588,6 +1588,21 @@ def test_condition_expressions():
         }
     )
 
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'match': {'S': 'match'},
+            'existing': {'S': 'existing'},
+        },
+        ConditionExpression='attribute_exists(#nonexistent) OR attribute_exists(#existing)',
+        ExpressionAttributeNames={
+            '#nonexistent': 'nope',
+            '#existing': 'existing'
+        }
+    )
+
     with assert_raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
             TableName='test1',

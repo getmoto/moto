@@ -59,7 +59,6 @@ def get_expected(expected):
             values = [
                 AttributeValue(v)
                 for v in cond.get("AttributeValueList", [])]
-            print(path, values)
             OpClass = ops[operator_name]
             conditions.append(OpClass(path, *values))
 
@@ -72,7 +71,6 @@ def get_expected(expected):
     else:
         return OpDefault(None, None)
 
-    print("EXPECTED:", expected, output)
     return output
 
 
@@ -486,7 +484,7 @@ class ConditionExpressionParser:
                 lhs = nodes.popleft()
                 comparator = nodes.popleft()
                 rhs = nodes.popleft()
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=self.Nonterminal.CONDITION,
                     kind=self.Kind.COMPARISON,
                     text=" ".join([
@@ -528,7 +526,7 @@ class ConditionExpressionParser:
                         self._assert(
                             False,
                             "Bad IN expression starting at", nodes)
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=self.Nonterminal.CONDITION,
                     kind=self.Kind.IN,
                     text=" ".join([t.text for t in all_children]),
@@ -553,7 +551,7 @@ class ConditionExpressionParser:
                 and_node = nodes.popleft()
                 high = nodes.popleft()
                 all_children = [lhs, between_node, low, and_node, high]
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=self.Nonterminal.CONDITION,
                     kind=self.Kind.BETWEEN,
                     text=" ".join([t.text for t in all_children]),
@@ -613,7 +611,7 @@ class ConditionExpressionParser:
                     nonterminal = self.Nonterminal.OPERAND
                 else:
                     nonterminal = self.Nonterminal.CONDITION
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=nonterminal,
                     kind=self.Kind.FUNCTION,
                     text=" ".join([t.text for t in all_children]),
@@ -685,7 +683,7 @@ class ConditionExpressionParser:
                     "Bad NOT expression", list(nodes)[:2])
                 not_node = nodes.popleft()
                 child = nodes.popleft()
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=self.Nonterminal.CONDITION,
                     kind=self.Kind.NOT,
                     text=" ".join([not_node.text, child.text]),
@@ -708,7 +706,7 @@ class ConditionExpressionParser:
                 and_node = nodes.popleft()
                 rhs = nodes.popleft()
                 all_children = [lhs, and_node, rhs]
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=self.Nonterminal.CONDITION,
                     kind=self.Kind.AND,
                     text=" ".join([t.text for t in all_children]),
@@ -731,7 +729,7 @@ class ConditionExpressionParser:
                 or_node = nodes.popleft()
                 rhs = nodes.popleft()
                 all_children = [lhs, or_node, rhs]
-                output.append(self.Node(
+                nodes.appendleft(self.Node(
                     nonterminal=self.Nonterminal.CONDITION,
                     kind=self.Kind.OR,
                     text=" ".join([t.text for t in all_children]),

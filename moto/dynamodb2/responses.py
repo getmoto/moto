@@ -279,18 +279,18 @@ class DynamoHandler(BaseResponse):
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
-        if not expected:
-            condition_expression = self.body.get('ConditionExpression')
-            expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-            expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
-            expected = condition_expression_to_expected(condition_expression,
-                                                        expression_attribute_names,
-                                                        expression_attribute_values)
-            if expected:
-                overwrite = False
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
+
+        if condition_expression:
+            overwrite = False
 
         try:
-            result = self.dynamodb_backend.put_item(name, item, expected, overwrite)
+            result = self.dynamodb_backend.put_item(
+                name, item, expected, condition_expression,
+                expression_attribute_names, expression_attribute_values,
+                overwrite)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
@@ -638,13 +638,9 @@ class DynamoHandler(BaseResponse):
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
-        if not expected:
-            condition_expression = self.body.get('ConditionExpression')
-            expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-            expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
-            expected = condition_expression_to_expected(condition_expression,
-                                                        expression_attribute_names,
-                                                        expression_attribute_values)
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
         # Support spaces between operators in an update expression
         # E.g. `a = b + c` -> `a=b+c`
@@ -655,7 +651,7 @@ class DynamoHandler(BaseResponse):
         try:
             item = self.dynamodb_backend.update_item(
                 name, key, update_expression, attribute_updates, expression_attribute_names,
-                expression_attribute_values, expected
+                expression_attribute_values, expected, condition_expression
             )
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
