@@ -12,7 +12,9 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
-from .comparisons import get_comparison_func, get_filter_expression, Op
+from .comparisons import get_comparison_func
+from .comparisons import get_filter_expression
+from .comparisons import get_expected
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -524,29 +526,9 @@ class Table(BaseModel):
                     self.range_key_type, item_attrs)
 
         if not overwrite:
-            if current is None:
-                current_attr = {}
-            elif hasattr(current, 'attrs'):
-                current_attr = current.attrs
-            else:
-                current_attr = current
+            if not get_expected(expected).expr(current):
+                raise ValueError('The conditional request failed')
 
-            for key, val in expected.items():
-                if 'Exists' in val and val['Exists'] is False \
-                        or 'ComparisonOperator' in val and val['ComparisonOperator'] == 'NULL':
-                    if key in current_attr:
-                        raise ValueError("The conditional request failed")
-                elif key not in current_attr:
-                    raise ValueError("The conditional request failed")
-                elif 'Value' in val and DynamoType(val['Value']).value != current_attr[key].value:
-                    raise ValueError("The conditional request failed")
-                elif 'ComparisonOperator' in val:
-                    dynamo_types = [
-                        DynamoType(ele) for ele in
-                        val.get("AttributeValueList", [])
-                    ]
-                    if not current_attr[key].compare(val['ComparisonOperator'], dynamo_types):
-                        raise ValueError('The conditional request failed')
         if range_value:
             self.items[hash_value][range_value] = item
         else:
@@ -950,32 +932,11 @@ class DynamoDBBackend(BaseBackend):
 
         item = table.get_item(hash_value, range_value)
 
-        if item is None:
-            item_attr = {}
-        elif hasattr(item, 'attrs'):
-            item_attr = item.attrs
-        else:
-            item_attr = item
-
         if not expected:
             expected = {}
 
-        for key, val in expected.items():
-            if 'Exists' in val and val['Exists'] is False \
-                    or 'ComparisonOperator' in val and val['ComparisonOperator'] == 'NULL':
-                if key in item_attr:
-                    raise ValueError("The conditional request failed")
-            elif key not in item_attr:
-                raise ValueError("The conditional request failed")
-            elif 'Value' in val and DynamoType(val['Value']).value != item_attr[key].value:
-                raise ValueError("The conditional request failed")
-            elif 'ComparisonOperator' in val:
-                dynamo_types = [
-                    DynamoType(ele) for ele in
-                    val.get("AttributeValueList", [])
-                ]
-                if not item_attr[key].compare(val['ComparisonOperator'], dynamo_types):
-                    raise ValueError('The conditional request failed')
+        if not get_expected(expected).expr(item):
+            raise ValueError('The conditional request failed')
 
         # Update does not fail on new items, so create one
         if item is None:
