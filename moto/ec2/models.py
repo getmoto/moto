@@ -189,7 +189,7 @@ class NetworkInterface(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
-        self.private_ip_address = private_ip_address
+        self.private_ip_address = private_ip_address or random_private_ip()
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
