@@ -1603,6 +1603,24 @@ def test_condition_expressions():
         }
     )
 
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'match': {'S': 'match'},
+            'existing': {'S': 'existing'},
+        },
+        ConditionExpression='#client BETWEEN :a AND :z',
+        ExpressionAttributeNames={
+            '#client': 'client',
+        },
+        ExpressionAttributeValues={
+            ':a': {'S': 'a'},
+            ':z': {'S': 'z'},
+        }
+    )
+
     with assert_raises(client.exceptions.ConditionalCheckFailedException):
         client.put_item(
             TableName='test1',
