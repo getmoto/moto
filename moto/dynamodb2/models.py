@@ -67,9 +67,33 @@ class DynamoType(object):
             except ValueError:
                 return float(self.value)
         elif self.is_set():
-            return set(self.value)
+            sub_type = self.type[0]
+            return set([DynamoType({sub_type: v}).cast_value
+                        for v in self.value])
+        elif self.is_list():
+            return [DynamoType(v).cast_value for v in self.value]
+        elif self.is_map():
+            return dict([
+                (k, DynamoType(v).cast_value)
+                for k, v in self.value.items()])
         else:
             return self.value
+
+    def child_attr(self, key):
+        """
+        Get Map or List children by key. str for Map, int for List.
+
+        Returns DynamoType or None.
+        """
+        if isinstance(key, str) and self.is_map() and key in self.value:
+            return DynamoType(self.value[key])
+
+        if isinstance(key, int) and self.is_list():
+            idx = key
+            if idx >= 0 and idx < len(self.value):
+                return DynamoType(self.value[idx])
+
+        return None
 
     def to_json(self):
         return {self.type: self.value}
@@ -87,6 +111,12 @@ class DynamoType(object):
 
     def is_set(self):
         return self.type == 'SS' or self.type == 'NS' or self.type == 'BS'
+
+    def is_list(self):
+        return self.type == 'L'
+
+    def is_map(self):
+        return self.type == 'M'
 
     def same_type(self, other):
         return self.type == other.type
@@ -880,10 +910,7 @@ class DynamoDBBackend(BaseBackend):
         range_values = [DynamoType(range_value)
                         for range_value in range_value_dicts]
 
-        if filter_expression is not None:
-            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
-        else:
-            filter_expression = Op(None, None)  # Will always eval to true
+        filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
 
         return table.query(hash_key, range_comparison, range_values, limit,
                            exclusive_start_key, scan_index_forward, projection_expression, index_name, filter_expression, **filter_kwargs)
@@ -898,10 +925,8 @@ class DynamoDBBackend(BaseBackend):
             dynamo_types = [DynamoType(value) for value in comparison_values]
             scan_filters[key] = (comparison_operator, dynamo_types)
 
-        if filter_expression is not None:
-            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
-        else:
-            filter_expression = Op(None, None)  # Will always eval to true
+
+        filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
 
         return table.scan(scan_filters, limit, exclusive_start_key, filter_expression)
 

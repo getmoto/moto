@@ -676,44 +676,47 @@ def test_filter_expression():
     filter_expr.expr(row1).should.be(True)
 
     # NOT test 2
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('NOT (Id = :v0)', {}, {':v0': {'N': 8}})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('NOT (Id = :v0)', {}, {':v0': {'N': '8'}})
     filter_expr.expr(row1).should.be(False)  # Id = 8 so should be false
 
     # AND test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > :v0 AND Subs < :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 7}})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id > :v0 AND Subs < :v1', {}, {':v0': {'N': '5'}, ':v1': {'N': '7'}})
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
     # OR test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 OR Id=:v1', {}, {':v0': {'N': 5}, ':v1': {'N': 8}})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 OR Id=:v1', {}, {':v0': {'N': '5'}, ':v1': {'N': '8'}})
     filter_expr.expr(row1).should.be(True)
 
     # BETWEEN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN :v0 AND :v1', {}, {':v0': {'N': 5}, ':v1': {'N': 10}})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id BETWEEN :v0 AND :v1', {}, {':v0': {'N': '5'}, ':v1': {'N': '10'}})
     filter_expr.expr(row1).should.be(True)
 
     # PAREN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 AND (Subs = :v0 OR Subs = :v1)', {}, {':v0': {'N': 8}, ':v1': {'N': 5}})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id = :v0 AND (Subs = :v0 OR Subs = :v1)', {}, {':v0': {'N': '8'}, ':v1': {'N': '5'}})
     filter_expr.expr(row1).should.be(True)
 
     # IN test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN :v0', {}, {':v0': {'NS': [7, 8, 9]}})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('Id IN (:v0, :v1, :v2)', {}, {
+        ':v0': {'N': '7'},
+        ':v1': {'N': '8'},
+        ':v2': {'N': '9'}})
     filter_expr.expr(row1).should.be(True)
 
     # attribute function tests (with extra spaces)
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_exists(Id) AND attribute_not_exists (User)', {}, {})
     filter_expr.expr(row1).should.be(True)
 
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_type(Id, N)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('attribute_type(Id, :v0)', {}, {':v0': {'S': 'N'}})
     filter_expr.expr(row1).should.be(True)
 
     # beginswith function test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('begins_with(Desc, Some)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('begins_with(Desc, :v0)', {}, {':v0': {'S': 'Some'}})
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
     # contains function test
-    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('contains(KV, test1)', {}, {})
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression('contains(KV, :v0)', {}, {':v0': {'S': 'test1'}})
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
@@ -754,14 +757,26 @@ def test_query_filter():
         TableName='test1',
         Item={
             'client': {'S': 'client1'},
-            'app': {'S': 'app1'}
+            'app': {'S': 'app1'},
+            'nested': {'M': {
+                'version': {'S': 'version1'},
+                'contents': {'L': [
+                    {'S': 'value1'}, {'S': 'value2'},
+                ]},
+            }},
         }
     )
     client.put_item(
         TableName='test1',
         Item={
             'client': {'S': 'client1'},
-            'app': {'S': 'app2'}
+            'app': {'S': 'app2'},
+            'nested': {'M': {
+                'version': {'S': 'version2'},
+                'contents': {'L': [
+                    {'S': 'value1'}, {'S': 'value2'},
+                ]},
+            }},
         }
     )
 
@@ -780,6 +795,18 @@ def test_query_filter():
     response = table.query(
         KeyConditionExpression=Key('client').eq('client1'),
         FilterExpression=Attr('app').contains('app')
+    )
+    assert response['Count'] == 2
+
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1'),
+        FilterExpression=Attr('nested.version').contains('version')
+    )
+    assert response['Count'] == 2
+
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1'),
+        FilterExpression=Attr('nested.contents[0]').eq('value1')
     )
     assert response['Count'] == 2
 
@@ -1034,7 +1061,7 @@ def test_delete_item():
     with assert_raises(ClientError) as ex:
         table.delete_item(Key={'client': 'client1', 'app': 'app1'},
                           ReturnValues='ALL_NEW')
-    
+
     # Test deletion and returning old value
     response = table.delete_item(Key={'client': 'client1', 'app': 'app1'}, ReturnValues='ALL_OLD')
     response['Attributes'].should.contain('client')
@@ -1337,7 +1364,7 @@ def test_put_return_attributes():
         ReturnValues='NONE'
     )
     assert 'Attributes' not in r
-    
+
     r = dynamodb.put_item(
         TableName='moto-test',
         Item={'id': {'S': 'foo'}, 'col1': {'S': 'val2'}},
@@ -1354,7 +1381,7 @@ def test_put_return_attributes():
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
     ex.exception.response['Error']['Message'].should.equal('Return values set to invalid value')
-    
+
 
 @mock_dynamodb2
 def test_query_global_secondary_index_when_created_via_update_table_resource():
@@ -1462,7 +1489,7 @@ def test_dynamodb_streams_1():
             'StreamViewType': 'NEW_AND_OLD_IMAGES'
         }
     )
-    
+
     assert 'StreamSpecification' in resp['TableDescription']
     assert resp['TableDescription']['StreamSpecification'] == {
         'StreamEnabled': True,
@@ -1470,11 +1497,11 @@ def test_dynamodb_streams_1():
     }
     assert 'LatestStreamLabel' in resp['TableDescription']
     assert 'LatestStreamArn' in resp['TableDescription']
-    
+
     resp = conn.delete_table(TableName='test-streams')
 
     assert 'StreamSpecification' in resp['TableDescription']
-    
+
 
 @mock_dynamodb2
 def test_dynamodb_streams_2():
@@ -1504,7 +1531,7 @@ def test_dynamodb_streams_2():
     }
     assert 'LatestStreamLabel' in resp['TableDescription']
     assert 'LatestStreamArn' in resp['TableDescription']
-    
+
 @mock_dynamodb2
 def test_condition_expressions():
     client = boto3.client('dynamodb', region_name='us-east-1')
