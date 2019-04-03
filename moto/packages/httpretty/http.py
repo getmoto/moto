@@ -29,7 +29,6 @@ import re
 from .compat import BaseClass
 from .utils import decode_utf8
 
-
 STATUSES = {
     100: "Continue",
     101: "Switching Protocols",

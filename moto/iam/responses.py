@@ -107,6 +107,69 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_POLICIES_TEMPLATE)
         return template.render(policies=policies, marker=marker)
 
+    def list_entities_for_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+
+        # Options 'User'|'Role'|'Group'|'LocalManagedPolicy'|'AWSManagedPolicy
+        entity = self._get_param('EntityFilter')
+        path_prefix = self._get_param('PathPrefix')
+        # policy_usage_filter = self._get_param('PolicyUsageFilter')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems')
+
+        entity_roles = []
+        entity_groups = []
+        entity_users = []
+
+        if entity == 'User':
+            users = iam_backend.list_users(path_prefix, marker, max_items)
+            if users:
+                for user in users:
+                    for p in user.managed_policies:
+                        if p == policy_arn:
+                            entity_users.append(user.name)
+
+        elif entity == 'Role':
+            roles = iam_backend.list_roles(path_prefix, marker, max_items)
+            if roles:
+                for role in roles:
+                    for p in role.managed_policies:
+                        if p == policy_arn:
+                            entity_roles.append(role.name)
+
+        elif entity == 'Group':
+            groups = iam_backend.list_groups()
+            if groups:
+                for group in groups:
+                    for p in group.managed_policies:
+                        if p == policy_arn:
+                            entity_groups.append(group.name)
+
+        elif entity == 'LocalManagedPolicy' or entity == 'AWSManagedPolicy':
+            users = iam_backend.list_users(path_prefix, marker, max_items)
+            if users:
+                for user in users:
+                    for p in user.managed_policies:
+                        if p == policy_arn:
+                            entity_users.append(user.name)
+
+            roles = iam_backend.list_roles(path_prefix, marker, max_items)
+            if roles:
+                for role in roles:
+                    for p in role.managed_policies:
+                        if p == policy_arn:
+                            entity_roles.append(role.name)
+
+            groups = iam_backend.list_groups()
+            if groups:
+                for group in groups:
+                    for p in group.managed_policies:
+                        if p == policy_arn:
+                            entity_groups.append(group.name)
+
+        template = self.response_template(LIST_ENTITIES_FOR_POLICY_TEMPLATE)
+        return template.render(roles=entity_roles, users=entity_users, groups=entity_groups)
+
     def create_role(self):
         role_name = self._get_param('RoleName')
         path = self._get_param('Path')
@@ -168,6 +231,20 @@ class IamResponse(BaseResponse):
         role.assume_role_policy_document = self._get_param('PolicyDocument')
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAssumeRolePolicyResponse")
+
+    def update_role_description(self):
+        role_name = self._get_param('RoleName')
+        description = self._get_param('Description')
+        role = iam_backend.update_role_description(role_name, description)
+        template = self.response_template(UPDATE_ROLE_DESCRIPTION_TEMPLATE)
+        return template.render(role=role)
+
+    def update_role(self):
+        role_name = self._get_param('RoleName')
+        description = self._get_param('Description')
+        role = iam_backend.update_role(role_name, description)
+        template = self.response_template(UPDATE_ROLE_TEMPLATE)
+        return template.render(role=role)
 
     def create_policy_version(self):
         policy_arn = self._get_param('PolicyArn')
@@ -554,7 +631,8 @@ class IamResponse(BaseResponse):
             policies=account_details['managed_policies'],
             users=account_details['users'],
             groups=account_details['groups'],
-            roles=account_details['roles']
+            roles=account_details['roles'],
+            get_groups_for_user=iam_backend.get_groups_for_user
         )
 
     def create_saml_provider(self):
@@ -624,6 +702,65 @@ class IamResponse(BaseResponse):
         certs = iam_backend.list_signing_certificates(user_name)
         template = self.response_template(LIST_SIGNING_CERTIFICATES_TEMPLATE)
         return template.render(user_name=user_name, certificates=certs)
+
+    def list_role_tags(self):
+        role_name = self._get_param('RoleName')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems', 100)
+
+        tags, marker = iam_backend.list_role_tags(role_name, marker, max_items)
+
+        template = self.response_template(LIST_ROLE_TAG_TEMPLATE)
+        return template.render(tags=tags, marker=marker)
+
+    def tag_role(self):
+        role_name = self._get_param('RoleName')
+        tags = self._get_multi_param('Tags.member')
+
+        iam_backend.tag_role(role_name, tags)
+
+        template = self.response_template(TAG_ROLE_TEMPLATE)
+        return template.render()
+
+    def untag_role(self):
+        role_name = self._get_param('RoleName')
+        tag_keys = self._get_multi_param('TagKeys.member')
+
+        iam_backend.untag_role(role_name, tag_keys)
+
+        template = self.response_template(UNTAG_ROLE_TEMPLATE)
+        return template.render()
+
+
+LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
+ <ListEntitiesForPolicyResult>
+ <PolicyRoles>
+       {% for role in roles %}
+      <member>
+        <RoleName>{{ role }}</RoleName>
+      </member>
+      {% endfor %}
+ </PolicyRoles>
+ <PolicyGroups>
+       {% for group in groups %}
+      <member>
+        <GroupName>{{ group }}</GroupName>
+      </member>
+      {% endfor %}
+ </PolicyGroups>
+ <IsTruncated>false</IsTruncated>
+ <PolicyUsers>
+      {% for user in users %}
+      <member>
+        <UserName>{{ user }}</UserName>
+      </member>
+      {% endfor %}
+ </PolicyUsers>
+ </ListEntitiesForPolicyResult>
+ <ResponseMetadata>
+ <RequestId>eb358e22-9d1f-11e4-93eb-190ecEXAMPLE</RequestId>
+ </ResponseMetadata>
+</ListEntitiesForPolicyResponse>"""
 
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
@@ -869,6 +1006,40 @@ GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaw
 </ResponseMetadata>
 </GetRolePolicyResponse>"""
 
+UPDATE_ROLE_TEMPLATE = """<UpdateRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <UpdateRoleResult>
+  </UpdateRoleResult>
+  <ResponseMetadata>
+    <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
+  </ResponseMetadata>
+</UpdateRoleResponse>"""
+
+UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <UpdateRoleDescriptionResult>
+    <Role>
+      <Path>{{ role.path }}</Path>
+      <Arn>{{ role.arn }}</Arn>
+      <RoleName>{{ role.name }}</RoleName>
+      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <CreateDate>{{ role.create_date.isoformat() }}</CreateDate>
+      <RoleId>{{ role.id }}</RoleId>
+      {% if role.tags %}
+      <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
+      {% endif %}
+    </Role>
+  </UpdateRoleDescriptionResult>
+  <ResponseMetadata>
+    <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
+  </ResponseMetadata>
+</UpdateRoleDescriptionResponse>"""
+
 GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <GetRoleResult>
     <Role>
@@ -878,6 +1049,16 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>{{ role.create_date }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      {% if role.tags %}
+      <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
+      {% endif %}
     </Role>
   </GetRoleResult>
   <ResponseMetadata>
@@ -1461,8 +1642,19 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
     <UserDetailList>
     {% for user in users %}
       <member>
-        <GroupList />
-        <AttachedManagedPolicies/>
+        <GroupList>
+        {% for group in get_groups_for_user(user.name) %}
+          <member>{{ group.name }}</member>
+        {% endfor %}
+        </GroupList>
+        <AttachedManagedPolicies>
+        {% for policy in user.managed_policies %}
+          <member>
+            <PolicyName>{{ user.managed_policies[policy].name }}</PolicyName>
+            <PolicyArn>{{ policy }}</PolicyArn>
+          </member>
+        {% endfor %}
+        </AttachedManagedPolicies>
         <UserId>{{ user.id }}</UserId>
         <Path>{{ user.path }}</Path>
         <UserName>{{ user.name }}</UserName>
@@ -1476,33 +1668,55 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
       <member>
         <GroupId>{{ group.id }}</GroupId>
         <AttachedManagedPolicies>
-          {% for policy in group.managed_policies %}
-          <member>
-            <PolicyName>{{ policy.name }}</PolicyName>
-            <PolicyArn>{{ policy.arn }}</PolicyArn>
-          </member>
+          {% for policy_arn in group.managed_policies %}
+            <member>
+                <PolicyName>{{ group.managed_policies[policy_arn].name }}</PolicyName>
+                <PolicyArn>{{ policy_arn }}</PolicyArn>
+            </member>
           {% endfor %}
         </AttachedManagedPolicies>
         <GroupName>{{ group.name }}</GroupName>
         <Path>{{ group.path }}</Path>
         <Arn>{{ group.arn }}</Arn>
         <CreateDate>{{ group.create_date }}</CreateDate>
-        <GroupPolicyList/>
+        <GroupPolicyList>
+        {% for policy in group.policies %}
+            <member>
+                <PolicyName>{{ policy }}</PolicyName>
+                <PolicyDocument>{{ group.get_policy(policy) }}</PolicyDocument>
+            </member>
+        {% endfor %}
+        </GroupPolicyList>
       </member>
     {% endfor %}
     </GroupDetailList>
     <RoleDetailList>
     {% for role in roles %}
       <member>
-        <RolePolicyList/>
-        <AttachedManagedPolicies>
-        {% for policy in role.managed_policies %}
+        <RolePolicyList>
+        {% for inline_policy in role.policies %}
             <member>
-                <PolicyName>{{ policy.name }}</PolicyName>
-                <PolicyArn>{{ policy.arn }}</PolicyArn>
+                <PolicyName>{{ inline_policy }}</PolicyName>
+                <PolicyDocument>{{ role.policies[inline_policy] }}</PolicyDocument>
+            </member>
+        {% endfor %}
+        </RolePolicyList>
+        <AttachedManagedPolicies>
+        {% for policy_arn in role.managed_policies %}
+            <member>
+                <PolicyName>{{ role.managed_policies[policy_arn].name }}</PolicyName>
+                <PolicyArn>{{ policy_arn }}</PolicyArn>
             </member>
         {% endfor %}
         </AttachedManagedPolicies>
+        <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+        </Tags>
         <InstanceProfileList>
             {% for profile in instance_profiles %}
             <member>
@@ -1543,19 +1757,14 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <PolicyId>{{ policy.id }}</PolicyId>
         <Path>{{ policy.path }}</Path>
         <PolicyVersionList>
+        {% for policy_version in policy.versions %}
           <member>
-            <Document>
-              {"Version":"2012-10-17","Statement":{"Effect":"Allow",
-              "Action":["iam:CreatePolicy","iam:CreatePolicyVersion",
-              "iam:DeletePolicy","iam:DeletePolicyVersion","iam:GetPolicy",
-              "iam:GetPolicyVersion","iam:ListPolicies",
-              "iam:ListPolicyVersions","iam:SetDefaultPolicyVersion"],
-              "Resource":"*"}}
-            </Document>
-            <IsDefaultVersion>true</IsDefaultVersion>
-            <VersionId>v1</VersionId>
-            <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+            <Document>{{ policy_version.document }}</Document>
+            <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+            <VersionId>{{ policy_version.version_id }}</VersionId>
+            <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
           </member>
+        {% endfor %}
         </PolicyVersionList>
         <Arn>{{ policy.arn }}</Arn>
         <AttachmentCount>1</AttachmentCount>
@@ -1671,3 +1880,38 @@ LIST_SIGNING_CERTIFICATES_TEMPLATE = """<ListSigningCertificatesResponse>
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
  </ResponseMetadata>
 </ListSigningCertificatesResponse>"""
+
+
+TAG_ROLE_TEMPLATE = """<TagRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagRoleResponse>"""
+
+
+LIST_ROLE_TAG_TEMPLATE = """<ListRoleTagsResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListRoleTagsResult>
+    <IsTruncated>{{ 'true' if marker else 'false' }}</IsTruncated>
+    {% if marker %}
+    <Marker>{{ marker }}</Marker>
+    {% endif %}
+    <Tags>
+      {% for tag in tags %}
+      <member>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListRoleTagsResult>
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListRoleTagsResponse>"""
+
+
+UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagRoleResponse>"""

@@ -36,7 +36,8 @@ def test_elastic_network_interfaces():
     all_enis.should.have.length_of(1)
     eni = all_enis[0]
     eni.groups.should.have.length_of(0)
-    eni.private_ip_addresses.should.have.length_of(0)
+    eni.private_ip_addresses.should.have.length_of(1)
+    eni.private_ip_addresses[0].private_ip_address.startswith('10.').should.be.true
 
     with assert_raises(EC2ResponseError) as ex:
         conn.delete_network_interface(eni.id, dry_run=True)
@@ -354,9 +355,13 @@ def test_elastic_network_interfaces_cloudformation():
     )
     ec2_conn = boto.ec2.connect_to_region("us-west-1")
     eni = ec2_conn.get_all_network_interfaces()[0]
+    eni.private_ip_addresses.should.have.length_of(1)
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
     cfn_eni = [resource for resource in resources if resource.resource_type ==
                'AWS::EC2::NetworkInterface'][0]
     cfn_eni.physical_resource_id.should.equal(eni.id)
+
+    outputs = {output.key: output.value for output in stack.outputs}
+    outputs['ENIIpAddress'].should.equal(eni.private_ip_addresses[0].private_ip_address)

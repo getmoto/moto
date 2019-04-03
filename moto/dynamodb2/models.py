@@ -66,6 +66,8 @@ class DynamoType(object):
                 return int(self.value)
             except ValueError:
                 return float(self.value)
+        elif self.is_set():
+            return set(self.value)
         else:
             return self.value
 
@@ -509,15 +511,12 @@ class Table(BaseModel):
                 elif 'Value' in val and DynamoType(val['Value']).value != current_attr[key].value:
                     raise ValueError("The conditional request failed")
                 elif 'ComparisonOperator' in val:
-                    comparison_func = get_comparison_func(
-                        val['ComparisonOperator'])
                     dynamo_types = [
                         DynamoType(ele) for ele in
                         val.get("AttributeValueList", [])
                     ]
-                    for t in dynamo_types:
-                        if not comparison_func(current_attr[key].value, t.value):
-                            raise ValueError('The conditional request failed')
+                    if not current_attr[key].compare(val['ComparisonOperator'], dynamo_types):
+                        raise ValueError('The conditional request failed')
         if range_value:
             self.items[hash_value][range_value] = item
         else:
@@ -946,15 +945,12 @@ class DynamoDBBackend(BaseBackend):
             elif 'Value' in val and DynamoType(val['Value']).value != item_attr[key].value:
                 raise ValueError("The conditional request failed")
             elif 'ComparisonOperator' in val:
-                comparison_func = get_comparison_func(
-                    val['ComparisonOperator'])
                 dynamo_types = [
                     DynamoType(ele) for ele in
                     val.get("AttributeValueList", [])
                 ]
-                for t in dynamo_types:
-                    if not comparison_func(item_attr[key].value, t.value):
-                        raise ValueError('The conditional request failed')
+                if not item_attr[key].compare(val['ComparisonOperator'], dynamo_types):
+                    raise ValueError('The conditional request failed')
 
         # Update does not fail on new items, so create one
         if item is None:

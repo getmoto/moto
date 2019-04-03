@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import os, re
-
 import boto3
 import boto.kms
 from boto.exception import JSONResponseError
@@ -9,8 +8,8 @@ import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
 from freezegun import freeze_time
-from datetime import datetime, timedelta
-from dateutil.tz import tzlocal
+from datetime import datetime
+from dateutil.tz import tzutc
 
 
 @mock_kms_deprecated
@@ -661,7 +660,7 @@ def test_schedule_key_deletion():
                 KeyId=key['KeyMetadata']['KeyId']
             )
             assert response['KeyId'] == key['KeyMetadata']['KeyId']
-            assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzlocal())
+            assert response['DeletionDate'] == datetime(2015, 1, 31, 12, 0, tzinfo=tzutc())
     else:
         # Can't manipulate time in server mode
         response = client.schedule_key_deletion(
@@ -686,7 +685,7 @@ def test_schedule_key_deletion_custom():
                 PendingWindowInDays=7
             )
             assert response['KeyId'] == key['KeyMetadata']['KeyId']
-            assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzlocal())
+            assert response['DeletionDate'] == datetime(2015, 1, 8, 12, 0, tzinfo=tzutc())
     else:
         # Can't manipulate time in server mode
         response = client.schedule_key_deletion(
@@ -717,3 +716,60 @@ def test_cancel_key_deletion():
     assert result["KeyMetadata"]["Enabled"] == False
     assert result["KeyMetadata"]["KeyState"] == 'Disabled'
     assert 'DeletionDate' not in result["KeyMetadata"]
+
+
+@mock_kms
+def test_update_key_description():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='old_description')
+    key_id =  key['KeyMetadata']['KeyId']
+
+    result = client.update_key_description(KeyId=key_id, Description='new_description')
+    assert 'ResponseMetadata' in result
+
+
+@mock_kms
+def test_tag_resource():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='cancel-key-deletion')
+    response = client.schedule_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+
+    keyid = response['KeyId']
+    response = client.tag_resource(
+        KeyId=keyid,
+        Tags=[
+            {
+                'TagKey': 'string',
+                'TagValue': 'string'
+            },
+        ]
+    )
+
+    # Shouldn't have any data, just header
+    assert len(response.keys()) == 1
+
+
+@mock_kms
+def test_list_resource_tags():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='cancel-key-deletion')
+    response = client.schedule_key_deletion(
+        KeyId=key['KeyMetadata']['KeyId']
+    )
+
+    keyid = response['KeyId']
+    response = client.tag_resource(
+        KeyId=keyid,
+        Tags=[
+            {
+                'TagKey': 'string',
+                'TagValue': 'string'
+            },
+        ]
+    )
+
+    response = client.list_resource_tags(KeyId=keyid)
+    assert response['Tags'][0]['TagKey'] == 'string'
+    assert response['Tags'][0]['TagValue'] == 'string'

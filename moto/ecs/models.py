@@ -94,6 +94,12 @@ class Cluster(BaseObject):
             # no-op when nothing changed between old and new resources
             return original_resource
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
 
 class TaskDefinition(BaseObject):
 
@@ -271,6 +277,12 @@ class Service(BaseObject):
         else:
             return ecs_backend.update_service(cluster_name, service_name, task_definition, desired_count)
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Name':
+            return self.name
+        raise UnformattedGetAttTemplateException()
+
 
 class ContainerInstance(BaseObject):
 
@@ -358,6 +370,20 @@ class ContainerInstance(BaseObject):
         return formatted_attr
 
 
+class ClusterFailure(BaseObject):
+    def __init__(self, reason, cluster_name):
+        self.reason = reason
+        self.arn = "arn:aws:ecs:us-east-1:012345678910:cluster/{0}".format(
+            cluster_name)
+
+    @property
+    def response_object(self):
+        response_object = self.gen_response_object()
+        response_object['reason'] = self.reason
+        response_object['arn'] = self.arn
+        return response_object
+
+
 class ContainerInstanceFailure(BaseObject):
 
     def __init__(self, reason, container_instance_id):
@@ -419,6 +445,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def describe_clusters(self, list_clusters_name=None):
         list_clusters = []
+        failures = []
         if list_clusters_name is None:
             if 'default' in self.clusters:
                 list_clusters.append(self.clusters['default'].response_object)
@@ -429,9 +456,8 @@ class EC2ContainerServiceBackend(BaseBackend):
                     list_clusters.append(
                         self.clusters[cluster_name].response_object)
                 else:
-                    raise Exception(
-                        "{0} is not a cluster".format(cluster_name))
-        return list_clusters
+                    failures.append(ClusterFailure('MISSING', cluster_name))
+        return list_clusters, failures
 
     def delete_cluster(self, cluster_str):
         cluster_name = cluster_str.split('/')[-1]
