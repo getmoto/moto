@@ -470,48 +470,55 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 21% implemented
-- [ ] cancel_update_stack
-- [ ] continue_update_rollback
-- [X] create_change_set
-- [X] create_stack
-- [ ] create_stack_instances
-- [ ] create_stack_set
-- [ ] delete_change_set
-- [X] delete_stack
-- [ ] delete_stack_instances
-- [ ] delete_stack_set
-- [ ] describe_account_limits
-- [ ] describe_change_set
-- [ ] describe_stack_events
-- [ ] describe_stack_instance
-- [ ] describe_stack_resource
-- [ ] describe_stack_resources
-- [ ] describe_stack_set
-- [ ] describe_stack_set_operation
-- [X] describe_stacks
-- [ ] estimate_template_cost
-- [X] execute_change_set
-- [ ] get_stack_policy
-- [ ] get_template
-- [ ] get_template_summary
-- [ ] list_change_sets
-- [X] list_exports
-- [ ] list_imports
-- [ ] list_stack_instances
-- [X] list_stack_resources
-- [ ] list_stack_set_operation_results
-- [ ] list_stack_set_operations
-- [ ] list_stack_sets
-- [X] list_stacks
-- [ ] set_stack_policy
-- [ ] signal_resource
-- [ ] stop_stack_set_operation
-- [X] update_stack
-- [ ] update_stack_instances
-- [ ] update_stack_set
-- [ ] update_termination_protection
-- [ ] validate_template
+## cloudformation - 35% implemented
+- [ ] cancel-update-stack
+- [ ] continue-update-rollback
+- [X] create-change-set
+- [X] create-stack
+- [ ] create-stack-instances
+- [ ] create-stack-set
+- [X] delete-change-set
+- [X] delete-stack
+- [ ] delete-stack-instances
+- [ ] delete-stack-set
+- [ ] deploy
+- [ ] describe-account-limits
+- [X] describe-change-set
+- [ ] describe-stack-drift-detection-status
+- [X] describe-stack-events
+- [ ] describe-stack-instance
+- [X] describe-stack-resource
+- [ ] describe-stack-resource-drifts
+- [X] describe-stack-resources
+- [ ] describe-stack-set
+- [ ] describe-stack-set-operation
+- [X] describe-stacks
+- [ ] detect-stack-drift
+- [ ] detect-stack-resource-drift
+- [ ] estimate-template-cost
+- [X] execute-change-set
+- [ ] get-stack-policy
+- [X] get-template
+- [ ] get-template-summary
+- [X] list-change-sets
+- [X] list-exports
+- [ ] list-imports
+- [ ] list-stack-instances
+- [X] list-stack-resources
+- [ ] list-stack-set-operation-results
+- [ ] list-stack-set-operations
+- [ ] list-stack-sets
+- [X] list-stacks
+- [ ] package
+- [ ] set-stack-policy
+- [ ] signal-resource
+- [ ] stop-stack-set-operation
+- [X] update-stack
+- [ ] update-stack-instances
+- [ ] update-stack-set
+- [ ] update-termination-protection
+- [X] validate-template
+- [ ] wait
 
 ## cloudfront - 0% implemented
 - [ ] create_cloud_front_origin_access_identity
