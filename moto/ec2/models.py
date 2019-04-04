@@ -1877,6 +1877,8 @@ class Snapshot(TaggedEC2Resource):
             return str(self.encrypted).lower()
         elif filter_name == 'status':
             return self.status
+        elif filter_name == 'owner-id':
+            return self.owner_id
         else:
             return super(Snapshot, self).get_filter_value(
                 filter_name, 'DescribeSnapshots')
