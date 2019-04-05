@@ -188,6 +188,10 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
+    def list_secrets(self, max_results, next_token):
+        # implement here
+        return secret_list, next_token
+    
 
 available_regions = (
     boto3.session.Session().get_available_regions("secretsmanager")

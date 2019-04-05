@@ -64,3 +64,13 @@ class SecretsManagerResponse(BaseResponse):
             rotation_lambda_arn=rotation_lambda_arn,
             rotation_rules=rotation_rules
         )
+    
+    def list_secrets(self):
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        secret_list, next_token = self.secretsmanager_backend.list_secrets(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(secretList=secret_list, nextToken=next_token))
