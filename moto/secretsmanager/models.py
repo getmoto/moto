@@ -213,6 +213,35 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret_list, None
 
+    def delete_secret(self, secret_id, recovery_window_in_days, force_delete_without_recovery):
+
+        if not self._is_valid_identifier(secret_id):
+            raise ResourceNotFoundException
+
+        if not force_delete_without_recovery:
+            raise InvalidParameterException(
+                "An error occurred (InvalidParameterException) when calling the DeleteSecret operation: \
+                 ForceDeleteWithoutRecovery must be true (Moto cannot simulate soft deletion with a recovery window)"
+            )
+
+        if recovery_window_in_days and force_delete_without_recovery:
+            raise InvalidParameterException(
+                "An error occurred (InvalidParameterException) when calling the DeleteSecret operation: You can't \
+                use ForceDeleteWithoutRecovery in conjunction with RecoveryWindowInDays."
+            )
+
+        secret = self.secrets.pop(secret_id, None)
+
+        deletion_date = int(time.time())
+
+        if not secret:
+            raise ResourceNotFoundException
+
+        arn = secret_arn(self.region, secret['secret_id'])
+        name = secret['name']
+
+        return arn, name, deletion_date
+
 
 available_regions = (
     boto3.session.Session().get_available_regions("secretsmanager")

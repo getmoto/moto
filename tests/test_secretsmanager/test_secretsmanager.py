@@ -6,6 +6,7 @@ from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
 import sure  # noqa
 import string
+from datetime import datetime
 import unittest
 from nose.tools import assert_raises
 
@@ -60,6 +61,57 @@ def test_create_secret_with_tags():
     assert secret_value['SecretString'] == 'foosecret'
     secret_details = conn.describe_secret(SecretId=secret_name)
     assert secret_details['Tags'] == [{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}]
+
+
+@mock_secretsmanager
+def test_delete_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    result = conn.delete_secret(SecretId='test-secret', ForceDeleteWithoutRecovery=True)
+    deletion_date = result['DeletionDate']
+
+    assert result['ARN']
+
+    assert deletion_date > datetime.fromtimestamp(1, deletion_date.tzinfo)
+
+    assert result['Name'] == 'test-secret'
+
+    with assert_raises(ClientError):
+        result = conn.get_secret_value(SecretId='test-secret')
+
+
+@mock_secretsmanager
+def test_delete_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='i-dont-exist', ForceDeleteWithoutRecovery=True)
+
+
+@mock_secretsmanager
+def test_delete_secret_requires_force_delete_flag():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='test-secret', ForceDeleteWithoutRecovery=False)
+
+
+@mock_secretsmanager
+def test_delete_secret_fails_with_both_force_delete_flag_and_recovery_window_flag():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='test-secret', RecoveryWindowInDays=1, ForceDeleteWithoutRecovery=True)
+
 
 @mock_secretsmanager
 def test_get_random_password_default_length():

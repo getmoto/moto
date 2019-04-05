@@ -75,3 +75,14 @@ class SecretsManagerResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
+
+    def delete_secret(self):
+        secret_id = self._get_param("SecretId")
+        recovery_window_in_days = self._get_param("RecoveryWindowInDays")
+        force_delete_without_recovery = self._get_param("ForceDeleteWithoutRecovery")
+        arn, name, deletion_date = secretsmanager_backends[self.region].delete_secret(
+            secret_id=secret_id,
+            recovery_window_in_days=recovery_window_in_days,
+            force_delete_without_recovery=force_delete_without_recovery,
+        )
+        return json.dumps(dict(ARN=arn, Name=name, DeletionDate=deletion_date))
