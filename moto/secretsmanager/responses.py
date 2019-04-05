@@ -4,6 +4,8 @@ from moto.core.responses import BaseResponse
 
 from .models import secretsmanager_backends
 
+import json
+
 
 class SecretsManagerResponse(BaseResponse):
 
@@ -68,9 +70,8 @@ class SecretsManagerResponse(BaseResponse):
     def list_secrets(self):
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        secret_list, next_token = self.secretsmanager_backend.list_secrets(
+        secret_list, next_token = secretsmanager_backends[self.region].list_secrets(
             max_results=max_results,
             next_token=next_token,
         )
-        # TODO: adjust response
-        return json.dumps(dict(secretList=secret_list, nextToken=next_token))
+        return json.dumps(dict(SecretList=secret_list, NextToken=next_token))

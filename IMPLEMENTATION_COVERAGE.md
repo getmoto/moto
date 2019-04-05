@@ -3659,7 +3659,7 @@
 - [X] get_random_password
 - [X] get_secret_value
 - [ ] list_secret_version_ids
-- [ ] list_secrets
+- [x] list_secrets
 - [ ] put_secret_value
 - [ ] restore_secret
 - [X] rotate_secret
