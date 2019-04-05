@@ -189,7 +189,7 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def list_secrets(self, max_results, next_token):
-        # TODO implement pagination
+        # TODO implement pagination and limits
 
         secret_list = [{
             "ARN": secret_arn(self.region, secret['secret_id']),
@@ -211,7 +211,7 @@ class SecretsManagerBackend(BaseBackend):
             "Tags": secret['tags']
         } for secret in self.secrets.values()]
 
-        return secret_list, next_token
+        return secret_list, None
 
 
 available_regions = (
