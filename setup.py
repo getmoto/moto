@@ -42,7 +42,10 @@ install_requires = [
 ]
 
 extras_require = {
-    'server': ['flask'],
+    'server': [
+        'flask',
+        'flask-cors',
+    ],
 }
 
 # https://hynek.me/articles/conditional-python-dependencies/

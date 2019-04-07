@@ -9,6 +9,7 @@ from threading import Lock
 import six
 from flask import Flask
 from flask.testing import FlaskClient
+from flask_cors import CORS
 
 from six.moves.urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
@@ -137,6 +138,7 @@ def create_backend_app(service):
 
     # Create the backend_app
     backend_app = Flask(__name__)
+    CORS(backend_app)
     backend_app.debug = True
     backend_app.service = service
 
