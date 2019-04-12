@@ -6,6 +6,7 @@ import decimal
 import json
 import re
 import uuid
+import six
 
 import boto3
 from moto.compat import OrderedDict
@@ -87,7 +88,7 @@ class DynamoType(object):
 
         Returns DynamoType or None.
         """
-        if isinstance(key, str) and self.is_map() and key in self.value:
+        if isinstance(key, six.string_types) and self.is_map() and key in self.value:
             return DynamoType(self.value[key])
 
         if isinstance(key, int) and self.is_list():
@@ -919,7 +920,6 @@ class DynamoDBBackend(BaseBackend):
             dynamo_types = [DynamoType(value) for value in comparison_values]
             scan_filters[key] = (comparison_operator, dynamo_types)
 
-
         filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
 
         return table.scan(scan_filters, limit, exclusive_start_key, filter_expression)
@@ -949,12 +949,12 @@ class DynamoDBBackend(BaseBackend):
 
         if not get_expected(expected).expr(item):
             raise ValueError('The conditional request failed')
-            condition_op = get_filter_expression(
-                condition_expression,
-                expression_attribute_names,
-                expression_attribute_values)
-            if not condition_op.expr(current):
-                raise ValueError('The conditional request failed')
+        condition_op = get_filter_expression(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values)
+        if not condition_op.expr(item):
+            raise ValueError('The conditional request failed')
 
         # Update does not fail on new items, so create one
         if item is None:

@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 import re
 import six
 import re
-import enum
 from collections import deque
 from collections import namedtuple
 
@@ -199,46 +198,47 @@ class ConditionExpressionParser:
         op = self._make_op_condition(node)
         return op
 
-    class Kind(enum.Enum):
-        """Defines types of nodes in the syntax tree."""
+    class Kind:
+        """Enum defining types of nodes in the syntax tree."""
 
         # Condition nodes
         # ---------------
-        OR = enum.auto()
-        AND = enum.auto()
-        NOT = enum.auto()
-        PARENTHESES = enum.auto()
-        FUNCTION = enum.auto()
-        BETWEEN = enum.auto()
-        IN = enum.auto()
-        COMPARISON = enum.auto()
+        OR = 'OR'
+        AND = 'AND'
+        NOT = 'NOT'
+        PARENTHESES = 'PARENTHESES'
+        FUNCTION = 'FUNCTION'
+        BETWEEN = 'BETWEEN'
+        IN = 'IN'
+        COMPARISON = 'COMPARISON'
 
         # Operand nodes
         # -------------
-        EXPRESSION_ATTRIBUTE_VALUE = enum.auto()
-        PATH = enum.auto()
+        EXPRESSION_ATTRIBUTE_VALUE = 'EXPRESSION_ATTRIBUTE_VALUE'
+        PATH = 'PATH'
 
         # Literal nodes
         # --------------
-        LITERAL = enum.auto()
+        LITERAL = 'LITERAL'
 
 
-    class Nonterminal(enum.Enum):
-        """Defines nonterminals for defining productions."""
-        CONDITION = enum.auto()
-        OPERAND = enum.auto()
-        COMPARATOR = enum.auto()
-        FUNCTION_NAME = enum.auto()
-        IDENTIFIER = enum.auto()
-        AND = enum.auto()
-        OR = enum.auto()
-        NOT = enum.auto()
-        BETWEEN = enum.auto()
-        IN = enum.auto()
-        COMMA = enum.auto()
-        LEFT_PAREN = enum.auto()
-        RIGHT_PAREN = enum.auto()
-        WHITESPACE = enum.auto()
+    class Nonterminal:
+        """Enum defining nonterminals for productions."""
+
+        CONDITION = 'CONDITION'
+        OPERAND = 'OPERAND'
+        COMPARATOR = 'COMPARATOR'
+        FUNCTION_NAME = 'FUNCTION_NAME'
+        IDENTIFIER = 'IDENTIFIER'
+        AND = 'AND'
+        OR = 'OR'
+        NOT = 'NOT'
+        BETWEEN = 'BETWEEN'
+        IN = 'IN'
+        COMMA = 'COMMA'
+        LEFT_PAREN = 'LEFT_PAREN'
+        RIGHT_PAREN = 'RIGHT_PAREN'
+        WHITESPACE = 'WHITESPACE'
 
 
     Node = namedtuple('Node', ['nonterminal', 'kind', 'text', 'value', 'children'])
@@ -286,7 +286,7 @@ class ConditionExpressionParser:
             if match:
                 match_text = match.group()
                 break
-        else:
+        else: # pragma: no cover
             raise ValueError("Cannot parse condition starting at: " +
                                  remaining_expression)
 
@@ -387,7 +387,7 @@ class ConditionExpressionParser:
                 children=[])
         elif name.startswith('['):
             # e.g. [123]
-            if not name.endswith(']'):
+            if not name.endswith(']'):  # pragma: no cover
                 raise ValueError("Bad path element %s" % name)
             return self.Node(
                 nonterminal=self.Nonterminal.IDENTIFIER,
@@ -642,7 +642,7 @@ class ConditionExpressionParser:
                     "Unmatched ) at", nodes)
                 close_paren = nodes.popleft()
                 children = self._apply_booleans(output)
-                all_children = [left_paren, *children, close_paren]
+                all_children = [left_paren] + list(children) + [close_paren]
                 return deque([
                     self.Node(
                         nonterminal=self.Nonterminal.CONDITION,
@@ -650,7 +650,7 @@ class ConditionExpressionParser:
                         text=" ".join([t.text for t in all_children]),
                         value=None,
                         children=list(children),
-                    ), *nodes])
+                    )] + list(nodes))
             else:
                 output.append(nodes.popleft())
 
@@ -747,11 +747,12 @@ class ConditionExpressionParser:
             return AttributeValue(node.value)
         elif node.kind == self.Kind.FUNCTION:
             # size()
-            function_node, *arguments = node.children
+            function_node = node.children[0]
+            arguments =  node.children[1:]
             function_name = function_node.value
             arguments = [self._make_operand(arg) for arg in arguments]
             return FUNC_CLASS[function_name](*arguments)
-        else:
+        else: # pragma: no cover
             raise ValueError("Unknown operand: %r" % node)
 
 
@@ -768,12 +769,13 @@ class ConditionExpressionParser:
                 self._make_op_condition(rhs))
         elif node.kind == self.Kind.NOT:
             child, = node.children
-            return OpNot(self._make_op_condition(child), None)
+            return OpNot(self._make_op_condition(child))
         elif node.kind == self.Kind.PARENTHESES:
             child, = node.children
             return self._make_op_condition(child)
         elif node.kind == self.Kind.FUNCTION:
-            function_node, *arguments = node.children
+            function_node = node.children[0]
+            arguments = node.children[1:]
             function_name = function_node.value
             arguments = [self._make_operand(arg) for arg in arguments]
             return FUNC_CLASS[function_name](*arguments)
@@ -784,24 +786,25 @@ class ConditionExpressionParser:
                 self._make_operand(low),
                 self._make_operand(high))
         elif node.kind == self.Kind.IN:
-            query, *possible_values = node.children
+            query = node.children[0]
+            possible_values = node.children[1:]
             query = self._make_operand(query)
             possible_values = [self._make_operand(v) for v in possible_values]
             return FuncIn(query, *possible_values)
         elif node.kind == self.Kind.COMPARISON:
             lhs, comparator, rhs = node.children
-            return OP_CLASS[comparator.value](
+            return COMPARATOR_CLASS[comparator.value](
                 self._make_operand(lhs),
                 self._make_operand(rhs))
-        else:
+        else: # pragma: no cover
             raise ValueError("Unknown expression node kind %r" % node.kind)
 
-    def _print_debug(self, nodes):
+    def _print_debug(self, nodes): # pragma: no cover
         print('ROOT')
         for node in nodes:
             self._print_node_recursive(node, depth=1)
 
-    def _print_node_recursive(self, node, depth=0):
+    def _print_node_recursive(self, node, depth=0): # pragma: no cover
         if len(node.children) > 0:
             print('  ' * depth, node.nonterminal, node.kind)
             for child in node.children:
@@ -922,6 +925,9 @@ class OpDefault(Op):
 class OpNot(Op):
     OP = 'NOT'
 
+    def __init__(self, lhs):
+        super(OpNot, self).__init__(lhs, None)
+
     def expr(self, item):
         lhs = self.lhs.expr(item)
         return not lhs
@@ -1002,15 +1008,6 @@ class OpOr(Op):
         return lhs or rhs
 
 
-class OpIn(Op):
-    OP = 'IN'
-
-    def expr(self, item):
-        lhs = self.lhs.expr(item)
-        rhs = self.rhs.expr(item)
-        return lhs in rhs
-
-
 class Func(object):
     """
     Base class for a FilterExpression function
@@ -1034,14 +1031,14 @@ class FuncAttrExists(Func):
 
     def __init__(self, attribute):
         self.attr = attribute
-        super().__init__(attribute)
+        super(FuncAttrExists, self).__init__(attribute)
 
     def expr(self, item):
         return self.attr.get_type(item) is not None
 
 
 def FuncAttrNotExists(attribute):
-    return OpNot(FuncAttrExists(attribute), None)
+    return OpNot(FuncAttrExists(attribute))
 
 
 class FuncAttrType(Func):
@@ -1050,7 +1047,7 @@ class FuncAttrType(Func):
     def __init__(self, attribute, _type):
         self.attr = attribute
         self.type = _type
-        super().__init__(attribute, _type)
+        super(FuncAttrType, self).__init__(attribute, _type)
 
     def expr(self, item):
         return self.attr.get_type(item) == self.type.expr(item)
@@ -1062,7 +1059,7 @@ class FuncBeginsWith(Func):
     def __init__(self, attribute, substr):
         self.attr = attribute
         self.substr = substr
-        super().__init__(attribute, substr)
+        super(FuncBeginsWith, self).__init__(attribute, substr)
 
     def expr(self, item):
         if self.attr.get_type(item) != 'S':
@@ -1078,7 +1075,7 @@ class FuncContains(Func):
     def __init__(self, attribute, operand):
         self.attr = attribute
         self.operand = operand
-        super().__init__(attribute, operand)
+        super(FuncContains, self).__init__(attribute, operand)
 
     def expr(self, item):
         if self.attr.get_type(item) in ('S', 'SS', 'NS', 'BS', 'L'):
@@ -1090,7 +1087,7 @@ class FuncContains(Func):
 
 
 def FuncNotContains(attribute, operand):
-    return OpNot(FuncContains(attribute, operand), None)
+    return OpNot(FuncContains(attribute, operand))
 
 
 class FuncSize(Func):
@@ -1098,7 +1095,7 @@ class FuncSize(Func):
 
     def __init__(self, attribute):
         self.attr = attribute
-        super().__init__(attribute)
+        super(FuncSize, self).__init__(attribute)
 
     def expr(self, item):
         if self.attr.get_type(item) is None:
@@ -1116,7 +1113,7 @@ class FuncBetween(Func):
         self.attr = attribute
         self.start = start
         self.end = end
-        super().__init__(attribute, start, end)
+        super(FuncBetween, self).__init__(attribute, start, end)
 
     def expr(self, item):
         return self.start.expr(item) <= self.attr.expr(item) <= self.end.expr(item)
@@ -1128,7 +1125,7 @@ class FuncIn(Func):
     def __init__(self, attribute, *possible_values):
         self.attr = attribute
         self.possible_values = possible_values
-        super().__init__(attribute, *possible_values)
+        super(FuncIn, self).__init__(attribute, *possible_values)
 
     def expr(self, item):
         for possible_value in self.possible_values:
@@ -1138,11 +1135,7 @@ class FuncIn(Func):
         return False
 
 
-OP_CLASS = {
-    'NOT': OpNot,
-    'AND': OpAnd,
-    'OR': OpOr,
-    'IN': OpIn,
+COMPARATOR_CLASS = {
     '<': OpLessThan,
     '>': OpGreaterThan,
     '<=': OpLessThanOrEqual,
