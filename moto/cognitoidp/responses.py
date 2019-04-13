@@ -4,7 +4,7 @@ import json
 import os
 
 from moto.core.responses import BaseResponse
-from .models import cognitoidp_backends, find_region_by_value
+from .models import cognitoidp_backends, find_region_by_value, UserStatus
 
 
 class CognitoIdpResponse(BaseResponse):
@@ -343,6 +343,22 @@ class CognitoIdpResponse(BaseResponse):
         region = find_region_by_value("access_token", access_token)
         cognitoidp_backends[region].change_password(access_token, previous_password, proposed_password)
         return ""
+
+    def sign_up(self):
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        password = self._get_param("Password")
+        user = cognitoidp_backends[self.region].sign_up(
+            client_id=client_id,
+            username=username,
+            password=password,
+            attributes=self._get_param("UserAttributes", [])
+
+        )
+        return json.dumps({
+            "UserConfirmed": user.status == UserStatus["CONFIRMED"],
+            "UserSub": user.id
+        })
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
