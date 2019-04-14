@@ -1690,3 +1690,39 @@ def test_condition_expressions():
                 ':match': {'S': 'match2'}
             }
         )
+
+    # Make sure update_item honors ConditionExpression as well
+    client.update_item(
+        TableName='test1',
+        Key={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+        },
+        UpdateExpression='set #match=:match',
+        ConditionExpression='attribute_exists(#existing)',
+        ExpressionAttributeNames={
+            '#existing': 'existing',
+            '#match': 'match',
+        },
+        ExpressionAttributeValues={
+            ':match': {'S': 'match'}
+        }
+    )
+
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.update_item(
+            TableName='test1',
+            Key={
+                'client': { 'S': 'client1'},
+                'app': { 'S': 'app1'},
+            },
+            UpdateExpression='set #match=:match',
+            ConditionExpression='attribute_not_exists(#existing)',
+            ExpressionAttributeValues={
+                ':match': {'S': 'match'}
+            },
+            ExpressionAttributeNames={
+                '#existing': 'existing',
+                '#match': 'match',
+            }
+        )
