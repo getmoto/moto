@@ -1719,6 +1719,42 @@ def test_condition_expressions():
             }
         )
 
+    # Make sure update_item honors ConditionExpression as well
+    dynamodb.update_item(
+        TableName='test1',
+        Key={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+        },
+        UpdateExpression='set #match=:match',
+        ConditionExpression='attribute_exists(#existing)',
+        ExpressionAttributeNames={
+            '#existing': 'existing',
+            '#match': 'match',
+        },
+        ExpressionAttributeValues={
+            ':match': {'S': 'match'}
+        }
+    )
+
+    with assert_raises(dynamodb.exceptions.ConditionalCheckFailedException):
+        dynamodb.update_item(
+            TableName='test1',
+            Key={
+                'client': { 'S': 'client1'},
+                'app': { 'S': 'app1'},
+            },
+            UpdateExpression='set #match=:match',
+            ConditionExpression='attribute_not_exists(#existing)',
+            ExpressionAttributeValues={
+                ':match': {'S': 'match'}
+            },
+            ExpressionAttributeNames={
+                '#existing': 'existing',
+                '#match': 'match',
+            },
+        )
+
 
 @mock_dynamodb2
 def test_query_gsi_with_range_key():
