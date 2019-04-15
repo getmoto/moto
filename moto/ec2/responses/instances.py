@@ -450,6 +450,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
+                    {% if instance.get_tags() != [] %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
                         <item>
@@ -460,6 +461,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                         </item>
                       {% endfor %}
                     </tagSet>
+                    {% endif %}
                     <hypervisor>xen</hypervisor>
                     <networkInterfaceSet>
                       {% for nic in instance.nics.values() %}
