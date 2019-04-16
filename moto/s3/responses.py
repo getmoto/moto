@@ -776,8 +776,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return 409, {}, template.render(bucket=removed_bucket)
 
-    def _bucket_response_post(self, request, body, bucket_name):
-        if not request.headers.get("Content-Length"):
+    def _bucket_response_post(self, request, body, bucket_name, headers):
+        response_headers = {}
+        if not request.headers.get('Content-Length'):
             return 411, {}, "Content-Length required"
 
         path = self._get_path(request)
@@ -810,13 +811,21 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             f = request.files["file"].stream.read()
 
+        if 'success_action_redirect' in form:
+            response_headers['Location'] = form['success_action_redirect']
+
+        if 'success_action_status' in form:
+            status_code = form['success_action_status']
+        else:
+            status_code = 204
+
         new_key = self.backend.set_key(bucket_name, key, f)
 
         # Metadata
         metadata = metadata_from_headers(form)
         new_key.set_metadata(metadata)
 
-        return 200, {}, ""
+        return status_code, response_headers, ""
 
     @staticmethod
     def _get_path(request):
