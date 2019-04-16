@@ -231,6 +231,10 @@ class LambdaFunction(BaseModel):
             config.update({"VpcId": "vpc-123abc"})
         return config
 
+    @property
+    def physical_resource_id(self):
+        return self.function_name
+
     def __repr__(self):
         return json.dumps(self.get_configuration())
 
