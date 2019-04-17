@@ -1531,6 +1531,23 @@ def test_boto3_copy_object_with_versioning():
 
 
 @mock_s3
+def test_boto3_copy_object_from_unversioned_to_versioned_bucket():
+    client = boto3.client('s3', region_name='us-east-1')
+
+    client.create_bucket(Bucket='src', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+    client.create_bucket(Bucket='dest', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+    client.put_bucket_versioning(Bucket='dest', VersioningConfiguration={'Status': 'Enabled'})
+
+    client.put_object(Bucket='src', Key='test', Body=b'content')
+
+    obj2_version_new = client.copy_object(CopySource={'Bucket': 'src', 'Key': 'test'}, Bucket='dest', Key='test') \
+        .get('VersionId')
+
+    # VersionId should be present in the response
+    obj2_version_new.should_not.equal(None)
+
+
+@mock_s3
 def test_boto3_deleted_versionings_list():
     client = boto3.client('s3', region_name='us-east-1')
 
