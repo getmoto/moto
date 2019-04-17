@@ -450,7 +450,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
-                    {% if instance.get_tags() != [] %}
+                    {% if not instance.get_tags() %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
                         <item>
