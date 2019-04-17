@@ -303,8 +303,17 @@ def test_create_policy_versions():
         PolicyDocument='{"some":"policy"}')
     version = conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument='{"some":"policy"}',
+        SetAsDefault=True)
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+    version.get('PolicyVersion').get('VersionId').should.equal("v2")
+    conn.delete_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        VersionId="v1")
+    version = conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        PolicyDocument='{"some":"policy"}')
+    version.get('PolicyVersion').get('VersionId').should.equal("v3")
 
 
 @mock_iam
