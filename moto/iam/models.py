@@ -899,6 +899,18 @@ class IAMBackend(BaseBackend):
 
         return users
 
+    def update_user(self, user_name, new_path=None, new_user_name=None):
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise IAMNotFoundException("User {0} not found".format(user_name))
+
+        if new_path:
+            user.path = new_path
+        if new_user_name:
+            user.name = new_user_name
+            self.users[new_user_name] = self.users.pop(user_name)
+
     def list_roles(self, path_prefix, marker, max_items):
         roles = None
         try:
