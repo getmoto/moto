@@ -188,6 +188,31 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
+    def list_secrets(self, max_results, next_token):
+        # TODO implement pagination and limits
+
+        secret_list = [{
+            "ARN": secret_arn(self.region, secret['secret_id']),
+            "DeletedDate": None,
+            "Description": "",
+            "KmsKeyId": "",
+            "LastAccessedDate": None,
+            "LastChangedDate": None,
+            "LastRotatedDate": None,
+            "Name": secret['name'],
+            "RotationEnabled": secret['rotation_enabled'],
+            "RotationLambdaARN": secret['rotation_lambda_arn'],
+            "RotationRules": {
+                "AutomaticallyAfterDays": secret['auto_rotate_after_days']
+            },
+            "SecretVersionsToStages": {
+                secret['version_id']: ["AWSCURRENT"]
+            },
+            "Tags": secret['tags']
+        } for secret in self.secrets.values()]
+
+        return secret_list, None
+
 
 available_regions = (
     boto3.session.Session().get_available_regions("secretsmanager")

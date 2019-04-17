@@ -4,6 +4,8 @@ from moto.core.responses import BaseResponse
 
 from .models import secretsmanager_backends
 
+import json
+
 
 class SecretsManagerResponse(BaseResponse):
 
@@ -64,3 +66,12 @@ class SecretsManagerResponse(BaseResponse):
             rotation_lambda_arn=rotation_lambda_arn,
             rotation_rules=rotation_rules
         )
+
+    def list_secrets(self):
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        secret_list, next_token = secretsmanager_backends[self.region].list_secrets(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
