@@ -43,7 +43,7 @@ def test_get_secret_value_that_is_marked_deleted():
     conn.create_secret(Name='test-secret',
                        SecretString='foosecret')
 
-    deleted_secret = conn.delete_secret(SecretId='test-secret')
+    conn.delete_secret(SecretId='test-secret')
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='test-secret')
@@ -379,6 +379,20 @@ def test_rotate_secret_enable_rotation():
     assert rotated_description
     assert rotated_description['RotationEnabled'] is True
     assert rotated_description['RotationRules']['AutomaticallyAfterDays'] == 42
+
+
+@mock_secretsmanager
+def test_rotate_secret_that_is_marked_deleted():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    conn.delete_secret(SecretId='test-secret')
+
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId='test-secret')
+
 
 @mock_secretsmanager
 def test_rotate_secret_that_does_not_exist():

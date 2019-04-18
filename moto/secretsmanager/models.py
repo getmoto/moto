@@ -49,7 +49,7 @@ class SecretsManagerBackend(BaseBackend):
 
         if 'deleted_date' in self.secrets[secret_id]:
             raise InvalidRequestException(
-                "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
+                "An error occurred (InvalidRequestException) when calling the GetSecretValue operation: You tried to \
                 perform the operation on a secret that's currently marked deleted."
             )
 
@@ -126,6 +126,12 @@ class SecretsManagerBackend(BaseBackend):
 
         if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException
+
+        if 'deleted_date' in self.secrets[secret_id]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the RotateSecret operation: You tried to \
+                perform the operation on a secret that's currently marked deleted."
+            )
 
         if client_request_token:
             token_length = len(client_request_token)
