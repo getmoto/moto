@@ -916,7 +916,7 @@
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
 - [ ] update_group
-- [ ] update_identity_provider
+- [x] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
@@ -2334,7 +2334,7 @@
 - [ ] update_service_specific_credential
 - [X] update_signing_certificate
 - [ ] update_ssh_public_key
-- [ ] update_user
+- [X] update_user
 - [X] upload_server_certificate
 - [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
@@ -3659,7 +3659,7 @@
 - [X] get_random_password
 - [X] get_secret_value
 - [ ] list_secret_version_ids
-- [ ] list_secrets
+- [x] list_secrets
 - [ ] put_secret_value
 - [ ] restore_secret
 - [X] rotate_secret

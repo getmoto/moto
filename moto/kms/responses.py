@@ -249,11 +249,11 @@ class KmsResponse(BaseResponse):
         value = self.parameters.get("Plaintext")
         if isinstance(value, six.text_type):
             value = value.encode('utf-8')
-        return json.dumps({"CiphertextBlob": base64.b64encode(value).decode("utf-8")})
+        return json.dumps({"CiphertextBlob": base64.b64encode(value).decode("utf-8"), 'KeyId': 'key_id'})
 
     def decrypt(self):
         value = self.parameters.get("CiphertextBlob")
-        return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
+        return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8"), 'KeyId': 'key_id'})
 
     def disable_key(self):
         key_id = self.parameters.get('KeyId')

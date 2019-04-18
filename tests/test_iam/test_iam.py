@@ -303,8 +303,17 @@ def test_create_policy_versions():
         PolicyDocument='{"some":"policy"}')
     version = conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument='{"some":"policy"}',
+        SetAsDefault=True)
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+    version.get('PolicyVersion').get('VersionId').should.equal("v2")
+    conn.delete_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        VersionId="v1")
+    version = conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        PolicyDocument='{"some":"policy"}')
+    version.get('PolicyVersion').get('VersionId').should.equal("v3")
 
 
 @mock_iam
@@ -399,6 +408,19 @@ def test_get_user():
         conn.get_user('my-user')
     conn.create_user('my-user')
     conn.get_user('my-user')
+
+
+@mock_iam()
+def test_update_user():
+    conn = boto3.client('iam', region_name='us-east-1')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.update_user(UserName='my-user')
+    conn.create_user(UserName='my-user')
+    conn.update_user(UserName='my-user', NewPath='/new-path/', NewUserName='new-user')
+    response = conn.get_user(UserName='new-user')
+    response['User'].get('Path').should.equal('/new-path/')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_user(UserName='my-user')
 
 
 @mock_iam_deprecated()

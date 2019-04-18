@@ -426,6 +426,19 @@ class CognitoIdpBackend(BaseBackend):
 
         return identity_provider
 
+    def update_identity_provider(self, user_pool_id, name, extended_config):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        identity_provider = user_pool.identity_providers.get(name)
+        if not identity_provider:
+            raise ResourceNotFoundError(name)
+
+        identity_provider.extended_config.update(extended_config)
+
+        return identity_provider
+
     def delete_identity_provider(self, user_pool_id, name):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
