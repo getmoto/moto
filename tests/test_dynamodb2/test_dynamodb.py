@@ -1612,3 +1612,70 @@ def test_condition_expressions():
                 ':match': {'S': 'match2'}
             }
         )
+
+
+@mock_dynamodb2
+def test_query_gsi_with_range_key():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_hash_key', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_range_key', 'AttributeType': 'S'}
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        GlobalSecondaryIndexes=[
+            {
+                'IndexName': 'test_gsi',
+                'KeySchema': [
+                    {
+                        'AttributeName': 'gsi_hash_key',
+                        'KeyType': 'HASH'
+                    },
+                    {
+                        'AttributeName': 'gsi_range_key',
+                        'KeyType': 'RANGE'
+                    },
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 1,
+                    'WriteCapacityUnits': 1
+                }
+            },
+        ]
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': 'test1'},
+            'gsi_hash_key': {'S': 'key1'},
+            'gsi_range_key': {'S': 'range1'},
+        }
+    )
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': 'test2'},
+            'gsi_hash_key': {'S': 'key1'},
+        }
+    )
+
+    res = dynamodb.query(TableName='test', IndexName='test_gsi',
+                         KeyConditionExpression='gsi_hash_key = :gsi_hash_key AND gsi_range_key = :gsi_range_key',
+                         ExpressionAttributeValues={
+                            ':gsi_hash_key': {'S': 'key1'},
+                            ':gsi_range_key': {'S': 'range1'}
+                         })
+    res.should.have.key("Count").equal(1)
+    res.should.have.key("Items")
+    res['Items'][0].should.equal({
+        'id': {'S': 'test1'},
+        'gsi_hash_key': {'S': 'key1'},
+        'gsi_range_key': {'S': 'range1'},
+    })
