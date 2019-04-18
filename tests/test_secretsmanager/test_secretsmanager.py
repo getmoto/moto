@@ -6,7 +6,8 @@ from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
 import sure  # noqa
 import string
-from datetime import datetime, timezone
+import pytz
+from datetime import datetime
 import unittest
 from nose.tools import assert_raises
 
@@ -88,13 +89,13 @@ def test_delete_secret():
 
     assert deleted_secret['ARN']
     assert deleted_secret['Name'] == 'test-secret'
-    assert deleted_secret['DeletionDate'] > datetime.fromtimestamp(1, timezone.utc)
+    assert deleted_secret['DeletionDate'] > datetime.fromtimestamp(1, pytz.utc)
 
     secret_details = conn.describe_secret(SecretId='test-secret')
 
     assert secret_details['ARN']
     assert secret_details['Name'] == 'test-secret'
-    assert secret_details['DeletedDate'] > datetime.fromtimestamp(1, timezone.utc)
+    assert secret_details['DeletedDate'] > datetime.fromtimestamp(1, pytz.utc)
 
 
 @mock_secretsmanager
@@ -107,7 +108,7 @@ def test_delete_secret_force():
     result = conn.delete_secret(SecretId='test-secret', ForceDeleteWithoutRecovery=True)
 
     assert result['ARN']
-    assert result['DeletionDate'] > datetime.fromtimestamp(1, timezone.utc)
+    assert result['DeletionDate'] > datetime.fromtimestamp(1, pytz.utc)
     assert result['Name'] == 'test-secret'
 
     with assert_raises(ClientError):
