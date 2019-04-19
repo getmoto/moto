@@ -3654,7 +3654,7 @@
 ## secretsmanager - 33% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
-- [ ] delete_secret
+- [X] delete_secret
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value

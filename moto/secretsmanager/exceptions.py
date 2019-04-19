@@ -27,3 +27,10 @@ class InvalidParameterException(SecretsManagerClientError):
         super(InvalidParameterException, self).__init__(
             'InvalidParameterException',
             message)
+
+
+class InvalidRequestException(SecretsManagerClientError):
+    def __init__(self, message):
+        super(InvalidRequestException, self).__init__(
+            'InvalidRequestException',
+            message)

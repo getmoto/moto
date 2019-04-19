@@ -6,6 +6,8 @@ from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
 import sure  # noqa
 import string
+import pytz
+from datetime import datetime
 import unittest
 from nose.tools import assert_raises
 
@@ -34,6 +36,20 @@ def test_get_secret_that_does_not_match():
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-match')
 
+
+@mock_secretsmanager
+def test_get_secret_value_that_is_marked_deleted():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    conn.delete_secret(SecretId='test-secret')
+
+    with assert_raises(ClientError):
+        result = conn.get_secret_value(SecretId='test-secret')
+
+
 @mock_secretsmanager
 def test_create_secret():
     conn = boto3.client('secretsmanager', region_name='us-east-1')
@@ -60,6 +76,98 @@ def test_create_secret_with_tags():
     assert secret_value['SecretString'] == 'foosecret'
     secret_details = conn.describe_secret(SecretId=secret_name)
     assert secret_details['Tags'] == [{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}]
+
+
+@mock_secretsmanager
+def test_delete_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    deleted_secret = conn.delete_secret(SecretId='test-secret')
+
+    assert deleted_secret['ARN']
+    assert deleted_secret['Name'] == 'test-secret'
+    assert deleted_secret['DeletionDate'] > datetime.fromtimestamp(1, pytz.utc)
+
+    secret_details = conn.describe_secret(SecretId='test-secret')
+
+    assert secret_details['ARN']
+    assert secret_details['Name'] == 'test-secret'
+    assert secret_details['DeletedDate'] > datetime.fromtimestamp(1, pytz.utc)
+
+
+@mock_secretsmanager
+def test_delete_secret_force():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    result = conn.delete_secret(SecretId='test-secret', ForceDeleteWithoutRecovery=True)
+
+    assert result['ARN']
+    assert result['DeletionDate'] > datetime.fromtimestamp(1, pytz.utc)
+    assert result['Name'] == 'test-secret'
+
+    with assert_raises(ClientError):
+        result = conn.get_secret_value(SecretId='test-secret')
+
+
+@mock_secretsmanager
+def test_delete_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='i-dont-exist', ForceDeleteWithoutRecovery=True)
+
+
+@mock_secretsmanager
+def test_delete_secret_fails_with_both_force_delete_flag_and_recovery_window_flag():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='test-secret', RecoveryWindowInDays=1, ForceDeleteWithoutRecovery=True)
+
+
+@mock_secretsmanager
+def test_delete_secret_recovery_window_too_short():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='test-secret', RecoveryWindowInDays=6)
+
+
+@mock_secretsmanager
+def test_delete_secret_recovery_window_too_long():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='test-secret', RecoveryWindowInDays=31)
+
+
+@mock_secretsmanager
+def test_delete_secret_that_is_marked_deleted():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    deleted_secret = conn.delete_secret(SecretId='test-secret')
+
+    with assert_raises(ClientError):
+        result = conn.delete_secret(SecretId='test-secret')
+
 
 @mock_secretsmanager
 def test_get_random_password_default_length():
@@ -272,6 +380,20 @@ def test_rotate_secret_enable_rotation():
     assert rotated_description
     assert rotated_description['RotationEnabled'] is True
     assert rotated_description['RotationRules']['AutomaticallyAfterDays'] == 42
+
+
+@mock_secretsmanager
+def test_rotate_secret_that_is_marked_deleted():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    conn.delete_secret(SecretId='test-secret')
+
+    with assert_raises(ClientError):
+        result = conn.rotate_secret(SecretId='test-secret')
+
 
 @mock_secretsmanager
 def test_rotate_secret_that_does_not_exist():
