@@ -871,6 +871,12 @@ class IAMBackend(BaseBackend):
         group = self.get_group(group_name)
         return group.get_policy(policy_name)
 
+    def delete_group(self, group_name):
+        try:
+            del self.groups[group_name]
+        except KeyError:
+            raise IAMNotFoundException("Group {0} not found".format(group_name))
+
     def create_user(self, user_name, path='/'):
         if user_name in self.users:
             raise IAMConflictException(
