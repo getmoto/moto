@@ -1287,4 +1287,9 @@ def test_list_entities_for_policy():
     assert response['PolicyRoles'] == [{'RoleName': 'my-role'}]
 
 
+@mock_iam()
+def test_create_role_no_path():
+    conn = boto3.client('iam', region_name='us-east-1')
+    resp = conn.create_role(RoleName='my-role', AssumeRolePolicyDocument='some policy', Description='test')
+    resp.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-role')
 
