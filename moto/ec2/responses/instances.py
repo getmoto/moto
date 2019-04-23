@@ -576,8 +576,8 @@ EC2_START_INSTANCES = """
       <item>
         <instanceId>{{ instance.id }}</instanceId>
         <previousState>
-          <code>16</code>
-          <name>running</name>
+          <code>80</code>
+          <name>stopped</name>
         </previousState>
         <currentState>
           <code>0</code>
