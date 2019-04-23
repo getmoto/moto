@@ -45,16 +45,16 @@ class DynamoType(object):
         )
 
     def __lt__(self, other):
-        return self.value < other.value
+        return self.cast_value < other.cast_value
 
     def __le__(self, other):
-        return self.value <= other.value
+        return self.cast_value <= other.cast_value
 
     def __gt__(self, other):
-        return self.value > other.value
+        return self.cast_value > other.cast_value
 
     def __ge__(self, other):
-        return self.value >= other.value
+        return self.cast_value >= other.cast_value
 
     def __repr__(self):
         return "DynamoType: {0}".format(self.to_json())
