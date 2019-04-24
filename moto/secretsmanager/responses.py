@@ -4,6 +4,8 @@ from moto.core.responses import BaseResponse
 
 from .models import secretsmanager_backends
 
+import json
+
 
 class SecretsManagerResponse(BaseResponse):
 
@@ -80,3 +82,23 @@ class SecretsManagerResponse(BaseResponse):
         return secretsmanager_backends[self.region].list_secret_version_ids(
             secret_id=secret_id
         )
+
+    def list_secrets(self):
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        secret_list, next_token = secretsmanager_backends[self.region].list_secrets(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
+
+    def delete_secret(self):
+        secret_id = self._get_param("SecretId")
+        recovery_window_in_days = self._get_param("RecoveryWindowInDays")
+        force_delete_without_recovery = self._get_param("ForceDeleteWithoutRecovery")
+        arn, name, deletion_date = secretsmanager_backends[self.region].delete_secret(
+            secret_id=secret_id,
+            recovery_window_in_days=recovery_window_in_days,
+            force_delete_without_recovery=force_delete_without_recovery,
+        )
+        return json.dumps(dict(ARN=arn, Name=name, DeletionDate=deletion_date))

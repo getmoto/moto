@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import yaml
 import uuid
@@ -12,10 +12,154 @@ from .parsing import ResourceMap, OutputMap
 from .utils import (
     generate_changeset_id,
     generate_stack_id,
+    generate_stackset_arn,
+    generate_stackset_id,
     yaml_tag_constructor,
     validate_template_cfn_lint,
 )
 from .exceptions import ValidationError
+
+
+class FakeStackSet(BaseModel):
+
+    def __init__(self, stackset_id, name, template, region='us-east-1',
+            status='ACTIVE', description=None, parameters=None, tags=None,
+            admin_role='AWSCloudFormationStackSetAdministrationRole',
+            execution_role='AWSCloudFormationStackSetExecutionRole'):
+        self.id = stackset_id
+        self.arn = generate_stackset_arn(stackset_id, region)
+        self.name = name
+        self.template = template
+        self.description = description
+        self.parameters = parameters
+        self.tags = tags
+        self.admin_role = admin_role
+        self.execution_role = execution_role
+        self.status = status
+        self.instances = FakeStackInstances(parameters, self.id, self.name)
+        self.stack_instances = self.instances.stack_instances
+        self.operations = []
+
+    def _create_operation(self, operation_id, action, status, accounts=[], regions=[]):
+        operation = {
+            'OperationId': str(operation_id),
+            'Action': action,
+            'Status': status,
+            'CreationTimestamp': datetime.now(),
+            'EndTimestamp': datetime.now() + timedelta(minutes=2),
+            'Instances': [{account: region} for account in accounts for region in regions],
+        }
+
+        self.operations += [operation]
+        return operation
+
+    def get_operation(self, operation_id):
+        for operation in self.operations:
+            if operation_id == operation['OperationId']:
+                return operation
+        raise ValidationError(operation_id)
+
+    def update_operation(self, operation_id, status):
+        operation = self.get_operation(operation_id)
+        operation['Status'] = status
+        return operation_id
+
+    def delete(self):
+        self.status = 'DELETED'
+
+    def update(self, template, description, parameters, tags, admin_role,
+            execution_role, accounts, regions, operation_id=None):
+        if not operation_id:
+            operation_id = uuid.uuid4()
+
+        self.template = template if template else self.template
+        self.description = description if description is not None else self.description
+        self.parameters = parameters if parameters else self.parameters
+        self.tags = tags if tags else self.tags
+        self.admin_role = admin_role if admin_role else self.admin_role
+        self.execution_role = execution_role if execution_role else self.execution_role
+
+        if accounts and regions:
+            self.update_instances(accounts, regions, self.parameters)
+
+        operation = self._create_operation(operation_id=operation_id,
+                action='UPDATE', status='SUCCEEDED', accounts=accounts,
+                regions=regions)
+        return operation
+
+    def create_stack_instances(self, accounts, regions, parameters, operation_id=None):
+        if not operation_id:
+            operation_id = uuid.uuid4()
+        if not parameters:
+            parameters = self.parameters
+
+        self.instances.create_instances(accounts, regions, parameters, operation_id)
+        self._create_operation(operation_id=operation_id, action='CREATE',
+                status='SUCCEEDED', accounts=accounts, regions=regions)
+
+    def delete_stack_instances(self, accounts, regions, operation_id=None):
+        if not operation_id:
+            operation_id = uuid.uuid4()
+
+        self.instances.delete(accounts, regions)
+
+        operation = self._create_operation(operation_id=operation_id, action='DELETE',
+                status='SUCCEEDED', accounts=accounts, regions=regions)
+        return operation
+
+    def update_instances(self, accounts, regions, parameters, operation_id=None):
+        if not operation_id:
+            operation_id = uuid.uuid4()
+
+        self.instances.update(accounts, regions, parameters)
+        operation = self._create_operation(operation_id=operation_id,
+                action='UPDATE', status='SUCCEEDED', accounts=accounts,
+                regions=regions)
+        return operation
+
+
+class FakeStackInstances(BaseModel):
+    def __init__(self, parameters, stackset_id, stackset_name):
+        self.parameters = parameters if parameters else {}
+        self.stackset_id = stackset_id
+        self.stack_name = "StackSet-{}".format(stackset_id)
+        self.stackset_name = stackset_name
+        self.stack_instances = []
+
+    def create_instances(self, accounts, regions, parameters, operation_id):
+        new_instances = []
+        for region in regions:
+            for account in accounts:
+                instance = {
+                    'StackId': generate_stack_id(self.stack_name, region, account),
+                    'StackSetId': self.stackset_id,
+                    'Region': region,
+                    'Account': account,
+                    'Status': "CURRENT",
+                    'ParameterOverrides': parameters if parameters else [],
+                }
+                new_instances.append(instance)
+        self.stack_instances += new_instances
+        return new_instances
+
+    def update(self, accounts, regions, parameters):
+        for account in accounts:
+            for region in regions:
+                instance = self.get_instance(account, region)
+                if parameters:
+                    instance['ParameterOverrides'] = parameters
+                else:
+                    instance['ParameterOverrides'] = []
+
+    def delete(self, accounts, regions):
+        for i, instance in enumerate(self.stack_instances):
+            if instance['Region'] in regions and instance['Account'] in accounts:
+                self.stack_instances.pop(i)
+
+    def get_instance(self, account, region):
+        for i, instance in enumerate(self.stack_instances):
+            if instance['Region'] == region and instance['Account'] == account:
+                return self.stack_instances[i]
 
 
 class FakeStack(BaseModel):
@@ -189,9 +333,71 @@ class CloudFormationBackend(BaseBackend):
 
     def __init__(self):
         self.stacks = OrderedDict()
+        self.stacksets = OrderedDict()
         self.deleted_stacks = {}
         self.exports = OrderedDict()
         self.change_sets = OrderedDict()
+
+    def create_stack_set(self, name, template, parameters, tags=None, description=None, region='us-east-1', admin_role=None, execution_role=None):
+        stackset_id = generate_stackset_id(name)
+        new_stackset = FakeStackSet(
+            stackset_id=stackset_id,
+            name=name,
+            template=template,
+            parameters=parameters,
+            description=description,
+            tags=tags,
+            admin_role=admin_role,
+            execution_role=execution_role,
+        )
+        self.stacksets[stackset_id] = new_stackset
+        return new_stackset
+
+    def get_stack_set(self, name):
+        stacksets = self.stacksets.keys()
+        for stackset in stacksets:
+            if self.stacksets[stackset].name == name:
+                return self.stacksets[stackset]
+        raise ValidationError(name)
+
+    def delete_stack_set(self, name):
+        stacksets = self.stacksets.keys()
+        for stackset in stacksets:
+            if self.stacksets[stackset].name == name:
+                self.stacksets[stackset].delete()
+
+    def create_stack_instances(self, stackset_name, accounts, regions, parameters, operation_id=None):
+        stackset = self.get_stack_set(stackset_name)
+
+        stackset.create_stack_instances(
+            accounts=accounts,
+            regions=regions,
+            parameters=parameters,
+            operation_id=operation_id,
+        )
+        return stackset
+
+    def update_stack_set(self, stackset_name, template=None, description=None,
+            parameters=None, tags=None, admin_role=None, execution_role=None,
+            accounts=None, regions=None, operation_id=None):
+        stackset = self.get_stack_set(stackset_name)
+        update = stackset.update(
+            template=template,
+            description=description,
+            parameters=parameters,
+            tags=tags,
+            admin_role=admin_role,
+            execution_role=execution_role,
+            accounts=accounts,
+            regions=regions,
+            operation_id=operation_id
+        )
+        return update
+
+    def delete_stack_instances(self, stackset_name, accounts, regions, operation_id=None):
+        stackset = self.get_stack_set(stackset_name)
+        stackset.delete_stack_instances(accounts, regions, operation_id)
+        return stackset
 
     def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, create_change_set=False):
         stack_id = generate_stack_id(name)

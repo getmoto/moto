@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import time
 import json
 import uuid
+import datetime
 
 import boto3
 
@@ -11,6 +12,7 @@ from .exceptions import (
     ResourceNotFoundException,
     InvalidParameterException,
     ResourceExistsException,
+    InvalidRequestException,
     ClientError
 )
 from .utils import random_password, secret_arn
@@ -37,6 +39,10 @@ class SecretsManagerBackend(BaseBackend):
     def _is_valid_identifier(self, identifier):
         return identifier in self.secrets
 
+    def _unix_time_secs(self, dt):
+        epoch = datetime.datetime.utcfromtimestamp(0)
+        return (dt - epoch).total_seconds()
+
     def get_secret_value(self, secret_id, version_id, version_stage):
 
         if not self._is_valid_identifier(secret_id):
@@ -51,6 +57,13 @@ class SecretsManagerBackend(BaseBackend):
                     break
             if not version_id:
                 raise ResourceNotFoundException()
+
+        # TODO check this part
+        if 'deleted_date' in self.secrets[secret_id]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the GetSecretValue operation: You tried to \
+                perform the operation on a secret that's currently marked deleted."
+            )
 
         secret = self.secrets[secret_id]
         version_id = version_id or secret['default_version_id']
@@ -161,7 +174,7 @@ class SecretsManagerBackend(BaseBackend):
             "LastRotatedDate": None,
             "LastChangedDate": None,
             "LastAccessedDate": None,
-            "DeletedDate": None,
+            "DeletedDate": secret.get('deleted_date', None),
             "Tags": secret['tags']
         })
 
@@ -174,6 +187,12 @@ class SecretsManagerBackend(BaseBackend):
 
         if not self._is_valid_identifier(secret_id):
             raise ResourceNotFoundException
+
+        if 'deleted_date' in self.secrets[secret_id]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the RotateSecret operation: You tried to \
+                perform the operation on a secret that's currently marked deleted."
+            )
 
         if client_request_token:
             token_length = len(client_request_token)
@@ -275,6 +294,76 @@ class SecretsManagerBackend(BaseBackend):
         })
 
         return response
+
+    def list_secrets(self, max_results, next_token):
+        # TODO implement pagination and limits
+
+        secret_list = []
+        for secret in self.secrets.values():
+
+            versions_to_stages = {}
+            for version_id, version in secret['versions'].items():
+                versions_to_stages[version_id] = version['version_stages']
+
+            secret_list.append({
+                "ARN": secret_arn(self.region, secret['secret_id']),
+                "DeletedDate": secret.get('deleted_date', None),
+                "Description": "",
+                "KmsKeyId": "",
+                "LastAccessedDate": None,
+                "LastChangedDate": None,
+                "LastRotatedDate": None,
+                "Name": secret['name'],
+                "RotationEnabled": secret['rotation_enabled'],
+                "RotationLambdaARN": secret['rotation_lambda_arn'],
+                "RotationRules": {
+                    "AutomaticallyAfterDays": secret['auto_rotate_after_days']
+                },
+                "SecretVersionsToStages": versions_to_stages,
+                "Tags": secret['tags']
+            })
+
+        return secret_list, None
+
+    def delete_secret(self, secret_id, recovery_window_in_days, force_delete_without_recovery):
+
+        if not self._is_valid_identifier(secret_id):
+            raise ResourceNotFoundException
+
+        if 'deleted_date' in self.secrets[secret_id]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
+                perform the operation on a secret that's currently marked deleted."
+            )
+
+        if recovery_window_in_days and force_delete_without_recovery:
+            raise InvalidParameterException(
+                "An error occurred (InvalidParameterException) when calling the DeleteSecret operation: You can't \
+                use ForceDeleteWithoutRecovery in conjunction with RecoveryWindowInDays."
+            )
+
+        if recovery_window_in_days and (recovery_window_in_days < 7 or recovery_window_in_days > 30):
+            raise InvalidParameterException(
+                "An error occurred (InvalidParameterException) when calling the DeleteSecret operation: The \
+                RecoveryWindowInDays value must be between 7 and 30 days (inclusive)."
+            )
+
+        deletion_date = datetime.datetime.utcnow()
+
+        if force_delete_without_recovery:
+            secret = self.secrets.pop(secret_id, None)
+        else:
+            deletion_date += datetime.timedelta(days=recovery_window_in_days or 30)
+            self.secrets[secret_id]['deleted_date'] = self._unix_time_secs(deletion_date)
+            secret = self.secrets.get(secret_id, None)
+
+        if not secret:
+            raise ResourceNotFoundException
+
+        arn = secret_arn(self.region, secret['secret_id'])
+        name = secret['name']
+
+        return arn, name, self._unix_time_secs(deletion_date)
 
 
 available_regions = (

@@ -48,7 +48,13 @@ class Policy(BaseModel):
         self.description = description or ''
         self.id = random_policy_id()
         self.path = path or '/'
-        self.default_version_id = default_version_id or 'v1'
+
+        if default_version_id:
+            self.default_version_id = default_version_id
+            self.next_version_num = int(default_version_id.lstrip('v')) + 1
+        else:
+            self.default_version_id = 'v1'
+            self.next_version_num = 2
         self.versions = [PolicyVersion(self.arn, document, True)]
 
         self.create_datetime = datetime.now(pytz.utc)
@@ -716,7 +722,8 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy not found")
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
-        version.version_id = 'v{0}'.format(len(policy.versions))
+        version.version_id = 'v{0}'.format(policy.next_version_num)
+        policy.next_version_num += 1
         if set_as_default:
             policy.default_version_id = version.version_id
         return version
@@ -891,6 +898,18 @@ class IAMBackend(BaseBackend):
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
+
+    def update_user(self, user_name, new_path=None, new_user_name=None):
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise IAMNotFoundException("User {0} not found".format(user_name))
+
+        if new_path:
+            user.path = new_path
+        if new_user_name:
+            user.name = new_user_name
+            self.users[new_user_name] = self.users.pop(user_name)
 
     def list_roles(self, path_prefix, marker, max_items):
         roles = None

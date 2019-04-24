@@ -35,3 +35,10 @@ class ResourceExistsException(SecretsManagerClientError):
             'ResourceExistsException',
             message
         )
+
+
+class InvalidRequestException(SecretsManagerClientError):
+    def __init__(self, message):
+        super(InvalidRequestException, self).__init__(
+            'InvalidRequestException',
+            message)

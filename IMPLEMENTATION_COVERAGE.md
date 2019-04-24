@@ -470,25 +470,25 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 21% implemented
+## cloudformation - 56% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
 - [X] create_stack
-- [ ] create_stack_instances
-- [ ] create_stack_set
+- [X] create_stack_instances
+- [X] create_stack_set
 - [X] delete_change_set
 - [X] delete_stack
-- [ ] delete_stack_instances
-- [ ] delete_stack_set
+- [X] delete_stack_instances
+- [X] delete_stack_set
 - [ ] describe_account_limits
 - [X] describe_change_set
 - [ ] describe_stack_events
-- [ ] describe_stack_instance
+- [X] describe_stack_instance
 - [ ] describe_stack_resource
 - [ ] describe_stack_resources
-- [ ] describe_stack_set
-- [ ] describe_stack_set_operation
+- [X] describe_stack_set
+- [X] describe_stack_set_operation
 - [X] describe_stacks
 - [ ] estimate_template_cost
 - [X] execute_change_set
@@ -498,18 +498,18 @@
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
-- [ ] list_stack_instances
+- [X] list_stack_instances
 - [X] list_stack_resources
-- [ ] list_stack_set_operation_results
-- [ ] list_stack_set_operations
-- [ ] list_stack_sets
+- [X] list_stack_set_operation_results
+- [X] list_stack_set_operations
+- [X] list_stack_sets
 - [X] list_stacks
 - [ ] set_stack_policy
 - [ ] signal_resource
-- [ ] stop_stack_set_operation
+- [X] stop_stack_set_operation
 - [X] update_stack
-- [ ] update_stack_instances
-- [ ] update_stack_set
+- [X] update_stack_instances
+- [X] update_stack_set
 - [ ] update_termination_protection
 - [ ] validate_template
 
@@ -916,7 +916,7 @@
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
 - [ ] update_group
-- [ ] update_identity_provider
+- [x] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
@@ -2334,7 +2334,7 @@
 - [ ] update_service_specific_credential
 - [X] update_signing_certificate
 - [ ] update_ssh_public_key
-- [ ] update_user
+- [X] update_user
 - [X] upload_server_certificate
 - [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
@@ -3654,12 +3654,12 @@
 ## secretsmanager - 33% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
-- [ ] delete_secret
+- [X] delete_secret
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
 - [X] list_secret_version_ids
-- [ ] list_secrets
+- [X] list_secrets
 - [X] put_secret_value
 - [ ] restore_secret
 - [X] rotate_secret
