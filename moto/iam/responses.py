@@ -816,12 +816,12 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
     <Policy>
       <Arn>{{ policy.arn }}</Arn>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+      <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
       <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
       <Path>{{ policy.path }}</Path>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
-      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+      <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>
@@ -839,8 +839,8 @@ GET_POLICY_TEMPLATE = """<GetPolicyResponse>
       <Path>{{ policy.path }}</Path>
       <Arn>{{ policy.arn }}</Arn>
       <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-      <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
-      <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+      <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
+      <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
     </Policy>
   </GetPolicyResult>
   <ResponseMetadata>
@@ -927,12 +927,12 @@ LIST_POLICIES_TEMPLATE = """<ListPoliciesResponse>
       <member>
         <Arn>{{ policy.arn }}</Arn>
         <AttachmentCount>{{ policy.attachment_count }}</AttachmentCount>
-        <CreateDate>{{ policy.create_datetime.isoformat() }}</CreateDate>
+        <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
         <DefaultVersionId>{{ policy.default_version_id }}</DefaultVersionId>
         <Path>{{ policy.path }}</Path>
         <PolicyId>{{ policy.id }}</PolicyId>
         <PolicyName>{{ policy.name }}</PolicyName>
-        <UpdateDate>{{ policy.update_datetime.isoformat() }}</UpdateDate>
+        <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
       </member>
       {% endfor %}
     </Policies>
@@ -956,7 +956,7 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
-      <CreateDate>{{ profile.create_date }}</CreateDate>
+      <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
     </InstanceProfile>
   </CreateInstanceProfileResult>
   <ResponseMetadata>
@@ -975,7 +975,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
           <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
           <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-          <CreateDate>{{ role.create_date }}</CreateDate>
+          <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
           <RoleId>{{ role.id }}</RoleId>
         </member>
         {% endfor %}
@@ -983,7 +983,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
       <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
       <Path>{{ profile.path }}</Path>
       <Arn>{{ profile.arn }}</Arn>
-      <CreateDate>{{ profile.create_date }}</CreateDate>
+      <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
     </InstanceProfile>
   </GetInstanceProfileResult>
   <ResponseMetadata>
@@ -998,7 +998,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <CreateDate>{{ role.create_date }}</CreateDate>
+      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
     </Role>
   </CreateRoleResult>
@@ -1033,7 +1033,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <CreateDate>{{ role.create_date.isoformat() }}</CreateDate>
+      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       {% if role.tags %}
       <Tags>
@@ -1059,7 +1059,7 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-      <CreateDate>{{ role.create_date }}</CreateDate>
+      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       {% if role.tags %}
       <Tags>
@@ -1100,7 +1100,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-        <CreateDate>{{ role.create_date }}</CreateDate>
+        <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
       {% endfor %}
@@ -1131,7 +1131,7 @@ CREATE_POLICY_VERSION_TEMPLATE = """<CreatePolicyVersionResponse xmlns="https://
       <Document>{{ policy_version.document }}</Document>
       <VersionId>{{ policy_version.version_id }}</VersionId>
       <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
-      <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
+      <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
     </PolicyVersion>
   </CreatePolicyVersionResult>
   <ResponseMetadata>
@@ -1145,7 +1145,7 @@ GET_POLICY_VERSION_TEMPLATE = """<GetPolicyVersionResponse xmlns="https://iam.am
       <Document>{{ policy_version.document }}</Document>
       <VersionId>{{ policy_version.version_id }}</VersionId>
       <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
-      <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
+      <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
     </PolicyVersion>
   </GetPolicyVersionResult>
   <ResponseMetadata>
@@ -1162,7 +1162,7 @@ LIST_POLICY_VERSIONS_TEMPLATE = """<ListPolicyVersionsResponse xmlns="https://ia
         <Document>{{ policy_version.document }}</Document>
         <VersionId>{{ policy_version.version_id }}</VersionId>
         <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
-        <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
+        <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
       </member>
       {% endfor %}
     </Versions>
@@ -1186,7 +1186,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
             <Arn>{{ role.arn }}</Arn>
             <RoleName>{{ role.name }}</RoleName>
             <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-            <CreateDate>{{ role.create_date }}</CreateDate>
+            <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
             <RoleId>{{ role.id }}</RoleId>
           </member>
           {% endfor %}
@@ -1194,7 +1194,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
         <InstanceProfileName>{{ instance.name }}</InstanceProfileName>
         <Path>{{ instance.path }}</Path>
         <Arn>{{ instance.arn }}</Arn>
-        <CreateDate>{{ instance.create_date }}</CreateDate>
+        <CreateDate>{{ instance.created_iso_8601 }}</CreateDate>
       </member>
       {% endfor %}
     </InstanceProfiles>
@@ -1273,7 +1273,7 @@ CREATE_GROUP_TEMPLATE = """<CreateGroupResponse>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
          <Arn>{{ group.arn }}</Arn>
-         <CreateDate>{{ group.create_date }}</CreateDate>
+         <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
       </Group>
    </CreateGroupResult>
    <ResponseMetadata>
@@ -1288,7 +1288,7 @@ GET_GROUP_TEMPLATE = """<GetGroupResponse>
          <GroupName>{{ group.name }}</GroupName>
          <GroupId>{{ group.id }}</GroupId>
          <Arn>{{ group.arn }}</Arn>
-         <CreateDate>{{ group.create_date }}</CreateDate>
+         <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
       </Group>
       <Users>
         {% for user in group.users %}
@@ -1495,7 +1495,7 @@ LIST_ACCESS_KEYS_TEMPLATE = """<ListAccessKeysResponse>
             <UserName>{{ user_name }}</UserName>
             <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
             <Status>{{ key.status }}</Status>
-            <CreateDate>{{ key.create_date }}</CreateDate>
+            <CreateDate>{{ key.created_iso_8601 }}</CreateDate>
          </member>
         {% endfor %}
       </AccessKeyMetadata>
@@ -1563,7 +1563,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
-        <CreateDate>{{ role.create_date }}</CreateDate>
+        <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
       {% endfor %}
@@ -1571,7 +1571,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
     <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
     <Path>{{ profile.path }}</Path>
     <Arn>{{ profile.arn }}</Arn>
-    <CreateDate>{{ profile.create_date }}</CreateDate>
+    <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
     </member>
     {% endfor %}
   </InstanceProfiles>
@@ -1690,7 +1690,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <GroupName>{{ group.name }}</GroupName>
         <Path>{{ group.path }}</Path>
         <Arn>{{ group.arn }}</Arn>
-        <CreateDate>{{ group.create_date }}</CreateDate>
+        <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
         <GroupPolicyList>
         {% for policy in group.policies %}
             <member>
@@ -1740,7 +1740,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
                 <Arn>{{ role.arn }}</Arn>
                 <RoleName>{{ role.name }}</RoleName>
                 <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-                <CreateDate>{{ role.create_date }}</CreateDate>
+                <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
                 <RoleId>{{ role.id }}</RoleId>
               </member>
               {% endfor %}
@@ -1748,7 +1748,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
             <InstanceProfileName>{{ profile.name }}</InstanceProfileName>
             <Path>{{ profile.path }}</Path>
             <Arn>{{ profile.arn }}</Arn>
-            <CreateDate>{{ profile.create_date }}</CreateDate>
+            <CreateDate>{{ profile.created_iso_8601 }}</CreateDate>
             </member>
             {% endfor %}
         </InstanceProfileList>
@@ -1756,7 +1756,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
-        <CreateDate>{{ role.create_date }}</CreateDate>
+        <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
     {% endfor %}
@@ -1774,15 +1774,15 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
             <Document>{{ policy_version.document }}</Document>
             <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
             <VersionId>{{ policy_version.version_id }}</VersionId>
-            <CreateDate>{{ policy_version.create_datetime }}</CreateDate>
+            <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
           </member>
         {% endfor %}
         </PolicyVersionList>
         <Arn>{{ policy.arn }}</Arn>
         <AttachmentCount>1</AttachmentCount>
-        <CreateDate>{{ policy.create_datetime }}</CreateDate>
+        <CreateDate>{{ policy.created_iso_8601 }}</CreateDate>
         <IsAttachable>true</IsAttachable>
-        <UpdateDate>{{ policy.update_datetime }}</UpdateDate>
+        <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
       </member>
     {% endfor %}
     </Policies>
