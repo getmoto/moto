@@ -152,11 +152,18 @@ class BaseResponse(_TemplateEnvironmentMixin):
                 for key, value in flat.items():
                     querystring[key] = [value]
             elif self.body:
-                querystring.update(parse_qs(raw_body, keep_blank_values=True))
+                try:
+                    querystring.update(parse_qs(raw_body, keep_blank_values=True))
+                except UnicodeEncodeError:
+                    pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)
 
-        querystring = _decode_dict(querystring)
+        try:
+            querystring = _decode_dict(querystring)
+        except UnicodeDecodeError:
+            pass  # ignore decoding errors, as the body may not contain a legitimate querystring
+
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
