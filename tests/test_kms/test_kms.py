@@ -182,7 +182,6 @@ def test_decrypt():
     conn = boto.kms.connect_to_region('us-west-2')
     response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
     response['Plaintext'].should.equal(b'encryptme')
-    response['KeyId'].should.equal('key_id')
 
 
 @mock_kms_deprecated
@@ -968,6 +967,18 @@ def test_list_key_policies_key_not_found():
     with assert_raises(client.exceptions.NotFoundException):
         client.list_key_policies(
             KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_put_key_policy_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.put_key_policy(
+            KeyId='00000000-0000-0000-0000-000000000000',
+            PolicyName='default',
+            Policy='new policy'
         )
 
 
