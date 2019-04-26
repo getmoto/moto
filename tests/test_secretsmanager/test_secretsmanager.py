@@ -348,6 +348,46 @@ def test_list_secrets():
 
 
 @mock_secretsmanager
+def test_restore_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    conn.delete_secret(SecretId='test-secret')
+
+    described_secret_before = conn.describe_secret(SecretId='test-secret')
+    assert described_secret_before['DeletedDate'] > datetime.fromtimestamp(1, pytz.utc)
+
+    restored_secret = conn.restore_secret(SecretId='test-secret')
+    assert restored_secret['ARN']
+    assert restored_secret['Name'] == 'test-secret'
+
+    described_secret_after = conn.describe_secret(SecretId='test-secret')
+    assert 'DeletedDate' not in described_secret_after
+
+
+@mock_secretsmanager
+def test_restore_secret_that_is_not_deleted():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    restored_secret = conn.restore_secret(SecretId='test-secret')
+    assert restored_secret['ARN']
+    assert restored_secret['Name'] == 'test-secret'
+
+
+@mock_secretsmanager
+def test_restore_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.restore_secret(SecretId='i-dont-exist')
+
+
+@mock_secretsmanager
 def test_rotate_secret():
     secret_name = 'test-secret'
     conn = boto3.client('secretsmanager', region_name='us-west-2')

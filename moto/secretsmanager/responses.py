@@ -86,3 +86,10 @@ class SecretsManagerResponse(BaseResponse):
             force_delete_without_recovery=force_delete_without_recovery,
         )
         return json.dumps(dict(ARN=arn, Name=name, DeletionDate=deletion_date))
+
+    def restore_secret(self):
+        secret_id = self._get_param("SecretId")
+        arn, name = secretsmanager_backends[self.region].restore_secret(
+            secret_id=secret_id,
+        )
+        return json.dumps(dict(ARN=arn, Name=name))

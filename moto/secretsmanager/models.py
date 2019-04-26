@@ -271,6 +271,20 @@ class SecretsManagerBackend(BaseBackend):
 
         return arn, name, self._unix_time_secs(deletion_date)
 
+    def restore_secret(self, secret_id):
+
+        if not self._is_valid_identifier(secret_id):
+            raise ResourceNotFoundException
+
+        self.secrets[secret_id].pop('deleted_date', None)
+
+        secret = self.secrets[secret_id]
+
+        arn = secret_arn(self.region, secret['secret_id'])
+        name = secret['name']
+
+        return arn, name
+
 
 available_regions = (
     boto3.session.Session().get_available_regions("secretsmanager")

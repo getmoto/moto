@@ -3661,7 +3661,7 @@
 - [ ] list_secret_version_ids
 - [x] list_secrets
 - [ ] put_secret_value
-- [ ] restore_secret
+- [X] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource
