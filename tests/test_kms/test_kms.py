@@ -2,8 +2,11 @@ from __future__ import unicode_literals
 import os, re
 import boto3
 import boto.kms
+import botocore.exceptions
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
+
+from moto.kms.exceptions import NotFoundException as MotoNotFoundException
 import sure  # noqa
 from moto import mock_kms, mock_kms_deprecated
 from nose.tools import assert_raises
@@ -127,7 +130,7 @@ def test_enable_key_rotation_via_arn():
 def test_enable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.enable_key_rotation.when.called_with(
-        "not-a-key").should.throw(JSONResponseError)
+        "not-a-key").should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
@@ -142,7 +145,7 @@ def test_enable_key_rotation_with_alias_name_should_fail():
     alias_key['KeyMetadata']['Arn'].should.equal(key['KeyMetadata']['Arn'])
 
     conn.enable_key_rotation.when.called_with(
-        'alias/my-alias').should.throw(JSONResponseError)
+        'alias/my-alias').should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
@@ -179,21 +182,20 @@ def test_decrypt():
     conn = boto.kms.connect_to_region('us-west-2')
     response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
     response['Plaintext'].should.equal(b'encryptme')
-    response['KeyId'].should.equal('key_id')
 
 
 @mock_kms_deprecated
 def test_disable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.disable_key_rotation.when.called_with(
-        "not-a-key").should.throw(JSONResponseError)
+        "not-a-key").should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
 def test_get_key_rotation_status_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
     conn.get_key_rotation_status.when.called_with(
-        "not-a-key").should.throw(JSONResponseError)
+        "not-a-key").should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
@@ -279,7 +281,7 @@ def test_put_key_policy_via_alias_should_not_update():
                       target_key_id=key['KeyMetadata']['KeyId'])
 
     conn.put_key_policy.when.called_with(
-        'alias/my-key-alias', 'default', 'new policy').should.throw(JSONResponseError)
+        'alias/my-key-alias', 'default', 'new policy').should.throw(NotFoundException)
 
     policy = conn.get_key_policy(key['KeyMetadata']['KeyId'], 'default')
     policy['Policy'].should.equal('my policy')
@@ -599,9 +601,9 @@ def test__assert_valid_key_id():
     import uuid
 
     _assert_valid_key_id.when.called_with(
-        "not-a-key").should.throw(JSONResponseError)
+        "not-a-key").should.throw(MotoNotFoundException)
     _assert_valid_key_id.when.called_with(
-        str(uuid.uuid4())).should_not.throw(JSONResponseError)
+        str(uuid.uuid4())).should_not.throw(MotoNotFoundException)
 
 
 @mock_kms_deprecated
@@ -609,9 +611,9 @@ def test__assert_default_policy():
     from moto.kms.responses import _assert_default_policy
 
     _assert_default_policy.when.called_with(
-        "not-default").should.throw(JSONResponseError)
+        "not-default").should.throw(MotoNotFoundException)
     _assert_default_policy.when.called_with(
-        "default").should_not.throw(JSONResponseError)
+        "default").should_not.throw(MotoNotFoundException)
 
 
 @mock_kms
@@ -775,3 +777,208 @@ def test_list_resource_tags():
     response = client.list_resource_tags(KeyId=keyid)
     assert response['Tags'][0]['TagKey'] == 'string'
     assert response['Tags'][0]['TagValue'] == 'string'
+
+
+@mock_kms
+def test_generate_data_key_sizes():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='generate-data-key-size')
+
+    resp1 = client.generate_data_key(
+        KeyId=key['KeyMetadata']['KeyId'],
+        KeySpec='AES_256'
+    )
+    resp2 = client.generate_data_key(
+        KeyId=key['KeyMetadata']['KeyId'],
+        KeySpec='AES_128'
+    )
+    resp3 = client.generate_data_key(
+        KeyId=key['KeyMetadata']['KeyId'],
+        NumberOfBytes=64
+    )
+
+    assert len(resp1['Plaintext']) == 32
+    assert len(resp2['Plaintext']) == 16
+    assert len(resp3['Plaintext']) == 64
+
+
+@mock_kms
+def test_generate_data_key_decrypt():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='generate-data-key-decrypt')
+
+    resp1 = client.generate_data_key(
+        KeyId=key['KeyMetadata']['KeyId'],
+        KeySpec='AES_256'
+    )
+    resp2 = client.decrypt(
+        CiphertextBlob=resp1['CiphertextBlob']
+    )
+
+    assert resp1['Plaintext'] == resp2['Plaintext']
+
+
+@mock_kms
+def test_generate_data_key_invalid_size_params():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='generate-data-key-size')
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        client.generate_data_key(
+            KeyId=key['KeyMetadata']['KeyId'],
+            KeySpec='AES_257'
+        )
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        client.generate_data_key(
+            KeyId=key['KeyMetadata']['KeyId'],
+            KeySpec='AES_128',
+            NumberOfBytes=16
+        )
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        client.generate_data_key(
+            KeyId=key['KeyMetadata']['KeyId'],
+            NumberOfBytes=2048
+        )
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        client.generate_data_key(
+            KeyId=key['KeyMetadata']['KeyId']
+        )
+
+
+@mock_kms
+def test_generate_data_key_invalid_key():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='generate-data-key-size')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.generate_data_key(
+            KeyId='alias/randomnonexistantkey',
+            KeySpec='AES_256'
+        )
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.generate_data_key(
+            KeyId=key['KeyMetadata']['KeyId'] + '4',
+            KeySpec='AES_256'
+        )
+
+
+@mock_kms
+def test_generate_data_key_without_plaintext_decrypt():
+    client = boto3.client('kms', region_name='us-east-1')
+    key = client.create_key(Description='generate-data-key-decrypt')
+
+    resp1 = client.generate_data_key_without_plaintext(
+        KeyId=key['KeyMetadata']['KeyId'],
+        KeySpec='AES_256'
+    )
+
+    assert 'Plaintext' not in resp1
+
+
+@mock_kms
+def test_enable_key_rotation_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.enable_key_rotation(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_disable_key_rotation_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.disable_key_rotation(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_enable_key_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.enable_key(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_disable_key_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.disable_key(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_cancel_key_deletion_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.cancel_key_deletion(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_schedule_key_deletion_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.schedule_key_deletion(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_get_key_rotation_status_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.get_key_rotation_status(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_get_key_policy_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.get_key_policy(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02',
+            PolicyName='default'
+        )
+
+
+@mock_kms
+def test_list_key_policies_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.list_key_policies(
+            KeyId='12366f9b-1230-123d-123e-123e6ae60c02'
+        )
+
+
+@mock_kms
+def test_put_key_policy_key_not_found():
+    client = boto3.client('kms', region_name='us-east-1')
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.put_key_policy(
+            KeyId='00000000-0000-0000-0000-000000000000',
+            PolicyName='default',
+            Policy='new policy'
+        )
+
+
