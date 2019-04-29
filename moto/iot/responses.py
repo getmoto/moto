@@ -139,6 +139,8 @@ class IoTResponse(BaseResponse):
                 createdAt=job.created_at,
                 description=job.description,
                 documentParameters=job.document_parameters,
+                forceCanceled=job.force,
+                reasonCode=job.reason_code,
                 jobArn=job.job_arn,
                 jobExecutionsRolloutConfig=job.job_executions_rollout_config,
                 jobId=job.job_id,
@@ -156,6 +158,8 @@ class IoTResponse(BaseResponse):
 
         self.iot_backend.delete_job(job_id=job_id,
                                     force=force)
+
+        return json.dumps(dict())
 
     def cancel_job(self):
         job_id = self._get_param("jobId")

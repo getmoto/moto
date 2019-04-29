@@ -22,11 +22,6 @@ from .utils import (
 )
 
 
-# "Mock" the AWS credentials as they can't be mocked in Botocore currently
-os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
-os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-
-
 class BaseMockAWS(object):
     nested_count = 0
 

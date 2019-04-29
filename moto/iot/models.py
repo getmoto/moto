@@ -228,12 +228,14 @@ class FakeJob(BaseModel):
         self.targets = targets
         self.document_source = document_source
         self.document = document
+        self.force = False
         self.description = description
         self.presigned_url_config = presigned_url_config
         self.target_selection = target_selection
         self.job_executions_rollout_config = job_executions_rollout_config
         self.status = 'QUEUED'  # IN_PROGRESS | CANCELED | COMPLETED
         self.comment = None
+        self.reason_code = None
         self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
         self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
         self.completed_at = None
@@ -260,9 +262,11 @@ class FakeJob(BaseModel):
             'jobExecutionsRolloutConfig': self.job_executions_rollout_config,
             'status': self.status,
             'comment': self.comment,
+            'forceCanceled': self.force,
+            'reasonCode': self.reason_code,
             'createdAt': self.created_at,
             'lastUpdatedAt': self.last_updated_at,
-            'completedAt': self.completedAt,
+            'completedAt': self.completed_at,
             'jobProcessDetails': self.job_process_details,
             'documentParameters': self.document_parameters,
             'document': self.document,
@@ -806,7 +810,7 @@ class IoTBackend(BaseBackend):
             thing_name = thing_arn.split(':')[-1].split('/')[-1]
             job_execution = FakeJobExecution(job_id, thing_arn)
             self.job_executions[(job_id, thing_name)] = job_execution
-        return job
+        return job.job_arn, job_id, description
 
     def describe_job(self, job_id):
         jobs = [_ for _ in self.jobs.values() if _.job_id == job_id]
@@ -844,6 +848,101 @@ class IoTBackend(BaseBackend):
     def get_job_document(self, job_id):
         return self.jobs[job_id]
 
+    def list_jobs(self, status, target_selection, max_results, token, thing_group_name, thing_group_id):
+        # TODO: implement filters
+        all_jobs = [_.to_dict() for _ in self.jobs.values()]
+        filtered_jobs = all_jobs
+
+        if token is None:
+            jobs = filtered_jobs[0:max_results]
+            next_token = str(max_results) if len(filtered_jobs) > max_results else None
+        else:
+            token = int(token)
+            jobs = filtered_jobs[token:token + max_results]
+            next_token = str(token + max_results) if len(filtered_jobs) > token + max_results else None
+
+        return jobs, next_token
+
+    def describe_job_execution(self, job_id, thing_name, execution_number):
+        try:
+            job_execution = self.job_executions[(job_id, thing_name)]
+        except KeyError:
+            raise ResourceNotFoundException()
+
+        if job_execution is None or \
+                (execution_number is not None and job_execution.execution_number != execution_number):
+            raise ResourceNotFoundException()
+
+        return job_execution
+
+    def cancel_job_execution(self, job_id, thing_name, force, expected_version, status_details):
+        job_execution = self.job_executions[(job_id, thing_name)]
+
+        if job_execution is None:
+            raise ResourceNotFoundException()
+
+        job_execution.force_canceled = force if force is not None else job_execution.force_canceled
+        # TODO: implement expected_version and status_details (at most 10 can be specified)
+
+        if job_execution.status == 'IN_PROGRESS' and force:
+            job_execution.status = 'CANCELED'
+            self.job_executions[(job_id, thing_name)] = job_execution
+        elif job_execution.status != 'IN_PROGRESS':
+            job_execution.status = 'CANCELED'
+            self.job_executions[(job_id, thing_name)] = job_execution
+        else:
+            raise InvalidStateTransitionException()
+
+    def delete_job_execution(self, job_id, thing_name, execution_number, force):
+        job_execution = self.job_executions[(job_id, thing_name)]
+
+        if job_execution.execution_number != execution_number:
+            raise ResourceNotFoundException()
+
+        if job_execution.status == 'IN_PROGRESS' and force:
+            del self.job_executions[(job_id, thing_name)]
+        elif job_execution.status != 'IN_PROGRESS':
+            del self.job_executions[(job_id, thing_name)]
+        else:
+            raise InvalidStateTransitionException()
+
+    def list_job_executions_for_job(self, job_id, status, max_results, next_token):
+        job_executions = [self.job_executions[je].to_dict() for je in self.job_executions if je[0] == job_id]
+
+        if status is not None:
+            job_executions = list(filter(lambda elem:
+                                         status in elem["status"] and
+                                         elem["status"] == status, job_executions))
+
+        token = next_token
+        if token is None:
+            job_executions = job_executions[0:max_results]
+            next_token = str(max_results) if len(job_executions) > max_results else None
+        else:
+            token = int(token)
+            job_executions = job_executions[token:token + max_results]
+            next_token = str(token + max_results) if len(job_executions) > token + max_results else None
+
+        return job_executions, next_token
+
+    def list_job_executions_for_thing(self, thing_name, status, max_results, next_token):
+        job_executions = [self.job_executions[je].to_dict() for je in self.job_executions if je[1] == thing_name]
+
+        if status is not None:
+            job_executions = list(filter(lambda elem:
+                                         status in elem["status"] and
+                                         elem["status"] == status, job_executions))
+
+        token = next_token
+        if token is None:
+            job_executions = job_executions[0:max_results]
+            next_token = str(max_results) if len(job_executions) > max_results else None
+        else:
+            token = int(token)
+            job_executions = job_executions[token:token + max_results]
+            next_token = str(token + max_results) if len(job_executions) > token + max_results else None
+
+        return job_executions, next_token
 
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}
