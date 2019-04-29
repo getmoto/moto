@@ -115,23 +115,39 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict())
 
     def create_job(self):
-        job = self.iot_backend.create_job(
+        job_arn, job_id, description = self.iot_backend.create_job(
             job_id=self._get_param("jobId"),
             targets=self._get_param("targets"),
             description=self._get_param("description"),
             document_source=self._get_param("documentSource"),
             document=self._get_param("document"),
-            presigned_url_config=self._get_param("presignedUrlConfig"),
-            target_selection=self._get_param("targetSelection"),
+            presigned_url_config=self._get_param("presignedUrlConfig"),            target_selection=self._get_param("targetSelection"),
             job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
             document_parameters=self._get_param("documentParameters")
         )
 
-        return json.dumps(job.to_dict())
+        return json.dumps(dict(jobArn=job_arn, jobId=job_id, description=description))
 
     def describe_job(self):
         job = self.iot_backend.describe_job(job_id=self._get_param("jobId"))
-        return json.dumps(dict(documentSource=job.document_source, job=job.to_dict()))
+        return json.dumps(dict(
+            documentSource=job.document_source,
+            job=dict(
+                comment=job.comment,
+                completedAt=job.completed_at,
+                createdAt=job.created_at,
+                description=job.description,
+                documentParameters=job.document_parameters,
+                jobArn=job.job_arn,
+                jobExecutionsRolloutConfig=job.job_executions_rollout_config,
+                jobId=job.job_id,
+                jobProcessDetails=job.job_process_details,
+                lastUpdatedAt=job.last_updated_at,
+                presignedUrlConfig=job.presigned_url_config,
+                status=job.status,
+                targets=job.targets,
+                targetSelection=job.target_selection
+            )))
 
     def delete_job(self):
         job_id = self._get_param("jobId")
@@ -139,8 +155,6 @@ class IoTResponse(BaseResponse):
 
         self.iot_backend.delete_job(job_id=job_id,
                                     force=force)
-
-        return json.dumps(dict())
 
     def cancel_job(self):
         job_id = self._get_param("jobId")
@@ -354,19 +368,10 @@ class IoTResponse(BaseResponse):
 
     def attach_policy(self):
         policy_name = self._get_param("policyName")
-        principal = self._get_param('target')
+        target = self._get_param('target')
         self.iot_backend.attach_policy(
             policy_name=policy_name,
-            target=principal,
-        )
-        return json.dumps(dict())
-
-    def detach_policy(self):
-        policy_name = self._get_param("policyName")
-        principal = self._get_param('target')
-        self.iot_backend.detach_policy(
-            policy_name=policy_name,
-            target=principal,
+            target=target,
         )
         return json.dumps(dict())
 
@@ -387,6 +392,15 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_principal_policy(
             policy_name=policy_name,
             principal_arn=principal,
+        )
+        return json.dumps(dict())
+
+    def detach_policy(self):
+        policy_name = self._get_param("policyName")
+        target = self._get_param('target')
+        self.iot_backend.detach_policy(
+            policy_name=policy_name,
+            target=target,
         )
         return json.dumps(dict())
 
