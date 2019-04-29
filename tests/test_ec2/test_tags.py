@@ -5,6 +5,7 @@ import itertools
 
 import boto
 import boto3
+from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
@@ -451,3 +452,31 @@ def test_create_snapshot_with_tags():
     }]
 
     assert snapshot['Tags'] == expected_tags
+
+
+@mock_ec2
+def test_create_tag_empty_resource():
+    # create ec2 client in us-west-1
+    client = boto3.client('ec2', region_name='us-west-1')
+    # create tag with empty resource
+    with assert_raises(ClientError) as ex:
+        client.create_tags(
+            Resources=[],
+            Tags=[{'Key': 'Value'}]
+        )
+    ex.exception.response['Error']['Code'].should.equal('MissingParameter')
+    ex.exception.response['Error']['Message'].should.equal('The request must contain the parameter resourceIdSet')
+
+
+@mock_ec2
+def test_delete_tag_empty_resource():
+    # create ec2 client in us-west-1
+    client = boto3.client('ec2', region_name='us-west-1')
+    # delete tag with empty resource
+    with assert_raises(ClientError) as ex:
+        client.delete_tags(
+            Resources=[],
+            Tags=[{'Key': 'Value'}]
+        )
+    ex.exception.response['Error']['Code'].should.equal('MissingParameter')
+    ex.exception.response['Error']['Message'].should.equal('The request must contain the parameter resourceIdSet')

@@ -4,6 +4,8 @@ from moto.core.responses import BaseResponse
 
 from .models import secretsmanager_backends
 
+import json
+
 
 class SecretsManagerResponse(BaseResponse):
 
@@ -19,9 +21,11 @@ class SecretsManagerResponse(BaseResponse):
     def create_secret(self):
         name = self._get_param('Name')
         secret_string = self._get_param('SecretString')
+        tags = self._get_param('Tags', if_none=[])
         return secretsmanager_backends[self.region].create_secret(
             name=name,
-            secret_string=secret_string
+            secret_string=secret_string,
+            tags=tags
         )
 
     def get_random_password(self):
@@ -62,3 +66,30 @@ class SecretsManagerResponse(BaseResponse):
             rotation_lambda_arn=rotation_lambda_arn,
             rotation_rules=rotation_rules
         )
+
+    def list_secrets(self):
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        secret_list, next_token = secretsmanager_backends[self.region].list_secrets(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
+
+    def delete_secret(self):
+        secret_id = self._get_param("SecretId")
+        recovery_window_in_days = self._get_param("RecoveryWindowInDays")
+        force_delete_without_recovery = self._get_param("ForceDeleteWithoutRecovery")
+        arn, name, deletion_date = secretsmanager_backends[self.region].delete_secret(
+            secret_id=secret_id,
+            recovery_window_in_days=recovery_window_in_days,
+            force_delete_without_recovery=force_delete_without_recovery,
+        )
+        return json.dumps(dict(ARN=arn, Name=name, DeletionDate=deletion_date))
+
+    def restore_secret(self):
+        secret_id = self._get_param("SecretId")
+        arn, name = secretsmanager_backends[self.region].restore_secret(
+            secret_id=secret_id,
+        )
+        return json.dumps(dict(ARN=arn, Name=name))

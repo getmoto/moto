@@ -2,8 +2,8 @@
 
 [![Join the chat at https://gitter.im/awsmoto/Lobby](https://badges.gitter.im/awsmoto/Lobby.svg)](https://gitter.im/awsmoto/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://travis-ci.org/spulec/moto.png?branch=master)](https://travis-ci.org/spulec/moto)
-[![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.png?branch=master)](https://coveralls.io/r/spulec/moto)
+[![Build Status](https://travis-ci.org/spulec/moto.svg?branch=master)](https://travis-ci.org/spulec/moto)
+[![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.svg?branch=master)](https://coveralls.io/r/spulec/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 
 # In a nutshell
@@ -70,9 +70,11 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |------------------------------------------------------------------------------|
 | CloudwatchEvents      | @mock_events     | all endpoints done                |
 |------------------------------------------------------------------------------|
-| Cognito Identity      | @mock_cognitoidentity| basic endpoints done           |
+| Cognito Identity      | @mock_cognitoidentity| basic endpoints done          |
 |------------------------------------------------------------------------------|
 | Cognito Identity Provider | @mock_cognitoidp| basic endpoints done           |
+|------------------------------------------------------------------------------|
+| Config | @mock_config | basic endpoints done                                 |
 |------------------------------------------------------------------------------|
 | Data Pipeline         | @mock_datapipeline| basic endpoints done             |
 |------------------------------------------------------------------------------|
@@ -259,7 +261,7 @@ It uses flask, which isn't a default dependency. You can install the
 server 'extra' package with:
 
 ```python
-pip install moto[server]
+pip install "moto[server]"
 ```
 
 You can then start it running a service:

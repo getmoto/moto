@@ -1,4 +1,3 @@
-
 ## acm - 41% implemented
 - [X] add_tags_to_certificate
 - [X] delete_certificate

@@ -1,14 +1,20 @@
 from __future__ import unicode_literals
 import base64
+import sys
 from datetime import datetime
 import json
+import re
+
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 
 import pytz
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
+    DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 ACCOUNT_ID = 123456789012
@@ -28,7 +34,6 @@ class MFADevice(object):
 
 
 class Policy(BaseModel):
-
     is_attachable = False
 
     def __init__(self,
@@ -43,11 +48,27 @@ class Policy(BaseModel):
         self.description = description or ''
         self.id = random_policy_id()
         self.path = path or '/'
-        self.default_version_id = default_version_id or 'v1'
+
+        if default_version_id:
+            self.default_version_id = default_version_id
+            self.next_version_num = int(default_version_id.lstrip('v')) + 1
+        else:
+            self.default_version_id = 'v1'
+            self.next_version_num = 2
         self.versions = [PolicyVersion(self.arn, document, True)]
 
         self.create_datetime = datetime.now(pytz.utc)
         self.update_datetime = datetime.now(pytz.utc)
+
+
+class SAMLProvider(BaseModel):
+    def __init__(self, name, saml_metadata_document=None):
+        self.name = name
+        self.saml_metadata_document = saml_metadata_document
+
+    @property
+    def arn(self):
+        return "arn:aws:iam::{0}:saml-provider/{1}".format(ACCOUNT_ID, self.name)
 
 
 class PolicyVersion(object):
@@ -114,9 +135,12 @@ class Role(BaseModel):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
-        self.path = path
+        self.path = path or '/'
         self.policies = {}
         self.managed_policies = {}
+        self.create_date = datetime.now(pytz.utc)
+        self.tags = {}
+        self.description = ""
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -160,14 +184,18 @@ class Role(BaseModel):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
+    def get_tags(self):
+        return [self.tags[tag] for tag in self.tags]
+
 
 class InstanceProfile(BaseModel):
 
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
         self.name = name
-        self.path = path
+        self.path = path or '/'
         self.roles = roles if roles else []
+        self.create_date = datetime.now(pytz.utc)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -191,7 +219,7 @@ class InstanceProfile(BaseModel):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
 
@@ -213,6 +241,16 @@ class Certificate(BaseModel):
         return "arn:aws:iam::{0}:server-certificate{1}{2}".format(ACCOUNT_ID, self.path, self.cert_name)
 
 
+class SigningCertificate(BaseModel):
+
+    def __init__(self, id, user_name, body):
+        self.id = id
+        self.user_name = user_name
+        self.body = body
+        self.upload_date = datetime.strftime(datetime.utcnow(), "%Y-%m-%d-%H-%M-%S")
+        self.status = 'Active'
+
+
 class AccessKey(BaseModel):
 
     def __init__(self, user_name):
@@ -221,6 +259,10 @@ class AccessKey(BaseModel):
         self.secret_access_key = random_alphanumeric(32)
         self.status = 'Active'
         self.create_date = datetime.strftime(
+            datetime.utcnow(),
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        self.last_used = datetime.strftime(
             datetime.utcnow(),
             "%Y-%m-%dT%H:%M:%SZ"
         )
@@ -297,6 +339,7 @@ class User(BaseModel):
         self.access_keys = []
         self.password = None
         self.password_reset_required = False
+        self.signing_certificates = {}
 
     @property
     def arn(self):
@@ -352,21 +395,20 @@ class User(BaseModel):
         return self.access_keys
 
     def delete_access_key(self, access_key_id):
-        for key in self.access_keys:
-            if key.access_key_id == access_key_id:
-                self.access_keys.remove(key)
-                break
-        else:
-            raise IAMNotFoundException(
-                "Key {0} not found".format(access_key_id))
+        key = self.get_access_key_by_id(access_key_id)
+        self.access_keys.remove(key)
 
     def update_access_key(self, access_key_id, status):
+        key = self.get_access_key_by_id(access_key_id)
+        key.status = status
+
+    def get_access_key_by_id(self, access_key_id):
         for key in self.access_keys:
             if key.access_key_id == access_key_id:
-                key.status = status
-                break
+                return key
         else:
-            raise IAMNotFoundException("The Access Key with id {0} cannot be found".format(access_key_id))
+            raise IAMNotFoundException(
+                "The Access Key with id {0} cannot be found".format(access_key_id))
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -427,6 +469,7 @@ class IAMBackend(BaseBackend):
         self.credential_report = None
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
+        self.saml_providers = {}
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -436,6 +479,16 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         policy = arns[policy_arn]
         policy.attach_to(self.get_role(role_name))
+
+    def update_role_description(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
+        return role
+
+    def update_role(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
+        return role
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -583,13 +636,94 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         return role.policies.keys()
 
+    def _validate_tag_key(self, tag_key, exception_param='tags.X.member.key'):
+        """Validates the tag key.
+
+        :param all_tags: Dict to check if there is a duplicate tag.
+        :param tag_key: The tag key to check against.
+        :param exception_param: The exception parameter to send over to help format the message. This is to reflect
+                                the difference between the tag and untag APIs.
+        :return:
+        """
+        # Validate that the key length is correct:
+        if len(tag_key) > 128:
+            raise TagKeyTooBig(tag_key, param=exception_param)
+
+        # Validate that the tag key fits the proper Regex:
+        # [\w\s_.:/=+\-@]+ SHOULD be the same as the Java regex on the AWS documentation: [\p{L}\p{Z}\p{N}_.:/=+\-@]+
+        match = re.findall(r'[\w\s_.:/=+\-@]+', tag_key)
+        # Kudos if you can come up with a better way of doing a global search :)
+        if not len(match) or len(match[0]) < len(tag_key):
+            raise InvalidTagCharacters(tag_key, param=exception_param)
+
+    def _check_tag_duplicate(self, all_tags, tag_key):
+        """Validates that a tag key is not a duplicate
+
+        :param all_tags: Dict to check if there is a duplicate tag.
+        :param tag_key: The tag key to check against.
+        :return:
+        """
+        if tag_key in all_tags:
+            raise DuplicateTags()
+
+    def list_role_tags(self, role_name, marker, max_items=100):
+        role = self.get_role(role_name)
+
+        max_items = int(max_items)
+        tag_index = sorted(role.tags)
+        start_idx = int(marker) if marker else 0
+
+        tag_index = tag_index[start_idx:start_idx + max_items]
+
+        if len(role.tags) <= (start_idx + max_items):
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        # Make the tag list of dict's:
+        tags = [role.tags[tag] for tag in tag_index]
+
+        return tags, marker
+
+    def tag_role(self, role_name, tags):
+        if len(tags) > 50:
+            raise TooManyTags(tags)
+
+        role = self.get_role(role_name)
+
+        tag_keys = {}
+        for tag in tags:
+            # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
+            ref_key = tag['Key'].lower()
+            self._check_tag_duplicate(tag_keys, ref_key)
+            self._validate_tag_key(tag['Key'])
+            if len(tag['Value']) > 256:
+                raise TagValueTooBig(tag['Value'])
+
+            tag_keys[ref_key] = tag
+
+        role.tags.update(tag_keys)
+
+    def untag_role(self, role_name, tag_keys):
+        if len(tag_keys) > 50:
+            raise TooManyTags(tag_keys, param='tagKeys')
+
+        role = self.get_role(role_name)
+
+        for key in tag_keys:
+            ref_key = key.lower()
+            self._validate_tag_key(key, exception_param='tagKeys')
+
+            role.tags.pop(ref_key, None)
+
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
-        version.version_id = 'v{0}'.format(len(policy.versions))
+        version.version_id = 'v{0}'.format(policy.next_version_num)
+        policy.next_version_num += 1
         if set_as_default:
             policy.default_version_id = version.version_id
         return version
@@ -765,6 +899,70 @@ class IAMBackend(BaseBackend):
 
         return users
 
+    def update_user(self, user_name, new_path=None, new_user_name=None):
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise IAMNotFoundException("User {0} not found".format(user_name))
+
+        if new_path:
+            user.path = new_path
+        if new_user_name:
+            user.name = new_user_name
+            self.users[new_user_name] = self.users.pop(user_name)
+
+    def list_roles(self, path_prefix, marker, max_items):
+        roles = None
+        try:
+            roles = self.roles.values()
+        except KeyError:
+            raise IAMNotFoundException(
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+
+        return roles
+
+    def upload_signing_certificate(self, user_name, body):
+        user = self.get_user(user_name)
+        cert_id = random_resource_id(size=32)
+
+        # Validate the signing cert:
+        try:
+            if sys.version_info < (3, 0):
+                data = bytes(body)
+            else:
+                data = bytes(body, 'utf8')
+
+            x509.load_pem_x509_certificate(data, default_backend())
+
+        except Exception:
+            raise MalformedCertificate(body)
+
+        user.signing_certificates[cert_id] = SigningCertificate(cert_id, user_name, body)
+
+        return user.signing_certificates[cert_id]
+
+    def delete_signing_certificate(self, user_name, cert_id):
+        user = self.get_user(user_name)
+
+        try:
+            del user.signing_certificates[cert_id]
+        except KeyError:
+            raise IAMNotFoundException("The Certificate with id {id} cannot be found.".format(id=cert_id))
+
+    def list_signing_certificates(self, user_name):
+        user = self.get_user(user_name)
+
+        return list(user.signing_certificates.values())
+
+    def update_signing_certificate(self, user_name, cert_id, status):
+        user = self.get_user(user_name)
+
+        try:
+            user.signing_certificates[cert_id].status = status
+
+        except KeyError:
+            raise IAMNotFoundException("The Certificate with id {id} cannot be found.".format(id=cert_id))
+
     def create_login_profile(self, user_name, password):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
@@ -837,6 +1035,24 @@ class IAMBackend(BaseBackend):
     def update_access_key(self, user_name, access_key_id, status):
         user = self.get_user(user_name)
         user.update_access_key(access_key_id, status)
+
+    def get_access_key_last_used(self, access_key_id):
+        access_keys_list = self.get_all_access_keys_for_all_users()
+        for key in access_keys_list:
+            if key.access_key_id == access_key_id:
+                return {
+                    'user_name': key.user_name,
+                    'last_used': key.last_used
+                }
+        else:
+            raise IAMNotFoundException(
+                "The Access Key with id {0} cannot be found".format(access_key_id))
+
+    def get_all_access_keys_for_all_users(self):
+        access_keys_list = []
+        for user_name in self.users:
+            access_keys_list += self.get_all_access_keys(user_name)
+        return access_keys_list
 
     def get_all_access_keys(self, user_name, marker=None, max_items=None):
         user = self.get_user(user_name)
@@ -936,6 +1152,34 @@ class IAMBackend(BaseBackend):
             'users': self.users.values() if 'User' in filter else [],
             'managed_policies': returned_policies
         }
+
+    def create_saml_provider(self, name, saml_metadata_document):
+        saml_provider = SAMLProvider(name, saml_metadata_document)
+        self.saml_providers[name] = saml_provider
+        return saml_provider
+
+    def update_saml_provider(self, saml_provider_arn, saml_metadata_document):
+        saml_provider = self.get_saml_provider(saml_provider_arn)
+        saml_provider.saml_metadata_document = saml_metadata_document
+        return saml_provider
+
+    def delete_saml_provider(self, saml_provider_arn):
+        try:
+            for saml_provider in list(self.list_saml_providers()):
+                if saml_provider.arn == saml_provider_arn:
+                    del self.saml_providers[saml_provider.name]
+        except KeyError:
+            raise IAMNotFoundException(
+                "SAMLProvider {0} not found".format(saml_provider_arn))
+
+    def list_saml_providers(self):
+        return self.saml_providers.values()
+
+    def get_saml_provider(self, saml_provider_arn):
+        for saml_provider in self.list_saml_providers():
+            if saml_provider.arn == saml_provider_arn:
+                return saml_provider
+        raise IAMNotFoundException("SamlProvider {0} not found".format(saml_provider_arn))
 
 
 iam_backend = IAMBackend()

@@ -244,7 +244,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <reason/>
           <keyName>{{ instance.key_name }}</keyName>
           <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
-          <amiLaunchIndex>0</amiLaunchIndex>
+          <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
           <placement>
@@ -384,7 +384,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <reason>{{ instance._reason }}</reason>
                     <keyName>{{ instance.key_name }}</keyName>
                     <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
-                    <amiLaunchIndex>0</amiLaunchIndex>
+                    <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
@@ -450,6 +450,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
+                    {% if instance.get_tags() %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
                         <item>
@@ -460,6 +461,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                         </item>
                       {% endfor %}
                     </tagSet>
+                    {% endif %}
                     <hypervisor>xen</hypervisor>
                     <networkInterfaceSet>
                       {% for nic in instance.nics.values() %}

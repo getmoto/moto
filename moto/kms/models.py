@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -21,6 +22,7 @@ class Key(BaseModel):
         self.account_id = "0123456789012"
         self.key_rotation_status = False
         self.deletion_date = None
+        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -35,7 +37,7 @@ class Key(BaseModel):
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": "2015-01-01 00:00:00",
+                "CreationDate": datetime.strftime(datetime.utcnow(), "%s"),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
@@ -63,7 +65,6 @@ class Key(BaseModel):
         )
         key.key_rotation_status = properties['EnableKeyRotation']
         key.enabled = properties['Enabled']
-
         return key
 
     def get_cfn_attribute(self, attribute_name):
@@ -83,6 +84,18 @@ class KmsBackend(BaseBackend):
         key = Key(policy, key_usage, description, region)
         self.keys[key.id] = key
         return key
+
+    def update_key_description(self, key_id, description):
+        key = self.keys[self.get_key_id(key_id)]
+        key.description = description
+
+    def tag_resource(self, key_id, tags):
+        key = self.keys[self.get_key_id(key_id)]
+        key.tags = tags
+
+    def list_resource_tags(self, key_id):
+        key = self.keys[self.get_key_id(key_id)]
+        return key.tags
 
     def delete_key(self, key_id):
         if key_id in self.keys:
@@ -147,27 +160,38 @@ class KmsBackend(BaseBackend):
         return self.keys[self.get_key_id(key_id)].policy
 
     def disable_key(self, key_id):
-        if key_id in self.keys:
-            self.keys[key_id].enabled = False
-            self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].enabled = False
+        self.keys[key_id].key_state = 'Disabled'
 
     def enable_key(self, key_id):
-        if key_id in self.keys:
-            self.keys[key_id].enabled = True
-            self.keys[key_id].key_state = 'Enabled'
+        self.keys[key_id].enabled = True
+        self.keys[key_id].key_state = 'Enabled'
 
     def cancel_key_deletion(self, key_id):
-        if key_id in self.keys:
-            self.keys[key_id].key_state = 'Disabled'
-            self.keys[key_id].deletion_date = None
+        self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].deletion_date = None
 
     def schedule_key_deletion(self, key_id, pending_window_in_days):
-        if key_id in self.keys:
-            if 7 <= pending_window_in_days <= 30:
-                self.keys[key_id].enabled = False
-                self.keys[key_id].key_state = 'PendingDeletion'
-                self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
-                return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+        if 7 <= pending_window_in_days <= 30:
+            self.keys[key_id].enabled = False
+            self.keys[key_id].key_state = 'PendingDeletion'
+            self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
+            return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+
+    def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens):
+        key = self.keys[self.get_key_id(key_id)]
+
+        if key_spec:
+            if key_spec == 'AES_128':
+                bytes = 16
+            else:
+                bytes = 32
+        else:
+            bytes = number_of_bytes
+
+        plaintext = os.urandom(bytes)
+
+        return plaintext, key.arn
 
 
 kms_backends = {}
