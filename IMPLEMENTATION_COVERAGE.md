@@ -1,3 +1,4 @@
+
 ## acm - 41% implemented
 - [X] add_tags_to_certificate
 - [X] delete_certificate
@@ -440,7 +441,7 @@
 - [ ] start_query_execution
 - [ ] stop_query_execution
 
-## autoscaling - 42% implemented
+## autoscaling - 44% implemented
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
 - [X] attach_load_balancers
@@ -491,7 +492,7 @@
 - [ ] resume_processes
 - [X] set_desired_capacity
 - [X] set_instance_health
-- [ ] set_instance_protection
+- [X] set_instance_protection
 - [X] suspend_processes
 - [ ] terminate_instance_in_auto_scaling_group
 - [X] update_auto_scaling_group
@@ -645,19 +646,19 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 20% implemented
+## cloudformation - 40% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
 - [X] create_stack
-- [ ] create_stack_instances
-- [ ] create_stack_set
-- [ ] delete_change_set
+- [X] create_stack_instances
+- [X] create_stack_set
+- [X] delete_change_set
 - [X] delete_stack
-- [ ] delete_stack_instances
-- [ ] delete_stack_set
+- [X] delete_stack_instances
+- [X] delete_stack_set
 - [ ] describe_account_limits
-- [ ] describe_change_set
+- [X] describe_change_set
 - [ ] describe_stack_drift_detection_status
 - [ ] describe_stack_events
 - [ ] describe_stack_instance
@@ -674,7 +675,7 @@
 - [ ] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
-- [ ] list_change_sets
+- [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
 - [ ] list_stack_instances
@@ -688,9 +689,9 @@
 - [ ] stop_stack_set_operation
 - [X] update_stack
 - [ ] update_stack_instances
-- [ ] update_stack_set
+- [X] update_stack_set
 - [ ] update_termination_protection
-- [ ] validate_template
+- [X] validate_template
 
 ## cloudfront - 0% implemented
 - [ ] create_cloud_front_origin_access_identity
@@ -1023,9 +1024,9 @@
 - [ ] unlink_identity
 - [ ] update_identity_pool
 
-## cognito-idp - 27% implemented
+## cognito-idp - 36% implemented
 - [ ] add_custom_attributes
-- [ ] admin_add_user_to_group
+- [X] admin_add_user_to_group
 - [ ] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
@@ -1039,9 +1040,9 @@
 - [X] admin_initiate_auth
 - [ ] admin_link_provider_for_user
 - [ ] admin_list_devices
-- [ ] admin_list_groups_for_user
+- [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
-- [ ] admin_remove_user_from_group
+- [X] admin_remove_user_from_group
 - [ ] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
@@ -1055,14 +1056,14 @@
 - [ ] confirm_device
 - [X] confirm_forgot_password
 - [ ] confirm_sign_up
-- [ ] create_group
+- [X] create_group
 - [X] create_identity_provider
 - [ ] create_resource_server
 - [ ] create_user_import_job
 - [X] create_user_pool
 - [X] create_user_pool_client
 - [X] create_user_pool_domain
-- [ ] delete_group
+- [X] delete_group
 - [X] delete_identity_provider
 - [ ] delete_resource_server
 - [ ] delete_user
@@ -1081,7 +1082,7 @@
 - [ ] forgot_password
 - [ ] get_csv_header
 - [ ] get_device
-- [ ] get_group
+- [X] get_group
 - [ ] get_identity_provider_by_identifier
 - [ ] get_signing_certificate
 - [ ] get_ui_customization
@@ -1091,14 +1092,14 @@
 - [ ] global_sign_out
 - [ ] initiate_auth
 - [ ] list_devices
-- [ ] list_groups
+- [X] list_groups
 - [X] list_identity_providers
 - [ ] list_resource_servers
 - [ ] list_user_import_jobs
 - [X] list_user_pool_clients
 - [X] list_user_pools
 - [X] list_users
-- [ ] list_users_in_group
+- [X] list_users_in_group
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
 - [ ] set_risk_configuration
@@ -1112,7 +1113,7 @@
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
 - [ ] update_group
-- [ ] update_identity_provider
+- [X] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
@@ -1188,14 +1189,14 @@
 - [ ] detect_entities
 - [ ] detect_phi
 
-## config - 0% implemented
+## config - 19% implemented
 - [ ] batch_get_aggregate_resource_config
 - [ ] batch_get_resource_config
 - [ ] delete_aggregation_authorization
 - [ ] delete_config_rule
 - [ ] delete_configuration_aggregator
-- [ ] delete_configuration_recorder
-- [ ] delete_delivery_channel
+- [X] delete_configuration_recorder
+- [X] delete_delivery_channel
 - [ ] delete_evaluation_results
 - [ ] delete_pending_aggregation_request
 - [ ] delete_retention_configuration
@@ -1208,10 +1209,10 @@
 - [ ] describe_config_rules
 - [ ] describe_configuration_aggregator_sources_status
 - [ ] describe_configuration_aggregators
-- [ ] describe_configuration_recorder_status
-- [ ] describe_configuration_recorders
+- [X] describe_configuration_recorder_status
+- [X] describe_configuration_recorders
 - [ ] describe_delivery_channel_status
-- [ ] describe_delivery_channels
+- [X] describe_delivery_channels
 - [ ] describe_pending_aggregation_requests
 - [ ] describe_retention_configurations
 - [ ] get_aggregate_compliance_details_by_config_rule
@@ -1229,13 +1230,13 @@
 - [ ] put_aggregation_authorization
 - [ ] put_config_rule
 - [ ] put_configuration_aggregator
-- [ ] put_configuration_recorder
-- [ ] put_delivery_channel
+- [X] put_configuration_recorder
+- [X] put_delivery_channel
 - [ ] put_evaluations
 - [ ] put_retention_configuration
 - [ ] start_config_rules_evaluation
-- [ ] start_configuration_recorder
-- [ ] stop_configuration_recorder
+- [X] start_configuration_recorder
+- [X] stop_configuration_recorder
 
 ## connect - 0% implemented
 - [ ] create_user
@@ -1616,11 +1617,11 @@
 - [ ] update_table
 - [ ] update_time_to_live
 
-## dynamodbstreams - 0% implemented
-- [ ] describe_stream
-- [ ] get_records
-- [ ] get_shard_iterator
-- [ ] list_streams
+## dynamodbstreams - 100% implemented
+- [X] describe_stream
+- [X] get_records
+- [X] get_shard_iterator
+- [X] list_streams
 
 ## ec2 - 30% implemented
 - [ ] accept_reserved_instances_exchange_quote
@@ -2684,7 +2685,7 @@
 - [ ] describe_event_types
 - [ ] describe_events
 
-## iam - 43% implemented
+## iam - 56% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -2701,7 +2702,7 @@
 - [X] create_policy
 - [X] create_policy_version
 - [X] create_role
-- [ ] create_saml_provider
+- [X] create_saml_provider
 - [ ] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
@@ -2720,11 +2721,11 @@
 - [X] delete_role
 - [ ] delete_role_permissions_boundary
 - [X] delete_role_policy
-- [ ] delete_saml_provider
+- [X] delete_saml_provider
 - [X] delete_server_certificate
 - [ ] delete_service_linked_role
 - [ ] delete_service_specific_credential
-- [ ] delete_signing_certificate
+- [X] delete_signing_certificate
 - [ ] delete_ssh_public_key
 - [X] delete_user
 - [ ] delete_user_permissions_boundary
@@ -2736,7 +2737,7 @@
 - [X] enable_mfa_device
 - [ ] generate_credential_report
 - [ ] generate_service_last_accessed_details
-- [ ] get_access_key_last_used
+- [X] get_access_key_last_used
 - [X] get_account_authorization_details
 - [ ] get_account_password_policy
 - [ ] get_account_summary
@@ -2752,7 +2753,7 @@
 - [X] get_policy_version
 - [X] get_role
 - [X] get_role_policy
-- [ ] get_saml_provider
+- [X] get_saml_provider
 - [X] get_server_certificate
 - [ ] get_service_last_accessed_details
 - [ ] get_service_last_accessed_details_with_entities
@@ -2777,12 +2778,12 @@
 - [ ] list_policies_granting_service_access
 - [X] list_policy_versions
 - [X] list_role_policies
-- [ ] list_role_tags
-- [ ] list_roles
-- [ ] list_saml_providers
+- [X] list_role_tags
+- [X] list_roles
+- [X] list_saml_providers
 - [ ] list_server_certificates
 - [ ] list_service_specific_credentials
-- [ ] list_signing_certificates
+- [X] list_signing_certificates
 - [ ] list_ssh_public_keys
 - [X] list_user_policies
 - [ ] list_user_tags
@@ -2801,9 +2802,9 @@
 - [ ] set_default_policy_version
 - [ ] simulate_custom_policy
 - [ ] simulate_principal_policy
-- [ ] tag_role
+- [X] tag_role
 - [ ] tag_user
-- [ ] untag_role
+- [X] untag_role
 - [ ] untag_user
 - [X] update_access_key
 - [ ] update_account_password_policy
@@ -2811,16 +2812,16 @@
 - [ ] update_group
 - [X] update_login_profile
 - [ ] update_open_id_connect_provider_thumbprint
-- [ ] update_role
-- [ ] update_role_description
-- [ ] update_saml_provider
+- [X] update_role
+- [X] update_role_description
+- [X] update_saml_provider
 - [ ] update_server_certificate
 - [ ] update_service_specific_credential
-- [ ] update_signing_certificate
+- [X] update_signing_certificate
 - [ ] update_ssh_public_key
-- [ ] update_user
+- [X] update_user
 - [ ] upload_server_certificate
-- [ ] upload_signing_certificate
+- [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
 
 ## importexport - 0% implemented
@@ -3213,7 +3214,7 @@
 - [ ] update_data_retention
 - [ ] update_stream
 
-## kms - 31% implemented
+## kms - 41% implemented
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
 - [ ] create_alias
@@ -3232,7 +3233,7 @@
 - [X] enable_key
 - [X] enable_key_rotation
 - [ ] encrypt
-- [ ] generate_data_key
+- [X] generate_data_key
 - [ ] generate_data_key_without_plaintext
 - [ ] generate_random
 - [X] get_key_policy
@@ -3243,18 +3244,18 @@
 - [ ] list_grants
 - [ ] list_key_policies
 - [X] list_keys
-- [ ] list_resource_tags
+- [X] list_resource_tags
 - [ ] list_retirable_grants
 - [X] put_key_policy
 - [ ] re_encrypt
 - [ ] retire_grant
 - [ ] revoke_grant
 - [X] schedule_key_deletion
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] untag_resource
 - [ ] update_alias
 - [ ] update_custom_key_store
-- [ ] update_key_description
+- [X] update_key_description
 
 ## lambda - 0% implemented
 - [ ] add_layer_version_permission
@@ -4702,20 +4703,20 @@
 - [ ] put_attributes
 - [ ] select
 
-## secretsmanager - 27% implemented
+## secretsmanager - 44% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
 - [ ] delete_resource_policy
-- [ ] delete_secret
+- [X] delete_secret
 - [X] describe_secret
 - [X] get_random_password
 - [ ] get_resource_policy
 - [X] get_secret_value
 - [ ] list_secret_version_ids
-- [ ] list_secrets
+- [X] list_secrets
 - [ ] put_resource_policy
 - [ ] put_secret_value
-- [ ] restore_secret
+- [X] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource
