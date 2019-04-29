@@ -944,5 +944,6 @@ class IoTBackend(BaseBackend):
 
         return job_executions, next_token
 
+
 available_regions = boto3.session.Session().get_available_regions("iot")
 iot_backends = {region: IoTBackend(region) for region in available_regions}
