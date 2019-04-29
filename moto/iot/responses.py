@@ -121,7 +121,8 @@ class IoTResponse(BaseResponse):
             description=self._get_param("description"),
             document_source=self._get_param("documentSource"),
             document=self._get_param("document"),
-            presigned_url_config=self._get_param("presignedUrlConfig"),            target_selection=self._get_param("targetSelection"),
+            presigned_url_config=self._get_param("presignedUrlConfig"),
+            target_selection=self._get_param("targetSelection"),
             job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
             document_parameters=self._get_param("documentParameters")
         )
