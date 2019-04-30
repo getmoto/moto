@@ -206,7 +206,7 @@ class SNSBackend(BaseBackend):
             return candidate_topic
 
     def _get_values_nexttoken(self, values_map, next_token=None):
-        if next_token is None:
+        if next_token is None or not next_token:
             next_token = 0
         next_token = int(next_token)
         values = list(values_map.values())[
