@@ -163,7 +163,8 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_services(self):
         cluster_str = self._get_param('cluster')
-        service_arns = self.ecs_backend.list_services(cluster_str)
+        scheduling_strategy = self._get_param('schedulingStrategy')
+        service_arns = self.ecs_backend.list_services(cluster_str, scheduling_strategy)
         return json.dumps({
             'serviceArns': service_arns
             # ,

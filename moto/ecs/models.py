@@ -699,12 +699,15 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return service
 
-    def list_services(self, cluster_str):
+    def list_services(self, cluster_str, scheduling_strategy=None):
         cluster_name = cluster_str.split('/')[-1]
         service_arns = []
         for key, value in self.services.items():
             if cluster_name + ':' in key:
-                service_arns.append(self.services[key].arn)
+                service = self.services[key]
+                if scheduling_strategy is None or service.scheduling_strategy == scheduling_strategy:
+                    service_arns.append(service.arn)
+
         return sorted(service_arns)
 
     def describe_services(self, cluster_str, service_names_or_arns):
