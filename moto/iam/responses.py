@@ -1110,6 +1110,12 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.create_date }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
+        {% if role.permissions_boundary %}
+        <PermissionsBoundary>
+          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+        </PermissionsBoundary>
+        {% endif %}
       </member>
       {% endfor %}
     </Roles>

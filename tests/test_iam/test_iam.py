@@ -1303,3 +1303,6 @@ def test_create_role_with_permissions_boundary():
         'PermissionsBoundaryArn': boundary
     }
     resp.get('Role').get('PermissionsBoundary').should.equal(expected)
+
+    # Ensure the PermissionsBoundary is included in role listing as well
+    conn.list_roles().get('Roles')[0].get('PermissionsBoundary').should.equal(expected)
