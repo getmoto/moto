@@ -151,7 +151,7 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
-            permissions_boundary=properties.get('PermissionsBoundary','')
+            permissions_boundary=properties.get('PermissionsBoundary', '')
         )
 
         policies = properties.get('Policies', [])
