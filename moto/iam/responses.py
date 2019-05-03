@@ -175,9 +175,11 @@ class IamResponse(BaseResponse):
         path = self._get_param('Path')
         assume_role_policy_document = self._get_param(
             'AssumeRolePolicyDocument')
+        permissions_boundary = self._get_param(
+            'PermissionsBoundary')
 
         role = iam_backend.create_role(
-            role_name, assume_role_policy_document, path)
+            role_name, assume_role_policy_document, path, permissions_boundary)
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -1000,6 +1002,12 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>{{ role.create_date }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      {% if role.permissions_boundary %}
+      <PermissionsBoundary>
+          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+      </PermissionsBoundary>
+      {% endif %}
     </Role>
   </CreateRoleResult>
   <ResponseMetadata>

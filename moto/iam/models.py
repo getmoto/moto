@@ -131,7 +131,7 @@ class InlinePolicy(Policy):
 
 class Role(BaseModel):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path):
+    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -141,6 +141,7 @@ class Role(BaseModel):
         self.create_date = datetime.now(pytz.utc)
         self.tags = {}
         self.description = ""
+        self.permissions_boundary = permissions_boundary
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -150,6 +151,7 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
+            permissions_boundary=properties.get('PermissionsBoundary','')
         )
 
         policies = properties.get('Policies', [])
@@ -587,9 +589,9 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path):
+    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path)
+        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
         self.roles[role_id] = role
         return role
 

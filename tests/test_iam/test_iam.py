@@ -128,7 +128,6 @@ def test_create_role_and_instance_profile():
     profile = conn.create_instance_profile('my-other-profile')
     profile.path.should.equal('/')
 
-
 @mock_iam_deprecated()
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
@@ -358,7 +357,7 @@ def test_list_policy_versions():
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     versions.get('Versions')[0].get('VersionId').should.equal('v1')
-    
+
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
         PolicyDocument='{"second":"policy"}')
@@ -1292,4 +1291,15 @@ def test_create_role_no_path():
     conn = boto3.client('iam', region_name='us-east-1')
     resp = conn.create_role(RoleName='my-role', AssumeRolePolicyDocument='some policy', Description='test')
     resp.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-role')
+    resp.get('Role').should_not.have.key('PermissionsBoundary')
 
+@mock_iam()
+def test_create_role_with_permissions_boundary():
+    conn = boto3.client('iam', region_name='us-east-1')
+    boundary = 'arn:aws:iam::123456789012:policy/boundary'
+    resp = conn.create_role(RoleName='my-role', AssumeRolePolicyDocument='some policy', Description='test', PermissionsBoundary=boundary)
+    expected = {
+        'PermissionsBoundaryType': 'PermissionsBoundaryPolicy',
+        'PermissionsBoundaryArn': boundary
+    }
+    resp.get('Role').get('PermissionsBoundary').should.equal(expected)
