@@ -548,13 +548,13 @@ class RedshiftBackend(BaseBackend):
         cluster_snapshot_identifer = cluster_kwargs.pop("final_cluster_snapshot_identifier")
 
         if cluster_identifier in self.clusters:
-            if cluster_skip_final_snapshot is False and cluster_snapshot_identifer is None:  # create a snapshot
+            if cluster_skip_final_snapshot is False and cluster_snapshot_identifer is None:
                 raise ClientError(
                     "InvalidParameterValue",
                     'FinalSnapshotIdentifier is required for Snapshot copy '
                     'when SkipFinalSnapshot is False'
                 )
-            else:
+            elif cluster_skip_final_snapshot is False and cluster_snapshot_identifer is not None:  # create snapshot
                 cluster = self.describe_clusters(cluster_identifier)[0]
                 self.create_cluster_snapshot(
                     cluster_identifier,
