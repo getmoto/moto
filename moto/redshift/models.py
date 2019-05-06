@@ -531,14 +531,37 @@ class RedshiftBackend(BaseBackend):
             setattr(cluster, key, value)
 
         if new_cluster_identifier:
-            self.delete_cluster(cluster_identifier)
+            dic = {
+                "cluster_identifier": cluster_identifier,
+                "skip_final_snapshot": True,
+                "final_cluster_snapshot_identifier": None
+            }
+            self.delete_cluster(**dic)
             cluster.cluster_identifier = new_cluster_identifier
             self.clusters[new_cluster_identifier] = cluster
 
         return cluster
 
-    def delete_cluster(self, cluster_identifier):
+    def delete_cluster(self, **cluster_kwargs):
+        cluster_identifier = cluster_kwargs.pop("cluster_identifier")
+        cluster_skip_final_snapshot = cluster_kwargs.pop("skip_final_snapshot")
+        cluster_snapshot_identifer = cluster_kwargs.pop("final_cluster_snapshot_identifier")
+
         if cluster_identifier in self.clusters:
+            if cluster_skip_final_snapshot is False and cluster_snapshot_identifer is None:  # create a snapshot
+                raise ClientError(
+                    "InvalidParameterValue",
+                    'FinalSnapshotIdentifier is required for Snapshot copy '
+                    'when SkipFinalSnapshot is False'
+                )
+            else:
+                cluster = self.describe_clusters(cluster_identifier)[0]
+                self.create_cluster_snapshot(
+                    cluster_identifier,
+                    cluster_snapshot_identifer,
+                    cluster.region,
+                    cluster.tags)
+
             return self.clusters.pop(cluster_identifier)
         raise ClusterNotFoundError(cluster_identifier)
 

@@ -9,7 +9,8 @@ from boto.redshift.exceptions import (
     ClusterParameterGroupNotFound,
     ClusterSecurityGroupNotFound,
     ClusterSubnetGroupNotFound,
-    InvalidSubnet,
+    InvalidParameterCombinationFault,
+    InvalidSubnet
 )
 from botocore.exceptions import (
     ClientError
@@ -339,7 +340,7 @@ def test_create_cluster_with_vpc_security_groups_boto3():
 
 @mock_redshift
 def test_create_cluster_with_iam_roles():
-    iam_roles_arn = ['arn:aws:iam:::role/my-iam-role',]
+    iam_roles_arn = ['arn:aws:iam:::role/my-iam-role', ]
     client = boto3.client('redshift', region_name='us-east-1')
     cluster_id = 'my_cluster'
     client.create_cluster(
@@ -385,28 +386,40 @@ def test_describe_non_existent_cluster():
     conn.describe_clusters.when.called_with(
         "not-a-cluster").should.throw(ClusterNotFound)
 
-
 @mock_redshift_deprecated
 def test_delete_cluster():
     conn = boto.connect_redshift()
-    cluster_identifier = 'my_cluster'
+    cluster_identifier = "my_cluster"
+    snapshot_identifier = "my_snapshot"
 
     conn.create_cluster(
         cluster_identifier,
-        node_type='single-node',
+        node_type="single-node",
         master_username="username",
         master_user_password="password",
     )
+
+    conn.delete_cluster.when.called_with(cluster_identifier, False).should.throw(AttributeError)
 
     clusters = conn.describe_clusters()['DescribeClustersResponse'][
         'DescribeClustersResult']['Clusters']
     list(clusters).should.have.length_of(1)
 
-    conn.delete_cluster(cluster_identifier)
+    conn.delete_cluster(
+        cluster_identifier=cluster_identifier,
+        skip_final_cluster_snapshot=False,
+        final_cluster_snapshot_identifier=snapshot_identifier
+      )
 
     clusters = conn.describe_clusters()['DescribeClustersResponse'][
         'DescribeClustersResult']['Clusters']
     list(clusters).should.have.length_of(0)
+
+    snapshots = conn.describe_cluster_snapshots()["DescribeClusterSnapshotsResponse"][
+        "DescribeClusterSnapshotsResult"]["Snapshots"]
+    list(snapshots).should.have.length_of(1)
+
+    assert snapshot_identifier in snapshots[0]["SnapshotIdentifier"]
 
     # Delete invalid id
     conn.delete_cluster.when.called_with(
@@ -641,7 +654,6 @@ def test_delete_cluster_parameter_group():
     # Delete invalid id
     conn.delete_cluster_parameter_group.when.called_with(
         "not-a-parameter-group").should.throw(ClusterParameterGroupNotFound)
-
 
 
 @mock_redshift
