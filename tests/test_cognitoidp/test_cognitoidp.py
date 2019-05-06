@@ -1162,3 +1162,53 @@ def test_confirm_forgot_password():
         ConfirmationCode=str(uuid.uuid4()),
         Password=str(uuid.uuid4()),
     )
+
+@mock_cognitoidp
+def test_admin_update_user_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {
+                'Name': 'family_name',
+                'Value': 'Doe',
+            },
+            {
+                'Name': 'given_name',
+                'Value': 'John',
+            }
+        ]
+    )
+
+    conn.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {
+                'Name': 'family_name',
+                'Value': 'Doe',
+            },
+            {
+                'Name': 'given_name',
+                'Value': 'Jane',
+            }
+        ]
+    )
+
+    user = conn.admin_get_user(
+        UserPoolId=user_pool_id,
+        Username=username
+    )
+    attributes = user['UserAttributes']
+    attributes.should.be.a(list)
+    for attr in attributes:
+        val = attr['Value']
+        if attr['Name'] == 'family_name':
+            val.should.equal('Doe')
+        elif attr['Name'] == 'given_name':
+            val.should.equal('Jane')

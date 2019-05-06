@@ -287,6 +287,18 @@ class CognitoIdpUser(BaseModel):
 
         return user_json
 
+    def update_attributes(self, new_attributes):
+
+        def flatten_attrs(attrs):
+            return {attr['Name']: attr['Value'] for attr in attrs}
+
+        def expand_attrs(attrs):
+            return [{'Name': k, 'Value': v} for k, v in attrs.items()]
+
+        flat_attributes = flatten_attrs(self.attributes)
+        flat_attributes.update(flatten_attrs(new_attributes))
+        self.attributes = expand_attrs(flat_attributes)
+
 
 class CognitoIdpBackend(BaseBackend):
 
@@ -672,6 +684,17 @@ class CognitoIdpBackend(BaseBackend):
                 break
         else:
             raise NotAuthorizedError(access_token)
+
+    def admin_update_user_attributes(self, user_pool_id, username, attributes):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if username not in user_pool.users:
+            raise UserNotFoundError(username)
+
+        user = user_pool.users[username]
+        user.update_attributes(attributes)
 
 
 cognitoidp_backends = {}
