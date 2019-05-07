@@ -9,7 +9,6 @@ from boto.redshift.exceptions import (
     ClusterParameterGroupNotFound,
     ClusterSecurityGroupNotFound,
     ClusterSubnetGroupNotFound,
-    InvalidParameterCombinationFault,
     InvalidSubnet
 )
 from botocore.exceptions import (
