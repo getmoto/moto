@@ -527,7 +527,7 @@ class Route53Backend(BaseBackend):
         """
 
         zone_index_to_remove = None
-        vpc_index_to_remove = None
+
         if str(zone_id) in self.associations:
 
             for items in self.associations[zone_id]:
@@ -536,7 +536,6 @@ class Route53Backend(BaseBackend):
                     my_array = items[vpc_id]
                     if vpc_region == my_array[0]:
                         zone_index_to_remove = index
-                        vpc_index_to_remove = 0
                         break
 
         # Delete the association from dict
@@ -544,7 +543,6 @@ class Route53Backend(BaseBackend):
 
         current_date = unix_time()
         return {'created_time': current_date, 'comment': comment}
-
 
     def associate_vpc_with_hosted_zone(self, zone_id, vpc_region, vpc_id, comment):
         """
