@@ -82,9 +82,10 @@ class Route53(BaseResponse):
         all_associations = route53_backend.list_vpc_association_authorizations(zoneid)
         resp_dict = {}
 
-        for item in all_associations:
-            key = item.keys()[0]
-            value = item[key][0]
+        if type(all_associations) == type(list):
+            for item in all_associations:
+                key = item.keys()[0]
+                value = item[key][0]
 
             resp_dict[key] = value
 
