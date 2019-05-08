@@ -1,3 +1,6 @@
+"""
+Route53 models
+"""
 from __future__ import unicode_literals
 
 from collections import defaultdict
@@ -5,22 +8,33 @@ from collections import defaultdict
 import string
 import random
 import uuid
-from jinja2 import Template
-
+from moto.core.utils import unix_time
 from moto.core import BaseBackend, BaseModel
 
+from jinja2 import Template
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
 
 def create_route53_zone_id():
+    """
+    Create route53 zone_id
+    :return:
+    """
     # New ID's look like this Z1RWWTK7Y8UDDQ
     return ''.join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
 
 
 class HealthCheck(BaseModel):
-
+    """
+    Healthcheck
+    """
     def __init__(self, health_check_id, health_check_args):
+        """
+        Initialize object
+        :param health_check_id:
+        :param health_check_args:
+        """
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
         self.port = health_check_args.get("port", 80)
@@ -33,10 +47,21 @@ class HealthCheck(BaseModel):
 
     @property
     def physical_resource_id(self):
+        """
+        Get healthcheck id
+        :return:
+        """
         return self.id
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        """
+        Create healthcheck from cloudformation json
+        :param resource_name:
+        :param cloudformation_json:
+        :param region_name:
+        :return:
+        """
         properties = cloudformation_json['Properties']['HealthCheckConfig']
         health_check_args = {
             "ip_address": properties.get('IPAddress'),
@@ -52,6 +77,10 @@ class HealthCheck(BaseModel):
         return health_check
 
     def to_xml(self):
+        """
+        Return healthcheck as xml
+        :return:
+        """
         template = Template("""<HealthCheck>
             <Id>{{ health_check.id }}</Id>
             <CallerReference>example.com 192.0.2.17</CallerReference>
@@ -73,8 +102,14 @@ class HealthCheck(BaseModel):
 
 
 class RecordSet(BaseModel):
-
+    """
+    Recordset
+    """
     def __init__(self, kwargs):
+        """
+        Initialize object
+        :param kwargs:
+        """
         self.name = kwargs.get('Name')
         self.type_ = kwargs.get('Type')
         self.ttl = kwargs.get('TTL')
@@ -88,6 +123,13 @@ class RecordSet(BaseModel):
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        """
+        Create recordset from cloudformation json
+        :param resource_name:
+        :param cloudformation_json:
+        :param region_name:
+        :return:
+        """
         properties = cloudformation_json['Properties']
 
         zone_name = properties.get("HostedZoneName")
@@ -100,13 +142,43 @@ class RecordSet(BaseModel):
         return record_set
 
     @classmethod
-    def update_from_cloudformation_json(cls, original_resource, new_resource_name, cloudformation_json, region_name):
+    def update_from_cloudformation_json(
+            cls,
+            original_resource,
+            new_resource_name,
+            cloudformation_json,
+            region_name
+    ):
+        """
+        Update recordset from cloudformation json
+        :param original_resource:
+        :param new_resource_name:
+        :param cloudformation_json:
+        :param region_name:
+        :return:
+        """
+
         cls.delete_from_cloudformation_json(
-            original_resource.name, cloudformation_json, region_name)
-        return cls.create_from_cloudformation_json(new_resource_name, cloudformation_json, region_name)
+            original_resource.name,
+            cloudformation_json,
+            region_name
+        )
+
+        return cls.create_from_cloudformation_json(
+            new_resource_name,
+            cloudformation_json,
+            region_name
+        )
 
     @classmethod
     def delete_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        """
+        Delete recordset from cloudformation json
+        :param resource_name:
+        :param cloudformation_json:
+        :param region_name:
+        :return:
+        """
         # this will break if you changed the zone the record is in,
         # unfortunately
         properties = cloudformation_json['Properties']
@@ -125,9 +197,17 @@ class RecordSet(BaseModel):
 
     @property
     def physical_resource_id(self):
+        """
+        Get recordset resource id
+        :return:
+        """
         return self.name
 
     def to_xml(self):
+        """
+        Get recordset as xml
+        :return:
+        """
         template = Template("""<ResourceRecordSet>
                 <Name>{{ record_set.name }}</Name>
                 <Type>{{ record_set.type_ }}</Type>
@@ -157,7 +237,12 @@ class RecordSet(BaseModel):
         return template.render(record_set=self)
 
     def delete(self, *args, **kwargs):
-        ''' Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored '''
+        """
+        Not exposed as part of the Route 53 API - used for CloudFormation. args are ignored
+        :param args:
+        :param kwargs:
+        :return:
+        """
         hosted_zone = route53_backend.get_hosted_zone_by_name(
             self.hosted_zone_name)
         if not hosted_zone:
@@ -166,8 +251,17 @@ class RecordSet(BaseModel):
 
 
 class FakeZone(BaseModel):
-
+    """
+    Fake hosted zone
+    """
     def __init__(self, name, id_, private_zone, comment=None):
+        """
+        Initialize object
+        :param name:
+        :param id_:
+        :param private_zone:
+        :param comment:
+        """
         self.name = name
         self.id = id_
         if comment is not None:
@@ -176,11 +270,21 @@ class FakeZone(BaseModel):
         self.rrsets = []
 
     def add_rrset(self, record_set):
+        """
+        Add recordset
+        :param record_set:
+        :return:
+        """
         record_set = RecordSet(record_set)
         self.rrsets.append(record_set)
         return record_set
 
     def upsert_rrset(self, record_set):
+        """
+        Add or insert recordset
+        :param record_set:
+        :return:
+        """
         new_rrset = RecordSet(record_set)
         for i, rrset in enumerate(self.rrsets):
             if rrset.name == new_rrset.name and rrset.type_ == new_rrset.type_:
@@ -191,14 +295,30 @@ class FakeZone(BaseModel):
         return new_rrset
 
     def delete_rrset_by_name(self, name):
+        """
+        Delete fake zone recordset by name
+        :param name:
+        :return:
+        """
         self.rrsets = [
             record_set for record_set in self.rrsets if record_set.name != name]
 
     def delete_rrset_by_id(self, set_identifier):
+        """
+        Delete fake zone recordset by id
+        :param set_identifier:
+        :return:
+        """
         self.rrsets = [
             record_set for record_set in self.rrsets if record_set.set_identifier != set_identifier]
 
     def get_record_sets(self, start_type, start_name):
+        """
+        Get fake zone record sets
+        :param start_type:
+        :param start_name:
+        :return:
+        """
         record_sets = list(self.rrsets)  # Copy the list
         if start_type:
             record_sets = [
@@ -211,10 +331,21 @@ class FakeZone(BaseModel):
 
     @property
     def physical_resource_id(self):
+        """
+        Get fake zone id
+        :return:
+        """
         return self.id
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        """
+        Create Fake Zone from cloudformation json
+        :param resource_name:
+        :param cloudformation_json:
+        :param region_name:
+        :return:
+        """
         properties = cloudformation_json['Properties']
         name = properties["Name"]
 
@@ -224,17 +355,35 @@ class FakeZone(BaseModel):
 
 
 class RecordSetGroup(BaseModel):
-
+    """
+    Recordset group
+    """
     def __init__(self, hosted_zone_id, record_sets):
+        """
+        Initialize object
+        :param hosted_zone_id:
+        :param record_sets:
+        """
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
 
     @property
     def physical_resource_id(self):
+        """
+        Get physical resource id
+        :return:
+        """
         return "arn:aws:route53:::hostedzone/{0}".format(self.hosted_zone_id)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        """
+        Create recordset from cloudformation json
+        :param resource_name:
+        :param cloudformation_json:
+        :param region_name:
+        :return:
+        """
         properties = cloudformation_json['Properties']
 
         zone_name = properties.get("HostedZoneName")
@@ -251,13 +400,26 @@ class RecordSetGroup(BaseModel):
 
 
 class Route53Backend(BaseBackend):
-
+    """
+    Route53 backend
+    """
     def __init__(self):
+        """
+        Initialize object
+        """
         self.zones = {}
+        self.associations = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
 
     def create_hosted_zone(self, name, private_zone, comment=None):
+        """
+        Create hosted zone
+        :param name:
+        :param private_zone:
+        :param comment:
+        :return:
+        """
         new_id = create_route53_zone_id()
         new_zone = FakeZone(
             name, new_id, private_zone=private_zone, comment=comment)
@@ -265,6 +427,12 @@ class Route53Backend(BaseBackend):
         return new_zone
 
     def change_tags_for_resource(self, resource_id, tags):
+        """
+        Change tags for resource
+        :param resource_id:
+        :param tags:
+        :return:
+        """
         if 'Tag' in tags:
             if isinstance(tags['Tag'], list):
                 for tag in tags['Tag']:
@@ -276,39 +444,140 @@ class Route53Backend(BaseBackend):
             if 'Key' in tags:
                 if isinstance(tags['Key'], list):
                     for key in tags['Key']:
-                        del(self.resource_tags[resource_id][key])
+                        del self.resource_tags[resource_id][key]
                 else:
-                    del(self.resource_tags[resource_id][tags['Key']])
+                    del self.resource_tags[resource_id][tags['Key']]
 
     def list_tags_for_resource(self, resource_id):
+        """
+        List tags for resource
+        :param resource_id:
+        :return:
+        """
         if resource_id in self.resource_tags:
             return self.resource_tags[resource_id]
 
     def get_all_hosted_zones(self):
+        """
+        Get all hosted zones
+        :return:
+        """
         return self.zones.values()
 
     def get_hosted_zone(self, id_):
+        """
+        Get hosted zone by zone id
+        :param id_:
+        :return:
+        """
         return self.zones.get(id_.replace("/hostedzone/", ""))
 
     def get_hosted_zone_by_name(self, name):
+        """
+        Get hosted zone by name
+        :param name:
+        :return:
+        """
         for zone in self.get_all_hosted_zones():
             if zone.name == name:
                 return zone
 
     def delete_hosted_zone(self, id_):
+        """
+        Delete hosted zone
+        :param id_:
+        :return:
+        """
         return self.zones.pop(id_.replace("/hostedzone/", ""), None)
 
     def create_health_check(self, health_check_args):
+        """
+        Create health check
+        :param health_check_args:
+        :return:
+        """
         health_check_id = str(uuid.uuid4())
         health_check = HealthCheck(health_check_id, health_check_args)
         self.health_checks[health_check_id] = health_check
         return health_check
 
     def get_health_checks(self):
+        """
+        Get health checks
+        :return:
+        """
         return self.health_checks.values()
 
     def delete_health_check(self, health_check_id):
+        """
+        Delete health check
+        :param health_check_id:
+        :return:
+        """
         return self.health_checks.pop(health_check_id, None)
+
+    def disassociate_vpc_with_hosted_zone(self, zone_id, vpc_region, vpc_id, comment):
+        """
+        Disassociate vpc with hosted zone
+        :param zone_id:
+        :param vpc_region:
+        :param vpc_id:
+        :param comment:
+        :return:
+        """
+
+        zone_index_to_remove = None
+        vpc_index_to_remove = None
+        if str(zone_id) in self.associations:
+
+            for items in self.associations[zone_id]:
+                index = self.associations[zone_id].index(items)
+                if vpc_id in items:
+                    my_array = items[vpc_id]
+                    if vpc_region == my_array[0]:
+                        zone_index_to_remove = index
+                        vpc_index_to_remove = 0
+                        break
+
+        # Delete the association from dict
+        del self.associations[zone_id][zone_index_to_remove][vpc_id]
+
+        current_date = unix_time()
+        return {'created_time': current_date, 'comment': comment}
+
+
+    def associate_vpc_with_hosted_zone(self, zone_id, vpc_region, vpc_id, comment):
+        """
+        Associate vpc with hosted zone
+        :param zone_id:
+        :param vpc_region:
+        :param vpc_id:
+        :param comment:
+        :return:
+        """
+
+        temp_dict = {}
+        temp_dict[vpc_id] = []
+        temp_dict[vpc_id].append(vpc_region)
+        temp_dict[vpc_id].append(comment)
+
+        if str(zone_id) in self.associations:
+            self.associations[zone_id].append(temp_dict)
+        else:
+            self.associations[zone_id] = []
+            self.associations[zone_id].append(temp_dict)
+
+        current_date = unix_time()
+        return {'created_time': current_date, 'comment': comment}
+
+    def list_vpc_association_authorizations(self, zone_id):
+        """
+        List vpc association authorizations
+        :param zone_id:
+        :return:
+        """
+        print('list_vpc_association_authorizations')
+        return self.associations[zone_id]
 
 
 route53_backend = Route53Backend()

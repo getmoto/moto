@@ -12,8 +12,127 @@ import uuid
 import botocore
 from nose.tools import assert_raises
 
-from moto import mock_route53, mock_route53_deprecated
+from moto import mock_route53, mock_route53_deprecated, mock_ec2
 
+
+@mock_ec2
+@mock_route53
+def test_disassociate_vpc_with_hosted_zone():
+
+    ec2_client = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    vpc = ec2_client.create_vpc(CidrBlock='10.10.50.0/24')
+
+    r53_client = boto3.client('route53', region_name='us-east-1')
+    # a _valid_ vpc-id should fail.
+    firstzone = r53_client.create_hosted_zone(
+        Name="testdns.aws.com.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="Test",
+        )
+    )
+
+    zone_id = firstzone["HostedZone"]["Id"].split("/")[-1]
+
+    response = r53_client.associate_vpc_with_hosted_zone(
+        HostedZoneId=zone_id,
+        VPC={
+            'VPCRegion': 'us-east-1',
+            'VPCId': vpc.id
+        },
+        Comment='test'
+    )
+
+    assert str(response['ChangeInfo']['Comment']) == 'test'
+
+    response = r53_client.disassociate_vpc_from_hosted_zone(
+        HostedZoneId=zone_id,
+        VPC={
+            'VPCRegion': 'us-east-1',
+            'VPCId': vpc.id
+        },
+        Comment='disassociation_test'
+    )
+
+    assert str(response['ChangeInfo']['Comment']) == 'disassociation_test'
+
+
+@mock_ec2
+@mock_route53
+def test_list_vpc_association_authorizations():
+
+    ec2_client = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    vpc = ec2_client.create_vpc(CidrBlock='10.10.50.0/24')
+
+    r53_client = boto3.client('route53', region_name='us-east-1')
+    # a _valid_ vpc-id should fail.
+    firstzone = r53_client.create_hosted_zone(
+        Name="testdns.aws.com.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="Test",
+        )
+    )
+
+    zone_id = firstzone["HostedZone"]["Id"].split("/")[-1]
+
+    response = r53_client.associate_vpc_with_hosted_zone(
+        HostedZoneId=zone_id,
+        VPC={
+            'VPCRegion': 'us-east-1',
+            'VPCId': vpc.id
+        },
+        Comment='test'
+    )
+
+    assert str(response['ChangeInfo']['Comment']) == 'test'
+
+    response = r53_client.list_vpc_association_authorizations(
+        HostedZoneId=zone_id
+    )
+
+    assert 'VPCs' in response
+    assert 'HostedZoneId' in response
+    assert response['HostedZoneId'] == zone_id
+
+@mock_ec2
+@mock_route53
+def test_associate_vpc_with_hosted_zone():
+
+    ec2_client = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create the default VPC
+    vpc = ec2_client.create_vpc(CidrBlock='10.10.50.0/24')
+
+    r53_client = boto3.client('route53', region_name='us-east-1')
+    # a _valid_ vpc-id should fail.
+    firstzone = r53_client.create_hosted_zone(
+        Name="testdns.aws.com.",
+        CallerReference=str(hash('foo')),
+        HostedZoneConfig=dict(
+            PrivateZone=True,
+            Comment="Test",
+        )
+    )
+
+    zone_id = firstzone["HostedZone"]["Id"].split("/")[-1]
+
+    response = r53_client.associate_vpc_with_hosted_zone(
+        HostedZoneId=zone_id,
+        VPC={
+            'VPCRegion': 'us-east-1',
+            'VPCId': vpc.id
+        },
+        Comment='test'
+    )
+
+    assert str(response['ChangeInfo']['Comment']) == 'test'
 
 @mock_route53_deprecated
 def test_hosted_zone():

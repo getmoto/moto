@@ -1,15 +1,103 @@
+"""
+Route53 responses
+"""
 from __future__ import unicode_literals
 from jinja2 import Template
 from six.moves.urllib.parse import parse_qs, urlparse
-
 from moto.core.responses import BaseResponse
-from .models import route53_backend
 import xmltodict
-
+from .models import route53_backend
 
 class Route53(BaseResponse):
+    """
+    Route53
+    """
+    def disassociate_vpc_response(self, request, full_url, headers):
+        """
+        Disassociate hosted zone from vpc response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
+        self.setup_class(request, full_url, headers)
+        elements = xmltodict.parse(self.body)
+        comment = str(elements['DisassociateVPCFromHostedZoneRequest']['Comment'])
+        vpc_id = str(elements['DisassociateVPCFromHostedZoneRequest']['VPC']['VPCId'])
+        vpc_region = str(elements['DisassociateVPCFromHostedZoneRequest']['VPC']['VPCRegion'])
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip('/').rsplit('/', 1)[0].rsplit('/', 1)[1]
+        disassociation = route53_backend.disassociate_vpc_with_hosted_zone(
+            zone_id=zoneid,
+            vpc_region=vpc_region,
+            vpc_id=vpc_id,
+            comment=comment
+        )
+
+        template = Template(DISASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(disassociation=disassociation)
+
+    def associate_vpc_response(self, request, full_url, headers):
+        """
+        Associate vpc to hosted zone response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
+        self.setup_class(request, full_url, headers)
+        elements = xmltodict.parse(self.body)
+        comment = str(elements['AssociateVPCWithHostedZoneRequest']['Comment'])
+        vpc_id = str(elements['AssociateVPCWithHostedZoneRequest']['VPC']['VPCId'])
+        vpc_region = str(elements['AssociateVPCWithHostedZoneRequest']['VPC']['VPCRegion'])
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip('/').rsplit('/', 1)[0].rsplit('/', 1)[1]
+
+        association = route53_backend.associate_vpc_with_hosted_zone(
+            zone_id=zoneid,
+            vpc_region=vpc_region,
+            vpc_id=vpc_id,
+            comment=comment
+        )
+
+        template = Template(ASSOCIATE_VPC_RESPONSE)
+        return 200, headers, template.render(association=association)
+
+    def list_vpc_authorizations_response(self, request, full_url, headers):
+        """
+        List vpc authorizations for hosted zone response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        zoneid = parsed_url.path.rstrip('/').rsplit('/', 1)[0].rsplit('/', 1)[1]
+
+        all_associations = route53_backend.list_vpc_association_authorizations(zoneid)
+        resp_dict = {}
+
+        for item in all_associations:
+            key = item.keys()[0]
+            value = item[key][0]
+
+            resp_dict[key] = value
+
+        template = Template(LIST_VPC_ASSOCIATION_AUTHORIZATIONS_RESPONSE)
+        return 200, headers, template.render(zoneid=zoneid, associations=resp_dict)
 
     def list_or_create_hostzone_response(self, request, full_url, headers):
+        """
+        List or create hosted zone response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
 
         if request.method == "POST":
@@ -48,6 +136,13 @@ class Route53(BaseResponse):
             return 200, headers, template.render(zones=all_zones)
 
     def list_hosted_zones_by_name_response(self, request, full_url, headers):
+        """
+        List hosted zones by name response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         query_params = parse_qs(parsed_url.query)
@@ -56,7 +151,8 @@ class Route53(BaseResponse):
         if dnsname:
             dnsname = dnsname[0]    # parse_qs gives us a list, but this parameter doesn't repeat
             # return all zones with that name (there can be more than one)
-            zones = [zone for zone in route53_backend.get_all_hosted_zones() if zone.name == dnsname]
+            zones = [zone for zone in route53_backend.get_all_hosted_zones()
+                     if zone.name == dnsname]
         else:
             # sort by names, but with domain components reversed
             # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
@@ -74,6 +170,13 @@ class Route53(BaseResponse):
         return 200, headers, template.render(zones=zones)
 
     def get_or_delete_hostzone_response(self, request, full_url, headers):
+        """
+        Get or delete hosted zone response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
         zoneid = parsed_url.path.rstrip('/').rsplit('/', 1)[1]
@@ -90,6 +193,13 @@ class Route53(BaseResponse):
             return 200, headers, DELETE_HOSTED_ZONE_RESPONSE
 
     def rrset_response(self, request, full_url, headers):
+        """
+        Recordset response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
@@ -160,6 +270,13 @@ class Route53(BaseResponse):
             return 200, headers, template.render(record_sets=record_sets)
 
     def health_check_response(self, request, full_url, headers):
+        """
+        Health check response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
@@ -192,6 +309,13 @@ class Route53(BaseResponse):
             return 200, headers, template.render(health_checks=health_checks)
 
     def not_implemented_response(self, request, full_url, headers):
+        """
+        Not implemented response
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
 
         action = ''
@@ -203,6 +327,13 @@ class Route53(BaseResponse):
             "The action for {0} has not been implemented for route 53".format(action))
 
     def list_or_change_tags_for_resource_request(self, request, full_url, headers):
+        """
+        List or change tags for resource request
+        :param request:
+        :param full_url:
+        :param headers:
+        :return:
+        """
         self.setup_class(request, full_url, headers)
 
         parsed_url = urlparse(full_url)
@@ -229,6 +360,43 @@ class Route53(BaseResponse):
 
             return 200, headers, template.render()
 
+
+DISASSOCIATE_VPC_RESPONSE = """
+<DisassociateVPCWithHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ChangeInfo>
+        <Id>test</Id>
+        <Status>INSYNC</Status>
+        <SubmittedAt>{{ disassociation.created_time }}</SubmittedAt>
+        <Comment>{{ disassociation.comment }}</Comment>
+    </ChangeInfo>
+</DisassociateVPCWithHostedZoneResponse>
+"""
+
+LIST_VPC_ASSOCIATION_AUTHORIZATIONS_RESPONSE = """
+<ListVPCAssociationAuthorizationsResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <HostedZoneId>{{ zoneid }}</HostedZoneId>
+    <NextToken>string</NextToken>
+    <VPCs>
+            {% for item in associations %}
+            <VPC>
+                <VPCId>{{item}}</VPCId>
+                <VPCRegion>{{associations[item]}}</VPCRegion>
+            </VPC>
+            {% endfor %}
+    </VPCs>
+</ListVPCAssociationAuthorizationsResponse>
+"""
+
+ASSOCIATE_VPC_RESPONSE = """
+<AssociateVPCWithHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ChangeInfo>
+        <Id>test</Id>
+        <Status>INSYNC</Status>
+        <SubmittedAt>{{ association.created_time }}</SubmittedAt>
+        <Comment>{{ association.comment }}</Comment>
+    </ChangeInfo>
+</AssociateVPCWithHostedZoneResponse>
+"""
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
