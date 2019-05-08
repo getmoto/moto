@@ -5,6 +5,7 @@ from collections import defaultdict
 import string
 import random
 import uuid
+from moto.core.utils import unix_time
 from jinja2 import Template
 
 from moto.core import BaseBackend, BaseModel
@@ -254,6 +255,7 @@ class Route53Backend(BaseBackend):
 
     def __init__(self):
         self.zones = {}
+        self.associations = {}
         self.health_checks = {}
         self.resource_tags = defaultdict(dict)
 
@@ -309,6 +311,72 @@ class Route53Backend(BaseBackend):
 
     def delete_health_check(self, health_check_id):
         return self.health_checks.pop(health_check_id, None)
+
+    def disassociate_vpc_with_hosted_zone(self, zone_id, vpc_region, vpc_id, comment):
+
+        print('zone_id: '+str(zone_id))
+        print('vpc_id: '+str(vpc_id))
+        print('vpc_region: '+str(vpc_region))
+        print('comment: '+str(comment))
+
+        zone_index_to_remove = None
+        vpc_index_to_remove = None
+        print('associations: '+str(self.associations))
+        if str(zone_id) in self.associations:
+            print('zone id in associations')
+            print('item: '+str(self.associations[zone_id]))
+
+            for items in self.associations[zone_id]:
+                index = self.associations[zone_id].index(items)
+                print('index: '+str(index))
+                print('items: '+str(items))
+                if vpc_id in items:
+                    print('has vpc id')
+                    my_array = items[vpc_id]
+                    print('my_array: '+str(my_array))
+                    if vpc_region == my_array[0]:
+                        print('regions match')
+                        zone_index_to_remove = index
+                        vpc_index_to_remove = 0
+                        break
+
+        print('test: '+str(self.associations[zone_id][zone_index_to_remove][vpc_id]))
+        del self.associations[zone_id][zone_index_to_remove][vpc_id]
+        print('associations are now: '+str(self.associations))
+
+        current_date =  unix_time()
+        return {'created_time': current_date, 'comment': comment}
+
+
+    def associate_vpc_with_hosted_zone(self, zone_id, vpc_region, vpc_id, comment):
+
+        print('zone_id: '+str(zone_id))
+        print('vpc_id: '+str(vpc_id))
+        print('vpc_region: '+str(vpc_region))
+        print('comment: '+str(comment))
+
+
+        temp_dict = {}
+        temp_dict[vpc_id] = []
+        temp_dict[vpc_id].append(vpc_region)
+        temp_dict[vpc_id].append(comment)
+
+        print('temp_dict: '+str(temp_dict))
+
+        if str(zone_id) in self.associations:
+            self.associations[zone_id].append(temp_dict)
+        else:
+            self.associations[zone_id] = []
+            self.associations[zone_id].append(temp_dict)
+
+        print('associations: '+str(self.associations))
+
+        current_date =  unix_time()
+        return {'created_time': current_date, 'comment': comment}
+
+    def list_vpc_association_authorizations(self, zone_id):
+        print('list_vpc_association_authorizations')
+        return self.associations[zone_id]
 
 
 route53_backend = Route53Backend()

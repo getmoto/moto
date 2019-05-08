@@ -22,5 +22,8 @@ url_paths = {
     '{0}/(?P<api_version>[\d_-]+)/healthcheck': Route53().health_check_response,
     '{0}/(?P<api_version>[\d_-]+)/tags/healthcheck/(?P<zone_id>[^/]+)$': tag_response1,
     '{0}/(?P<api_version>[\d_-]+)/tags/hostedzone/(?P<zone_id>[^/]+)$': tag_response2,
-    '{0}/(?P<api_version>[\d_-]+)/trafficpolicyinstances/*': Route53().not_implemented_response
+    '{0}/(?P<api_version>[\d_-]+)/trafficpolicyinstances/*': Route53().not_implemented_response,
+    '{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/authorizevpcassociation*': Route53().list_vpc_authorizations_response,
+    '{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/associatevpc/*': Route53().associate_vpc_response,
+    '{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)/disassociatevpc*': Route53().disassociate_vpc_response
 }
