@@ -701,7 +701,7 @@ def test_invoke_async_function():
     )
 
     success_result = conn.invoke_async(
-        FunctionName='testFunction', 
+        FunctionName='testFunction',
         InvokeArgs=json.dumps({'test': 'event'})
         )
 
@@ -842,7 +842,7 @@ def test_list_versions_by_function():
     conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
-        Role='test-iam-role',
+        Role='arn:aws:iam::123456789012:role/test-iam-role',
         Handler='lambda_function.lambda_handler',
         Code={
             'S3Bucket': 'test-bucket',
@@ -857,8 +857,28 @@ def test_list_versions_by_function():
     res = conn.publish_version(FunctionName='testFunction')
     assert res['ResponseMetadata']['HTTPStatusCode'] == 201
     versions = conn.list_versions_by_function(FunctionName='testFunction')
-
+    assert len(versions['Versions']) == 3
     assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST'
+    assert versions['Versions'][1]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:1'
+    assert versions['Versions'][1]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:2'
+
+    conn.create_function(
+        FunctionName='testFunction_2',
+        Runtime='python2.7',
+        Role='arn:aws:iam::123456789012:role/test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=False,
+    )
+    versions = conn.list_versions_by_function(FunctionName='testFunction_2')
+    assert len(versions['Versions']) == 1
+    assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction_2:$LATEST'
 
 
 @mock_lambda

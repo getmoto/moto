@@ -503,7 +503,7 @@ class LambdaStorage(object):
     def list_versions_by_function(self, name):
         if name not in self._functions:
             return None
-        return [self._functions[name]['latest']]
+        return [self._functions[name]['latest']] + self._functions[name]['versions']
 
     def get_arn(self, arn):
         return self._arns.get(arn, None)
@@ -604,6 +604,9 @@ class LambdaBackend(BaseBackend):
 
         self._lambdas.put_function(fn)
 
+        if spec.get('Publish'):
+            ver = self.publish_function(function_name)
+            fn.version = ver.version
         return fn
 
     def publish_function(self, function_name):
