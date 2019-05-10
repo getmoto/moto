@@ -33,11 +33,12 @@ class Key(BaseModel):
         return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
 
     def to_dict(self):
+        epoch = datetime(1970, 1, 1)
         key_dict = {
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": datetime.strftime(datetime.utcnow(), "%s"),
+                "CreationDate": "%d" % (datetime.utcnow() - epoch).total_seconds(),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,

@@ -18,13 +18,14 @@ from dateutil.tz import tzutc
 @mock_kms_deprecated
 def test_create_key():
     conn = boto.kms.connect_to_region("us-west-2")
+    with freeze_time("2015-01-01 00:00:00"):
+        key = conn.create_key(policy="my policy",
+                            description="my key", key_usage='ENCRYPT_DECRYPT')
 
-    key = conn.create_key(policy="my policy",
-                          description="my key", key_usage='ENCRYPT_DECRYPT')
-
-    key['KeyMetadata']['Description'].should.equal("my key")
-    key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
-    key['KeyMetadata']['Enabled'].should.equal(True)
+        key['KeyMetadata']['Description'].should.equal("my key")
+        key['KeyMetadata']['KeyUsage'].should.equal("ENCRYPT_DECRYPT")
+        key['KeyMetadata']['Enabled'].should.equal(True)
+        key['KeyMetadata']['CreationDate'].should.equal("1420070400")
 
 
 @mock_kms_deprecated
@@ -980,5 +981,3 @@ def test_put_key_policy_key_not_found():
             PolicyName='default',
             Policy='new policy'
         )
-
-
