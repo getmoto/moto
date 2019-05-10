@@ -342,6 +342,175 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
         return template.render(description=description)
 
+    def create_stack_set(self):
+        stackset_name = self._get_param('StackSetName')
+        stack_body = self._get_param('TemplateBody')
+        template_url = self._get_param('TemplateURL')
+        # role_arn = self._get_param('RoleARN')
+        parameters_list = self._get_list_prefix("Parameters.member")
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
+
+        # Copy-Pasta - Hack dict-comprehension
+        parameters = dict([
+            (parameter['parameter_key'], parameter['parameter_value'])
+            for parameter
+            in parameters_list
+        ])
+        if template_url:
+            stack_body = self._get_stack_from_s3_url(template_url)
+
+        stackset = self.cloudformation_backend.create_stack_set(
+            name=stackset_name,
+            template=stack_body,
+            parameters=parameters,
+            tags=tags,
+            # role_arn=role_arn,
+        )
+        if self.request_json:
+            return json.dumps({
+                'CreateStackSetResponse': {
+                    'CreateStackSetResult': {
+                        'StackSetId': stackset.stackset_id,
+                    }
+                }
+            })
+        else:
+            template = self.response_template(CREATE_STACK_SET_RESPONSE_TEMPLATE)
+            return template.render(stackset=stackset)
+
+    def create_stack_instances(self):
+        stackset_name = self._get_param('StackSetName')
+        accounts = self._get_multi_param('Accounts.member')
+        regions = self._get_multi_param('Regions.member')
+        parameters = self._get_multi_param('ParameterOverrides.member')
+        self.cloudformation_backend.create_stack_instances(stackset_name, accounts, regions, parameters)
+        template = self.response_template(CREATE_STACK_INSTANCES_TEMPLATE)
+        return template.render()
+
+    def delete_stack_set(self):
+        stackset_name = self._get_param('StackSetName')
+        self.cloudformation_backend.delete_stack_set(stackset_name)
+        template = self.response_template(DELETE_STACK_SET_RESPONSE_TEMPLATE)
+        return template.render()
+
+    def delete_stack_instances(self):
+        stackset_name = self._get_param('StackSetName')
+        accounts = self._get_multi_param('Accounts.member')
+        regions = self._get_multi_param('Regions.member')
+        operation = self.cloudformation_backend.delete_stack_instances(stackset_name, accounts, regions)
+
+        template = self.response_template(DELETE_STACK_INSTANCES_TEMPLATE)
+        return template.render(operation=operation)
+
+    def describe_stack_set(self):
+        stackset_name = self._get_param('StackSetName')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+
+        if not stackset.admin_role:
+            stackset.admin_role = 'arn:aws:iam::123456789012:role/AWSCloudFormationStackSetAdministrationRole'
+        if not stackset.execution_role:
+            stackset.execution_role = 'AWSCloudFormationStackSetExecutionRole'
+
+        template = self.response_template(DESCRIBE_STACK_SET_RESPONSE_TEMPLATE)
+        return template.render(stackset=stackset)
+
+    def describe_stack_instance(self):
+        stackset_name = self._get_param('StackSetName')
+        account = self._get_param('StackInstanceAccount')
+        region = self._get_param('StackInstanceRegion')
+
+        instance = self.cloudformation_backend.get_stack_set(stackset_name).instances.get_instance(account, region)
+        template = self.response_template(DESCRIBE_STACK_INSTANCE_TEMPLATE)
+        rendered = template.render(instance=instance)
+        return rendered
+
+    def list_stack_sets(self):
+        stacksets = self.cloudformation_backend.stacksets
+        template = self.response_template(LIST_STACK_SETS_TEMPLATE)
+        return template.render(stacksets=stacksets)
+
+    def list_stack_instances(self):
+        stackset_name = self._get_param('StackSetName')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        template = self.response_template(LIST_STACK_INSTANCES_TEMPLATE)
+        return template.render(stackset=stackset)
+
+    def list_stack_set_operations(self):
+        stackset_name = self._get_param('StackSetName')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        template = self.response_template(LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE)
+        return template.render(stackset=stackset)
+
+    def stop_stack_set_operation(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        stackset.update_operation(operation_id, 'STOPPED')
+        template = self.response_template(STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE)
+        return template.render()
+
+    def describe_stack_set_operation(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        operation = stackset.get_operation(operation_id)
+        template = self.response_template(DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE)
+        return template.render(stackset=stackset, operation=operation)
+
+    def list_stack_set_operation_results(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        stackset = self.cloudformation_backend.get_stack_set(stackset_name)
+        operation = stackset.get_operation(operation_id)
+        template = self.response_template(LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE)
+        return template.render(operation=operation)
+
+    def update_stack_set(self):
+        stackset_name = self._get_param('StackSetName')
+        operation_id = self._get_param('OperationId')
+        description = self._get_param('Description')
+        execution_role = self._get_param('ExecutionRoleName')
+        admin_role = self._get_param('AdministrationRoleARN')
+        accounts = self._get_multi_param('Accounts.member')
+        regions = self._get_multi_param('Regions.member')
+        template_body = self._get_param('TemplateBody')
+        template_url = self._get_param('TemplateURL')
+        if template_url:
+            template_body = self._get_stack_from_s3_url(template_url)
+        tags = dict((item['key'], item['value'])
+                    for item in self._get_list_prefix("Tags.member"))
+        parameters_list = self._get_list_prefix("Parameters.member")
+        parameters = dict([
+            (parameter['parameter_key'], parameter['parameter_value'])
+            for parameter
+            in parameters_list
+        ])
+        operation = self.cloudformation_backend.update_stack_set(
+            stackset_name=stackset_name,
+            template=template_body,
+            description=description,
+            parameters=parameters,
+            tags=tags,
+            admin_role=admin_role,
+            execution_role=execution_role,
+            accounts=accounts,
+            regions=regions,
+            operation_id=operation_id
+        )
+
+        template = self.response_template(UPDATE_STACK_SET_RESPONSE_TEMPLATE)
+        return template.render(operation=operation)
+
+    def update_stack_instances(self):
+        stackset_name = self._get_param('StackSetName')
+        accounts = self._get_multi_param('Accounts.member')
+        regions = self._get_multi_param('Regions.member')
+        parameters = self._get_multi_param('ParameterOverrides.member')
+        operation = self.cloudformation_backend.get_stack_set(stackset_name).update_instances(accounts, regions, parameters)
+        template = self.response_template(UPDATE_STACK_INSTANCES_RESPONSE_TEMPLATE)
+        return template.render(operation=operation)
+
 
 VALIDATE_STACK_RESPONSE_TEMPLATE = """<ValidateTemplateResponse>
         <ValidateTemplateResult>
@@ -664,3 +833,236 @@ LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.ama
     <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
   </ResponseMetadata>
 </ListExportsResponse>"""
+
+CREATE_STACK_SET_RESPONSE_TEMPLATE = """<CreateStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <CreateStackSetResult>
+    <StackSetId>{{ stackset.stackset_id }}</StackSetId>
+  </CreateStackSetResult>
+  <ResponseMetadata>
+    <RequestId>f457258c-391d-41d1-861f-example</RequestId>
+  </ResponseMetadata>
+</CreateStackSetResponse>
+"""
+
+DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <DescribeStackSetResult>
+    <StackSet>
+      <Capabilities/>
+      <StackSetARN>{{ stackset.arn }}</StackSetARN>
+      <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
+      <AdministrationRoleARN>{{ stackset.admin_role }}</AdministrationRoleARN>
+      <StackSetId>{{ stackset.id }}</StackSetId>
+      <TemplateBody>{{ stackset.template }}</TemplateBody>
+      <StackSetName>{{ stackset.name }}</StackSetName>
+        <Parameters>
+        {% for param_name, param_value in stackset.parameters.items() %}
+          <member>
+            <ParameterKey>{{ param_name }}</ParameterKey>
+            <ParameterValue>{{ param_value }}</ParameterValue>
+          </member>
+        {% endfor %}
+        </Parameters>
+        <Tags>
+          {% for tag_key, tag_value in stackset.tags.items() %}
+            <member>
+              <Key>{{ tag_key }}</Key>
+              <Value>{{ tag_value }}</Value>
+            </member>
+          {% endfor %}
+        </Tags>
+      <Status>{{ stackset.status }}</Status>
+    </StackSet>
+  </DescribeStackSetResult>
+  <ResponseMetadata>
+    <RequestId>d8b64e11-5332-46e1-9603-example</RequestId>
+  </ResponseMetadata>
+</DescribeStackSetResponse>"""
+
+DELETE_STACK_SET_RESPONSE_TEMPLATE = """<DeleteStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <DeleteStackSetResult/>
+  <ResponseMetadata>
+    <RequestId>c35ec2d0-d69f-4c4d-9bd7-example</RequestId>
+  </ResponseMetadata>
+</DeleteStackSetResponse>"""
+
+CREATE_STACK_INSTANCES_TEMPLATE = """<CreateStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <CreateStackInstancesResult>
+    <OperationId>1459ad6d-63cc-4c96-a73e-example</OperationId>
+  </CreateStackInstancesResult>
+  <ResponseMetadata>
+    <RequestId>6b29f7e3-69be-4d32-b374-example</RequestId>
+  </ResponseMetadata>
+</CreateStackInstancesResponse>
+"""
+
+LIST_STACK_INSTANCES_TEMPLATE = """<ListStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <ListStackInstancesResult>
+    <Summaries>
+    {% for instance in stackset.stack_instances %}
+      <member>
+        <StackId>{{ instance.StackId }}</StackId>
+        <StackSetId>{{ instance.StackSetId }}</StackSetId>
+        <Region>{{ instance.Region }}</Region>
+        <Account>{{ instance.Account }}</Account>
+        <Status>{{ instance.Status }}</Status>
+      </member>
+    {% endfor %}
+    </Summaries>
+  </ListStackInstancesResult>
+  <ResponseMetadata>
+    <RequestId>83c27e73-b498-410f-993c-example</RequestId>
+  </ResponseMetadata>
+</ListStackInstancesResponse>
+"""
+
+DELETE_STACK_INSTANCES_TEMPLATE = """<DeleteStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <DeleteStackInstancesResult>
+    <OperationId>{{ operation.OperationId }}</OperationId>
+  </DeleteStackInstancesResult>
+  <ResponseMetadata>
+    <RequestId>e5325090-66f6-4ecd-a531-example</RequestId>
+  </ResponseMetadata>
+</DeleteStackInstancesResponse>
+"""
+
+DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <DescribeStackInstanceResult>
+    <StackInstance>
+      <StackId>{{ instance.StackId }}</StackId>
+      <StackSetId>{{ instance.StackSetId }}</StackSetId>
+    {% if instance.ParameterOverrides %}
+      <ParameterOverrides>
+      {% for override in instance.ParameterOverrides %}
+      {% if override['ParameterKey'] or override['ParameterValue'] %}
+        <member>
+          <ParameterKey>{{ override.ParameterKey }}</ParameterKey>
+          <UsePreviousValue>false</UsePreviousValue>
+          <ParameterValue>{{ override.ParameterValue }}</ParameterValue>
+        </member>
+      {% endif %}
+      {% endfor %}
+      </ParameterOverrides>
+    {% else %}
+      <ParameterOverrides/>
+    {% endif %}
+      <Region>{{ instance.Region }}</Region>
+      <Account>{{ instance.Account }}</Account>
+      <Status>{{ instance.Status }}</Status>
+    </StackInstance>
+  </DescribeStackInstanceResult>
+  <ResponseMetadata>
+    <RequestId>c6c7be10-0343-4319-8a25-example</RequestId>
+  </ResponseMetadata>
+</DescribeStackInstanceResponse>
+"""
+
+LIST_STACK_SETS_TEMPLATE = """<ListStackSetsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <ListStackSetsResult>
+    <Summaries>
+    {% for key, value in stacksets.items() %}
+      <member>
+        <StackSetName>{{ value.name }}</StackSetName>
+        <StackSetId>{{ value.id }}</StackSetId>
+        <Status>{{ value.status }}</Status>
+      </member>
+    {% endfor %}
+    </Summaries>
+  </ListStackSetsResult>
+  <ResponseMetadata>
+    <RequestId>4dcacb73-841e-4ed8-b335-example</RequestId>
+  </ResponseMetadata>
+</ListStackSetsResponse>
+"""
+
+UPDATE_STACK_INSTANCES_RESPONSE_TEMPLATE = """<UpdateStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <UpdateStackInstancesResult>
+    <OperationId>{{ operation }}</OperationId>
+  </UpdateStackInstancesResult>
+  <ResponseMetadata>
+    <RequestId>bdbf8e94-19b6-4ce4-af85-example</RequestId>
+  </ResponseMetadata>
+</UpdateStackInstancesResponse>
+"""
+
+UPDATE_STACK_SET_RESPONSE_TEMPLATE = """<UpdateStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <UpdateStackSetResult>
+    <OperationId>{{ operation.OperationId }}</OperationId>
+  </UpdateStackSetResult>
+  <ResponseMetadata>
+    <RequestId>adac907b-17e3-43e6-a254-example</RequestId>
+  </ResponseMetadata>
+</UpdateStackSetResponse>
+"""
+
+LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE = """<ListStackSetOperationsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <ListStackSetOperationsResult>
+    <Summaries>
+    {% for operation in stackset.operations %}
+      <member>
+        <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
+        <OperationId>{{ operation.OperationId }}</OperationId>
+        <Action>{{ operation.Action }}</Action>
+        <EndTimestamp>{{ operation.EndTimestamp }}</EndTimestamp>
+        <Status>{{ operation.Status }}</Status>
+      </member>
+    {% endfor %}
+    </Summaries>
+  </ListStackSetOperationsResult>
+  <ResponseMetadata>
+    <RequestId>65b9d9be-08bb-4a43-9a21-example</RequestId>
+  </ResponseMetadata>
+</ListStackSetOperationsResponse>
+"""
+
+STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <StopStackSetOperationResult/>
+  <ResponseMetadata>
+    <RequestId>2188554a-07c6-4396-b2c5-example</RequestId>
+  </ResponseMetadata>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </StopStackSetOperationResponse>
+"""
+
+DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <DescribeStackSetOperationResult>
+    <StackSetOperation>
+      <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
+      <AdministrationRoleARN>arn:aws:iam::123456789012:role/{{ stackset.admin_role }}</AdministrationRoleARN>
+      <StackSetId>{{ stackset.id }}</StackSetId>
+      <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
+      <OperationId>{{ operation.OperationId }}</OperationId>
+      <Action>{{ operation.Action }}</Action>
+      <OperationPreferences>
+        <RegionOrder/>
+      </OperationPreferences>
+      <EndTimestamp>{{ operation.EndTimestamp }}</EndTimestamp>
+      <Status>{{ operation.Status }}</Status>
+    </StackSetOperation>
+  </DescribeStackSetOperationResult>
+  <ResponseMetadata>
+    <RequestId>2edc27b6-9ce2-486a-a192-example</RequestId>
+  </ResponseMetadata>
+</DescribeStackSetOperationResponse>
+"""
+
+LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationResultsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+  <ListStackSetOperationResultsResult>
+    <Summaries>
+    {% for instance in operation.Instances %}
+    {% for account, region in instance.items() %}
+      <member>
+        <AccountGateResult>
+          <StatusReason>Function not found: arn:aws:lambda:us-west-2:123456789012:function:AWSCloudFormationStackSetAccountGate</StatusReason>
+          <Status>SKIPPED</Status>
+        </AccountGateResult>
+        <Region>{{ region }}</Region>
+        <Account>{{ account }}</Account>
+        <Status>{{ operation.Status }}</Status>
+      </member>
+    {% endfor %}
+    {% endfor %}
+    </Summaries>
+  </ListStackSetOperationResultsResult>
+  <ResponseMetadata>
+    <RequestId>ac05a9ce-5f98-4197-a29b-example</RequestId>
+  </ResponseMetadata>
+</ListStackSetOperationResultsResponse>
+"""

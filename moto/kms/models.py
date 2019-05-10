@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -159,27 +160,38 @@ class KmsBackend(BaseBackend):
         return self.keys[self.get_key_id(key_id)].policy
 
     def disable_key(self, key_id):
-        if key_id in self.keys:
-            self.keys[key_id].enabled = False
-            self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].enabled = False
+        self.keys[key_id].key_state = 'Disabled'
 
     def enable_key(self, key_id):
-        if key_id in self.keys:
-            self.keys[key_id].enabled = True
-            self.keys[key_id].key_state = 'Enabled'
+        self.keys[key_id].enabled = True
+        self.keys[key_id].key_state = 'Enabled'
 
     def cancel_key_deletion(self, key_id):
-        if key_id in self.keys:
-            self.keys[key_id].key_state = 'Disabled'
-            self.keys[key_id].deletion_date = None
+        self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].deletion_date = None
 
     def schedule_key_deletion(self, key_id, pending_window_in_days):
-        if key_id in self.keys:
-            if 7 <= pending_window_in_days <= 30:
-                self.keys[key_id].enabled = False
-                self.keys[key_id].key_state = 'PendingDeletion'
-                self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
-                return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+        if 7 <= pending_window_in_days <= 30:
+            self.keys[key_id].enabled = False
+            self.keys[key_id].key_state = 'PendingDeletion'
+            self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
+            return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+
+    def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens):
+        key = self.keys[self.get_key_id(key_id)]
+
+        if key_spec:
+            if key_spec == 'AES_128':
+                bytes = 16
+            else:
+                bytes = 32
+        else:
+            bytes = number_of_bytes
+
+        plaintext = os.urandom(bytes)
+
+        return plaintext, key.arn
 
 
 kms_backends = {}

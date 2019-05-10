@@ -19,7 +19,7 @@ def read(*parts):
 
 
 install_requires = [
-    "Jinja2>=2.7.3",
+    "Jinja2>=2.10.1",
     "boto>=2.36.0",
     "boto3>=1.9.86",
     "botocore>=1.12.86",
@@ -55,7 +55,7 @@ else:
 
 setup(
     name='moto',
-    version='1.3.7',
+    version='1.3.8',
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     long_description=read('README.md'),

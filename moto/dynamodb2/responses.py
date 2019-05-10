@@ -156,8 +156,16 @@ class DynamoHandler(BaseResponse):
         body = self.body
         # get the table name
         table_name = body['TableName']
-        # get the throughput
-        throughput = body["ProvisionedThroughput"]
+        # check billing mode and get the throughput
+        if "BillingMode" in body.keys() and body["BillingMode"] == "PAY_PER_REQUEST":
+            if "ProvisionedThroughput" in body.keys():
+                er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+                return self.error(er,
+                                  'ProvisionedThroughput cannot be specified \
+                                   when BillingMode is PAY_PER_REQUEST')
+            throughput = None
+        else:         # Provisioned (default billing mode)
+            throughput = body["ProvisionedThroughput"]
         # getting the schema
         key_schema = body['KeySchema']
         # getting attribute definition

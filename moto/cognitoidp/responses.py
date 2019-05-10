@@ -143,6 +143,14 @@ class CognitoIdpResponse(BaseResponse):
             "IdentityProvider": identity_provider.to_json(extended=True)
         })
 
+    def update_identity_provider(self):
+        user_pool_id = self._get_param("UserPoolId")
+        name = self._get_param("ProviderName")
+        identity_provider = cognitoidp_backends[self.region].update_identity_provider(user_pool_id, name, self.parameters)
+        return json.dumps({
+            "IdentityProvider": identity_provider.to_json(extended=True)
+        })
+
     def delete_identity_provider(self):
         user_pool_id = self._get_param("UserPoolId")
         name = self._get_param("ProviderName")
