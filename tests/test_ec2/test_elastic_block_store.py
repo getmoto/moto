@@ -394,6 +394,11 @@ def test_snapshot_filters():
     set([snap.id for snap in snapshots_by_encrypted]
         ).should.equal({snapshot3.id})
 
+    snapshots_by_owner_id = conn.get_all_snapshots(
+        filters={'owner-id': '123456789012'})
+    set([snap.id for snap in snapshots_by_owner_id]
+        ).should.equal({snapshot1.id})
+
 
 @mock_ec2_deprecated
 def test_snapshot_attribute():
