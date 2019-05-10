@@ -397,7 +397,7 @@ def test_snapshot_filters():
     snapshots_by_owner_id = conn.get_all_snapshots(
         filters={'owner-id': '123456789012'})
     set([snap.id for snap in snapshots_by_owner_id]
-        ).should.equal({snapshot1.id})
+        ).should.equal({snapshot1.id, snapshot2.id, snapshot3.id})
 
 
 @mock_ec2_deprecated
