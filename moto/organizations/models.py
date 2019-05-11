@@ -335,5 +335,14 @@ class OrganizationsBackend(BaseBackend):
         self.policies.append(new_policy)
         return new_policy.describe()
 
+    def list_policies(self, **kwargs):
+        return dict(Policies=[
+            p.describe()['Policy']['PolicySummary'] for p in self.policies
+        ])
+
+    def describe_policy(self, **kwargs):
+        policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
+        return policy.describe()
+
 
 organizations_backend = OrganizationsBackend()

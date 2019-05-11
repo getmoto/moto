@@ -15,6 +15,7 @@ from .organizations_test_utils import (
     validate_account,
     validate_create_account_status,
     validate_service_control_policy,
+    validate_policy_summary,
 )
 
 
@@ -345,6 +346,39 @@ def test_create_policy():
         Name='MockServiceControlPolicy',
         Type='SERVICE_CONTROL_POLICY'
     )['Policy']
+    validate_service_control_policy(org, policy)
+    policy['PolicySummary']['Name'].should.equal('MockServiceControlPolicy')
+    policy['PolicySummary']['Description'].should.equal('A dummy service control policy')
+    policy['Content'].should.equal(json.dumps(policy_doc01))
+
+
+@mock_organizations
+def test_list_polices():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    for i in range(0,4):
+        client.create_policy(
+            Content=json.dumps(policy_doc01),
+            Description='A dummy service control policy',
+            Name='MockServiceControlPolicy' + str(i),
+            Type='SERVICE_CONTROL_POLICY'
+        )
+    response = client.list_policies(Filter='SERVICE_CONTROL_POLICY')
+    for policy in response['Policies']:
+        validate_policy_summary(org, policy)
+
+
+@mock_organizations
+def test_describe_policy():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description='A dummy service control policy',
+        Name='MockServiceControlPolicy',
+        Type='SERVICE_CONTROL_POLICY'
+    )['Policy']['PolicySummary']['Id']
+    policy = client.describe_policy(PolicyId=policy_id)['Policy']
     validate_service_control_policy(org, policy)
     policy['PolicySummary']['Name'].should.equal('MockServiceControlPolicy')
     policy['PolicySummary']['Description'].should.equal('A dummy service control policy')
