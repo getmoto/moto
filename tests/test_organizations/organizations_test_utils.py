@@ -11,6 +11,7 @@ ROOT_ID_REGEX = r'r-[a-z0-9]{%s}' % utils.ROOT_ID_SIZE
 OU_ID_REGEX = r'ou-[a-z0-9]{%s}-[a-z0-9]{%s}' % (utils.ROOT_ID_SIZE, utils.OU_ID_SUFFIX_SIZE)
 ACCOUNT_ID_REGEX = r'[0-9]{%s}' % utils.ACCOUNT_ID_SIZE
 CREATE_ACCOUNT_STATUS_ID_REGEX = r'car-[a-z0-9]{%s}' % utils.CREATE_ACCOUNT_STATUS_ID_SIZE
+SCP_ID_REGEX = r'p-[a-z0-9]{%s}' % utils.SCP_ID_SIZE
 
 
 def test_make_random_org_id():
@@ -37,6 +38,11 @@ def test_make_random_account_id():
 def test_make_random_create_account_status_id():
     create_account_status_id = utils.make_random_create_account_status_id()
     create_account_status_id.should.match(CREATE_ACCOUNT_STATUS_ID_REGEX)
+
+
+def test_make_random_service_control_policy_id():
+    service_control_policy_id = utils.make_random_service_control_policy_id()
+    service_control_policy_id.should.match(SCP_ID_REGEX)
 
 
 def validate_organization(response):
@@ -134,3 +140,19 @@ def validate_create_account_status(create_status):
     create_status['State'].should.equal('SUCCEEDED')
     create_status['RequestedTimestamp'].should.be.a(datetime.datetime)
     create_status['CompletedTimestamp'].should.be.a(datetime.datetime)
+
+
+def validate_service_control_policy(org, response):
+    response.should.have.key('PolicySummary').should.be.a(dict)
+    response.should.have.key('Content').should.be.a(str)
+    scp_summary = response['PolicySummary']
+    scp_summary.should.have.key('Id').should.match(SCP_ID_REGEX)
+    scp_summary.should.have.key('Arn').should.equal(utils.SCP_ARN_FORMAT.format(
+        org['MasterAccountId'],
+        org['Id'],
+        scp_summary['Id'],
+    ))
+    scp_summary.should.have.key('Name').should.be.a(six.string_types)
+    scp_summary.should.have.key('Description').should.be.a(six.string_types)
+    scp_summary.should.have.key('Type').should.equal('SERVICE_CONTROL_POLICY')
+    scp_summary.should.have.key('AwsManaged').should.be.a(bool)

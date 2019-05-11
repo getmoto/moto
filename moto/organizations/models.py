@@ -144,12 +144,50 @@ class FakeRoot(FakeOrganizationalUnit):
         }
 
 
+class FakeServiceControlPolicy(BaseModel):
+
+    def __init__(self, organization, **kwargs):
+        self.content = kwargs.get('Content')
+        self.description = kwargs.get('Description')
+        self.name = kwargs.get('Name')
+        self.type = kwargs.get('Type')
+        self.id = utils.make_random_service_control_policy_id()
+        self.organization_id = organization.id
+        self.master_account_id = organization.master_account_id
+        self._arn_format = utils.SCP_ARN_FORMAT
+        self.aws_managed = False
+
+    @property
+    def arn(self):
+        return self._arn_format.format(
+            self.master_account_id,
+            self.organization_id,
+            self.id
+        )
+
+    def describe(self):
+        return {
+            'Policy': {
+                'PolicySummary': {
+                    'Id': self.id,
+                    'Arn': self.arn,
+                    'Name': self.name,
+                    'Description': self.description,
+                    'Type': self.type,
+                    'AwsManaged': self.aws_managed,
+                },
+                'Content': self.content
+            }
+        }
+
+
 class OrganizationsBackend(BaseBackend):
 
     def __init__(self):
         self.org = None
         self.accounts = []
         self.ou = []
+        self.policies = []
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs['FeatureSet'])
@@ -291,6 +329,11 @@ class OrganizationsBackend(BaseBackend):
                 if obj.parent_id == parent_id
             ]
         )
+
+    def create_policy(self, **kwargs):
+        new_policy = FakeServiceControlPolicy(self.org, **kwargs)
+        self.policies.append(new_policy)
+        return new_policy.describe()
 
 
 organizations_backend = OrganizationsBackend()

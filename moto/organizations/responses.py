@@ -85,3 +85,8 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_children(**self.request_params)
         )
+
+    def create_policy(self):
+        return json.dumps(
+            self.organizations_backend.create_policy(**self.request_params)
+        )

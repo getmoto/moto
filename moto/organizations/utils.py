@@ -10,6 +10,7 @@ MASTER_ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{0}'
 ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{2}'
 ROOT_ARN_FORMAT = 'arn:aws:organizations::{0}:root/{1}/{2}'
 OU_ARN_FORMAT = 'arn:aws:organizations::{0}:ou/{1}/{2}'
+SCP_ARN_FORMAT = 'arn:aws:organizations::{0}:policy/{1}/service_control_policy/{2}'
 
 CHARSET = string.ascii_lowercase + string.digits
 ORG_ID_SIZE = 10
@@ -17,6 +18,7 @@ ROOT_ID_SIZE = 4
 ACCOUNT_ID_SIZE = 12
 OU_ID_SUFFIX_SIZE = 8
 CREATE_ACCOUNT_STATUS_ID_SIZE = 8
+SCP_ID_SIZE = 8
 
 
 def make_random_org_id():
@@ -57,3 +59,10 @@ def make_random_create_account_status_id():
     # "car-" followed by from 8 to 32 lower-case letters or digits.
     # e.g. 'car-35gxzwrp'
     return 'car-' + ''.join(random.choice(CHARSET) for x in range(CREATE_ACCOUNT_STATUS_ID_SIZE))
+
+
+def make_random_service_control_policy_id():
+    # The regex pattern for a policy ID string requires "p-" followed by
+    # from 8 to 128 lower-case letters or digits.
+    # e.g. 'p-k2av4a8a'
+    return 'p-' + ''.join(random.choice(CHARSET) for x in range(SCP_ID_SIZE))

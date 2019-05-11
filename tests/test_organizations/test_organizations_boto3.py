@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto3
+import json
 import sure   # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
@@ -13,6 +14,7 @@ from .organizations_test_utils import (
     validate_organizational_unit,
     validate_account,
     validate_create_account_status,
+    validate_service_control_policy,
 )
 
 
@@ -320,3 +322,30 @@ def test_list_children_exception():
     ex.operation_name.should.equal('ListChildren')
     ex.response['Error']['Code'].should.equal('400')
     ex.response['Error']['Message'].should.contain('InvalidInputException')
+
+
+# Service Control Policies
+policy_doc01 = dict(
+    Version='2012-10-17',
+    Statement=[dict(
+        Sid='MockPolicyStatement',
+        Effect='Allow',
+        Action='s3:*',
+        Resource='*',
+    )]
+)
+
+@mock_organizations
+def test_create_policy():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    policy = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description='A dummy service control policy',
+        Name='MockServiceControlPolicy',
+        Type='SERVICE_CONTROL_POLICY'
+    )['Policy']
+    validate_service_control_policy(org, policy)
+    policy['PolicySummary']['Name'].should.equal('MockServiceControlPolicy')
+    policy['PolicySummary']['Description'].should.equal('A dummy service control policy')
+    policy['Content'].should.equal(json.dumps(policy_doc01))
