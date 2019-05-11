@@ -57,6 +57,7 @@ class FakeAccount(BaseModel):
         self.status = 'ACTIVE'
         self.joined_method = 'CREATED'
         self.parent_id = organization.root_id
+        self.attached_policies = []
 
     @property
     def arn(self):
@@ -103,6 +104,7 @@ class FakeOrganizationalUnit(BaseModel):
         self.name = kwargs.get('Name')
         self.parent_id = kwargs.get('ParentId')
         self._arn_format = utils.OU_ARN_FORMAT
+        self.attached_policies = []
 
     @property
     def arn(self):
@@ -134,6 +136,7 @@ class FakeRoot(FakeOrganizationalUnit):
             'Status': 'ENABLED'
         }]
         self._arn_format = utils.ROOT_ARN_FORMAT
+        self.attached_policies = []
 
     def describe(self):
         return {
@@ -152,10 +155,11 @@ class FakeServiceControlPolicy(BaseModel):
         self.name = kwargs.get('Name')
         self.type = kwargs.get('Type')
         self.id = utils.make_random_service_control_policy_id()
+        self.aws_managed = False
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self._arn_format = utils.SCP_ARN_FORMAT
-        self.aws_managed = False
+        self.attachments = []
 
     @property
     def arn(self):
@@ -343,6 +347,37 @@ class OrganizationsBackend(BaseBackend):
     def describe_policy(self, **kwargs):
         policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
         return policy.describe()
+
+    def attach_policy(self, **kwargs):
+        policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
+        if (re.compile(utils.ROOT_ID_REGEX).match(kwargs['TargetId']) or
+                re.compile(utils.OU_ID_REGEX).match(kwargs['TargetId'])):
+            ou = next((ou for ou in self.ou if ou.id == kwargs['TargetId']), None)
+            if ou is not None:
+                if ou not in ou.attached_policies:
+                    ou.attached_policies.append(policy)
+                    policy.attachments.append(ou)
+            else:
+                raise RESTError(
+                    'OrganizationalUnitNotFoundException',
+                    "You specified an organizational unit that doesn't exist."
+                )
+        elif re.compile(utils.ACCOUNT_ID_REGEX).match(kwargs['TargetId']):
+            account = next((a for a in self.accounts if a.id == kwargs['TargetId']), None)
+            if account is not None:
+                if account not in account.attached_policies:
+                    account.attached_policies.append(policy)
+                    policy.attachments.append(account)
+            else:
+                raise RESTError(
+                    'AccountNotFoundException',
+                    "You specified an account that doesn't exist."
+                )
+        else:
+            raise RESTError(
+                'InvalidInputException',
+                'You specified an invalid value.'
+            )
 
 
 organizations_backend = OrganizationsBackend()

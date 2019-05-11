@@ -20,6 +20,14 @@ OU_ID_SUFFIX_SIZE = 8
 CREATE_ACCOUNT_STATUS_ID_SIZE = 8
 SCP_ID_SIZE = 8
 
+EMAIL_REGEX = "^.+@[a-zA-Z0-9-.]+.[a-zA-Z]{2,3}|[0-9]{1,3}$"
+ORG_ID_REGEX = r'o-[a-z0-9]{%s}' % ORG_ID_SIZE
+ROOT_ID_REGEX = r'r-[a-z0-9]{%s}' % ROOT_ID_SIZE
+OU_ID_REGEX = r'ou-[a-z0-9]{%s}-[a-z0-9]{%s}' % (ROOT_ID_SIZE, OU_ID_SUFFIX_SIZE)
+ACCOUNT_ID_REGEX = r'[0-9]{%s}' % ACCOUNT_ID_SIZE
+CREATE_ACCOUNT_STATUS_ID_REGEX = r'car-[a-z0-9]{%s}' % CREATE_ACCOUNT_STATUS_ID_SIZE
+SCP_ID_REGEX = r'p-[a-z0-9]{%s}' % SCP_ID_SIZE
+
 
 def make_random_org_id():
     # The regex pattern for an organization ID string requires "o-"
