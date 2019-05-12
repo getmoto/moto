@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 import json
+import six
 import sure   # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
@@ -353,22 +354,6 @@ def test_create_policy():
 
 
 @mock_organizations
-def test_list_polices():
-    client = boto3.client('organizations', region_name='us-east-1')
-    org = client.create_organization(FeatureSet='ALL')['Organization']
-    for i in range(0,4):
-        client.create_policy(
-            Content=json.dumps(policy_doc01),
-            Description='A dummy service control policy',
-            Name='MockServiceControlPolicy' + str(i),
-            Type='SERVICE_CONTROL_POLICY'
-        )
-    response = client.list_policies(Filter='SERVICE_CONTROL_POLICY')
-    for policy in response['Policies']:
-        validate_policy_summary(org, policy)
-
-
-@mock_organizations
 def test_describe_policy():
     client = boto3.client('organizations', region_name='us-east-1')
     org = client.create_organization(FeatureSet='ALL')['Organization']
@@ -383,6 +368,25 @@ def test_describe_policy():
     policy['PolicySummary']['Name'].should.equal('MockServiceControlPolicy')
     policy['PolicySummary']['Description'].should.equal('A dummy service control policy')
     policy['Content'].should.equal(json.dumps(policy_doc01))
+
+
+@mock_organizations
+def test_describe_policy_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    client.create_organization(FeatureSet='ALL')['Organization']
+    policy_id = 'p-47fhe9s3'
+    with assert_raises(ClientError) as e:
+        response = client.describe_policy(PolicyId=policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal('DescribePolicy')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('PolicyNotFoundException')
+    with assert_raises(ClientError) as e:
+        response = client.describe_policy(PolicyId='meaninglessstring')
+    ex = e.exception
+    ex.operation_name.should.equal('DescribePolicy')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('InvalidInputException')
 
 
 @mock_organizations
@@ -413,7 +417,7 @@ def test_attach_policy():
 
 
 @mock_organizations
-def test_attache_policy_exception():
+def test_attach_policy_exception():
     client = boto3.client('organizations', region_name='us-east-1')
     client.create_organization(FeatureSet='ALL')['Organization']
     root_id='r-dj873'
@@ -447,6 +451,144 @@ def test_attache_policy_exception():
         response = client.attach_policy(PolicyId=policy_id, TargetId='meaninglessstring')
     ex = e.exception
     ex.operation_name.should.equal('AttachPolicy')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('InvalidInputException')
+
+
+@mock_organizations
+def test_list_polices():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    for i in range(0,4):
+        client.create_policy(
+            Content=json.dumps(policy_doc01),
+            Description='A dummy service control policy',
+            Name='MockServiceControlPolicy' + str(i),
+            Type='SERVICE_CONTROL_POLICY'
+        )
+    response = client.list_policies(Filter='SERVICE_CONTROL_POLICY')
+    for policy in response['Policies']:
+        validate_policy_summary(org, policy)
+ 
+
+@mock_organizations
+def test_list_policies_for_target():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    ou_id = client.create_organizational_unit(
+        ParentId=root_id,
+        Name='ou01',
+    )['OrganizationalUnit']['Id']
+    account_id = client.create_account(
+        AccountName=mockname,
+        Email=mockemail,
+    )['CreateAccountStatus']['AccountId']
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description='A dummy service control policy',
+        Name='MockServiceControlPolicy',
+        Type='SERVICE_CONTROL_POLICY'
+    )['Policy']['PolicySummary']['Id']
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    response = client.list_policies_for_target(
+        TargetId=ou_id,
+        Filter='SERVICE_CONTROL_POLICY',
+    )
+    for policy in response['Policies']:
+        validate_policy_summary(org, policy)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    response = client.list_policies_for_target(
+        TargetId=account_id,
+        Filter='SERVICE_CONTROL_POLICY',
+    )
+    for policy in response['Policies']:
+        validate_policy_summary(org, policy)
+
+
+@mock_organizations
+def test_list_policies_for_target_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    client.create_organization(FeatureSet='ALL')['Organization']
+    ou_id='ou-gi99-i7r8eh2i2'
+    account_id='126644886543'
+    with assert_raises(ClientError) as e:
+        response = client.list_policies_for_target(
+            TargetId=ou_id,
+            Filter='SERVICE_CONTROL_POLICY',
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('ListPoliciesForTarget')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('OrganizationalUnitNotFoundException')
+    with assert_raises(ClientError) as e:
+        response = client.list_policies_for_target(
+            TargetId=account_id,
+            Filter='SERVICE_CONTROL_POLICY',
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('ListPoliciesForTarget')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('AccountNotFoundException')
+    with assert_raises(ClientError) as e:
+        response = client.list_policies_for_target(
+            TargetId='meaninglessstring',
+            Filter='SERVICE_CONTROL_POLICY',
+        )
+    ex = e.exception
+    ex.operation_name.should.equal('ListPoliciesForTarget')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('InvalidInputException')
+ 
+
+@mock_organizations
+def test_list_targets_for_policy():
+    client = boto3.client('organizations', region_name='us-east-1')
+    org = client.create_organization(FeatureSet='ALL')['Organization']
+    root_id = client.list_roots()['Roots'][0]['Id']
+    ou_id = client.create_organizational_unit(
+        ParentId=root_id,
+        Name='ou01',
+    )['OrganizationalUnit']['Id']
+    account_id = client.create_account(
+        AccountName=mockname,
+        Email=mockemail,
+    )['CreateAccountStatus']['AccountId']
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description='A dummy service control policy',
+        Name='MockServiceControlPolicy',
+        Type='SERVICE_CONTROL_POLICY'
+    )['Policy']['PolicySummary']['Id']
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    response = client.list_targets_for_policy(PolicyId=policy_id)
+    for target in response['Targets']:
+        target.should.be.a(dict)
+        target.should.have.key('Name').should.be.a(six.string_types)
+        target.should.have.key('Arn').should.be.a(six.string_types)
+        target.should.have.key('TargetId').should.be.a(six.string_types)
+        target.should.have.key('Type').should.be.within(
+            ['ROOT', 'ORGANIZATIONAL_UNIT', 'ACCOUNT']
+        )
+
+
+@mock_organizations
+def test_list_targets_for_policy_exception():
+    client = boto3.client('organizations', region_name='us-east-1')
+    client.create_organization(FeatureSet='ALL')['Organization']
+    policy_id = 'p-47fhe9s3'
+    with assert_raises(ClientError) as e:
+        response = client.list_targets_for_policy(PolicyId=policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal('ListTargetsForPolicy')
+    ex.response['Error']['Code'].should.equal('400')
+    ex.response['Error']['Message'].should.contain('PolicyNotFoundException')
+    with assert_raises(ClientError) as e:
+        response = client.list_targets_for_policy(PolicyId='meaninglessstring')
+    ex = e.exception
+    ex.operation_name.should.equal('ListTargetsForPolicy')
     ex.response['Error']['Code'].should.equal('400')
     ex.response['Error']['Message'].should.contain('InvalidInputException')
  

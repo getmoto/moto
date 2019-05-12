@@ -47,6 +47,7 @@ class FakeOrganization(BaseModel):
 class FakeAccount(BaseModel):
 
     def __init__(self, organization, **kwargs):
+        self.type = 'ACCOUNT'
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.create_account_status_id = utils.make_random_create_account_status_id()
@@ -150,6 +151,7 @@ class FakeRoot(FakeOrganizationalUnit):
 class FakeServiceControlPolicy(BaseModel):
 
     def __init__(self, organization, **kwargs):
+        self.type = 'POLICY'
         self.content = kwargs.get('Content')
         self.description = kwargs.get('Description')
         self.name = kwargs.get('Name')
@@ -339,13 +341,19 @@ class OrganizationsBackend(BaseBackend):
         self.policies.append(new_policy)
         return new_policy.describe()
 
-    def list_policies(self, **kwargs):
-        return dict(Policies=[
-            p.describe()['Policy']['PolicySummary'] for p in self.policies
-        ])
-
     def describe_policy(self, **kwargs):
-        policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
+        if re.compile(utils.SCP_ID_REGEX).match(kwargs['PolicyId']):
+            policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
+            if policy is None:
+                raise RESTError(
+                    'PolicyNotFoundException',
+                    "You specified a policy that doesn't exist."
+                )
+        else:
+            raise RESTError(
+                'InvalidInputException',
+                'You specified an invalid value.'
+            )
         return policy.describe()
 
     def attach_policy(self, **kwargs):
@@ -378,6 +386,58 @@ class OrganizationsBackend(BaseBackend):
                 'InvalidInputException',
                 'You specified an invalid value.'
             )
+
+    def list_policies(self, **kwargs):
+        return dict(Policies=[
+            p.describe()['Policy']['PolicySummary'] for p in self.policies
+        ])
+
+    def list_policies_for_target(self, **kwargs):
+        if re.compile(utils.OU_ID_REGEX).match(kwargs['TargetId']):
+            obj = next((ou for ou in self.ou if ou.id == kwargs['TargetId']), None)
+            if obj is None:
+                raise RESTError(
+                    'OrganizationalUnitNotFoundException',
+                    "You specified an organizational unit that doesn't exist."
+                )
+        elif re.compile(utils.ACCOUNT_ID_REGEX).match(kwargs['TargetId']):
+            obj = next((a for a in self.accounts if a.id == kwargs['TargetId']), None)
+            if obj is None:
+                raise RESTError(
+                    'AccountNotFoundException',
+                    "You specified an account that doesn't exist."
+                )
+        else:
+            raise RESTError(
+                'InvalidInputException',
+                'You specified an invalid value.'
+            )
+        return dict(Policies=[
+            p.describe()['Policy']['PolicySummary'] for p in obj.attached_policies
+        ])
+
+    def list_targets_for_policy(self, **kwargs):
+        if re.compile(utils.SCP_ID_REGEX).match(kwargs['PolicyId']):
+            policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
+            if policy is None:
+                raise RESTError(
+                    'PolicyNotFoundException',
+                    "You specified a policy that doesn't exist."
+                )
+        else:
+            raise RESTError(
+                'InvalidInputException',
+                'You specified an invalid value.'
+            )
+        objects = [
+            {
+                'TargetId': obj.id,
+                'Arn': obj.arn,
+                'Name': obj.name,
+                'Type': obj.type,
+            } for obj in policy.attachments
+        ]
+        return dict(Targets=objects)
 
 
 organizations_backend = OrganizationsBackend()
