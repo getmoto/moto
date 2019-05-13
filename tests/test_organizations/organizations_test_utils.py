@@ -148,5 +148,5 @@ def validate_policy_summary(org, summary):
 
 def validate_service_control_policy(org, response):
     response.should.have.key('PolicySummary').should.be.a(dict)
-    response.should.have.key('Content').should.be.a(str)
+    response.should.have.key('Content').should.be.a(six.string_types)
     validate_policy_summary(org, response['PolicySummary'])
