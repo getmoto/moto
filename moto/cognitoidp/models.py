@@ -106,8 +106,8 @@ class CognitoIdpUserPool(BaseModel):
             "exp": now + expires_in,
         }
         payload.update(extra_data)
-
-        return jws.sign(payload, self.json_web_key, algorithm='RS256'), expires_in
+        headers = {"alg": self.json_web_key["alg"], "kid": self.json_web_key["kid"]}
+        return jws.sign(payload, self.json_web_key, headers=headers, algorithm='RS256'), expires_in
 
     def create_id_token(self, client_id, username):
         id_token, expires_in = self.create_jwt(client_id, username)
