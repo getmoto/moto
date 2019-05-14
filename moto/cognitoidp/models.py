@@ -564,6 +564,7 @@ class CognitoIdpBackend(BaseBackend):
                 "AccessToken": access_token,
                 "RefreshToken": refresh_token,
                 "ExpiresIn": expires_in,
+                "TokenType": "Bearer"
             }
         }
 
@@ -606,6 +607,7 @@ class CognitoIdpBackend(BaseBackend):
                     "IdToken": id_token,
                     "AccessToken": access_token,
                     "ExpiresIn": expires_in,
+                    "TokenType": "Bearer"
                 }
             }
         else:
