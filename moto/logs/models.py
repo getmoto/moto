@@ -137,7 +137,7 @@ class LogGroup:
         self.creationTime = unix_time_millis()
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
-        self.retentionInDays = None # AWS defaults to Never Expire for log group retention
+        self.retentionInDays = None  # AWS defaults to Never Expire for log group retention
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -210,7 +210,7 @@ class LogGroup:
             "storedBytes": sum(s.storedBytes for s in self.streams.values()),
         }
         # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
-        if retentionInDays:
+        if self.retentionInDays:
             log_group["retentionInDays"] = self.retentionInDays
         return log_group
 
