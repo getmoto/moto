@@ -89,7 +89,8 @@ def test_vpc_peering_connections_delete():
     verdict.should.equal(True)
 
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
-    all_vpc_pcxs.should.have.length_of(0)
+    all_vpc_pcxs.should.have.length_of(1)
+    all_vpc_pcxs[0]._status.code.should.equal('deleted')
 
     with assert_raises(EC2ResponseError) as cm:
         conn.delete_vpc_peering_connection("pcx-1234abcd")

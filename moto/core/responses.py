@@ -718,6 +718,8 @@ def to_str(value, spec):
         return str(value)
     elif vtype == 'float':
         return str(value)
+    elif vtype == 'double':
+        return str(value)
     elif vtype == 'timestamp':
         return datetime.datetime.utcfromtimestamp(
             value).replace(tzinfo=pytz.utc).isoformat()
@@ -736,6 +738,8 @@ def from_str(value, spec):
     elif vtype == 'integer':
         return int(value)
     elif vtype == 'float':
+        return float(value)
+    elif vtype == 'double':
         return float(value)
     elif vtype == 'timestamp':
         return value

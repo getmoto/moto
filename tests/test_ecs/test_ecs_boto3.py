@@ -48,6 +48,15 @@ def test_list_clusters():
 
 
 @mock_ecs
+def test_describe_clusters():
+    client = boto3.client('ecs', region_name='us-east-1')
+    response = client.describe_clusters(clusters=["some-cluster"])
+    response['failures'].should.contain({
+        'arn': 'arn:aws:ecs:us-east-1:012345678910:cluster/some-cluster',
+        'reason': 'MISSING'
+    })
+
+@mock_ecs
 def test_delete_cluster():
     client = boto3.client('ecs', region_name='us-east-1')
     _ = client.create_cluster(
@@ -379,23 +388,32 @@ def test_list_services():
         cluster='test_ecs_cluster',
         serviceName='test_ecs_service1',
         taskDefinition='test_ecs_task',
+        schedulingStrategy='REPLICA',
         desiredCount=2
     )
     _ = client.create_service(
         cluster='test_ecs_cluster',
         serviceName='test_ecs_service2',
         taskDefinition='test_ecs_task',
+        schedulingStrategy='DAEMON',
         desiredCount=2
     )
-    response = client.list_services(
+    unfiltered_response = client.list_services(
         cluster='test_ecs_cluster'
     )
-    len(response['serviceArns']).should.equal(2)
-    response['serviceArns'][0].should.equal(
+    len(unfiltered_response['serviceArns']).should.equal(2)
+    unfiltered_response['serviceArns'][0].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
-    response['serviceArns'][1].should.equal(
+    unfiltered_response['serviceArns'][1].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2')
 
+    filtered_response = client.list_services(
+        cluster='test_ecs_cluster',
+        schedulingStrategy='REPLICA'
+    )
+    len(filtered_response['serviceArns']).should.equal(1)
+    filtered_response['serviceArns'][0].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
 
 @mock_ecs
 def test_describe_services():
@@ -922,6 +940,65 @@ def test_update_container_instances_state():
         status.should.equal('ACTIVE')
     ecs_client.update_container_instances_state.when.called_with(cluster=test_cluster_name,
                                                                  containerInstances=test_instance_ids,
+                                                                 status='test_status').should.throw(Exception)
+
+
+@mock_ec2
+@mock_ecs
+def test_update_container_instances_state_by_arn():
+    ecs_client = boto3.client('ecs', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    test_cluster_name = 'test_ecs_cluster'
+    _ = ecs_client.create_cluster(
+        clusterName=test_cluster_name
+    )
+
+    instance_to_create = 3
+    test_instance_arns = []
+    for i in range(0, instance_to_create):
+        test_instance = ec2.create_instances(
+            ImageId="ami-1234abcd",
+            MinCount=1,
+            MaxCount=1,
+        )[0]
+
+        instance_id_document = json.dumps(
+            ec2_utils.generate_instance_identity_document(test_instance)
+        )
+
+        response = ecs_client.register_container_instance(
+            cluster=test_cluster_name,
+            instanceIdentityDocument=instance_id_document)
+
+        test_instance_arns.append(response['containerInstance']['containerInstanceArn'])
+
+    response = ecs_client.update_container_instances_state(cluster=test_cluster_name,
+                                                           containerInstances=test_instance_arns,
+                                                           status='DRAINING')
+    len(response['failures']).should.equal(0)
+    len(response['containerInstances']).should.equal(instance_to_create)
+    response_statuses = [ci['status'] for ci in response['containerInstances']]
+    for status in response_statuses:
+        status.should.equal('DRAINING')
+    response = ecs_client.update_container_instances_state(cluster=test_cluster_name,
+                                                           containerInstances=test_instance_arns,
+                                                           status='DRAINING')
+    len(response['failures']).should.equal(0)
+    len(response['containerInstances']).should.equal(instance_to_create)
+    response_statuses = [ci['status'] for ci in response['containerInstances']]
+    for status in response_statuses:
+        status.should.equal('DRAINING')
+    response = ecs_client.update_container_instances_state(cluster=test_cluster_name,
+                                                           containerInstances=test_instance_arns,
+                                                           status='ACTIVE')
+    len(response['failures']).should.equal(0)
+    len(response['containerInstances']).should.equal(instance_to_create)
+    response_statuses = [ci['status'] for ci in response['containerInstances']]
+    for status in response_statuses:
+        status.should.equal('ACTIVE')
+    ecs_client.update_container_instances_state.when.called_with(cluster=test_cluster_name,
+                                                                 containerInstances=test_instance_arns,
                                                                  status='test_status').should.throw(Exception)
 
 

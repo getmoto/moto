@@ -13,6 +13,8 @@ import boto3
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
+    CertificateStateException,
+    DeleteConflictException,
     ResourceNotFoundException,
     InvalidRequestException,
     VersionConflictException
@@ -378,7 +380,25 @@ class IoTBackend(BaseBackend):
         return certificate, key_pair
 
     def delete_certificate(self, certificate_id):
-        self.describe_certificate(certificate_id)
+        cert = self.describe_certificate(certificate_id)
+        if cert.status == 'ACTIVE':
+            raise CertificateStateException(
+                'Certificate must be deactivated (not ACTIVE) before deletion.', certificate_id)
+
+        certs = [k[0] for k, v in self.principal_things.items()
+                 if self._get_principal(k[0]).certificate_id == certificate_id]
+        if len(certs) > 0:
+            raise DeleteConflictException(
+                'Things must be detached before deletion (arn: %s)' % certs[0]
+            )
+
+        certs = [k[0] for k, v in self.principal_policies.items()
+                 if self._get_principal(k[0]).certificate_id == certificate_id]
+        if len(certs) > 0:
+            raise DeleteConflictException(
+                'Certificate policies must be detached before deletion (arn: %s)' % certs[0]
+            )
+
         del self.certificates[certificate_id]
 
     def describe_certificate(self, certificate_id):
@@ -411,6 +431,14 @@ class IoTBackend(BaseBackend):
         return policies[0]
 
     def delete_policy(self, policy_name):
+
+        policies = [k[1] for k, v in self.principal_policies.items() if k[1] == policy_name]
+        if len(policies) > 0:
+            raise DeleteConflictException(
+                'The policy cannot be deleted as the policy is attached to one or more principals (name=%s)'
+                % policy_name
+            )
+
         policy = self.get_policy(policy_name)
         del self.policies[policy.name]
 
@@ -429,6 +457,14 @@ class IoTBackend(BaseBackend):
             pass
         raise ResourceNotFoundException()
 
+    def attach_policy(self, policy_name, target):
+        principal = self._get_principal(target)
+        policy = self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k in self.principal_policies:
+            return
+        self.principal_policies[k] = (principal, policy)
+
     def attach_principal_policy(self, policy_name, principal_arn):
         principal = self._get_principal(principal_arn)
         policy = self.get_policy(policy_name)
@@ -436,6 +472,15 @@ class IoTBackend(BaseBackend):
         if k in self.principal_policies:
             return
         self.principal_policies[k] = (principal, policy)
+
+    def detach_policy(self, policy_name, target):
+        # this may raises ResourceNotFoundException
+        self._get_principal(target)
+        self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k not in self.principal_policies:
+            raise ResourceNotFoundException()
+        del self.principal_policies[k]
 
     def detach_principal_policy(self, policy_name, principal_arn):
         # this may raises ResourceNotFoundException

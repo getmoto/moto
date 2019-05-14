@@ -448,8 +448,8 @@ def test_short_form_func_in_yaml_teamplate():
     KeySplit: !Split [A, B]
     KeySub: !Sub A
     """
-    yaml.add_multi_constructor('', yaml_tag_constructor)
-    template_dict = yaml.load(template)
+    yaml.add_multi_constructor('', yaml_tag_constructor, Loader=yaml.Loader)
+    template_dict = yaml.load(template, Loader=yaml.Loader)
     key_and_expects = [
         ['KeyRef', {'Ref': 'foo'}],
         ['KeyB64', {'Fn::Base64': 'valueToEncode'}],

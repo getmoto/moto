@@ -85,6 +85,8 @@ class AutoScalingResponse(BaseResponse):
             termination_policies=self._get_multi_param(
                 'TerminationPolicies.member'),
             tags=self._get_list_prefix('Tags.member'),
+            new_instances_protected_from_scale_in=self._get_bool_param(
+                'NewInstancesProtectedFromScaleIn', False)
         )
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -192,6 +194,8 @@ class AutoScalingResponse(BaseResponse):
             placement_group=self._get_param('PlacementGroup'),
             termination_policies=self._get_multi_param(
                 'TerminationPolicies.member'),
+            new_instances_protected_from_scale_in=self._get_bool_param(
+                'NewInstancesProtectedFromScaleIn', None)
         )
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -288,6 +292,15 @@ class AutoScalingResponse(BaseResponse):
         scaling_processes = self._get_multi_param('ScalingProcesses.member')
         self.autoscaling_backend.suspend_processes(autoscaling_group_name, scaling_processes)
         template = self.response_template(SUSPEND_PROCESSES_TEMPLATE)
+        return template.render()
+
+    def set_instance_protection(self):
+        group_name = self._get_param('AutoScalingGroupName')
+        instance_ids = self._get_multi_param('InstanceIds.member')
+        protected_from_scale_in = self._get_bool_param('ProtectedFromScaleIn')
+        self.autoscaling_backend.set_instance_protection(
+            group_name, instance_ids, protected_from_scale_in)
+        template = self.response_template(SET_INSTANCE_PROTECTION_TEMPLATE)
         return template.render()
 
 
@@ -391,7 +404,7 @@ ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroups
 <AttachLoadBalancerTargetGroupsResult>
 </AttachLoadBalancerTargetGroupsResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </AttachLoadBalancerTargetGroupsResponse>"""
 
@@ -399,7 +412,7 @@ ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscalin
 <AttachInstancesResult>
 </AttachInstancesResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </AttachInstancesResponse>"""
 
@@ -415,7 +428,7 @@ DESCRIBE_LOAD_BALANCER_TARGET_GROUPS = """<DescribeLoadBalancerTargetGroupsRespo
   </LoadBalancerTargetGroups>
 </DescribeLoadBalancerTargetGroupsResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DescribeLoadBalancerTargetGroupsResponse>"""
 
@@ -441,7 +454,7 @@ DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscalin
   </Activities>
 </DetachInstancesResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DetachInstancesResponse>"""
 
@@ -449,7 +462,7 @@ DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<DetachLoadBalancerTargetGroups
 <DetachLoadBalancerTargetGroupsResult>
 </DetachLoadBalancerTargetGroupsResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DetachLoadBalancerTargetGroupsResponse>"""
 
@@ -490,6 +503,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
             <InstanceId>{{ instance_state.instance.id }}</InstanceId>
             <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
             <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
+            <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
           </member>
           {% endfor %}
         </Instances>
@@ -507,6 +521,15 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           </LoadBalancerNames>
         {% else %}
           <LoadBalancerNames/>
+        {% endif %}
+        {% if group.target_group_arns %}
+          <TargetGroupARNs>
+          {% for target_group_arn in group.target_group_arns %}
+            <member>{{ target_group_arn }}</member>
+          {% endfor %}
+          </TargetGroupARNs>
+        {% else %}
+          <TargetGroupARNs/>
         {% endif %}
         <MinSize>{{ group.min_size }}</MinSize>
         {% if group.vpc_zone_identifier %}
@@ -530,6 +553,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         {% if group.placement_group %}
         <PlacementGroup>{{ group.placement_group }}</PlacementGroup>
         {% endif %}
+        <NewInstancesProtectedFromScaleIn>{{ group.new_instances_protected_from_scale_in|string|lower }}</NewInstancesProtectedFromScaleIn>
       </member>
       {% endfor %}
     </AutoScalingGroups>
@@ -565,6 +589,7 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
         <InstanceId>{{ instance_state.instance.id }}</InstanceId>
         <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
         <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
+        <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
       </member>
       {% endfor %}
     </AutoScalingInstances>
@@ -629,7 +654,7 @@ DELETE_POLICY_TEMPLATE = """<DeleteScalingPolicyResponse xmlns="http://autoscali
 ATTACH_LOAD_BALANCERS_TEMPLATE = """<AttachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancersResult></AttachLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </AttachLoadBalancersResponse>"""
 
@@ -645,14 +670,14 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </LoadBalancers>
 </DescribeLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
 DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachLoadBalancersResult></DetachLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DetachLoadBalancersResponse>"""
 
@@ -665,6 +690,13 @@ SUSPEND_PROCESSES_TEMPLATE = """<SuspendProcessesResponse xmlns="http://autoscal
 SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <SetInstanceHealthResponse></SetInstanceHealthResponse>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </SetInstanceHealthResponse>"""
+
+SET_INSTANCE_PROTECTION_TEMPLATE = """<SetInstanceProtectionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<SetInstanceProtectionResult></SetInstanceProtectionResult>
+<ResponseMetadata>
+<RequestId></RequestId>
+</ResponseMetadata>
+</SetInstanceProtectionResponse>"""

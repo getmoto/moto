@@ -82,11 +82,20 @@ def test_create_secret():
                            headers={
                                "X-Amz-Target": "secretsmanager.CreateSecret"},
                            )
+    res_2 = test_client.post('/',
+                           data={"Name": "test-secret-2",
+                                 "SecretString": "bar-secret"},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.CreateSecret"},
+                           )
 
     json_data = json.loads(res.data.decode("utf-8"))
-    assert json_data['ARN'] == (
-        'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-rIjad')
+    assert json_data['ARN'] != ''
     assert json_data['Name'] == 'test-secret'
+    
+    json_data_2 = json.loads(res_2.data.decode("utf-8"))
+    assert json_data_2['ARN'] != ''
+    assert json_data_2['Name'] == 'test-secret-2'
 
 @mock_secretsmanager
 def test_describe_secret():
@@ -107,12 +116,30 @@ def test_describe_secret():
                             "X-Amz-Target": "secretsmanager.DescribeSecret"
                         },
                     )
+    
+    create_secret_2 = test_client.post('/',
+                        data={"Name": "test-secret-2",
+                              "SecretString": "barsecret"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.CreateSecret"
+                        },
+                    )
+    describe_secret_2 = test_client.post('/',
+                        data={"SecretId": "test-secret-2"},
+                        headers={
+                            "X-Amz-Target": "secretsmanager.DescribeSecret"
+                        },
+                    )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
     assert json_data   # Returned dict is not empty
-    assert json_data['ARN'] == (
-        'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-rIjad'
-    )
+    assert json_data['ARN'] != ''
+    assert json_data['Name'] == 'test-secret'
+    
+    json_data_2 = json.loads(describe_secret_2.data.decode("utf-8"))
+    assert json_data_2   # Returned dict is not empty
+    assert json_data_2['ARN'] != ''
+    assert json_data_2['Name'] == 'test-secret-2'
 
 @mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
@@ -179,9 +206,7 @@ def test_rotate_secret():
 
     json_data = json.loads(rotate_secret.data.decode("utf-8"))
     assert json_data   # Returned dict is not empty
-    assert json_data['ARN'] == (
-        'arn:aws:secretsmanager:us-east-1:1234567890:secret:test-secret-rIjad'
-    )
+    assert json_data['ARN'] != ''
     assert json_data['Name'] == 'test-secret'
     assert json_data['VersionId'] == client_request_token
 

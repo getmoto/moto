@@ -52,8 +52,9 @@ def random_password(password_length, exclude_characters, exclude_numbers,
 
 
 def secret_arn(region, secret_id):
-    return "arn:aws:secretsmanager:{0}:1234567890:secret:{1}-rIjad".format(
-        region, secret_id)
+    id_string = ''.join(random.choice(string.ascii_letters) for _ in range(5))
+    return "arn:aws:secretsmanager:{0}:1234567890:secret:{1}-{2}".format(
+        region, secret_id, id_string)
 
 
 def _exclude_characters(password, exclude_characters):

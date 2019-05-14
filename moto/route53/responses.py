@@ -123,6 +123,9 @@ class Route53(BaseResponse):
                     """ % (record_set['Name'], the_zone.name)
                     return 400, headers, error_msg
 
+                if not record_set['Name'].endswith('.'):
+                    record_set['Name'] += '.'
+
                 if action in ('CREATE', 'UPSERT'):
                     if 'ResourceRecords' in record_set:
                         resource_records = list(

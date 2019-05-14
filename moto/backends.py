@@ -12,6 +12,7 @@ from moto.core import moto_api_backends
 from moto.datapipeline import datapipeline_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodb2 import dynamodb_backends2
+from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.ec2 import ec2_backends
 from moto.ecr import ecr_backends
 from moto.ecs import ecs_backends
@@ -45,7 +46,7 @@ from moto.iot import iot_backends
 from moto.iotdata import iotdata_backends
 from moto.batch import batch_backends
 from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
-
+from moto.config import config_backends
 
 BACKENDS = {
     'acm': acm_backends,
@@ -56,9 +57,11 @@ BACKENDS = {
     'cloudwatch': cloudwatch_backends,
     'cognito-identity': cognitoidentity_backends,
     'cognito-idp': cognitoidp_backends,
+    'config': config_backends,
     'datapipeline': datapipeline_backends,
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
+    'dynamodbstreams': dynamodbstreams_backends,
     'ec2': ec2_backends,
     'ecr': ecr_backends,
     'ecs': ecs_backends,
