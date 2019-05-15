@@ -643,7 +643,8 @@ def test_describe_task_definition():
 
 
 # SLOW TESTS
-@expected_failure
+
+# @expected_failure
 @mock_logs
 @mock_ec2
 @mock_ecs
