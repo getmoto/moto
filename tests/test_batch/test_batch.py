@@ -692,7 +692,8 @@ def test_submit_job_by_name():
 
 
 # SLOW TESTS
-@expected_failure
+
+# @expected_failure
 @mock_logs
 @mock_ec2
 @mock_ecs
