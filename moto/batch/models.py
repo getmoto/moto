@@ -338,10 +338,11 @@ class Job(threading.Thread, BaseModel):
             "jobId": self.job_id,
             "jobName": self.job_name,
             "jobQueue": self.job_queue.arn,
-            "startedAt": datetime2int(self.job_started_at),
             "status": self.job_state,
             "dependsOn": [],
         }
+        if result['status'] not in ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING']:
+            result['startedAt'] = datetime2int(self.job_started_at)
         if self.job_stopped:
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
