@@ -30,7 +30,8 @@ from .exceptions import (
     RuleNotFoundError,
     DuplicatePriorityError,
     InvalidTargetGroupNameError,
-    InvalidModifyRuleArgumentsError
+    InvalidModifyRuleArgumentsError,
+    DescribeListenerValidationError
 )
 
 
@@ -593,6 +594,9 @@ class ELBv2Backend(BaseBackend):
         return self.target_groups.values()
 
     def describe_listeners(self, load_balancer_arn, listener_arns):
+        if not load_balancer_arn and not listener_arns:
+            raise DescribeListenerValidationError()
+
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()

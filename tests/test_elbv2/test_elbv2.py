@@ -916,6 +916,10 @@ def test_handle_listener_rules():
     obtained_rules = conn.describe_rules(RuleArns=[first_rule['RuleArn']])
     obtained_rules['Rules'].should.equal([first_rule])
 
+    # test for describe listeners validation error
+    with assert_raises(ClientError):
+        conn.describe_rules()
+
     # test for pagination
     obtained_rules = conn.describe_rules(
         ListenerArn=http_listener_arn, PageSize=1)

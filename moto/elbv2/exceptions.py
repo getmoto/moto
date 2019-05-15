@@ -190,3 +190,12 @@ class InvalidModifyRuleArgumentsError(ELBClientError):
             "ValidationError",
             "Either conditions or actions must be specified"
         )
+
+
+class DescribeListenerValidationError(ELBClientError):
+
+    def __init__(self):
+        super(DescribeListenerValidationError, self).__init__(
+            "ValidationError",
+            "An error occurred (ValidationError) when calling the DescribeListeners operation: You must specify either either listener ARNs or a load balancer ARN"
+        )
