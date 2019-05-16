@@ -97,7 +97,9 @@ class _TemplateEnvironmentMixin(object):
     def response_template(self, source):
         template_id = id(source)
         if not self.contains_template(template_id):
-            self.loader.update({template_id: source})
+            # Real response body of AWS APIs dont have whitespace between tags
+            collapsed = "".join(line.strip() for line in source.split("\n"))
+            self.loader.update({template_id: collapsed})
             self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape, trim_blocks=True,
                                            lstrip_blocks=True)
         return self.environment.get_template(template_id)
