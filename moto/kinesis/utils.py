@@ -1,4 +1,13 @@
-import base64
+import sys
+
+if sys.version_info[0] == 2:
+    from base64 import encodestring as encode_method
+    from base64 import decodestring as decode_method
+elif sys.version_info[0] == 3:
+    from base64 import encodebytes as encode_method
+    from base64 import decodebytes as decode_method
+else:
+    raise Exception("Python version is not supported")
 
 from .exceptions import InvalidArgumentError
 
@@ -22,7 +31,7 @@ def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting
 
 
 def compose_shard_iterator(stream_name, shard, last_sequence_id):
-    return base64.encodestring(
+    return encode_method(
         "{0}:{1}:{2}".format(
             stream_name,
             shard.shard_id,
@@ -32,4 +41,4 @@ def compose_shard_iterator(stream_name, shard, last_sequence_id):
 
 
 def decompose_shard_iterator(shard_iterator):
-    return base64.decodestring(shard_iterator.encode("utf-8")).decode("utf-8").split(":")
+    return decode_method(shard_iterator.encode("utf-8")).decode("utf-8").split(":")
