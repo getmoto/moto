@@ -440,6 +440,18 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_USERS_TEMPLATE)
         return template.render(action='List', users=users)
 
+    def update_user(self):
+        user_name = self._get_param('UserName')
+        new_path = self._get_param('NewPath')
+        new_user_name = self._get_param('NewUserName')
+        iam_backend.update_user(user_name, new_path, new_user_name)
+        if new_user_name:
+            user = iam_backend.get_user(new_user_name)
+        else:
+            user = iam_backend.get_user(user_name)
+        template = self.response_template(USER_TEMPLATE)
+        return template.render(action='Update', user=user)
+
     def create_login_profile(self):
         user_name = self._get_param('UserName')
         password = self._get_param('Password')

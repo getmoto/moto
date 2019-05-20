@@ -134,6 +134,8 @@ def utc_date_and_time():
 
 
 def validate_resource_ids(resource_ids):
+    if not resource_ids:
+        raise MissingParameterError(parameter='resourceIdSet')
     for resource_id in resource_ids:
         if not is_valid_resource_id(resource_id):
             raise InvalidID(resource_id=resource_id)
@@ -189,7 +191,7 @@ class NetworkInterface(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
-        self.private_ip_address = private_ip_address
+        self.private_ip_address = private_ip_address or random_private_ip()
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
@@ -402,7 +404,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
             warnings.warn('Could not find AMI with image-id:{0}, '
                           'in the near future this will '
                           'cause an error.\n'
-                          'Use ec2_backend.describe_images() to'
+                          'Use ec2_backend.describe_images() to '
                           'find suitable image for your test'.format(image_id),
                           PendingDeprecationWarning)
 

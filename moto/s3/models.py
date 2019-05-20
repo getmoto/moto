@@ -10,6 +10,7 @@ import random
 import string
 import tempfile
 import sys
+import uuid
 
 import six
 
@@ -35,7 +36,7 @@ class FakeDeleteMarker(BaseModel):
         self.key = key
         self.name = key.name
         self.last_modified = datetime.datetime.utcnow()
-        self._version_id = key.version_id + 1
+        self._version_id = str(uuid.uuid4())
 
     @property
     def last_modified_ISO8601(self):
@@ -86,10 +87,13 @@ class FakeKey(BaseModel):
             new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
         self._value_buffer.write(new_value)
 
-    def copy(self, new_name=None):
+    def copy(self, new_name=None, new_is_versioned=None):
         r = copy.deepcopy(self)
         if new_name is not None:
             r.name = new_name
+        if new_is_versioned is not None:
+            r._is_versioned = new_is_versioned
+            r.refresh_version()
         return r
 
     def set_metadata(self, metadata, replace=False):
@@ -115,15 +119,16 @@ class FakeKey(BaseModel):
         self.last_modified = datetime.datetime.utcnow()
         self._etag = None  # must recalculate etag
         if self._is_versioned:
-            self._version_id += 1
+            self._version_id = str(uuid.uuid4())
         else:
-            self._is_versioned = 0
+            self._version_id = None
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
 
-    def increment_version(self):
-        self._version_id += 1
+    def refresh_version(self):
+        self._version_id = str(uuid.uuid4())
+        self.last_modified = datetime.datetime.utcnow()
 
     @property
     def etag(self):
@@ -716,17 +721,18 @@ class S3Backend(BaseBackend):
 
     def get_bucket_latest_versions(self, bucket_name):
         versions = self.get_bucket_versions(bucket_name)
-        maximum_version_per_key = {}
+        latest_modified_per_key = {}
         latest_versions = {}
 
         for version in versions:
             name = version.name
+            last_modified = version.last_modified
             version_id = version.version_id
-            maximum_version_per_key[name] = max(
-                version_id,
-                maximum_version_per_key.get(name, -1)
+            latest_modified_per_key[name] = max(
+                last_modified,
+                latest_modified_per_key.get(name, datetime.datetime.min)
             )
-            if version_id == maximum_version_per_key[name]:
+            if last_modified == latest_modified_per_key[name]:
                 latest_versions[name] = version_id
 
         return latest_versions
@@ -774,20 +780,19 @@ class S3Backend(BaseBackend):
 
         bucket = self.get_bucket(bucket_name)
 
-        old_key = bucket.keys.get(key_name, None)
-        if old_key is not None and bucket.is_versioned:
-            new_version_id = old_key._version_id + 1
-        else:
-            new_version_id = 0
-
         new_key = FakeKey(
             name=key_name,
             value=value,
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=new_version_id)
-        bucket.keys[key_name] = new_key
+            version_id=str(uuid.uuid4()) if bucket.is_versioned else None)
+
+        keys = [
+            key for key in bucket.keys.getlist(key_name, [])
+            if key.version_id != new_key.version_id
+        ] + [new_key]
+        bucket.keys.setlist(key_name, keys)
 
         return new_key
 
@@ -971,17 +976,15 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         key = self.get_key(src_bucket_name, src_key_name,
                            version_id=src_version_id)
-        if dest_key_name != src_key_name:
-            key = key.copy(dest_key_name)
-        dest_bucket.keys[dest_key_name] = key
 
-        # By this point, the destination key must exist, or KeyError
-        if dest_bucket.is_versioned:
-            dest_bucket.keys[dest_key_name].increment_version()
+        new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
+
         if storage is not None:
-            key.set_storage_class(storage)
+            new_key.set_storage_class(storage)
         if acl is not None:
-            key.set_acl(acl)
+            new_key.set_acl(acl)
+
+        dest_bucket.keys[dest_key_name] = new_key
 
     def set_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)
