@@ -1961,3 +1961,113 @@ def test_query_pagination():
     results = page1['Items'] + page2['Items']
     subjects = set([int(r['subject']) for r in results])
     subjects.should.equal(set(range(10)))
+
+
+@mock_dynamodb2
+def test_scan_by_index():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    dynamodb.create_table(
+        TableName='test',
+        KeySchema=[
+            {'AttributeName': 'id', 'KeyType': 'HASH'},
+            {'AttributeName': 'range_key', 'KeyType': 'RANGE'},
+        ],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'range_key', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_col', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_range_key', 'AttributeType': 'S'},
+            {'AttributeName': 'lsi_range_key', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        GlobalSecondaryIndexes=[
+            {
+                'IndexName': 'test_gsi',
+                'KeySchema': [
+                    {'AttributeName': 'gsi_col', 'KeyType': 'HASH'},
+                    {'AttributeName': 'gsi_range_key', 'KeyType': 'RANGE'},
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 1,
+                    'WriteCapacityUnits': 1
+                }
+            },
+        ],
+        LocalSecondaryIndexes=[
+            {
+                'IndexName': 'test_lsi',
+                'KeySchema': [
+                    {'AttributeName': 'id', 'KeyType': 'HASH'},
+                    {'AttributeName': 'lsi_range_key', 'KeyType': 'RANGE'},
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+            },
+        ]
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '1'},
+            'range_key': {'S': '1'},
+            'col1': {'S': 'val1'},
+            'gsi_col': {'S': '1'},
+            'gsi_range_key': {'S': '1'},
+            'lsi_range_key': {'S': '1'},
+        }
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '1'},
+            'range_key': {'S': '2'},
+            'col1': {'S': 'val2'},
+            'gsi_col': {'S': '1'},
+            'gsi_range_key': {'S': '2'},
+            'lsi_range_key': {'S': '2'},
+        }
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '3'},
+            'range_key': {'S': '1'},
+            'col1': {'S': 'val3'},
+        }
+    )
+
+    res = dynamodb.scan(TableName='test')
+    assert res['Count'] == 3
+    assert len(res['Items']) == 3
+
+    res = dynamodb.scan(TableName='test', IndexName='test_gsi')
+    assert res['Count'] == 2
+    assert len(res['Items']) == 2
+
+    res = dynamodb.scan(TableName='test', IndexName='test_gsi', Limit=1)
+    assert res['Count'] == 1
+    assert len(res['Items']) == 1
+    last_eval_key = res['LastEvaluatedKey']
+    assert last_eval_key['id']['S'] == '1'
+    assert last_eval_key['gsi_col']['S'] == '1'
+    assert last_eval_key['gsi_range_key']['S'] == '1'
+
+    res = dynamodb.scan(TableName='test', IndexName='test_lsi')
+    assert res['Count'] == 2
+    assert len(res['Items']) == 2
+
+    res = dynamodb.scan(TableName='test', IndexName='test_lsi', Limit=1)
+    assert res['Count'] == 1
+    assert len(res['Items']) == 1
+    last_eval_key = res['LastEvaluatedKey']
+    assert last_eval_key['id']['S'] == '1'
+    assert last_eval_key['range_key']['S'] == '1'
+    assert last_eval_key['lsi_range_key']['S'] == '1'
