@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, unix_time
 from .utils import generate_key_id
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -33,12 +33,11 @@ class Key(BaseModel):
         return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
 
     def to_dict(self):
-        epoch = datetime(1970, 1, 1)
         key_dict = {
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": "%d" % (datetime.utcnow() - epoch).total_seconds(),
+                "CreationDate": "%d" % unix_time(),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
