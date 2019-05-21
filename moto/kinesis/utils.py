@@ -1,15 +1,17 @@
 import sys
-
-if sys.version_info[0] == 2:
-    from base64 import encodestring as encode_method
-    from base64 import decodestring as decode_method
-elif sys.version_info[0] == 3:
-    from base64 import encodebytes as encode_method
-    from base64 import decodebytes as decode_method
-else:
-    raise Exception("Python version is not supported")
+import base64
 
 from .exceptions import InvalidArgumentError
+
+
+if sys.version_info[0] == 2:
+    encode_method = base64.encodestring
+    decode_method = base64.decodestring
+elif sys.version_info[0] == 3:
+    encode_method = base64.encodebytes
+    decode_method = base64.decodebytes
+else:
+    raise Exception("Python version is not supported")
 
 
 def compose_new_shard_iterator(stream_name, shard, shard_iterator_type, starting_sequence_number,
