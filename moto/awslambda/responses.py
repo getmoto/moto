@@ -150,7 +150,7 @@ class LambdaResponse(BaseResponse):
 
         for fn in self.lambda_backend.list_functions():
             json_data = fn.get_configuration()
-
+            json_data['Version'] = '$LATEST'
             result['Functions'].append(json_data)
 
         return 200, {}, json.dumps(result)
@@ -204,7 +204,10 @@ class LambdaResponse(BaseResponse):
 
         if fn:
             code = fn.get_code()
-
+            if qualifier is None or qualifier == '$LATEST':
+                code['Configuration']['Version'] = '$LATEST'
+            if qualifier == '$LATEST':
+                code['Configuration']['FunctionArn'] += ':$LATEST'
             return 200, {}, json.dumps(code)
         else:
             return 404, {}, "{}"
