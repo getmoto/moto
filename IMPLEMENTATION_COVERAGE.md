@@ -852,7 +852,7 @@
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status
-- [ ] admin_update_user_attributes
+- [X] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
 - [X] change_password
@@ -2519,14 +2519,14 @@
 - [ ] start_next_pending_job_execution
 - [ ] update_job_execution
 
-## kinesis - 56% implemented
+## kinesis - 61% implemented
 - [X] add_tags_to_stream
 - [X] create_stream
 - [ ] decrease_stream_retention_period
 - [X] delete_stream
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_summary
+- [X] describe_stream_summary
 - [ ] disable_enhanced_monitoring
 - [ ] enable_enhanced_monitoring
 - [X] get_records
