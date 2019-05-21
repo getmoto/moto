@@ -500,6 +500,11 @@ class LambdaStorage(object):
         except ValueError:
             return self._functions[name]['latest']
 
+    def list_versions_by_function(self, name):
+        if name not in self._functions:
+            return None
+        return [self._functions[name]['latest']]
+
     def get_arn(self, arn):
         return self._arns.get(arn, None)
 
@@ -606,6 +611,9 @@ class LambdaBackend(BaseBackend):
 
     def get_function(self, function_name, qualifier=None):
         return self._lambdas.get_function(function_name, qualifier)
+
+    def list_versions_by_function(self, function_name):
+        return self._lambdas.list_versions_by_function(function_name)
 
     def get_function_by_arn(self, function_arn):
         return self._lambdas.get_arn(function_arn)

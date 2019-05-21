@@ -543,6 +543,7 @@ def test_describe_load_balancers():
     )
 
     response = client.describe_load_balancers(AutoScalingGroupName='test_asg')
+    assert response['ResponseMetadata']['RequestId']
     list(response['LoadBalancers']).should.have.length_of(1)
     response['LoadBalancers'][0]['LoadBalancerName'].should.equal('my-lb')
 

@@ -67,6 +67,8 @@ class DynamoType(object):
                 return int(self.value)
             except ValueError:
                 return float(self.value)
+        elif self.is_set():
+            return set(self.value)
         else:
             return self.value
 
@@ -510,15 +512,12 @@ class Table(BaseModel):
                 elif 'Value' in val and DynamoType(val['Value']).value != current_attr[key].value:
                     raise ValueError("The conditional request failed")
                 elif 'ComparisonOperator' in val:
-                    comparison_func = get_comparison_func(
-                        val['ComparisonOperator'])
                     dynamo_types = [
                         DynamoType(ele) for ele in
                         val.get("AttributeValueList", [])
                     ]
-                    for t in dynamo_types:
-                        if not comparison_func(current_attr[key].value, t.value):
-                            raise ValueError('The conditional request failed')
+                    if not current_attr[key].compare(val['ComparisonOperator'], dynamo_types):
+                        raise ValueError('The conditional request failed')
         if range_value:
             self.items[hash_value][range_value] = item
         else:
@@ -572,6 +571,7 @@ class Table(BaseModel):
               exclusive_start_key, scan_index_forward, projection_expression,
               index_name=None, filter_expression=None, **filter_kwargs):
         results = []
+
         if index_name:
             all_indexes = self.all_indexes()
             indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
@@ -588,23 +588,27 @@ class Table(BaseModel):
                 raise ValueError('Missing Hash Key. KeySchema: %s' %
                                  index['KeySchema'])
 
-            possible_results = []
-            for item in self.all_items():
-                if not isinstance(item, Item):
-                    continue
-                item_hash_key = item.attrs.get(index_hash_key['AttributeName'])
-                if item_hash_key and item_hash_key == hash_key:
-                    possible_results.append(item)
-        else:
-            possible_results = [item for item in list(self.all_items()) if isinstance(
-                item, Item) and item.hash_key == hash_key]
-
-        if index_name:
             try:
                 index_range_key = [key for key in index[
                     'KeySchema'] if key['KeyType'] == 'RANGE'][0]
             except IndexError:
                 index_range_key = None
+
+            possible_results = []
+            for item in self.all_items():
+                if not isinstance(item, Item):
+                    continue
+                item_hash_key = item.attrs.get(index_hash_key['AttributeName'])
+                if index_range_key is None:
+                    if item_hash_key and item_hash_key == hash_key:
+                        possible_results.append(item)
+                else:
+                    item_range_key = item.attrs.get(index_range_key['AttributeName'])
+                    if item_hash_key and item_hash_key == hash_key and item_range_key:
+                        possible_results.append(item)
+        else:
+            possible_results = [item for item in list(self.all_items()) if isinstance(
+                item, Item) and item.hash_key == hash_key]
 
         if range_comparison:
             if index_name and not index_range_key:
@@ -983,15 +987,12 @@ class DynamoDBBackend(BaseBackend):
             elif 'Value' in val and DynamoType(val['Value']).value != item_attr[key].value:
                 raise ValueError("The conditional request failed")
             elif 'ComparisonOperator' in val:
-                comparison_func = get_comparison_func(
-                    val['ComparisonOperator'])
                 dynamo_types = [
                     DynamoType(ele) for ele in
                     val.get("AttributeValueList", [])
                 ]
-                for t in dynamo_types:
-                    if not comparison_func(item_attr[key].value, t.value):
-                        raise ValueError('The conditional request failed')
+                if not item_attr[key].compare(val['ComparisonOperator'], dynamo_types):
+                    raise ValueError('The conditional request failed')
 
         # Update does not fail on new items, so create one
         if item is None:

@@ -470,46 +470,46 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 21% implemented
+## cloudformation - 56% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
 - [X] create_stack
-- [ ] create_stack_instances
-- [ ] create_stack_set
-- [ ] delete_change_set
+- [X] create_stack_instances
+- [X] create_stack_set
+- [X] delete_change_set
 - [X] delete_stack
-- [ ] delete_stack_instances
-- [ ] delete_stack_set
+- [X] delete_stack_instances
+- [X] delete_stack_set
 - [ ] describe_account_limits
-- [ ] describe_change_set
+- [X] describe_change_set
 - [ ] describe_stack_events
-- [ ] describe_stack_instance
+- [X] describe_stack_instance
 - [ ] describe_stack_resource
 - [ ] describe_stack_resources
-- [ ] describe_stack_set
-- [ ] describe_stack_set_operation
+- [X] describe_stack_set
+- [X] describe_stack_set_operation
 - [X] describe_stacks
 - [ ] estimate_template_cost
 - [X] execute_change_set
 - [ ] get_stack_policy
 - [ ] get_template
 - [ ] get_template_summary
-- [ ] list_change_sets
+- [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
-- [ ] list_stack_instances
+- [X] list_stack_instances
 - [X] list_stack_resources
-- [ ] list_stack_set_operation_results
-- [ ] list_stack_set_operations
-- [ ] list_stack_sets
+- [X] list_stack_set_operation_results
+- [X] list_stack_set_operations
+- [X] list_stack_sets
 - [X] list_stacks
 - [ ] set_stack_policy
 - [ ] signal_resource
-- [ ] stop_stack_set_operation
+- [X] stop_stack_set_operation
 - [X] update_stack
-- [ ] update_stack_instances
-- [ ] update_stack_set
+- [X] update_stack_instances
+- [X] update_stack_set
 - [ ] update_termination_protection
 - [ ] validate_template
 
@@ -852,7 +852,7 @@
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status
-- [ ] admin_update_user_attributes
+- [X] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
 - [X] change_password
@@ -916,7 +916,7 @@
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
 - [ ] update_group
-- [ ] update_identity_provider
+- [x] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
@@ -2208,7 +2208,7 @@
 - [ ] describe_event_types
 - [ ] describe_events
 
-## iam - 48% implemented
+## iam - 62% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -2247,7 +2247,7 @@
 - [X] delete_server_certificate
 - [ ] delete_service_linked_role
 - [ ] delete_service_specific_credential
-- [ ] delete_signing_certificate
+- [X] delete_signing_certificate
 - [ ] delete_ssh_public_key
 - [X] delete_user
 - [X] delete_user_policy
@@ -2279,7 +2279,7 @@
 - [ ] get_ssh_public_key
 - [X] get_user
 - [X] get_user_policy
-- [ ] list_access_keys
+- [X] list_access_keys
 - [X] list_account_aliases
 - [X] list_attached_group_policies
 - [X] list_attached_role_policies
@@ -2287,19 +2287,21 @@
 - [ ] list_entities_for_policy
 - [X] list_group_policies
 - [X] list_groups
-- [ ] list_groups_for_user
-- [ ] list_instance_profiles
-- [ ] list_instance_profiles_for_role
+- [X] list_groups_for_user
+- [X] list_instance_profiles
+- [X] list_instance_profiles_for_role
 - [X] list_mfa_devices
 - [ ] list_open_id_connect_providers
 - [X] list_policies
 - [X] list_policy_versions
 - [X] list_role_policies
-- [ ] list_roles
+- [X] list_roles
+- [X] list_role_tags
+- [ ] list_user_tags
 - [X] list_saml_providers
-- [ ] list_server_certificates
+- [X] list_server_certificates
 - [ ] list_service_specific_credentials
-- [ ] list_signing_certificates
+- [X] list_signing_certificates
 - [ ] list_ssh_public_keys
 - [X] list_user_policies
 - [X] list_users
@@ -2315,6 +2317,10 @@
 - [ ] set_default_policy_version
 - [ ] simulate_custom_policy
 - [ ] simulate_principal_policy
+- [X] tag_role
+- [ ] tag_user
+- [X] untag_role
+- [ ] untag_user
 - [X] update_access_key
 - [ ] update_account_password_policy
 - [ ] update_assume_role_policy
@@ -2326,11 +2332,11 @@
 - [X] update_saml_provider
 - [ ] update_server_certificate
 - [ ] update_service_specific_credential
-- [ ] update_signing_certificate
+- [X] update_signing_certificate
 - [ ] update_ssh_public_key
-- [ ] update_user
-- [ ] upload_server_certificate
-- [ ] upload_signing_certificate
+- [X] update_user
+- [X] upload_server_certificate
+- [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
 
 ## importexport - 0% implemented
@@ -2513,14 +2519,14 @@
 - [ ] start_next_pending_job_execution
 - [ ] update_job_execution
 
-## kinesis - 56% implemented
+## kinesis - 61% implemented
 - [X] add_tags_to_stream
 - [X] create_stream
 - [ ] decrease_stream_retention_period
 - [X] delete_stream
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_summary
+- [X] describe_stream_summary
 - [ ] disable_enhanced_monitoring
 - [ ] enable_enhanced_monitoring
 - [X] get_records
@@ -3542,7 +3548,7 @@
 - [ ] get_bucket_inventory_configuration
 - [ ] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
-- [ ] get_bucket_location
+- [X] get_bucket_location
 - [ ] get_bucket_logging
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
@@ -3648,14 +3654,14 @@
 ## secretsmanager - 33% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
-- [ ] delete_secret
+- [X] delete_secret
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
 - [ ] list_secret_version_ids
-- [ ] list_secrets
+- [x] list_secrets
 - [ ] put_secret_value
-- [ ] restore_secret
+- [X] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource
@@ -3913,7 +3919,7 @@
 - [ ] delete_message_batch
 - [X] delete_queue
 - [ ] get_queue_attributes
-- [ ] get_queue_url
+- [X] get_queue_url
 - [X] list_dead_letter_source_queues
 - [ ] list_queue_tags
 - [X] list_queues
