@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, unix_time
 from .utils import generate_key_id
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -37,7 +37,7 @@ class Key(BaseModel):
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": datetime.strftime(datetime.utcnow(), "%s"),
+                "CreationDate": "%d" % unix_time(),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
