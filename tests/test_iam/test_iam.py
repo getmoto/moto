@@ -1304,5 +1304,9 @@ def test_create_role_with_permissions_boundary():
     }
     resp.get('Role').get('PermissionsBoundary').should.equal(expected)
 
+    invalid_boundary_arn = 'arn:aws:iam::123456789:not_a_boundary'
+    with assert_raises(ClientError):
+        conn.create_role(RoleName='bad-boundary', AssumeRolePolicyDocument='some policy', Description='test',  PermissionsBoundary=invalid_boundary_arn)
+
     # Ensure the PermissionsBoundary is included in role listing as well
     conn.list_roles().get('Roles')[0].get('PermissionsBoundary').should.equal(expected)

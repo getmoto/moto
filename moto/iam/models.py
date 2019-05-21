@@ -9,6 +9,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 import pytz
+from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
@@ -472,6 +473,8 @@ class IAMBackend(BaseBackend):
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
+        self.policy_arn_regex = re.compile(
+            r'^arn:aws:iam::[0-9]*:policy/.*$')
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -591,6 +594,9 @@ class IAMBackend(BaseBackend):
 
     def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
         role_id = random_resource_id()
+        if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
+            raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
+
         role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
         self.roles[role_id] = role
         return role
