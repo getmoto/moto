@@ -640,9 +640,12 @@ class RedshiftBackend(BaseBackend):
 
     def describe_cluster_snapshots(self, cluster_identifier=None, snapshot_identifier=None):
         if cluster_identifier:
+            cluster_snapshots = []
             for snapshot in self.snapshots.values():
                 if snapshot.cluster.cluster_identifier == cluster_identifier:
-                    return [snapshot]
+                    cluster_snapshots.append(snapshot)
+            if cluster_snapshots:
+                return cluster_snapshots
             raise ClusterNotFoundError(cluster_identifier)
 
         if snapshot_identifier:

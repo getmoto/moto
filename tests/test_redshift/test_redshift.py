@@ -699,7 +699,8 @@ def test_create_cluster_snapshot():
 def test_describe_cluster_snapshots():
     client = boto3.client('redshift', region_name='us-east-1')
     cluster_identifier = 'my_cluster'
-    snapshot_identifier = 'my_snapshot'
+    snapshot_identifier_1 = 'my_snapshot_1'
+    snapshot_identifier_2 = 'my_snapshot_2'
 
     client.create_cluster(
         DBName='test-db',
@@ -711,19 +712,33 @@ def test_describe_cluster_snapshots():
     )
 
     client.create_cluster_snapshot(
-        SnapshotIdentifier=snapshot_identifier,
+        SnapshotIdentifier=snapshot_identifier_1,
+        ClusterIdentifier=cluster_identifier,
+    )
+    client.create_cluster_snapshot(
+        SnapshotIdentifier=snapshot_identifier_2,
         ClusterIdentifier=cluster_identifier,
     )
 
+    resp_snap_1 = client.describe_cluster_snapshots(SnapshotIdentifier=snapshot_identifier_1)
+    snapshot_1 = resp_snap_1['Snapshots'][0]
+    snapshot_1['SnapshotIdentifier'].should.equal(snapshot_identifier_1)
+    snapshot_1['ClusterIdentifier'].should.equal(cluster_identifier)
+    snapshot_1['NumberOfNodes'].should.equal(1)
+    snapshot_1['NodeType'].should.equal('ds2.xlarge')
+    snapshot_1['MasterUsername'].should.equal('username')
+
+    resp_snap_2 = client.describe_cluster_snapshots(SnapshotIdentifier=snapshot_identifier_2)
+    snapshot_2 = resp_snap_2['Snapshots'][0]
+    snapshot_2['SnapshotIdentifier'].should.equal(snapshot_identifier_2)
+    snapshot_2['ClusterIdentifier'].should.equal(cluster_identifier)
+    snapshot_2['NumberOfNodes'].should.equal(1)
+    snapshot_2['NodeType'].should.equal('ds2.xlarge')
+    snapshot_2['MasterUsername'].should.equal('username')
+
     resp_clust = client.describe_cluster_snapshots(ClusterIdentifier=cluster_identifier)
-    resp_snap = client.describe_cluster_snapshots(SnapshotIdentifier=snapshot_identifier)
-    resp_clust['Snapshots'][0].should.equal(resp_snap['Snapshots'][0])
-    snapshot = resp_snap['Snapshots'][0]
-    snapshot['SnapshotIdentifier'].should.equal(snapshot_identifier)
-    snapshot['ClusterIdentifier'].should.equal(cluster_identifier)
-    snapshot['NumberOfNodes'].should.equal(1)
-    snapshot['NodeType'].should.equal('ds2.xlarge')
-    snapshot['MasterUsername'].should.equal('username')
+    resp_clust['Snapshots'][0].should.equal(resp_snap_1['Snapshots'][0])
+    resp_clust['Snapshots'][1].should.equal(resp_snap_2['Snapshots'][0])
 
 
 @mock_redshift
