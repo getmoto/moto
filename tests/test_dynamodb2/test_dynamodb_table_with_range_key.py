@@ -1344,6 +1344,34 @@ def test_update_item_add_value_string_set():
         'subject': '123',
     })
 
+@mock_dynamodb2
+def test_update_item_delete_value_string_set():
+    table = _create_table_with_range_key()
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'string_set': set(['str1', 'str2']),
+    })
+
+    item_key = {'forum_name': 'the-key', 'subject': '123'}
+    table.update_item(
+        Key=item_key,
+        AttributeUpdates={
+            'string_set': {
+                'Action': u'DELETE',
+                'Value': set(['str2']),
+            },
+        },
+    )
+
+    returned_item = dict((k, str(v) if isinstance(v, Decimal) else v)
+                         for k, v in table.get_item(Key=item_key)['Item'].items())
+    dict(returned_item).should.equal({
+        'string_set': set(['str1']),
+        'forum_name': 'the-key',
+        'subject': '123',
+    })
 
 @mock_dynamodb2
 def test_update_item_add_value_does_not_exist_is_created():
