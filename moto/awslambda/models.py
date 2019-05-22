@@ -45,7 +45,7 @@ except ImportError:
 
 _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
-docker_3 = docker.__version__.startswith("3")
+docker_3 = docker.__version__[0] >= '3'
 
 
 def zip2tar(zip_bytes):
