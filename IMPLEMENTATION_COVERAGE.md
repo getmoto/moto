@@ -3658,9 +3658,9 @@
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
-- [ ] list_secret_version_ids
-- [x] list_secrets
-- [ ] put_secret_value
+- [X] list_secret_version_ids
+- [X] list_secrets
+- [X] put_secret_value
 - [X] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
