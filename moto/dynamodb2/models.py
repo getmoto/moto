@@ -306,7 +306,7 @@ class Item(BaseModel):
                         'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
             else:
                 raise NotImplementedError(
-                        '%s action not support for update_with_attribute_updates' % action)
+                    '%s action not support for update_with_attribute_updates' % action)
 
 
 class StreamRecord(BaseModel):
