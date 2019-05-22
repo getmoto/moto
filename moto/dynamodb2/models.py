@@ -294,6 +294,19 @@ class Item(BaseModel):
                     # TODO: implement other data types
                     raise NotImplementedError(
                         'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
+            elif action == 'DELETE':
+                if set(update_action['Value'].keys()) == set(['SS']):
+                    existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
+                    new_set = set(existing.value).difference(set(new_value))
+                    self.attrs[attribute_name] = DynamoType({
+                        "SS": list(new_set)
+                    })
+                else:
+                    raise NotImplementedError(
+                        'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
+            else:
+                raise NotImplementedError(
+                    '%s action not support for update_with_attribute_updates' % action)
 
 
 class StreamRecord(BaseModel):
