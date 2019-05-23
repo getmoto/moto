@@ -17,6 +17,8 @@ def test_log_group_create():
 
     response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
     assert len(response['logGroups']) == 1
+    # AWS defaults to Never Expire for log group retention
+    assert response['logGroups'][0].get('retentionInDays') == None
 
     response = conn.delete_log_group(logGroupName=log_group_name)
 
