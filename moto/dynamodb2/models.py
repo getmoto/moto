@@ -417,7 +417,6 @@ class Table(BaseModel):
         }
         self.set_stream_specification(streams)
 
-
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
