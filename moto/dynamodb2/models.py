@@ -420,13 +420,19 @@ class Table(BaseModel):
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         properties = cloudformation_json['Properties']
-        params = {
-            'schema': properties['KeySchema'],
-            'attr': properties['AttributeDefinitions'],
-            'global_indexes': properties['GlobalSecondaryIndexes'],
-            'throughput': properties['ProvisionedThroughput'],
-            'indexes': properties['LocalSecondaryIndexes'],
-        }
+        params = {}
+
+        if 'KeySchema' in properties:
+            params['schema'] = properties['KeySchema']
+        if 'AttributeDefinitions' in properties:
+            params['attr'] = properties['AttributeDefinitions']
+        if 'GlobalSecondaryIndexes' in properties:
+            params['global_indexes'] = properties['GlobalSecondaryIndexes']
+        if 'ProvisionedThroughput' in properties:
+            params['throughput'] = properties['ProvisionedThroughput']
+        if 'LocalSecondaryIndexes' in properties:
+            params['indexes'] = properties['LocalSecondaryIndexes']
+
         table = dynamodb_backends[region_name].create_table(name=properties['TableName'], **params)
         return table
 
