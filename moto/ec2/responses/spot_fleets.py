@@ -107,6 +107,21 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
                             </item>
                             {% endfor %}
                         </groupSet>
+                        <tagSpecificationSet>
+                            {% for resource_type in launch_spec.tag_specifications %}
+                            <item>
+                                <resourceType>{{ resource_type }}</resourceType>
+                                <tag>
+                                {% for key, value in launch_spec.tag_specifications[resource_type].items() %}
+                                    <item>
+                                        <key>{{ key }}</key>
+                                        <value>{{ value }}</value>
+                                    </item>
+                                {% endfor %}
+                                </tag>
+                            </item>
+                            {% endfor %}
+                        </tagSpecificationSet>
                     </item>
                     {% endfor %}
                 </launchSpecifications>

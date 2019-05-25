@@ -240,8 +240,13 @@ class RedshiftResponse(BaseResponse):
         })
 
     def delete_cluster(self):
-        cluster_identifier = self._get_param("ClusterIdentifier")
-        cluster = self.redshift_backend.delete_cluster(cluster_identifier)
+        request_kwargs = {
+            "cluster_identifier": self._get_param("ClusterIdentifier"),
+            "final_cluster_snapshot_identifier": self._get_param("FinalClusterSnapshotIdentifier"),
+            "skip_final_snapshot": self._get_bool_param("SkipFinalClusterSnapshot")
+        }
+
+        cluster = self.redshift_backend.delete_cluster(**request_kwargs)
 
         return self.get_response({
             "DeleteClusterResponse": {

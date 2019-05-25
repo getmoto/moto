@@ -3,16 +3,19 @@ import base64
 import sys
 from datetime import datetime
 import json
+import re
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 import pytz
+from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
+    DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 ACCOUNT_ID = 123456789012
@@ -32,7 +35,6 @@ class MFADevice(object):
 
 
 class Policy(BaseModel):
-
     is_attachable = False
 
     def __init__(self,
@@ -47,7 +49,13 @@ class Policy(BaseModel):
         self.description = description or ''
         self.id = random_policy_id()
         self.path = path or '/'
-        self.default_version_id = default_version_id or 'v1'
+
+        if default_version_id:
+            self.default_version_id = default_version_id
+            self.next_version_num = int(default_version_id.lstrip('v')) + 1
+        else:
+            self.default_version_id = 'v1'
+            self.next_version_num = 2
         self.versions = [PolicyVersion(self.arn, document, True)]
 
         self.create_datetime = datetime.now(pytz.utc)
@@ -124,7 +132,7 @@ class InlinePolicy(Policy):
 
 class Role(BaseModel):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path):
+    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -132,6 +140,9 @@ class Role(BaseModel):
         self.policies = {}
         self.managed_policies = {}
         self.create_date = datetime.now(pytz.utc)
+        self.tags = {}
+        self.description = ""
+        self.permissions_boundary = permissions_boundary
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -141,6 +152,7 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
+            permissions_boundary=properties.get('PermissionsBoundary', '')
         )
 
         policies = properties.get('Policies', [])
@@ -175,6 +187,9 @@ class Role(BaseModel):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
+    def get_tags(self):
+        return [self.tags[tag] for tag in self.tags]
+
 
 class InstanceProfile(BaseModel):
 
@@ -207,7 +222,7 @@ class InstanceProfile(BaseModel):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
 
@@ -458,6 +473,8 @@ class IAMBackend(BaseBackend):
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
+        self.policy_arn_regex = re.compile(
+            r'^arn:aws:iam::[0-9]*:policy/.*$')
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -467,6 +484,16 @@ class IAMBackend(BaseBackend):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         policy = arns[policy_arn]
         policy.attach_to(self.get_role(role_name))
+
+    def update_role_description(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
+        return role
+
+    def update_role(self, role_name, role_description):
+        role = self.get_role(role_name)
+        role.description = role_description
+        return role
 
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -565,9 +592,12 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path):
+    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path)
+        if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
+            raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
+
+        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
         self.roles[role_id] = role
         return role
 
@@ -614,13 +644,94 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         return role.policies.keys()
 
+    def _validate_tag_key(self, tag_key, exception_param='tags.X.member.key'):
+        """Validates the tag key.
+
+        :param all_tags: Dict to check if there is a duplicate tag.
+        :param tag_key: The tag key to check against.
+        :param exception_param: The exception parameter to send over to help format the message. This is to reflect
+                                the difference between the tag and untag APIs.
+        :return:
+        """
+        # Validate that the key length is correct:
+        if len(tag_key) > 128:
+            raise TagKeyTooBig(tag_key, param=exception_param)
+
+        # Validate that the tag key fits the proper Regex:
+        # [\w\s_.:/=+\-@]+ SHOULD be the same as the Java regex on the AWS documentation: [\p{L}\p{Z}\p{N}_.:/=+\-@]+
+        match = re.findall(r'[\w\s_.:/=+\-@]+', tag_key)
+        # Kudos if you can come up with a better way of doing a global search :)
+        if not len(match) or len(match[0]) < len(tag_key):
+            raise InvalidTagCharacters(tag_key, param=exception_param)
+
+    def _check_tag_duplicate(self, all_tags, tag_key):
+        """Validates that a tag key is not a duplicate
+
+        :param all_tags: Dict to check if there is a duplicate tag.
+        :param tag_key: The tag key to check against.
+        :return:
+        """
+        if tag_key in all_tags:
+            raise DuplicateTags()
+
+    def list_role_tags(self, role_name, marker, max_items=100):
+        role = self.get_role(role_name)
+
+        max_items = int(max_items)
+        tag_index = sorted(role.tags)
+        start_idx = int(marker) if marker else 0
+
+        tag_index = tag_index[start_idx:start_idx + max_items]
+
+        if len(role.tags) <= (start_idx + max_items):
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        # Make the tag list of dict's:
+        tags = [role.tags[tag] for tag in tag_index]
+
+        return tags, marker
+
+    def tag_role(self, role_name, tags):
+        if len(tags) > 50:
+            raise TooManyTags(tags)
+
+        role = self.get_role(role_name)
+
+        tag_keys = {}
+        for tag in tags:
+            # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
+            ref_key = tag['Key'].lower()
+            self._check_tag_duplicate(tag_keys, ref_key)
+            self._validate_tag_key(tag['Key'])
+            if len(tag['Value']) > 256:
+                raise TagValueTooBig(tag['Value'])
+
+            tag_keys[ref_key] = tag
+
+        role.tags.update(tag_keys)
+
+    def untag_role(self, role_name, tag_keys):
+        if len(tag_keys) > 50:
+            raise TooManyTags(tag_keys, param='tagKeys')
+
+        role = self.get_role(role_name)
+
+        for key in tag_keys:
+            ref_key = key.lower()
+            self._validate_tag_key(key, exception_param='tagKeys')
+
+            role.tags.pop(ref_key, None)
+
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
-        version.version_id = 'v{0}'.format(len(policy.versions))
+        version.version_id = 'v{0}'.format(policy.next_version_num)
+        policy.next_version_num += 1
         if set_as_default:
             policy.default_version_id = version.version_id
         return version
@@ -795,6 +906,28 @@ class IAMBackend(BaseBackend):
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
+
+    def update_user(self, user_name, new_path=None, new_user_name=None):
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise IAMNotFoundException("User {0} not found".format(user_name))
+
+        if new_path:
+            user.path = new_path
+        if new_user_name:
+            user.name = new_user_name
+            self.users[new_user_name] = self.users.pop(user_name)
+
+    def list_roles(self, path_prefix, marker, max_items):
+        roles = None
+        try:
+            roles = self.roles.values()
+        except KeyError:
+            raise IAMNotFoundException(
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+
+        return roles
 
     def upload_signing_certificate(self, user_name, body):
         user = self.get_user(user_name)

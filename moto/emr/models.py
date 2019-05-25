@@ -97,7 +97,8 @@ class FakeCluster(BaseModel):
                  visible_to_all_users='false',
                  release_label=None,
                  requested_ami_version=None,
-                 running_ami_version=None):
+                 running_ami_version=None,
+                 custom_ami_id=None):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
         self.emr_backend = emr_backend
@@ -162,6 +163,7 @@ class FakeCluster(BaseModel):
         self.release_label = release_label
         self.requested_ami_version = requested_ami_version
         self.running_ami_version = running_ami_version
+        self.custom_ami_id = custom_ami_id
 
         self.role = job_flow_role or 'EMRJobflowDefault'
         self.service_role = service_role

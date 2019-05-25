@@ -150,16 +150,18 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   <availabilityZone>{{ volume.zone.name }}</availabilityZone>
   <status>creating</status>
   <createTime>{{ volume.create_time}}</createTime>
-  <tagSet>
-    {% for tag in volume.get_tags() %}
-        <item>
-        <resourceId>{{ tag.resource_id }}</resourceId>
-        <resourceType>{{ tag.resource_type }}</resourceType>
-        <key>{{ tag.key }}</key>
-        <value>{{ tag.value }}</value>
-        </item>
-    {% endfor %}
-  </tagSet>
+  {% if volume.get_tags() %}
+    <tagSet>
+      {% for tag in volume.get_tags() %}
+          <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+          </item>
+      {% endfor %}
+    </tagSet>
+  {% endif %}
   <volumeType>standard</volumeType>
 </CreateVolumeResponse>"""
 
@@ -191,16 +193,18 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
                     </item>
                 {% endif %}
              </attachmentSet>
-             <tagSet>
-               {% for tag in volume.get_tags() %}
-                 <item>
-                   <resourceId>{{ tag.resource_id }}</resourceId>
-                   <resourceType>{{ tag.resource_type }}</resourceType>
-                   <key>{{ tag.key }}</key>
-                   <value>{{ tag.value }}</value>
-                 </item>
-               {% endfor %}
-             </tagSet>
+             {% if volume.get_tags() %}
+               <tagSet>
+                 {% for tag in volume.get_tags() %}
+                   <item>
+                     <resourceId>{{ tag.resource_id }}</resourceId>
+                     <resourceType>{{ tag.resource_type }}</resourceType>
+                     <key>{{ tag.key }}</key>
+                     <value>{{ tag.value }}</value>
+                   </item>
+                 {% endfor %}
+               </tagSet>
+             {% endif %}
              <volumeType>standard</volumeType>
           </item>
       {% endfor %}

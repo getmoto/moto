@@ -42,7 +42,7 @@ def test_add_servers():
 @freeze_time("2014-01-01 05:00:00")
 @mock_ec2_deprecated
 def test_instance_launch_and_terminate():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
 
     with assert_raises(EC2ResponseError) as ex:
         reservation = conn.run_instances('ami-1234abcd', dry_run=True)
@@ -820,7 +820,7 @@ def test_run_instance_with_instance_type():
 
 @mock_ec2_deprecated
 def test_run_instance_with_default_placement():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
@@ -1254,3 +1254,18 @@ def test_create_instance_ebs_optimized():
     )
     instance.load()
     instance.ebs_optimized.should.be(False)
+
+@mock_ec2
+def test_run_multiple_instances_in_same_command():
+    instance_count = 4
+    client = boto3.client('ec2', region_name='us-east-1')
+    client.run_instances(ImageId='ami-1234abcd',
+                          MinCount=instance_count,
+                          MaxCount=instance_count)
+    reservations = client.describe_instances()['Reservations']
+
+    reservations[0]['Instances'].should.have.length_of(instance_count)
+
+    instances = reservations[0]['Instances']
+    for i in range(0, instance_count):
+        instances[i]['AmiLaunchIndex'].should.be(i)
