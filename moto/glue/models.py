@@ -56,6 +56,14 @@ class GlueBackend(BaseBackend):
         database = self.get_database(database_name)
         return [table for table_name, table in database.tables.items()]
 
+    def delete_table(self, database_name, table_name):
+        database = self.get_database(database_name)
+        try:
+            del database.tables[table_name]
+        except KeyError:
+            raise TableNotFoundException(table_name)
+        return {}
+
 
 class FakeDatabase(BaseModel):
 
