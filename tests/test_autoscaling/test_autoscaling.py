@@ -32,7 +32,7 @@ def test_create_autoscaling_group():
 
     group = AutoScalingGroup(
         name='tester_group',
-        availability_zones=['us-east-1c', 'us-east-1b'],
+        availability_zones=['us-east-1a', 'us-east-1b'],
         default_cooldown=60,
         desired_capacity=2,
         health_check_period=100,
@@ -42,7 +42,10 @@ def test_create_autoscaling_group():
         launch_config=config,
         load_balancers=["test_lb"],
         placement_group="test_placement",
-        vpc_zone_identifier=mocked_networking['subnet1'],
+        vpc_zone_identifier="{subnet1},{subnet2}".format(
+            subnet1=mocked_networking['subnet1'],
+            subnet2=mocked_networking['subnet2'],
+        ),
         termination_policies=["OldestInstance", "NewestInstance"],
         tags=[Tag(
             resource_id='tester_group',
@@ -57,12 +60,15 @@ def test_create_autoscaling_group():
     group = conn.get_all_groups()[0]
     group.name.should.equal('tester_group')
     set(group.availability_zones).should.equal(
-        set(['us-east-1c', 'us-east-1b']))
+        set(['us-east-1a', 'us-east-1b']))
     group.desired_capacity.should.equal(2)
     group.max_size.should.equal(2)
     group.min_size.should.equal(2)
     group.instances.should.have.length_of(2)
-    group.vpc_zone_identifier.should.equal(mocked_networking['subnet1'])
+    group.vpc_zone_identifier.should.equal("{subnet1},{subnet2}".format(
+        subnet1=mocked_networking['subnet1'],
+        subnet2=mocked_networking['subnet2'],
+    ))
     group.launch_config_name.should.equal('tester')
     group.default_cooldown.should.equal(60)
     group.health_check_period.should.equal(100)
@@ -109,7 +115,7 @@ def test_create_autoscaling_groups_defaults():
     group.launch_config_name.should.equal('tester')
 
     # Defaults
-    list(group.availability_zones).should.equal([])
+    list(group.availability_zones).should.equal(['us-east-1a'])  # subnet1
     group.desired_capacity.should.equal(2)
     group.vpc_zone_identifier.should.equal(mocked_networking['subnet1'])
     group.default_cooldown.should.equal(300)
@@ -217,7 +223,6 @@ def test_autoscaling_update():
 
     group = AutoScalingGroup(
         name='tester_group',
-        availability_zones=['us-east-1c', 'us-east-1b'],
         desired_capacity=2,
         max_size=2,
         min_size=2,
@@ -227,13 +232,16 @@ def test_autoscaling_update():
     conn.create_auto_scaling_group(group)
 
     group = conn.get_all_groups()[0]
+    group.availability_zones.should.equal(['us-east-1a'])
     group.vpc_zone_identifier.should.equal(mocked_networking['subnet1'])
 
-    group.vpc_zone_identifier = 'subnet-5678efgh'
+    group.availability_zones = ['us-east-1b']
+    group.vpc_zone_identifier = mocked_networking['subnet2']
     group.update()
 
     group = conn.get_all_groups()[0]
-    group.vpc_zone_identifier.should.equal('subnet-5678efgh')
+    group.availability_zones.should.equal(['us-east-1b'])
+    group.vpc_zone_identifier.should.equal(mocked_networking['subnet2'])
 
 
 @mock_autoscaling_deprecated
@@ -249,7 +257,7 @@ def test_autoscaling_tags_update():
 
     group = AutoScalingGroup(
         name='tester_group',
-        availability_zones=['us-east-1c', 'us-east-1b'],
+        availability_zones=['us-east-1a'],
         desired_capacity=2,
         max_size=2,
         min_size=2,
@@ -309,7 +317,7 @@ def test_autoscaling_group_delete():
 @mock_autoscaling_deprecated
 def test_autoscaling_group_describe_instances():
     mocked_networking = setup_networking_deprecated()
-    conn = boto.connect_autoscale()
+    conn = boto.ec2.autoscale.connect_to_region('us-east-1')
     config = LaunchConfiguration(
         name='tester',
         image_id='ami-abcd1234',
@@ -332,7 +340,7 @@ def test_autoscaling_group_describe_instances():
     instances[0].health_status.should.equal('Healthy')
     autoscale_instance_ids = [instance.instance_id for instance in instances]
 
-    ec2_conn = boto.connect_ec2()
+    ec2_conn = boto.ec2.connect_to_region('us-east-1')
     reservations = ec2_conn.get_all_instances()
     instances = reservations[0].instances
     instances.should.have.length_of(2)
@@ -355,7 +363,7 @@ def test_set_desired_capacity_up():
 
     group = AutoScalingGroup(
         name='tester_group',
-        availability_zones=['us-east-1c', 'us-east-1b'],
+        availability_zones=['us-east-1a'],
         desired_capacity=2,
         max_size=2,
         min_size=2,
@@ -391,7 +399,7 @@ def test_set_desired_capacity_down():
 
     group = AutoScalingGroup(
         name='tester_group',
-        availability_zones=['us-east-1c', 'us-east-1b'],
+        availability_zones=['us-east-1a'],
         desired_capacity=2,
         max_size=2,
         min_size=2,
@@ -427,7 +435,7 @@ def test_set_desired_capacity_the_same():
 
     group = AutoScalingGroup(
         name='tester_group',
-        availability_zones=['us-east-1c', 'us-east-1b'],
+        availability_zones=['us-east-1a'],
         desired_capacity=2,
         max_size=2,
         min_size=2,
@@ -543,6 +551,7 @@ def test_describe_load_balancers():
     )
 
     response = client.describe_load_balancers(AutoScalingGroupName='test_asg')
+    assert response['ResponseMetadata']['RequestId']
     list(response['LoadBalancers']).should.have.length_of(1)
     response['LoadBalancers'][0]['LoadBalancerName'].should.equal('my-lb')
 
@@ -738,8 +747,12 @@ def test_describe_autoscaling_groups_boto3():
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
     group = response['AutoScalingGroups'][0]
     group['AutoScalingGroupName'].should.equal('test_asg')
+    group['AvailabilityZones'].should.equal(['us-east-1a'])
+    group['VPCZoneIdentifier'].should.equal(mocked_networking['subnet1'])
     group['NewInstancesProtectedFromScaleIn'].should.equal(True)
-    group['Instances'][0]['ProtectedFromScaleIn'].should.equal(True)
+    for instance in group['Instances']:
+        instance['AvailabilityZone'].should.equal('us-east-1a')
+        instance['ProtectedFromScaleIn'].should.equal(True)
 
 
 @mock_autoscaling
@@ -770,6 +783,7 @@ def test_describe_autoscaling_instances_boto3():
     response = client.describe_auto_scaling_instances(InstanceIds=instance_ids)
     for instance in response['AutoScalingInstances']:
         instance['AutoScalingGroupName'].should.equal('test_asg')
+        instance['AvailabilityZone'].should.equal('us-east-1a')
         instance['ProtectedFromScaleIn'].should.equal(True)
 
 
@@ -793,6 +807,10 @@ def test_update_autoscaling_group_boto3():
     _ = client.update_auto_scaling_group(
         AutoScalingGroupName='test_asg',
         MinSize=1,
+        VPCZoneIdentifier="{subnet1},{subnet2}".format(
+            subnet1=mocked_networking['subnet1'],
+            subnet2=mocked_networking['subnet2'],
+        ),
         NewInstancesProtectedFromScaleIn=False,
     )
 
@@ -801,6 +819,7 @@ def test_update_autoscaling_group_boto3():
     )
     group = response['AutoScalingGroups'][0]
     group['MinSize'].should.equal(1)
+    set(group['AvailabilityZones']).should.equal({'us-east-1a', 'us-east-1b'})
     group['NewInstancesProtectedFromScaleIn'].should.equal(False)
 
 

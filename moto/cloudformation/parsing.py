@@ -12,7 +12,7 @@ from moto.batch import models as batch_models
 from moto.cloudwatch import models as cloudwatch_models
 from moto.cognitoidentity import models as cognitoidentity_models
 from moto.datapipeline import models as datapipeline_models
-from moto.dynamodb import models as dynamodb_models
+from moto.dynamodb2 import models as dynamodb2_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
@@ -37,7 +37,7 @@ MODEL_MAP = {
     "AWS::Batch::JobDefinition": batch_models.JobDefinition,
     "AWS::Batch::JobQueue": batch_models.JobQueue,
     "AWS::Batch::ComputeEnvironment": batch_models.ComputeEnvironment,
-    "AWS::DynamoDB::Table": dynamodb_models.Table,
+    "AWS::DynamoDB::Table": dynamodb2_models.Table,
     "AWS::Kinesis::Stream": kinesis_models.Stream,
     "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,
@@ -425,11 +425,18 @@ class ResourceMap(collections.Mapping):
             self.resolved_parameters[parameter_name] = parameter.get('Default')
 
         # Set any input parameters that were passed
+        self.no_echo_parameter_keys = []
         for key, value in self.input_parameters.items():
             if key in self.resolved_parameters:
-                value_type = parameter_slots[key].get('Type', 'String')
+                parameter_slot = parameter_slots[key]
+
+                value_type = parameter_slot.get('Type', 'String')
                 if value_type == 'CommaDelimitedList' or value_type.startswith("List"):
                     value = value.split(',')
+
+                if parameter_slot.get('NoEcho'):
+                    self.no_echo_parameter_keys.append(key)
+
                 self.resolved_parameters[key] = value
 
         # Check if there are any non-default params that were not passed input
@@ -465,7 +472,7 @@ class ResourceMap(collections.Mapping):
                 ec2_models.ec2_backends[self._region_name].create_tags(
                     [self[resource].physical_resource_id], self.tags)
 
-    def update(self, template, parameters=None):
+    def diff(self, template, parameters=None):
         if parameters:
             self.input_parameters = parameters
         self.load_mapping()
@@ -474,27 +481,61 @@ class ResourceMap(collections.Mapping):
 
         old_template = self._resource_json_map
         new_template = template['Resources']
+
+        resource_names_by_action = {
+            'Add': set(new_template) - set(old_template),
+            'Modify': set(name for name in new_template if name in old_template and new_template[
+                name] != old_template[name]),
+            'Remove': set(old_template) - set(new_template)
+        }
+        resources_by_action = {
+            'Add': {},
+            'Modify': {},
+            'Remove': {},
+        }
+
+        for resource_name in resource_names_by_action['Add']:
+            resources_by_action['Add'][resource_name] = {
+                'LogicalResourceId': resource_name,
+                'ResourceType': new_template[resource_name]['Type']
+            }
+
+        for resource_name in resource_names_by_action['Modify']:
+            resources_by_action['Modify'][resource_name] = {
+                'LogicalResourceId': resource_name,
+                'ResourceType': new_template[resource_name]['Type']
+            }
+
+        for resource_name in resource_names_by_action['Remove']:
+            resources_by_action['Remove'][resource_name] = {
+                'LogicalResourceId': resource_name,
+                'ResourceType': old_template[resource_name]['Type']
+            }
+
+        return resources_by_action
+
+    def update(self, template, parameters=None):
+        resources_by_action = self.diff(template, parameters)
+
+        old_template = self._resource_json_map
+        new_template = template['Resources']
         self._resource_json_map = new_template
 
-        new_resource_names = set(new_template) - set(old_template)
-        for resource_name in new_resource_names:
+        for resource_name, resource in resources_by_action['Add'].items():
             resource_json = new_template[resource_name]
             new_resource = parse_and_create_resource(
                 resource_name, resource_json, self, self._region_name)
             self._parsed_resources[resource_name] = new_resource
 
-        removed_resource_names = set(old_template) - set(new_template)
-        for resource_name in removed_resource_names:
+        for resource_name, resource in resources_by_action['Remove'].items():
             resource_json = old_template[resource_name]
             parse_and_delete_resource(
                 resource_name, resource_json, self, self._region_name)
             self._parsed_resources.pop(resource_name)
 
-        resources_to_update = set(name for name in new_template if name in old_template and new_template[
-                                  name] != old_template[name])
         tries = 1
-        while resources_to_update and tries < 5:
-            for resource_name in resources_to_update.copy():
+        while resources_by_action['Modify'] and tries < 5:
+            for resource_name, resource in resources_by_action['Modify'].copy().items():
                 resource_json = new_template[resource_name]
                 try:
                     changed_resource = parse_and_update_resource(
@@ -505,7 +546,7 @@ class ResourceMap(collections.Mapping):
                     last_exception = e
                 else:
                     self._parsed_resources[resource_name] = changed_resource
-                    resources_to_update.remove(resource_name)
+                    del resources_by_action['Modify'][resource_name]
             tries += 1
         if tries == 5:
             raise last_exception

@@ -32,6 +32,7 @@ from moto.organizations import organizations_backends
 from moto.polly import polly_backends
 from moto.rds2 import rds2_backends
 from moto.redshift import redshift_backends
+from moto.resourcegroups import resourcegroups_backends
 from moto.route53 import route53_backends
 from moto.s3 import s3_backends
 from moto.ses import ses_backends
@@ -46,7 +47,7 @@ from moto.iot import iot_backends
 from moto.iotdata import iotdata_backends
 from moto.batch import batch_backends
 from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
-
+from moto.config import config_backends
 
 BACKENDS = {
     'acm': acm_backends,
@@ -57,6 +58,7 @@ BACKENDS = {
     'cloudwatch': cloudwatch_backends,
     'cognito-identity': cognitoidentity_backends,
     'cognito-idp': cognitoidp_backends,
+    'config': config_backends,
     'datapipeline': datapipeline_backends,
     'dynamodb': dynamodb_backends,
     'dynamodb2': dynamodb_backends2,
@@ -80,6 +82,7 @@ BACKENDS = {
     'organizations': organizations_backends,
     'polly': polly_backends,
     'redshift': redshift_backends,
+    'resource-groups': resourcegroups_backends,
     'rds': rds2_backends,
     's3': s3_backends,
     's3bucket_path': s3_backends,

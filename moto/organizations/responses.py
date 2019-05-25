@@ -85,3 +85,33 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_children(**self.request_params)
         )
+
+    def create_policy(self):
+        return json.dumps(
+            self.organizations_backend.create_policy(**self.request_params)
+        )
+
+    def describe_policy(self):
+        return json.dumps(
+            self.organizations_backend.describe_policy(**self.request_params)
+        )
+
+    def attach_policy(self):
+        return json.dumps(
+            self.organizations_backend.attach_policy(**self.request_params)
+        )
+
+    def list_policies(self):
+        return json.dumps(
+            self.organizations_backend.list_policies(**self.request_params)
+        )
+
+    def list_policies_for_target(self):
+        return json.dumps(
+            self.organizations_backend.list_policies_for_target(**self.request_params)
+        )
+
+    def list_targets_for_policy(self):
+        return json.dumps(
+            self.organizations_backend.list_targets_for_policy(**self.request_params)
+        )

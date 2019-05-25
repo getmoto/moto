@@ -48,6 +48,15 @@ def test_list_clusters():
 
 
 @mock_ecs
+def test_describe_clusters():
+    client = boto3.client('ecs', region_name='us-east-1')
+    response = client.describe_clusters(clusters=["some-cluster"])
+    response['failures'].should.contain({
+        'arn': 'arn:aws:ecs:us-east-1:012345678910:cluster/some-cluster',
+        'reason': 'MISSING'
+    })
+
+@mock_ecs
 def test_delete_cluster():
     client = boto3.client('ecs', region_name='us-east-1')
     _ = client.create_cluster(
@@ -379,23 +388,32 @@ def test_list_services():
         cluster='test_ecs_cluster',
         serviceName='test_ecs_service1',
         taskDefinition='test_ecs_task',
+        schedulingStrategy='REPLICA',
         desiredCount=2
     )
     _ = client.create_service(
         cluster='test_ecs_cluster',
         serviceName='test_ecs_service2',
         taskDefinition='test_ecs_task',
+        schedulingStrategy='DAEMON',
         desiredCount=2
     )
-    response = client.list_services(
+    unfiltered_response = client.list_services(
         cluster='test_ecs_cluster'
     )
-    len(response['serviceArns']).should.equal(2)
-    response['serviceArns'][0].should.equal(
+    len(unfiltered_response['serviceArns']).should.equal(2)
+    unfiltered_response['serviceArns'][0].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
-    response['serviceArns'][1].should.equal(
+    unfiltered_response['serviceArns'][1].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2')
 
+    filtered_response = client.list_services(
+        cluster='test_ecs_cluster',
+        schedulingStrategy='REPLICA'
+    )
+    len(filtered_response['serviceArns']).should.equal(1)
+    filtered_response['serviceArns'][0].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service1')
 
 @mock_ecs
 def test_describe_services():

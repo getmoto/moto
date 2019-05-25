@@ -3,7 +3,7 @@ import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
-__version__ = '1.3.7'
+__version__ = '1.3.8'
 
 from .acm import mock_acm  # flake8: noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # flake8: noqa
@@ -13,6 +13,7 @@ from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated 
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # flake8: noqa
 from .cognitoidentity import mock_cognitoidentity, mock_cognitoidentity_deprecated  # flake8: noqa
 from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # flake8: noqa
+from .config import mock_config  # flake8: noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # flake8: noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # flake8: noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # flake8: noqa
@@ -35,6 +36,7 @@ from .polly import mock_polly  # flake8: noqa
 from .rds import mock_rds, mock_rds_deprecated  # flake8: noqa
 from .rds2 import mock_rds2, mock_rds2_deprecated  # flake8: noqa
 from .redshift import mock_redshift, mock_redshift_deprecated  # flake8: noqa
+from .resourcegroups import mock_resourcegroups  # flake8: noqa
 from .s3 import mock_s3, mock_s3_deprecated  # flake8: noqa
 from .ses import mock_ses, mock_ses_deprecated  # flake8: noqa
 from .secretsmanager import mock_secretsmanager  # flake8: noqa
