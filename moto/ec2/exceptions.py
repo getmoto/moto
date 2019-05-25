@@ -439,7 +439,7 @@ class InvalidAvailabilityZoneError(EC2ClientError):
             "Subnets can currently only be created in the following availability zones: {1}.".format(availability_zone_value, valid_availability_zones)
         )
 
-          
+
 # accept exception
 class OperationNotPermitted2(EC2ClientError):
     def __init__(self, client_region, pcx_id, acceptor_region):
