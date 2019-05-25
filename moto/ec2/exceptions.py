@@ -430,6 +430,51 @@ class OperationNotPermitted(EC2ClientError):
         )
 
 
+class InvalidSubnetRangeError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidSubnetRangeError, self).__init__(
+            "InvalidSubnet.Range",
+            "The CIDR '{}' is invalid.".format(cidr_block)
+        )
+
+
+class InvalidCIDRBlockParameterError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidCIDRBlockParameterError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
+        )
+
+
+class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidDestinationCIDRBlockParameterError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
+        )
+
+
+class InvalidSubnetConflictError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidSubnetConflictError, self).__init__(
+            "InvalidSubnet.Conflict",
+            "The CIDR '{}' conflicts with another subnet".format(cidr_block)
+        )
+
+
+class InvalidVPCRangeError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidVPCRangeError, self).__init__(
+            "InvalidVpc.Range",
+            "The CIDR '{}' is invalid.".format(cidr_block)
+        )
+
+
 # accept exception
 class OperationNotPermitted2(EC2ClientError):
     def __init__(self, client_region, pcx_id, acceptor_region):
