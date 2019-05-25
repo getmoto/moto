@@ -723,7 +723,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
                         bucket_name, upload_id, part_number, src_bucket,
                         src_key, src_version_id, start_byte, end_byte)
                 else:
-                    return 404, reponse_headers, ""
+                    return 404, response_headers, ""
 
                 template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
