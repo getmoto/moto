@@ -404,7 +404,7 @@ ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroups
 <AttachLoadBalancerTargetGroupsResult>
 </AttachLoadBalancerTargetGroupsResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </AttachLoadBalancerTargetGroupsResponse>"""
 
@@ -412,7 +412,7 @@ ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscalin
 <AttachInstancesResult>
 </AttachInstancesResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </AttachInstancesResponse>"""
 
@@ -428,7 +428,7 @@ DESCRIBE_LOAD_BALANCER_TARGET_GROUPS = """<DescribeLoadBalancerTargetGroupsRespo
   </LoadBalancerTargetGroups>
 </DescribeLoadBalancerTargetGroupsResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DescribeLoadBalancerTargetGroupsResponse>"""
 
@@ -454,7 +454,7 @@ DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscalin
   </Activities>
 </DetachInstancesResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DetachInstancesResponse>"""
 
@@ -462,7 +462,7 @@ DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<DetachLoadBalancerTargetGroups
 <DetachLoadBalancerTargetGroupsResult>
 </DetachLoadBalancerTargetGroupsResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DetachLoadBalancerTargetGroupsResponse>"""
 
@@ -499,7 +499,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           {% for instance_state in group.instance_states %}
           <member>
             <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
-            <AvailabilityZone>us-east-1e</AvailabilityZone>
+            <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
             <InstanceId>{{ instance_state.instance.id }}</InstanceId>
             <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
             <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
@@ -585,7 +585,7 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
       <member>
         <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
         <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
-        <AvailabilityZone>us-east-1e</AvailabilityZone>
+        <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
         <InstanceId>{{ instance_state.instance.id }}</InstanceId>
         <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
         <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
@@ -654,7 +654,7 @@ DELETE_POLICY_TEMPLATE = """<DeleteScalingPolicyResponse xmlns="http://autoscali
 ATTACH_LOAD_BALANCERS_TEMPLATE = """<AttachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancersResult></AttachLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </AttachLoadBalancersResponse>"""
 
@@ -670,14 +670,14 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </LoadBalancers>
 </DescribeLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
 DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachLoadBalancersResult></DetachLoadBalancersResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </DetachLoadBalancersResponse>"""
 
@@ -690,13 +690,13 @@ SUSPEND_PROCESSES_TEMPLATE = """<SuspendProcessesResponse xmlns="http://autoscal
 SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <SetInstanceHealthResponse></SetInstanceHealthResponse>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </SetInstanceHealthResponse>"""
 
 SET_INSTANCE_PROTECTION_TEMPLATE = """<SetInstanceProtectionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <SetInstanceProtectionResult></SetInstanceProtectionResult>
 <ResponseMetadata>
-<RequestId>{{ requestid }}</RequestId>
+<RequestId></RequestId>
 </ResponseMetadata>
 </SetInstanceProtectionResponse>"""

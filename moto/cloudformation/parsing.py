@@ -12,7 +12,7 @@ from moto.batch import models as batch_models
 from moto.cloudwatch import models as cloudwatch_models
 from moto.cognitoidentity import models as cognitoidentity_models
 from moto.datapipeline import models as datapipeline_models
-from moto.dynamodb import models as dynamodb_models
+from moto.dynamodb2 import models as dynamodb2_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
@@ -37,7 +37,7 @@ MODEL_MAP = {
     "AWS::Batch::JobDefinition": batch_models.JobDefinition,
     "AWS::Batch::JobQueue": batch_models.JobQueue,
     "AWS::Batch::ComputeEnvironment": batch_models.ComputeEnvironment,
-    "AWS::DynamoDB::Table": dynamodb_models.Table,
+    "AWS::DynamoDB::Table": dynamodb2_models.Table,
     "AWS::Kinesis::Stream": kinesis_models.Stream,
     "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,
@@ -425,11 +425,18 @@ class ResourceMap(collections.Mapping):
             self.resolved_parameters[parameter_name] = parameter.get('Default')
 
         # Set any input parameters that were passed
+        self.no_echo_parameter_keys = []
         for key, value in self.input_parameters.items():
             if key in self.resolved_parameters:
-                value_type = parameter_slots[key].get('Type', 'String')
+                parameter_slot = parameter_slots[key]
+
+                value_type = parameter_slot.get('Type', 'String')
                 if value_type == 'CommaDelimitedList' or value_type.startswith("List"):
                     value = value.split(',')
+
+                if parameter_slot.get('NoEcho'):
+                    self.no_echo_parameter_keys.append(key)
+
                 self.resolved_parameters[key] = value
 
         # Check if there are any non-default params that were not passed input

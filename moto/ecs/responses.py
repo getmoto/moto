@@ -45,10 +45,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def describe_clusters(self):
         list_clusters_name = self._get_param('clusters')
-        clusters = self.ecs_backend.describe_clusters(list_clusters_name)
+        clusters, failures = self.ecs_backend.describe_clusters(list_clusters_name)
         return json.dumps({
             'clusters': clusters,
-            'failures': []
+            'failures': [cluster.response_object for cluster in failures]
         })
 
     def delete_cluster(self):
@@ -163,7 +163,8 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_services(self):
         cluster_str = self._get_param('cluster')
-        service_arns = self.ecs_backend.list_services(cluster_str)
+        scheduling_strategy = self._get_param('schedulingStrategy')
+        service_arns = self.ecs_backend.list_services(cluster_str, scheduling_strategy)
         return json.dumps({
             'serviceArns': service_arns
             # ,

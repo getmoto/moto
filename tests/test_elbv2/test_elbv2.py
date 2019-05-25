@@ -27,7 +27,7 @@ def test_create_load_balancer():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -69,7 +69,7 @@ def test_describe_load_balancers():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
@@ -112,7 +112,7 @@ def test_add_remove_tags():
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
     subnet1 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
@@ -234,7 +234,7 @@ def test_create_elb_in_multiple_region():
             InstanceTenancy='default')
         subnet1 = ec2.create_subnet(
             VpcId=vpc.id,
-            CidrBlock='172.28.7.192/26',
+            CidrBlock='172.28.7.0/26',
             AvailabilityZone=region + 'a')
         subnet2 = ec2.create_subnet(
             VpcId=vpc.id,
@@ -275,7 +275,7 @@ def test_create_target_group_and_listeners():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -434,7 +434,7 @@ def test_create_target_group_without_non_required_parameters():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -538,7 +538,7 @@ def test_describe_paginated_balancers():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     for i in range(51):
@@ -573,7 +573,7 @@ def test_delete_load_balancer():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -606,7 +606,7 @@ def test_register_targets():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
@@ -682,7 +682,7 @@ def test_target_group_attributes():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -773,7 +773,7 @@ def test_handle_listener_rules():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1078,7 +1078,7 @@ def test_describe_invalid_target_group():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1124,7 +1124,7 @@ def test_describe_target_groups_no_arguments():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1188,7 +1188,7 @@ def test_set_ip_address_type():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1238,7 +1238,7 @@ def test_set_security_groups():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1275,11 +1275,11 @@ def test_set_subnets():
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
     subnet1 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.64/26',
         AvailabilityZone='us-east-1b')
     subnet3 = ec2.create_subnet(
         VpcId=vpc.id,
@@ -1332,7 +1332,7 @@ def test_set_subnets():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1421,7 +1421,7 @@ def test_modify_listener_http_to_https():
         AvailabilityZone='eu-central-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='eu-central-1b')
 
     response = client.create_load_balancer(
@@ -1586,3 +1586,143 @@ def test_create_target_groups_through_cloudformation():
     assert len(
         [tg for tg in target_group_dicts if tg['TargetGroupName'].startswith('test-stack')]
     ) == 2
+
+
+@mock_elbv2
+@mock_ec2
+def test_redirect_action_listener_rule():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.128/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    response = conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                    Protocol='HTTP',
+                                    Port=80,
+                                    DefaultActions=[
+                                        {'Type': 'redirect',
+                                         'RedirectConfig': {
+                                             'Protocol': 'HTTPS',
+                                             'Port': '443',
+                                             'StatusCode': 'HTTP_301'
+                                         }}])
+
+    listener = response.get('Listeners')[0]
+    expected_default_actions = [{
+        'Type': 'redirect',
+        'RedirectConfig': {
+            'Protocol': 'HTTPS',
+            'Port': '443',
+            'StatusCode': 'HTTP_301'
+        }
+    }]
+    listener.get('DefaultActions').should.equal(expected_default_actions)
+    listener_arn = listener.get('ListenerArn')
+
+    describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
+    describe_rules_response['Rules'][0]['Actions'].should.equal(expected_default_actions)
+
+    describe_listener_response = conn.describe_listeners(ListenerArns=[listener_arn, ])
+    describe_listener_actions = describe_listener_response['Listeners'][0]['DefaultActions']
+    describe_listener_actions.should.equal(expected_default_actions)
+
+    modify_listener_response = conn.modify_listener(ListenerArn=listener_arn, Port=81)
+    modify_listener_actions = modify_listener_response['Listeners'][0]['DefaultActions']
+    modify_listener_actions.should.equal(expected_default_actions)
+
+
+@mock_elbv2
+@mock_cloudformation
+def test_redirect_action_listener_rule_cloudformation():
+    cnf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                },
+            },
+            "subnet1": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "subnet2": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.1.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "testLb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "my-lb",
+                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
+                    "Type": "application",
+                    "SecurityGroups": [],
+                }
+            },
+            "testListener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "LoadBalancerArn": {"Ref": "testLb"},
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "DefaultActions": [{
+                        "Type": "redirect",
+                        "RedirectConfig": {
+                            "Port": "443",
+                            "Protocol": "HTTPS",
+                            "StatusCode": "HTTP_301",
+                        }
+                    }]
+                }
+
+            }
+        }
+    }
+    template_json = json.dumps(template)
+    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
+
+    describe_load_balancers_response = elbv2_client.describe_load_balancers(Names=['my-lb',])
+    describe_load_balancers_response['LoadBalancers'].should.have.length_of(1)
+    load_balancer_arn = describe_load_balancers_response['LoadBalancers'][0]['LoadBalancerArn']
+
+    describe_listeners_response = elbv2_client.describe_listeners(LoadBalancerArn=load_balancer_arn)
+
+    describe_listeners_response['Listeners'].should.have.length_of(1)
+    describe_listeners_response['Listeners'][0]['DefaultActions'].should.equal([{
+        'Type': 'redirect',
+        'RedirectConfig': {
+            'Port': '443', 'Protocol': 'HTTPS', 'StatusCode': 'HTTP_301',
+        }
+    },])
