@@ -470,7 +470,7 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 56% implemented
+## cloudformation - 65% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
@@ -481,19 +481,24 @@
 - [X] delete_stack
 - [X] delete_stack_instances
 - [X] delete_stack_set
+- [ ] deploy
 - [ ] describe_account_limits
 - [X] describe_change_set
-- [ ] describe_stack_events
+- [ ] describe_stack_drift_detection_status
+- [X] describe_stack_events
 - [X] describe_stack_instance
-- [ ] describe_stack_resource
-- [ ] describe_stack_resources
+- [X] describe_stack_resource
+- [ ] describe_stack_resource_drifts
+- [X] describe_stack_resources
 - [X] describe_stack_set
 - [X] describe_stack_set_operation
 - [X] describe_stacks
+- [ ] detect_stack_drift
+- [ ] detect_stack_resource_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
 - [ ] get_stack_policy
-- [ ] get_template
+- [X] get_template
 - [ ] get_template_summary
 - [X] list_change_sets
 - [X] list_exports
@@ -504,6 +509,7 @@
 - [X] list_stack_set_operations
 - [X] list_stack_sets
 - [X] list_stacks
+- [ ] package
 - [ ] set_stack_policy
 - [ ] signal_resource
 - [X] stop_stack_set_operation
@@ -511,7 +517,8 @@
 - [X] update_stack_instances
 - [X] update_stack_set
 - [ ] update_termination_protection
-- [ ] validate_template
+- [X] validate_template
+- [ ] wait
 
 ## cloudfront - 0% implemented
 - [ ] create_cloud_front_origin_access_identity
@@ -2382,7 +2389,7 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 32% implemented
+## iot - 33% implemented
 - [ ] accept_certificate_transfer
 - [X] add_thing_to_thing_group
 - [ ] associate_targets_with_job
@@ -2480,7 +2487,7 @@
 - [ ] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] register_ca_certificate
-- [ ] register_certificate
+- [X] register_certificate
 - [ ] register_thing
 - [ ] reject_certificate_transfer
 - [X] remove_thing_from_thing_group

@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 import sure  # noqa
 
-from moto.core.responses import AWSServiceSpec
+from botocore.awsrequest import AWSPreparedRequest
+
+from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
 
 
@@ -79,3 +81,9 @@ def test_flatten_json_request_body():
             i += 1
             key = keyfmt.format(idx + 1, i)
         props.should.equal(body['Configurations'][idx]['Properties'])
+
+
+def test_parse_qs_unicode_decode_error():
+    body = b'{"key": "%D0"}, "C": "#0 = :0"}'
+    request = AWSPreparedRequest('GET', 'http://request', {'foo': 'bar'}, body, False)
+    BaseResponse().setup_class(request, request.url, request.headers)
