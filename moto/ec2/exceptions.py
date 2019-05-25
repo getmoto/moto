@@ -472,6 +472,9 @@ class InvalidVPCRangeError(EC2ClientError):
         super(InvalidVPCRangeError, self).__init__(
             "InvalidVpc.Range",
             "The CIDR '{}' is invalid.".format(cidr_block)
+        )
+
+
 # accept exception
 class OperationNotPermitted2(EC2ClientError):
     def __init__(self, client_region, pcx_id, acceptor_region):
