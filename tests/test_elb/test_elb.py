@@ -21,7 +21,7 @@ from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
 @mock_ec2_deprecated
 def test_create_load_balancer():
     conn = boto.connect_elb()
-    ec2 = boto.connect_ec2('the_key', 'the_secret')
+    ec2 = boto.ec2.connect_to_region("us-east-1")
 
     security_group = ec2.create_security_group('sg-abc987', 'description')
 

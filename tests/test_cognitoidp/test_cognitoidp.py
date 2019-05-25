@@ -485,6 +485,82 @@ def test_describe_identity_providers():
 
 
 @mock_cognitoidp
+def test_update_identity_provider():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    provider_name = str(uuid.uuid4())
+    provider_type = "Facebook"
+    value = str(uuid.uuid4())
+    new_value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.create_identity_provider(
+        UserPoolId=user_pool_id,
+        ProviderName=provider_name,
+        ProviderType=provider_type,
+        ProviderDetails={
+            "thing": value
+        },
+    )
+
+    result = conn.update_identity_provider(
+        UserPoolId=user_pool_id,
+        ProviderName=provider_name,
+        ProviderDetails={
+            "thing": new_value
+        },
+    )
+
+    result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
+    result["IdentityProvider"]["ProviderName"].should.equal(provider_name)
+    result["IdentityProvider"]["ProviderType"].should.equal(provider_type)
+    result["IdentityProvider"]["ProviderDetails"]["thing"].should.equal(new_value)
+
+
+@mock_cognitoidp
+def test_update_identity_provider_no_user_pool():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    new_value = str(uuid.uuid4())
+
+    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+        conn.update_identity_provider(
+            UserPoolId="foo",
+            ProviderName="bar",
+            ProviderDetails={
+                "thing": new_value
+            },
+        )
+
+    cm.exception.operation_name.should.equal('UpdateIdentityProvider')
+    cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+
+@mock_cognitoidp
+def test_update_identity_provider_no_identity_provider():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    provider_name = str(uuid.uuid4())
+    provider_type = "Facebook"
+    value = str(uuid.uuid4())
+    new_value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+        conn.update_identity_provider(
+            UserPoolId=user_pool_id,
+            ProviderName="foo",
+            ProviderDetails={
+                "thing": new_value
+            },
+        )
+
+    cm.exception.operation_name.should.equal('UpdateIdentityProvider')
+    cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+
+@mock_cognitoidp
 def test_delete_identity_providers():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1086,3 +1162,53 @@ def test_confirm_forgot_password():
         ConfirmationCode=str(uuid.uuid4()),
         Password=str(uuid.uuid4()),
     )
+
+@mock_cognitoidp
+def test_admin_update_user_attributes():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {
+                'Name': 'family_name',
+                'Value': 'Doe',
+            },
+            {
+                'Name': 'given_name',
+                'Value': 'John',
+            }
+        ]
+    )
+
+    conn.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[
+            {
+                'Name': 'family_name',
+                'Value': 'Doe',
+            },
+            {
+                'Name': 'given_name',
+                'Value': 'Jane',
+            }
+        ]
+    )
+
+    user = conn.admin_get_user(
+        UserPoolId=user_pool_id,
+        Username=username
+    )
+    attributes = user['UserAttributes']
+    attributes.should.be.a(list)
+    for attr in attributes:
+        val = attr['Value']
+        if attr['Name'] == 'family_name':
+            val.should.equal('Doe')
+        elif attr['Name'] == 'given_name':
+            val.should.equal('Jane')

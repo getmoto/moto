@@ -58,6 +58,14 @@ class InvalidKeyPairDuplicateError(EC2ClientError):
             .format(key))
 
 
+class InvalidKeyPairFormatError(EC2ClientError):
+
+    def __init__(self):
+        super(InvalidKeyPairFormatError, self).__init__(
+            "InvalidKeyPair.Format",
+            "Key is not in valid OpenSSH public key format")
+
+
 class InvalidVPCIdError(EC2ClientError):
 
     def __init__(self, vpc_id):
@@ -419,4 +427,26 @@ class OperationNotPermitted(EC2ClientError):
             "OperationNotPermitted",
             "The vpc CIDR block with association ID {} may not be disassociated. "
             "It is the primary IPv4 CIDR block of the VPC".format(association_id)
+        )
+
+
+# accept exception
+class OperationNotPermitted2(EC2ClientError):
+    def __init__(self, client_region, pcx_id, acceptor_region):
+        super(OperationNotPermitted2, self).__init__(
+            "OperationNotPermitted",
+            "Incorrect region ({0}) specified for this request."
+            "VPC peering connection {1} must be accepted in region {2}".format(client_region, pcx_id, acceptor_region)
+        )
+
+
+# reject exception
+class OperationNotPermitted3(EC2ClientError):
+    def __init__(self, client_region, pcx_id, acceptor_region):
+        super(OperationNotPermitted3, self).__init__(
+            "OperationNotPermitted",
+            "Incorrect region ({0}) specified for this request."
+            "VPC peering connection {1} must be accepted or rejected in region {2}".format(client_region,
+                                                                                           pcx_id,
+                                                                                           acceptor_region)
         )

@@ -859,7 +859,7 @@
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status
-- [ ] admin_update_user_attributes
+- [X] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
 - [X] change_password
@@ -923,7 +923,7 @@
 - [ ] update_auth_event_feedback
 - [ ] update_device_status
 - [ ] update_group
-- [ ] update_identity_provider
+- [x] update_identity_provider
 - [ ] update_resource_server
 - [ ] update_user_attributes
 - [ ] update_user_pool
@@ -2341,7 +2341,7 @@
 - [ ] update_service_specific_credential
 - [X] update_signing_certificate
 - [ ] update_ssh_public_key
-- [ ] update_user
+- [X] update_user
 - [X] upload_server_certificate
 - [X] upload_signing_certificate
 - [ ] upload_ssh_public_key
@@ -2526,14 +2526,14 @@
 - [ ] start_next_pending_job_execution
 - [ ] update_job_execution
 
-## kinesis - 56% implemented
+## kinesis - 61% implemented
 - [X] add_tags_to_stream
 - [X] create_stream
 - [ ] decrease_stream_retention_period
 - [X] delete_stream
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_summary
+- [X] describe_stream_summary
 - [ ] disable_enhanced_monitoring
 - [ ] enable_enhanced_monitoring
 - [X] get_records
@@ -3105,14 +3105,14 @@
 - [ ] update_server
 - [ ] update_server_engine_attributes
 
-## organizations - 30% implemented
+## organizations - 47% implemented
 - [ ] accept_handshake
-- [ ] attach_policy
+- [X] attach_policy
 - [ ] cancel_handshake
 - [X] create_account
 - [X] create_organization
 - [X] create_organizational_unit
-- [ ] create_policy
+- [X] create_policy
 - [ ] decline_handshake
 - [ ] delete_organization
 - [ ] delete_organizational_unit
@@ -3122,7 +3122,7 @@
 - [ ] describe_handshake
 - [X] describe_organization
 - [X] describe_organizational_unit
-- [ ] describe_policy
+- [X] describe_policy
 - [ ] detach_policy
 - [ ] disable_aws_service_access
 - [ ] disable_policy_type
@@ -3140,10 +3140,10 @@
 - [ ] list_handshakes_for_organization
 - [X] list_organizational_units_for_parent
 - [X] list_parents
-- [ ] list_policies
-- [ ] list_policies_for_target
+- [X] list_policies
+- [X] list_policies_for_target
 - [X] list_roots
-- [ ] list_targets_for_policy
+- [X] list_targets_for_policy
 - [X] move_account
 - [ ] remove_account_from_organization
 - [ ] update_organizational_unit
@@ -3422,19 +3422,19 @@
 - [ ] start_stream_processor
 - [ ] stop_stream_processor
 
-## resource-groups - 0% implemented
-- [ ] create_group
-- [ ] delete_group
-- [ ] get_group
-- [ ] get_group_query
+## resource-groups - 62% implemented
+- [X] create_group
+- [X] delete_group
+- [X] get_group
+- [X] get_group_query
 - [ ] get_tags
 - [ ] list_group_resources
-- [ ] list_groups
+- [X] list_groups
 - [ ] search_resources
 - [ ] tag
 - [ ] untag
-- [ ] update_group
-- [ ] update_group_query
+- [X] update_group
+- [X] update_group_query
 
 ## resourcegroupstaggingapi - 60% implemented
 - [X] get_resources
@@ -3547,7 +3547,7 @@
 - [ ] delete_object
 - [ ] delete_object_tagging
 - [ ] delete_objects
-- [ ] get_bucket_accelerate_configuration
+- [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [ ] get_bucket_cors
@@ -3581,7 +3581,7 @@
 - [ ] list_objects
 - [ ] list_objects_v2
 - [ ] list_parts
-- [ ] put_bucket_accelerate_configuration
+- [X] put_bucket_accelerate_configuration
 - [ ] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
@@ -3661,14 +3661,14 @@
 ## secretsmanager - 33% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
-- [ ] delete_secret
+- [X] delete_secret
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
-- [ ] list_secret_version_ids
-- [ ] list_secrets
-- [ ] put_secret_value
-- [ ] restore_secret
+- [X] list_secret_version_ids
+- [X] list_secrets
+- [X] put_secret_value
+- [X] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource

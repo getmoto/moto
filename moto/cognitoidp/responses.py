@@ -143,6 +143,14 @@ class CognitoIdpResponse(BaseResponse):
             "IdentityProvider": identity_provider.to_json(extended=True)
         })
 
+    def update_identity_provider(self):
+        user_pool_id = self._get_param("UserPoolId")
+        name = self._get_param("ProviderName")
+        identity_provider = cognitoidp_backends[self.region].update_identity_provider(user_pool_id, name, self.parameters)
+        return json.dumps({
+            "IdentityProvider": identity_provider.to_json(extended=True)
+        })
+
     def delete_identity_provider(self):
         user_pool_id = self._get_param("UserPoolId")
         name = self._get_param("ProviderName")
@@ -342,6 +350,13 @@ class CognitoIdpResponse(BaseResponse):
         proposed_password = self._get_param("ProposedPassword")
         region = find_region_by_value("access_token", access_token)
         cognitoidp_backends[region].change_password(access_token, previous_password, proposed_password)
+        return ""
+
+    def admin_update_user_attributes(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        attributes = self._get_param("UserAttributes")
+        cognitoidp_backends[self.region].admin_update_user_attributes(user_pool_id, username, attributes)
         return ""
 
 

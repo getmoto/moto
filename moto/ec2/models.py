@@ -20,6 +20,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
@@ -43,6 +44,7 @@ from .exceptions import (
     InvalidInstanceIdError,
     InvalidInternetGatewayIdError,
     InvalidKeyPairDuplicateError,
+    InvalidKeyPairFormatError,
     InvalidKeyPairNameError,
     InvalidNetworkAclIdError,
     InvalidNetworkAttachmentIdError,
@@ -70,6 +72,8 @@ from .exceptions import (
     MissingParameterError,
     MotoNotImplementedError,
     OperationNotPermitted,
+    OperationNotPermitted2,
+    OperationNotPermitted3,
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded)
@@ -118,6 +122,8 @@ from .utils import (
     random_customer_gateway_id,
     is_tag_filter,
     tag_filter_matches,
+    rsa_public_key_parse,
+    rsa_public_key_fingerprint
 )
 
 INSTANCE_TYPES = json.load(
@@ -134,6 +140,8 @@ def utc_date_and_time():
 
 
 def validate_resource_ids(resource_ids):
+    if not resource_ids:
+        raise MissingParameterError(parameter='resourceIdSet')
     for resource_id in resource_ids:
         if not is_valid_resource_id(resource_id):
             raise InvalidID(resource_id=resource_id)
@@ -402,7 +410,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
             warnings.warn('Could not find AMI with image-id:{0}, '
                           'in the near future this will '
                           'cause an error.\n'
-                          'Use ec2_backend.describe_images() to'
+                          'Use ec2_backend.describe_images() to '
                           'find suitable image for your test'.format(image_id),
                           PendingDeprecationWarning)
 
@@ -906,7 +914,14 @@ class KeyPairBackend(object):
     def import_key_pair(self, key_name, public_key_material):
         if key_name in self.keypairs:
             raise InvalidKeyPairDuplicateError(key_name)
-        keypair = KeyPair(key_name, **random_key_pair())
+
+        try:
+            rsa_public_key = rsa_public_key_parse(public_key_material)
+        except ValueError:
+            raise InvalidKeyPairFormatError()
+
+        fingerprint = rsa_public_key_fingerprint(rsa_public_key)
+        keypair = KeyPair(key_name, material=public_key_material, fingerprint=fingerprint)
         self.keypairs[key_name] = keypair
         return keypair
 
@@ -1877,6 +1892,8 @@ class Snapshot(TaggedEC2Resource):
             return str(self.encrypted).lower()
         elif filter_name == 'status':
             return self.status
+        elif filter_name == 'owner-id':
+            return self.owner_id
         else:
             return super(Snapshot, self).get_filter_value(
                 filter_name, 'DescribeSnapshots')
@@ -2118,16 +2135,16 @@ class VPC(TaggedEC2Resource):
 
 
 class VPCBackend(object):
-    __refs__ = defaultdict(list)
+    vpc_refs = defaultdict(set)
 
     def __init__(self):
         self.vpcs = {}
-        self.__refs__[self.__class__].append(weakref.ref(self))
+        self.vpc_refs[self.__class__].add(weakref.ref(self))
         super(VPCBackend, self).__init__()
 
     @classmethod
-    def get_instances(cls):
-        for inst_ref in cls.__refs__[cls]:
+    def get_vpc_refs(cls):
+        for inst_ref in cls.vpc_refs[cls]:
             inst = inst_ref()
             if inst is not None:
                 yield inst
@@ -2157,7 +2174,7 @@ class VPCBackend(object):
 
     # get vpc by vpc id and aws region
     def get_cross_vpc(self, vpc_id, peer_region):
-        for vpcs in self.get_instances():
+        for vpcs in self.get_vpc_refs():
             if vpcs.region_name == peer_region:
                 match_vpc = vpcs.get_vpc(vpc_id)
         return match_vpc
@@ -2278,15 +2295,31 @@ class VPCPeeringConnection(TaggedEC2Resource):
 
 
 class VPCPeeringConnectionBackend(object):
+    # for cross region vpc reference
+    vpc_pcx_refs = defaultdict(set)
+
     def __init__(self):
         self.vpc_pcxs = {}
+        self.vpc_pcx_refs[self.__class__].add(weakref.ref(self))
         super(VPCPeeringConnectionBackend, self).__init__()
+
+    @classmethod
+    def get_vpc_pcx_refs(cls):
+        for inst_ref in cls.vpc_pcx_refs[cls]:
+            inst = inst_ref()
+            if inst is not None:
+                yield inst
 
     def create_vpc_peering_connection(self, vpc, peer_vpc):
         vpc_pcx_id = random_vpc_peering_connection_id()
         vpc_pcx = VPCPeeringConnection(vpc_pcx_id, vpc, peer_vpc)
         vpc_pcx._status.pending()
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
+        # insert cross region peering info
+        if vpc.ec2_backend.region_name != peer_vpc.ec2_backend.region_name:
+            for vpc_pcx_cx in peer_vpc.ec2_backend.get_vpc_pcx_refs():
+                if vpc_pcx_cx.region_name == peer_vpc.ec2_backend.region_name:
+                    vpc_pcx_cx.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         return vpc_pcx
 
     def get_all_vpc_peering_connections(self):
@@ -2304,6 +2337,11 @@ class VPCPeeringConnectionBackend(object):
 
     def accept_vpc_peering_connection(self, vpc_pcx_id):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        # if cross region need accepter from another region
+        pcx_req_region = vpc_pcx.vpc.ec2_backend.region_name
+        pcx_acp_region = vpc_pcx.peer_vpc.ec2_backend.region_name
+        if pcx_req_region != pcx_acp_region and self.region_name == pcx_req_region:
+            raise OperationNotPermitted2(self.region_name, vpc_pcx.id, pcx_acp_region)
         if vpc_pcx._status.code != 'pending-acceptance':
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.accept()
@@ -2311,6 +2349,11 @@ class VPCPeeringConnectionBackend(object):
 
     def reject_vpc_peering_connection(self, vpc_pcx_id):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        # if cross region need accepter from another region
+        pcx_req_region = vpc_pcx.vpc.ec2_backend.region_name
+        pcx_acp_region = vpc_pcx.peer_vpc.ec2_backend.region_name
+        if pcx_req_region != pcx_acp_region and self.region_name == pcx_req_region:
+            raise OperationNotPermitted3(self.region_name, vpc_pcx.id, pcx_acp_region)
         if vpc_pcx._status.code != 'pending-acceptance':
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.reject()

@@ -175,9 +175,11 @@ class IamResponse(BaseResponse):
         path = self._get_param('Path')
         assume_role_policy_document = self._get_param(
             'AssumeRolePolicyDocument')
+        permissions_boundary = self._get_param(
+            'PermissionsBoundary')
 
         role = iam_backend.create_role(
-            role_name, assume_role_policy_document, path)
+            role_name, assume_role_policy_document, path, permissions_boundary)
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -439,6 +441,18 @@ class IamResponse(BaseResponse):
         users = iam_backend.list_users(path_prefix, marker, max_items)
         template = self.response_template(LIST_USERS_TEMPLATE)
         return template.render(action='List', users=users)
+
+    def update_user(self):
+        user_name = self._get_param('UserName')
+        new_path = self._get_param('NewPath')
+        new_user_name = self._get_param('NewUserName')
+        iam_backend.update_user(user_name, new_path, new_user_name)
+        if new_user_name:
+            user = iam_backend.get_user(new_user_name)
+        else:
+            user = iam_backend.get_user(user_name)
+        template = self.response_template(USER_TEMPLATE)
+        return template.render(action='Update', user=user)
 
     def create_login_profile(self):
         user_name = self._get_param('UserName')
@@ -988,6 +1002,12 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
       <CreateDate>{{ role.create_date }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      {% if role.permissions_boundary %}
+      <PermissionsBoundary>
+          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+      </PermissionsBoundary>
+      {% endif %}
     </Role>
   </CreateRoleResult>
   <ResponseMetadata>
@@ -1090,6 +1110,12 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.create_date }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
+        {% if role.permissions_boundary %}
+        <PermissionsBoundary>
+          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+        </PermissionsBoundary>
+        {% endif %}
       </member>
       {% endfor %}
     </Roles>

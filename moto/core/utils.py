@@ -280,7 +280,7 @@ def amzn_request_id(f):
 
         # Update request ID in XML
         try:
-            body = body.replace('{{ requestid }}', request_id)
+            body = re.sub(r'(?<=<RequestId>).*(?=<\/RequestId>)', request_id, body)
         except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
             pass
 
