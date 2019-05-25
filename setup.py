@@ -28,7 +28,7 @@ install_requires = [
     "xmltodict",
     "six>1.9",
     "werkzeug",
-    "PyYAML",
+    "PyYAML==3.13",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "python-jose<4.0.0",
@@ -39,6 +39,7 @@ install_requires = [
     "responses>=0.9.0",
     "idna<2.9,>=2.5",
     "cfn-lint",
+    "sshpubkeys>=3.1.0,<4.0"
 ]
 
 extras_require = {

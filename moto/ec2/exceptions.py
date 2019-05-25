@@ -58,6 +58,14 @@ class InvalidKeyPairDuplicateError(EC2ClientError):
             .format(key))
 
 
+class InvalidKeyPairFormatError(EC2ClientError):
+
+    def __init__(self):
+        super(InvalidKeyPairFormatError, self).__init__(
+            "InvalidKeyPair.Format",
+            "Key is not in valid OpenSSH public key format")
+
+
 class InvalidVPCIdError(EC2ClientError):
 
     def __init__(self, vpc_id):
