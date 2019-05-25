@@ -84,7 +84,7 @@ def test_default_subnet():
     default_vpc.is_default.should.be.ok
 
     subnet = ec2.create_subnet(
-        VpcId=default_vpc.id, CidrBlock='172.31.0.0/20', AvailabilityZone='us-west-1a')
+        VpcId=default_vpc.id, CidrBlock='172.31.48.0/20', AvailabilityZone='us-west-1a')
     subnet.reload()
     subnet.map_public_ip_on_launch.shouldnt.be.ok
 
@@ -126,7 +126,7 @@ def test_modify_subnet_attribute_public_ip_on_launch():
     vpc = list(ec2.vpcs.all())[0]
 
     subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+        VpcId=vpc.id, CidrBlock="172.31.48.0/20", AvailabilityZone='us-west-1a')
 
     # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
     subnet.reload()
@@ -348,7 +348,6 @@ def test_create_subnet_response_fields():
     subnet.should.have.key('Ipv6CidrBlockAssociationSet').which.should.equal([])
 
 
-@mock_ec2
 def test_describe_subnet_response_fields():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     client = boto3.client('ec2', region_name='us-west-1')
@@ -396,3 +395,50 @@ def test_create_subnet_with_invalid_availability_zone():
         "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
         "operation: Value ({}) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: ".format(subnet_availability_zone))
 
+
+def test_create_subnet_with_invalid_cidr_range():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block = '10.1.0.0/20'
+    with assert_raises(ClientError) as ex:
+        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidSubnet.Range) when calling the CreateSubnet "
+        "operation: The CIDR '{}' is invalid.".format(subnet_cidr_block))
+
+
+@mock_ec2
+def test_create_subnet_with_invalid_cidr_block_parameter():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block = '1000.1.0.0/20'
+    with assert_raises(ClientError) as ex:
+        subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidParameterValue) when calling the CreateSubnet "
+        "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(subnet_cidr_block))
+
+
+@mock_ec2
+def test_create_subnets_with_overlapping_cidr_blocks():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    subnet_cidr_block = '10.0.0.0/24'
+    with assert_raises(ClientError) as ex:
+        subnet1 = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+        subnet2 = ec2.create_subnet(VpcId=vpc.id, CidrBlock=subnet_cidr_block)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidSubnet.Conflict) when calling the CreateSubnet "
+        "operation: The CIDR '{}' conflicts with another subnet".format(subnet_cidr_block))
