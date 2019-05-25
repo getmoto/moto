@@ -470,54 +470,54 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 35% implemented
-- [ ] cancel-update-stack
-- [ ] continue-update-rollback
-- [X] create-change-set
-- [X] create-stack
-- [ ] create-stack-instances
-- [ ] create-stack-set
-- [X] delete-change-set
-- [X] delete-stack
-- [ ] delete-stack-instances
-- [ ] delete-stack-set
+## cloudformation - 65% implemented
+- [ ] cancel_update_stack
+- [ ] continue_update_rollback
+- [X] create_change_set
+- [X] create_stack
+- [X] create_stack_instances
+- [X] create_stack_set
+- [X] delete_change_set
+- [X] delete_stack
+- [X] delete_stack_instances
+- [X] delete_stack_set
 - [ ] deploy
-- [ ] describe-account-limits
-- [X] describe-change-set
-- [ ] describe-stack-drift-detection-status
-- [X] describe-stack-events
-- [ ] describe-stack-instance
-- [X] describe-stack-resource
-- [ ] describe-stack-resource-drifts
-- [X] describe-stack-resources
-- [ ] describe-stack-set
-- [ ] describe-stack-set-operation
-- [X] describe-stacks
-- [ ] detect-stack-drift
-- [ ] detect-stack-resource-drift
-- [ ] estimate-template-cost
-- [X] execute-change-set
-- [ ] get-stack-policy
-- [X] get-template
-- [ ] get-template-summary
-- [X] list-change-sets
-- [X] list-exports
-- [ ] list-imports
-- [ ] list-stack-instances
-- [X] list-stack-resources
-- [ ] list-stack-set-operation-results
-- [ ] list-stack-set-operations
-- [ ] list-stack-sets
-- [X] list-stacks
+- [ ] describe_account_limits
+- [X] describe_change_set
+- [ ] describe_stack_drift_detection_status
+- [X] describe_stack_events
+- [X] describe_stack_instance
+- [X] describe_stack_resource
+- [ ] describe_stack_resource_drifts
+- [X] describe_stack_resources
+- [X] describe_stack_set
+- [X] describe_stack_set_operation
+- [X] describe_stacks
+- [ ] detect_stack_drift
+- [ ] detect_stack_resource_drift
+- [ ] estimate_template_cost
+- [X] execute_change_set
+- [ ] get_stack_policy
+- [X] get_template
+- [ ] get_template_summary
+- [X] list_change_sets
+- [X] list_exports
+- [ ] list_imports
+- [X] list_stack_instances
+- [X] list_stack_resources
+- [X] list_stack_set_operation_results
+- [X] list_stack_set_operations
+- [X] list_stack_sets
+- [X] list_stacks
 - [ ] package
-- [ ] set-stack-policy
-- [ ] signal-resource
-- [ ] stop-stack-set-operation
-- [X] update-stack
-- [ ] update-stack-instances
-- [ ] update-stack-set
-- [ ] update-termination-protection
-- [X] validate-template
+- [ ] set_stack_policy
+- [ ] signal_resource
+- [X] stop_stack_set_operation
+- [X] update_stack
+- [X] update_stack_instances
+- [X] update_stack_set
+- [ ] update_termination_protection
+- [X] validate_template
 - [ ] wait
 
 ## cloudfront - 0% implemented
