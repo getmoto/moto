@@ -3540,7 +3540,7 @@
 - [ ] delete_object
 - [ ] delete_object_tagging
 - [ ] delete_objects
-- [ ] get_bucket_accelerate_configuration
+- [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [ ] get_bucket_cors
@@ -3574,7 +3574,7 @@
 - [ ] list_objects
 - [ ] list_objects_v2
 - [ ] list_parts
-- [ ] put_bucket_accelerate_configuration
+- [X] put_bucket_accelerate_configuration
 - [ ] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
