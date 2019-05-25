@@ -1603,7 +1603,7 @@ def test_redirect_action_listener_rule():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.128/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
