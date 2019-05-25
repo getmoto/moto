@@ -19,7 +19,7 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
+from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
 
@@ -257,6 +257,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 200, {}, ""
             template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
             return template.render(bucket=bucket)
+        elif "accelerate" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if bucket.accelerate_configuration is None:
+                template = self.response_template(S3_BUCKET_ACCELERATE_NOT_SET)
+                return 200, {}, template.render()
+            template = self.response_template(S3_BUCKET_ACCELERATE)
+            return template.render(bucket=bucket)
 
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
@@ -437,6 +444,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
             try:
                 self.backend.put_bucket_notification_configuration(bucket_name,
                                                                    self._notification_config_from_xml(body))
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
+        elif "accelerate" in querystring:
+            try:
+                accelerate_status = self._accelerate_config_from_xml(body)
+                self.backend.put_bucket_accelerate_configuration(bucket_name, accelerate_status)
                 return ""
             except KeyError:
                 raise MalformedXML()
@@ -733,7 +749,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # Copy key
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
-            src_key = request.headers.get("x-amz-copy-source")
+            src_key = clean_key_name(request.headers.get("x-amz-copy-source"))
             if isinstance(src_key, six.binary_type):
                 src_key = src_key.decode('utf-8')
             src_key_parsed = urlparse(src_key)
@@ -1034,6 +1050,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return parsed_xml["NotificationConfiguration"]
 
+    def _accelerate_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        config = parsed_xml['AccelerateConfiguration']
+        return config['Status']
+
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
@@ -1303,7 +1324,7 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% for key in key_list %}
     <Version>
         <Key>{{ key.name }}</Key>
-        <VersionId>{{ key.version_id }}</VersionId>
+        <VersionId>{% if key.version_id is none %}null{% else %}{{ key.version_id }}{% endif %}</VersionId>
         <IsLatest>{% if latest_versions[key.name] == key.version_id %}true{% else %}false{% endif %}</IsLatest>
         <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
         <ETag>{{ key.etag }}</ETag>
@@ -1685,4 +1706,14 @@ S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </CloudFunctionConfiguration>
   {% endfor %}
 </NotificationConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Status>{{ bucket.accelerate_configuration }}</Status>
+</AccelerateConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE_NOT_SET = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 """

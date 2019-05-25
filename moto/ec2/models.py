@@ -20,6 +20,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
@@ -43,6 +44,7 @@ from .exceptions import (
     InvalidInstanceIdError,
     InvalidInternetGatewayIdError,
     InvalidKeyPairDuplicateError,
+    InvalidKeyPairFormatError,
     InvalidKeyPairNameError,
     InvalidNetworkAclIdError,
     InvalidNetworkAttachmentIdError,
@@ -71,6 +73,8 @@ from .exceptions import (
     MotoNotImplementedError,
     NetworkAclEntryAlreadyExistsError,
     OperationNotPermitted,
+    OperationNotPermitted2,
+    OperationNotPermitted3,
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded)
@@ -119,6 +123,8 @@ from .utils import (
     random_customer_gateway_id,
     is_tag_filter,
     tag_filter_matches,
+    rsa_public_key_parse,
+    rsa_public_key_fingerprint
 )
 
 INSTANCE_TYPES = json.load(
@@ -135,6 +141,8 @@ def utc_date_and_time():
 
 
 def validate_resource_ids(resource_ids):
+    if not resource_ids:
+        raise MissingParameterError(parameter='resourceIdSet')
     for resource_id in resource_ids:
         if not is_valid_resource_id(resource_id):
             raise InvalidID(resource_id=resource_id)
@@ -190,7 +198,7 @@ class NetworkInterface(TaggedEC2Resource):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
-        self.private_ip_address = private_ip_address
+        self.private_ip_address = private_ip_address or random_private_ip()
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
@@ -389,6 +397,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
         self.source_dest_check = "true"
         self.launch_time = utc_date_and_time()
+        self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
         associate_public_ip = kwargs.get("associate_public_ip", False)
@@ -402,7 +411,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
             warnings.warn('Could not find AMI with image-id:{0}, '
                           'in the near future this will '
                           'cause an error.\n'
-                          'Use ec2_backend.describe_images() to'
+                          'Use ec2_backend.describe_images() to '
                           'find suitable image for your test'.format(image_id),
                           PendingDeprecationWarning)
 
@@ -720,6 +729,7 @@ class InstanceBackend(object):
         instance_tags = tags.get('instance', {})
 
         for index in range(count):
+            kwargs["ami_launch_index"] = index
             new_instance = Instance(
                 self,
                 image_id,
@@ -905,7 +915,14 @@ class KeyPairBackend(object):
     def import_key_pair(self, key_name, public_key_material):
         if key_name in self.keypairs:
             raise InvalidKeyPairDuplicateError(key_name)
-        keypair = KeyPair(key_name, **random_key_pair())
+
+        try:
+            rsa_public_key = rsa_public_key_parse(public_key_material)
+        except ValueError:
+            raise InvalidKeyPairFormatError()
+
+        fingerprint = rsa_public_key_fingerprint(rsa_public_key)
+        keypair = KeyPair(key_name, material=public_key_material, fingerprint=fingerprint)
         self.keypairs[key_name] = keypair
         return keypair
 
@@ -1876,6 +1893,8 @@ class Snapshot(TaggedEC2Resource):
             return str(self.encrypted).lower()
         elif filter_name == 'status':
             return self.status
+        elif filter_name == 'owner-id':
+            return self.owner_id
         else:
             return super(Snapshot, self).get_filter_value(
                 filter_name, 'DescribeSnapshots')
@@ -2117,16 +2136,16 @@ class VPC(TaggedEC2Resource):
 
 
 class VPCBackend(object):
-    __refs__ = defaultdict(list)
+    vpc_refs = defaultdict(set)
 
     def __init__(self):
         self.vpcs = {}
-        self.__refs__[self.__class__].append(weakref.ref(self))
+        self.vpc_refs[self.__class__].add(weakref.ref(self))
         super(VPCBackend, self).__init__()
 
     @classmethod
-    def get_instances(cls):
-        for inst_ref in cls.__refs__[cls]:
+    def get_vpc_refs(cls):
+        for inst_ref in cls.vpc_refs[cls]:
             inst = inst_ref()
             if inst is not None:
                 yield inst
@@ -2156,7 +2175,7 @@ class VPCBackend(object):
 
     # get vpc by vpc id and aws region
     def get_cross_vpc(self, vpc_id, peer_region):
-        for vpcs in self.get_instances():
+        for vpcs in self.get_vpc_refs():
             if vpcs.region_name == peer_region:
                 match_vpc = vpcs.get_vpc(vpc_id)
         return match_vpc
@@ -2277,15 +2296,31 @@ class VPCPeeringConnection(TaggedEC2Resource):
 
 
 class VPCPeeringConnectionBackend(object):
+    # for cross region vpc reference
+    vpc_pcx_refs = defaultdict(set)
+
     def __init__(self):
         self.vpc_pcxs = {}
+        self.vpc_pcx_refs[self.__class__].add(weakref.ref(self))
         super(VPCPeeringConnectionBackend, self).__init__()
+
+    @classmethod
+    def get_vpc_pcx_refs(cls):
+        for inst_ref in cls.vpc_pcx_refs[cls]:
+            inst = inst_ref()
+            if inst is not None:
+                yield inst
 
     def create_vpc_peering_connection(self, vpc, peer_vpc):
         vpc_pcx_id = random_vpc_peering_connection_id()
         vpc_pcx = VPCPeeringConnection(vpc_pcx_id, vpc, peer_vpc)
         vpc_pcx._status.pending()
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
+        # insert cross region peering info
+        if vpc.ec2_backend.region_name != peer_vpc.ec2_backend.region_name:
+            for vpc_pcx_cx in peer_vpc.ec2_backend.get_vpc_pcx_refs():
+                if vpc_pcx_cx.region_name == peer_vpc.ec2_backend.region_name:
+                    vpc_pcx_cx.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         return vpc_pcx
 
     def get_all_vpc_peering_connections(self):
@@ -2303,6 +2338,11 @@ class VPCPeeringConnectionBackend(object):
 
     def accept_vpc_peering_connection(self, vpc_pcx_id):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        # if cross region need accepter from another region
+        pcx_req_region = vpc_pcx.vpc.ec2_backend.region_name
+        pcx_acp_region = vpc_pcx.peer_vpc.ec2_backend.region_name
+        if pcx_req_region != pcx_acp_region and self.region_name == pcx_req_region:
+            raise OperationNotPermitted2(self.region_name, vpc_pcx.id, pcx_acp_region)
         if vpc_pcx._status.code != 'pending-acceptance':
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.accept()
@@ -2310,6 +2350,11 @@ class VPCPeeringConnectionBackend(object):
 
     def reject_vpc_peering_connection(self, vpc_pcx_id):
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
+        # if cross region need accepter from another region
+        pcx_req_region = vpc_pcx.vpc.ec2_backend.region_name
+        pcx_acp_region = vpc_pcx.peer_vpc.ec2_backend.region_name
+        if pcx_req_region != pcx_acp_region and self.region_name == pcx_req_region:
+            raise OperationNotPermitted3(self.region_name, vpc_pcx.id, pcx_acp_region)
         if vpc_pcx._status.code != 'pending-acceptance':
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.reject()
@@ -2880,7 +2925,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
     def __init__(self, ec2_backend, spot_request_id, price, image_id, type,
                  valid_from, valid_until, launch_group, availability_zone_group,
                  key_name, security_groups, user_data, instance_type, placement,
-                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id, spot_fleet_id,
+                 kernel_id, ramdisk_id, monitoring_enabled, subnet_id, tags, spot_fleet_id,
                  **kwargs):
         super(SpotInstanceRequest, self).__init__(**kwargs)
         ls = LaunchSpecification()
@@ -2904,6 +2949,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         ls.monitored = monitoring_enabled
         ls.subnet_id = subnet_id
         self.spot_fleet_id = spot_fleet_id
+        self.tags = tags
 
         if security_groups:
             for group_name in security_groups:
@@ -2937,6 +2983,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
             security_group_names=[],
             security_group_ids=self.launch_specification.groups,
             spot_fleet_id=self.spot_fleet_id,
+            tags=self.tags,
         )
         instance = reservation.instances[0]
         return instance
@@ -2952,15 +2999,16 @@ class SpotRequestBackend(object):
                                valid_until, launch_group, availability_zone_group,
                                key_name, security_groups, user_data,
                                instance_type, placement, kernel_id, ramdisk_id,
-                               monitoring_enabled, subnet_id, spot_fleet_id=None):
+                               monitoring_enabled, subnet_id, tags=None, spot_fleet_id=None):
         requests = []
+        tags = tags or {}
         for _ in range(count):
             spot_request_id = random_spot_request_id()
             request = SpotInstanceRequest(self,
                                           spot_request_id, price, image_id, type, valid_from, valid_until,
                                           launch_group, availability_zone_group, key_name, security_groups,
                                           user_data, instance_type, placement, kernel_id, ramdisk_id,
-                                          monitoring_enabled, subnet_id, spot_fleet_id)
+                                          monitoring_enabled, subnet_id, tags, spot_fleet_id)
             self.spot_instance_requests[spot_request_id] = request
             requests.append(request)
         return requests
@@ -2980,8 +3028,8 @@ class SpotRequestBackend(object):
 
 class SpotFleetLaunchSpec(object):
     def __init__(self, ebs_optimized, group_set, iam_instance_profile, image_id,
-                 instance_type, key_name, monitoring, spot_price, subnet_id, user_data,
-                 weighted_capacity):
+                 instance_type, key_name, monitoring, spot_price, subnet_id, tag_specifications,
+                 user_data, weighted_capacity):
         self.ebs_optimized = ebs_optimized
         self.group_set = group_set
         self.iam_instance_profile = iam_instance_profile
@@ -2991,6 +3039,7 @@ class SpotFleetLaunchSpec(object):
         self.monitoring = monitoring
         self.spot_price = spot_price
         self.subnet_id = subnet_id
+        self.tag_specifications = tag_specifications
         self.user_data = user_data
         self.weighted_capacity = float(weighted_capacity)
 
@@ -3021,6 +3070,7 @@ class SpotFleetRequest(TaggedEC2Resource):
                 monitoring=spec.get('monitoring._enabled'),
                 spot_price=spec.get('spot_price', self.spot_price),
                 subnet_id=spec['subnet_id'],
+                tag_specifications=self._parse_tag_specifications(spec),
                 user_data=spec.get('user_data'),
                 weighted_capacity=spec['weighted_capacity'],
             )
@@ -3103,6 +3153,7 @@ class SpotFleetRequest(TaggedEC2Resource):
                 monitoring_enabled=launch_spec.monitoring,
                 subnet_id=launch_spec.subnet_id,
                 spot_fleet_id=self.id,
+                tags=launch_spec.tag_specifications,
             )
             self.spot_requests.extend(requests)
         self.fulfilled_capacity += added_weight
@@ -3124,6 +3175,25 @@ class SpotFleetRequest(TaggedEC2Resource):
 
         self.spot_requests = [req for req in self.spot_requests if req.instance.id not in instance_ids]
         self.ec2_backend.terminate_instances(instance_ids)
+
+    def _parse_tag_specifications(self, spec):
+        try:
+            tag_spec_num = max([int(key.split('.')[1]) for key in spec if key.startswith("tag_specification_set")])
+        except ValueError:  # no tag specifications
+            return {}
+
+        tag_specifications = {}
+        for si in range(1, tag_spec_num + 1):
+            resource_type = spec["tag_specification_set.{si}._resource_type".format(si=si)]
+
+            tags = [key for key in spec if key.startswith("tag_specification_set.{si}._tag".format(si=si))]
+            tag_num = max([int(key.split('.')[3]) for key in tags])
+            tag_specifications[resource_type] = dict((
+                spec["tag_specification_set.{si}._tag.{ti}._key".format(si=si, ti=ti)],
+                spec["tag_specification_set.{si}._tag.{ti}._value".format(si=si, ti=ti)],
+            ) for ti in range(1, tag_num + 1))
+
+        return tag_specifications
 
 
 class SpotFleetBackend(object):

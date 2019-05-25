@@ -750,6 +750,47 @@ def test_boto3_update_item_conditions_pass_because_expect_exists_by_compare_to_n
     returned_item = table.get_item(Key={'username': 'johndoe'})
     assert dict(returned_item)['Item']['foo'].should.equal("baz")
 
+
+@mock_dynamodb2
+def test_boto3_update_settype_item_with_conditions():
+    class OrderedSet(set):
+        """A set with predictable iteration order"""
+        def __init__(self, values):
+            super(OrderedSet, self).__init__(values)
+            self.__ordered_values = values
+
+        def __iter__(self):
+            return iter(self.__ordered_values)
+
+    table = _create_user_table()
+    table.put_item(Item={'username': 'johndoe'})
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=:new_value',
+        ExpressionAttributeValues={
+            ':new_value': OrderedSet(['hello', 'world']),
+        },
+    )
+
+    table.update_item(
+        Key={'username': 'johndoe'},
+        UpdateExpression='SET foo=:new_value',
+        ExpressionAttributeValues={
+            ':new_value': set(['baz']),
+        },
+        Expected={
+            'foo': {
+                'ComparisonOperator': 'EQ',
+                'AttributeValueList': [
+                    OrderedSet(['world', 'hello']),  # Opposite order to original
+                ],
+            }
+        },
+    )
+    returned_item = table.get_item(Key={'username': 'johndoe'})
+    assert dict(returned_item)['Item']['foo'].should.equal(set(['baz']))
+
+
 @mock_dynamodb2
 def test_boto3_put_item_conditions_pass():
     table = _create_user_table()
@@ -788,3 +829,77 @@ def test_scan_pagination():
     results = page1['Items'] + page2['Items']
     usernames = set([r['username'] for r in results])
     usernames.should.equal(set(expected_usernames))
+
+
+@mock_dynamodb2
+def test_scan_by_index():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    dynamodb.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_col', 'AttributeType': 'S'}
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        GlobalSecondaryIndexes=[
+            {
+                'IndexName': 'test_gsi',
+                'KeySchema': [
+                    {
+                        'AttributeName': 'gsi_col',
+                        'KeyType': 'HASH'
+                    },
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 1,
+                    'WriteCapacityUnits': 1
+                }
+            },
+        ]
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '1'},
+            'col1': {'S': 'val1'},
+            'gsi_col': {'S': 'gsi_val1'},
+        }
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '2'},
+            'col1': {'S': 'val2'},
+            'gsi_col': {'S': 'gsi_val2'},
+        }
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': '3'},
+            'col1': {'S': 'val3'},
+        }
+    )
+
+    res = dynamodb.scan(TableName='test')
+    assert res['Count'] == 3
+    assert len(res['Items']) == 3
+
+    res = dynamodb.scan(TableName='test', IndexName='test_gsi')
+    assert res['Count'] == 2
+    assert len(res['Items']) == 2
+
+    res = dynamodb.scan(TableName='test', IndexName='test_gsi', Limit=1)
+    assert res['Count'] == 1
+    assert len(res['Items']) == 1
+    last_eval_key = res['LastEvaluatedKey']
+    assert last_eval_key['id']['S'] == '1'
+    assert last_eval_key['gsi_col']['S'] == 'gsi_val1'

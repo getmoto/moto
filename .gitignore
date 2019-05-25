@@ -17,3 +17,5 @@ python_env
 venv/
 .python-version
 .vscode/
+tests/file.tmp
+.eggs/

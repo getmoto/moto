@@ -1,12 +1,10 @@
 import random
-
 import boto3
 import json
 
 from moto.events import mock_events
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
-
 
 RULES = [
     {'Name': 'test1', 'ScheduleExpression': 'rate(5 minutes)'},
@@ -108,6 +106,13 @@ def test_enable_disable_rule():
     client.enable_rule(Name=rule_name)
     rule = client.describe_rule(Name=rule_name)
     assert(rule['State'] == 'ENABLED')
+
+    # Test invalid name
+    try:
+        client.enable_rule(Name='junk')
+
+    except ClientError as ce:
+        assert ce.response['Error']['Code'] == 'ResourceNotFoundException'
 
 
 @mock_events

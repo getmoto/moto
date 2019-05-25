@@ -128,7 +128,6 @@ def test_create_role_and_instance_profile():
     profile = conn.create_instance_profile('my-other-profile')
     profile.path.should.equal('/')
 
-
 @mock_iam_deprecated()
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
@@ -303,8 +302,18 @@ def test_create_policy_versions():
         PolicyDocument='{"some":"policy"}')
     version = conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument='{"some":"policy"}',
+        SetAsDefault=True)
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+    version.get('PolicyVersion').get('VersionId').should.equal("v2")
+    conn.delete_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        VersionId="v1")
+    version = conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        PolicyDocument='{"some":"policy"}')
+    version.get('PolicyVersion').get('VersionId').should.equal("v3")
+
 
 @mock_iam
 def test_get_policy():
@@ -348,7 +357,7 @@ def test_list_policy_versions():
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     versions.get('Versions')[0].get('VersionId').should.equal('v1')
-    
+
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
         PolicyDocument='{"second":"policy"}')
@@ -398,6 +407,19 @@ def test_get_user():
         conn.get_user('my-user')
     conn.create_user('my-user')
     conn.get_user('my-user')
+
+
+@mock_iam()
+def test_update_user():
+    conn = boto3.client('iam', region_name='us-east-1')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.update_user(UserName='my-user')
+    conn.create_user(UserName='my-user')
+    conn.update_user(UserName='my-user', NewPath='/new-path/', NewUserName='new-user')
+    response = conn.get_user(UserName='new-user')
+    response['User'].get('Path').should.equal('/new-path/')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_user(UserName='my-user')
 
 
 @mock_iam_deprecated()
@@ -579,6 +601,7 @@ def test_get_credential_report():
                               'get_credential_report_result']['content'].encode('ascii')).decode('ascii')
     report.should.match(r'.*my-user.*')
 
+
 @mock_iam
 def test_boto3_get_credential_report():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -757,6 +780,17 @@ def test_get_access_key_last_used():
 @mock_iam
 def test_get_account_authorization_details():
     import json
+    test_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "s3:ListBucket",
+                "Resource": "*",
+                "Effect": "Allow",
+            }
+        ]
+    })
+
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
     conn.create_user(Path='/', UserName='testUser')
@@ -764,21 +798,34 @@ def test_get_account_authorization_details():
     conn.create_policy(
         PolicyName='testPolicy',
         Path='/',
-        PolicyDocument=json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Action": "s3:ListBucket",
-                    "Resource": "*",
-                    "Effect": "Allow",
-                }
-            ]
-        }),
+        PolicyDocument=test_policy,
         Description='Test Policy'
     )
 
+    # Attach things to the user and group:
+    conn.put_user_policy(UserName='testUser', PolicyName='testPolicy', PolicyDocument=test_policy)
+    conn.put_group_policy(GroupName='testGroup', PolicyName='testPolicy', PolicyDocument=test_policy)
+
+    conn.attach_user_policy(UserName='testUser', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+    conn.attach_group_policy(GroupName='testGroup', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+
+    conn.add_user_to_group(UserName='testUser', GroupName='testGroup')
+
+    # Add things to the role:
     conn.create_instance_profile(InstanceProfileName='ipn')
     conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+    conn.put_role_policy(RoleName='my-role', PolicyName='test-policy', PolicyDocument=test_policy)
+    conn.attach_role_policy(RoleName='my-role', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
 
     result = conn.get_account_authorization_details(Filter=['Role'])
     assert len(result['RoleDetailList']) == 1
@@ -786,24 +833,41 @@ def test_get_account_authorization_details():
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 0
     assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
+    assert len(result['RoleDetailList'][0]['Tags']) == 2
+    assert len(result['RoleDetailList'][0]['RolePolicyList']) == 1
+    assert len(result['RoleDetailList'][0]['AttachedManagedPolicies']) == 1
+    assert result['RoleDetailList'][0]['AttachedManagedPolicies'][0]['PolicyName'] == 'testPolicy'
+    assert result['RoleDetailList'][0]['AttachedManagedPolicies'][0]['PolicyArn'] == \
+        'arn:aws:iam::123456789012:policy/testPolicy'
 
     result = conn.get_account_authorization_details(Filter=['User'])
     assert len(result['RoleDetailList']) == 0
     assert len(result['UserDetailList']) == 1
+    assert len(result['UserDetailList'][0]['GroupList']) == 1
+    assert len(result['UserDetailList'][0]['AttachedManagedPolicies']) == 1
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 0
+    assert result['UserDetailList'][0]['AttachedManagedPolicies'][0]['PolicyName'] == 'testPolicy'
+    assert result['UserDetailList'][0]['AttachedManagedPolicies'][0]['PolicyArn'] == \
+        'arn:aws:iam::123456789012:policy/testPolicy'
 
     result = conn.get_account_authorization_details(Filter=['Group'])
     assert len(result['RoleDetailList']) == 0
     assert len(result['UserDetailList']) == 0
     assert len(result['GroupDetailList']) == 1
+    assert len(result['GroupDetailList'][0]['GroupPolicyList']) == 1
+    assert len(result['GroupDetailList'][0]['AttachedManagedPolicies']) == 1
     assert len(result['Policies']) == 0
+    assert result['GroupDetailList'][0]['AttachedManagedPolicies'][0]['PolicyName'] == 'testPolicy'
+    assert result['GroupDetailList'][0]['AttachedManagedPolicies'][0]['PolicyArn'] == \
+        'arn:aws:iam::123456789012:policy/testPolicy'
 
     result = conn.get_account_authorization_details(Filter=['LocalManagedPolicy'])
     assert len(result['RoleDetailList']) == 0
     assert len(result['UserDetailList']) == 0
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 1
+    assert len(result['Policies'][0]['PolicyVersionList']) == 1
 
     # Check for greater than 1 since this should always be greater than one but might change.
     # See iam/aws_managed_policies.py
@@ -872,6 +936,7 @@ def test_signing_certs():
     with assert_raises(ClientError):
         client.delete_signing_certificate(UserName='notauser', CertificateId=cert_id)
 
+
 @mock_iam()
 def test_create_saml_provider():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -880,6 +945,7 @@ def test_create_saml_provider():
         SAMLMetadataDocument='a' * 1024
     )
     response['SAMLProviderArn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
 
 @mock_iam()
 def test_get_saml_provider():
@@ -893,6 +959,7 @@ def test_get_saml_provider():
     )
     response['SAMLMetadataDocument'].should.equal('a' * 1024)
 
+
 @mock_iam()
 def test_list_saml_providers():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -902,6 +969,7 @@ def test_list_saml_providers():
     )
     response = conn.list_saml_providers()
     response['SAMLProviderList'][0]['Arn'].should.equal("arn:aws:iam::123456789012:saml-provider/TestSAMLProvider")
+
 
 @mock_iam()
 def test_delete_saml_provider():
@@ -929,3 +997,316 @@ def test_delete_saml_provider():
     # Verify that it's not in the list:
     resp = conn.list_signing_certificates(UserName='testing')
     assert not resp['Certificates']
+
+
+@mock_iam()
+def test_tag_role():
+    """Tests both the tag_role and get_role_tags capability"""
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
+
+    # Get without tags:
+    role = conn.get_role(RoleName='my-role')['Role']
+    assert not role.get('Tags')
+
+    # With proper tag values:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+
+    # Get role:
+    role = conn.get_role(RoleName='my-role')['Role']
+    assert len(role['Tags']) == 2
+    assert role['Tags'][0]['Key'] == 'somekey'
+    assert role['Tags'][0]['Value'] == 'somevalue'
+    assert role['Tags'][1]['Key'] == 'someotherkey'
+    assert role['Tags'][1]['Value'] == 'someothervalue'
+
+    # Same -- but for list_role_tags:
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 2
+    assert role['Tags'][0]['Key'] == 'somekey'
+    assert role['Tags'][0]['Value'] == 'somevalue'
+    assert role['Tags'][1]['Key'] == 'someotherkey'
+    assert role['Tags'][1]['Value'] == 'someothervalue'
+    assert not tags['IsTruncated']
+    assert not tags.get('Marker')
+
+    # Test pagination:
+    tags = conn.list_role_tags(RoleName='my-role', MaxItems=1)
+    assert len(tags['Tags']) == 1
+    assert tags['IsTruncated']
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == 'somevalue'
+    assert tags['Marker'] == '1'
+
+    tags = conn.list_role_tags(RoleName='my-role', Marker=tags['Marker'])
+    assert len(tags['Tags']) == 1
+    assert tags['Tags'][0]['Key'] == 'someotherkey'
+    assert tags['Tags'][0]['Value'] == 'someothervalue'
+    assert not tags['IsTruncated']
+    assert not tags.get('Marker')
+
+    # Test updating an existing tag:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somenewvalue'
+        }
+    ])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 2
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == 'somenewvalue'
+
+    # Empty is good:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': ''
+        }
+    ])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 2
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == ''
+
+    # Test creating tags with invalid values:
+    # With more than 50 tags:
+    with assert_raises(ClientError) as ce:
+        too_many_tags = list(map(lambda x: {'Key': str(x), 'Value': str(x)}, range(0, 51)))
+        conn.tag_role(RoleName='my-role', Tags=too_many_tags)
+    assert 'failed to satisfy constraint: Member must have length less than or equal to 50.' \
+           in ce.exception.response['Error']['Message']
+
+    # With a duplicate tag:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': '0', 'Value': ''}, {'Key': '0', 'Value': ''}])
+    assert 'Duplicate tag keys found. Please note that Tag keys are case insensitive.' \
+           in ce.exception.response['Error']['Message']
+
+    # Duplicate tag with different casing:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': 'a', 'Value': ''}, {'Key': 'A', 'Value': ''}])
+    assert 'Duplicate tag keys found. Please note that Tag keys are case insensitive.' \
+           in ce.exception.response['Error']['Message']
+
+    # With a really big key:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': '0' * 129, 'Value': ''}])
+    assert 'Member must have length less than or equal to 128.' in ce.exception.response['Error']['Message']
+
+    # With a really big value:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': '0', 'Value': '0' * 257}])
+    assert 'Member must have length less than or equal to 256.' in ce.exception.response['Error']['Message']
+
+    # With an invalid character:
+    with assert_raises(ClientError) as ce:
+        conn.tag_role(RoleName='my-role', Tags=[{'Key': 'NOWAY!', 'Value': ''}])
+    assert 'Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+' \
+           in ce.exception.response['Error']['Message']
+
+    # With a role that doesn't exist:
+    with assert_raises(ClientError):
+        conn.tag_role(RoleName='notarole', Tags=[{'Key': 'some', 'Value': 'value'}])
+
+
+@mock_iam
+def test_untag_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
+
+    # With proper tag values:
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+
+    # Remove them:
+    conn.untag_role(RoleName='my-role', TagKeys=['somekey'])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert len(tags['Tags']) == 1
+    assert tags['Tags'][0]['Key'] == 'someotherkey'
+    assert tags['Tags'][0]['Value'] == 'someothervalue'
+
+    # And again:
+    conn.untag_role(RoleName='my-role', TagKeys=['someotherkey'])
+    tags = conn.list_role_tags(RoleName='my-role')
+    assert not tags['Tags']
+
+    # Test removing tags with invalid values:
+    # With more than 50 tags:
+    with assert_raises(ClientError) as ce:
+        conn.untag_role(RoleName='my-role', TagKeys=[str(x) for x in range(0, 51)])
+    assert 'failed to satisfy constraint: Member must have length less than or equal to 50.' \
+           in ce.exception.response['Error']['Message']
+    assert 'tagKeys' in ce.exception.response['Error']['Message']
+
+    # With a really big key:
+    with assert_raises(ClientError) as ce:
+        conn.untag_role(RoleName='my-role', TagKeys=['0' * 129])
+    assert 'Member must have length less than or equal to 128.' in ce.exception.response['Error']['Message']
+    assert 'tagKeys' in ce.exception.response['Error']['Message']
+
+    # With an invalid character:
+    with assert_raises(ClientError) as ce:
+        conn.untag_role(RoleName='my-role', TagKeys=['NOWAY!'])
+    assert 'Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+' \
+           in ce.exception.response['Error']['Message']
+    assert 'tagKeys' in ce.exception.response['Error']['Message']
+
+    # With a role that doesn't exist:
+    with assert_raises(ClientError):
+        conn.untag_role(RoleName='notarole', TagKeys=['somevalue'])
+
+
+@mock_iam()
+def test_update_role_description():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    response = conn.update_role_description(RoleName="my-role", Description="test")
+
+    assert response['Role']['RoleName'] == 'my-role'
+
+@mock_iam()
+def test_update_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    response = conn.update_role_description(RoleName="my-role", Description="test")
+    assert response['Role']['RoleName'] == 'my-role'
+
+@mock_iam()
+def test_update_role():
+    conn = boto3.client('iam', region_name='us-east-1')
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    response = conn.update_role(RoleName="my-role", Description="test")
+    assert len(response.keys()) == 1
+
+
+@mock_iam()
+def test_list_entities_for_policy():
+    import json
+    test_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "s3:ListBucket",
+                "Resource": "*",
+                "Effect": "Allow",
+            }
+        ]
+    })
+
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.create_user(Path='/', UserName='testUser')
+    conn.create_group(Path='/', GroupName='testGroup')
+    conn.create_policy(
+        PolicyName='testPolicy',
+        Path='/',
+        PolicyDocument=test_policy,
+        Description='Test Policy'
+    )
+
+    # Attach things to the user and group:
+    conn.put_user_policy(UserName='testUser', PolicyName='testPolicy', PolicyDocument=test_policy)
+    conn.put_group_policy(GroupName='testGroup', PolicyName='testPolicy', PolicyDocument=test_policy)
+
+    conn.attach_user_policy(UserName='testUser', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+    conn.attach_group_policy(GroupName='testGroup', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+
+    conn.add_user_to_group(UserName='testUser', GroupName='testGroup')
+
+    # Add things to the role:
+    conn.create_instance_profile(InstanceProfileName='ipn')
+    conn.add_role_to_instance_profile(InstanceProfileName='ipn', RoleName='my-role')
+    conn.tag_role(RoleName='my-role', Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ])
+    conn.put_role_policy(RoleName='my-role', PolicyName='test-policy', PolicyDocument=test_policy)
+    conn.attach_role_policy(RoleName='my-role', PolicyArn='arn:aws:iam::123456789012:policy/testPolicy')
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='Role'
+    )
+    assert response['PolicyRoles'] == [{'RoleName': 'my-role'}]
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='User',
+    )
+    assert response['PolicyUsers'] ==  [{'UserName': 'testUser'}]
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='Group',
+    )
+    assert response['PolicyGroups'] == [{'GroupName': 'testGroup'}]
+
+    response = conn.list_entities_for_policy(
+        PolicyArn='arn:aws:iam::123456789012:policy/testPolicy',
+        EntityFilter='LocalManagedPolicy',
+    )
+    assert response['PolicyGroups'] == [{'GroupName': 'testGroup'}]
+    assert response['PolicyUsers'] ==  [{'UserName': 'testUser'}]
+    assert response['PolicyRoles'] == [{'RoleName': 'my-role'}]
+
+
+@mock_iam()
+def test_create_role_no_path():
+    conn = boto3.client('iam', region_name='us-east-1')
+    resp = conn.create_role(RoleName='my-role', AssumeRolePolicyDocument='some policy', Description='test')
+    resp.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-role')
+    resp.get('Role').should_not.have.key('PermissionsBoundary')
+
+@mock_iam()
+def test_create_role_with_permissions_boundary():
+    conn = boto3.client('iam', region_name='us-east-1')
+    boundary = 'arn:aws:iam::123456789012:policy/boundary'
+    resp = conn.create_role(RoleName='my-role', AssumeRolePolicyDocument='some policy', Description='test', PermissionsBoundary=boundary)
+    expected = {
+        'PermissionsBoundaryType': 'PermissionsBoundaryPolicy',
+        'PermissionsBoundaryArn': boundary
+    }
+    resp.get('Role').get('PermissionsBoundary').should.equal(expected)
+
+    invalid_boundary_arn = 'arn:aws:iam::123456789:not_a_boundary'
+    with assert_raises(ClientError):
+        conn.create_role(RoleName='bad-boundary', AssumeRolePolicyDocument='some policy', Description='test',  PermissionsBoundary=invalid_boundary_arn)
+
+    # Ensure the PermissionsBoundary is included in role listing as well
+    conn.list_roles().get('Roles')[0].get('PermissionsBoundary').should.equal(expected)

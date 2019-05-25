@@ -29,6 +29,10 @@ template = {
         "NinjaENI": {
             "Description": "Elastic IP mapping to Auto-Scaling Group",
             "Value": {"Ref": "ENI"}
+        },
+        "ENIIpAddress": {
+            "Description": "ENI's Private IP address",
+            "Value": {"Fn::GetAtt": ["ENI", "PrimaryPrivateIpAddress"]}
         }
     }
 }
