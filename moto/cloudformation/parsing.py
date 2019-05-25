@@ -12,7 +12,7 @@ from moto.batch import models as batch_models
 from moto.cloudwatch import models as cloudwatch_models
 from moto.cognitoidentity import models as cognitoidentity_models
 from moto.datapipeline import models as datapipeline_models
-from moto.dynamodb import models as dynamodb_models
+from moto.dynamodb2 import models as dynamodb2_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
@@ -37,7 +37,7 @@ MODEL_MAP = {
     "AWS::Batch::JobDefinition": batch_models.JobDefinition,
     "AWS::Batch::JobQueue": batch_models.JobQueue,
     "AWS::Batch::ComputeEnvironment": batch_models.ComputeEnvironment,
-    "AWS::DynamoDB::Table": dynamodb_models.Table,
+    "AWS::DynamoDB::Table": dynamodb2_models.Table,
     "AWS::Kinesis::Stream": kinesis_models.Stream,
     "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,

@@ -417,6 +417,25 @@ class Table(BaseModel):
         }
         self.set_stream_specification(streams)
 
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        params = {}
+
+        if 'KeySchema' in properties:
+            params['schema'] = properties['KeySchema']
+        if 'AttributeDefinitions' in properties:
+            params['attr'] = properties['AttributeDefinitions']
+        if 'GlobalSecondaryIndexes' in properties:
+            params['global_indexes'] = properties['GlobalSecondaryIndexes']
+        if 'ProvisionedThroughput' in properties:
+            params['throughput'] = properties['ProvisionedThroughput']
+        if 'LocalSecondaryIndexes' in properties:
+            params['indexes'] = properties['LocalSecondaryIndexes']
+
+        table = dynamodb_backends[region_name].create_table(name=properties['TableName'], **params)
+        return table
+
     def _generate_arn(self, name):
         return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
 
