@@ -1529,6 +1529,28 @@ def test_boto3_copy_object_with_versioning():
     # Version should be different to previous version
     obj2_version_new.should_not.equal(obj2_version)
 
+    client.copy_object(CopySource={'Bucket': 'blah', 'Key': 'test2', 'VersionId': obj2_version}, Bucket='blah', Key='test3')
+    obj3_version_new = client.get_object(Bucket='blah', Key='test3')['VersionId']
+    obj3_version_new.should_not.equal(obj2_version_new)
+
+    # Copy file that doesn't exist
+    with assert_raises(ClientError) as e:
+        client.copy_object(CopySource={'Bucket': 'blah', 'Key': 'test4', 'VersionId': obj2_version}, Bucket='blah', Key='test5')
+    e.exception.response['Error']['Code'].should.equal('404')
+
+    response = client.create_multipart_upload(Bucket='blah', Key='test4')
+    upload_id = response['UploadId']
+    response = client.upload_part_copy(Bucket='blah', Key='test4', CopySource={'Bucket': 'blah', 'Key': 'test3', 'VersionId': obj3_version_new},
+                                       UploadId=upload_id, PartNumber=1)
+    etag = response["CopyPartResult"]["ETag"]
+    client.complete_multipart_upload(
+        Bucket='blah', Key='test4', UploadId=upload_id,
+        MultipartUpload={'Parts': [{'ETag': etag, 'PartNumber': 1}]})
+
+    response = client.get_object(Bucket='blah', Key='test4')
+    data = response["Body"].read()
+    data.should.equal(b'test2')
+
 
 @mock_s3
 def test_boto3_copy_object_from_unversioned_to_versioned_bucket():
@@ -2761,6 +2783,7 @@ def test_boto3_multiple_delete_markers():
     # Double check the name is still unicode
     latest['Key'].should.equal('key-with-versions-and-unicode-ó')
     oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
+
 
 @mock_s3
 def test_get_stream_gzipped():
