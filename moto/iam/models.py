@@ -9,6 +9,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
 import pytz
+from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
@@ -48,7 +49,13 @@ class Policy(BaseModel):
         self.description = description or ''
         self.id = random_policy_id()
         self.path = path or '/'
-        self.default_version_id = default_version_id or 'v1'
+
+        if default_version_id:
+            self.default_version_id = default_version_id
+            self.next_version_num = int(default_version_id.lstrip('v')) + 1
+        else:
+            self.default_version_id = 'v1'
+            self.next_version_num = 2
         self.versions = [PolicyVersion(self.arn, document, True)]
 
         self.create_datetime = datetime.now(pytz.utc)
@@ -125,7 +132,7 @@ class InlinePolicy(Policy):
 
 class Role(BaseModel):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path):
+    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -135,6 +142,7 @@ class Role(BaseModel):
         self.create_date = datetime.now(pytz.utc)
         self.tags = {}
         self.description = ""
+        self.permissions_boundary = permissions_boundary
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -144,6 +152,7 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
+            permissions_boundary=properties.get('PermissionsBoundary', '')
         )
 
         policies = properties.get('Policies', [])
@@ -213,7 +222,7 @@ class InstanceProfile(BaseModel):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
 
@@ -464,6 +473,8 @@ class IAMBackend(BaseBackend):
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
+        self.policy_arn_regex = re.compile(
+            r'^arn:aws:iam::[0-9]*:policy/.*$')
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -581,9 +592,12 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path):
+    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path)
+        if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
+            raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
+
+        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
         self.roles[role_id] = role
         return role
 
@@ -716,7 +730,8 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy not found")
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
-        version.version_id = 'v{0}'.format(len(policy.versions))
+        version.version_id = 'v{0}'.format(policy.next_version_num)
+        policy.next_version_num += 1
         if set_as_default:
             policy.default_version_id = version.version_id
         return version
@@ -891,6 +906,18 @@ class IAMBackend(BaseBackend):
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
+
+    def update_user(self, user_name, new_path=None, new_user_name=None):
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise IAMNotFoundException("User {0} not found".format(user_name))
+
+        if new_path:
+            user.path = new_path
+        if new_user_name:
+            user.name = new_user_name
+            self.users[new_user_name] = self.users.pop(user_name)
 
     def list_roles(self, path_prefix, marker, max_items):
         roles = None

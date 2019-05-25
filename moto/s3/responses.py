@@ -257,6 +257,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 200, {}, ""
             template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
             return template.render(bucket=bucket)
+        elif "accelerate" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if bucket.accelerate_configuration is None:
+                template = self.response_template(S3_BUCKET_ACCELERATE_NOT_SET)
+                return 200, {}, template.render()
+            template = self.response_template(S3_BUCKET_ACCELERATE)
+            return template.render(bucket=bucket)
 
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
@@ -437,6 +444,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
             try:
                 self.backend.put_bucket_notification_configuration(bucket_name,
                                                                    self._notification_config_from_xml(body))
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
+        elif "accelerate" in querystring:
+            try:
+                accelerate_status = self._accelerate_config_from_xml(body)
+                self.backend.put_bucket_accelerate_configuration(bucket_name, accelerate_status)
                 return ""
             except KeyError:
                 raise MalformedXML()
@@ -1033,6 +1049,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return {}
 
         return parsed_xml["NotificationConfiguration"]
+
+    def _accelerate_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        config = parsed_xml['AccelerateConfiguration']
+        return config['Status']
 
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
@@ -1685,4 +1706,14 @@ S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </CloudFunctionConfiguration>
   {% endfor %}
 </NotificationConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Status>{{ bucket.accelerate_configuration }}</Status>
+</AccelerateConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE_NOT_SET = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 """

@@ -6,6 +6,7 @@ from nose.tools import assert_raises
 import boto
 import boto3
 from boto.exception import EC2ResponseError
+from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_ec2, mock_ec2_deprecated
@@ -528,3 +529,26 @@ def test_network_acl_tagging():
                             if na.id == route_table.id)
     test_route_table.tags.should.have.length_of(1)
     test_route_table.tags["a key"].should.equal("some value")
+
+
+@mock_ec2
+def test_create_route_with_invalid_destination_cidr_block_parameter():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    vpc.reload()
+    vpc.is_default.shouldnt.be.ok
+
+    route_table = ec2.create_route_table(VpcId=vpc.id)
+    route_table.reload()
+
+    internet_gateway = ec2.create_internet_gateway()
+    vpc.attach_internet_gateway(InternetGatewayId=internet_gateway.id)
+    internet_gateway.reload()
+
+    destination_cidr_block = '1000.1.0.0/20'
+    with assert_raises(ClientError) as ex:
+        route = route_table.create_route(DestinationCidrBlock=destination_cidr_block, GatewayId=internet_gateway.id)
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidParameterValue) when calling the CreateRoute "
+        "operation: Value ({}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.".format(destination_cidr_block))

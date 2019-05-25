@@ -228,7 +228,7 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
 
 @mock_iot
 def test_certs():
-    client = boto3.client('iot', region_name='ap-northeast-1')
+    client = boto3.client('iot', region_name='us-east-1')
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert.should.have.key('certificateArn').which.should_not.be.none
     cert.should.have.key('certificateId').which.should_not.be.none
@@ -245,6 +245,29 @@ def test_certs():
     cert_desc.should.have.key('certificateId').which.should_not.be.none
     cert_desc.should.have.key('certificatePem').which.should_not.be.none
     cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+    cert_pem = cert_desc['certificatePem']
+
+    res = client.list_certificates()
+    for cert in res['certificates']:
+        cert.should.have.key('certificateArn').which.should_not.be.none
+        cert.should.have.key('certificateId').which.should_not.be.none
+        cert.should.have.key('status').which.should_not.be.none
+        cert.should.have.key('creationDate').which.should_not.be.none
+
+    client.update_certificate(certificateId=cert_id, newStatus='REVOKED')
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('status').which.should.equal('REVOKED')
+
+    client.delete_certificate(certificateId=cert_id)
+    res = client.list_certificates()
+    res.should.have.key('certificates')
+
+    # Test register_certificate flow
+    cert = client.register_certificate(certificatePem=cert_pem, setAsActive=True)
+    cert.should.have.key('certificateId').which.should_not.be.none
+    cert.should.have.key('certificateArn').which.should_not.be.none
+    cert_id = cert['certificateId']
 
     res = client.list_certificates()
     res.should.have.key('certificates').which.should.have.length_of(1)
@@ -256,11 +279,12 @@ def test_certs():
 
     client.update_certificate(certificateId=cert_id, newStatus='REVOKED')
     cert = client.describe_certificate(certificateId=cert_id)
-    cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('status').which.should.equal('REVOKED')
 
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
-    res.should.have.key('certificates').which.should.have.length_of(0)
+    res.should.have.key('certificates')
 
 
 @mock_iot

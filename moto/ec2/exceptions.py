@@ -58,6 +58,14 @@ class InvalidKeyPairDuplicateError(EC2ClientError):
             .format(key))
 
 
+class InvalidKeyPairFormatError(EC2ClientError):
+
+    def __init__(self):
+        super(InvalidKeyPairFormatError, self).__init__(
+            "InvalidKeyPair.Format",
+            "Key is not in valid OpenSSH public key format")
+
+
 class InvalidVPCIdError(EC2ClientError):
 
     def __init__(self, vpc_id):
@@ -419,4 +427,71 @@ class OperationNotPermitted(EC2ClientError):
             "OperationNotPermitted",
             "The vpc CIDR block with association ID {} may not be disassociated. "
             "It is the primary IPv4 CIDR block of the VPC".format(association_id)
+        )
+
+
+class InvalidSubnetRangeError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidSubnetRangeError, self).__init__(
+            "InvalidSubnet.Range",
+            "The CIDR '{}' is invalid.".format(cidr_block)
+        )
+
+
+class InvalidCIDRBlockParameterError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidCIDRBlockParameterError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
+        )
+
+
+class InvalidDestinationCIDRBlockParameterError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidDestinationCIDRBlockParameterError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({}) for parameter destinationCidrBlock is invalid. This is not a valid CIDR block.".format(cidr_block)
+        )
+
+
+class InvalidSubnetConflictError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidSubnetConflictError, self).__init__(
+            "InvalidSubnet.Conflict",
+            "The CIDR '{}' conflicts with another subnet".format(cidr_block)
+        )
+
+
+class InvalidVPCRangeError(EC2ClientError):
+
+    def __init__(self, cidr_block):
+        super(InvalidVPCRangeError, self).__init__(
+            "InvalidVpc.Range",
+            "The CIDR '{}' is invalid.".format(cidr_block)
+        )
+
+
+# accept exception
+class OperationNotPermitted2(EC2ClientError):
+    def __init__(self, client_region, pcx_id, acceptor_region):
+        super(OperationNotPermitted2, self).__init__(
+            "OperationNotPermitted",
+            "Incorrect region ({0}) specified for this request."
+            "VPC peering connection {1} must be accepted in region {2}".format(client_region, pcx_id, acceptor_region)
+        )
+
+
+# reject exception
+class OperationNotPermitted3(EC2ClientError):
+    def __init__(self, client_region, pcx_id, acceptor_region):
+        super(OperationNotPermitted3, self).__init__(
+            "OperationNotPermitted",
+            "Incorrect region ({0}) specified for this request."
+            "VPC peering connection {1} must be accepted or rejected in region {2}".format(client_region,
+                                                                                           pcx_id,
+                                                                                           acceptor_region)
         )

@@ -950,6 +950,33 @@ def test_bad_scan_filter():
 
 
 @mock_dynamodb2
+def test_create_table_pay_per_request():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        BillingMode="PAY_PER_REQUEST"
+    )
+
+
+@mock_dynamodb2
+def test_create_table_error_pay_per_request_with_provisioned_param():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    try:
+        client.create_table(
+            TableName='test1',
+            AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+            KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+            ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123},
+            BillingMode="PAY_PER_REQUEST"
+        )
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('ValidationException')
+
+
+@mock_dynamodb2
 def test_duplicate_create():
     client = boto3.client('dynamodb', region_name='us-east-1')
 
@@ -1504,6 +1531,7 @@ def test_dynamodb_streams_2():
     }
     assert 'LatestStreamLabel' in resp['TableDescription']
     assert 'LatestStreamArn' in resp['TableDescription']
+
     
 @mock_dynamodb2
 def test_condition_expressions():
@@ -1612,3 +1640,112 @@ def test_condition_expressions():
                 ':match': {'S': 'match2'}
             }
         )
+
+
+@mock_dynamodb2
+def test_query_gsi_with_range_key():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_hash_key', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_range_key', 'AttributeType': 'S'}
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        GlobalSecondaryIndexes=[
+            {
+                'IndexName': 'test_gsi',
+                'KeySchema': [
+                    {
+                        'AttributeName': 'gsi_hash_key',
+                        'KeyType': 'HASH'
+                    },
+                    {
+                        'AttributeName': 'gsi_range_key',
+                        'KeyType': 'RANGE'
+                    },
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 1,
+                    'WriteCapacityUnits': 1
+                }
+            },
+        ]
+    )
+
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': 'test1'},
+            'gsi_hash_key': {'S': 'key1'},
+            'gsi_range_key': {'S': 'range1'},
+        }
+    )
+    dynamodb.put_item(
+        TableName='test',
+        Item={
+            'id': {'S': 'test2'},
+            'gsi_hash_key': {'S': 'key1'},
+        }
+    )
+
+    res = dynamodb.query(TableName='test', IndexName='test_gsi',
+                         KeyConditionExpression='gsi_hash_key = :gsi_hash_key AND gsi_range_key = :gsi_range_key',
+                         ExpressionAttributeValues={
+                             ':gsi_hash_key': {'S': 'key1'},
+                             ':gsi_range_key': {'S': 'range1'}
+                         })
+    res.should.have.key("Count").equal(1)
+    res.should.have.key("Items")
+    res['Items'][0].should.equal({
+        'id': {'S': 'test1'},
+        'gsi_hash_key': {'S': 'key1'},
+        'gsi_range_key': {'S': 'range1'},
+    })
+
+
+@mock_dynamodb2
+def test_scan_by_non_exists_index():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    dynamodb.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'id', 'AttributeType': 'S'},
+            {'AttributeName': 'gsi_col', 'AttributeType': 'S'}
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        GlobalSecondaryIndexes=[
+            {
+                'IndexName': 'test_gsi',
+                'KeySchema': [
+                    {
+                        'AttributeName': 'gsi_col',
+                        'KeyType': 'HASH'
+                    },
+                ],
+                'Projection': {
+                    'ProjectionType': 'ALL',
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 1,
+                    'WriteCapacityUnits': 1
+                }
+            },
+        ]
+    )
+
+    with assert_raises(ClientError) as ex:
+        dynamodb.scan(TableName='test', IndexName='non_exists_index')
+
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal(
+        'The table does not have the specified index: non_exists_index'
+    )

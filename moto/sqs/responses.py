@@ -420,7 +420,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
 
@@ -429,7 +429,7 @@ GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
         <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </GetQueueUrlResponse>"""
 
@@ -440,13 +440,13 @@ LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </ListQueuesResponse>"""
 
 DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </DeleteQueueResponse>"""
 
@@ -460,13 +460,13 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
     {% endfor %}
   </GetQueueAttributesResult>
   <ResponseMetadata>
-    <RequestId>{{ requestid }}</RequestId>
+    <RequestId></RequestId>
   </ResponseMetadata>
 </GetQueueAttributesResponse>"""
 
 SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </SetQueueAttributesResponse>"""
 
@@ -483,7 +483,7 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
         </MessageId>
     </SendMessageResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </SendMessageResponse>"""
 
@@ -543,7 +543,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
     {% endfor %}
   </ReceiveMessageResult>
   <ResponseMetadata>
-    <RequestId>{{ requestid }}</RequestId>
+    <RequestId></RequestId>
   </ResponseMetadata>
 </ReceiveMessageResponse>"""
 
@@ -561,13 +561,13 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
     {% endfor %}
 </SendMessageBatchResult>
 <ResponseMetadata>
-    <RequestId>{{ requestid }}</RequestId>
+    <RequestId></RequestId>
 </ResponseMetadata>
 </SendMessageBatchResponse>"""
 
 DELETE_MESSAGE_RESPONSE = """<DeleteMessageResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </DeleteMessageResponse>"""
 
@@ -580,13 +580,13 @@ DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
         {% endfor %}
     </DeleteMessageBatchResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </DeleteMessageBatchResponse>"""
 
 CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </ChangeMessageVisibilityResponse>"""
 
@@ -613,7 +613,7 @@ CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE = """<ChangeMessageVisibilityBatchRespo
 
 PURGE_QUEUE_RESPONSE = """<PurgeQueueResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </PurgeQueueResponse>"""
 
