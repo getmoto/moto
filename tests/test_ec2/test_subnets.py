@@ -154,7 +154,7 @@ def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
     vpc = list(ec2.vpcs.all())[0]
 
     subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-1a')
+        VpcId=vpc.id, CidrBlock='172.31.112.0/20', AvailabilityZone='us-west-1a')
 
     # 'map_public_ip_on_launch' is set when calling 'DescribeSubnets' action
     subnet.reload()
@@ -348,6 +348,7 @@ def test_create_subnet_response_fields():
     subnet.should.have.key('Ipv6CidrBlockAssociationSet').which.should.equal([])
 
 
+@mock_ec2
 def test_describe_subnet_response_fields():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
     client = boto3.client('ec2', region_name='us-west-1')
@@ -396,6 +397,7 @@ def test_create_subnet_with_invalid_availability_zone():
         "operation: Value ({}) for parameter availabilityZone is invalid. Subnets can currently only be created in the following availability zones: ".format(subnet_availability_zone))
 
 
+@mock_ec2
 def test_create_subnet_with_invalid_cidr_range():
     ec2 = boto3.resource('ec2', region_name='us-west-1')
 
