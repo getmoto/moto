@@ -12,8 +12,9 @@ except ImportError:
     # py3
     import urllib.request as urllib
     from urllib.error import URLError
+    import socket
 
-    EXCEPTIONS = (URLError, ConnectionResetError)
+    EXCEPTIONS = (URLError, socket.timeout, ConnectionResetError)
 
 
 start_ts = time.time()

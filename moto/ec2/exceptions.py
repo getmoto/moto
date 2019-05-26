@@ -430,6 +430,15 @@ class OperationNotPermitted(EC2ClientError):
         )
 
 
+class NetworkAclEntryAlreadyExistsError(EC2ClientError):
+
+    def __init__(self, rule_number):
+        super(NetworkAclEntryAlreadyExistsError, self).__init__(
+            "NetworkAclEntryAlreadyExists",
+            "The network acl entry identified by {} already exists.".format(rule_number)
+        )
+
+
 class InvalidSubnetRangeError(EC2ClientError):
 
     def __init__(self, cidr_block):
