@@ -437,6 +437,7 @@ class InvalidAvailabilityZoneError(EC2ClientError):
             "InvalidParameterValue",
             "Value ({0}) for parameter availabilityZone is invalid. "
             "Subnets can currently only be created in the following availability zones: {1}.".format(availability_zone_value, valid_availability_zones)
+        )
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
