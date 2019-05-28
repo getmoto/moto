@@ -430,6 +430,16 @@ class OperationNotPermitted(EC2ClientError):
         )
 
 
+class InvalidAvailabilityZoneError(EC2ClientError):
+
+    def __init__(self, availability_zone_value, valid_availability_zones):
+        super(InvalidAvailabilityZoneError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({0}) for parameter availabilityZone is invalid. "
+            "Subnets can currently only be created in the following availability zones: {1}.".format(availability_zone_value, valid_availability_zones)
+        )
+
+
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
 
     def __init__(self, rule_number):
