@@ -33,6 +33,11 @@ class KinesisResponse(BaseResponse):
         stream = self.kinesis_backend.describe_stream(stream_name)
         return json.dumps(stream.to_json())
 
+    def describe_stream_summary(self):
+        stream_name = self.parameters.get('StreamName')
+        stream = self.kinesis_backend.describe_stream_summary(stream_name)
+        return json.dumps(stream.to_json_summary())
+
     def list_streams(self):
         streams = self.kinesis_backend.list_streams()
         stream_names = [stream.stream_name for stream in streams]

@@ -501,7 +501,7 @@ def test_sec_group_rule_limit_vpc():
     ec2_conn = boto.connect_ec2()
     vpc_conn = boto.connect_vpc()
 
-    vpc = vpc_conn.create_vpc('10.0.0.0/8')
+    vpc = vpc_conn.create_vpc('10.0.0.0/16')
 
     sg = ec2_conn.create_security_group('test', 'test', vpc_id=vpc.id)
     other_sg = ec2_conn.create_security_group('test_2', 'test', vpc_id=vpc.id)

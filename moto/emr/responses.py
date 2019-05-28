@@ -267,6 +267,18 @@ class ElasticMapReduceResponse(BaseResponse):
             else:
                 kwargs['running_ami_version'] = '1.0.0'
 
+        custom_ami_id = self._get_param('CustomAmiId')
+        if custom_ami_id:
+            kwargs['custom_ami_id'] = custom_ami_id
+            if release_label and release_label < 'emr-5.7.0':
+                message = 'Custom AMI is not allowed'
+                raise EmrError(error_type='ValidationException',
+                            message=message, template='error_json')
+            elif ami_version:
+                message = 'Custom AMI is not supported in this version of EMR'
+                raise EmrError(error_type='ValidationException',
+                            message=message, template='error_json')
+
         cluster = self.backend.run_job_flow(**kwargs)
 
         applications = self._get_list_prefix('Applications.member')
@@ -375,6 +387,9 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
         </member>
         {% endfor %}
       </Configurations>
+      {% if cluster.custom_ami_id is not none %}
+      <CustomAmiId>{{ cluster.custom_ami_id }}</CustomAmiId>
+      {% endif %}
       <Ec2InstanceAttributes>
         <AdditionalMasterSecurityGroups>
         {% for each in cluster.additional_master_security_groups %}

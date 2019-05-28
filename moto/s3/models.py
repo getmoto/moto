@@ -17,8 +17,11 @@ import six
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, \
-    EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, InvalidStorageClass, DuplicateTagKeys
+from .exceptions import (
+    BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, InvalidRequest,
+    EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, InvalidStorageClass,
+    InvalidTargetBucketForLogging, DuplicateTagKeys, CrossLocationLoggingProhibitted
+)
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -87,10 +90,13 @@ class FakeKey(BaseModel):
             new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
         self._value_buffer.write(new_value)
 
-    def copy(self, new_name=None):
+    def copy(self, new_name=None, new_is_versioned=None):
         r = copy.deepcopy(self)
         if new_name is not None:
             r.name = new_name
+        if new_is_versioned is not None:
+            r._is_versioned = new_is_versioned
+            r.refresh_version()
         return r
 
     def set_metadata(self, metadata, replace=False):
@@ -460,6 +466,7 @@ class FakeBucket(BaseModel):
         self.cors = []
         self.logging = {}
         self.notification_configuration = None
+        self.accelerate_configuration = None
 
     @property
     def location(self):
@@ -554,7 +561,6 @@ class FakeBucket(BaseModel):
         self.rules = []
 
     def set_cors(self, rules):
-        from moto.s3.exceptions import InvalidRequest, MalformedXML
         self.cors = []
 
         if len(rules) > 100:
@@ -604,7 +610,6 @@ class FakeBucket(BaseModel):
             self.logging = {}
             return
 
-        from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
         # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
         if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
             raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
@@ -651,6 +656,13 @@ class FakeBucket(BaseModel):
                 region = t.arn.split(":")[3]
                 if region != self.region_name:
                     raise InvalidNotificationDestination()
+
+    def set_accelerate_configuration(self, accelerate_config):
+        if self.accelerate_configuration is None and accelerate_config == 'Suspended':
+            # Cannot "suspend" a not active acceleration. Leaves it undefined
+            return
+
+        self.accelerate_configuration = accelerate_config
 
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
@@ -854,6 +866,15 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
 
+    def put_bucket_accelerate_configuration(self, bucket_name, accelerate_configuration):
+        if accelerate_configuration not in ['Enabled', 'Suspended']:
+            raise MalformedXML()
+
+        bucket = self.get_bucket(bucket_name)
+        if bucket.name.find('.') != -1:
+            raise InvalidRequest('PutBucketAccelerateConfiguration')
+        bucket.set_accelerate_configuration(accelerate_configuration)
+
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
         new_multipart = FakeMultipart(key_name, metadata)
@@ -891,12 +912,11 @@ class S3Backend(BaseBackend):
         return multipart.set_part(part_id, value)
 
     def copy_part(self, dest_bucket_name, multipart_id, part_id,
-                  src_bucket_name, src_key_name, start_byte, end_byte):
-        src_key_name = clean_key_name(src_key_name)
-        src_bucket = self.get_bucket(src_bucket_name)
+                  src_bucket_name, src_key_name, src_version_id, start_byte, end_byte):
         dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
-        src_value = src_bucket.keys[src_key_name].value
+
+        src_value = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id).value
         if start_byte is not None:
             src_value = src_value[start_byte:end_byte + 1]
         return multipart.set_part(part_id, src_value)
@@ -973,17 +993,15 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         key = self.get_key(src_bucket_name, src_key_name,
                            version_id=src_version_id)
-        if dest_key_name != src_key_name:
-            key = key.copy(dest_key_name)
-        dest_bucket.keys[dest_key_name] = key
 
-        # By this point, the destination key must exist, or KeyError
-        if dest_bucket.is_versioned:
-            dest_bucket.keys[dest_key_name].refresh_version()
+        new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
+
         if storage is not None:
-            key.set_storage_class(storage)
+            new_key.set_storage_class(storage)
         if acl is not None:
-            key.set_acl(acl)
+            new_key.set_acl(acl)
+
+        dest_bucket.keys[dest_key_name] = new_key
 
     def set_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)
