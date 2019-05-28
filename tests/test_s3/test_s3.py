@@ -1529,6 +1529,28 @@ def test_boto3_copy_object_with_versioning():
     # Version should be different to previous version
     obj2_version_new.should_not.equal(obj2_version)
 
+    client.copy_object(CopySource={'Bucket': 'blah', 'Key': 'test2', 'VersionId': obj2_version}, Bucket='blah', Key='test3')
+    obj3_version_new = client.get_object(Bucket='blah', Key='test3')['VersionId']
+    obj3_version_new.should_not.equal(obj2_version_new)
+
+    # Copy file that doesn't exist
+    with assert_raises(ClientError) as e:
+        client.copy_object(CopySource={'Bucket': 'blah', 'Key': 'test4', 'VersionId': obj2_version}, Bucket='blah', Key='test5')
+    e.exception.response['Error']['Code'].should.equal('404')
+
+    response = client.create_multipart_upload(Bucket='blah', Key='test4')
+    upload_id = response['UploadId']
+    response = client.upload_part_copy(Bucket='blah', Key='test4', CopySource={'Bucket': 'blah', 'Key': 'test3', 'VersionId': obj3_version_new},
+                                       UploadId=upload_id, PartNumber=1)
+    etag = response["CopyPartResult"]["ETag"]
+    client.complete_multipart_upload(
+        Bucket='blah', Key='test4', UploadId=upload_id,
+        MultipartUpload={'Parts': [{'ETag': etag, 'PartNumber': 1}]})
+
+    response = client.get_object(Bucket='blah', Key='test4')
+    data = response["Body"].read()
+    data.should.equal(b'test2')
+
 
 @mock_s3
 def test_boto3_copy_object_from_unversioned_to_versioned_bucket():
@@ -2762,6 +2784,7 @@ def test_boto3_multiple_delete_markers():
     latest['Key'].should.equal('key-with-versions-and-unicode-ó')
     oldest['Key'].should.equal('key-with-versions-and-unicode-ó')
 
+
 @mock_s3
 def test_get_stream_gzipped():
     payload = b"this is some stuff here"
@@ -2820,3 +2843,80 @@ def test_boto3_bucket_name_too_short():
     with assert_raises(ClientError) as exc:
         s3.create_bucket(Bucket='x'*2)
     exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
+
+@mock_s3
+def test_accelerated_none_when_unspecified():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
+    resp.shouldnt.have.key('Status')
+
+@mock_s3
+def test_can_enable_bucket_acceleration():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    resp = s3.put_bucket_accelerate_configuration(
+        Bucket=bucket_name,
+        AccelerateConfiguration={'Status': 'Enabled'},
+    )
+    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
+    resp.should.have.key('Status')
+    resp['Status'].should.equal('Enabled')
+
+@mock_s3
+def test_can_suspend_bucket_acceleration():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    resp = s3.put_bucket_accelerate_configuration(
+        Bucket=bucket_name,
+        AccelerateConfiguration={'Status': 'Enabled'},
+    )
+    resp = s3.put_bucket_accelerate_configuration(
+        Bucket=bucket_name,
+        AccelerateConfiguration={'Status': 'Suspended'},
+    )
+    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
+    resp.should.have.key('Status')
+    resp['Status'].should.equal('Suspended')
+
+@mock_s3
+def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    resp = s3.put_bucket_accelerate_configuration(
+        Bucket=bucket_name,
+        AccelerateConfiguration={'Status': 'Suspended'},
+    )
+    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
+    resp.shouldnt.have.key('Status')
+
+@mock_s3
+def test_accelerate_configuration_status_validation():
+    bucket_name = 'some_bucket'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as exc:
+        s3.put_bucket_accelerate_configuration(
+            Bucket=bucket_name,
+            AccelerateConfiguration={'Status': 'bad_status'},
+        )
+    exc.exception.response['Error']['Code'].should.equal('MalformedXML')
+
+@mock_s3
+def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
+    bucket_name = 'some.bucket.with.dots'
+    s3 = boto3.client('s3')
+    s3.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as exc:
+        s3.put_bucket_accelerate_configuration(
+            Bucket=bucket_name,
+            AccelerateConfiguration={'Status': 'Enabled'},
+        )
+    exc.exception.response['Error']['Code'].should.equal('InvalidRequest')

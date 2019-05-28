@@ -1,9 +1,18 @@
 from __future__ import unicode_literals
 
+import base64
+import hashlib
 import fnmatch
 import random
 import re
 import six
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+import sshpubkeys.exceptions
+from sshpubkeys.keys import SSHKey
+
 
 EC2_RESOURCE_TO_PREFIX = {
     'customer-gateway': 'cgw',
@@ -453,23 +462,19 @@ def simple_aws_filter_to_re(filter_string):
 
 
 def random_key_pair():
-    def random_hex():
-        return chr(random.choice(list(range(48, 58)) + list(range(97, 102))))
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend())
+    private_key_material = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption())
+    public_key_fingerprint = rsa_public_key_fingerprint(private_key.public_key())
 
-    def random_fingerprint():
-        return ':'.join([random_hex() + random_hex() for i in range(20)])
-
-    def random_material():
-        return ''.join([
-            chr(random.choice(list(range(65, 91)) + list(range(48, 58)) +
-                              list(range(97, 102))))
-            for i in range(1000)
-        ])
-    material = "---- BEGIN RSA PRIVATE KEY ----" + random_material() + \
-        "-----END RSA PRIVATE KEY-----"
     return {
-        'fingerprint': random_fingerprint(),
-        'material': material
+        'fingerprint': public_key_fingerprint,
+        'material': private_key_material.decode('ascii')
     }
 
 
@@ -535,3 +540,28 @@ def generate_instance_identity_document(instance):
     }
 
     return document
+
+
+def rsa_public_key_parse(key_material):
+    try:
+        if not isinstance(key_material, six.binary_type):
+            key_material = key_material.encode("ascii")
+
+        decoded_key = base64.b64decode(key_material).decode("ascii")
+        public_key = SSHKey(decoded_key)
+    except (sshpubkeys.exceptions.InvalidKeyException, UnicodeDecodeError):
+        raise ValueError('bad key')
+
+    if not public_key.rsa:
+        raise ValueError('bad key')
+
+    return public_key.rsa
+
+
+def rsa_public_key_fingerprint(rsa_public_key):
+    key_data = rsa_public_key.public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo)
+    fingerprint_hex = hashlib.md5(key_data).hexdigest()
+    fingerprint = re.sub(r'([a-f0-9]{2})(?!$)', r'\1:', fingerprint_hex)
+    return fingerprint

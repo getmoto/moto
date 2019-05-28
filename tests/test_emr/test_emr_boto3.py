@@ -433,6 +433,47 @@ def test_run_job_flow_with_instance_groups():
 
 
 @mock_emr
+def test_run_job_flow_with_custom_ami():
+    client = boto3.client('emr', region_name='us-east-1')
+
+    with assert_raises(ClientError) as ex:
+        # CustomAmiId available in Amazon EMR 5.7.0 and later
+        args = deepcopy(run_job_flow_args)
+        args['CustomAmiId'] = 'MyEmrCustomId'
+        args['ReleaseLabel'] = 'emr-5.6.0'
+        client.run_job_flow(**args)
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal('Custom AMI is not allowed')
+
+    with assert_raises(ClientError) as ex:
+        args = deepcopy(run_job_flow_args)
+        args['CustomAmiId'] = 'MyEmrCustomId'
+        args['AmiVersion'] = '3.8.1'
+        client.run_job_flow(**args)
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal(
+        'Custom AMI is not supported in this version of EMR')
+
+    with assert_raises(ClientError) as ex:
+        # AMI version and release label exception  raises before CustomAmi exception
+        args = deepcopy(run_job_flow_args)
+        args['CustomAmiId'] = 'MyEmrCustomId'
+        args['ReleaseLabel'] = 'emr-5.6.0'
+        args['AmiVersion'] = '3.8.1'
+        client.run_job_flow(**args)
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.contain(
+        'Only one AMI version and release label may be specified.')
+
+    args = deepcopy(run_job_flow_args)
+    args['CustomAmiId'] = 'MyEmrCustomAmi'
+    args['ReleaseLabel'] = 'emr-5.7.0'
+    cluster_id = client.run_job_flow(**args)['JobFlowId']
+    resp = client.describe_cluster(ClusterId=cluster_id)
+    resp['Cluster']['CustomAmiId'].should.equal('MyEmrCustomAmi')
+
+
+@mock_emr
 def test_set_termination_protection():
     client = boto3.client('emr', region_name='us-east-1')
     args = deepcopy(run_job_flow_args)
