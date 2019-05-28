@@ -21,10 +21,12 @@ class SecretsManagerResponse(BaseResponse):
     def create_secret(self):
         name = self._get_param('Name')
         secret_string = self._get_param('SecretString')
+        secret_binary = self._get_param('SecretBinary')
         tags = self._get_param('Tags', if_none=[])
         return secretsmanager_backends[self.region].create_secret(
             name=name,
             secret_string=secret_string,
+            secret_binary=secret_binary,
             tags=tags
         )
 
