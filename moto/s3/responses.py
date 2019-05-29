@@ -816,6 +816,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if 'success_action_status' in form:
             status_code = form['success_action_status']
+        elif 'success_action_redirect' in form:
+            status_code = 303
         else:
             status_code = 204
 

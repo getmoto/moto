@@ -14,6 +14,7 @@ from io import BytesIO
 import mimetypes
 import zlib
 import pickle
+import uuid
 
 import json
 import boto
@@ -4428,3 +4429,34 @@ def test_s3_config_dict():
     assert not logging_bucket["supplementaryConfiguration"].get(
         "BucketTaggingConfiguration"
     )
+
+
+@mock_s3
+def test_creating_presigned_post():
+    bucket = 'presigned-test'
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket=bucket)
+    success_url = 'http://localhost/completed'
+    fdata = b'test data\n'
+    file_uid = uuid.uuid4()
+    conditions = [
+        {"Content-Type": 'text/plain'},
+        {"x-amz-server-side-encryption": "AES256"},
+        {'success_action_redirect': success_url},
+    ]
+    conditions.append(["content-length-range", 1, 30])
+    data = s3.generate_presigned_post(
+        Bucket=bucket,
+        Key='{file_uid}.txt'.format(file_uid=file_uid),
+        Fields={
+            'content-type': 'text/plain',
+            'success_action_redirect': success_url,
+            'x-amz-server-side-encryption': 'AES256'
+        },
+        Conditions=conditions,
+        ExpiresIn=1000,
+    )
+    resp = requests.post(data['url'], data=data['fields'], files={'file': fdata}, allow_redirects=False)
+    assert resp.headers['Location'] == url
+    assert resp.status_code == 303
+    assert s3.get_object(Bucket=bucket, Key='{file_uuid}.txt'.format(file_uid=file_uid))['Body'].read() == fdata
