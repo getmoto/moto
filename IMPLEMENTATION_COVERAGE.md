@@ -1581,9 +1581,9 @@
 - [ ] update_security_group_rule_descriptions_egress
 - [ ] update_security_group_rule_descriptions_ingress
 
-## ecr - 31% implemented
+## ecr - 36% implemented
 - [ ] batch_check_layer_availability
-- [ ] batch_delete_image
+- [X] batch_delete_image
 - [X] batch_get_image
 - [ ] complete_layer_upload
 - [X] create_repository

@@ -695,3 +695,308 @@ def test_batch_get_image_no_tags():
     client.batch_get_image.when.called_with(
         repositoryName='test_repository').should.throw(
             ParamValidationError, error_msg)
+
+
+@mock_ecr
+def test_batch_delete_image_by_tag():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+
+    tags = ['v1', 'v1.0', 'latest']
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag,
+        )
+
+    describe_response1 = client.describe_images(repositoryName='test_repository')
+    image_digest = describe_response1['imageDetails'][0]['imageDigest']
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageTag': 'latest'
+            },
+        ],
+    )
+
+    describe_response2 = client.describe_images(repositoryName='test_repository')
+
+    type(describe_response1['imageDetails'][0]['imageTags']).should.be(list)
+    len(describe_response1['imageDetails'][0]['imageTags']).should.be(3)
+
+    type(describe_response2['imageDetails'][0]['imageTags']).should.be(list)
+    len(describe_response2['imageDetails'][0]['imageTags']).should.be(2)
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(1)
+
+    batch_delete_response['imageIds'][0]['imageTag'].should.equal("latest")
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(0)
+
+
+@mock_ecr
+def test_batch_delete_image_with_nonexistent_tag():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+
+    tags = ['v1', 'v1.0', 'latest']
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag,
+        )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+    image_digest = describe_response['imageDetails'][0]['imageDigest']
+
+    missing_tag = "missing-tag"
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageTag': missing_tag
+            },
+        ],
+    )
+
+    type(describe_response['imageDetails'][0]['imageTags']).should.be(list)
+    len(describe_response['imageDetails'][0]['imageTags']).should.be(3)
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(0)
+
+    batch_delete_response['failures'][0]['imageId']['imageTag'].should.equal(missing_tag)
+    batch_delete_response['failures'][0]['failureCode'].should.equal("ImageNotFound")
+    batch_delete_response['failures'][0]['failureReason'].should.equal("Requested image not found")
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(1)
+
+
+@mock_ecr
+def test_batch_delete_image_by_digest():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+
+    tags = ['v1', 'v2', 'latest']
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+    image_digest = describe_response['imageDetails'][0]['imageDigest']
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageDigest': image_digest
+            },
+        ],
+    )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+
+    type(describe_response['imageDetails']).should.be(list)
+    len(describe_response['imageDetails']).should.be(0)
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(3)
+
+    batch_delete_response['imageIds'][0]['imageDigest'].should.equal(image_digest)
+    batch_delete_response['imageIds'][1]['imageDigest'].should.equal(image_digest)
+    batch_delete_response['imageIds'][2]['imageDigest'].should.equal(image_digest)
+
+    set([
+        batch_delete_response['imageIds'][0]['imageTag'],
+        batch_delete_response['imageIds'][1]['imageTag'],
+        batch_delete_response['imageIds'][2]['imageTag']]).should.equal(set(tags))
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(0)
+
+
+@mock_ecr
+def test_batch_delete_image_with_invalid_digest():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+
+    tags = ['v1', 'v2', 'latest']
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+    invalid_image_digest = 'sha256:invalid-digest'
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageDigest': invalid_image_digest
+            },
+        ],
+    )
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(0)
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(1)
+
+    batch_delete_response['failures'][0]['imageId']['imageDigest'].should.equal(invalid_image_digest)
+    batch_delete_response['failures'][0]['failureCode'].should.equal("InvalidImageDigest")
+    batch_delete_response['failures'][0]['failureReason'].should.equal("Invalid request parameters: image digest should satisfy the regex '[a-zA-Z0-9-_+.]+:[a-fA-F0-9]+'")
+
+
+@mock_ecr
+def test_batch_delete_image_with_missing_parameters():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+            },
+        ],
+    )
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(0)
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(1)
+
+    batch_delete_response['failures'][0]['failureCode'].should.equal("MissingDigestAndTag")
+    batch_delete_response['failures'][0]['failureReason'].should.equal("Invalid request parameters: both tag and digest cannot be null")
+
+
+@mock_ecr
+def test_batch_delete_image_with_matching_digest_and_tag():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+
+    tags = ['v1', 'v1.0', 'latest']
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+    image_digest = describe_response['imageDetails'][0]['imageDigest']
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageDigest': image_digest,
+                'imageTag': 'v1'
+            },
+        ],
+    )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+
+    type(describe_response['imageDetails']).should.be(list)
+    len(describe_response['imageDetails']).should.be(0)
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(3)
+
+    batch_delete_response['imageIds'][0]['imageDigest'].should.equal(image_digest)
+    batch_delete_response['imageIds'][1]['imageDigest'].should.equal(image_digest)
+    batch_delete_response['imageIds'][2]['imageDigest'].should.equal(image_digest)
+
+    set([
+        batch_delete_response['imageIds'][0]['imageTag'],
+        batch_delete_response['imageIds'][1]['imageTag'],
+        batch_delete_response['imageIds'][2]['imageTag']]).should.equal(set(tags))
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(0)
+
+
+@mock_ecr
+def test_batch_delete_image_with_mismatched_digest_and_tag():
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    manifest = _create_image_manifest()
+
+    tags = ['v1', 'latest']
+    for tag in tags:
+        put_response = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(manifest),
+            imageTag=tag
+        )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+    image_digest = describe_response['imageDetails'][0]['imageDigest']
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageDigest': image_digest,
+                'imageTag': 'v2'
+            },
+        ],
+    )
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(0)
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(1)
+
+    batch_delete_response['failures'][0]['imageId']['imageDigest'].should.equal(image_digest)
+    batch_delete_response['failures'][0]['imageId']['imageTag'].should.equal("v2")
+    batch_delete_response['failures'][0]['failureCode'].should.equal("ImageNotFound")
+    batch_delete_response['failures'][0]['failureReason'].should.equal("Requested image not found")
