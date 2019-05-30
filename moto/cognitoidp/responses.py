@@ -276,6 +276,12 @@ class CognitoIdpResponse(BaseResponse):
             response["PaginationToken"] = str(token)
         return json.dumps(response)
 
+    def admin_confirm_sign_up(self):
+        user_pool_id = self._get_param("UserPoolId")
+        username = self._get_param("Username")
+        cognitoidp_backends[self.region].admin_confirm_sign_up(user_pool_id, username)
+        return ""
+
     def admin_disable_user(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")

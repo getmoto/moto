@@ -555,6 +555,10 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.users.values()
 
+    def admin_confirm_sign_up(self, user_pool_id, username):
+        user = self.admin_get_user(user_pool_id, username)
+        user.status = UserStatus["CONFIRMED"]
+
     def admin_disable_user(self, user_pool_id, username):
         user = self.admin_get_user(user_pool_id, username)
         user.enabled = False

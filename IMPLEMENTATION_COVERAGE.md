@@ -837,7 +837,7 @@
 ## cognito-idp - 34% implemented
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
-- [ ] admin_confirm_sign_up
+- [X] admin_confirm_sign_up
 - [X] admin_create_user
 - [X] admin_delete_user
 - [ ] admin_delete_user_attributes

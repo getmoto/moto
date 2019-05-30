@@ -960,6 +960,21 @@ def test_list_users_when_limit_more_than_total_items():
 
 
 @mock_cognitoidp
+def test_admin_confirm_sign_up():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    result = conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
+    list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
+
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
+        ["UserStatus"].should.equal("CONFIRMED")
+
+
+@mock_cognitoidp
 def test_admin_disable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
