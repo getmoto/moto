@@ -70,24 +70,31 @@ class SecretsManagerBackend(BaseBackend):
 
         secret_version = secret['versions'][version_id]
 
-        response = json.dumps({
+        response_data = {
             "ARN": secret_arn(self.region, secret['secret_id']),
             "Name": secret['name'],
             "VersionId": secret_version['version_id'],
-            "SecretString": secret_version['secret_string'],
             "VersionStages": secret_version['version_stages'],
             "CreatedDate": secret_version['createdate'],
-        })
+        }
+
+        if 'secret_string' in secret_version:
+            response_data["SecretString"] = secret_version['secret_string']
+
+        if 'secret_binary' in secret_version:
+            response_data["SecretBinary"] = secret_version['secret_binary']
+
+        response = json.dumps(response_data)
 
         return response
 
-    def create_secret(self, name, secret_string, tags, **kwargs):
+    def create_secret(self, name, secret_string=None, secret_binary=None, tags=[], **kwargs):
 
         # error if secret exists
         if name in self.secrets.keys():
             raise ResourceExistsException('A resource with the ID you requested already exists.')
 
-        version_id = self._add_secret(name, secret_string, tags=tags)
+        version_id = self._add_secret(name, secret_string=secret_string, secret_binary=secret_binary, tags=tags)
 
         response = json.dumps({
             "ARN": secret_arn(self.region, name),
@@ -97,7 +104,7 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
-    def _add_secret(self, secret_id, secret_string, tags=[], version_id=None, version_stages=None):
+    def _add_secret(self, secret_id, secret_string=None, secret_binary=None, tags=[], version_id=None, version_stages=None):
 
         if version_stages is None:
             version_stages = ['AWSCURRENT']
@@ -106,11 +113,16 @@ class SecretsManagerBackend(BaseBackend):
             version_id = str(uuid.uuid4())
 
         secret_version = {
-            'secret_string': secret_string,
             'createdate': int(time.time()),
             'version_id': version_id,
             'version_stages': version_stages,
         }
+
+        if secret_string is not None:
+            secret_version['secret_string'] = secret_string
+
+        if secret_binary is not None:
+            secret_version['secret_binary'] = secret_binary
 
         if secret_id in self.secrets:
             # remove all old AWSPREVIOUS stages

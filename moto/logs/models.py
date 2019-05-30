@@ -137,6 +137,7 @@ class LogGroup:
         self.creationTime = unix_time_millis()
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
+        self.retentionInDays = None  # AWS defaults to Never Expire for log group retention
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -201,14 +202,20 @@ class LogGroup:
         return events_page, next_token, searched_streams
 
     def to_describe_dict(self):
-        return {
+        log_group = {
             "arn": self.arn,
             "creationTime": self.creationTime,
             "logGroupName": self.name,
             "metricFilterCount": 0,
-            "retentionInDays": 30,
             "storedBytes": sum(s.storedBytes for s in self.streams.values()),
         }
+        # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
+        if self.retentionInDays:
+            log_group["retentionInDays"] = self.retentionInDays
+        return log_group
+
+    def set_retention_policy(self, retention_in_days):
+        self.retentionInDays = retention_in_days
 
 
 class LogsBackend(BaseBackend):
@@ -288,6 +295,18 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
+
+    def put_retention_policy(self, log_group_name, retention_in_days):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        return log_group.set_retention_policy(retention_in_days)
+
+    def delete_retention_policy(self, log_group_name):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        return log_group.set_retention_policy(None)
 
 
 logs_backends = {region.name: LogsBackend(region.name) for region in boto.logs.regions()}

@@ -9,6 +9,7 @@ import unittest
 import pytz
 from datetime import datetime
 from nose.tools import assert_raises
+from six import b
 
 DEFAULT_SECRET_NAME = 'test-secret'
 
@@ -21,6 +22,15 @@ def test_get_secret_value():
                                        SecretString="foosecret")
     result = conn.get_secret_value(SecretId='java-util-test-password')
     assert result['SecretString'] == 'foosecret'
+
+@mock_secretsmanager
+def test_get_secret_value_binary():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    create_secret = conn.create_secret(Name='java-util-test-password',
+                                       SecretBinary=b("foosecret"))
+    result = conn.get_secret_value(SecretId='java-util-test-password')
+    assert result['SecretBinary'] == b('foosecret')
 
 @mock_secretsmanager
 def test_get_secret_that_does_not_exist():
