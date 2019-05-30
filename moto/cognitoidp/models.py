@@ -8,7 +8,7 @@ import os
 import time
 import uuid
 
-import boto.cognito.identity
+import boto3
 from jose import jws
 
 from moto.compat import OrderedDict
@@ -697,10 +697,11 @@ class CognitoIdpBackend(BaseBackend):
         user.update_attributes(attributes)
 
 
-cognitoidp_backends = {}
-for region in boto.cognito.identity.regions():
-    cognitoidp_backends[region.name] = CognitoIdpBackend(region.name)
-
+available_regions = (
+    boto3.session.Session().get_available_regions("cognito-idp")
+)
+cognitoidp_backends = {region: CognitoIdpBackend(region)
+                           for region in available_regions}
 
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
