@@ -705,7 +705,8 @@ available_regions = (
     boto3.session.Session().get_available_regions("cognito-idp")
 )
 cognitoidp_backends = {region: CognitoIdpBackend(region)
-                           for region in available_regions}
+                       for region in available_regions}
+
 
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
