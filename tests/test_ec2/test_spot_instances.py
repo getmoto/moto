@@ -17,7 +17,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 @mock_ec2
 def test_request_spot_instances():
     conn = boto3.client('ec2', 'us-east-1')
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']

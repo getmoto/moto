@@ -8,6 +8,7 @@ import re
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
+from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
 
@@ -146,7 +147,7 @@ class InlinePolicy(Policy):
 
 class Role(BaseModel):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path):
+    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -156,6 +157,7 @@ class Role(BaseModel):
         self.create_date = datetime.utcnow()
         self.tags = {}
         self.description = ""
+        self.permissions_boundary = permissions_boundary
 
     @property
     def created_iso_8601(self):
@@ -169,6 +171,7 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
+            permissions_boundary=properties.get('PermissionsBoundary', '')
         )
 
         policies = properties.get('Policies', [])
@@ -496,6 +499,8 @@ class IAMBackend(BaseBackend):
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
+        self.policy_arn_regex = re.compile(
+            r'^arn:aws:iam::[0-9]*:policy/.*$')
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -613,9 +618,12 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path):
+    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path)
+        if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
+            raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
+
+        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
         self.roles[role_id] = role
         return role
 

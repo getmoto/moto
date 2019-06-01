@@ -29,6 +29,14 @@ class InvalidParameterException(SecretsManagerClientError):
             message)
 
 
+class ResourceExistsException(SecretsManagerClientError):
+    def __init__(self, message):
+        super(ResourceExistsException, self).__init__(
+            'ResourceExistsException',
+            message
+        )
+
+
 class InvalidRequestException(SecretsManagerClientError):
     def __init__(self, message):
         super(InvalidRequestException, self).__init__(

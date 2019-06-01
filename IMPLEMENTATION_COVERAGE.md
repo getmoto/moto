@@ -470,7 +470,7 @@
 - [ ] upgrade_applied_schema
 - [ ] upgrade_published_schema
 
-## cloudformation - 56% implemented
+## cloudformation - 65% implemented
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
@@ -481,19 +481,24 @@
 - [X] delete_stack
 - [X] delete_stack_instances
 - [X] delete_stack_set
+- [ ] deploy
 - [ ] describe_account_limits
 - [X] describe_change_set
-- [ ] describe_stack_events
+- [ ] describe_stack_drift_detection_status
+- [X] describe_stack_events
 - [X] describe_stack_instance
-- [ ] describe_stack_resource
-- [ ] describe_stack_resources
+- [X] describe_stack_resource
+- [ ] describe_stack_resource_drifts
+- [X] describe_stack_resources
 - [X] describe_stack_set
 - [X] describe_stack_set_operation
 - [X] describe_stacks
+- [ ] detect_stack_drift
+- [ ] detect_stack_resource_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
 - [ ] get_stack_policy
-- [ ] get_template
+- [X] get_template
 - [ ] get_template_summary
 - [X] list_change_sets
 - [X] list_exports
@@ -504,6 +509,7 @@
 - [X] list_stack_set_operations
 - [X] list_stack_sets
 - [X] list_stacks
+- [ ] package
 - [ ] set_stack_policy
 - [ ] signal_resource
 - [X] stop_stack_set_operation
@@ -511,7 +517,8 @@
 - [X] update_stack_instances
 - [X] update_stack_set
 - [ ] update_termination_protection
-- [ ] validate_template
+- [X] validate_template
+- [ ] wait
 
 ## cloudfront - 0% implemented
 - [ ] create_cloud_front_origin_access_identity
@@ -852,7 +859,7 @@
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status
-- [ ] admin_update_user_attributes
+- [X] admin_update_user_attributes
 - [ ] admin_user_global_sign_out
 - [ ] associate_software_token
 - [X] change_password
@@ -1466,7 +1473,7 @@
 - [X] describe_spot_instance_requests
 - [ ] describe_spot_price_history
 - [ ] describe_stale_security_groups
-- [ ] describe_subnets
+- [X] describe_subnets
 - [X] describe_tags
 - [ ] describe_volume_attribute
 - [ ] describe_volume_status
@@ -1574,9 +1581,9 @@
 - [ ] update_security_group_rule_descriptions_egress
 - [ ] update_security_group_rule_descriptions_ingress
 
-## ecr - 31% implemented
+## ecr - 36% implemented
 - [ ] batch_check_layer_availability
-- [ ] batch_delete_image
+- [X] batch_delete_image
 - [X] batch_get_image
 - [ ] complete_layer_upload
 - [X] create_repository
@@ -2382,7 +2389,7 @@
 - [ ] unsubscribe_from_event
 - [ ] update_assessment_target
 
-## iot - 32% implemented
+## iot - 33% implemented
 - [ ] accept_certificate_transfer
 - [X] add_thing_to_thing_group
 - [ ] associate_targets_with_job
@@ -2480,7 +2487,7 @@
 - [ ] list_topic_rules
 - [ ] list_v2_logging_levels
 - [ ] register_ca_certificate
-- [ ] register_certificate
+- [X] register_certificate
 - [ ] register_thing
 - [ ] reject_certificate_transfer
 - [X] remove_thing_from_thing_group
@@ -2519,14 +2526,14 @@
 - [ ] start_next_pending_job_execution
 - [ ] update_job_execution
 
-## kinesis - 56% implemented
+## kinesis - 61% implemented
 - [X] add_tags_to_stream
 - [X] create_stream
 - [ ] decrease_stream_retention_period
 - [X] delete_stream
 - [ ] describe_limits
 - [X] describe_stream
-- [ ] describe_stream_summary
+- [X] describe_stream_summary
 - [ ] disable_enhanced_monitoring
 - [ ] enable_enhanced_monitoring
 - [X] get_records
@@ -3098,14 +3105,14 @@
 - [ ] update_server
 - [ ] update_server_engine_attributes
 
-## organizations - 30% implemented
+## organizations - 47% implemented
 - [ ] accept_handshake
-- [ ] attach_policy
+- [X] attach_policy
 - [ ] cancel_handshake
 - [X] create_account
 - [X] create_organization
 - [X] create_organizational_unit
-- [ ] create_policy
+- [X] create_policy
 - [ ] decline_handshake
 - [ ] delete_organization
 - [ ] delete_organizational_unit
@@ -3115,7 +3122,7 @@
 - [ ] describe_handshake
 - [X] describe_organization
 - [X] describe_organizational_unit
-- [ ] describe_policy
+- [X] describe_policy
 - [ ] detach_policy
 - [ ] disable_aws_service_access
 - [ ] disable_policy_type
@@ -3133,10 +3140,10 @@
 - [ ] list_handshakes_for_organization
 - [X] list_organizational_units_for_parent
 - [X] list_parents
-- [ ] list_policies
-- [ ] list_policies_for_target
+- [X] list_policies
+- [X] list_policies_for_target
 - [X] list_roots
-- [ ] list_targets_for_policy
+- [X] list_targets_for_policy
 - [X] move_account
 - [ ] remove_account_from_organization
 - [ ] update_organizational_unit
@@ -3415,19 +3422,19 @@
 - [ ] start_stream_processor
 - [ ] stop_stream_processor
 
-## resource-groups - 0% implemented
-- [ ] create_group
-- [ ] delete_group
-- [ ] get_group
-- [ ] get_group_query
+## resource-groups - 62% implemented
+- [X] create_group
+- [X] delete_group
+- [X] get_group
+- [X] get_group_query
 - [ ] get_tags
 - [ ] list_group_resources
-- [ ] list_groups
+- [X] list_groups
 - [ ] search_resources
 - [ ] tag
 - [ ] untag
-- [ ] update_group
-- [ ] update_group_query
+- [X] update_group
+- [X] update_group_query
 
 ## resourcegroupstaggingapi - 60% implemented
 - [X] get_resources
@@ -3540,7 +3547,7 @@
 - [ ] delete_object
 - [ ] delete_object_tagging
 - [ ] delete_objects
-- [ ] get_bucket_accelerate_configuration
+- [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [ ] get_bucket_cors
@@ -3574,7 +3581,7 @@
 - [ ] list_objects
 - [ ] list_objects_v2
 - [ ] list_parts
-- [ ] put_bucket_accelerate_configuration
+- [X] put_bucket_accelerate_configuration
 - [ ] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
@@ -3658,10 +3665,10 @@
 - [X] describe_secret
 - [X] get_random_password
 - [X] get_secret_value
-- [ ] list_secret_version_ids
-- [x] list_secrets
-- [ ] put_secret_value
-- [ ] restore_secret
+- [X] list_secret_version_ids
+- [X] list_secrets
+- [X] put_secret_value
+- [X] restore_secret
 - [X] rotate_secret
 - [ ] tag_resource
 - [ ] untag_resource

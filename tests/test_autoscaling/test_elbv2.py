@@ -106,7 +106,7 @@ def test_detach_all_target_groups():
         MaxSize=INSTANCE_COUNT,
         DesiredCapacity=INSTANCE_COUNT,
         TargetGroupARNs=[target_group_arn],
-        VPCZoneIdentifier=mocked_networking['vpc'])
+        VPCZoneIdentifier=mocked_networking['subnet1'])
 
     response = client.describe_load_balancer_target_groups(
         AutoScalingGroupName='test_asg')

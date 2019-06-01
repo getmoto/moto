@@ -123,3 +123,14 @@ class LogsResponse(BaseResponse):
             "nextToken": next_token,
             "searchedLogStreams": searched_streams
         })
+
+    def put_retention_policy(self):
+        log_group_name = self._get_param('logGroupName')
+        retention_in_days = self._get_param('retentionInDays')
+        self.logs_backend.put_retention_policy(log_group_name, retention_in_days)
+        return ''
+
+    def delete_retention_policy(self):
+        log_group_name = self._get_param('logGroupName')
+        self.logs_backend.delete_retention_policy(log_group_name)
+        return ''

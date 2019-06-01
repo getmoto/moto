@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import random
 from moto.core.responses import BaseResponse
+from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring
 
 
@@ -16,6 +17,7 @@ class Subnets(BaseResponse):
             vpc_id,
             cidr_block,
             availability_zone,
+            context=self,
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
@@ -35,9 +37,14 @@ class Subnets(BaseResponse):
 
     def modify_subnet_attribute(self):
         subnet_id = self._get_param('SubnetId')
-        map_public_ip = self._get_param('MapPublicIpOnLaunch.Value')
-        self.ec2_backend.modify_subnet_attribute(subnet_id, map_public_ip)
-        return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
+
+        for attribute in ('MapPublicIpOnLaunch', 'AssignIpv6AddressOnCreation'):
+            if self.querystring.get('%s.Value' % attribute):
+                attr_name = camelcase_to_underscores(attribute)
+                attr_value = self.querystring.get('%s.Value' % attribute)[0]
+                self.ec2_backend.modify_subnet_attribute(
+                    subnet_id, attr_name, attr_value)
+                return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
 
 
 CREATE_SUBNET_RESPONSE = """
@@ -49,17 +56,14 @@ CREATE_SUBNET_RESPONSE = """
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
     <availableIpAddressCount>251</availableIpAddressCount>
-    <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
-    <tagSet>
-      {% for tag in subnet.get_tags() %}
-        <item>
-          <resourceId>{{ tag.resource_id }}</resourceId>
-          <resourceType>{{ tag.resource_type }}</resourceType>
-          <key>{{ tag.key }}</key>
-          <value>{{ tag.value }}</value>
-        </item>
-      {% endfor %}
-    </tagSet>
+    <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
+    <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
+    <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
+    <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
+    <ownerId>{{ subnet.owner_id }}</ownerId>
+    <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
+    <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
+    <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
   </subnet>
 </CreateSubnetResponse>"""
 
@@ -80,19 +84,26 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
         <availableIpAddressCount>251</availableIpAddressCount>
-        <availabilityZone>{{ subnet.availability_zone }}</availabilityZone>
+        <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
+        <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
         <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
-        <tagSet>
-          {% for tag in subnet.get_tags() %}
-            <item>
-              <resourceId>{{ tag.resource_id }}</resourceId>
-              <resourceType>{{ tag.resource_type }}</resourceType>
-              <key>{{ tag.key }}</key>
-              <value>{{ tag.value }}</value>
-            </item>
-          {% endfor %}
-        </tagSet>
+        <ownerId>{{ subnet.owner_id }}</ownerId>
+        <assignIpv6AddressOnCreation>{{ subnet.assign_ipv6_address_on_creation }}</assignIpv6AddressOnCreation>
+        <ipv6CidrBlockAssociationSet>{{ subnet.ipv6_cidr_block_associations }}</ipv6CidrBlockAssociationSet>
+        <subnetArn>arn:aws:ec2:{{ subnet._availability_zone.name[0:-1] }}:{{ subnet.owner_id }}:subnet/{{ subnet.id }}</subnetArn>
+        {% if subnet.get_tags() %}
+          <tagSet>
+            {% for tag in subnet.get_tags() %}
+              <item>
+                <resourceId>{{ tag.resource_id }}</resourceId>
+                <resourceType>{{ tag.resource_type }}</resourceType>
+                <key>{{ tag.key }}</key>
+                <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
+        {% endif %}
       </item>
     {% endfor %}
   </subnetSet>

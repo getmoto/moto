@@ -4,12 +4,15 @@ import boto3
 
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
-import sure  # noqa
 import string
+import unittest
 import pytz
 from datetime import datetime
-import unittest
 from nose.tools import assert_raises
+from six import b
+
+DEFAULT_SECRET_NAME = 'test-secret'
+
 
 @mock_secretsmanager
 def test_get_secret_value():
@@ -19,6 +22,15 @@ def test_get_secret_value():
                                        SecretString="foosecret")
     result = conn.get_secret_value(SecretId='java-util-test-password')
     assert result['SecretString'] == 'foosecret'
+
+@mock_secretsmanager
+def test_get_secret_value_binary():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    create_secret = conn.create_secret(Name='java-util-test-password',
+                                       SecretBinary=b("foosecret"))
+    result = conn.get_secret_value(SecretId='java-util-test-password')
+    assert result['SecretBinary'] == b('foosecret')
 
 @mock_secretsmanager
 def test_get_secret_that_does_not_exist():
@@ -348,35 +360,73 @@ def test_list_secrets():
 
 
 @mock_secretsmanager
-def test_rotate_secret():
-    secret_name = 'test-secret'
+def test_restore_secret():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
-    conn.create_secret(Name=secret_name,
+
+    conn.create_secret(Name='test-secret',
                        SecretString='foosecret')
 
-    rotated_secret = conn.rotate_secret(SecretId=secret_name)
+    conn.delete_secret(SecretId='test-secret')
+
+    described_secret_before = conn.describe_secret(SecretId='test-secret')
+    assert described_secret_before['DeletedDate'] > datetime.fromtimestamp(1, pytz.utc)
+
+    restored_secret = conn.restore_secret(SecretId='test-secret')
+    assert restored_secret['ARN']
+    assert restored_secret['Name'] == 'test-secret'
+
+    described_secret_after = conn.describe_secret(SecretId='test-secret')
+    assert 'DeletedDate' not in described_secret_after
+
+
+@mock_secretsmanager
+def test_restore_secret_that_is_not_deleted():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    conn.create_secret(Name='test-secret',
+                       SecretString='foosecret')
+
+    restored_secret = conn.restore_secret(SecretId='test-secret')
+    assert restored_secret['ARN']
+    assert restored_secret['Name'] == 'test-secret'
+
+
+@mock_secretsmanager
+def test_restore_secret_that_does_not_exist():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    with assert_raises(ClientError):
+        result = conn.restore_secret(SecretId='i-dont-exist')
+
+
+@mock_secretsmanager
+def test_rotate_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=DEFAULT_SECRET_NAME,
+                       SecretString='foosecret')
+
+    rotated_secret = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME)
 
     assert rotated_secret
     assert rotated_secret['ARN'] != '' # Test arn not empty
-    assert rotated_secret['Name'] == secret_name
+    assert rotated_secret['Name'] == DEFAULT_SECRET_NAME
     assert rotated_secret['VersionId'] != ''
 
 @mock_secretsmanager
 def test_rotate_secret_enable_rotation():
-    secret_name = 'test-secret'
     conn = boto3.client('secretsmanager', region_name='us-west-2')
-    conn.create_secret(Name=secret_name,
+    conn.create_secret(Name=DEFAULT_SECRET_NAME,
                        SecretString='foosecret')
 
-    initial_description = conn.describe_secret(SecretId=secret_name)
+    initial_description = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
     assert initial_description
     assert initial_description['RotationEnabled'] is False
     assert initial_description['RotationRules']['AutomaticallyAfterDays'] == 0
 
-    conn.rotate_secret(SecretId=secret_name,
+    conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME,
                        RotationRules={'AutomaticallyAfterDays': 42})
 
-    rotated_description = conn.describe_secret(SecretId=secret_name)
+    rotated_description = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
     assert rotated_description
     assert rotated_description['RotationEnabled'] is True
     assert rotated_description['RotationRules']['AutomaticallyAfterDays'] == 42
@@ -420,9 +470,8 @@ def test_rotate_secret_client_request_token_too_short():
 
 @mock_secretsmanager
 def test_rotate_secret_client_request_token_too_long():
-    secret_name = 'test-secret'
     conn = boto3.client('secretsmanager', region_name='us-west-2')
-    conn.create_secret(Name=secret_name,
+    conn.create_secret(Name=DEFAULT_SECRET_NAME,
                        SecretString='foosecret')
 
     client_request_token = (
@@ -430,19 +479,18 @@ def test_rotate_secret_client_request_token_too_long():
         'ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C'
     )
     with assert_raises(ClientError):
-        result = conn.rotate_secret(SecretId=secret_name,
+        result = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME,
                                     ClientRequestToken=client_request_token)
 
 @mock_secretsmanager
 def test_rotate_secret_rotation_lambda_arn_too_long():
-    secret_name = 'test-secret'
     conn = boto3.client('secretsmanager', region_name='us-west-2')
-    conn.create_secret(Name=secret_name,
+    conn.create_secret(Name=DEFAULT_SECRET_NAME,
                        SecretString='foosecret')
 
     rotation_lambda_arn = '85B7-446A-B7E4' * 147    # == 2058 characters
     with assert_raises(ClientError):
-        result = conn.rotate_secret(SecretId=secret_name,
+        result = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME,
                                     RotationLambdaARN=rotation_lambda_arn)
 
 @mock_secretsmanager
@@ -454,12 +502,78 @@ def test_rotate_secret_rotation_period_zero():
 
 @mock_secretsmanager
 def test_rotate_secret_rotation_period_too_long():
-    secret_name = 'test-secret'
     conn = boto3.client('secretsmanager', region_name='us-west-2')
-    conn.create_secret(Name=secret_name,
+    conn.create_secret(Name=DEFAULT_SECRET_NAME,
                        SecretString='foosecret')
 
     rotation_rules = {'AutomaticallyAfterDays': 1001}
     with assert_raises(ClientError):
-        result = conn.rotate_secret(SecretId=secret_name,
+        result = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME,
                                     RotationRules=rotation_rules)
+
+@mock_secretsmanager
+def test_put_secret_value_puts_new_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='foosecret',
+                                                  VersionStages=['AWSCURRENT'])
+    version_id = put_secret_value_dict['VersionId']
+
+    get_secret_value_dict = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  VersionId=version_id,
+                                                  VersionStage='AWSCURRENT')
+
+    assert get_secret_value_dict
+    assert get_secret_value_dict['SecretString'] == 'foosecret'
+
+@mock_secretsmanager
+def test_put_secret_value_can_get_first_version_if_put_twice():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='first_secret',
+                                                  VersionStages=['AWSCURRENT'])
+    first_version_id = put_secret_value_dict['VersionId']
+    conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                          SecretString='second_secret',
+                          VersionStages=['AWSCURRENT'])
+
+    first_secret_value_dict = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                    VersionId=first_version_id)
+    first_secret_value = first_secret_value_dict['SecretString']
+
+    assert first_secret_value == 'first_secret'
+
+
+@mock_secretsmanager
+def test_put_secret_value_versions_differ_if_same_secret_put_twice():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret',
+                                                  VersionStages=['AWSCURRENT'])
+    first_version_id = put_secret_value_dict['VersionId']
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret',
+                                                  VersionStages=['AWSCURRENT'])
+    second_version_id = put_secret_value_dict['VersionId']
+
+    assert first_version_id != second_version_id
+
+
+@mock_secretsmanager
+def test_can_list_secret_version_ids():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret',
+                                                  VersionStages=['AWSCURRENT'])
+    first_version_id = put_secret_value_dict['VersionId']
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret',
+                                                  VersionStages=['AWSCURRENT'])
+    second_version_id = put_secret_value_dict['VersionId']
+
+    versions_list = conn.list_secret_version_ids(SecretId=DEFAULT_SECRET_NAME)
+
+    returned_version_ids = [v['VersionId'] for v in versions_list['Versions']]
+
+    assert [first_version_id, second_version_id].sort() == returned_version_ids.sort()
+

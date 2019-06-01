@@ -68,8 +68,10 @@ def test_create_autoscaling_group():
         image_id='ami-abcd1234',
         instance_type='m1.small',
     )
-    us_conn.create_launch_configuration(config)
+    x = us_conn.create_launch_configuration(config)
 
+    us_subnet_id = list(ec2_backends['us-east-1'].subnets['us-east-1c'].keys())[0]
+    ap_subnet_id = list(ec2_backends['ap-northeast-1'].subnets['ap-northeast-1a'].keys())[0]
     group = boto.ec2.autoscale.AutoScalingGroup(
         name='us_tester_group',
         availability_zones=['us-east-1c'],
@@ -82,7 +84,7 @@ def test_create_autoscaling_group():
         launch_config=config,
         load_balancers=["us_test_lb"],
         placement_group="us_test_placement",
-        vpc_zone_identifier='subnet-1234abcd',
+        vpc_zone_identifier=us_subnet_id,
         termination_policies=["OldestInstance", "NewestInstance"],
     )
     us_conn.create_auto_scaling_group(group)
@@ -107,7 +109,7 @@ def test_create_autoscaling_group():
         launch_config=config,
         load_balancers=["ap_test_lb"],
         placement_group="ap_test_placement",
-        vpc_zone_identifier='subnet-5678efgh',
+        vpc_zone_identifier=ap_subnet_id,
         termination_policies=["OldestInstance", "NewestInstance"],
     )
     ap_conn.create_auto_scaling_group(group)
@@ -121,7 +123,7 @@ def test_create_autoscaling_group():
     us_group.desired_capacity.should.equal(2)
     us_group.max_size.should.equal(2)
     us_group.min_size.should.equal(2)
-    us_group.vpc_zone_identifier.should.equal('subnet-1234abcd')
+    us_group.vpc_zone_identifier.should.equal(us_subnet_id)
     us_group.launch_config_name.should.equal('us_tester')
     us_group.default_cooldown.should.equal(60)
     us_group.health_check_period.should.equal(100)
@@ -137,7 +139,7 @@ def test_create_autoscaling_group():
     ap_group.desired_capacity.should.equal(2)
     ap_group.max_size.should.equal(2)
     ap_group.min_size.should.equal(2)
-    ap_group.vpc_zone_identifier.should.equal('subnet-5678efgh')
+    ap_group.vpc_zone_identifier.should.equal(ap_subnet_id)
     ap_group.launch_config_name.should.equal('ap_tester')
     ap_group.default_cooldown.should.equal(60)
     ap_group.health_check_period.should.equal(100)
