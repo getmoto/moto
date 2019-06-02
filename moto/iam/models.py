@@ -8,10 +8,9 @@ import re
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-import pytz
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
 
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
@@ -28,10 +27,14 @@ class MFADevice(object):
                  serial_number,
                  authentication_code_1,
                  authentication_code_2):
-        self.enable_date = datetime.now(pytz.utc)
+        self.enable_date = datetime.utcnow()
         self.serial_number = serial_number
         self.authentication_code_1 = authentication_code_1
         self.authentication_code_2 = authentication_code_2
+
+    @property
+    def enabled_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.enable_date)
 
 
 class Policy(BaseModel):
@@ -58,8 +61,16 @@ class Policy(BaseModel):
             self.next_version_num = 2
         self.versions = [PolicyVersion(self.arn, document, True)]
 
-        self.create_datetime = datetime.now(pytz.utc)
-        self.update_datetime = datetime.now(pytz.utc)
+        self.create_date = datetime.utcnow()
+        self.update_date = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @property
+    def updated_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.update_date)
 
 
 class SAMLProvider(BaseModel):
@@ -83,7 +94,11 @@ class PolicyVersion(object):
         self.is_default = is_default
         self.version_id = 'v1'
 
-        self.create_datetime = datetime.now(pytz.utc)
+        self.create_date = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
 
 class ManagedPolicy(Policy):
@@ -139,10 +154,14 @@ class Role(BaseModel):
         self.path = path or '/'
         self.policies = {}
         self.managed_policies = {}
-        self.create_date = datetime.now(pytz.utc)
+        self.create_date = datetime.utcnow()
         self.tags = {}
         self.description = ""
         self.permissions_boundary = permissions_boundary
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -198,7 +217,11 @@ class InstanceProfile(BaseModel):
         self.name = name
         self.path = path or '/'
         self.roles = roles if roles else []
-        self.create_date = datetime.now(pytz.utc)
+        self.create_date = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -250,8 +273,12 @@ class SigningCertificate(BaseModel):
         self.id = id
         self.user_name = user_name
         self.body = body
-        self.upload_date = datetime.strftime(datetime.utcnow(), "%Y-%m-%d-%H-%M-%S")
+        self.upload_date = datetime.utcnow()
         self.status = 'Active'
+
+    @property
+    def uploaded_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
 class AccessKey(BaseModel):
@@ -261,14 +288,16 @@ class AccessKey(BaseModel):
         self.access_key_id = random_access_key()
         self.secret_access_key = random_alphanumeric(32)
         self.status = 'Active'
-        self.create_date = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        self.last_used = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        self.create_date = datetime.utcnow()
+        self.last_used = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.create_date)
+
+    @property
+    def last_used_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.last_used)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -283,14 +312,15 @@ class Group(BaseModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path
-        self.created = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%d-%H-%M-%S"
-        )
+        self.create_date = datetime.utcnow()
 
         self.users = []
         self.managed_policies = {}
         self.policies = {}
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -305,10 +335,6 @@ class Group(BaseModel):
 
         else:
             return "arn:aws:iam::{0}:group/{1}/{2}".format(ACCOUNT_ID, self.path, self.name)
-
-    @property
-    def create_date(self):
-        return self.created
 
     def get_policy(self, policy_name):
         try:
@@ -335,7 +361,7 @@ class User(BaseModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
-        self.created = datetime.utcnow()
+        self.create_date = datetime.utcnow()
         self.mfa_devices = {}
         self.policies = {}
         self.managed_policies = {}
@@ -350,7 +376,7 @@ class User(BaseModel):
 
     @property
     def created_iso_8601(self):
-        return iso_8601_datetime_without_milliseconds(self.created)
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     def get_policy(self, policy_name):
         policy_json = None
@@ -421,7 +447,7 @@ class User(BaseModel):
 
     def to_csv(self):
         date_format = '%Y-%m-%dT%H:%M:%S+00:00'
-        date_created = self.created
+        date_created = self.create_date
         # aagrawal,arn:aws:iam::509284790694:user/aagrawal,2014-09-01T22:28:48+00:00,true,2014-11-12T23:36:49+00:00,2014-09-03T18:59:00+00:00,N/A,false,true,2014-09-01T22:28:48+00:00,false,N/A,false,N/A,false,N/A
         if not self.password:
             password_enabled = 'false'
@@ -1050,7 +1076,7 @@ class IAMBackend(BaseBackend):
             if key.access_key_id == access_key_id:
                 return {
                     'user_name': key.user_name,
-                    'last_used': key.last_used
+                    'last_used': key.last_used_iso_8601,
                 }
         else:
             raise IAMNotFoundException(
