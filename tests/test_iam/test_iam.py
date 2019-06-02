@@ -323,7 +323,16 @@ def test_get_policy():
         PolicyDocument='{"some":"policy"}')
     policy = conn.get_policy(
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicy")
-    response['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestGetPolicy")
+    policy['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestGetPolicy")
+
+
+@mock_iam
+def test_get_aws_managed_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    managed_policy_arn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+    policy = conn.get_policy(
+        PolicyArn=managed_policy_arn)
+    policy['Policy']['Arn'].should.equal(managed_policy_arn)
 
 
 @mock_iam
