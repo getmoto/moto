@@ -358,6 +358,7 @@ def test_get_policy_version():
 def test_get_aws_managed_policy_version():
     conn = boto3.client('iam', region_name='us-east-1')
     managed_policy_arn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+    managed_policy_create_date = datetime.strptime("2015-04-09T15:03:43Z", "%Y-%m-%dT%H:%M:%SZ").isoformat()
     with assert_raises(ClientError):
         conn.get_policy_version(
             PolicyArn=managed_policy_arn,
@@ -365,7 +366,7 @@ def test_get_aws_managed_policy_version():
     retrieved = conn.get_policy_version(
         PolicyArn=managed_policy_arn,
         VersionId="v1")
-    retrieved.get('PolicyVersion').get('CreateDate').should.equal("2015-04-09T15:03:43Z")
+    retrieved.get('PolicyVersion').get('CreateDate').isoformat().should.equal(managed_policy_create_date)
 
 
 @mock_iam
