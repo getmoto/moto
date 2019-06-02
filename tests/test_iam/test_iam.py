@@ -355,6 +355,20 @@ def test_get_policy_version():
 
 
 @mock_iam
+def test_get_aws_managed_policy_version():
+    conn = boto3.client('iam', region_name='us-east-1')
+    managed_policy_arn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+    with assert_raises(ClientError):
+        conn.get_policy_version(
+            PolicyArn=managed_policy_arn,
+            VersionId='v2-does-not-exist')
+    retrieved = conn.get_policy_version(
+        PolicyArn=managed_policy_arn,
+        VersionId="v1")
+    retrieved.get('PolicyVersion').get('CreateDate').should.equal("2015-04-09T15:03:43Z")
+
+
+@mock_iam
 def test_list_policy_versions():
     conn = boto3.client('iam', region_name='us-east-1')
     with assert_raises(ClientError):
