@@ -504,7 +504,7 @@ class IAMBackend(BaseBackend):
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
-        return dict((p.name, p) for p in aws_managed_policies)
+        return dict((p.arn, p) for p in aws_managed_policies)
 
     def attach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
