@@ -372,6 +372,21 @@ def test_get_aws_managed_policy_version():
 
 
 @mock_iam
+def test_get_aws_managed_policy_v4_version():
+    conn = boto3.client('iam', region_name='us-east-1')
+    managed_policy_arn = 'arn:aws:iam::aws:policy/job-function/SystemAdministrator'
+    managed_policy_version_create_date = datetime.strptime("2018-10-08T21:33:45+00:00", "%Y-%m-%dT%H:%M:%S+00:00")
+    with assert_raises(ClientError):
+        conn.get_policy_version(
+            PolicyArn=managed_policy_arn,
+            VersionId='v2-does-not-exist')
+    retrieved = conn.get_policy_version(
+        PolicyArn=managed_policy_arn,
+        VersionId="v4")
+    retrieved['PolicyVersion']['CreateDate'].replace(tzinfo=None).should.equal(managed_policy_version_create_date)
+
+
+@mock_iam
 def test_list_policy_versions():
     conn = boto3.client('iam', region_name='us-east-1')
     with assert_raises(ClientError):
