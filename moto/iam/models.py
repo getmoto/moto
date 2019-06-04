@@ -45,7 +45,9 @@ class Policy(BaseModel):
                  default_version_id=None,
                  description=None,
                  document=None,
-                 path=None):
+                 path=None,
+                 create_date=None,
+                 update_date=None):
         self.name = name
 
         self.attachment_count = 0
@@ -59,10 +61,10 @@ class Policy(BaseModel):
         else:
             self.default_version_id = 'v1'
             self.next_version_num = 2
-        self.versions = [PolicyVersion(self.arn, document, True)]
+        self.versions = [PolicyVersion(self.arn, document, True, self.default_version_id, update_date)]
 
-        self.create_date = datetime.utcnow()
-        self.update_date = datetime.utcnow()
+        self.create_date = create_date if create_date is not None else datetime.utcnow()
+        self.update_date = update_date if update_date is not None else datetime.utcnow()
 
     @property
     def created_iso_8601(self):
@@ -88,13 +90,15 @@ class PolicyVersion(object):
     def __init__(self,
                  policy_arn,
                  document,
-                 is_default=False):
+                 is_default=False,
+                 version_id='v1',
+                 create_date=None):
         self.policy_arn = policy_arn
         self.document = document or {}
         self.is_default = is_default
-        self.version_id = 'v1'
+        self.version_id = version_id
 
-        self.create_date = datetime.utcnow()
+        self.create_date = create_date if create_date is not None else datetime.utcnow()
 
     @property
     def created_iso_8601(self):
@@ -127,7 +131,9 @@ class AWSManagedPolicy(ManagedPolicy):
         return cls(name,
                    default_version_id=data.get('DefaultVersionId'),
                    path=data.get('Path'),
-                   document=data.get('Document'))
+                   document=data.get('Document'),
+                   create_date=datetime.strptime(data.get('CreateDate'), "%Y-%m-%dT%H:%M:%S+00:00"),
+                   update_date=datetime.strptime(data.get('UpdateDate'), "%Y-%m-%dT%H:%M:%S+00:00"))
 
     @property
     def arn(self):
