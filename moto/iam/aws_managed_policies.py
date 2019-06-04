@@ -4,7 +4,7 @@ aws_managed_policies_data = """
     "APIGatewayServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-20T18:22:18+00:00",
+        "CreateDate": "2017-10-20T17:23:10+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -229,6 +229,33 @@ aws_managed_policies_data = """
         "PolicyId": "ANPAZKAPJZG4HOPFCIWXP",
         "PolicyName": "AWSAppMeshReadOnly",
         "UpdateDate": "2019-04-16T17:51:11+00:00",
+        "VersionId": "v1"
+    },
+    "AWSAppMeshServiceRolePolicy": {
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSAppMeshServiceRolePolicy",
+        "AttachmentCount": 0,
+        "CreateDate": "2019-06-03T18:30:51+00:00",
+        "DefaultVersionId": "v1",
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "servicediscovery:DiscoverInstances"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "CloudMapServiceDiscovery"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "IsAttachable": true,
+        "IsDefaultVersion": true,
+        "Path": "/aws-service-role/",
+        "PermissionsBoundaryUsageCount": 0,
+        "PolicyId": "ANPAZKAPJZG4B5IHMMEND",
+        "PolicyName": "AWSAppMeshServiceRolePolicy",
+        "UpdateDate": "2019-06-03T18:30:51+00:00",
         "VersionId": "v1"
     },
     "AWSAppSyncAdministrator": {
@@ -562,7 +589,7 @@ aws_managed_policies_data = """
     "AWSApplicationAutoscalingRDSClusterPolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSApplicationAutoscalingRDSClusterPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-07T19:14:24+00:00",
+        "CreateDate": "2017-10-17T17:46:56+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -667,7 +694,7 @@ aws_managed_policies_data = """
     "AWSApplicationDiscoveryServiceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSApplicationDiscoveryServiceFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-16T16:02:27+00:00",
+        "CreateDate": "2016-05-11T21:30:50+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -837,7 +864,7 @@ aws_managed_policies_data = """
     "AWSBackupAdminPolicy": {
         "Arn": "arn:aws:iam::aws:policy/AWSBackupAdminPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-11T22:14:30+00:00",
+        "CreateDate": "2019-01-19T02:34:31+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -972,7 +999,7 @@ aws_managed_policies_data = """
     "AWSBackupOperatorPolicy": {
         "Arn": "arn:aws:iam::aws:policy/AWSBackupOperatorPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-11T22:18:12+00:00",
+        "CreateDate": "2019-01-19T02:31:55+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -1111,7 +1138,7 @@ aws_managed_policies_data = """
     "AWSBackupServiceRolePolicyForBackup": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-25T19:15:48+00:00",
+        "CreateDate": "2019-01-10T21:01:28+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -1231,7 +1258,7 @@ aws_managed_policies_data = """
     "AWSBackupServiceRolePolicyForRestores": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-25T19:17:26+00:00",
+        "CreateDate": "2019-01-12T00:23:54+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -1352,7 +1379,7 @@ aws_managed_policies_data = """
     "AWSBatchFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSBatchFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-05T21:09:23+00:00",
+        "CreateDate": "2016-12-06T19:35:42+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -1436,7 +1463,7 @@ aws_managed_policies_data = """
     "AWSBatchServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-30T19:00:56+00:00",
+        "CreateDate": "2016-12-06T19:36:24+00:00",
         "DefaultVersionId": "v9",
         "Document": {
             "Statement": [
@@ -1590,7 +1617,7 @@ aws_managed_policies_data = """
     "AWSCertificateManagerPrivateCAAuditor": {
         "Arn": "arn:aws:iam::aws:policy/AWSCertificateManagerPrivateCAAuditor",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-14T17:17:38+00:00",
+        "CreateDate": "2018-10-23T16:51:08+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -1656,7 +1683,7 @@ aws_managed_policies_data = """
     "AWSCertificateManagerPrivateCAReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AWSCertificateManagerPrivateCAReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-14T17:17:21+00:00",
+        "CreateDate": "2018-10-23T16:57:04+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": {
@@ -1687,7 +1714,7 @@ aws_managed_policies_data = """
     "AWSCertificateManagerPrivateCAUser": {
         "Arn": "arn:aws:iam::aws:policy/AWSCertificateManagerPrivateCAUser",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-14T17:17:02+00:00",
+        "CreateDate": "2018-10-23T16:53:33+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -1723,7 +1750,7 @@ aws_managed_policies_data = """
     "AWSCertificateManagerReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AWSCertificateManagerReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2016-04-21T15:08:16+00:00",
+        "CreateDate": "2016-01-21T17:07:33+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": {
@@ -1836,7 +1863,7 @@ aws_managed_policies_data = """
     "AWSCloud9ServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSCloud9ServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-27T10:20:24+00:00",
+        "CreateDate": "2017-11-30T13:44:08+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -1912,7 +1939,7 @@ aws_managed_policies_data = """
     "AWSCloud9User": {
         "Arn": "arn:aws:iam::aws:policy/AWSCloud9User",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-02T08:46:37+00:00",
+        "CreateDate": "2017-11-30T16:16:17+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -1996,7 +2023,7 @@ aws_managed_policies_data = """
     "AWSCloudFormationReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-06T22:16:02+00:00",
+        "CreateDate": "2015-02-06T18:39:49+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -2279,7 +2306,7 @@ aws_managed_policies_data = """
     "AWSCloudTrailFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCloudTrailFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-21T23:39:06+00:00",
+        "CreateDate": "2015-02-06T18:39:58+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
@@ -2361,7 +2388,7 @@ aws_managed_policies_data = """
     "AWSCloudTrailReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCloudTrailReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-11T19:51:37+00:00",
+        "CreateDate": "2015-02-06T18:39:59+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
@@ -2403,7 +2430,7 @@ aws_managed_policies_data = """
     "AWSCodeBuildAdminAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-15T21:21:56+00:00",
+        "CreateDate": "2016-12-01T19:04:44+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -2466,7 +2493,7 @@ aws_managed_policies_data = """
     "AWSCodeBuildDeveloperAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-15T21:32:53+00:00",
+        "CreateDate": "2016-12-01T19:02:32+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -2514,7 +2541,7 @@ aws_managed_policies_data = """
     "AWSCodeBuildReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeBuildReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-15T21:38:34+00:00",
+        "CreateDate": "2016-12-01T19:03:41+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -2550,7 +2577,7 @@ aws_managed_policies_data = """
     "AWSCodeCommitFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeCommitFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-20T20:04:31+00:00",
+        "CreateDate": "2015-07-09T17:02:19+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -2664,7 +2691,7 @@ aws_managed_policies_data = """
     "AWSCodeCommitPowerUser": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeCommitPowerUser",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-30T19:37:08+00:00",
+        "CreateDate": "2015-07-09T17:06:49+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -2791,7 +2818,7 @@ aws_managed_policies_data = """
     "AWSCodeCommitReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeCommitReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-15T17:26:42+00:00",
+        "CreateDate": "2015-07-09T17:05:06+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -2951,7 +2978,7 @@ aws_managed_policies_data = """
     "AWSCodeDeployRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-09-11T19:09:51+00:00",
+        "CreateDate": "2015-05-04T18:05:37+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -3015,7 +3042,7 @@ aws_managed_policies_data = """
     "AWSCodeDeployRoleForECS": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-19T17:57:04+00:00",
+        "CreateDate": "2018-11-27T20:40:57+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -3069,7 +3096,7 @@ aws_managed_policies_data = """
     "AWSCodeDeployRoleForECSLimited": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECSLimited",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-19T18:06:16+00:00",
+        "CreateDate": "2018-11-27T20:42:42+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -3155,7 +3182,7 @@ aws_managed_policies_data = """
     "AWSCodeDeployRoleForLambda": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-01T22:32:58+00:00",
+        "CreateDate": "2017-11-28T14:05:44+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -3212,7 +3239,7 @@ aws_managed_policies_data = """
     "AWSCodePipelineApproverAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodePipelineApproverAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-02T17:24:58+00:00",
+        "CreateDate": "2016-07-28T18:59:17+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -3273,7 +3300,7 @@ aws_managed_policies_data = """
     "AWSCodePipelineFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodePipelineFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-11-01T19:59:46+00:00",
+        "CreateDate": "2015-07-09T16:58:07+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -3322,7 +3349,7 @@ aws_managed_policies_data = """
     "AWSCodePipelineReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodePipelineReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-02T17:25:18+00:00",
+        "CreateDate": "2015-07-09T16:43:57+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -3371,7 +3398,7 @@ aws_managed_policies_data = """
     "AWSCodeStarFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSCodeStarFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-01-10T21:54:06+00:00",
+        "CreateDate": "2017-04-19T16:23:19+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -3414,7 +3441,7 @@ aws_managed_policies_data = """
     "AWSCodeStarServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSCodeStarServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-24T19:25:28+00:00",
+        "CreateDate": "2017-04-19T15:20:50+00:00",
         "DefaultVersionId": "v9",
         "Document": {
             "Statement": [
@@ -3615,7 +3642,7 @@ aws_managed_policies_data = """
     "AWSConfigRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSConfigRole",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-13T21:29:39+00:00",
+        "CreateDate": "2015-04-02T17:36:23+00:00",
         "DefaultVersionId": "v25",
         "Document": {
             "Statement": [
@@ -3780,7 +3807,7 @@ aws_managed_policies_data = """
     "AWSConfigRulesExecutionRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSConfigRulesExecutionRole",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-13T21:33:30+00:00",
+        "CreateDate": "2016-03-25T17:59:36+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -3818,7 +3845,7 @@ aws_managed_policies_data = """
     "AWSConfigServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSConfigServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-13T21:18:44+00:00",
+        "CreateDate": "2018-05-30T23:31:46+00:00",
         "DefaultVersionId": "v11",
         "Document": {
             "Statement": [
@@ -3954,7 +3981,7 @@ aws_managed_policies_data = """
     "AWSConfigUserAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSConfigUserAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-18T20:27:47+00:00",
+        "CreateDate": "2015-02-18T19:38:41+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -3989,7 +4016,7 @@ aws_managed_policies_data = """
     "AWSConnector": {
         "Arn": "arn:aws:iam::aws:policy/AWSConnector",
         "AttachmentCount": 0,
-        "CreateDate": "2015-09-28T19:50:38+00:00",
+        "CreateDate": "2015-02-11T17:14:31+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -4082,7 +4109,7 @@ aws_managed_policies_data = """
     "AWSControlTowerServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSControlTowerServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-23T19:14:24+00:00",
+        "CreateDate": "2019-05-03T18:19:11+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -4209,7 +4236,7 @@ aws_managed_policies_data = """
     "AWSDataLifecycleManagerServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSDataLifecycleManagerServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-29T16:44:12+00:00",
+        "CreateDate": "2018-07-06T19:34:16+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -4247,7 +4274,7 @@ aws_managed_policies_data = """
     "AWSDataPipelineRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSDataPipelineRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-22T23:43:28+00:00",
+        "CreateDate": "2015-02-06T18:41:24+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -4345,7 +4372,7 @@ aws_managed_policies_data = """
     "AWSDataPipeline_FullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSDataPipeline_FullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-17T18:48:39+00:00",
+        "CreateDate": "2017-01-19T23:14:54+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -4393,7 +4420,7 @@ aws_managed_policies_data = """
     "AWSDataPipeline_PowerUser": {
         "Arn": "arn:aws:iam::aws:policy/AWSDataPipeline_PowerUser",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-17T18:49:42+00:00",
+        "CreateDate": "2017-01-19T23:16:46+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -4531,7 +4558,7 @@ aws_managed_policies_data = """
     "AWSDeepLensLambdaFunctionAccessPolicy": {
         "Arn": "arn:aws:iam::aws:policy/AWSDeepLensLambdaFunctionAccessPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-05-29T22:08:02+00:00",
+        "CreateDate": "2017-11-29T15:47:18+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -4597,7 +4624,7 @@ aws_managed_policies_data = """
     "AWSDeepLensServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSDeepLensServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-06-07T21:25:01+00:00",
+        "CreateDate": "2017-11-29T15:46:36+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -5082,7 +5109,7 @@ aws_managed_policies_data = """
     "AWSDeepRacerServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSDeepRacerServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-06T04:08:05+00:00",
+        "CreateDate": "2019-02-28T21:58:09+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -5280,7 +5307,7 @@ aws_managed_policies_data = """
     "AWSDirectConnectFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSDirectConnectFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-30T15:29:29+00:00",
+        "CreateDate": "2015-02-06T18:40:07+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -5308,7 +5335,7 @@ aws_managed_policies_data = """
     "AWSDirectConnectReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSDirectConnectReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-30T15:23:18+00:00",
+        "CreateDate": "2015-02-06T18:40:08+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -5336,7 +5363,7 @@ aws_managed_policies_data = """
     "AWSDirectoryServiceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSDirectoryServiceFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-05T20:29:43+00:00",
+        "CreateDate": "2015-02-06T18:41:11+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -5423,7 +5450,7 @@ aws_managed_policies_data = """
     "AWSDirectoryServiceReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSDirectoryServiceReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-09-25T21:54:01+00:00",
+        "CreateDate": "2015-02-06T18:41:12+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -5513,7 +5540,7 @@ aws_managed_policies_data = """
     "AWSEC2FleetServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSEC2FleetServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-04-19T21:37:07+00:00",
+        "CreateDate": "2018-03-21T00:08:55+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -5597,7 +5624,7 @@ aws_managed_policies_data = """
     "AWSEC2SpotFleetServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSEC2SpotFleetServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-03-28T19:04:33+00:00",
+        "CreateDate": "2017-10-23T19:13:06+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -5668,7 +5695,7 @@ aws_managed_policies_data = """
     "AWSEC2SpotServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSEC2SpotServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-12T00:13:51+00:00",
+        "CreateDate": "2017-09-18T18:51:54+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -5824,7 +5851,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkEnhancedHealth": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth",
         "AttachmentCount": 0,
-        "CreateDate": "2018-04-09T22:12:53+00:00",
+        "CreateDate": "2016-02-08T23:17:27+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -5876,7 +5903,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSElasticBeanstalkFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-23T19:36:01+00:00",
+        "CreateDate": "2015-02-06T18:40:18+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
@@ -6017,7 +6044,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkMulticontainerDocker": {
         "Arn": "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker",
         "AttachmentCount": 0,
-        "CreateDate": "2016-06-06T23:45:37+00:00",
+        "CreateDate": "2016-02-08T23:15:29+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -6101,7 +6128,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkService": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-05T17:46:21+00:00",
+        "CreateDate": "2016-04-11T20:27:23+00:00",
         "DefaultVersionId": "v15",
         "Document": {
             "Statement": [
@@ -6269,7 +6296,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSElasticBeanstalkServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-04-09T22:06:23+00:00",
+        "CreateDate": "2017-09-13T23:46:37+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -6336,7 +6363,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkWebTier": {
         "Arn": "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-01T00:04:49+00:00",
+        "CreateDate": "2016-02-08T23:08:54+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -6393,7 +6420,7 @@ aws_managed_policies_data = """
     "AWSElasticBeanstalkWorkerTier": {
         "Arn": "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-01T00:07:00+00:00",
+        "CreateDate": "2016-02-08T23:12:02+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -6531,7 +6558,7 @@ aws_managed_policies_data = """
     "AWSElasticLoadBalancingServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSElasticLoadBalancingServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-18T21:51:14+00:00",
+        "CreateDate": "2017-09-19T22:19:04+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -6949,7 +6976,7 @@ aws_managed_policies_data = """
     "AWSGlueConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-11T19:49:01+00:00",
+        "CreateDate": "2017-08-14T13:37:39+00:00",
         "DefaultVersionId": "v12",
         "Document": {
             "Statement": [
@@ -7361,7 +7388,7 @@ aws_managed_policies_data = """
     "AWSGlueServiceNotebookRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSGlueServiceNotebookRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-17T18:08:29+00:00",
+        "CreateDate": "2017-08-14T13:37:42+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -7475,7 +7502,7 @@ aws_managed_policies_data = """
     "AWSGlueServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2018-06-25T18:23:09+00:00",
+        "CreateDate": "2017-08-14T13:37:21+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -7633,7 +7660,7 @@ aws_managed_policies_data = """
     "AWSGreengrassResourceAccessRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSGreengrassResourceAccessRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-14T00:35:02+00:00",
+        "CreateDate": "2017-02-14T21:17:24+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -7955,7 +7982,7 @@ aws_managed_policies_data = """
     "AWSIoTConfigAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSIoTConfigAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-01T17:22:32+00:00",
+        "CreateDate": "2015-10-27T21:52:07+00:00",
         "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
@@ -8133,7 +8160,7 @@ aws_managed_policies_data = """
     "AWSIoTConfigReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSIoTConfigReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-18T21:22:11+00:00",
+        "CreateDate": "2015-10-27T21:52:31+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
@@ -8229,7 +8256,7 @@ aws_managed_policies_data = """
     "AWSIoTDataAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSIoTDataAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-16T18:24:11+00:00",
+        "CreateDate": "2015-10-27T21:51:18+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -8442,7 +8469,7 @@ aws_managed_policies_data = """
     "AWSIoTRuleActions": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSIoTRuleActions",
         "AttachmentCount": 0,
-        "CreateDate": "2018-01-16T19:28:19+00:00",
+        "CreateDate": "2015-10-08T15:14:51+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": {
@@ -8708,7 +8735,7 @@ aws_managed_policies_data = """
     "AWSKeyManagementServicePowerUser": {
         "Arn": "arn:aws:iam::aws:policy/AWSKeyManagementServicePowerUser",
         "AttachmentCount": 0,
-        "CreateDate": "2017-03-07T00:55:11+00:00",
+        "CreateDate": "2015-02-06T18:40:40+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -8867,7 +8894,7 @@ aws_managed_policies_data = """
     "AWSLambdaFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSLambdaFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-27T23:22:38+00:00",
+        "CreateDate": "2015-02-06T18:40:45+00:00",
         "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
@@ -8980,7 +9007,7 @@ aws_managed_policies_data = """
     "AWSLambdaKinesisExecutionRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-19T20:09:24+00:00",
+        "CreateDate": "2015-04-09T15:14:16+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -9015,7 +9042,7 @@ aws_managed_policies_data = """
     "AWSLambdaReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSLambdaReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-09-06T18:04:54+00:00",
+        "CreateDate": "2015-02-06T18:40:44+00:00",
         "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
@@ -9091,7 +9118,7 @@ aws_managed_policies_data = """
     "AWSLambdaReplicator": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSLambdaReplicator",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-08T00:17:54+00:00",
+        "CreateDate": "2017-05-23T17:53:03+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -9542,7 +9569,7 @@ aws_managed_policies_data = """
     "AWSMarketplaceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSMarketplaceFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-08T21:13:02+00:00",
+        "CreateDate": "2015-02-11T17:21:45+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -9679,7 +9706,7 @@ aws_managed_policies_data = """
     "AWSMarketplaceImageBuildFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSMarketplaceImageBuildFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-08T21:11:59+00:00",
+        "CreateDate": "2018-07-31T23:29:49+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -9842,7 +9869,7 @@ aws_managed_policies_data = """
     "AWSMarketplaceRead-only": {
         "Arn": "arn:aws:iam::aws:policy/AWSMarketplaceRead-only",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-31T23:24:24+00:00",
+        "CreateDate": "2015-02-06T18:40:31+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -9968,7 +9995,7 @@ aws_managed_policies_data = """
     "AWSMigrationHubFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSMigrationHubFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-16T20:29:37+00:00",
+        "CreateDate": "2017-08-14T14:02:54+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -10071,7 +10098,7 @@ aws_managed_policies_data = """
     "AWSMobileHub_FullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSMobileHub_FullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-05T23:44:29+00:00",
+        "CreateDate": "2016-01-05T19:56:01+00:00",
         "DefaultVersionId": "v13",
         "Document": {
             "Statement": [
@@ -10166,7 +10193,7 @@ aws_managed_policies_data = """
     "AWSMobileHub_ReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AWSMobileHub_ReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-23T21:59:05+00:00",
+        "CreateDate": "2016-01-05T19:55:48+00:00",
         "DefaultVersionId": "v10",
         "Document": {
             "Statement": [
@@ -10225,7 +10252,7 @@ aws_managed_policies_data = """
     "AWSOpsWorksCMInstanceProfileRole": {
         "Arn": "arn:aws:iam::aws:policy/AWSOpsWorksCMInstanceProfileRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-03T12:01:32+00:00",
+        "CreateDate": "2016-11-24T09:48:22+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -10267,7 +10294,7 @@ aws_managed_policies_data = """
     "AWSOpsWorksCMServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSOpsWorksCMServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-21T15:15:07+00:00",
+        "CreateDate": "2016-11-24T09:49:46+00:00",
         "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
@@ -10674,7 +10701,7 @@ aws_managed_policies_data = """
     "AWSOrganizationsServiceTrustPolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSOrganizationsServiceTrustPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-01T06:01:18+00:00",
+        "CreateDate": "2017-10-10T23:04:07+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -10881,7 +10908,7 @@ aws_managed_policies_data = """
     "AWSQuicksightAthenaAccess": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSQuicksightAthenaAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-07T20:24:55+00:00",
+        "CreateDate": "2016-12-09T02:31:03+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -11012,7 +11039,7 @@ aws_managed_policies_data = """
     "AWSResourceGroupsReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSResourceGroupsReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-05T17:56:25+00:00",
+        "CreateDate": "2018-03-07T10:27:04+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -11158,7 +11185,7 @@ aws_managed_policies_data = """
     "AWSRoboMakerServicePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSRoboMakerServicePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-04T22:15:35+00:00",
+        "CreateDate": "2018-11-26T06:30:08+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -11342,7 +11369,7 @@ aws_managed_policies_data = """
     "AWSSSOMasterAccountAdministrator": {
         "Arn": "arn:aws:iam::aws:policy/AWSSSOMasterAccountAdministrator",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-17T20:41:20+00:00",
+        "CreateDate": "2018-06-27T20:36:51+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -11396,7 +11423,7 @@ aws_managed_policies_data = """
     "AWSSSOMemberAccountAdministrator": {
         "Arn": "arn:aws:iam::aws:policy/AWSSSOMemberAccountAdministrator",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-17T20:35:52+00:00",
+        "CreateDate": "2018-06-27T20:45:42+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -11439,7 +11466,7 @@ aws_managed_policies_data = """
     "AWSSSOReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AWSSSOReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-19T20:17:58+00:00",
+        "CreateDate": "2018-06-27T20:24:34+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -11495,7 +11522,7 @@ aws_managed_policies_data = """
     "AWSSSOServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSSSOServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-15T20:45:42+00:00",
+        "CreateDate": "2017-12-05T18:36:15+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -11693,7 +11720,7 @@ aws_managed_policies_data = """
     "AWSServiceCatalogAdminFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSServiceCatalogAdminFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-06T01:57:54+00:00",
+        "CreateDate": "2018-02-15T17:19:40+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -11780,7 +11807,7 @@ aws_managed_policies_data = """
     "AWSServiceCatalogEndUserFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSServiceCatalogEndUserFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-06T02:00:22+00:00",
+        "CreateDate": "2018-02-15T17:22:32+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -11925,7 +11952,7 @@ aws_managed_policies_data = """
     "AWSServiceRoleForIoTSiteWise": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSServiceRoleForIoTSiteWise",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-11T20:49:09+00:00",
+        "CreateDate": "2018-11-14T19:19:17+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -12012,7 +12039,7 @@ aws_managed_policies_data = """
     "AWSShieldDRTAccessPolicy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AWSShieldDRTAccessPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-11T17:08:57+00:00",
+        "CreateDate": "2018-06-05T22:29:39+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -12076,7 +12103,7 @@ aws_managed_policies_data = """
     "AWSStepFunctionsConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSStepFunctionsConsoleFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-01-12T00:19:34+00:00",
+        "CreateDate": "2017-01-11T21:54:31+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -12139,7 +12166,7 @@ aws_managed_policies_data = """
     "AWSStepFunctionsReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSStepFunctionsReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-10T22:03:49+00:00",
+        "CreateDate": "2017-01-11T21:46:19+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -12266,7 +12293,7 @@ aws_managed_policies_data = """
     "AWSSupportServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSSupportServiceRolePolicy",
         "AttachmentCount": 1,
-        "CreateDate": "2019-02-06T18:06:11+00:00",
+        "CreateDate": "2018-04-19T18:04:44+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -13505,7 +13532,7 @@ aws_managed_policies_data = """
     "AWSTrustedAdvisorServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSTrustedAdvisorServiceRolePolicy",
         "AttachmentCount": 1,
-        "CreateDate": "2019-01-22T19:58:36+00:00",
+        "CreateDate": "2018-02-22T21:24:25+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -13638,7 +13665,7 @@ aws_managed_policies_data = """
     "AWSWAFFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSWAFFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-12-07T21:33:25+00:00",
+        "CreateDate": "2015-10-06T20:44:00+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -13666,7 +13693,7 @@ aws_managed_policies_data = """
     "AWSWAFReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSWAFReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-12-07T21:30:54+00:00",
+        "CreateDate": "2015-10-06T20:43:45+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -13755,7 +13782,7 @@ aws_managed_policies_data = """
     "AWSXrayReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSXrayReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-30T18:11:46+00:00",
+        "CreateDate": "2016-12-01T18:27:02+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -13792,7 +13819,7 @@ aws_managed_policies_data = """
     "AWSXrayWriteOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-28T23:03:04+00:00",
+        "CreateDate": "2016-12-01T18:19:53+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -13848,7 +13875,7 @@ aws_managed_policies_data = """
     "AlexaForBusinessDeviceSetup": {
         "Arn": "arn:aws:iam::aws:policy/AlexaForBusinessDeviceSetup",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-20T21:05:39+00:00",
+        "CreateDate": "2017-11-30T16:47:16+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -13887,7 +13914,7 @@ aws_managed_policies_data = """
     "AlexaForBusinessFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AlexaForBusinessFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-20T21:32:33+00:00",
+        "CreateDate": "2017-11-30T16:47:09+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -14004,7 +14031,7 @@ aws_managed_policies_data = """
     "AlexaForBusinessNetworkProfileServicePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AlexaForBusinessNetworkProfileServicePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-05T21:57:56+00:00",
+        "CreateDate": "2019-03-13T00:53:40+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -14046,7 +14073,7 @@ aws_managed_policies_data = """
     "AlexaForBusinessReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AlexaForBusinessReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-06-25T23:52:33+00:00",
+        "CreateDate": "2017-11-30T16:47:12+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -14101,7 +14128,7 @@ aws_managed_policies_data = """
     "AmazonAPIGatewayInvokeFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-18T18:25:10+00:00",
+        "CreateDate": "2015-07-09T17:36:12+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -14160,7 +14187,7 @@ aws_managed_policies_data = """
     "AmazonAppStreamFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonAppStreamFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-09-10T17:29:25+00:00",
+        "CreateDate": "2015-02-06T18:40:09+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -14242,7 +14269,7 @@ aws_managed_policies_data = """
     "AmazonAppStreamReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonAppStreamReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-12-07T21:00:06+00:00",
+        "CreateDate": "2015-02-06T18:40:10+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -14270,7 +14297,7 @@ aws_managed_policies_data = """
     "AmazonAppStreamServiceAccess": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonAppStreamServiceAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-17T20:22:45+00:00",
+        "CreateDate": "2016-11-19T04:17:37+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -14326,7 +14353,7 @@ aws_managed_policies_data = """
     "AmazonAthenaFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonAthenaFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-19T00:13:03+00:00",
+        "CreateDate": "2016-11-30T16:46:01+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -14465,7 +14492,7 @@ aws_managed_policies_data = """
     "AmazonChimeReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AmazonChimeReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-13T20:34:08+00:00",
+        "CreateDate": "2017-11-01T22:04:17+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -14525,7 +14552,7 @@ aws_managed_policies_data = """
     "AmazonChimeUserManagement": {
         "Arn": "arn:aws:iam::aws:policy/AmazonChimeUserManagement",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-18T12:17:58+00:00",
+        "CreateDate": "2017-11-01T22:17:26+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -14706,7 +14733,7 @@ aws_managed_policies_data = """
     "AmazonCognitoPowerUser": {
         "Arn": "arn:aws:iam::aws:policy/AmazonCognitoPowerUser",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-29T22:06:46+00:00",
+        "CreateDate": "2015-03-24T17:14:56+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -14755,7 +14782,7 @@ aws_managed_policies_data = """
     "AmazonCognitoReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AmazonCognitoReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-16T00:18:11+00:00",
+        "CreateDate": "2015-03-24T17:06:46+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -14793,7 +14820,7 @@ aws_managed_policies_data = """
     "AmazonConnectFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonConnectFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-17T22:28:01+00:00",
+        "CreateDate": "2018-10-17T20:59:39+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -14889,7 +14916,7 @@ aws_managed_policies_data = """
     "AmazonConnectServiceLinkedRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonConnectServiceLinkedRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-09-25T21:29:18+00:00",
+        "CreateDate": "2018-09-07T00:21:43+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15029,7 +15056,7 @@ aws_managed_policies_data = """
     "AmazonDMSVPCManagementRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole",
         "AttachmentCount": 0,
-        "CreateDate": "2016-05-23T16:29:57+00:00",
+        "CreateDate": "2015-11-18T16:33:19+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -15477,7 +15504,7 @@ aws_managed_policies_data = """
     "AmazonDynamoDBFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-08T21:20:48+00:00",
+        "CreateDate": "2015-02-06T18:40:11+00:00",
         "DefaultVersionId": "v9",
         "Document": {
             "Statement": [
@@ -15585,7 +15612,7 @@ aws_managed_policies_data = """
     "AmazonDynamoDBFullAccesswithDataPipeline": {
         "Arn": "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccesswithDataPipeline",
         "AttachmentCount": 0,
-        "CreateDate": "2015-11-12T02:17:42+00:00",
+        "CreateDate": "2015-02-06T18:40:14+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15684,7 +15711,7 @@ aws_managed_policies_data = """
     "AmazonDynamoDBReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-08T21:15:48+00:00",
+        "CreateDate": "2015-02-06T18:40:12+00:00",
         "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
@@ -15749,7 +15776,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerRegistryFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-10T17:54:49+00:00",
+        "CreateDate": "2015-12-21T17:06:48+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15776,7 +15803,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerRegistryPowerUser": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser",
         "AttachmentCount": 0,
-        "CreateDate": "2016-10-11T22:28:07+00:00",
+        "CreateDate": "2015-12-21T17:05:33+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15813,7 +15840,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerRegistryReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2016-10-11T22:08:43+00:00",
+        "CreateDate": "2015-12-21T17:04:15+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15846,7 +15873,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerServiceAutoscaleRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-05T19:15:15+00:00",
+        "CreateDate": "2016-05-12T23:25:44+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15885,7 +15912,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerServiceEventsRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole",
         "AttachmentCount": 0,
-        "CreateDate": "2018-05-22T19:13:11+00:00",
+        "CreateDate": "2017-05-30T16:51:35+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -15925,7 +15952,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerServiceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEC2ContainerServiceFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-06-08T00:18:56+00:00",
+        "CreateDate": "2015-04-24T16:54:35+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -15970,7 +15997,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2016-08-11T13:08:01+00:00",
+        "CreateDate": "2015-04-09T16:14:19+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -16002,7 +16029,7 @@ aws_managed_policies_data = """
     "AmazonEC2ContainerServiceforEC2Role": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
         "AttachmentCount": 0,
-        "CreateDate": "2017-05-17T23:09:13+00:00",
+        "CreateDate": "2015-03-19T18:45:18+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -16041,7 +16068,7 @@ aws_managed_policies_data = """
     "AmazonEC2FullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-27T02:16:56+00:00",
+        "CreateDate": "2015-02-06T18:40:15+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -16164,7 +16191,7 @@ aws_managed_policies_data = """
     "AmazonEC2RoleforAWSCodeDeploy": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy",
         "AttachmentCount": 0,
-        "CreateDate": "2017-03-20T17:14:10+00:00",
+        "CreateDate": "2015-05-19T18:10:14+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -16192,7 +16219,7 @@ aws_managed_policies_data = """
     "AmazonEC2RoleforDataPipelineRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforDataPipelineRole",
         "AttachmentCount": 0,
-        "CreateDate": "2016-02-22T17:24:05+00:00",
+        "CreateDate": "2015-02-06T18:41:25+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -16234,7 +16261,7 @@ aws_managed_policies_data = """
     "AmazonEC2RoleforSSM": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-24T19:20:51+00:00",
+        "CreateDate": "2015-05-29T17:48:35+00:00",
         "DefaultVersionId": "v8",
         "Document": {
             "Statement": [
@@ -16342,7 +16369,7 @@ aws_managed_policies_data = """
     "AmazonEC2SpotFleetAutoscaleRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetAutoscaleRole",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-18T19:17:03+00:00",
+        "CreateDate": "2016-08-19T18:27:22+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -16392,7 +16419,7 @@ aws_managed_policies_data = """
     "AmazonEC2SpotFleetRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-07T19:14:10+00:00",
+        "CreateDate": "2015-05-18T23:28:05+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -16443,7 +16470,7 @@ aws_managed_policies_data = """
     "AmazonEC2SpotFleetTaggingRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-17T22:51:17+00:00",
+        "CreateDate": "2017-06-29T18:19:29+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -16509,7 +16536,7 @@ aws_managed_policies_data = """
     "AmazonECSServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonECSServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-18T23:18:18+00:00",
+        "CreateDate": "2017-10-14T01:18:58+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -16597,7 +16624,7 @@ aws_managed_policies_data = """
     "AmazonECS_FullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonECS_FullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-04T18:44:48+00:00",
+        "CreateDate": "2017-11-07T21:36:54+00:00",
         "DefaultVersionId": "v15",
         "Document": {
             "Statement": [
@@ -16814,7 +16841,7 @@ aws_managed_policies_data = """
     "AmazonEKSClusterPolicy": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-22T22:04:46+00:00",
+        "CreateDate": "2018-05-27T21:06:14+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -16904,7 +16931,7 @@ aws_managed_policies_data = """
     "AmazonEKSServicePolicy": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEKSServicePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-02-26T21:01:48+00:00",
+        "CreateDate": "2018-05-27T21:08:21+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -17006,7 +17033,7 @@ aws_managed_policies_data = """
     "AmazonEKS_CNI_Policy": {
         "Arn": "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-05-31T22:16:00+00:00",
+        "CreateDate": "2018-05-27T21:07:42+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -17156,7 +17183,7 @@ aws_managed_policies_data = """
     "AmazonESReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonESReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-03T03:32:56+00:00",
+        "CreateDate": "2015-10-01T19:18:24+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -17184,7 +17211,7 @@ aws_managed_policies_data = """
     "AmazonElastiCacheFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-07T17:48:26+00:00",
+        "CreateDate": "2015-02-06T18:40:20+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -17244,7 +17271,7 @@ aws_managed_policies_data = """
     "AmazonElasticFileSystemFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticFileSystemFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-14T10:18:34+00:00",
+        "CreateDate": "2015-05-27T16:22:28+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -17282,7 +17309,7 @@ aws_managed_policies_data = """
     "AmazonElasticFileSystemReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-14T10:09:49+00:00",
+        "CreateDate": "2015-05-27T16:25:25+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -17370,7 +17397,7 @@ aws_managed_policies_data = """
     "AmazonElasticMapReduceFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticMapReduceFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-01-23T19:40:00+00:00",
+        "CreateDate": "2015-02-06T18:40:22+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -17451,7 +17478,7 @@ aws_managed_policies_data = """
     "AmazonElasticMapReduceReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonElasticMapReduceReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-05-22T23:00:19+00:00",
+        "CreateDate": "2015-02-06T18:40:23+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -17484,7 +17511,7 @@ aws_managed_policies_data = """
     "AmazonElasticMapReduceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-12T00:47:45+00:00",
+        "CreateDate": "2015-02-06T18:41:20+00:00",
         "DefaultVersionId": "v9",
         "Document": {
             "Statement": [
@@ -17610,7 +17637,7 @@ aws_managed_policies_data = """
     "AmazonElasticMapReduceforEC2Role": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-11T23:57:30+00:00",
+        "CreateDate": "2015-02-06T18:41:21+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -17848,7 +17875,7 @@ aws_managed_policies_data = """
     "AmazonElasticsearchServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonElasticsearchServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-08T21:38:27+00:00",
+        "CreateDate": "2017-07-07T00:15:31+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -18242,7 +18269,7 @@ aws_managed_policies_data = """
     "AmazonGlacierReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonGlacierReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-05-05T18:46:10+00:00",
+        "CreateDate": "2015-02-06T18:40:27+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -18313,7 +18340,7 @@ aws_managed_policies_data = """
     "AmazonGuardDutyReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonGuardDutyReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-04-25T21:07:17+00:00",
+        "CreateDate": "2017-11-28T22:29:40+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -18367,7 +18394,7 @@ aws_managed_policies_data = """
     "AmazonInspectorFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonInspectorFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-21T14:53:31+00:00",
+        "CreateDate": "2015-10-07T17:08:04+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -18422,7 +18449,7 @@ aws_managed_policies_data = """
     "AmazonInspectorReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonInspectorReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-09-12T16:53:06+00:00",
+        "CreateDate": "2015-10-07T17:08:01+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -18457,7 +18484,7 @@ aws_managed_policies_data = """
     "AmazonInspectorServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonInspectorServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-05-10T18:36:01+00:00",
+        "CreateDate": "2017-11-21T15:48:27+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -18806,7 +18833,7 @@ aws_managed_policies_data = """
     "AmazonLexFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonLexFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-15T23:55:07+00:00",
+        "CreateDate": "2017-04-11T23:20:36+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -19090,7 +19117,7 @@ aws_managed_policies_data = """
     "AmazonMQFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMQFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-18T20:33:17+00:00",
+        "CreateDate": "2017-11-28T15:28:29+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -19140,7 +19167,7 @@ aws_managed_policies_data = """
     "AmazonMQReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMQReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-11-28T19:02:03+00:00",
+        "CreateDate": "2017-11-28T15:30:32+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -19283,7 +19310,7 @@ aws_managed_policies_data = """
     "AmazonMachineLearningCreateOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMachineLearningCreateOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-06-29T20:55:03+00:00",
+        "CreateDate": "2015-04-09T17:18:09+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -19460,7 +19487,7 @@ aws_managed_policies_data = """
     "AmazonMacieFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMacieFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-06-28T15:54:57+00:00",
+        "CreateDate": "2017-08-14T14:54:30+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -19773,7 +19800,7 @@ aws_managed_policies_data = """
     "AmazonMechanicalTurkCrowdFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMechanicalTurkCrowdFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-09-28T21:08:53+00:00",
+        "CreateDate": "2017-10-05T18:07:21+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -19871,7 +19898,7 @@ aws_managed_policies_data = """
     "AmazonMechanicalTurkReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AmazonMechanicalTurkReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2017-02-27T21:45:50+00:00",
+        "CreateDate": "2015-12-11T19:08:28+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20000,7 +20027,7 @@ aws_managed_policies_data = """
     "AmazonPersonalizeFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-30T23:46:59+00:00",
+        "CreateDate": "2018-12-04T22:24:33+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20087,7 +20114,7 @@ aws_managed_policies_data = """
     "AmazonPollyReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonPollyReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-17T16:41:07+00:00",
+        "CreateDate": "2016-11-30T18:59:24+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20120,7 +20147,7 @@ aws_managed_policies_data = """
     "AmazonRDSBetaServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonRDSBetaServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-05T18:29:48+00:00",
+        "CreateDate": "2018-05-02T19:41:04+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -20189,7 +20216,7 @@ aws_managed_policies_data = """
     "AmazonRDSDataFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRDSDataFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-30T17:11:26+00:00",
+        "CreateDate": "2018-11-20T21:29:36+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20248,7 +20275,7 @@ aws_managed_policies_data = """
     "AmazonRDSDirectoryServiceAccess": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonRDSDirectoryServiceAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-15T16:51:50+00:00",
+        "CreateDate": "2016-02-26T02:02:05+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20320,7 +20347,7 @@ aws_managed_policies_data = """
     "AmazonRDSFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRDSFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-04-09T17:42:48+00:00",
+        "CreateDate": "2015-02-06T18:40:52+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -20452,7 +20479,7 @@ aws_managed_policies_data = """
     "AmazonRDSReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRDSReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-28T21:36:32+00:00",
+        "CreateDate": "2015-02-06T18:40:53+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -20495,7 +20522,7 @@ aws_managed_policies_data = """
     "AmazonRDSServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonRDSServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-16T20:12:27+00:00",
+        "CreateDate": "2018-01-08T18:17:46+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -20586,7 +20613,7 @@ aws_managed_policies_data = """
     "AmazonRedshiftFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRedshiftFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-09-19T18:27:44+00:00",
+        "CreateDate": "2015-02-06T18:40:50+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20717,7 +20744,7 @@ aws_managed_policies_data = """
     "AmazonRedshiftServiceLinkedRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonRedshiftServiceLinkedRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2017-09-25T21:20:15+00:00",
+        "CreateDate": "2017-09-18T19:19:45+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -20777,7 +20804,7 @@ aws_managed_policies_data = """
     "AmazonRekognitionReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRekognitionReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-06T23:28:39+00:00",
+        "CreateDate": "2016-11-30T14:58:06+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -21027,7 +21054,7 @@ aws_managed_policies_data = """
     "AmazonRoute53FullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-20T21:42:00+00:00",
+        "CreateDate": "2015-02-06T18:40:54+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -21072,7 +21099,7 @@ aws_managed_policies_data = """
     "AmazonRoute53ReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-11-15T21:15:16+00:00",
+        "CreateDate": "2015-02-06T18:40:55+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -21386,7 +21413,7 @@ aws_managed_policies_data = """
     "AmazonSQSReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-20T23:35:49+00:00",
+        "CreateDate": "2015-02-06T18:41:08+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -21445,7 +21472,7 @@ aws_managed_policies_data = """
     "AmazonSSMAutomationRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-07-24T23:29:12+00:00",
+        "CreateDate": "2016-12-05T22:09:55+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -21544,7 +21571,7 @@ aws_managed_policies_data = """
     "AmazonSSMFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonSSMFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-23T22:53:18+00:00",
+        "CreateDate": "2015-05-29T17:39:47+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -21594,7 +21621,7 @@ aws_managed_policies_data = """
     "AmazonSSMMaintenanceWindowRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/AmazonSSMMaintenanceWindowRole",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-09T20:49:14+00:00",
+        "CreateDate": "2016-12-01T15:57:54+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -21650,7 +21677,7 @@ aws_managed_policies_data = """
     "AmazonSSMManagedInstanceCore": {
         "Arn": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-23T16:54:21+00:00",
+        "CreateDate": "2019-03-15T17:22:12+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -21740,7 +21767,7 @@ aws_managed_policies_data = """
     "AmazonSSMServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AmazonSSMServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-25T22:14:20+00:00",
+        "CreateDate": "2017-11-13T19:20:08+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -21838,7 +21865,7 @@ aws_managed_policies_data = """
     "AmazonSageMakerFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-09T04:44:05+00:00",
+        "CreateDate": "2017-11-29T13:07:59+00:00",
         "DefaultVersionId": "v11",
         "Document": {
             "Statement": [
@@ -22127,7 +22154,7 @@ aws_managed_policies_data = """
     "AmazonSageMakerReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/AmazonSageMakerReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-04T22:22:07+00:00",
+        "CreateDate": "2017-11-29T13:07:09+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -22312,7 +22339,7 @@ aws_managed_policies_data = """
     "AmazonVPCCrossAccountNetworkInterfaceOperations": {
         "Arn": "arn:aws:iam::aws:policy/AmazonVPCCrossAccountNetworkInterfaceOperations",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-07T19:16:23+00:00",
+        "CreateDate": "2017-07-18T20:47:16+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -22372,7 +22399,7 @@ aws_managed_policies_data = """
     "AmazonVPCFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonVPCFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-03-15T18:30:25+00:00",
+        "CreateDate": "2015-02-06T18:41:16+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
@@ -22538,7 +22565,7 @@ aws_managed_policies_data = """
     "AmazonVPCReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonVPCReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-03-07T18:34:42+00:00",
+        "CreateDate": "2015-02-06T18:41:17+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -22716,7 +22743,7 @@ aws_managed_policies_data = """
     "AmazonWorkMailFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonWorkMailFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-13T15:21:29+00:00",
+        "CreateDate": "2015-02-06T18:40:41+00:00",
         "DefaultVersionId": "v6",
         "Document": {
             "Statement": [
@@ -22813,7 +22840,7 @@ aws_managed_policies_data = """
     "AmazonWorkMailReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/AmazonWorkMailReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-13T15:12:46+00:00",
+        "CreateDate": "2015-02-06T18:40:42+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -22847,7 +22874,7 @@ aws_managed_policies_data = """
     "AmazonWorkSpacesAdmin": {
         "Arn": "arn:aws:iam::aws:policy/AmazonWorkSpacesAdmin",
         "AttachmentCount": 0,
-        "CreateDate": "2016-08-18T23:08:42+00:00",
+        "CreateDate": "2015-09-22T22:21:15+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23022,7 +23049,7 @@ aws_managed_policies_data = """
     "ApplicationDiscoveryServiceContinuousExportServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/ApplicationDiscoveryServiceContinuousExportServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-13T22:31:21+00:00",
+        "CreateDate": "2018-08-09T20:22:01+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23113,7 +23140,7 @@ aws_managed_policies_data = """
     "AutoScalingConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AutoScalingConsoleFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-06T23:15:36+00:00",
+        "CreateDate": "2017-01-12T19:43:16+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23254,7 +23281,7 @@ aws_managed_policies_data = """
     "AutoScalingFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/AutoScalingFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-06T21:59:13+00:00",
+        "CreateDate": "2017-01-12T19:31:58+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23371,7 +23398,7 @@ aws_managed_policies_data = """
     "AutoScalingServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/AutoScalingServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-31T18:19:10+00:00",
+        "CreateDate": "2018-01-08T23:10:55+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23462,7 +23489,7 @@ aws_managed_policies_data = """
     "Billing": {
         "Arn": "arn:aws:iam::aws:policy/job-function/Billing",
         "AttachmentCount": 0,
-        "CreateDate": "2018-02-06T23:46:37+00:00",
+        "CreateDate": "2016-11-10T17:33:18+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23496,7 +23523,7 @@ aws_managed_policies_data = """
     "ClientVPNServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/ClientVPNServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-16T22:22:28+00:00",
+        "CreateDate": "2018-12-10T21:20:25+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23541,7 +23568,7 @@ aws_managed_policies_data = """
     "CloudFrontFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/CloudFrontFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-01-21T17:03:57+00:00",
+        "CreateDate": "2015-02-06T18:39:50+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -23578,7 +23605,7 @@ aws_managed_policies_data = """
     "CloudFrontReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/CloudFrontReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2016-01-21T17:03:28+00:00",
+        "CreateDate": "2015-02-06T18:39:55+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -23932,7 +23959,7 @@ aws_managed_policies_data = """
     "CloudWatchEventsReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/CloudWatchEventsReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-10T17:25:34+00:00",
+        "CreateDate": "2016-01-14T18:27:18+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -23999,7 +24026,7 @@ aws_managed_policies_data = """
     "CloudWatchFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/CloudWatchFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-08-09T19:10:43+00:00",
+        "CreateDate": "2015-02-06T18:40:00+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -24067,7 +24094,7 @@ aws_managed_policies_data = """
     "CloudWatchLogsReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/CloudWatchLogsReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-14T19:32:45+00:00",
+        "CreateDate": "2015-02-06T18:40:03+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -24099,7 +24126,7 @@ aws_managed_policies_data = """
     "CloudWatchReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-05-10T21:40:42+00:00",
+        "CreateDate": "2015-02-06T18:40:01+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -24135,7 +24162,7 @@ aws_managed_policies_data = """
     "CloudwatchApplicationInsightsServiceLinkedRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/CloudwatchApplicationInsightsServiceLinkedRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-24T18:26:41+00:00",
+        "CreateDate": "2018-12-01T16:22:12+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -24326,7 +24353,7 @@ aws_managed_policies_data = """
     "ComprehendFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/ComprehendFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-12-05T01:36:24+00:00",
+        "CreateDate": "2017-11-29T18:08:43+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -24383,7 +24410,7 @@ aws_managed_policies_data = """
     "ComprehendReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/ComprehendReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-20T01:54:51+00:00",
+        "CreateDate": "2017-11-29T18:10:19+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -24471,7 +24498,7 @@ aws_managed_policies_data = """
     "DataScientist": {
         "Arn": "arn:aws:iam::aws:policy/job-function/DataScientist",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-18T19:26:23+00:00",
+        "CreateDate": "2016-11-10T17:28:48+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -24600,7 +24627,7 @@ aws_managed_policies_data = """
     "DatabaseAdministrator": {
         "Arn": "arn:aws:iam::aws:policy/job-function/DatabaseAdministrator",
         "AttachmentCount": 0,
-        "CreateDate": "2019-01-08T00:48:02+00:00",
+        "CreateDate": "2016-11-10T17:25:43+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -24713,7 +24740,7 @@ aws_managed_policies_data = """
     "DynamoDBReplicationServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/DynamoDBReplicationServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2018-07-02T21:48:12+00:00",
+        "CreateDate": "2017-11-09T23:55:34+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -24803,7 +24830,7 @@ aws_managed_policies_data = """
     "ElasticLoadBalancingFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-25T21:33:12+00:00",
+        "CreateDate": "2018-09-20T20:42:07+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -24888,7 +24915,7 @@ aws_managed_policies_data = """
     "FMSServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/FMSServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-08T18:02:51+00:00",
+        "CreateDate": "2018-03-28T23:01:12+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
@@ -25123,7 +25150,7 @@ aws_managed_policies_data = """
     "GreengrassOTAUpdateArtifactAccess": {
         "Arn": "arn:aws:iam::aws:policy/service-role/GreengrassOTAUpdateArtifactAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-18T00:59:43+00:00",
+        "CreateDate": "2017-11-29T18:11:47+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -25176,7 +25203,7 @@ aws_managed_policies_data = """
     "IAMReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/IAMReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-01-25T19:11:27+00:00",
+        "CreateDate": "2015-02-06T18:40:39+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -25237,7 +25264,7 @@ aws_managed_policies_data = """
     "IAMUserChangePassword": {
         "Arn": "arn:aws:iam::aws:policy/IAMUserChangePassword",
         "AttachmentCount": 1,
-        "CreateDate": "2016-11-15T23:18:55+00:00",
+        "CreateDate": "2016-11-15T00:25:16+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -25302,7 +25329,7 @@ aws_managed_policies_data = """
     "KafkaServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/KafkaServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-23T19:58:58+00:00",
+        "CreateDate": "2018-11-15T23:31:48+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -25425,7 +25452,7 @@ aws_managed_policies_data = """
     "NeptuneConsoleFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/NeptuneConsoleFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-06T21:19:54+00:00",
+        "CreateDate": "2018-06-19T21:35:19+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -25606,7 +25633,7 @@ aws_managed_policies_data = """
     "NeptuneFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/NeptuneFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-06T21:21:19+00:00",
+        "CreateDate": "2018-05-30T19:17:31+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -25832,7 +25859,7 @@ aws_managed_policies_data = """
     "NetworkAdministrator": {
         "Arn": "arn:aws:iam::aws:policy/job-function/NetworkAdministrator",
         "AttachmentCount": 0,
-        "CreateDate": "2018-12-13T19:43:41+00:00",
+        "CreateDate": "2016-11-10T17:31:35+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -26050,7 +26077,7 @@ aws_managed_policies_data = """
     "PowerUserAccess": {
         "Arn": "arn:aws:iam::aws:policy/PowerUserAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-20T22:19:03+00:00",
+        "CreateDate": "2015-02-06T18:39:47+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -26089,7 +26116,7 @@ aws_managed_policies_data = """
     "QuickSightAccessForS3StorageManagementAnalyticsReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/service-role/QuickSightAccessForS3StorageManagementAnalyticsReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2017-07-21T00:02:14+00:00",
+        "CreateDate": "2017-06-12T18:18:38+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -26160,8 +26187,8 @@ aws_managed_policies_data = """
     "ReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/ReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-30T23:39:26+00:00",
-        "DefaultVersionId": "v49",
+        "CreateDate": "2015-02-06T18:39:48+00:00",
+        "DefaultVersionId": "v50",
         "Document": {
             "Statement": [
                 {
@@ -26173,6 +26200,9 @@ aws_managed_policies_data = """
                         "acm:Describe*",
                         "acm:Get*",
                         "acm:List*",
+                        "acm-pca:Describe*",
+                        "acm-pca:Get*",
+                        "acm-pca:List*",
                         "amplify:GetApp",
                         "amplify:GetBranch",
                         "amplify:GetJob",
@@ -26613,13 +26643,13 @@ aws_managed_policies_data = """
         "PermissionsBoundaryUsageCount": 0,
         "PolicyId": "ANPAILL3HVNFSB6DCOWYQ",
         "PolicyName": "ReadOnlyAccess",
-        "UpdateDate": "2019-05-30T23:39:26+00:00",
-        "VersionId": "v49"
+        "UpdateDate": "2019-06-03T20:01:28+00:00",
+        "VersionId": "v50"
     },
     "ResourceGroupsandTagEditorFullAccess": {
         "Arn": "arn:aws:iam::aws:policy/ResourceGroupsandTagEditorFullAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-07T21:54:03+00:00",
+        "CreateDate": "2015-02-06T18:39:53+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -26654,7 +26684,7 @@ aws_managed_policies_data = """
     "ResourceGroupsandTagEditorReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/ResourceGroupsandTagEditorReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2019-03-07T19:43:17+00:00",
+        "CreateDate": "2015-02-06T18:39:54+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -26687,7 +26717,7 @@ aws_managed_policies_data = """
     "SecretsManagerReadWrite": {
         "Arn": "arn:aws:iam::aws:policy/SecretsManagerReadWrite",
         "AttachmentCount": 0,
-        "CreateDate": "2018-05-03T20:02:35+00:00",
+        "CreateDate": "2018-04-04T18:05:29+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -26753,7 +26783,7 @@ aws_managed_policies_data = """
     "SecurityAudit": {
         "Arn": "arn:aws:iam::aws:policy/SecurityAudit",
         "AttachmentCount": 0,
-        "CreateDate": "2019-04-29T18:33:52+00:00",
+        "CreateDate": "2015-02-06T18:41:01+00:00",
         "DefaultVersionId": "v27",
         "Document": {
             "Statement": [
@@ -27155,7 +27185,7 @@ aws_managed_policies_data = """
     "ServerMigrationServiceRole": {
         "Arn": "arn:aws:iam::aws:policy/service-role/ServerMigrationServiceRole",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-26T19:33:29+00:00",
+        "CreateDate": "2016-10-24T21:19:00+00:00",
         "DefaultVersionId": "v3",
         "Document": {
             "Statement": [
@@ -27272,7 +27302,7 @@ aws_managed_policies_data = """
     "ServiceCatalogAdminReadOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/ServiceCatalogAdminReadOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-08T18:57:36+00:00",
+        "CreateDate": "2015-09-29T18:40:35+00:00",
         "DefaultVersionId": "v5",
         "Document": {
             "Statement": [
@@ -27352,7 +27382,7 @@ aws_managed_policies_data = """
     "ServiceCatalogEndUserAccess": {
         "Arn": "arn:aws:iam::aws:policy/ServiceCatalogEndUserAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2017-08-08T18:58:57+00:00",
+        "CreateDate": "2015-09-29T18:41:33+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -27425,7 +27455,7 @@ aws_managed_policies_data = """
     "SupportUser": {
         "Arn": "arn:aws:iam::aws:policy/job-function/SupportUser",
         "AttachmentCount": 0,
-        "CreateDate": "2017-05-17T23:11:51+00:00",
+        "CreateDate": "2016-11-10T17:21:53+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -27652,7 +27682,7 @@ aws_managed_policies_data = """
     "SystemAdministrator": {
         "Arn": "arn:aws:iam::aws:policy/job-function/SystemAdministrator",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-08T21:33:45+00:00",
+        "CreateDate": "2016-11-10T17:23:56+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -27919,7 +27949,7 @@ aws_managed_policies_data = """
     "TagPoliciesServiceRolePolicy": {
         "Arn": "arn:aws:iam::aws:policy/aws-service-role/TagPoliciesServiceRolePolicy",
         "AttachmentCount": 0,
-        "CreateDate": "2019-05-10T21:38:33+00:00",
+        "CreateDate": "2018-10-26T20:02:52+00:00",
         "DefaultVersionId": "v2",
         "Document": {
             "Statement": [
@@ -27996,7 +28026,7 @@ aws_managed_policies_data = """
     "TranslateReadOnly": {
         "Arn": "arn:aws:iam::aws:policy/TranslateReadOnly",
         "AttachmentCount": 0,
-        "CreateDate": "2018-11-27T23:29:08+00:00",
+        "CreateDate": "2017-11-29T18:22:00+00:00",
         "DefaultVersionId": "v4",
         "Document": {
             "Statement": [
@@ -28067,7 +28097,7 @@ aws_managed_policies_data = """
     "ViewOnlyAccess": {
         "Arn": "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess",
         "AttachmentCount": 0,
-        "CreateDate": "2018-10-15T18:34:54+00:00",
+        "CreateDate": "2016-11-10T17:20:15+00:00",
         "DefaultVersionId": "v7",
         "Document": {
             "Statement": [
