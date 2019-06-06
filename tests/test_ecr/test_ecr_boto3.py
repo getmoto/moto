@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import hashlib
 import json
 from datetime import datetime
+from freezegun import freeze_time
+import os
 from random import random
 
 import re
@@ -13,6 +15,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 from dateutil.tz import tzlocal
 
 from moto import mock_ecr
+from nose import SkipTest
 
 
 def _create_image_digest(contents=None):
@@ -198,6 +201,42 @@ def test_put_image():
     response['image']['repositoryName'].should.equal('test_repository')
     response['image']['registryId'].should.equal('012345678910')
 
+
+@mock_ecr
+def test_put_image_with_push_date():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Cant manipulate time in server mode')
+
+    client = boto3.client('ecr', region_name='us-east-1')
+    _ = client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    with freeze_time('2018-08-28 00:00:00'):
+        image1_date = datetime.now()
+        _ = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag='latest'
+        )
+
+    with freeze_time('2019-05-31 00:00:00'):
+        image2_date = datetime.now()
+        _ = client.put_image(
+            repositoryName='test_repository',
+            imageManifest=json.dumps(_create_image_manifest()),
+            imageTag='latest'
+        )
+
+    describe_response = client.describe_images(repositoryName='test_repository')
+
+    type(describe_response['imageDetails']).should.be(list)
+    len(describe_response['imageDetails']).should.be(2)
+
+    set([describe_response['imageDetails'][0]['imagePushedAt'],
+        describe_response['imageDetails'][1]['imagePushedAt']]).should.equal(set([image1_date, image2_date]))
+
+
 @mock_ecr
 def test_put_image_with_multiple_tags():
     client = boto3.client('ecr', region_name='us-east-1')
@@ -239,6 +278,7 @@ def test_put_image_with_multiple_tags():
 
     len(response2['imageDetails'][0]['imageTags']).should.be(2)
     response2['imageDetails'][0]['imageTags'].should.be.equal(['v1', 'latest'])
+
 
 @mock_ecr
 def test_list_images():

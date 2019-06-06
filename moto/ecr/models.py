@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import hashlib
 import re
 from copy import copy
+from datetime import datetime
 from random import random
 
 from botocore.exceptions import ParamValidationError
@@ -106,7 +107,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id
         self.image_digest = digest
-        self.image_pushed_at = None
+        self.image_pushed_at = str(datetime.utcnow().isoformat())
 
     def _create_digest(self):
         image_contents = 'docker_image{0}'.format(int(random() * 10 ** 6))
@@ -158,7 +159,7 @@ class Image(BaseObject):
         response_object['repositoryName'] = self.repository
         response_object['registryId'] = self.registry_id
         response_object['imageSizeInBytes'] = self.image_size_in_bytes
-        response_object['imagePushedAt'] = '2017-05-09'
+        response_object['imagePushedAt'] = self.image_pushed_at
         return {k: v for k, v in response_object.items() if v is not None and v != []}
 
     @property
