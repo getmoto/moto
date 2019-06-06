@@ -323,7 +323,18 @@ def test_get_policy():
         PolicyDocument='{"some":"policy"}')
     policy = conn.get_policy(
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicy")
-    response['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestGetPolicy")
+    policy['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestGetPolicy")
+
+
+@mock_iam
+def test_get_aws_managed_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    managed_policy_arn = 'arn:aws:iam::aws:policy/IAMUserChangePassword'
+    managed_policy_create_date = datetime.strptime("2016-11-15T00:25:16+00:00", "%Y-%m-%dT%H:%M:%S+00:00")
+    policy = conn.get_policy(
+        PolicyArn=managed_policy_arn)
+    policy['Policy']['Arn'].should.equal(managed_policy_arn)
+    policy['Policy']['CreateDate'].replace(tzinfo=None).should.equal(managed_policy_create_date)
 
 
 @mock_iam
@@ -343,6 +354,36 @@ def test_get_policy_version():
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
         VersionId=version.get('PolicyVersion').get('VersionId'))
     retrieved.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+
+
+@mock_iam
+def test_get_aws_managed_policy_version():
+    conn = boto3.client('iam', region_name='us-east-1')
+    managed_policy_arn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+    managed_policy_version_create_date = datetime.strptime("2015-04-09T15:03:43+00:00", "%Y-%m-%dT%H:%M:%S+00:00")
+    with assert_raises(ClientError):
+        conn.get_policy_version(
+            PolicyArn=managed_policy_arn,
+            VersionId='v2-does-not-exist')
+    retrieved = conn.get_policy_version(
+        PolicyArn=managed_policy_arn,
+        VersionId="v1")
+    retrieved['PolicyVersion']['CreateDate'].replace(tzinfo=None).should.equal(managed_policy_version_create_date)
+
+
+@mock_iam
+def test_get_aws_managed_policy_v4_version():
+    conn = boto3.client('iam', region_name='us-east-1')
+    managed_policy_arn = 'arn:aws:iam::aws:policy/job-function/SystemAdministrator'
+    managed_policy_version_create_date = datetime.strptime("2018-10-08T21:33:45+00:00", "%Y-%m-%dT%H:%M:%S+00:00")
+    with assert_raises(ClientError):
+        conn.get_policy_version(
+            PolicyArn=managed_policy_arn,
+            VersionId='v2-does-not-exist')
+    retrieved = conn.get_policy_version(
+        PolicyArn=managed_policy_arn,
+        VersionId="v4")
+    retrieved['PolicyVersion']['CreateDate'].replace(tzinfo=None).should.equal(managed_policy_version_create_date)
 
 
 @mock_iam
