@@ -145,7 +145,11 @@ class GlueResponse(BaseResponse):
                     }
                 })
 
-        return json.dumps({"Errors": errors_output})
+        out = {}
+        if errors_output:
+            out["Errors"] = errors_output
+
+        return json.dumps(out)
 
     def update_partition(self):
         database_name = self.parameters.get('DatabaseName')
