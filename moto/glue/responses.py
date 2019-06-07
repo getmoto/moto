@@ -136,7 +136,7 @@ class GlueResponse(BaseResponse):
         for part_input in self.parameters.get('PartitionInputList'):
             try:
                 table.create_partition(part_input)
-            except PartitionAlreadyExistsException as e:
+            except PartitionAlreadyExistsException:
                 errors_output.append({
                     'PartitionValues': part_input['Values'],
                     'ErrorDetail': {
