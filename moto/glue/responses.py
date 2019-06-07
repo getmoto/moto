@@ -4,6 +4,9 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import glue_backend
+from .exceptions import (
+    PartitionAlreadyExistsException
+)
 
 
 class GlueResponse(BaseResponse):
@@ -123,6 +126,26 @@ class GlueResponse(BaseResponse):
         table.create_partition(part_input)
 
         return ""
+
+    def batch_create_partition(self):
+        database_name = self.parameters.get('DatabaseName')
+        table_name = self.parameters.get('TableName')
+        table = self.glue_backend.get_table(database_name, table_name)
+
+        errors_output = []
+        for part_input in self.parameters.get('PartitionInputList'):
+            try:
+                table.create_partition(part_input)
+            except PartitionAlreadyExistsException as e:
+                errors_output.append({
+                    'PartitionValues': part_input['Values'],
+                    'ErrorDetail': {
+                        'ErrorCode': 'AlreadyExistsException',
+                        'ErrorMessage': 'Partition already exists.'
+                    }
+                })
+
+        return json.dumps({"Errors": errors_output})
 
     def update_partition(self):
         database_name = self.parameters.get('DatabaseName')
