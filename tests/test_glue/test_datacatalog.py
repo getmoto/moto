@@ -310,6 +310,72 @@ def test_get_partition_not_found():
     exc.exception.response['Error']['Code'].should.equal('EntityNotFoundException')
     exc.exception.response['Error']['Message'].should.match('partition')
 
+@mock_glue
+def test_batch_create_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    before = datetime.now(pytz.utc)
+
+    partition_inputs = []
+    for i in range(0, 20):
+        values = ["2018-10-{:2}".format(i)]
+        part_input = helpers.create_partition_input(database_name, table_name, values=values)
+        partition_inputs.append(part_input)
+
+    client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=partition_inputs
+    )
+
+    after = datetime.now(pytz.utc)
+
+    response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
+
+    partitions = response['Partitions']
+
+    partitions.should.have.length_of(20)
+
+    for idx, partition in enumerate(partitions):
+        partition_input = partition_inputs[idx]
+
+        partition['TableName'].should.equal(table_name)
+        partition['StorageDescriptor'].should.equal(partition_input['StorageDescriptor'])
+        partition['Values'].should.equal(partition_input['Values'])
+        partition['CreationTime'].should.be.greater_than(before)
+        partition['CreationTime'].should.be.lower_than(after)
+
+
+@mock_glue
+def test_batch_create_partition_already_exist():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    values = ['2018-10-01']
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    helpers.create_partition(client, database_name, table_name, values=values)
+
+    partition_input = helpers.create_partition_input(database_name, table_name, values=values)
+
+    response = client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=[partition_input]
+    )
+
+    response.should.have.key('Errors')
+    response['Errors'].should.have.length_of(1)
+    response['Errors'][0]['PartitionValues'].should.equal(values)
+    response['Errors'][0]['ErrorDetail']['ErrorCode'].should.equal('AlreadyExistsException')
+
 
 @mock_glue
 def test_get_partition():
