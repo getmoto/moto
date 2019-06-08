@@ -369,6 +369,7 @@ def test_get_aws_managed_policy_version():
         PolicyArn=managed_policy_arn,
         VersionId="v1")
     retrieved['PolicyVersion']['CreateDate'].replace(tzinfo=None).should.equal(managed_policy_version_create_date)
+    retrieved['PolicyVersion']['Document'].should.be.an(dict)
 
 
 @mock_iam
@@ -384,6 +385,7 @@ def test_get_aws_managed_policy_v4_version():
         PolicyArn=managed_policy_arn,
         VersionId="v4")
     retrieved['PolicyVersion']['CreateDate'].replace(tzinfo=None).should.equal(managed_policy_version_create_date)
+    retrieved['PolicyVersion']['Document'].should.be.an(dict)
 
 
 @mock_iam
