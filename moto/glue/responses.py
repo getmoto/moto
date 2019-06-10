@@ -100,7 +100,7 @@ class GlueResponse(BaseResponse):
         errors = []
         for table_name in self.parameters.get('TablesToDelete'):
             try:
-                resp = self.glue_backend.delete_table(database_name, table_name)
+                self.glue_backend.delete_table(database_name, table_name)
             except TableNotFoundException:
                 errors.append({
                     "TableName": table_name,
