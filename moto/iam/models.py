@@ -131,7 +131,7 @@ class AWSManagedPolicy(ManagedPolicy):
         return cls(name,
                    default_version_id=data.get('DefaultVersionId'),
                    path=data.get('Path'),
-                   document=data.get('Document'),
+                   document=json.dumps(data.get('Document')),
                    create_date=datetime.strptime(data.get('CreateDate'), "%Y-%m-%dT%H:%M:%S+00:00"),
                    update_date=datetime.strptime(data.get('UpdateDate'), "%Y-%m-%dT%H:%M:%S+00:00"))
 
