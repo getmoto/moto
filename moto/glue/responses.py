@@ -5,7 +5,8 @@ import json
 from moto.core.responses import BaseResponse
 from .models import glue_backend
 from .exceptions import (
-    PartitionAlreadyExistsException
+    PartitionAlreadyExistsException,
+    TableNotFoundException
 )
 
 
@@ -93,6 +94,28 @@ class GlueResponse(BaseResponse):
         resp = self.glue_backend.delete_table(database_name, table_name)
         return json.dumps(resp)
 
+    def batch_delete_table(self):
+        database_name = self.parameters.get('DatabaseName')
+
+        errors = []
+        for table_name in self.parameters.get('TablesToDelete'):
+            try:
+                self.glue_backend.delete_table(database_name, table_name)
+            except TableNotFoundException:
+                errors.append({
+                    "TableName": table_name,
+                    "ErrorDetail": {
+                        "ErrorCode": "EntityNotFoundException",
+                        "ErrorMessage": "Table not found"
+                    }
+                })
+
+        out = {}
+        if errors:
+            out["Errors"] = errors
+
+        return json.dumps(out)
+
     def get_partitions(self):
         database_name = self.parameters.get('DatabaseName')
         table_name = self.parameters.get('TableName')
@@ -145,7 +168,11 @@ class GlueResponse(BaseResponse):
                     }
                 })
 
-        return json.dumps({"Errors": errors_output})
+        out = {}
+        if errors_output:
+            out["Errors"] = errors_output
+
+        return json.dumps(out)
 
     def update_partition(self):
         database_name = self.parameters.get('DatabaseName')
