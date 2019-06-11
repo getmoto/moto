@@ -173,6 +173,10 @@ class SecretsManagerBackend(BaseBackend):
 
         secret = self.secrets[secret_id]
 
+        version_ids_to_stages = {}
+        for version_id, version in secret['versions'].items():
+            version_ids_to_stages[version_id] = version['version_stages']
+
         response = json.dumps({
             "ARN": secret_arn(self.region, secret['secret_id']),
             "Name": secret['name'],
@@ -187,7 +191,8 @@ class SecretsManagerBackend(BaseBackend):
             "LastChangedDate": None,
             "LastAccessedDate": None,
             "DeletedDate": secret.get('deleted_date', None),
-            "Tags": secret['tags']
+            "Tags": secret['tags'],
+            "VersionIdsToStages": version_ids_to_stages,
         })
 
         return response
