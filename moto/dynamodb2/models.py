@@ -149,7 +149,7 @@ class Item(BaseModel):
                     value = re.sub(r'{0}\b'.format(k), v, value)
 
                 if action == "REMOVE":
-                    key  = value
+                    key = value
                     if '.' not in key:
                         self.attrs.pop(value, None)
                     else:
