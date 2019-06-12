@@ -480,6 +480,41 @@ def test_update_item_nested_remove():
 
 
 @mock_dynamodb2_deprecated
+def test_update_item_nested_remove():
+    conn = boto.dynamodb2.connect_to_region("us-east-1")
+    table = Table.create('messages', schema=[
+        HashKey('username')
+    ])
+
+    data = {
+        'username': "steve",
+        'Meta': {
+            'Name': {
+                'First': 'Steve',
+                'Last': 'Urkel'
+            }
+        }
+    }
+    table.put_item(data=data)
+    key_map = {
+        'username': {"S": "steve"}
+    }
+
+    # Then remove the Meta.FullName field
+    conn.update_item("messages", key_map,
+                     update_expression="REMOVE Meta.Name.First")
+
+    returned_item = table.get_item(username="steve")
+    dict(returned_item).should.equal({
+        'username': "steve",
+        'Meta': {
+            'Name': {
+                'Last': 'Urkel'
+            }
+        }
+    })
+
+@mock_dynamodb2_deprecated
 def test_update_item_set():
     conn = boto.dynamodb2.connect_to_region("us-east-1")
     table = Table.create('messages', schema=[
