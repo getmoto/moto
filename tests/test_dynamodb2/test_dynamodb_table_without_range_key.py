@@ -480,7 +480,7 @@ def test_update_item_nested_remove():
 
 
 @mock_dynamodb2_deprecated
-def test_update_item_nested_remove():
+def test_update_item_double_nested_remove():
     conn = boto.dynamodb2.connect_to_region("us-east-1")
     table = Table.create('messages', schema=[
         HashKey('username')
