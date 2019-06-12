@@ -468,7 +468,7 @@ def test_update_item_nested_remove():
         'username': {"S": "steve"}
     }
 
-    # Then remove the SentBy field
+    # Then remove the Meta.FullName field
     conn.update_item("messages", key_map,
                      update_expression="REMOVE Meta.FullName")
 
