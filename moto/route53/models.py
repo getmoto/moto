@@ -200,12 +200,12 @@ class FakeZone(BaseModel):
 
     def get_record_sets(self, start_type, start_name):
         record_sets = list(self.rrsets)  # Copy the list
-        if start_type:
-            record_sets = [
-                record_set for record_set in record_sets if record_set.type_ >= start_type]
         if start_name:
             record_sets = [
                 record_set for record_set in record_sets if record_set.name >= start_name]
+        if start_type:
+            record_sets = [
+                record_set for record_set in record_sets if record_set.type_ >= start_type]
 
         return record_sets
 
