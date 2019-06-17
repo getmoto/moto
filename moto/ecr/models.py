@@ -403,7 +403,10 @@ class ECRBackend(BaseBackend):
                     image_found = True
                     repository.images[num].image_tag = image_id["imageTag"]
                     response["imageIds"].append(image.response_batch_delete_image)
-                    repository.images[num].remove_tag(image_id["imageTag"])
+                    if len(image.image_tags) > 1:
+                        repository.images[num].remove_tag(image_id["imageTag"])
+                    else:
+                        repository.images.remove(image)
 
                 if not image_found:
                     failure_response = {
