@@ -190,9 +190,13 @@ class FakeZone(BaseModel):
             self.rrsets.append(new_rrset)
         return new_rrset
 
-    def delete_rrset_by_name(self, name):
+    def delete_rrset(self, rrset):
         self.rrsets = [
-            record_set for record_set in self.rrsets if record_set.name != name]
+            record_set
+            for record_set in self.rrsets
+            if record_set.name != rrset['Name'] or
+               record_set.type_ != rrset['Type']
+        ]
 
     def delete_rrset_by_id(self, set_identifier):
         self.rrsets = [
