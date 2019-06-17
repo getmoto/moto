@@ -195,7 +195,7 @@ class FakeZone(BaseModel):
             record_set
             for record_set in self.rrsets
             if record_set.name != rrset['Name'] or
-               (rrset.get('Type') is not None and record_set.type_ != rrset['Type'])
+            (rrset.get('Type') is not None and record_set.type_ != rrset['Type'])
         ]
 
     def delete_rrset_by_id(self, set_identifier):
