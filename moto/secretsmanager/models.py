@@ -111,7 +111,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def _add_secret(self, secret_id, secret_string=None, secret_binary=None, tags={}, version_id=None, version_stages=None):
 
-        if not version_stages:
+        if version_stages is None:
             version_stages = [AWSCURRENT]
 
         if not version_id:
