@@ -3673,7 +3673,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_secret
-- [ ] update_secret_version_stage
+- [X] update_secret_version_stage
 
 ## serverlessrepo - 0% implemented
 - [ ] create_application

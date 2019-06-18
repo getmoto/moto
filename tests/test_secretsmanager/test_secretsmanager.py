@@ -577,3 +577,53 @@ def test_can_list_secret_version_ids():
 
     assert [first_version_id, second_version_id].sort() == returned_version_ids.sort()
 
+@mock_secretsmanager
+def test_update_secret_version_stage():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret',
+                                                  VersionStages=['stage1'])
+    first_version_id = put_secret_value_dict['VersionId']
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret',
+                                                  VersionStages=['stage2'])
+    second_version_id = put_secret_value_dict['VersionId']
+    update_secret_version_stage_dict = conn.update_secret_version_stage(SecretId=DEFAULT_SECRET_NAME,
+                                                                        VersionStage='stage1',
+                                                                        MoveToVersionId=second_version_id,
+                                                                        RemoveFromVersionId=first_version_id)
+    versions_list = conn.list_secret_version_ids(SecretId=DEFAULT_SECRET_NAME)
+
+    returned_results = [(v['VersionId'], sorted(v['VersionStages'])) for v in versions_list['Versions']]
+    expected_results = [(first_version_id, []), (second_version_id, ['stage1', 'stage2'])]
+    assert sorted(returned_results) == sorted(expected_results)
+
+@mock_secretsmanager
+def test_update_secret_version_stage_move_awscurrent():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret')
+    first_version_id = put_secret_value_dict['VersionId']
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret')
+    second_version_id = put_secret_value_dict['VersionId']
+    update_secret_version_stage_dict = conn.update_secret_version_stage(SecretId=DEFAULT_SECRET_NAME,
+                                                                        VersionStage='AWSCURRENT',
+                                                                        MoveToVersionId=first_version_id,
+                                                                        RemoveFromVersionId=second_version_id)
+    versions_list = conn.list_secret_version_ids(SecretId=DEFAULT_SECRET_NAME)
+
+    returned_results = [(v['VersionId'], v['VersionStages']) for v in versions_list['Versions']]
+    expected_results = [(first_version_id, ['AWSCURRENT']), (second_version_id, ['AWSPREVIOUS'])]
+    assert sorted(returned_results) == sorted(expected_results)
+
+@mock_secretsmanager
+def test_update_secret_version_stage_remove_awscurrent():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretString='dupe_secret')
+    first_version_id = put_secret_value_dict['VersionId']
+    with assert_raises(ClientError):
+        update_secret_version_stage_dict = conn.update_secret_version_stage(SecretId=DEFAULT_SECRET_NAME,
+                                                                            VersionStage='AWSCURRENT',
+                                                                            RemoveFromVersionId=first_version_id)

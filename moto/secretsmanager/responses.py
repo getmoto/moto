@@ -111,3 +111,16 @@ class SecretsManagerResponse(BaseResponse):
             secret_id=secret_id,
         )
         return json.dumps(dict(ARN=arn, Name=name))
+
+    def update_secret_version_stage(self):
+        secret_id = self._get_param("SecretId")
+        version_stage = self._get_param('VersionStage')
+        remove_from_version_id = self._get_param("RemoveFromVersionId", if_none=None)
+        move_to_version_id = self._get_param("MoveToVersionId", if_none=None)
+        arn, name =  secretsmanager_backends[self.region].update_secret_version_stage(
+            secret_id=secret_id,
+            version_stage=version_stage,
+            remove_from_version_id=remove_from_version_id,
+            move_to_version_id=move_to_version_id,
+        )
+        return json.dumps(dict(ARN=arn, Name=name))
