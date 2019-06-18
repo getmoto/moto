@@ -71,11 +71,11 @@ class SecretsManagerBackend(BaseBackend):
         secret_version = secret["versions"][version_id]
 
         response_data = {
-            "ARN": secret_arn(self.region, secret["secret_id"]),
-            "Name": secret["name"],
-            "VersionId": secret_version["version_id"],
-            "VersionStages": secret_version["version_stages"],
-            "CreatedDate": secret_version["createdate"],
+            "ARN": secret_arn(self.region, secret['secret_id']),
+            "Name": secret['name'],
+            "VersionId": secret_version['version_id'],
+            "VersionStages": list(secret_version['version_stages']),
+            "CreatedDate": secret_version['createdate'],
         }
 
         if "secret_string" in secret_version:
@@ -134,6 +134,9 @@ class SecretsManagerBackend(BaseBackend):
         if not version_id:
             version_id = str(uuid.uuid4())
 
+        awscurrent_version = self._get_version_with_stage(secret_id, 'AWSCURRENT')
+        awsprevious_version = self._get_version_with_stage(secret_id, 'AWSPREVIOUS')
+
         secret_version = {
             "createdate": int(time.time()),
             "version_id": version_id,
@@ -147,34 +150,37 @@ class SecretsManagerBackend(BaseBackend):
             secret_version["secret_binary"] = secret_binary
 
         if secret_id in self.secrets:
-            # remove all old AWSPREVIOUS stages
-            for secret_verion_to_look_at in self.secrets[secret_id][
-                "versions"
-            ].values():
-                if "AWSPREVIOUS" in secret_verion_to_look_at["version_stages"]:
-                    secret_verion_to_look_at["version_stages"].remove("AWSPREVIOUS")
-
-            # set old AWSCURRENT secret to AWSPREVIOUS
-            previous_current_version_id = self.secrets[secret_id]["default_version_id"]
-            self.secrets[secret_id]["versions"][previous_current_version_id][
-                "version_stages"
-            ] = ["AWSPREVIOUS"]
-
-            self.secrets[secret_id]["versions"][version_id] = secret_version
-            self.secrets[secret_id]["default_version_id"] = version_id
+            self.secrets[secret_id]['versions'][version_id] = secret_version
         else:
             self.secrets[secret_id] = {
-                "versions": {version_id: secret_version},
-                "default_version_id": version_id,
+                'versions': {},
+                'default_version_id': version_id,
+                'rotation_enabled': False,
+                'rotation_lambda_arn': '',
+                'auto_rotate_after_days': 0,
+                'tags': tags,
             }
+            # if the string has a value, put it in the secret
+            if secret_string is not None or secret_binary is not None:
+                self.secrets[secret_id]['versions'][version_id] = secret_version
+
+        # if another stage was not specified, shift AWSCURRENT and AWSPREVIOUS
+        if not version_stages or 'AWSCURRENT' in version_stages:
+            if awsprevious_version:
+                awsprevious_version['version_stages'].remove('AWSPREVIOUS')
+            if awscurrent_version:
+                awscurrent_version['version_stages'].remove('AWSCURRENT')
+                awscurrent_version['version_stages'].update(('AWSPREVIOUS',))
+            secret_version['version_stages'].update(('AWSCURRENT',))
+            self.secrets[secret_id]['default_version_id'] = version_id
+
+        # if this is the only version, set AWSCURRENT
+        if len(self.secrets[secret_id]['versions']) == 1:
+            secret_version['version_stages'].update(('AWSCURRENT',))
 
         secret = self.secrets[secret_id]
-        secret["secret_id"] = secret_id
-        secret["name"] = secret_id
-        secret["rotation_enabled"] = False
-        secret["rotation_lambda_arn"] = ""
-        secret["auto_rotate_after_days"] = 0
-        secret["tags"] = tags
+        secret['secret_id'] = secret_id
+        secret['name'] = secret_id
 
         return version_id
 
@@ -184,16 +190,22 @@ class SecretsManagerBackend(BaseBackend):
             secret_id, secret_string, secret_binary, version_stages=version_stages
         )
 
-        response = json.dumps(
-            {
-                "ARN": secret_arn(self.region, secret_id),
-                "Name": secret_id,
-                "VersionId": version_id,
-                "VersionStages": version_stages,
-            }
-        )
+        response = json.dumps({
+            'ARN': secret_arn(self.region, secret_id),
+            'Name': secret_id,
+            'VersionId': version_id,
+            'VersionStages': list(version_stages),
+        })
 
         return response
+
+    def _get_version_with_stage(self, secret_id, stage):
+        if secret_id in self.secrets:
+            for version_id, version in self.secrets[secret_id]['versions'].items():
+                if stage in version['version_stages']:
+                    return version
+        return None
+
 
     def describe_secret(self, secret_id):
         if not self._is_valid_identifier(secret_id):
@@ -203,7 +215,7 @@ class SecretsManagerBackend(BaseBackend):
 
         version_ids_to_stages = {}
         for version_id, version in secret['versions'].items():
-            version_ids_to_stages[version_id] = version['version_stages']
+            version_ids_to_stages[version_id] = list(version['version_stages'])
 
         response = json.dumps({
             "ARN": secret_arn(self.region, secret['secret_id']),
@@ -343,15 +355,13 @@ class SecretsManagerBackend(BaseBackend):
         secret = self.secrets[secret_id]
 
         version_list = []
-        for version_id, version in secret["versions"].items():
-            version_list.append(
-                {
-                    "CreatedDate": int(time.time()),
-                    "LastAccessedDate": int(time.time()),
-                    "VersionId": version_id,
-                    "VersionStages": version["version_stages"],
-                }
-            )
+        for version_id, version in secret['versions'].items():
+            version_list.append({
+                'CreatedDate': int(time.time()),
+                'LastAccessedDate': int(time.time()),
+                'VersionId': version_id,
+                'VersionStages': list(version['version_stages']),
+            })
 
         response = json.dumps(
             {
@@ -371,28 +381,26 @@ class SecretsManagerBackend(BaseBackend):
         for secret in self.secrets.values():
 
             versions_to_stages = {}
-            for version_id, version in secret["versions"].items():
-                versions_to_stages[version_id] = version["version_stages"]
+            for version_id, version in secret['versions'].items():
+                versions_to_stages[version_id] = list(version['version_stages'])
 
-            secret_list.append(
-                {
-                    "ARN": secret_arn(self.region, secret["secret_id"]),
-                    "DeletedDate": secret.get("deleted_date", None),
-                    "Description": "",
-                    "KmsKeyId": "",
-                    "LastAccessedDate": None,
-                    "LastChangedDate": None,
-                    "LastRotatedDate": None,
-                    "Name": secret["name"],
-                    "RotationEnabled": secret["rotation_enabled"],
-                    "RotationLambdaARN": secret["rotation_lambda_arn"],
-                    "RotationRules": {
-                        "AutomaticallyAfterDays": secret["auto_rotate_after_days"]
-                    },
-                    "SecretVersionsToStages": versions_to_stages,
-                    "Tags": secret["tags"],
-                }
-            )
+            secret_list.append({
+                "ARN": secret_arn(self.region, secret['secret_id']),
+                "DeletedDate": secret.get('deleted_date', None),
+                "Description": "",
+                "KmsKeyId": "",
+                "LastAccessedDate": None,
+                "LastChangedDate": None,
+                "LastRotatedDate": None,
+                "Name": secret['name'],
+                "RotationEnabled": secret['rotation_enabled'],
+                "RotationLambdaARN": secret['rotation_lambda_arn'],
+                "RotationRules": {
+                    "AutomaticallyAfterDays": secret['auto_rotate_after_days']
+                },
+                "SecretVersionsToStages": versions_to_stages,
+                "Tags": secret['tags']
+            })
 
         return secret_list, None
 
