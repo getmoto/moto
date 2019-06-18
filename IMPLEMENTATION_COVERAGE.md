@@ -3658,7 +3658,7 @@
 - [ ] put_attributes
 - [ ] select
 
-## secretsmanager - 33% implemented
+## secretsmanager - 73% implemented
 - [ ] cancel_rotate_secret
 - [X] create_secret
 - [X] delete_secret
