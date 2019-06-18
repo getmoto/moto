@@ -393,11 +393,8 @@ def test_describe_secret_versionidstostages():
     secret_description = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
 
     assert secret_description   # Returned dict is not empty
-    print(secret_description['VersionIdsToStages'][version_id_1])
-    print(secret_description['VersionIdsToStages'][version_id_2])
     assert sorted(secret_description['VersionIdsToStages'][version_id_1]) == sorted(['stage1', 'AWSCURRENT'])
     assert sorted(secret_description['VersionIdsToStages'][version_id_2]) == sorted(['stage2'])
-
 
 @mock_secretsmanager
 def test_list_secrets_empty():
