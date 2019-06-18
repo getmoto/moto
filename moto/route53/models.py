@@ -119,7 +119,7 @@ class RecordSet(BaseModel):
                 properties["HostedZoneId"])
 
         try:
-            hosted_zone.delete_rrset_by_name(resource_name)
+            hosted_zone.delete_rrset({'Name': resource_name})
         except KeyError:
             pass
 
@@ -162,7 +162,7 @@ class RecordSet(BaseModel):
             self.hosted_zone_name)
         if not hosted_zone:
             hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)
-        hosted_zone.delete_rrset_by_name(self.name)
+        hosted_zone.delete_rrset({'Name': self.name, 'Type': self.type_})
 
 
 class FakeZone(BaseModel):
@@ -195,7 +195,7 @@ class FakeZone(BaseModel):
             record_set
             for record_set in self.rrsets
             if record_set.name != rrset['Name'] or
-               record_set.type_ != rrset['Type']
+               (rrset.get('Type') is not None and record_set.type_ != rrset['Type'])
         ]
 
     def delete_rrset_by_id(self, set_identifier):
