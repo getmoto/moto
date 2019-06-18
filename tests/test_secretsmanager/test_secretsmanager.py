@@ -323,6 +323,27 @@ def test_describe_secret_that_does_not_match():
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-match')
 
+@mock_secretsmanager
+def test_describe_secret_versionidstostages():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=DEFAULT_SECRET_NAME)
+    put1 = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                 SecretString='secret1',
+                                 VersionStages=['stage1'])
+    put2 = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                 SecretString='secret2',
+                                 VersionStages=['stage2'])
+    version_id_1 = put1['VersionId']
+    version_id_2 = put2['VersionId']
+
+    secret_description = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+
+    assert secret_description   # Returned dict is not empty
+    print(secret_description['VersionIdsToStages'][version_id_1])
+    print(secret_description['VersionIdsToStages'][version_id_2])
+    assert sorted(secret_description['VersionIdsToStages'][version_id_1]) == sorted(['stage1', 'AWSCURRENT'])
+    assert sorted(secret_description['VersionIdsToStages'][version_id_2]) == sorted(['stage2'])
+
 
 @mock_secretsmanager
 def test_list_secrets_empty():
