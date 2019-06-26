@@ -1563,7 +1563,6 @@ def test_dynamodb_streams_2():
 @mock_dynamodb2
 def test_condition_expressions():
     client = boto3.client('dynamodb', region_name='us-east-1')
-    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
     client.create_table(
@@ -1720,7 +1719,7 @@ def test_condition_expressions():
         )
 
     # Make sure update_item honors ConditionExpression as well
-    dynamodb.update_item(
+    client.update_item(
         TableName='test1',
         Key={
             'client': {'S': 'client1'},
@@ -1737,8 +1736,8 @@ def test_condition_expressions():
         }
     )
 
-    with assert_raises(dynamodb.exceptions.ConditionalCheckFailedException):
-        dynamodb.update_item(
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.update_item(
             TableName='test1',
             Key={
                 'client': { 'S': 'client1'},
@@ -1754,6 +1753,53 @@ def test_condition_expressions():
                 '#match': 'match',
             },
         )
+
+
+@mock_dynamodb2
+def test_condition_expression__attr_doesnt_exist():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    client.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'forum_name', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'forum_name', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+    )
+
+    client.put_item(
+        TableName='test',
+        Item={
+            'forum_name': {'S': 'foo'},
+            'ttl': {'N': 'bar'},
+        }
+    )
+
+
+    def update_if_attr_doesnt_exist():
+        # Test nonexistent top-level attribute.
+        client.update_item(
+            TableName='test',
+            Key={
+                'forum_name': {'S': 'the-key'},
+                'subject': {'S': 'the-subject'},
+            },
+            UpdateExpression='set #new_state=:new_state, #ttl=:ttl',
+            ConditionExpression='attribute_not_exists(#new_state)',
+            ExpressionAttributeNames={'#new_state': 'foobar', '#ttl': 'ttl'},
+            ExpressionAttributeValues={
+                ':new_state': {'S': 'some-value'},
+                ':ttl': {'N': '12345.67'},
+            },
+            ReturnValues='ALL_NEW',
+        )
+
+    update_if_attr_doesnt_exist()
+
+    # Second time should fail
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        update_if_attr_doesnt_exist()
 
 
 @mock_dynamodb2

@@ -13,7 +13,6 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
-from .comparisons import get_comparison_func, get_filter_expression, Op
 from .comparisons import get_comparison_func
 from .comparisons import get_filter_expression
 from .comparisons import get_expected
