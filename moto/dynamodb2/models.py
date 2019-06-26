@@ -724,7 +724,7 @@ class Table(BaseModel):
                 if idx_col_set.issubset(set(hash_set.attrs)):
                     yield hash_set
 
-    def scan(self, filters, limit, exclusive_start_key, filter_expression=None, index_name=None):
+    def scan(self, filters, limit, exclusive_start_key, filter_expression=None, index_name=None, projection_expression=None):
         results = []
         scanned_count = 0
         all_indexes = self.all_indexes()
@@ -762,6 +762,14 @@ class Table(BaseModel):
 
             if passes_all_conditions:
                 results.append(item)
+
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            results = copy.deepcopy(results)
+            for result in results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key, index_name)
@@ -962,7 +970,7 @@ class DynamoDBBackend(BaseBackend):
         return table.query(hash_key, range_comparison, range_values, limit,
                            exclusive_start_key, scan_index_forward, projection_expression, index_name, filter_expression, **filter_kwargs)
 
-    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values, index_name):
+    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values, index_name, projection_expression):
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -977,7 +985,7 @@ class DynamoDBBackend(BaseBackend):
         else:
             filter_expression = Op(None, None)  # Will always eval to true
 
-        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression, index_name)
+        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression, index_name, projection_expression)
 
     def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,
                     expression_attribute_values, expected=None):
