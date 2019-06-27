@@ -536,7 +536,6 @@ def test_basic_projection_expressions_using_scan():
     assert 'body' in results['Items'][1]
     assert 'forum_name' in results['Items'][1]
 
-test_basic_projection_expressions_using_scan()
 
 @mock_dynamodb2
 def test_basic_projection_expressions_with_attr_expression_names():
