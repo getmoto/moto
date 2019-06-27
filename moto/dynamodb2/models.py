@@ -985,6 +985,9 @@ class DynamoDBBackend(BaseBackend):
         else:
             filter_expression = Op(None, None)  # Will always eval to true
 
+        projection_expression = ','.join([expr_names[attr] if attr in expr_names else attr
+                                          for attr in projection_expression.replace(' ', '').split(',')])
+
         return table.scan(scan_filters, limit, exclusive_start_key, filter_expression, index_name, projection_expression)
 
     def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,

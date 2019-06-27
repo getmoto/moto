@@ -558,7 +558,7 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get('FilterExpression')
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-        projection_expression = self.body.get('ProjectionExpression')
+        projection_expression = self.body.get('ProjectionExpression', '')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
         index_name = self.body.get('IndexName')

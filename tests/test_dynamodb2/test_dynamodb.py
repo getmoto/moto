@@ -497,7 +497,7 @@ def test_basic_projection_expressions_using_scan():
         'subject': '123',
         'body': 'some other test message'
     })
-    # Test a query returning all items
+    # Test a scan returning all items
     results = table.scan(
         FilterExpression=Key('forum_name').eq(
             'the-key'),
@@ -602,6 +602,84 @@ def test_basic_projection_expressions_with_attr_expression_names():
     assert results['Items'][0]['subject'] == '123'
     assert 'attachment' in results['Items'][0]
     assert results['Items'][0]['attachment'] == 'something'
+
+@mock_dynamodb2
+def test_basic_projection_expressions_using_scan_with_attr_expression_names():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message',
+        'attachment': 'something'
+    })
+
+    table.put_item(Item={
+        'forum_name': 'not-the-key',
+        'subject': '123',
+        'body': 'some other test message',
+        'attachment': 'something'
+    })
+    # Test a scan returning all items
+
+    results = table.scan(
+        FilterExpression=Key('forum_name').eq(
+            'the-key'),
+        ProjectionExpression='#rl, #rt, subject',
+        ExpressionAttributeNames={
+            '#rl': 'body',
+            '#rt': 'attachment'
+            },
+    )
+
+    assert 'body' in results['Items'][0]
+    assert 'attachment' in results['Items'][0]
+    assert 'subject' in results['Items'][0]
+    assert 'form_name' not in results['Items'][0]
+
+    # Test without a FilterExpression
+    results = table.scan(
+        ProjectionExpression='#rl, #rt, subject',
+        ExpressionAttributeNames={
+            '#rl': 'body',
+            '#rt': 'attachment'
+            },
+    )
+
+    assert 'body' in results['Items'][0]
+    assert 'attachment' in results['Items'][0]
+    assert 'subject' in results['Items'][0]
+    assert 'form_name' not in results['Items'][0]
 
 
 @mock_dynamodb2
