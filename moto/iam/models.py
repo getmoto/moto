@@ -13,8 +13,8 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
-    DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, IAMLimitExceededException, \
+    MalformedCertificate, DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 ACCOUNT_ID = 123456789012
@@ -767,6 +767,8 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
+        if len(policy.versions) >= 5:
+            raise IAMLimitExceededException("A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version.")
         set_as_default = (set_as_default == "true")  # convert it to python bool
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
