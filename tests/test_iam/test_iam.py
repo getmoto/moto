@@ -306,6 +306,7 @@ def test_create_policy_versions():
         SetAsDefault=True)
     version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
     version.get('PolicyVersion').get('VersionId').should.equal("v2")
+    version.get('PolicyVersion').get('IsDefaultVersion').should.be.ok
     conn.delete_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
         VersionId="v1")
@@ -313,6 +314,47 @@ def test_create_policy_versions():
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
         PolicyDocument='{"some":"policy"}')
     version.get('PolicyVersion').get('VersionId').should.equal("v3")
+    version.get('PolicyVersion').get('IsDefaultVersion').shouldnt.be.ok
+
+
+@mock_iam
+def test_create_many_policy_versions():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_policy(
+        PolicyName="TestCreateManyPolicyVersions",
+        PolicyDocument='{"some":"policy"}')
+    for _ in range(0, 4):
+        conn.create_policy_version(
+            PolicyArn="arn:aws:iam::123456789012:policy/TestCreateManyPolicyVersions",
+            PolicyDocument='{"some":"policy"}')
+    with assert_raises(ClientError):
+        conn.create_policy_version(
+            PolicyArn="arn:aws:iam::123456789012:policy/TestCreateManyPolicyVersions",
+            PolicyDocument='{"some":"policy"}')
+
+
+@mock_iam
+def test_set_default_policy_version():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_policy(
+        PolicyName="TestSetDefaultPolicyVersion",
+        PolicyDocument='{"first":"policy"}')
+    conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestSetDefaultPolicyVersion",
+        PolicyDocument='{"second":"policy"}',
+        SetAsDefault=True)
+    conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestSetDefaultPolicyVersion",
+        PolicyDocument='{"third":"policy"}',
+        SetAsDefault=True)
+    versions = conn.list_policy_versions(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestSetDefaultPolicyVersion")
+    versions.get('Versions')[0].get('Document').should.equal({'first': 'policy'})
+    versions.get('Versions')[0].get('IsDefaultVersion').shouldnt.be.ok
+    versions.get('Versions')[1].get('Document').should.equal({'second': 'policy'})
+    versions.get('Versions')[1].get('IsDefaultVersion').shouldnt.be.ok
+    versions.get('Versions')[2].get('Document').should.equal({'third': 'policy'})
+    versions.get('Versions')[2].get('IsDefaultVersion').should.be.ok
 
 
 @mock_iam
@@ -354,6 +396,7 @@ def test_get_policy_version():
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
         VersionId=version.get('PolicyVersion').get('VersionId'))
     retrieved.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+    retrieved.get('PolicyVersion').get('IsDefaultVersion').shouldnt.be.ok
 
 
 @mock_iam
@@ -400,6 +443,7 @@ def test_list_policy_versions():
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     versions.get('Versions')[0].get('VersionId').should.equal('v1')
+    versions.get('Versions')[0].get('IsDefaultVersion').should.be.ok
 
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
@@ -409,9 +453,10 @@ def test_list_policy_versions():
         PolicyDocument='{"third":"policy"}')
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
-    print(versions.get('Versions'))
     versions.get('Versions')[1].get('Document').should.equal({'second': 'policy'})
+    versions.get('Versions')[1].get('IsDefaultVersion').shouldnt.be.ok
     versions.get('Versions')[2].get('Document').should.equal({'third': 'policy'})
+    versions.get('Versions')[2].get('IsDefaultVersion').shouldnt.be.ok
 
 
 @mock_iam
@@ -433,6 +478,21 @@ def test_delete_policy_version():
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion")
     len(versions.get('Versions')).should.equal(1)
+
+
+@mock_iam
+def test_delete_default_policy_version():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_policy(
+        PolicyName="TestDeletePolicyVersion",
+        PolicyDocument='{"first":"policy"}')
+    conn.create_policy_version(
+        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+        PolicyDocument='{"second":"policy"}')
+    with assert_raises(ClientError):
+        conn.delete_policy_version(
+            PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+            VersionId='v1')
 
 
 @mock_iam_deprecated()
