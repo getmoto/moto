@@ -57,6 +57,13 @@ def test_create_policy_with_invalid_policy_documents():
         {
             "document": {
                 "Version": "2012-10-17",
+                "Statement": ["afd"]
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
                 "Statement": {
                     "Effect": "Allow",
                     "Action": "s3:ListBucket",
@@ -138,6 +145,17 @@ def test_create_policy_with_invalid_policy_documents():
         {
             "document": {
                 "Version": "2012-10-17",
+                "Statement": {
+                    "Effect": "Allow",
+                    "Action": "s3:ListBucket",
+                    "Resource": ["adf"]
+                }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Resource adf must be in ARN format or "*".'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
                 "Statement": []
             },
             "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
@@ -148,6 +166,17 @@ def test_create_policy_with_invalid_policy_documents():
                 "Statement": {
                     "Effect": "Allow",
                     "Action": "s3:ListBucket"
+                }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Policy statement must contain resources.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement": {
+                    "Effect": "Allow",
+                    "Action": "s3:ListBucket",
+                    "Resource": []
                 }
             },
             "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Policy statement must contain resources.'
@@ -244,6 +273,17 @@ def test_create_policy_with_invalid_policy_documents():
                             "a": "arn:aws:s3:::example_bucket"
                         }
                     }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement": {
+                    "Effect": "Deny",
+                    "Action": "s3:ListBucket",
+                    "Resource": ["adfdf", {}]
+                }
             },
             "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
         },
@@ -453,6 +493,59 @@ def test_create_policy_with_invalid_policy_documents():
                 }
             },
             "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement": {
+                    "Effect": "denY",
+                    "Action": "s3:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: The policy failed legacy parsing'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement":
+                    {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                        "Condition": {
+                            "DateGreaterThan": {"a": "sdfdsf"}
+                        }
+                    }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: The policy failed legacy parsing'
+        },
+        {
+            "document": {
+                "Statement":
+                    {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                        "Condition": {
+                            "DateGreaterThan": {"a": "sdfdsf"}
+                        }
+                    }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Policy document must be version 2012-10-17 or greater.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement":
+                    {
+                        "Effect": "Allow",
+                        "Condition": {
+                            "DateGreaterThan": {"a": "sdfdsf"}
+                        }
+                    }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: The policy failed legacy parsing'
         }
     ]  # TODO add more tests
 
