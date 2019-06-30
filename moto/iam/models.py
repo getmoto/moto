@@ -664,6 +664,9 @@ class IAMBackend(BaseBackend):
 
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         role.put_policy(policy_name, policy_json)
 
     def delete_role_policy(self, role_name, policy_name):
@@ -764,6 +767,10 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
         version.version_id = 'v{0}'.format(policy.next_version_num)
@@ -905,6 +912,9 @@ class IAMBackend(BaseBackend):
 
     def put_group_policy(self, group_name, policy_name, policy_json):
         group = self.get_group(group_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         group.put_policy(policy_name, policy_json)
 
     def list_group_policies(self, group_name, marker=None, max_items=None):
@@ -1065,6 +1075,9 @@ class IAMBackend(BaseBackend):
 
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         user.put_policy(policy_name, policy_json)
 
     def delete_user_policy(self, user_name, policy_name):
