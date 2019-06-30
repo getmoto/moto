@@ -35,9 +35,9 @@ ALLOWED_EFFECTS = [
 
 class IAMPolicyDocumentValidator:
 
-    def __init__(self, policy_document):
-        self._policy_document = policy_document
-        self._policy_json = {}
+    def __init__(self, policy_document: str):
+        self._policy_document: str = policy_document
+        self._policy_json: dict = {}
         self._statements = []
 
     def validate(self):
@@ -49,6 +49,10 @@ class IAMPolicyDocumentValidator:
             self._validate_version()
         except Exception:
             raise MalformedPolicyDocument("Policy document must be version 2012-10-17 or greater.")
+        try:
+            self._validate_action_exist()
+        except Exception:
+            raise MalformedPolicyDocument("Policy statement must contain actions.")
         try:
             self._validate_resource_exist()
         except Exception:
@@ -139,10 +143,16 @@ class IAMPolicyDocumentValidator:
             assert isinstance(statement["Sid"], string_types)
 
     def _validate_id_syntax(self):
-        if "Id" in self._policy_document:
-            assert isinstance(self._policy_document["Id"], string_types)
+        if "Id" in self._policy_json:
+            assert isinstance(self._policy_json["Id"], string_types)
 
     def _validate_resource_exist(self):
         for statement in self._statements:
             assert "Resource" in statement
+            if isinstance(statement["Resource"], list):
+                assert statement["Resource"]
+
+    def _validate_action_exist(self):
+        for statement in self._statements:
+            assert "Action" in statement
 
