@@ -1,4 +1,5 @@
 import json
+import re
 
 from six import string_types
 
@@ -58,6 +59,8 @@ class IAMPolicyDocumentValidator:
         except Exception:
             raise MalformedPolicyDocument("Policy statement must contain resources.")
 
+        self._validate_action_prefix()
+
     def _validate_syntax(self):
         self._policy_json = json.loads(self._policy_document)
         assert isinstance(self._policy_json, dict)
@@ -101,6 +104,8 @@ class IAMPolicyDocumentValidator:
         assert ("Action" not in statement or "NotAction" not in statement)
 
         IAMPolicyDocumentValidator._validate_effect_syntax(statement)
+        IAMPolicyDocumentValidator._validate_action_syntax(statement)
+        IAMPolicyDocumentValidator._validate_not_action_syntax(statement)
         IAMPolicyDocumentValidator._validate_resource_syntax(statement)
         IAMPolicyDocumentValidator._validate_not_resource_syntax(statement)
         IAMPolicyDocumentValidator._validate_condition_syntax(statement)
@@ -113,15 +118,23 @@ class IAMPolicyDocumentValidator:
         assert statement["Effect"].lower() in [allowed_effect.lower() for allowed_effect in ALLOWED_EFFECTS]
 
     @staticmethod
+    def _validate_action_syntax(statement):
+        IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(statement, "Action")
+
+    @staticmethod
+    def _validate_not_action_syntax(statement):
+        IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(statement, "NotAction")
+
+    @staticmethod
     def _validate_resource_syntax(statement):
-        IAMPolicyDocumentValidator._validate_resource_like_syntax(statement, "Resource")
+        IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(statement, "Resource")
 
     @staticmethod
     def _validate_not_resource_syntax(statement):
-        IAMPolicyDocumentValidator._validate_resource_like_syntax(statement, "NotResource")
+        IAMPolicyDocumentValidator._validate_string_or_list_of_strings_syntax(statement, "NotResource")
 
     @staticmethod
-    def _validate_resource_like_syntax(statement, key):
+    def _validate_string_or_list_of_strings_syntax(statement, key):
         if key in statement:
             assert isinstance(statement[key], (string_types, list))
             if isinstance(statement[key], list):
@@ -155,4 +168,19 @@ class IAMPolicyDocumentValidator:
     def _validate_action_exist(self):
         for statement in self._statements:
             assert "Action" in statement
+            if isinstance(statement["Action"], list):
+                assert statement["Action"]
+
+    def _validate_action_prefix(self):
+        for statement in self._statements:
+            action_parts = statement["Action"].split(":")
+            if len(action_parts) == 1:
+                raise MalformedPolicyDocument("Actions/Conditions must be prefaced by a vendor, e.g., iam, sdb, ec2, etc.")
+            elif len(action_parts) > 2:
+                raise MalformedPolicyDocument("Actions/Condition can contain only one colon.")
+
+            vendor_pattern = re.compile(r'[^a-zA-Z0-9\-.]')
+            if vendor_pattern.search(action_parts[0]):
+                raise MalformedPolicyDocument("Vendor {vendor} is not valid".format(vendor=action_parts[0]))
+
 

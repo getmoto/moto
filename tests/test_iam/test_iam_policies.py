@@ -130,6 +130,30 @@ invalid_documents_test_cases = [
     {
         "document": {
             "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "Action": "a a:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
+        },
+        "error_message": 'Vendor a a is not valid'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "Action": "s3:List:Bucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
+        },
+        "error_message": 'Actions/Condition can contain only one colon.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
             "Statement": {
                 "Effect": "Allow",
                 "Action": "s3:ListBucket",
@@ -148,6 +172,17 @@ invalid_documents_test_cases = [
             }
         },
         "error_message": 'Resource adf must be in ARN format or "*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": ""
+            }
+        },
+        "error_message": 'Resource  must be in ARN format or "*".'
     },
     {
         "document": {
@@ -182,6 +217,16 @@ invalid_documents_test_cases = [
             "Version": "2012-10-17",
             "Statement": {
                 "Effect": "Allow",
+                "Action": "invalid"
+            }
+        },
+        "error_message": 'Policy statement must contain resources.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
                 "Resource": "arn:aws:s3:::example_bucket"
             }
         },
@@ -203,6 +248,18 @@ invalid_documents_test_cases = [
             "Statement": {
                 "Effect": "Allow"
             }
+        },
+        "error_message": 'Policy statement must contain actions.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "Action": [],
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
         },
         "error_message": 'Policy statement must contain actions.'
     },
@@ -280,6 +337,29 @@ invalid_documents_test_cases = [
                 "Action": "s3:ListBucket",
                 "Resource": ["adfdf", {}]
             }
+        },
+        "error_message": 'Syntax errors in policy.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Deny",
+                "Action": [[]],
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+        },
+        "error_message": 'Syntax errors in policy.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "Action": {},
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
         },
         "error_message": 'Syntax errors in policy.'
     },
