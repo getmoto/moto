@@ -11,6 +11,7 @@ from cryptography.hazmat.backends import default_backend
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
+from moto.iam.policy_validation import IAMPolicyDocumentValidator
 
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
@@ -568,6 +569,9 @@ class IAMBackend(BaseBackend):
         policy.detach_from(self.get_user(user_name))
 
     def create_policy(self, description, path, policy_document, policy_name):
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         policy = ManagedPolicy(
             policy_name,
             description=description,
