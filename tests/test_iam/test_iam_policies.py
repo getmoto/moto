@@ -429,6 +429,30 @@ def test_create_policy_with_invalid_policy_documents():
                 ]
             },
             "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Statement IDs (SID) in a single policy must be unique.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement": {
+                    "Effect": "Allow",
+                    "NotAction": "s3:ListBucket",
+                    "Action": "iam:dsf",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
+        },
+        {
+            "document": {
+                "Version": "2012-10-17",
+                "Statement": {
+                    "Effect": "Allow",
+                    "Action": "s3:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket",
+                    "NotResource": "*"
+                }
+            },
+            "error_message": 'An error occurred (MalformedPolicyDocument) when calling the CreatePolicy operation: Syntax errors in policy.'
         }
     ]  # TODO add more tests
 
