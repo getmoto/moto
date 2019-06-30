@@ -133,6 +133,18 @@ invalid_documents_test_cases = [
             "Statement":
                 {
                     "Effect": "Allow",
+                    "NotAction": "",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
+        },
+        "error_message": 'Actions/Conditions must be prefaced by a vendor, e.g., iam, sdb, ec2, etc.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
                     "Action": "a a:ListBucket",
                     "Resource": "arn:aws:s3:::example_bucket"
                 }
@@ -154,6 +166,24 @@ invalid_documents_test_cases = [
     {
         "document": {
             "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": "s3s:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": "s:3s:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
+            ]
+        },
+        "error_message": 'Actions/Condition can contain only one colon.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
             "Statement": {
                 "Effect": "Allow",
                 "Action": "s3:ListBucket",
@@ -161,6 +191,18 @@ invalid_documents_test_cases = [
             }
         },
         "error_message": 'Resource invalid resource must be in ARN format or "*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "Action": "s:3:ListBucket",
+                    "Resource": "sdfsadf"
+                }
+        },
+        "error_message": 'Resource sdfsadf must be in ARN format or "*".'
     },
     {
         "document": {
@@ -183,6 +225,42 @@ invalid_documents_test_cases = [
             }
         },
         "error_message": 'Resource  must be in ARN format or "*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "NotAction": "s3s:ListBucket",
+                    "Resource": "a:bsdfdsafsad"
+                }
+        },
+        "error_message": 'Partition "bsdfdsafsad" is not valid for resource "arn:bsdfdsafsad:*:*:*:*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "NotAction": "s3s:ListBucket",
+                    "Resource": "a:b:cadfsdf"
+                }
+        },
+        "error_message": 'Partition "b" is not valid for resource "arn:b:cadfsdf:*:*:*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "NotAction": "s3s:ListBucket",
+                    "Resource": "a:b:c:d:e:f:g:h"
+                }
+        },
+        "error_message": 'Partition "b" is not valid for resource "arn:b:c:d:e:f:g:h".'
     },
     {
         "document": {
@@ -343,11 +421,37 @@ invalid_documents_test_cases = [
     {
         "document": {
             "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "NotAction": "s3:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket",
+                    "NotResource": []
+                }
+        },
+        "error_message": 'Syntax errors in policy.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
             "Statement": {
                 "Effect": "Deny",
                 "Action": [[]],
                 "Resource": "arn:aws:s3:::example_bucket"
             }
+        },
+        "error_message": 'Syntax errors in policy.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "NotAction": "s3s:ListBucket",
+                    "Action": [],
+                    "Resource": "arn:aws:s3:::example_bucket"
+                }
         },
         "error_message": 'Syntax errors in policy.'
     },
@@ -548,6 +652,23 @@ invalid_documents_test_cases = [
     },
     {
         "document": {
+            "Statement": [
+                {
+                    "Sid": "sdf",
+                    "Effect": "Allow",
+                    "Action": "s3:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                },
+                {
+                    "Sid": "sdf",
+                    "Effect": "Allow"
+                }
+            ]
+        },
+        "error_message": 'Policy document must be version 2012-10-17 or greater.'
+    },
+    {
+        "document": {
             "Version": "2012-10-17",
             "Statement": {
                 "Effect": "Allow",
@@ -619,6 +740,29 @@ invalid_documents_test_cases = [
                     "Condition": {
                         "DateGreaterThan": {"a": "sdfdsf"}
                     }
+                }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "Allow",
+                    "NotAction": "s3:ListBucket",
+                    "Resource": "arn:aws::::example_bucket"
+                }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement":
+                {
+                    "Effect": "allow",
+                    "Resource": "arn:aws:s3:us-east-1::example_bucket"
                 }
         },
         "error_message": 'The policy failed legacy parsing'
