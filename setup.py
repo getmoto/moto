@@ -38,7 +38,7 @@ install_requires = [
     "xmltodict",
     "six>1.9",
     "werkzeug",
-    "PyYAML==3.13",
+    "PyYAML>=5.1",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "python-jose<4.0.0",
