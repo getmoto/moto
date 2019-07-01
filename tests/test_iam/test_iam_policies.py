@@ -265,6 +265,31 @@ invalid_documents_test_cases = [
     {
         "document": {
             "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "aws:s3:::example_bucket"
+            }
+        },
+        "error_message": 'Partition "s3" is not valid for resource "arn:s3:::example_bucket:*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": [
+                    "arn:error:s3:::example_bucket",
+                    "arn:error:s3::example_bucket"
+                ]
+            }
+        },
+        "error_message": 'Partition "error" is not valid for resource "arn:error:s3:::example_bucket".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
             "Statement": []
         },
         "error_message": 'Syntax errors in policy.'
@@ -378,6 +403,16 @@ invalid_documents_test_cases = [
                     "Action": "s3:ListBucket",
                     "Resource": "arn:aws:s3::example_bucket"
                 }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3::example_bucket"
+            }
         },
         "error_message": 'The policy failed legacy parsing'
     },
@@ -570,6 +605,38 @@ invalid_documents_test_cases = [
     {
         "document": {
             "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "x": {
+                        "a": "1"
+                    }
+                }
+            }
+        },
+        "error_message": 'Syntax errors in policy.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "ForAnyValue::StringEqualsIfExists": {
+                        "a": "asf"
+                    }
+                }
+            }
+        },
+        "error_message": 'Syntax errors in policy.'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
             "Statement":
                 {
                     "Effect": "Allow",
@@ -733,6 +800,16 @@ invalid_documents_test_cases = [
     },
     {
         "document": {
+            "Statement": {
+                "Effect": "denY",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+        },
+        "error_message": 'Policy document must be version 2012-10-17 or greater.'
+    },
+    {
+        "document": {
             "Version": "2012-10-17",
             "Statement":
                 {
@@ -764,6 +841,115 @@ invalid_documents_test_cases = [
                     "Effect": "allow",
                     "Resource": "arn:aws:s3:us-east-1::example_bucket"
                 }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "sdf",
+                    "Effect": "aLLow",
+                    "Action": "s3:ListBucket",
+                    "Resource": "arn:aws:s3:::example_bucket"
+                },
+                {
+                    "Sid": "sdf",
+                    "Effect": "Allow"
+                }
+            ]
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "NotResource": "arn:aws:s3::example_bucket"
+            }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateLessThanEquals": {
+                        "a": "234-13"
+                    }
+                }
+            }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateLessThanEquals": {
+                        "a": "2016-12-13t2:00:00.593194+1"
+                    }
+                }
+            }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateLessThanEquals": {
+                        "a": "2016-12-13t2:00:00.1999999999+10:59"
+                    }
+                }
+            }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateLessThan": {
+                        "a": "9223372036854775808"
+                    }
+                }
+            }
+        },
+        "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:error:s3:::example_bucket",
+                "Condition": {
+                    "DateGreaterThan": {
+                        "a": "sdfdsf"
+                    }
+                }
+            }
         },
         "error_message": 'The policy failed legacy parsing'
     }
