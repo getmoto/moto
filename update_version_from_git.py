@@ -107,7 +107,7 @@ def release_version_correct():
         initpy = os.path.abspath("moto/__init__.py")
 
         new_version = prerelease_version()
-        print(f'updating version in __init__.py to {new_version}')
+        print('updating version in __init__.py to {new_version}'.format(new_version=new_version))
         migrate_version(initpy, new_version)
     else:
         # check that we are a tag with the same version as in __init__.py
