@@ -46,7 +46,7 @@ def migrate_source_attribute(attr, to_this, target_file, regex):
 def migrate_version(target_file, new_version):
     """Updates __version__ in the source file"""
     regex = r"['\"](.*)['\"]"
-    migrate_source_attribute('__version__', "'%s'" % new_version, target_file, regex)
+    migrate_source_attribute('__version__', "'{new_version}'".format(new_version=new_version), target_file, regex)
 
 
 def is_master_branch():
@@ -76,7 +76,7 @@ def prerelease_version():
 
     assert len(initpy_ver.split('.')) in [3, 4], 'moto/__init__.py version should be like 0.0.2 or 0.0.2.dev'
     assert initpy_ver > ver, 'the moto/__init__.py version should be newer than the last tagged release.'
-    return f'{initpy_ver}.dev{commits_since}'
+    return '{initpy_ver}.dev{commits_since}'.format(initpy_ver=initpy_ver, commits_since=commits_since)
 
 def read(*parts):
     """ Reads in file from *parts.
