@@ -46,7 +46,7 @@ def migrate_source_attribute(attr, to_this, target_file, regex):
 def migrate_version(target_file, new_version):
     """Updates __version__ in the source file"""
     regex = r"['\"](.*)['\"]"
-    migrate_source_attribute('__version__', f"'{new_version}'", target_file, regex)
+    migrate_source_attribute('__version__', "'%s'" % new_version, target_file, regex)
 
 
 def is_master_branch():
