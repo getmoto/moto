@@ -764,12 +764,12 @@ class IAMBackend(BaseBackend):
             role.tags.pop(ref_key, None)
 
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
-
-        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
-        iam_policy_document_validator.validate()
 
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
