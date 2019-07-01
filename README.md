@@ -318,3 +318,11 @@ boto3.resource(
 ```console
 $ pip install moto
 ```
+
+## Releases
+
+Releases are done from travisci. Fairly closely following this:
+https://docs.travis-ci.com/user/deployment/pypi/
+
+- Commits to `master` branch do a dev deploy to pypi.
+- Commits to a tag do a real deploy to pypi.

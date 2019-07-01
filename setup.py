@@ -18,6 +18,15 @@ def read(*parts):
         return fp.read()
 
 
+def get_version():
+    version_file = read('moto', '__init__.py')
+    version_match = re.search(r'^__version__ = [\'"]([^\'"]*)[\'"]',
+                              version_file, re.MULTILINE)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError('Unable to find version string.')
+
+
 install_requires = [
     "Jinja2>=2.10.1",
     "boto>=2.36.0",
@@ -57,7 +66,7 @@ else:
 
 setup(
     name='moto',
-    version='1.3.8',
+    version=get_version(),
     description='A library that allows your python tests to easily'
                 ' mock out the boto library',
     long_description=read('README.md'),
