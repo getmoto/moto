@@ -61,7 +61,7 @@ def git_tag_name():
     return tag_branch
 
 def get_git_version_info():
-    cmd = 'git describe --tags'
+    cmd = 'git describe --tags --always'
     ver_str = subprocess.check_output(cmd, shell=True)
     ver, commits_since, githash = ver_str.decode().strip().split('-')
     return ver, commits_since, githash
