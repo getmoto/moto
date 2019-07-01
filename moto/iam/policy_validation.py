@@ -231,12 +231,12 @@ class IAMPolicyDocumentValidator:
     def _strip_condition_key(condition_key):
         for valid_prefix in VALID_CONDITION_PREFIXES:
             if condition_key.startswith(valid_prefix):
-                condition_key = condition_key.lstrip(valid_prefix)
+                condition_key = condition_key[len(valid_prefix):]
                 break  # strip only the first match
 
         for valid_postfix in VALID_CONDITION_POSTFIXES:
-            if condition_key.startswith(valid_postfix):
-                condition_key = condition_key.rstrip(valid_postfix)
+            if condition_key.endswith(valid_postfix):
+                condition_key = condition_key[:-len(valid_postfix)]
                 break  # strip only the first match
 
         return condition_key
@@ -284,13 +284,13 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_action_prefix(action):
         action_parts = action.split(":")
-        if len(action_parts) == 1:
+        if len(action_parts) == 1 and action_parts[0] != "*":
             raise MalformedPolicyDocument("Actions/Conditions must be prefaced by a vendor, e.g., iam, sdb, ec2, etc.")
         elif len(action_parts) > 2:
             raise MalformedPolicyDocument("Actions/Condition can contain only one colon.")
 
         vendor_pattern = re.compile(r'[^a-zA-Z0-9\-.]')
-        if vendor_pattern.search(action_parts[0]):
+        if action_parts[0] != "*" and vendor_pattern.search(action_parts[0]):
             raise MalformedPolicyDocument("Vendor {vendor} is not valid".format(vendor=action_parts[0]))
 
     def _validate_resources_for_formats(self):
@@ -370,18 +370,20 @@ class IAMPolicyDocumentValidator:
     def _legacy_parse_statement(statement):
         assert statement["Effect"] in VALID_EFFECTS  # case-sensitive matching
         if "Condition" in statement:
-            for condition_key, condition_value in statement["Condition"]:
+            for condition_key, condition_value in statement["Condition"].items():
                 IAMPolicyDocumentValidator._legacy_parse_condition(condition_key, condition_value)
 
     @staticmethod
     def _legacy_parse_resource_like(statement, key):
         if isinstance(statement[key], string_types):
-            assert statement[key] == "*" or statement[key].count(":") >= 5
-            assert statement[key] == "*" or statement[key].split(":")[2] != ""
+            if statement[key] != "*":
+                assert statement[key].count(":") >= 5 or "::" not in statement[key]
+                assert statement[key].split(":")[2] != ""
         else:  # list
             for resource in statement[key]:
-                assert resource == "*" or resource.count(":") >= 5
-                assert resource == "*" or resource[2] != ""
+                if resource != "*":
+                    assert resource.count(":") >= 5 or "::" not in resource
+                    assert resource[2] != ""
 
     @staticmethod
     def _legacy_parse_condition(condition_key, condition_value):
@@ -405,8 +407,9 @@ class IAMPolicyDocumentValidator:
     @staticmethod
     def _validate_iso_8601_datetime(datetime):
         datetime_parts = datetime.partition("t")
-        date_parts = datetime_parts[0].split("-")
-        year = date_parts[0]
+        negative_year = datetime_parts[0].startswith("-")
+        date_parts = datetime_parts[0][1:].split("-") if negative_year else datetime_parts[0].split("-")
+        year = "-" + date_parts[0] if negative_year else date_parts[0]
         assert -292275054 <= int(year) <= 292278993
         if len(date_parts) > 1:
             month = date_parts[1]
