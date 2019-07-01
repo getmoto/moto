@@ -42,6 +42,14 @@ class MalformedCertificate(RESTError):
             'MalformedCertificate', 'Certificate {cert} is malformed'.format(cert=cert))
 
 
+class MalformedPolicyDocument(RESTError):
+    code = 400
+
+    def __init__(self, message=""):
+        super(MalformedPolicyDocument, self).__init__(
+            'MalformedPolicyDocument', message)
+
+
 class DuplicateTags(RESTError):
     code = 400
 
