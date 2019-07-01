@@ -88,9 +88,9 @@ VALID_RESOURCE_PATH_STARTING_VALUES = {
 
 class IAMPolicyDocumentValidator:
 
-    def __init__(self, policy_document: str):
-        self._policy_document: str = policy_document
-        self._policy_json: dict = {}
+    def __init__(self, policy_document):
+        self._policy_document = policy_document
+        self._policy_json = {}
         self._statements = []
         self._resource_error = ""  # the first resource error found that does not generate a legacy parsing error
 
@@ -308,7 +308,7 @@ class IAMPolicyDocumentValidator:
                     for resource in sorted(statement[key], reverse=True):
                         self._validate_resource_format(resource)
                 if self._resource_error == "":
-                    IAMPolicyDocumentValidator._legacy_parse_resource_like(statement,  key)
+                    IAMPolicyDocumentValidator._legacy_parse_resource_like(statement, key)
 
     def _validate_resource_format(self, resource):
         if resource != "*":
@@ -327,12 +327,12 @@ class IAMPolicyDocumentValidator:
                 arn3 = remaining_resource_parts[2] if len(remaining_resource_parts) > 2 else "*"
                 arn4 = ":".join(remaining_resource_parts[3:]) if len(remaining_resource_parts) > 3 else "*"
                 self._resource_error = 'Partition "{partition}" is not valid for resource "arn:{partition}:{arn1}:{arn2}:{arn3}:{arn4}".'.format(
-                        partition=resource_partitions[0],
-                        arn1=arn1,
-                        arn2=arn2,
-                        arn3=arn3,
-                        arn4=arn4
-                    )
+                    partition=resource_partitions[0],
+                    arn1=arn1,
+                    arn2=arn2,
+                    arn3=arn3,
+                    arn4=arn4
+                )
                 return
 
             if resource_partitions[1] != ":":
