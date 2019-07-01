@@ -26,6 +26,14 @@ class IAMReportNotPresentException(RESTError):
             "ReportNotPresent", message)
 
 
+class IAMLimitExceededException(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(IAMLimitExceededException, self).__init__(
+            "LimitExceeded", message)
+
+
 class MalformedCertificate(RESTError):
     code = 400
 

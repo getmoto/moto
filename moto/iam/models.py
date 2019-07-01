@@ -13,8 +13,8 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
-    DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
+from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, IAMLimitExceededException, \
+    MalformedCertificate, DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 ACCOUNT_ID = 123456789012
@@ -65,6 +65,13 @@ class Policy(BaseModel):
 
         self.create_date = create_date if create_date is not None else datetime.utcnow()
         self.update_date = update_date if update_date is not None else datetime.utcnow()
+
+    def update_default_version(self, new_default_version_id):
+        for version in self.versions:
+            if version.version_id == self.default_version_id:
+                version.is_default = False
+                break
+        self.default_version_id = new_default_version_id
 
     @property
     def created_iso_8601(self):
@@ -760,12 +767,15 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
+        if len(policy.versions) >= 5:
+            raise IAMLimitExceededException("A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version.")
+        set_as_default = (set_as_default == "true")  # convert it to python bool
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
         version.version_id = 'v{0}'.format(policy.next_version_num)
         policy.next_version_num += 1
         if set_as_default:
-            policy.default_version_id = version.version_id
+            policy.update_default_version(version.version_id)
         return version
 
     def get_policy_version(self, policy_arn, version_id):
@@ -788,8 +798,8 @@ class IAMBackend(BaseBackend):
         if not policy:
             raise IAMNotFoundException("Policy not found")
         if version_id == policy.default_version_id:
-            raise IAMConflictException(
-                "Cannot delete the default version of a policy")
+            raise IAMConflictException(code="DeleteConflict",
+                                       message="Cannot delete the default version of a policy.")
         for i, v in enumerate(policy.versions):
             if v.version_id == version_id:
                 del policy.versions[i]
