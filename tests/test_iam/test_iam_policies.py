@@ -6,8 +6,7 @@ from nose.tools import assert_raises
 
 from moto import mock_iam
 
-
-invalid_documents_test_cases = [
+invalid_policy_document_test_cases = [
     {
         "document": "This is not a json document",
         "error_message": 'Syntax errors in policy.'
@@ -191,6 +190,35 @@ invalid_documents_test_cases = [
             }
         },
         "error_message": 'Resource invalid resource must be in ARN format or "*".'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "EnableDisableHongKong",
+                    "Effect": "Allow",
+                    "Action": [
+                        "account:EnableRegion",
+                        "account:DisableRegion"
+                    ],
+                    "Resource": "",
+                    "Condition": {
+                        "StringEquals": {"account:TargetRegion": "ap-east-1"}
+                    }
+                },
+                {
+                    "Sid": "ViewConsole",
+                    "Effect": "Allow",
+                    "Action": [
+                        "aws-portal:ViewAccount",
+                        "account:ListRegions"
+                    ],
+                    "Resource": ""
+                }
+            ]
+        },
+        "error_message": 'Resource  must be in ARN format or "*".'
     },
     {
         "document": {
@@ -952,13 +980,865 @@ invalid_documents_test_cases = [
             }
         },
         "error_message": 'The policy failed legacy parsing'
+    },
+    {
+        "document": {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws::fdsasf"
+            }
+        },
+        "error_message": 'The policy failed legacy parsing'
     }
-]  # TODO add more tests
+]
+
+valid_policy_documents = [
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": [
+                "arn:aws:s3:::example_bucket"
+            ]
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "iam: asdf safdsf af ",
+            "Resource": "arn:aws:s3:::example_bucket"
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": [
+                "arn:aws:s3:::example_bucket",
+                "*"
+            ]
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "arn:aws:s3:::example_bucket"
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "service-prefix:action-name",
+            "Resource": "*",
+            "Condition": {
+                "DateGreaterThan": {"aws:CurrentTime": "2017-07-01T00:00:00Z"},
+                "DateLessThan": {"aws:CurrentTime": "2017-12-31T23:59:59Z"}
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "fsx:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:iam:::user/example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s33:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:fdsasf"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {}
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {"ForAllValues:StringEquals": {"aws:TagKeys": "Department"}}
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:cloudwatch:us-east-1::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:ec2:us-east-1::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:invalid-service:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:invalid-service:us-east-1::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateGreaterThan": {"aws:CurrentTime": "2017-07-01T00:00:00Z"},
+                    "DateLessThan": {"aws:CurrentTime": "2017-12-31T23:59:59Z"}
+                }
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateGreaterThan": {}
+                }
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "DateGreaterThan": {"a": []}
+                }
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket",
+                "Condition": {
+                    "a": {}
+                }
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Sid": "dsfsdfsdfsdfsdfsadfsd",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "ConsoleDisplay",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:GetRole",
+                    "iam:GetUser",
+                    "iam:ListRoles",
+                    "iam:ListRoleTags",
+                    "iam:ListUsers",
+                    "iam:ListUserTags"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "AddTag",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:TagUser",
+                    "iam:TagRole"
+                ],
+                "Resource": "*",
+                "Condition": {
+                    "StringEquals": {
+                        "aws:RequestTag/CostCenter": [
+                            "A-123",
+                            "B-456"
+                        ]
+                    },
+                    "ForAllValues:StringEquals": {"aws:TagKeys": "CostCenter"}
+                }
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "NotAction": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket"
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Deny",
+            "Action": "s3:*",
+            "NotResource": [
+                "arn:aws:s3:::HRBucket/Payroll",
+                "arn:aws:s3:::HRBucket/Payroll/*"
+            ]
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Id": "sdfsdfsdf",
+        "Statement": {
+            "Effect": "Allow",
+            "NotAction": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket"
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "aaaaaadsfdsafsadfsadfaaaaa:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3-s:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "Action": "s3.s:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement":
+            {
+                "Effect": "Allow",
+                "NotAction": "s3:ListBucket",
+                "NotResource": "*"
+            }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "sdf",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            },
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example_bucket"
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "DateGreaterThan": {
+                    "a": "01T"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "x": {
+                },
+                "y": {}
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "StringEqualsIfExists": {
+                    "a": "asf"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "ForAnyValue:StringEqualsIfExists": {
+                    "a": "asf"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "DateLessThanEquals": {
+                    "a": "2019-07-01T13:20:15Z"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "DateLessThanEquals": {
+                    "a": "2016-12-13T21:20:37.593194+00:00"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "DateLessThanEquals": {
+                    "a": "2016-12-13t2:00:00.593194+23"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket",
+            "Condition": {
+                "DateLessThan": {
+                    "a": "-292275054"
+                }
+            }
+        }
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowViewAccountInfo",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:GetAccountPasswordPolicy",
+                    "iam:GetAccountSummary",
+                    "iam:ListVirtualMFADevices"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "AllowManageOwnPasswords",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:ChangePassword",
+                    "iam:GetUser"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnAccessKeys",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:CreateAccessKey",
+                    "iam:DeleteAccessKey",
+                    "iam:ListAccessKeys",
+                    "iam:UpdateAccessKey"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnSigningCertificates",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeleteSigningCertificate",
+                    "iam:ListSigningCertificates",
+                    "iam:UpdateSigningCertificate",
+                    "iam:UploadSigningCertificate"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnSSHPublicKeys",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeleteSSHPublicKey",
+                    "iam:GetSSHPublicKey",
+                    "iam:ListSSHPublicKeys",
+                    "iam:UpdateSSHPublicKey",
+                    "iam:UploadSSHPublicKey"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnGitCredentials",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:CreateServiceSpecificCredential",
+                    "iam:DeleteServiceSpecificCredential",
+                    "iam:ListServiceSpecificCredentials",
+                    "iam:ResetServiceSpecificCredential",
+                    "iam:UpdateServiceSpecificCredential"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnVirtualMFADevice",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:CreateVirtualMFADevice",
+                    "iam:DeleteVirtualMFADevice"
+                ],
+                "Resource": "arn:aws:iam::*:mfa/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnUserMFA",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeactivateMFADevice",
+                    "iam:EnableMFADevice",
+                    "iam:ListMFADevices",
+                    "iam:ResyncMFADevice"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "DenyAllExceptListedIfNoMFA",
+                "Effect": "Deny",
+                "NotAction": [
+                    "iam:CreateVirtualMFADevice",
+                    "iam:EnableMFADevice",
+                    "iam:GetUser",
+                    "iam:ListMFADevices",
+                    "iam:ListVirtualMFADevices",
+                    "iam:ResyncMFADevice",
+                    "sts:GetSessionToken"
+                ],
+                "Resource": "*",
+                "Condition": {
+                    "BoolIfExists": {
+                        "aws:MultiFactorAuthPresent": "false"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "ListAndDescribe",
+                "Effect": "Allow",
+                "Action": [
+                    "dynamodb:List*",
+                    "dynamodb:DescribeReservedCapacity*",
+                    "dynamodb:DescribeLimits",
+                    "dynamodb:DescribeTimeToLive"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "SpecificTable",
+                "Effect": "Allow",
+                "Action": [
+                    "dynamodb:BatchGet*",
+                    "dynamodb:DescribeStream",
+                    "dynamodb:DescribeTable",
+                    "dynamodb:Get*",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:BatchWrite*",
+                    "dynamodb:CreateTable",
+                    "dynamodb:Delete*",
+                    "dynamodb:Update*",
+                    "dynamodb:PutItem"
+                ],
+                "Resource": "arn:aws:dynamodb:*:*:table/MyTable"
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:AttachVolume",
+                    "ec2:DetachVolume"
+                ],
+                "Resource": [
+                    "arn:aws:ec2:*:*:volume/*",
+                    "arn:aws:ec2:*:*:instance/*"
+                ],
+                "Condition": {
+                    "ArnEquals": {"ec2:SourceInstanceARN": "arn:aws:ec2:*:*:instance/instance-id"}
+                }
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:AttachVolume",
+                    "ec2:DetachVolume"
+                ],
+                "Resource": "arn:aws:ec2:*:*:instance/*",
+                "Condition": {
+                    "StringEquals": {"ec2:ResourceTag/Department": "Development"}
+                }
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:AttachVolume",
+                    "ec2:DetachVolume"
+                ],
+                "Resource": "arn:aws:ec2:*:*:volume/*",
+                "Condition": {
+                    "StringEquals": {"ec2:ResourceTag/VolumeUser": "${aws:username}"}
+                }
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "StartStopIfTags",
+                "Effect": "Allow",
+                "Action": [
+                    "ec2:StartInstances",
+                    "ec2:StopInstances",
+                    "ec2:DescribeTags"
+                ],
+                "Resource": "arn:aws:ec2:region:account-id:instance/*",
+                "Condition": {
+                    "StringEquals": {
+                        "ec2:ResourceTag/Project": "DataAnalytics",
+                        "aws:PrincipalTag/Department": "Data"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "ListYourObjects",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": ["arn:aws:s3:::bucket-name"],
+                "Condition": {
+                    "StringLike": {
+                        "s3:prefix": ["cognito/application-name/${cognito-identity.amazonaws.com:sub}"]
+                    }
+                }
+            },
+            {
+                "Sid": "ReadWriteDeleteYourObjects",
+                "Effect": "Allow",
+                "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                ],
+                "Resource": [
+                    "arn:aws:s3:::bucket-name/cognito/application-name/${cognito-identity.amazonaws.com:sub}",
+                    "arn:aws:s3:::bucket-name/cognito/application-name/${cognito-identity.amazonaws.com:sub}/*"
+                ]
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:ListAllMyBuckets",
+                    "s3:GetBucketLocation"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::bucket-name",
+                "Condition": {
+                    "StringLike": {
+                        "s3:prefix": [
+                            "",
+                            "home/",
+                            "home/${aws:userid}/*"
+                        ]
+                    }
+                }
+            },
+            {
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": [
+                    "arn:aws:s3:::bucket-name/home/${aws:userid}",
+                    "arn:aws:s3:::bucket-name/home/${aws:userid}/*"
+                ]
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "ConsoleAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "s3:GetAccountPublicAccessBlock",
+                    "s3:GetBucketAcl",
+                    "s3:GetBucketLocation",
+                    "s3:GetBucketPolicyStatus",
+                    "s3:GetBucketPublicAccessBlock",
+                    "s3:ListAllMyBuckets"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "ListObjectsInBucket",
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": ["arn:aws:s3:::bucket-name"]
+            },
+            {
+                "Sid": "AllObjectActions",
+                "Effect": "Allow",
+                "Action": "s3:*Object",
+                "Resource": ["arn:aws:s3:::bucket-name/*"]
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowViewAccountInfo",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:GetAccountPasswordPolicy",
+                    "iam:GetAccountSummary"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "AllowManageOwnPasswords",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:ChangePassword",
+                    "iam:GetUser"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnAccessKeys",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:CreateAccessKey",
+                    "iam:DeleteAccessKey",
+                    "iam:ListAccessKeys",
+                    "iam:UpdateAccessKey"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnSigningCertificates",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeleteSigningCertificate",
+                    "iam:ListSigningCertificates",
+                    "iam:UpdateSigningCertificate",
+                    "iam:UploadSigningCertificate"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnSSHPublicKeys",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeleteSSHPublicKey",
+                    "iam:GetSSHPublicKey",
+                    "iam:ListSSHPublicKeys",
+                    "iam:UpdateSSHPublicKey",
+                    "iam:UploadSSHPublicKey"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            },
+            {
+                "Sid": "AllowManageOwnGitCredentials",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:CreateServiceSpecificCredential",
+                    "iam:DeleteServiceSpecificCredential",
+                    "iam:ListServiceSpecificCredentials",
+                    "iam:ResetServiceSpecificCredential",
+                    "iam:UpdateServiceSpecificCredential"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}"
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "ec2:*",
+                "Resource": "*",
+                "Effect": "Allow",
+                "Condition": {
+                    "StringEquals": {
+                        "ec2:Region": "region"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "rds:*",
+                "Resource": ["arn:aws:rds:region:*:*"]
+            },
+            {
+                "Effect": "Allow",
+                "Action": ["rds:Describe*"],
+                "Resource": ["*"]
+            }
+        ]
+    }
+]
 
 
 def test_create_policy_with_invalid_policy_documents():
-    for test_case in invalid_documents_test_cases:
+    for test_case in invalid_policy_document_test_cases:
         yield check_create_policy_with_invalid_policy_document, test_case
+
+
+def test_create_policy_with_valid_policy_documents():
+    for valid_policy_document in valid_policy_documents:
+        yield check_create_policy_with_valid_policy_document, valid_policy_document
 
 
 @mock_iam
@@ -971,3 +1851,11 @@ def check_create_policy_with_invalid_policy_document(test_case):
     ex.exception.response['Error']['Code'].should.equal('MalformedPolicyDocument')
     ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
     ex.exception.response['Error']['Message'].should.equal(test_case["error_message"])
+
+
+@mock_iam
+def check_create_policy_with_valid_policy_document(valid_policy_document):
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_policy(
+        PolicyName="TestCreatePolicy",
+        PolicyDocument=json.dumps(valid_policy_document))

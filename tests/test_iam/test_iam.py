@@ -859,7 +859,6 @@ def test_get_access_key_last_used():
 
 @mock_iam
 def test_get_account_authorization_details():
-    import json
     test_policy = json.dumps({
         "Version": "2012-10-17",
         "Statement": [
@@ -1291,7 +1290,6 @@ def test_update_role():
 
 @mock_iam()
 def test_list_entities_for_policy():
-    import json
     test_policy = json.dumps({
         "Version": "2012-10-17",
         "Statement": [
