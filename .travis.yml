@@ -34,6 +34,7 @@ after_success:
 - coveralls
 before_deploy:
 - git checkout $TRAVIS_BRANCH
+- git fetch --unshallow
 - python update_version_from_git.py
 deploy:
   - provider: pypi
