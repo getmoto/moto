@@ -76,8 +76,7 @@ def prerelease_version():
 
     assert len(initpy_ver.split('.')) in [3, 4], 'moto/__init__.py version should be like 0.0.2 or 0.0.2.dev'
     assert initpy_ver > ver, 'the moto/__init__.py version should be newer than the last tagged release.'
-    # return f'{initpy_ver}.dev{commits_since}+git.{commits_since}.{githash}'
-    return f'{initpy_ver}{commits_since}'
+    return f'{initpy_ver}.dev{commits_since}.{githash}'
 
 def read(*parts):
     """ Reads in file from *parts.
