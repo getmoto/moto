@@ -33,6 +33,45 @@ VALID_EFFECTS = [
     "Deny"
 ]
 
+VALID_CONDITIONS = [
+    "StringEquals",
+    "StringNotEquals",
+    "StringEqualsIgnoreCase",
+    "StringNotEqualsIgnoreCase",
+    "StringLike",
+    "StringNotLike",
+    "NumericEquals",
+    "NumericNotEquals",
+    "NumericLessThan",
+    "NumericLessThanEquals",
+    "NumericGreaterThan",
+    "NumericGreaterThanEquals",
+    "DateEquals",
+    "DateNotEquals",
+    "DateLessThan",
+    "DateLessThanEquals",
+    "DateGreaterThan",
+    "DateGreaterThanEquals",
+    "Bool",
+    "BinaryEquals",
+    "IpAddress",
+    "NotIpAddress",
+    "ArnEquals",
+    "ArnLike",
+    "ArnNotEquals",
+    "ArnNotLike",
+    "Null"
+]
+
+VALID_CONDITION_PREFIXES = [
+    "ForAnyValue:",
+    "ForAllValues:"
+]
+
+VALID_CONDITION_POSTFIXES = [
+    "IfExists"
+]
+
 SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS = {
     "iam": 'IAM resource {resource} cannot contain region information.',
     "s3": 'Resource {resource} can not contain region information.'
@@ -53,6 +92,7 @@ class IAMPolicyDocumentValidator:
         self._policy_document: str = policy_document
         self._policy_json: dict = {}
         self._statements = []
+        self._resource_error = ""  # the first resource error found that does not generate a legacy parsing error
 
     def validate(self):
         try:
@@ -63,6 +103,12 @@ class IAMPolicyDocumentValidator:
             self._validate_version()
         except Exception:
             raise MalformedPolicyDocument("Policy document must be version 2012-10-17 or greater.")
+        try:
+            self._perform_first_legacy_parsing()
+            self._validate_resources_for_formats()
+            self._validate_not_resources_for_formats()
+        except Exception:
+            raise MalformedPolicyDocument("The policy failed legacy parsing")
         try:
             self._validate_sid_uniqueness()
         except Exception:
@@ -76,8 +122,8 @@ class IAMPolicyDocumentValidator:
         except Exception:
             raise MalformedPolicyDocument("Policy statement must contain resources.")
 
-        self._validate_resources_for_formats()
-        self._validate_not_resources_for_formats()
+        if self._resource_error != "":
+            raise MalformedPolicyDocument(self._resource_error)
 
         self._validate_actions_for_prefixes()
         self._validate_not_actions_for_prefixes()
@@ -175,8 +221,25 @@ class IAMPolicyDocumentValidator:
             assert isinstance(statement["Condition"], dict)
             for condition_key, condition_value in statement["Condition"].items():
                 assert isinstance(condition_value, dict)
-                for condition_data_key, condition_data_value in condition_value.items():
-                    assert isinstance(condition_data_value, (list, string_types))
+                for condition_element_key, condition_element_value in condition_value.items():
+                    assert isinstance(condition_element_value, (list, string_types))
+
+                if IAMPolicyDocumentValidator._strip_condition_key(condition_key) not in VALID_CONDITIONS:
+                    assert not condition_value  # empty dict
+
+    @staticmethod
+    def _strip_condition_key(condition_key):
+        for valid_prefix in VALID_CONDITION_PREFIXES:
+            if condition_key.startswith(valid_prefix):
+                condition_key = condition_key.lstrip(valid_prefix)
+                break  # strip only the first match
+
+        for valid_postfix in VALID_CONDITION_POSTFIXES:
+            if condition_key.startswith(valid_postfix):
+                condition_key = condition_key.rstrip(valid_postfix)
+                break  # strip only the first match
+
+        return condition_key
 
     @staticmethod
     def _validate_sid_syntax(statement):
@@ -242,43 +305,47 @@ class IAMPolicyDocumentValidator:
                 if isinstance(statement[key], string_types):
                     self._validate_resource_format(statement[key])
                 else:
-                    for resource in statement[key]:
+                    for resource in sorted(statement[key], reverse=True):
                         self._validate_resource_format(resource)
+                if self._resource_error == "":
+                    IAMPolicyDocumentValidator._legacy_parse_resource_like(statement,  key)
 
-    @staticmethod
-    def _validate_resource_format(resource):
+    def _validate_resource_format(self, resource):
         if resource != "*":
             resource_partitions = resource.partition(":")
 
             if resource_partitions[1] == "":
-                raise MalformedPolicyDocument('Resource {resource} must be in ARN format or "*".'.format(resource=resource))
+                self._resource_error = 'Resource {resource} must be in ARN format or "*".'.format(resource=resource)
+                return
 
             resource_partitions = resource_partitions[2].partition(":")
             if resource_partitions[0] != "aws":
                 remaining_resource_parts = resource_partitions[2].split(":")
 
-                arn1 = remaining_resource_parts[0] if remaining_resource_parts[0] != "" else "*"
+                arn1 = remaining_resource_parts[0] if remaining_resource_parts[0] != "" or len(remaining_resource_parts) > 1 else "*"
                 arn2 = remaining_resource_parts[1] if len(remaining_resource_parts) > 1 else "*"
                 arn3 = remaining_resource_parts[2] if len(remaining_resource_parts) > 2 else "*"
                 arn4 = ":".join(remaining_resource_parts[3:]) if len(remaining_resource_parts) > 3 else "*"
-                raise MalformedPolicyDocument(
-                    'Partition "{partition}" is not valid for resource "arn:{partition}:{arn1}:{arn2}:{arn3}:{arn4}".'.format(
+                self._resource_error = 'Partition "{partition}" is not valid for resource "arn:{partition}:{arn1}:{arn2}:{arn3}:{arn4}".'.format(
                         partition=resource_partitions[0],
                         arn1=arn1,
                         arn2=arn2,
                         arn3=arn3,
                         arn4=arn4
-                    ))
+                    )
+                return
 
             if resource_partitions[1] != ":":
-                raise MalformedPolicyDocument("Resource vendor must be fully qualified and cannot contain regexes.")
+                self._resource_error = "Resource vendor must be fully qualified and cannot contain regexes."
+                return
 
             resource_partitions = resource_partitions[2].partition(":")
 
             service = resource_partitions[0]
 
             if service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys() and not resource_partitions[2].startswith(":"):
-                raise MalformedPolicyDocument(SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].format(resource=resource))
+                self._resource_error = SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].format(resource=resource)
+                return
 
             resource_partitions = resource_partitions[2].partition(":")
             resource_partitions = resource_partitions[2].partition(":")
@@ -290,8 +357,91 @@ class IAMPolicyDocumentValidator:
                         valid_start = True
                         break
                 if not valid_start:
-                    raise MalformedPolicyDocument(VALID_RESOURCE_PATH_STARTING_VALUES[service]["error_message"].format(
+                    self._resource_error = VALID_RESOURCE_PATH_STARTING_VALUES[service]["error_message"].format(
                         values=", ".join(VALID_RESOURCE_PATH_STARTING_VALUES[service]["values"])
-                    ))
+                    )
 
+    def _perform_first_legacy_parsing(self):
+        """This method excludes legacy parsing resources, since that have to be done later."""
+        for statement in self._statements:
+            self._legacy_parse_statement(statement)
 
+    @staticmethod
+    def _legacy_parse_statement(statement):
+        assert statement["Effect"] in VALID_EFFECTS  # case-sensitive matching
+        if "Condition" in statement:
+            for condition_key, condition_value in statement["Condition"]:
+                IAMPolicyDocumentValidator._legacy_parse_condition(condition_key, condition_value)
+
+    @staticmethod
+    def _legacy_parse_resource_like(statement, key):
+        if isinstance(statement[key], string_types):
+            assert statement[key] == "*" or statement[key].count(":") >= 5
+            assert statement[key] == "*" or statement[key].split(":")[2] != ""
+        else:  # list
+            for resource in statement[key]:
+                assert resource == "*" or resource.count(":") >= 5
+                assert resource == "*" or resource[2] != ""
+
+    @staticmethod
+    def _legacy_parse_condition(condition_key, condition_value):
+        stripped_condition_key = IAMPolicyDocumentValidator._strip_condition_key(condition_key)
+
+        if stripped_condition_key.startswith("Date"):
+            for condition_element_key, condition_element_value in condition_value.items():
+                if isinstance(condition_element_value, string_types):
+                    IAMPolicyDocumentValidator._legacy_parse_date_condition_value(condition_element_value)
+                else:  # it has to be a list
+                    for date_condition_value in condition_element_value:
+                        IAMPolicyDocumentValidator._legacy_parse_date_condition_value(date_condition_value)
+
+    @staticmethod
+    def _legacy_parse_date_condition_value(date_condition_value):
+        if "t" in date_condition_value.lower() or "-" in date_condition_value:
+            IAMPolicyDocumentValidator._validate_iso_8601_datetime(date_condition_value.lower())
+        else:  # timestamp
+            assert 0 <= int(date_condition_value) <= 9223372036854775807
+
+    @staticmethod
+    def _validate_iso_8601_datetime(datetime):
+        datetime_parts = datetime.partition("t")
+        date_parts = datetime_parts[0].split("-")
+        year = date_parts[0]
+        assert -292275054 <= int(year) <= 292278993
+        if len(date_parts) > 1:
+            month = date_parts[1]
+            assert 1 <= int(month) <= 12
+        if len(date_parts) > 2:
+            day = date_parts[2]
+            assert 1 <= int(day) <= 31
+        assert len(date_parts) < 4
+
+        time_parts = datetime_parts[2].split(":")
+        if time_parts[0] != "":
+            hours = time_parts[0]
+            assert 0 <= int(hours) <= 23
+        if len(time_parts) > 1:
+            minutes = time_parts[1]
+            assert 0 <= int(minutes) <= 59
+        if len(time_parts) > 2:
+            if "z" in time_parts[2]:
+                seconds_with_decimal_fraction = time_parts[2].partition("z")[0]
+                assert time_parts[2].partition("z")[2] == ""
+            elif "+" in time_parts[2]:
+                seconds_with_decimal_fraction = time_parts[2].partition("+")[0]
+                time_zone_data = time_parts[2].partition("+")[2].partition(":")
+                time_zone_hours = time_zone_data[0]
+                assert len(time_zone_hours) == 2
+                assert 0 <= int(time_zone_hours) <= 23
+                if time_zone_data[1] == ":":
+                    time_zone_minutes = time_zone_data[2]
+                    assert len(time_zone_minutes) == 2
+                    assert 0 <= int(time_zone_minutes) <= 59
+            else:
+                seconds_with_decimal_fraction = time_parts[2]
+            seconds_with_decimal_fraction_partition = seconds_with_decimal_fraction.partition(".")
+            seconds = seconds_with_decimal_fraction_partition[0]
+            assert 0 <= int(seconds) <= 59
+            if seconds_with_decimal_fraction_partition[1] == ".":
+                decimal_seconds = seconds_with_decimal_fraction_partition[2]
+                assert 0 <= int(decimal_seconds) <= 999999999
