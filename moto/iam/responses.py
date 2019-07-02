@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from .models import iam_backend, User
+from .models import iam_backend
+
+AVATAO_USER_NAME = "avatao-user"
 
 
 class IamResponse(BaseResponse):
@@ -425,11 +427,10 @@ class IamResponse(BaseResponse):
 
     def get_user(self):
         user_name = self._get_param('UserName')
-        if user_name:
-            user = iam_backend.get_user(user_name)
-        else:
-            user = User(name='default_user')
-            # If no user is specific, IAM returns the current user
+        if not user_name:
+            user_name = AVATAO_USER_NAME
+            # If no user is specified, IAM returns the current user
+        user = iam_backend.get_user(user_name)
 
         template = self.response_template(USER_TEMPLATE)
         return template.render(action='Get', user=user)
@@ -456,7 +457,6 @@ class IamResponse(BaseResponse):
 
     def create_login_profile(self):
         user_name = self._get_param('UserName')
-        password = self._get_param('Password')
         password = self._get_param('Password')
         user = iam_backend.create_login_profile(user_name, password)
 
