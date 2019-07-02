@@ -740,7 +740,7 @@ def test_batch_get_image_no_tags():
 @mock_ecr
 def test_batch_delete_image_by_tag():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -748,14 +748,13 @@ def test_batch_delete_image_by_tag():
 
     tags = ['v1', 'v1.0', 'latest']
     for tag in tags:
-        put_response = client.put_image(
+        client.put_image(
             repositoryName='test_repository',
             imageManifest=json.dumps(manifest),
             imageTag=tag,
         )
 
     describe_response1 = client.describe_images(repositoryName='test_repository')
-    image_digest = describe_response1['imageDetails'][0]['imageDigest']
 
     batch_delete_response = client.batch_delete_image(
         registryId='012345678910',
@@ -785,9 +784,51 @@ def test_batch_delete_image_by_tag():
 
 
 @mock_ecr
+def test_batch_delete_image_delete_last_tag():
+    client = boto3.client('ecr', region_name='us-east-1')
+    client.create_repository(
+        repositoryName='test_repository'
+    )
+
+    client.put_image(
+        repositoryName='test_repository',
+        imageManifest=json.dumps(_create_image_manifest()),
+        imageTag='v1',
+    )
+
+    describe_response1 = client.describe_images(repositoryName='test_repository')
+
+    batch_delete_response = client.batch_delete_image(
+        registryId='012345678910',
+        repositoryName='test_repository',
+        imageIds=[
+            {
+                'imageTag': 'v1'
+            },
+        ],
+    )
+
+    describe_response2 = client.describe_images(repositoryName='test_repository')
+
+    type(describe_response1['imageDetails'][0]['imageTags']).should.be(list)
+    len(describe_response1['imageDetails'][0]['imageTags']).should.be(1)
+
+    type(describe_response2['imageDetails']).should.be(list)
+    len(describe_response2['imageDetails']).should.be(0)
+
+    type(batch_delete_response['imageIds']).should.be(list)
+    len(batch_delete_response['imageIds']).should.be(1)
+
+    batch_delete_response['imageIds'][0]['imageTag'].should.equal("v1")
+
+    type(batch_delete_response['failures']).should.be(list)
+    len(batch_delete_response['failures']).should.be(0)
+
+
+@mock_ecr
 def test_batch_delete_image_with_nonexistent_tag():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -795,14 +836,13 @@ def test_batch_delete_image_with_nonexistent_tag():
 
     tags = ['v1', 'v1.0', 'latest']
     for tag in tags:
-        put_response = client.put_image(
+        client.put_image(
             repositoryName='test_repository',
             imageManifest=json.dumps(manifest),
             imageTag=tag,
         )
 
     describe_response = client.describe_images(repositoryName='test_repository')
-    image_digest = describe_response['imageDetails'][0]['imageDigest']
 
     missing_tag = "missing-tag"
     batch_delete_response = client.batch_delete_image(
@@ -832,7 +872,7 @@ def test_batch_delete_image_with_nonexistent_tag():
 @mock_ecr
 def test_batch_delete_image_by_digest():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -840,7 +880,7 @@ def test_batch_delete_image_by_digest():
 
     tags = ['v1', 'v2', 'latest']
     for tag in tags:
-        put_response = client.put_image(
+        client.put_image(
             repositoryName='test_repository',
             imageManifest=json.dumps(manifest),
             imageTag=tag
@@ -883,7 +923,7 @@ def test_batch_delete_image_by_digest():
 @mock_ecr
 def test_batch_delete_image_with_invalid_digest():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -891,13 +931,12 @@ def test_batch_delete_image_with_invalid_digest():
 
     tags = ['v1', 'v2', 'latest']
     for tag in tags:
-        put_response = client.put_image(
+        client.put_image(
             repositoryName='test_repository',
             imageManifest=json.dumps(manifest),
             imageTag=tag
         )
 
-    describe_response = client.describe_images(repositoryName='test_repository')
     invalid_image_digest = 'sha256:invalid-digest'
 
     batch_delete_response = client.batch_delete_image(
@@ -924,7 +963,7 @@ def test_batch_delete_image_with_invalid_digest():
 @mock_ecr
 def test_batch_delete_image_with_missing_parameters():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -950,7 +989,7 @@ def test_batch_delete_image_with_missing_parameters():
 @mock_ecr
 def test_batch_delete_image_with_matching_digest_and_tag():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -958,7 +997,7 @@ def test_batch_delete_image_with_matching_digest_and_tag():
 
     tags = ['v1', 'v1.0', 'latest']
     for tag in tags:
-        put_response = client.put_image(
+        client.put_image(
             repositoryName='test_repository',
             imageManifest=json.dumps(manifest),
             imageTag=tag
@@ -1002,7 +1041,7 @@ def test_batch_delete_image_with_matching_digest_and_tag():
 @mock_ecr
 def test_batch_delete_image_with_mismatched_digest_and_tag():
     client = boto3.client('ecr', region_name='us-east-1')
-    _ = client.create_repository(
+    client.create_repository(
         repositoryName='test_repository'
     )
 
@@ -1010,7 +1049,7 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
 
     tags = ['v1', 'latest']
     for tag in tags:
-        put_response = client.put_image(
+        client.put_image(
             repositoryName='test_repository',
             imageManifest=json.dumps(manifest),
             imageTag=tag
