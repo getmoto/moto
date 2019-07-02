@@ -4,6 +4,7 @@ import six
 import random
 import yaml
 import os
+import string
 
 from cfnlint import decode, core
 
@@ -29,7 +30,7 @@ def generate_stackset_arn(stackset_id, region_name):
 
 def random_suffix():
     size = 12
-    chars = list(range(10)) + ['A-Z']
+    chars = list(range(10)) + list(string.ascii_uppercase)
     return ''.join(six.text_type(random.choice(chars)) for x in range(size))
 
 
