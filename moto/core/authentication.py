@@ -1,4 +1,5 @@
 import json
+import re
 from enum import Enum
 
 from botocore.auth import SigV4Auth
@@ -160,10 +161,10 @@ class IAMPolicyStatement:
         is_action_concerned = False
 
         if "NotAction" in self._statement:
-            if not self._check_element_contains("NotAction", action):
+            if not self._check_element_matches("NotAction", action):
                 is_action_concerned = True
         else:  # Action is present
-            if self._check_element_contains("Action", action):
+            if self._check_element_matches("Action", action):
                 is_action_concerned = True
 
         # TODO: check Resource/NotResource and Condition
@@ -176,11 +177,20 @@ class IAMPolicyStatement:
         else:
             return PermissionResult.NEUTRAL
 
-    def _check_element_contains(self, statement_element, value):
+    def _check_element_matches(self, statement_element, value):
         if isinstance(self._statement[statement_element], list):
-            return value in self._statement[statement_element]
+            for statement_element_value in self._statement[statement_element]:
+                if self._match(statement_element_value, value):
+                    return True
+            return False
         else:  # string
-            return value == self._statement[statement_element]
+            return self._match(self._statement[statement_element], value)
+
+    @staticmethod
+    def _match(pattern, string):
+        pattern = pattern.replace("*", ".*")
+        pattern = f"^{pattern}$"
+        return re.match(pattern, string)
 
 
 class PermissionResult(Enum):
