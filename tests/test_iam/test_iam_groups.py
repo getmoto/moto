@@ -10,6 +10,18 @@ from nose.tools import assert_raises
 from boto.exception import BotoServerError
 from moto import mock_iam, mock_iam_deprecated
 
+MOCK_POLICY = """
+{
+  "Version": "2012-10-17",
+  "Statement":
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::example_bucket"
+    }
+}
+"""
+
 
 @mock_iam_deprecated()
 def test_create_group():
@@ -101,7 +113,7 @@ def test_get_groups_for_user():
 def test_put_group_policy():
     conn = boto.connect_iam()
     conn.create_group('my-group')
-    conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
+    conn.put_group_policy('my-group', 'my-policy', MOCK_POLICY)
 
 
 @mock_iam
@@ -131,7 +143,7 @@ def test_get_group_policy():
     with assert_raises(BotoServerError):
         conn.get_group_policy('my-group', 'my-policy')
 
-    conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
+    conn.put_group_policy('my-group', 'my-policy', MOCK_POLICY)
     conn.get_group_policy('my-group', 'my-policy')
 
 
@@ -141,7 +153,7 @@ def test_get_all_group_policies():
     conn.create_group('my-group')
     policies = conn.get_all_group_policies('my-group')['list_group_policies_response']['list_group_policies_result']['policy_names']
     assert policies == []
-    conn.put_group_policy('my-group', 'my-policy', '{"some": "json"}')
+    conn.put_group_policy('my-group', 'my-policy', MOCK_POLICY)
     policies = conn.get_all_group_policies('my-group')['list_group_policies_response']['list_group_policies_result']['policy_names']
     assert policies == ['my-policy']
 
@@ -151,5 +163,5 @@ def test_list_group_policies():
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_group(GroupName='my-group')
     conn.list_group_policies(GroupName='my-group')['PolicyNames'].should.be.empty
-    conn.put_group_policy(GroupName='my-group', PolicyName='my-policy', PolicyDocument='{"some": "json"}')
+    conn.put_group_policy(GroupName='my-group', PolicyName='my-policy', PolicyDocument=MOCK_POLICY)
     conn.list_group_policies(GroupName='my-group')['PolicyNames'].should.equal(['my-policy'])

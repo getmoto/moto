@@ -11,6 +11,7 @@ from cryptography.hazmat.backends import default_backend
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
+from moto.iam.policy_validation import IAMPolicyDocumentValidator
 
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
@@ -568,6 +569,9 @@ class IAMBackend(BaseBackend):
         policy.detach_from(self.get_user(user_name))
 
     def create_policy(self, description, path, policy_document, policy_name):
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         policy = ManagedPolicy(
             policy_name,
             description=description,
@@ -660,6 +664,9 @@ class IAMBackend(BaseBackend):
 
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         role.put_policy(policy_name, policy_json)
 
     def delete_role_policy(self, role_name, policy_name):
@@ -757,9 +764,13 @@ class IAMBackend(BaseBackend):
             role.tags.pop(ref_key, None)
 
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
+
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
         version.version_id = 'v{0}'.format(policy.next_version_num)
@@ -901,6 +912,9 @@ class IAMBackend(BaseBackend):
 
     def put_group_policy(self, group_name, policy_name, policy_json):
         group = self.get_group(group_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         group.put_policy(policy_name, policy_json)
 
     def list_group_policies(self, group_name, marker=None, max_items=None):
@@ -1061,6 +1075,9 @@ class IAMBackend(BaseBackend):
 
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         user.put_policy(policy_name, policy_json)
 
     def delete_user_policy(self, user_name, policy_name):
