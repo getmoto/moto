@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 from collections import defaultdict
 import datetime
 import json
@@ -107,14 +108,14 @@ class _TemplateEnvironmentMixin(object):
 
 class ActionAuthenticatorMixin(object):
 
-    INITIALIZATION_STEP_COUNT = 5
+    INITIAL_NO_AUTH_ACTION_COUNT = int(os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", 999999999))
     request_count = 0
 
     def _authenticate_action(self):
         iam_request = IAMRequest(method=self.method, path=self.path, data=self.querystring, headers=self.headers)
         iam_request.check_signature()
 
-        if ActionAuthenticatorMixin.request_count >= ActionAuthenticatorMixin.INITIALIZATION_STEP_COUNT:
+        if ActionAuthenticatorMixin.request_count >= ActionAuthenticatorMixin.INITIAL_NO_AUTH_ACTION_COUNT:
             iam_request.check_action_permitted()
         else:
             ActionAuthenticatorMixin.request_count += 1
