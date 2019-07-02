@@ -123,12 +123,12 @@ def test_rrset():
     rrsets.should.have.length_of(2)
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="foo.bar.testdns.aws.com", type="A")
+        zoneid, name="bar.foo.testdns.aws.com", type="A")
     rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('1.2.3.4')
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="bar.foo.testdns.aws.com", type="A")
+        zoneid, name="foo.bar.testdns.aws.com", type="A")
     rrsets.should.have.length_of(2)
     resource_records = [rr for rr_set in rrsets for rr in rr_set.resource_records]
     resource_records.should.contain('1.2.3.4')

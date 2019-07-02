@@ -165,6 +165,12 @@ class RecordSet(BaseModel):
         hosted_zone.delete_rrset_by_name(self.name)
 
 
+def reverse_domain_name(domain_name):
+    if domain_name.endswith('.'):  # normalize without trailing dot
+        domain_name = domain_name[:-1]
+    return '.'.join(reversed(domain_name.split('.')))
+
+
 class FakeZone(BaseModel):
 
     def __init__(self, name, id_, private_zone, comment=None):
@@ -200,12 +206,15 @@ class FakeZone(BaseModel):
 
     def get_record_sets(self, start_type, start_name):
         record_sets = list(self.rrsets)  # Copy the list
+        if start_name:
+            record_sets = [
+                record_set
+                for record_set in record_sets
+                if reverse_domain_name(record_set.name) >= reverse_domain_name(start_name)
+            ]
         if start_type:
             record_sets = [
                 record_set for record_set in record_sets if record_set.type_ >= start_type]
-        if start_name:
-            record_sets = [
-                record_set for record_set in record_sets if record_set.name >= start_name]
 
         return record_sets
 
