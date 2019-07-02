@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import base64
+import json
 
 import boto
 import boto3
@@ -28,6 +29,44 @@ vaR/bVLCss4uE0E0VM1tJn/QGQsfthFsjuHtwx8uIWz35tUCAwEAATANBgkqhkiG
 FyDHrtlrS80dPUQWNYHw++oACDpWO01LGLPPrGmuO/7cOdojPEd852q5gd+7W9xt
 8vUH+pBa6IBLbvBp+szli51V3TLSWcoyy4ceJNQU2vCkTLoFdS0RLd/7tQ==
 -----END CERTIFICATE-----"""
+
+MOCK_POLICY = """
+{
+  "Version": "2012-10-17",
+  "Statement":
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::example_bucket"
+    }
+}
+"""
+
+MOCK_POLICY_2 = """
+{
+  "Version": "2012-10-17",
+  "Id": "2",
+  "Statement":
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::example_bucket"
+    }
+}
+"""
+
+MOCK_POLICY_3 = """
+{
+  "Version": "2012-10-17",
+  "Id": "3",
+  "Statement":
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::example_bucket"
+    }
+}
+"""
 
 
 @mock_iam_deprecated()
@@ -243,12 +282,12 @@ def test_list_instance_profiles_for_role():
 def test_list_role_policies():
     conn = boto.connect_iam()
     conn.create_role("my-role")
-    conn.put_role_policy("my-role", "test policy", "my policy")
+    conn.put_role_policy("my-role", "test policy", MOCK_POLICY)
     role = conn.list_role_policies("my-role")
     role.policy_names.should.have.length_of(1)
     role.policy_names[0].should.equal("test policy")
 
-    conn.put_role_policy("my-role", "test policy 2", "another policy")
+    conn.put_role_policy("my-role", "test policy 2", MOCK_POLICY)
     role = conn.list_role_policies("my-role")
     role.policy_names.should.have.length_of(2)
 
@@ -266,7 +305,7 @@ def test_put_role_policy():
     conn = boto.connect_iam()
     conn.create_role(
         "my-role", assume_role_policy_document="some policy", path="my-path")
-    conn.put_role_policy("my-role", "test policy", "my policy")
+    conn.put_role_policy("my-role", "test policy", MOCK_POLICY)
     policy = conn.get_role_policy(
         "my-role", "test policy")['get_role_policy_response']['get_role_policy_result']['policy_name']
     policy.should.equal("test policy")
@@ -286,7 +325,7 @@ def test_create_policy():
     conn = boto3.client('iam', region_name='us-east-1')
     response = conn.create_policy(
         PolicyName="TestCreatePolicy",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     response['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestCreatePolicy")
 
 
@@ -299,12 +338,12 @@ def test_create_policy_versions():
             PolicyDocument='{"some":"policy"}')
     conn.create_policy(
         PolicyName="TestCreatePolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     version = conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
-        PolicyDocument='{"some":"policy"}',
+        PolicyDocument=MOCK_POLICY,
         SetAsDefault=True)
-    version.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+    version.get('PolicyVersion').get('Document').should.equal(json.loads(MOCK_POLICY))
     version.get('PolicyVersion').get('VersionId').should.equal("v2")
     version.get('PolicyVersion').get('IsDefaultVersion').should.be.ok
     conn.delete_policy_version(
@@ -312,7 +351,7 @@ def test_create_policy_versions():
         VersionId="v1")
     version = conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     version.get('PolicyVersion').get('VersionId').should.equal("v3")
     version.get('PolicyVersion').get('IsDefaultVersion').shouldnt.be.ok
 
@@ -362,7 +401,7 @@ def test_get_policy():
     conn = boto3.client('iam', region_name='us-east-1')
     response = conn.create_policy(
         PolicyName="TestGetPolicy",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     policy = conn.get_policy(
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicy")
     policy['Policy']['Arn'].should.equal("arn:aws:iam::123456789012:policy/TestGetPolicy")
@@ -384,10 +423,10 @@ def test_get_policy_version():
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_policy(
         PolicyName="TestGetPolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     version = conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
-        PolicyDocument='{"some":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     with assert_raises(ClientError):
         conn.get_policy_version(
             PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
@@ -396,6 +435,7 @@ def test_get_policy_version():
         PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
         VersionId=version.get('PolicyVersion').get('VersionId'))
     retrieved.get('PolicyVersion').get('Document').should.equal({'some': 'policy'})
+    retrieved.get('PolicyVersion').get('Document').should.equal(json.loads(MOCK_POLICY))
     retrieved.get('PolicyVersion').get('IsDefaultVersion').shouldnt.be.ok
 
 
@@ -439,7 +479,7 @@ def test_list_policy_versions():
             PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     conn.create_policy(
         PolicyName="TestListPolicyVersions",
-        PolicyDocument='{"first":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
     versions.get('Versions')[0].get('VersionId').should.equal('v1')
@@ -447,15 +487,15 @@ def test_list_policy_versions():
 
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
-        PolicyDocument='{"second":"policy"}')
+        PolicyDocument=MOCK_POLICY_2)
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
-        PolicyDocument='{"third":"policy"}')
+        PolicyDocument=MOCK_POLICY_3)
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions")
-    versions.get('Versions')[1].get('Document').should.equal({'second': 'policy'})
+    versions.get('Versions')[1].get('Document').should.equal(json.loads(MOCK_POLICY_2))
     versions.get('Versions')[1].get('IsDefaultVersion').shouldnt.be.ok
-    versions.get('Versions')[2].get('Document').should.equal({'third': 'policy'})
+    versions.get('Versions')[2].get('Document').should.equal(json.loads(MOCK_POLICY_3))
     versions.get('Versions')[2].get('IsDefaultVersion').shouldnt.be.ok
 
 
@@ -464,10 +504,10 @@ def test_delete_policy_version():
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_policy(
         PolicyName="TestDeletePolicyVersion",
-        PolicyDocument='{"first":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     conn.create_policy_version(
         PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
-        PolicyDocument='{"second":"policy"}')
+        PolicyDocument=MOCK_POLICY)
     with assert_raises(ClientError):
         conn.delete_policy_version(
             PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
@@ -549,22 +589,20 @@ def test_list_users():
 @mock_iam()
 def test_user_policies():
     policy_name = 'UserManagedPolicy'
-    policy_document = "{'mypolicy': 'test'}"
     user_name = 'my-user'
     conn = boto3.client('iam', region_name='us-east-1')
     conn.create_user(UserName=user_name)
     conn.put_user_policy(
         UserName=user_name,
         PolicyName=policy_name,
-        PolicyDocument=policy_document
+        PolicyDocument=MOCK_POLICY
     )
 
     policy_doc = conn.get_user_policy(
         UserName=user_name,
         PolicyName=policy_name
     )
-    test = policy_document in policy_doc['PolicyDocument']
-    test.should.equal(True)
+    policy_doc['PolicyDocument'].should.equal(json.loads(MOCK_POLICY))
 
     policies = conn.list_user_policies(UserName=user_name)
     len(policies['PolicyNames']).should.equal(1)
@@ -725,7 +763,7 @@ def test_managed_policy():
     conn = boto.connect_iam()
 
     conn.create_policy(policy_name='UserManagedPolicy',
-                       policy_document={'mypolicy': 'test'},
+                       policy_document=MOCK_POLICY,
                        path='/mypolicy/',
                        description='my user managed policy')
 
@@ -826,7 +864,7 @@ def test_attach_detach_user_policy():
 
     policy_name = 'UserAttachedPolicy'
     policy = iam.create_policy(PolicyName=policy_name,
-                               PolicyDocument='{"mypolicy": "test"}',
+                               PolicyDocument=MOCK_POLICY,
                                Path='/mypolicy/',
                                Description='my user attached policy')
 
@@ -882,7 +920,6 @@ def test_get_access_key_last_used():
 
 @mock_iam
 def test_get_account_authorization_details():
-    import json
     test_policy = json.dumps({
         "Version": "2012-10-17",
         "Statement": [
@@ -1314,7 +1351,6 @@ def test_update_role():
 
 @mock_iam()
 def test_list_entities_for_policy():
-    import json
     test_policy = json.dumps({
         "Version": "2012-10-17",
         "Statement": [
