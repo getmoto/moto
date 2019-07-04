@@ -199,3 +199,17 @@ class DuplicateTagKeys(S3ClientError):
             "InvalidTag",
             "Cannot provide multiple Tags with the same key",
             *args, **kwargs)
+
+
+class S3AccessDeniedError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(S3AccessDeniedError, self).__init__('AccessDenied', 'Access Denied', *args, **kwargs)
+
+
+class BucketAccessDeniedError(BucketError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(BucketAccessDeniedError, self).__init__('AccessDenied', 'Access Denied', *args, **kwargs)

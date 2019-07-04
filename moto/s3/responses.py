@@ -3,13 +3,15 @@ from __future__ import unicode_literals
 import re
 
 import six
+from werkzeug.exceptions import HTTPException
+
 from moto.core.utils import str_to_rfc_1123_datetime
 from six.moves.urllib.parse import parse_qs, urlparse, unquote
 
 import xmltodict
 
 from moto.packages.httpretty.core import HTTPrettyRequest
-from moto.core.responses import _TemplateEnvironmentMixin
+from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
 
 from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, \
@@ -25,6 +27,72 @@ from xml.dom import minidom
 
 DEFAULT_REGION_NAME = 'us-east-1'
 
+ACTION_MAP = {
+    "BUCKET": {
+        "GET": {
+            "uploads": "ListBucketMultipartUploads",
+            "location": "GetBucketLocation",
+            "lifecycle": "GetLifecycleConfiguration",
+            "versioning": "GetBucketVersioning",
+            "policy": "GetBucketPolicy",
+            "website": "GetBucketWebsite",
+            "acl": "GetBucketAcl",
+            "tagging": "GetBucketTagging",
+            "logging": "GetBucketLogging",
+            "cors": "GetBucketCORS",
+            "notification": "GetBucketNotification",
+            "accelerate": "GetAccelerateConfiguration",
+            "versions": "ListBucketVersions",
+            "DEFAULT": "ListBucket"
+        },
+        "PUT": {
+            "lifecycle": "PutLifecycleConfiguration",
+            "versioning": "PutBucketVersioning",
+            "policy": "PutBucketPolicy",
+            "website": "PutBucketWebsite",
+            "acl": "PutBucketAcl",
+            "tagging": "PutBucketTagging",
+            "logging": "PutBucketLogging",
+            "cors": "PutBucketCORS",
+            "notification": "PutBucketNotification",
+            "accelerate": "PutAccelerateConfiguration",
+            "DEFAULT": "CreateBucket"
+        },
+        "DELETE": {
+            "lifecycle": "PutLifecycleConfiguration",
+            "policy": "DeleteBucketPolicy",
+            "tagging": "PutBucketTagging",
+            "cors": "PutBucketCORS",
+            "DEFAULT": "DeleteBucket"
+        }
+    },
+    "KEY": {
+        "GET": {
+            "uploadId": "ListMultipartUploadParts",
+            "acl": "GetObjectAcl",
+            "tagging": "GetObjectTagging",
+            "versionId": "GetObjectVersion",
+            "DEFAULT": "GetObject"
+        },
+        "PUT": {
+            "acl": "PutObjectAcl",
+            "tagging": "PutObjectTagging",
+            "DEFAULT": "PutObject"
+        },
+        "DELETE": {
+            "uploadId": "AbortMultipartUpload",
+            "versionId": "DeleteObjectVersion",
+            "DEFAULT": " DeleteObject"
+        },
+        "POST": {
+            "uploads": "PutObject",
+            "restore": "RestoreObject",
+            "uploadId": "PutObject"
+        }
+    }
+
+}
+
 
 def parse_key_name(pth):
     return pth.lstrip("/")
@@ -37,17 +105,27 @@ def is_delete_keys(request, path, bucket_name):
     )
 
 
-class ResponseObject(_TemplateEnvironmentMixin):
+class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def __init__(self, backend):
         super(ResponseObject, self).__init__()
         self.backend = backend
+        self.method = ""
+        self.path = ""
+        self.data = {}
+        self.headers = {}
 
     @property
     def should_autoescape(self):
         return True
 
-    def all_buckets(self):
+    def all_buckets(self, headers):
+        try:
+            self.data["Action"] = "ListAllMyBuckets"
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
         # No bucket specified. Listing all buckets
         all_buckets = self.backend.get_all_buckets()
         template = self.response_template(S3_ALL_BUCKETS)
@@ -112,11 +190,18 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return self.bucket_response(request, full_url, headers)
 
     def bucket_response(self, request, full_url, headers):
+        self.method = request.method
+        self.path = self._get_path(request)
+        self.headers = request.headers
         try:
             response = self._bucket_response(request, full_url, headers)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
+        return self._send_response(response)
+
+    @staticmethod
+    def _send_response(response):
         if isinstance(response, six.string_types):
             return 200, {}, response.encode("utf-8")
         else:
@@ -124,18 +209,21 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if not isinstance(response_content, six.binary_type):
                 response_content = response_content.encode("utf-8")
 
+            print(f"response_content: {response_content}")
+
             return status_code, headers, response_content
 
     def _bucket_response(self, request, full_url, headers):
-        parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
+        querystring = self._get_querystring(full_url)
         method = request.method
         region_name = parse_region_from_url(full_url)
 
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
             # If no bucket specified, list all buckets
-            return self.all_buckets()
+            return self.all_buckets(headers)
+
+        self.data["BucketName"] = bucket_name
 
         if hasattr(request, 'body'):
             # Boto
@@ -163,6 +251,12 @@ class ResponseObject(_TemplateEnvironmentMixin):
             raise NotImplementedError(
                 "Method {0} has not been impelemented in the S3 backend yet".format(method))
 
+    @staticmethod
+    def _get_querystring(full_url):
+        parsed_url = urlparse(full_url)
+        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
+        return querystring
+
     def _bucket_response_head(self, bucket_name, headers):
         try:
             self.backend.get_bucket(bucket_name)
@@ -175,6 +269,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return 200, {}, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
+        self._set_action("BUCKET", "GET", querystring)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         if 'uploads' in querystring:
             for unsup in ('delimiter', 'max-uploads'):
                 if unsup in querystring:
@@ -333,6 +435,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
             max_keys=max_keys
         )
 
+    def _set_action(self, action_resource_type, method, querystring):
+        action_set = False
+        for action_in_querystring, action in ACTION_MAP[action_resource_type][method].items():
+            if action_in_querystring in querystring:
+                self.data["Action"] = action
+                action_set = True
+        if not action_set:
+            self.data["Action"] = ACTION_MAP[action_resource_type][method]["DEFAULT"]
+
     def _handle_list_objects_v2(self, bucket_name, querystring):
         template = self.response_template(S3_BUCKET_GET_RESPONSE_V2)
         bucket = self.backend.get_bucket(bucket_name)
@@ -396,6 +507,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring, headers):
         if not request.headers.get('Content-Length'):
             return 411, {}, "Content-Length required"
+
+        self._set_action("BUCKET", "PUT", querystring)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         if 'versioning' in querystring:
             ver = re.search('<Status>([A-Za-z]+)</Status>', body.decode())
             if ver:
@@ -495,6 +615,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return 200, {}, template.render(bucket=new_bucket)
 
     def _bucket_response_delete(self, body, bucket_name, querystring, headers):
+        self._set_action("BUCKET", "DELETE", querystring)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         if 'policy' in querystring:
             self.backend.delete_bucket_policy(bucket_name, body)
             return 204, {}, ""
@@ -525,13 +653,26 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if not request.headers.get('Content-Length'):
             return 411, {}, "Content-Length required"
 
-        if isinstance(request, HTTPrettyRequest):
-            path = request.path
-        else:
-            path = request.full_path if hasattr(request, 'full_path') else path_url(request.url)
+        path = self._get_path(request)
 
         if self.is_delete_keys(request, path, bucket_name):
+            self.data["Action"] = "DeleteObject"
+
+            try:
+                self._authenticate_s3_action()
+            except HTTPException as http_error:
+                response = http_error.code, headers, http_error.description
+                return self._send_response(response)
+
             return self._bucket_response_delete_keys(request, body, bucket_name, headers)
+
+        self.data["Action"] = "PutObject"
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
 
         # POST to bucket-url should create file from form
         if hasattr(request, 'form'):
@@ -559,6 +700,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
         new_key.set_metadata(metadata)
 
         return 200, {}, ""
+
+    @staticmethod
+    def _get_path(request):
+        if isinstance(request, HTTPrettyRequest):
+            path = request.path
+        else:
+            path = request.full_path if hasattr(request, 'full_path') else path_url(request.url)
+        return path
 
     def _bucket_response_delete_keys(self, request, body, bucket_name, headers):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
@@ -604,6 +753,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return 206, response_headers, response_content[begin:end + 1]
 
     def key_response(self, request, full_url, headers):
+        self.method = request.method
+        self.path = self._get_path(request)
+        self.headers = request.headers
         response_headers = {}
         try:
             response = self._key_response(request, full_url, headers)
@@ -671,6 +823,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 "Method {0} has not been implemented in the S3 backend yet".format(method))
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "GET", query)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         response_headers = {}
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
@@ -700,6 +860,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return 200, response_headers, key.value
 
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "PUT", query)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         response_headers = {}
         if query.get('uploadId') and query.get('partNumber'):
             upload_id = query['uploadId'][0]
@@ -1067,6 +1235,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
         return config['Status']
 
     def _key_response_delete(self, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "DELETE", query)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
             self.backend.cancel_multipart(bucket_name, upload_id)
@@ -1087,6 +1263,14 @@ class ResponseObject(_TemplateEnvironmentMixin):
             yield (pn, p.getElementsByTagName('ETag')[0].firstChild.wholeText)
 
     def _key_response_post(self, request, body, bucket_name, query, key_name, headers):
+        self._set_action("KEY", "POST", query)
+
+        try:
+            self._authenticate_s3_action()
+        except HTTPException as http_error:
+            response = http_error.code, headers, http_error.description
+            return self._send_response(response)
+
         if body == b'' and 'uploads' in query:
             metadata = metadata_from_headers(request.headers)
             multipart = self.backend.initiate_multipart(

@@ -10,7 +10,7 @@ import io
 
 import pytz
 
-from moto.core.authentication import IAMRequest
+from moto.core.authentication import IAMRequest, S3IAMRequest
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
@@ -111,14 +111,21 @@ class ActionAuthenticatorMixin(object):
     INITIAL_NO_AUTH_ACTION_COUNT = int(os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", 999999999))
     request_count = 0
 
-    def _authenticate_action(self):
-        iam_request = IAMRequest(method=self.method, path=self.path, data=self.querystring, headers=self.headers)
+    def _authenticate_action(self, iam_request):
         iam_request.check_signature()
 
         if ActionAuthenticatorMixin.request_count >= ActionAuthenticatorMixin.INITIAL_NO_AUTH_ACTION_COUNT:
             iam_request.check_action_permitted()
         else:
             ActionAuthenticatorMixin.request_count += 1
+
+    def _authenticate_normal_action(self):
+        iam_request = IAMRequest(method=self.method, path=self.path, data=self.data, headers=self.headers)
+        self._authenticate_action(iam_request)
+
+    def _authenticate_s3_action(self):
+        iam_request = S3IAMRequest(method=self.method, path=self.path, data=self.data, headers=self.headers)
+        self._authenticate_action(iam_request)
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
@@ -185,6 +192,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
+        self.data = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.uri_match = None
@@ -293,7 +301,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         headers = self.response_headers
 
         try:
-            self._authenticate_action()
+            self._authenticate_normal_action()
         except HTTPException as http_error:
             response = http_error.description, dict(status=http_error.code)
             return self._send_response(headers, response)
