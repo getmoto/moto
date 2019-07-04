@@ -209,8 +209,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if not isinstance(response_content, six.binary_type):
                 response_content = response_content.encode("utf-8")
 
-            print(f"response_content: {response_content}")
-
             return status_code, headers, response_content
 
     def _bucket_response(self, request, full_url, headers):
