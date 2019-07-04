@@ -24,7 +24,7 @@ ACCESS_KEY_STORE = {
 class IAMRequestBase(ABC):
 
     def __init__(self, method, path, data, headers):
-        print(f"Creating {IAMRequest.__name__} with method={method}, path={path}, data={data}, headers={headers}")
+        print(f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}")
         self._method = method
         self._path = path
         self._data = data
