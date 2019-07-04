@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 import json
 
 import base64
+from decimal import Decimal
+
 import boto
 import boto.cloudformation
 import boto.datapipeline
@@ -22,6 +24,7 @@ from moto import (
     mock_cloudformation,
     mock_cloudformation_deprecated,
     mock_datapipeline_deprecated,
+    mock_dynamodb2,
     mock_ec2,
     mock_ec2_deprecated,
     mock_elb,
@@ -39,6 +42,7 @@ from moto import (
     mock_sqs,
     mock_sqs_deprecated,
     mock_elbv2)
+from moto.dynamodb2.models import Table
 
 from .fixtures import (
     ec2_classic_eip,
@@ -2085,7 +2089,7 @@ def test_stack_kms():
 def test_stack_spot_fleet():
     conn = boto3.client('ec2', 'us-east-1')
 
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
@@ -2169,7 +2173,7 @@ def test_stack_spot_fleet():
 def test_stack_spot_fleet_should_figure_out_default_price():
     conn = boto3.client('ec2', 'us-east-1')
 
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
@@ -2433,3 +2437,131 @@ def test_stack_elbv2_resources_integration():
 
     dns['OutputValue'].should.equal(load_balancers[0]['DNSName'])
     name['OutputValue'].should.equal(load_balancers[0]['LoadBalancerName'])
+
+
+@mock_dynamodb2
+@mock_cloudformation
+def test_stack_dynamodb_resources_integration():
+    dynamodb_template = {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Resources": {
+        "myDynamoDBTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "Album",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "Artist",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "Sales",
+                "AttributeType": "N"
+              },
+              {
+                "AttributeName": "NumberOfSongs",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "Album",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "Artist",
+                "KeyType": "RANGE"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            },
+            "TableName": "myTableName",
+            "GlobalSecondaryIndexes": [{
+              "IndexName": "myGSI",
+              "KeySchema": [
+                {
+                  "AttributeName": "Sales",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "Artist",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "Projection": {
+                "NonKeyAttributes": ["Album","NumberOfSongs"],
+                "ProjectionType": "INCLUDE"
+              },
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": "5",
+                "WriteCapacityUnits": "5"
+              }
+            },
+            {
+              "IndexName": "myGSI2",
+              "KeySchema": [
+                {
+                  "AttributeName": "NumberOfSongs",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "Sales",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "Projection": {
+                "NonKeyAttributes": ["Album","Artist"],
+                "ProjectionType": "INCLUDE"
+              },
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": "5",
+                "WriteCapacityUnits": "5"
+              }
+            }],
+            "LocalSecondaryIndexes":[{
+              "IndexName": "myLSI",
+              "KeySchema": [
+                {
+                  "AttributeName": "Album",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "Sales",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "Projection": {
+                "NonKeyAttributes": ["Artist","NumberOfSongs"],
+                "ProjectionType": "INCLUDE"
+              }
+            }]
+          }
+        }
+      }
+    }
+
+    dynamodb_template_json = json.dumps(dynamodb_template)
+
+    cfn_conn = boto3.client('cloudformation', 'us-east-1')
+    cfn_conn.create_stack(
+        StackName='dynamodb_stack',
+        TemplateBody=dynamodb_template_json,
+    )
+
+    dynamodb_conn = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb_conn.Table('myTableName')
+    table.name.should.equal('myTableName')
+
+    table.put_item(Item={"Album": "myAlbum", "Artist": "myArtist", "Sales": 10, "NumberOfSongs": 5})
+
+    response = table.get_item(Key={"Album": "myAlbum", "Artist": "myArtist"})
+
+    response['Item']['Album'].should.equal('myAlbum')
+    response['Item']['Sales'].should.equal(Decimal('10'))
+    response['Item']['NumberOfSongs'].should.equal(Decimal('5'))
+    response['Item']['Album'].should.equal('myAlbum')

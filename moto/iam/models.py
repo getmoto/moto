@@ -8,9 +8,10 @@ import re
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-import pytz
+from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
+from moto.iam.policy_validation import IAMPolicyDocumentValidator
 
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, MalformedCertificate, \
@@ -27,10 +28,14 @@ class MFADevice(object):
                  serial_number,
                  authentication_code_1,
                  authentication_code_2):
-        self.enable_date = datetime.now(pytz.utc)
+        self.enable_date = datetime.utcnow()
         self.serial_number = serial_number
         self.authentication_code_1 = authentication_code_1
         self.authentication_code_2 = authentication_code_2
+
+    @property
+    def enabled_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.enable_date)
 
 
 class Policy(BaseModel):
@@ -41,18 +46,34 @@ class Policy(BaseModel):
                  default_version_id=None,
                  description=None,
                  document=None,
-                 path=None):
+                 path=None,
+                 create_date=None,
+                 update_date=None):
         self.name = name
 
         self.attachment_count = 0
         self.description = description or ''
         self.id = random_policy_id()
         self.path = path or '/'
-        self.default_version_id = default_version_id or 'v1'
-        self.versions = [PolicyVersion(self.arn, document, True)]
 
-        self.create_datetime = datetime.now(pytz.utc)
-        self.update_datetime = datetime.now(pytz.utc)
+        if default_version_id:
+            self.default_version_id = default_version_id
+            self.next_version_num = int(default_version_id.lstrip('v')) + 1
+        else:
+            self.default_version_id = 'v1'
+            self.next_version_num = 2
+        self.versions = [PolicyVersion(self.arn, document, True, self.default_version_id, update_date)]
+
+        self.create_date = create_date if create_date is not None else datetime.utcnow()
+        self.update_date = update_date if update_date is not None else datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @property
+    def updated_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.update_date)
 
 
 class SAMLProvider(BaseModel):
@@ -70,13 +91,19 @@ class PolicyVersion(object):
     def __init__(self,
                  policy_arn,
                  document,
-                 is_default=False):
+                 is_default=False,
+                 version_id='v1',
+                 create_date=None):
         self.policy_arn = policy_arn
         self.document = document or {}
         self.is_default = is_default
-        self.version_id = 'v1'
+        self.version_id = version_id
 
-        self.create_datetime = datetime.now(pytz.utc)
+        self.create_date = create_date if create_date is not None else datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
 
 class ManagedPolicy(Policy):
@@ -105,7 +132,9 @@ class AWSManagedPolicy(ManagedPolicy):
         return cls(name,
                    default_version_id=data.get('DefaultVersionId'),
                    path=data.get('Path'),
-                   document=data.get('Document'))
+                   document=json.dumps(data.get('Document')),
+                   create_date=datetime.strptime(data.get('CreateDate'), "%Y-%m-%dT%H:%M:%S+00:00"),
+                   update_date=datetime.strptime(data.get('UpdateDate'), "%Y-%m-%dT%H:%M:%S+00:00"))
 
     @property
     def arn(self):
@@ -125,16 +154,21 @@ class InlinePolicy(Policy):
 
 class Role(BaseModel):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path):
+    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
         self.path = path or '/'
         self.policies = {}
         self.managed_policies = {}
-        self.create_date = datetime.now(pytz.utc)
+        self.create_date = datetime.utcnow()
         self.tags = {}
         self.description = ""
+        self.permissions_boundary = permissions_boundary
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -144,6 +178,7 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
+            permissions_boundary=properties.get('PermissionsBoundary', '')
         )
 
         policies = properties.get('Policies', [])
@@ -189,7 +224,11 @@ class InstanceProfile(BaseModel):
         self.name = name
         self.path = path or '/'
         self.roles = roles if roles else []
-        self.create_date = datetime.now(pytz.utc)
+        self.create_date = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -213,7 +252,7 @@ class InstanceProfile(BaseModel):
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
 
@@ -241,8 +280,12 @@ class SigningCertificate(BaseModel):
         self.id = id
         self.user_name = user_name
         self.body = body
-        self.upload_date = datetime.strftime(datetime.utcnow(), "%Y-%m-%d-%H-%M-%S")
+        self.upload_date = datetime.utcnow()
         self.status = 'Active'
+
+    @property
+    def uploaded_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
 class AccessKey(BaseModel):
@@ -252,14 +295,16 @@ class AccessKey(BaseModel):
         self.access_key_id = random_access_key()
         self.secret_access_key = random_alphanumeric(32)
         self.status = 'Active'
-        self.create_date = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        self.last_used = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        self.create_date = datetime.utcnow()
+        self.last_used = datetime.utcnow()
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.create_date)
+
+    @property
+    def last_used_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.last_used)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -274,14 +319,15 @@ class Group(BaseModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path
-        self.created = datetime.strftime(
-            datetime.utcnow(),
-            "%Y-%m-%d-%H-%M-%S"
-        )
+        self.create_date = datetime.utcnow()
 
         self.users = []
         self.managed_policies = {}
         self.policies = {}
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -296,10 +342,6 @@ class Group(BaseModel):
 
         else:
             return "arn:aws:iam::{0}:group/{1}/{2}".format(ACCOUNT_ID, self.path, self.name)
-
-    @property
-    def create_date(self):
-        return self.created
 
     def get_policy(self, policy_name):
         try:
@@ -326,7 +368,7 @@ class User(BaseModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
-        self.created = datetime.utcnow()
+        self.create_date = datetime.utcnow()
         self.mfa_devices = {}
         self.policies = {}
         self.managed_policies = {}
@@ -341,7 +383,7 @@ class User(BaseModel):
 
     @property
     def created_iso_8601(self):
-        return iso_8601_datetime_without_milliseconds(self.created)
+        return iso_8601_datetime_with_milliseconds(self.create_date)
 
     def get_policy(self, policy_name):
         policy_json = None
@@ -412,7 +454,7 @@ class User(BaseModel):
 
     def to_csv(self):
         date_format = '%Y-%m-%dT%H:%M:%S+00:00'
-        date_created = self.created
+        date_created = self.create_date
         # aagrawal,arn:aws:iam::509284790694:user/aagrawal,2014-09-01T22:28:48+00:00,true,2014-11-12T23:36:49+00:00,2014-09-03T18:59:00+00:00,N/A,false,true,2014-09-01T22:28:48+00:00,false,N/A,false,N/A,false,N/A
         if not self.password:
             password_enabled = 'false'
@@ -464,10 +506,12 @@ class IAMBackend(BaseBackend):
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
+        self.policy_arn_regex = re.compile(
+            r'^arn:aws:iam::[0-9]*:policy/.*$')
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
-        return dict((p.name, p) for p in aws_managed_policies)
+        return dict((p.arn, p) for p in aws_managed_policies)
 
     def attach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -525,6 +569,9 @@ class IAMBackend(BaseBackend):
         policy.detach_from(self.get_user(user_name))
 
     def create_policy(self, description, path, policy_document, policy_name):
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         policy = ManagedPolicy(
             policy_name,
             description=description,
@@ -581,9 +628,12 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path):
+    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
         role_id = random_resource_id()
-        role = Role(role_id, role_name, assume_role_policy_document, path)
+        if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
+            raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
+
+        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
         self.roles[role_id] = role
         return role
 
@@ -614,6 +664,9 @@ class IAMBackend(BaseBackend):
 
     def put_role_policy(self, role_name, policy_name, policy_json):
         role = self.get_role(role_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         role.put_policy(policy_name, policy_json)
 
     def delete_role_policy(self, role_name, policy_name):
@@ -711,12 +764,17 @@ class IAMBackend(BaseBackend):
             role.tags.pop(ref_key, None)
 
     def create_policy_version(self, policy_arn, policy_document, set_as_default):
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
+        iam_policy_document_validator.validate()
+
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
+
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
-        version.version_id = 'v{0}'.format(len(policy.versions))
+        version.version_id = 'v{0}'.format(policy.next_version_num)
+        policy.next_version_num += 1
         if set_as_default:
             policy.default_version_id = version.version_id
         return version
@@ -854,6 +912,9 @@ class IAMBackend(BaseBackend):
 
     def put_group_policy(self, group_name, policy_name, policy_json):
         group = self.get_group(group_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         group.put_policy(policy_name, policy_json)
 
     def list_group_policies(self, group_name, marker=None, max_items=None):
@@ -891,6 +952,18 @@ class IAMBackend(BaseBackend):
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
 
         return users
+
+    def update_user(self, user_name, new_path=None, new_user_name=None):
+        try:
+            user = self.users[user_name]
+        except KeyError:
+            raise IAMNotFoundException("User {0} not found".format(user_name))
+
+        if new_path:
+            user.path = new_path
+        if new_user_name:
+            user.name = new_user_name
+            self.users[new_user_name] = self.users.pop(user_name)
 
     def list_roles(self, path_prefix, marker, max_items):
         roles = None
@@ -1002,6 +1075,9 @@ class IAMBackend(BaseBackend):
 
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)
+
+        iam_policy_document_validator = IAMPolicyDocumentValidator(policy_json)
+        iam_policy_document_validator.validate()
         user.put_policy(policy_name, policy_json)
 
     def delete_user_policy(self, user_name, policy_name):
@@ -1023,7 +1099,7 @@ class IAMBackend(BaseBackend):
             if key.access_key_id == access_key_id:
                 return {
                     'user_name': key.user_name,
-                    'last_used': key.last_used
+                    'last_used': key.last_used_iso_8601,
                 }
         else:
             raise IAMNotFoundException(

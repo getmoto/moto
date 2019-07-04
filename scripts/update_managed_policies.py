@@ -48,7 +48,8 @@ for policy_name in policies:
         PolicyArn=policies[policy_name]['Arn'],
         VersionId=policies[policy_name]['DefaultVersionId'])
     for key in response['PolicyVersion']:
-        policies[policy_name][key] = response['PolicyVersion'][key]
+        if key != "CreateDate":  # the policy's CreateDate should not be overwritten by its version's CreateDate
+            policies[policy_name][key] = response['PolicyVersion'][key]
 
 with open(output_file, 'w') as f:
     triple_quote = '\"\"\"'

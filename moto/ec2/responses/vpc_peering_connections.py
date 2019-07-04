@@ -74,30 +74,35 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
 """
 
 DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
-<DescribeVpcPeeringConnectionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
-  <vpcPeeringConnectionSet>
-    {% for vpc_pcx in vpc_pcxs %}
-      <item>
-        <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
-        <requesterVpcInfo>
-          <ownerId>777788889999</ownerId>
-          <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
-          <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
-        </requesterVpcInfo>
-        <accepterVpcInfo>
-          <ownerId>123456789012</ownerId>
-          <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
-        </accepterVpcInfo>
-        <status>
-          <code>{{ vpc_pcx._status.code }}</code>
-          <message>{{ vpc_pcx._status.message }}</message>
-        </status>
-        <expirationTime>2014-02-17T16:00:50.000Z</expirationTime>
-        <tagSet/>
-      </item>
-    {% endfor %}
-  </vpcPeeringConnectionSet>
+<DescribeVpcPeeringConnectionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+<requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+ <vpcPeeringConnectionSet>
+ {% for vpc_pcx in vpc_pcxs %}
+ <item>
+  <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
+    <requesterVpcInfo>
+     <ownerId>777788889999</ownerId>
+     <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
+     <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
+    </requesterVpcInfo>
+    <accepterVpcInfo>
+     <ownerId>123456789012</ownerId>
+     <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
+     <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
+     <peeringOptions>
+        <allowEgressFromLocalClassicLinkToRemoteVpc>false</allowEgressFromLocalClassicLinkToRemoteVpc>
+        <allowEgressFromLocalVpcToRemoteClassicLink>true</allowEgressFromLocalVpcToRemoteClassicLink>
+        <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
+     </peeringOptions>
+    </accepterVpcInfo>
+     <status>
+      <code>{{ vpc_pcx._status.code }}</code>
+      <message>{{ vpc_pcx._status.message }}</message>
+     </status>
+     <tagSet/>
+ </item>
+ {% endfor %}
+ </vpcPeeringConnectionSet>
 </DescribeVpcPeeringConnectionsResponse>
 """
 
@@ -109,19 +114,24 @@ DELETE_VPC_PEERING_CONNECTION_RESPONSE = """
 """
 
 ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
-<AcceptVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+<AcceptVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpcPeeringConnection>
     <vpcPeeringConnectionId>{{ vpc_pcx.id }}</vpcPeeringConnectionId>
     <requesterVpcInfo>
-      <ownerId>123456789012</ownerId>
+      <ownerId>777788889999</ownerId>
       <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>777788889999</ownerId>
+      <ownerId>123456789012</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
+      <peeringOptions>
+        <allowEgressFromLocalClassicLinkToRemoteVpc>false</allowEgressFromLocalClassicLinkToRemoteVpc>
+        <allowEgressFromLocalVpcToRemoteClassicLink>false</allowEgressFromLocalVpcToRemoteClassicLink>
+        <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
+      </peeringOptions>
     </accepterVpcInfo>
     <status>
       <code>{{ vpc_pcx._status.code }}</code>

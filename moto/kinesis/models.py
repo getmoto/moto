@@ -116,22 +116,19 @@ class Stream(BaseModel):
     def __init__(self, stream_name, shard_count, region):
         self.stream_name = stream_name
         self.shard_count = shard_count
+        self.creation_datetime = datetime.datetime.now()
         self.region = region
         self.account_number = "123456789012"
         self.shards = {}
         self.tags = {}
+        self.status = "ACTIVE"
 
-        if six.PY3:
-            izip_longest = itertools.zip_longest
-        else:
-            izip_longest = itertools.izip_longest
+        step = 2**128 // shard_count
+        hash_ranges = itertools.chain(map(lambda i: (i, i * step, (i + 1) * step),
+                                          range(shard_count - 1)),
+                                [(shard_count - 1, (shard_count - 1) * step, 2**128)])
+        for index, start, end in hash_ranges:
 
-        for index, start, end in izip_longest(range(shard_count),
-                                              range(0, 2**128, 2 **
-                                                    128 // shard_count),
-                                              range(2**128 // shard_count, 2 **
-                                                    128, 2**128 // shard_count),
-                                              fillvalue=2**128):
             shard = Shard(index, start, end)
             self.shards[shard.shard_id] = shard
 
@@ -183,9 +180,20 @@ class Stream(BaseModel):
             "StreamDescription": {
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
-                "StreamStatus": "ACTIVE",
+                "StreamStatus": self.status,
                 "HasMoreShards": False,
                 "Shards": [shard.to_json() for shard in self.shards.values()],
+            }
+        }
+
+    def to_json_summary(self):
+        return {
+            "StreamDescriptionSummary": {
+                "StreamARN": self.arn,
+                "StreamName": self.stream_name,
+                "StreamStatus": self.status,
+                "StreamCreationTimestamp": six.text_type(self.creation_datetime),
+                "OpenShardCount": self.shard_count,
             }
         }
 
@@ -308,6 +316,9 @@ class KinesisBackend(BaseBackend):
             return self.streams[stream_name]
         else:
             raise StreamNotFoundError(stream_name)
+
+    def describe_stream_summary(self, stream_name):
+        return self.describe_stream(stream_name)
 
     def list_streams(self):
         return self.streams.values()

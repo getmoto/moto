@@ -210,6 +210,47 @@ def test_get_table_when_database_not_exits():
 
 
 @mock_glue
+def test_delete_table():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    helpers.create_database(client, database_name)
+
+    table_name = 'myspecialtable'
+    table_input = helpers.create_table_input(database_name, table_name)
+    helpers.create_table(client, database_name, table_name, table_input)
+
+    result = client.delete_table(DatabaseName=database_name, Name=table_name)
+    result['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    # confirm table is deleted
+    with assert_raises(ClientError) as exc:
+        helpers.get_table(client, database_name, table_name)
+
+    exc.exception.response['Error']['Code'].should.equal('EntityNotFoundException')
+    exc.exception.response['Error']['Message'].should.match('Table myspecialtable not found')
+
+@mock_glue
+def test_batch_delete_table():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    helpers.create_database(client, database_name)
+
+    table_name = 'myspecialtable'
+    table_input = helpers.create_table_input(database_name, table_name)
+    helpers.create_table(client, database_name, table_name, table_input)
+
+    result = client.batch_delete_table(DatabaseName=database_name, TablesToDelete=[table_name])
+    result['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    # confirm table is deleted
+    with assert_raises(ClientError) as exc:
+        helpers.get_table(client, database_name, table_name)
+
+    exc.exception.response['Error']['Code'].should.equal('EntityNotFoundException')
+    exc.exception.response['Error']['Message'].should.match('Table myspecialtable not found')
+
+
+@mock_glue
 def test_get_partitions_empty():
     client = boto3.client('glue', region_name='us-east-1')
     database_name = 'myspecialdatabase'
@@ -288,6 +329,72 @@ def test_get_partition_not_found():
 
     exc.exception.response['Error']['Code'].should.equal('EntityNotFoundException')
     exc.exception.response['Error']['Message'].should.match('partition')
+
+@mock_glue
+def test_batch_create_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    before = datetime.now(pytz.utc)
+
+    partition_inputs = []
+    for i in range(0, 20):
+        values = ["2018-10-{:2}".format(i)]
+        part_input = helpers.create_partition_input(database_name, table_name, values=values)
+        partition_inputs.append(part_input)
+
+    client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=partition_inputs
+    )
+
+    after = datetime.now(pytz.utc)
+
+    response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
+
+    partitions = response['Partitions']
+
+    partitions.should.have.length_of(20)
+
+    for idx, partition in enumerate(partitions):
+        partition_input = partition_inputs[idx]
+
+        partition['TableName'].should.equal(table_name)
+        partition['StorageDescriptor'].should.equal(partition_input['StorageDescriptor'])
+        partition['Values'].should.equal(partition_input['Values'])
+        partition['CreationTime'].should.be.greater_than(before)
+        partition['CreationTime'].should.be.lower_than(after)
+
+
+@mock_glue
+def test_batch_create_partition_already_exist():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    values = ['2018-10-01']
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    helpers.create_partition(client, database_name, table_name, values=values)
+
+    partition_input = helpers.create_partition_input(database_name, table_name, values=values)
+
+    response = client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=[partition_input]
+    )
+
+    response.should.have.key('Errors')
+    response['Errors'].should.have.length_of(1)
+    response['Errors'][0]['PartitionValues'].should.equal(values)
+    response['Errors'][0]['ErrorDetail']['ErrorCode'].should.equal('AlreadyExistsException')
 
 
 @mock_glue
@@ -424,3 +531,112 @@ def test_update_partition_move():
 
     partition['TableName'].should.equal(table_name)
     partition['StorageDescriptor']['Columns'].should.equal([{'Name': 'country', 'Type': 'string'}])
+
+@mock_glue
+def test_delete_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    values = ['2018-10-01']
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    part_input = helpers.create_partition_input(database_name, table_name, values=values)
+    helpers.create_partition(client, database_name, table_name, part_input)
+
+    client.delete_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionValues=values,
+    )
+
+    response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
+    partitions = response['Partitions']
+    partitions.should.be.empty
+
+@mock_glue
+def test_delete_partition_bad_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    values = ['2018-10-01']
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    with assert_raises(ClientError) as exc:
+        client.delete_partition(
+            DatabaseName=database_name,
+            TableName=table_name,
+            PartitionValues=values,
+        )
+
+    exc.exception.response['Error']['Code'].should.equal('EntityNotFoundException')
+
+@mock_glue
+def test_batch_delete_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    partition_inputs = []
+    for i in range(0, 20):
+        values = ["2018-10-{:2}".format(i)]
+        part_input = helpers.create_partition_input(database_name, table_name, values=values)
+        partition_inputs.append(part_input)
+
+    client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=partition_inputs
+    )
+
+    partition_values = [{"Values": p["Values"]} for p in partition_inputs]
+
+    response = client.batch_delete_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionsToDelete=partition_values,
+    )
+
+    response.should_not.have.key('Errors')
+
+@mock_glue
+def test_batch_delete_partition_with_bad_partitions():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    partition_inputs = []
+    for i in range(0, 20):
+        values = ["2018-10-{:2}".format(i)]
+        part_input = helpers.create_partition_input(database_name, table_name, values=values)
+        partition_inputs.append(part_input)
+
+    client.batch_create_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionInputList=partition_inputs
+    )
+
+    partition_values = [{"Values": p["Values"]} for p in partition_inputs]
+
+    partition_values.insert(5, {"Values": ["2018-11-01"]})
+    partition_values.insert(10, {"Values": ["2018-11-02"]})
+    partition_values.insert(15, {"Values": ["2018-11-03"]})
+
+    response = client.batch_delete_partition(
+        DatabaseName=database_name,
+        TableName=table_name,
+        PartitionsToDelete=partition_values,
+    )
+
+    response.should.have.key('Errors')
+    response['Errors'].should.have.length_of(3)
+    error_partitions = map(lambda x: x['PartitionValues'], response['Errors'])
+    ['2018-11-01'].should.be.within(error_partitions)
+    ['2018-11-02'].should.be.within(error_partitions)
+    ['2018-11-03'].should.be.within(error_partitions)

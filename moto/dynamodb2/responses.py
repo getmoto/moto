@@ -5,6 +5,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
+from .exceptions import InvalidIndexNameError
 from .models import dynamodb_backends, dynamo_json_dump
 
 
@@ -156,8 +157,16 @@ class DynamoHandler(BaseResponse):
         body = self.body
         # get the table name
         table_name = body['TableName']
-        # get the throughput
-        throughput = body["ProvisionedThroughput"]
+        # check billing mode and get the throughput
+        if "BillingMode" in body.keys() and body["BillingMode"] == "PAY_PER_REQUEST":
+            if "ProvisionedThroughput" in body.keys():
+                er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+                return self.error(er,
+                                  'ProvisionedThroughput cannot be specified \
+                                   when BillingMode is PAY_PER_REQUEST')
+            throughput = None
+        else:         # Provisioned (default billing mode)
+            throughput = body.get("ProvisionedThroughput")
         # getting the schema
         key_schema = body['KeySchema']
         # getting attribute definition
@@ -549,9 +558,10 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get('FilterExpression')
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-
+        projection_expression = self.body.get('ProjectionExpression', '')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
+        index_name = self.body.get('IndexName')
 
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(name, filters,
@@ -559,7 +569,12 @@ class DynamoHandler(BaseResponse):
                                                                                   exclusive_start_key,
                                                                                   filter_expression,
                                                                                   expression_attribute_names,
-                                                                                  expression_attribute_values)
+                                                                                  expression_attribute_values,
+                                                                                  index_name,
+                                                                                  projection_expression)
+        except InvalidIndexNameError as err:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, str(err))
         except ValueError as err:
             er = 'com.amazonaws.dynamodb.v20111205#ValidationError'
             return self.error(er, 'Bad Filter Expression: {0}'.format(err))
