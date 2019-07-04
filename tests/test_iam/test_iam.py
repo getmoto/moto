@@ -584,8 +584,9 @@ def test_create_access_key():
         conn.create_access_key(UserName='my-user')
     conn.create_user(UserName='my-user')
     access_key = conn.create_access_key(UserName='my-user')["AccessKey"]
-    (datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds.should.be.within(0, 2)
+    (datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds.should.be.within(0, 10)
     access_key["AccessKeyId"].should.have.length_of(20)
+    access_key["SecretAccessKey"].should.have.length_of(40)
     assert access_key["AccessKeyId"].startswith("AKIA")
 
 
