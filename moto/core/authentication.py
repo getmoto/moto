@@ -60,7 +60,7 @@ class IAMRequestBase(ABC):
 
     @abstractmethod
     def _raise_access_denied(self, iam_user_name):
-        pass
+        raise NotImplementedError()
 
     @staticmethod
     def _collect_policies_for_iam_user(iam_user_name):
@@ -88,7 +88,7 @@ class IAMRequestBase(ABC):
 
     @abstractmethod
     def _create_auth(self, credentials):
-        pass
+        raise NotImplementedError()
 
     @staticmethod
     def _create_headers_for_aws_request(signed_headers, original_headers):
