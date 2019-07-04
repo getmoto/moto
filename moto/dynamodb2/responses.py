@@ -166,7 +166,7 @@ class DynamoHandler(BaseResponse):
                                    when BillingMode is PAY_PER_REQUEST')
             throughput = None
         else:         # Provisioned (default billing mode)
-            throughput = body["ProvisionedThroughput"]
+            throughput = body.get("ProvisionedThroughput")
         # getting the schema
         key_schema = body['KeySchema']
         # getting attribute definition
