@@ -1290,8 +1290,12 @@ def test_describe_instance_attribute():
     for valid_instance_attribute in valid_instance_attributes:
         response = client.describe_instance_attribute(InstanceId=instance_id, Attribute=valid_instance_attribute)
         if valid_instance_attribute == "groupSet":
+            response.should.have.key("Groups")
             response["Groups"].should.have.length_of(1)
             response["Groups"][0]["GroupId"].should.equal(security_group_id)
+        elif valid_instance_attribute == "userData":
+            response.should.have.key("UserData")
+            response["UserData"].should.be.empty
 
     invalid_instance_attributes = ['abc', 'Kernel', 'RamDisk', 'userdata', 'iNsTaNcEtYpE']
 
