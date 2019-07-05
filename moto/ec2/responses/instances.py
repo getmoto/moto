@@ -46,6 +46,7 @@ class InstanceResponse(BaseResponse):
         associate_public_ip = self._get_param('AssociatePublicIpAddress')
         key_name = self._get_param('KeyName')
         ebs_optimized = self._get_param('EbsOptimized')
+        instance_initiated_shutdown_behavior = self._get_param("InstanceInitiatedShutdownBehavior")
         tags = self._parse_tag_specification("TagSpecification")
         region_name = self.region
 
@@ -55,7 +56,7 @@ class InstanceResponse(BaseResponse):
                 instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
                 owner_id=owner_id, key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
-                tags=tags, ebs_optimized=ebs_optimized)
+                tags=tags, ebs_optimized=ebs_optimized, instance_initiated_shutdown_behavior=instance_initiated_shutdown_behavior)
 
             template = self.response_template(EC2_RUN_INSTANCES)
             return template.render(reservation=new_reservation)
