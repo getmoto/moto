@@ -113,12 +113,11 @@ class InstanceResponse(BaseResponse):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
         attribute = self._get_param('Attribute')
-        key = camelcase_to_underscores(attribute)
         instance_id = self._get_param('InstanceId')
         instance, value = self.ec2_backend.describe_instance_attribute(
-            instance_id, key)
+            instance_id, attribute)
 
-        if key == "group_set":
+        if attribute == "groupSet":
             template = self.response_template(
                 EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
         else:

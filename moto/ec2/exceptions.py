@@ -332,6 +332,15 @@ class InvalidParameterValueErrorTagNull(EC2ClientError):
             "Tag value cannot be null. Use empty string instead.")
 
 
+class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorUnknownAttribute, self).__init__(
+            "InvalidParameterValue",
+            "Value ({0}) for parameter attribute is invalid. Unknown attribute."
+            .format(parameter_value))
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
 
     def __init__(self, internet_gateway_id):

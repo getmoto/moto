@@ -54,6 +54,7 @@ from .exceptions import (
     InvalidNetworkInterfaceIdError,
     InvalidParameterValueError,
     InvalidParameterValueErrorTagNull,
+    InvalidParameterValueErrorUnknownAttribute,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
@@ -383,6 +384,10 @@ class NetworkInterfaceBackend(object):
 
 
 class Instance(TaggedEC2Resource, BotoInstance):
+    VALID_ATTRIBUTES = {'instanceType', 'kernel', 'ramdisk', 'userData', 'disableApiTermination',
+                        'instanceInitiatedShutdownBehavior', 'rootDeviceName', 'blockDeviceMapping',
+                        'productCodes', 'sourceDestCheck', 'groupSet', 'ebsOptimized', 'sriovNetSupport'}
+
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
         self.ec2_backend = ec2_backend
@@ -793,9 +798,14 @@ class InstanceBackend(object):
         setattr(instance, 'security_groups', new_group_list)
         return instance
 
-    def describe_instance_attribute(self, instance_id, key):
-        if key == 'group_set':
+    def describe_instance_attribute(self, instance_id, attribute):
+        if attribute not in Instance.VALID_ATTRIBUTES:
+            raise InvalidParameterValueErrorUnknownAttribute(attribute)
+
+        if attribute == 'groupSet':
             key = 'security_groups'
+        else:
+            key = camelcase_to_underscores(attribute)
         instance = self.get_instance(instance_id)
         value = getattr(instance, key)
         return instance, value
