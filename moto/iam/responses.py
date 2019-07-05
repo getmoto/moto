@@ -1493,6 +1493,7 @@ CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
          <AccessKeyId>{{ key.access_key_id }}</AccessKeyId>
          <Status>{{ key.status }}</Status>
          <SecretAccessKey>{{ key.secret_access_key }}</SecretAccessKey>
+         <CreateDate>{{ key.created_iso_8601 }}</CreateDate>
       </AccessKey>
    </CreateAccessKeyResult>
    <ResponseMetadata>

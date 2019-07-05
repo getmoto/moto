@@ -89,8 +89,8 @@ VALID_RESOURCE_PATH_STARTING_VALUES = {
 class IAMPolicyDocumentValidator:
 
     def __init__(self, policy_document):
-        self._policy_document: str = policy_document
-        self._policy_json: dict = {}
+        self._policy_document = policy_document
+        self._policy_json = {}
         self._statements = []
         self._resource_error = ""  # the first resource error found that does not generate a legacy parsing error
 

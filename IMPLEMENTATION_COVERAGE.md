@@ -2012,23 +2012,23 @@
 - [ ] upload_archive
 - [ ] upload_multipart_part
 
-## glue - 0% implemented
-- [ ] batch_create_partition
+## glue - 23% implemented
+- [x] batch_create_partition
 - [ ] batch_delete_connection
-- [ ] batch_delete_partition
-- [ ] batch_delete_table
+- [x] batch_delete_partition
+- [x] batch_delete_table
 - [ ] batch_delete_table_version
 - [ ] batch_get_partition
 - [ ] batch_stop_job_run
 - [ ] create_classifier
 - [ ] create_connection
 - [ ] create_crawler
-- [ ] create_database
+- [x] create_database
 - [ ] create_dev_endpoint
 - [ ] create_job
-- [ ] create_partition
+- [x] create_partition
 - [ ] create_script
-- [ ] create_table
+- [x] create_table
 - [ ] create_trigger
 - [ ] create_user_defined_function
 - [ ] delete_classifier
@@ -2037,8 +2037,8 @@
 - [ ] delete_database
 - [ ] delete_dev_endpoint
 - [ ] delete_job
-- [ ] delete_partition
-- [ ] delete_table
+- [x] delete_partition
+- [x] delete_table
 - [ ] delete_table_version
 - [ ] delete_trigger
 - [ ] delete_user_defined_function
@@ -2050,7 +2050,7 @@
 - [ ] get_crawler
 - [ ] get_crawler_metrics
 - [ ] get_crawlers
-- [ ] get_database
+- [x] get_database
 - [ ] get_databases
 - [ ] get_dataflow_graph
 - [ ] get_dev_endpoint
@@ -2060,13 +2060,13 @@
 - [ ] get_job_runs
 - [ ] get_jobs
 - [ ] get_mapping
-- [ ] get_partition
-- [ ] get_partitions
+- [x] get_partition
+- [x] get_partitions
 - [ ] get_plan
-- [ ] get_table
-- [ ] get_table_version
-- [ ] get_table_versions
-- [ ] get_tables
+- [x] get_table
+- [x] get_table_version
+- [x] get_table_versions
+- [x] get_tables
 - [ ] get_trigger
 - [ ] get_triggers
 - [ ] get_user_defined_function
@@ -2087,8 +2087,8 @@
 - [ ] update_database
 - [ ] update_dev_endpoint
 - [ ] update_job
-- [ ] update_partition
-- [ ] update_table
+- [x] update_partition
+- [x] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
 

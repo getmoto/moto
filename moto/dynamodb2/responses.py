@@ -166,7 +166,7 @@ class DynamoHandler(BaseResponse):
                                    when BillingMode is PAY_PER_REQUEST')
             throughput = None
         else:         # Provisioned (default billing mode)
-            throughput = body["ProvisionedThroughput"]
+            throughput = body.get("ProvisionedThroughput")
         # getting the schema
         key_schema = body['KeySchema']
         # getting attribute definition
@@ -558,7 +558,7 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get('FilterExpression')
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-
+        projection_expression = self.body.get('ProjectionExpression', '')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
         index_name = self.body.get('IndexName')
@@ -570,7 +570,8 @@ class DynamoHandler(BaseResponse):
                                                                                   filter_expression,
                                                                                   expression_attribute_names,
                                                                                   expression_attribute_values,
-                                                                                  index_name)
+                                                                                  index_name,
+                                                                                  projection_expression)
         except InvalidIndexNameError as err:
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
             return self.error(er, str(err))

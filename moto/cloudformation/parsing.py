@@ -246,7 +246,8 @@ def resource_name_property_from_type(resource_type):
 
 
 def generate_resource_name(resource_type, stack_name, logical_id):
-    if resource_type == "AWS::ElasticLoadBalancingV2::TargetGroup":
+    if resource_type in ["AWS::ElasticLoadBalancingV2::TargetGroup",
+                         "AWS::ElasticLoadBalancingV2::LoadBalancer"]:
         # Target group names need to be less than 32 characters, so when cloudformation creates a name for you
         # it makes sure to stay under that limit
         name_prefix = '{0}-{1}'.format(stack_name, logical_id)

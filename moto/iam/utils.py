@@ -7,7 +7,7 @@ import six
 def random_alphanumeric(length):
     return ''.join(six.text_type(
         random.choice(
-            string.ascii_letters + string.digits
+            string.ascii_letters + string.digits + "+" + "/"
         )) for _ in range(length)
     )
 
