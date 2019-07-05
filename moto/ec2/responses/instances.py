@@ -597,7 +597,7 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
-    {% if value is not none %} 
+    {% if value is not none %}
     <value>{{ value }}</value>
     {% endif %}
   </{{ attribute }}>
