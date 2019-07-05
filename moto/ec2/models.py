@@ -795,8 +795,11 @@ class InstanceBackend(object):
         setattr(instance, key, value)
         return instance
 
-    def modify_instance_security_groups(self, instance_id, new_group_list):
+    def modify_instance_security_groups(self, instance_id, new_group_id_list):
         instance = self.get_instance(instance_id)
+        new_group_list = []
+        for new_group_id in new_group_id_list:
+            new_group_list.append(self.get_security_group_from_id(new_group_id))
         setattr(instance, 'security_groups', new_group_list)
         return instance
 

@@ -605,9 +605,9 @@ EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
-    {% for sg_id in value %}
+    {% for sg in value %}
       <item>
-        <groupId>{{ sg_id }}</groupId>
+        <groupId>{{ sg.id }}</groupId>
       </item>
     {% endfor %}
   </{{ attribute }}>

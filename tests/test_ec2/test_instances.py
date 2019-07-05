@@ -681,8 +681,8 @@ def test_modify_instance_attribute_security_groups():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    sg_id = 'sg-1234abcd'
-    sg_id2 = 'sg-abcd4321'
+    sg_id = conn.create_security_group('test security group', 'this is a test security group').id
+    sg_id2 = conn.create_security_group('test security group 2', 'this is a test security group 2').id
 
     with assert_raises(EC2ResponseError) as ex:
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
@@ -1277,15 +1277,21 @@ def test_run_multiple_instances_in_same_command():
 @mock_ec2
 def test_describe_instance_attribute():
     client = boto3.client('ec2', region_name='us-east-1')
+    security_group_id = client.create_security_group(
+        GroupName='test security group', Description='this is a test security group')['GroupId']
     client.run_instances(ImageId='ami-1234abcd',
                          MinCount=1,
-                         MaxCount=1)
+                         MaxCount=1,
+                         SecurityGroupIds=[security_group_id])
     instance_id = client.describe_instances()['Reservations'][0]['Instances'][0]['InstanceId']
 
     valid_instance_attributes = ['instanceType', 'kernel', 'ramdisk', 'userData', 'disableApiTermination', 'instanceInitiatedShutdownBehavior', 'rootDeviceName', 'blockDeviceMapping', 'productCodes', 'sourceDestCheck', 'groupSet', 'ebsOptimized', 'sriovNetSupport']
 
     for valid_instance_attribute in valid_instance_attributes:
-        client.describe_instance_attribute(InstanceId=instance_id, Attribute=valid_instance_attribute)
+        response = client.describe_instance_attribute(InstanceId=instance_id, Attribute=valid_instance_attribute)
+        if valid_instance_attribute == "groupSet":
+            response["Groups"].should.have.length_of(1)
+            response["Groups"][0]["GroupId"].should.equal(security_group_id)
 
     invalid_instance_attributes = ['abc', 'Kernel', 'RamDisk', 'userdata', 'iNsTaNcEtYpE']
 
