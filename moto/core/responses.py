@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 from collections import defaultdict
 import datetime
 import json
@@ -8,6 +9,8 @@ import re
 import io
 
 import pytz
+
+from moto.core.authentication import IAMRequest, S3IAMRequest
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
@@ -103,7 +106,29 @@ class _TemplateEnvironmentMixin(object):
         return self.environment.get_template(template_id)
 
 
-class BaseResponse(_TemplateEnvironmentMixin):
+class ActionAuthenticatorMixin(object):
+
+    INITIAL_NO_AUTH_ACTION_COUNT = int(os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", 999999999))
+    request_count = 0
+
+    def _authenticate_action(self, iam_request):
+        iam_request.check_signature()
+
+        if ActionAuthenticatorMixin.request_count >= ActionAuthenticatorMixin.INITIAL_NO_AUTH_ACTION_COUNT:
+            iam_request.check_action_permitted()
+        else:
+            ActionAuthenticatorMixin.request_count += 1
+
+    def _authenticate_normal_action(self):
+        iam_request = IAMRequest(method=self.method, path=self.path, data=self.data, headers=self.headers)
+        self._authenticate_action(iam_request)
+
+    def _authenticate_s3_action(self):
+        iam_request = S3IAMRequest(method=self.method, path=self.path, data=self.data, headers=self.headers)
+        self._authenticate_action(iam_request)
+
+
+class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     default_region = 'us-east-1'
     # to extract region, use [^.]
@@ -167,6 +192,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
+        self.data = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.uri_match = None
@@ -273,6 +299,13 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
     def call_action(self):
         headers = self.response_headers
+
+        try:
+            self._authenticate_normal_action()
+        except HTTPException as http_error:
+            response = http_error.description, dict(status=http_error.code)
+            return self._send_response(headers, response)
+
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
         if action in method_names:
@@ -285,22 +318,26 @@ class BaseResponse(_TemplateEnvironmentMixin):
             if isinstance(response, six.string_types):
                 return 200, headers, response
             else:
-                if len(response) == 2:
-                    body, new_headers = response
-                else:
-                    status, new_headers, body = response
-                status = new_headers.get('status', 200)
-                headers.update(new_headers)
-                # Cast status to string
-                if "status" in headers:
-                    headers['status'] = str(headers['status'])
-                return status, headers, body
+                return self._send_response(headers, response)
 
         if not action:
             return 404, headers, ''
 
         raise NotImplementedError(
             "The {0} action has not been implemented".format(action))
+
+    @staticmethod
+    def _send_response(headers, response):
+        if len(response) == 2:
+            body, new_headers = response
+        else:
+            status, new_headers, body = response
+        status = new_headers.get('status', 200)
+        headers.update(new_headers)
+        # Cast status to string
+        if "status" in headers:
+            headers['status'] = str(headers['status'])
+        return status, headers, body
 
     def _get_param(self, param_name, if_none=None):
         val = self.querystring.get(param_name)
