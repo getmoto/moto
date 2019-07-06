@@ -292,8 +292,8 @@ class AccessKey(BaseModel):
 
     def __init__(self, user_name):
         self.user_name = user_name
-        self.access_key_id = random_access_key()
-        self.secret_access_key = random_alphanumeric(32)
+        self.access_key_id = "AKIA" + random_access_key()
+        self.secret_access_key = random_alphanumeric(40)
         self.status = 'Active'
         self.create_date = datetime.utcnow()
         self.last_used = datetime.utcnow()

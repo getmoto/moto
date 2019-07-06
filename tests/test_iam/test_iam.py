@@ -577,13 +577,17 @@ def test_delete_login_profile():
     conn.delete_login_profile('my-user')
 
 
-@mock_iam_deprecated()
+@mock_iam()
 def test_create_access_key():
-    conn = boto.connect_iam()
-    with assert_raises(BotoServerError):
-        conn.create_access_key('my-user')
-    conn.create_user('my-user')
-    conn.create_access_key('my-user')
+    conn = boto3.client('iam', region_name='us-east-1')
+    with assert_raises(ClientError):
+        conn.create_access_key(UserName='my-user')
+    conn.create_user(UserName='my-user')
+    access_key = conn.create_access_key(UserName='my-user')["AccessKey"]
+    (datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds.should.be.within(0, 10)
+    access_key["AccessKeyId"].should.have.length_of(20)
+    access_key["SecretAccessKey"].should.have.length_of(40)
+    assert access_key["AccessKeyId"].startswith("AKIA")
 
 
 @mock_iam_deprecated()
