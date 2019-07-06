@@ -275,7 +275,7 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
       <Label>{{ label }}</Label>
       <Datapoints>
         {% for datapoint in datapoints %}
-            <Datapoint>
+            <member>
               {% if datapoint.sum is not none %}
               <Sum>{{ datapoint.sum }}</Sum>
               {% endif %}
@@ -302,7 +302,7 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
 
               <Timestamp>{{ datapoint.timestamp }}</Timestamp>
               <Unit>{{ datapoint.unit }}</Unit>
-            </Datapoint>
+            </member>
         {% endfor %}
       </Datapoints>
     </GetMetricStatisticsResult>
