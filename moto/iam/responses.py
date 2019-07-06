@@ -1144,7 +1144,7 @@ CREATE_POLICY_VERSION_TEMPLATE = """<CreatePolicyVersionResponse xmlns="https://
     <PolicyVersion>
       <Document>{{ policy_version.document }}</Document>
       <VersionId>{{ policy_version.version_id }}</VersionId>
-      <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+      <IsDefaultVersion>{{ policy_version.is_default | lower }}</IsDefaultVersion>
       <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
     </PolicyVersion>
   </CreatePolicyVersionResult>
@@ -1158,7 +1158,7 @@ GET_POLICY_VERSION_TEMPLATE = """<GetPolicyVersionResponse xmlns="https://iam.am
     <PolicyVersion>
       <Document>{{ policy_version.document }}</Document>
       <VersionId>{{ policy_version.version_id }}</VersionId>
-      <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+      <IsDefaultVersion>{{ policy_version.is_default | lower }}</IsDefaultVersion>
       <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
     </PolicyVersion>
   </GetPolicyVersionResult>
@@ -1175,7 +1175,7 @@ LIST_POLICY_VERSIONS_TEMPLATE = """<ListPolicyVersionsResponse xmlns="https://ia
       <member>
         <Document>{{ policy_version.document }}</Document>
         <VersionId>{{ policy_version.version_id }}</VersionId>
-        <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+        <IsDefaultVersion>{{ policy_version.is_default | lower }}</IsDefaultVersion>
         <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
       </member>
       {% endfor %}
@@ -1787,7 +1787,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% for policy_version in policy.versions %}
           <member>
             <Document>{{ policy_version.document }}</Document>
-            <IsDefaultVersion>{{ policy_version.is_default }}</IsDefaultVersion>
+            <IsDefaultVersion>{{ policy_version.is_default | lower }}</IsDefaultVersion>
             <VersionId>{{ policy_version.version_id }}</VersionId>
             <CreateDate>{{ policy_version.created_iso_8601 }}</CreateDate>
           </member>
