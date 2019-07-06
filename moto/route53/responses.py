@@ -147,7 +147,7 @@ class Route53(BaseResponse):
                         the_zone.delete_rrset_by_id(
                             record_set["SetIdentifier"])
                     else:
-                        the_zone.delete_rrset_by_name(record_set["Name"])
+                        the_zone.delete_rrset(record_set)
 
             return 200, headers, CHANGE_RRSET_RESPONSE
 
