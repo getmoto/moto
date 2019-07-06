@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 # Ensure 'assert_raises' context manager support for Python 2.6
+from botocore.exceptions import ClientError
+
 import tests.backport_assert_raises
 from nose.tools import assert_raises
 
@@ -679,8 +681,8 @@ def test_modify_instance_attribute_security_groups():
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
 
-    sg_id = 'sg-1234abcd'
-    sg_id2 = 'sg-abcd4321'
+    sg_id = conn.create_security_group('test security group', 'this is a test security group').id
+    sg_id2 = conn.create_security_group('test security group 2', 'this is a test security group 2').id
 
     with assert_raises(EC2ResponseError) as ex:
         instance.modify_attribute("groupSet", [sg_id, sg_id2], dry_run=True)
@@ -1255,6 +1257,7 @@ def test_create_instance_ebs_optimized():
     instance.load()
     instance.ebs_optimized.should.be(False)
 
+
 @mock_ec2
 def test_run_multiple_instances_in_same_command():
     instance_count = 4
@@ -1269,3 +1272,37 @@ def test_run_multiple_instances_in_same_command():
     instances = reservations[0]['Instances']
     for i in range(0, instance_count):
         instances[i]['AmiLaunchIndex'].should.be(i)
+
+
+@mock_ec2
+def test_describe_instance_attribute():
+    client = boto3.client('ec2', region_name='us-east-1')
+    security_group_id = client.create_security_group(
+        GroupName='test security group', Description='this is a test security group')['GroupId']
+    client.run_instances(ImageId='ami-1234abcd',
+                         MinCount=1,
+                         MaxCount=1,
+                         SecurityGroupIds=[security_group_id])
+    instance_id = client.describe_instances()['Reservations'][0]['Instances'][0]['InstanceId']
+
+    valid_instance_attributes = ['instanceType', 'kernel', 'ramdisk', 'userData', 'disableApiTermination', 'instanceInitiatedShutdownBehavior', 'rootDeviceName', 'blockDeviceMapping', 'productCodes', 'sourceDestCheck', 'groupSet', 'ebsOptimized', 'sriovNetSupport']
+
+    for valid_instance_attribute in valid_instance_attributes:
+        response = client.describe_instance_attribute(InstanceId=instance_id, Attribute=valid_instance_attribute)
+        if valid_instance_attribute == "groupSet":
+            response.should.have.key("Groups")
+            response["Groups"].should.have.length_of(1)
+            response["Groups"][0]["GroupId"].should.equal(security_group_id)
+        elif valid_instance_attribute == "userData":
+            response.should.have.key("UserData")
+            response["UserData"].should.be.empty
+
+    invalid_instance_attributes = ['abc', 'Kernel', 'RamDisk', 'userdata', 'iNsTaNcEtYpE']
+
+    for invalid_instance_attribute in invalid_instance_attributes:
+        with assert_raises(ClientError) as ex:
+            client.describe_instance_attribute(InstanceId=instance_id, Attribute=invalid_instance_attribute)
+        ex.exception.response['Error']['Code'].should.equal('InvalidParameterValue')
+        ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+        message = 'Value ({invalid_instance_attribute}) for parameter attribute is invalid. Unknown attribute.'.format(invalid_instance_attribute=invalid_instance_attribute)
+        ex.exception.response['Error']['Message'].should.equal(message)
