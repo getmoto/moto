@@ -685,6 +685,7 @@ class IAMBackend(BaseBackend):
         for p, d in role.policies.items():
             if p == policy_name:
                 return p, d
+        raise IAMNotFoundException("Policy Document {0} not attached to role {1}".format(policy_name, role_name))
 
     def list_role_policies(self, role_name):
         role = self.get_role(role_name)
