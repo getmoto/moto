@@ -1349,6 +1349,7 @@ LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
             <Arn>{{ group.arn }}</Arn>
+            <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
         </member>
         {% endfor %}
     </Groups>
@@ -1652,6 +1653,7 @@ LIST_GROUPS_FOR_USER_TEMPLATE = """<ListGroupsForUserResponse>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
             <Arn>{{ group.arn }}</Arn>
+            <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
         </member>
         {% endfor %}
     </Groups>
