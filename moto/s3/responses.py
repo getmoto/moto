@@ -657,7 +657,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             body = b''
 
         if method == 'GET':
-            return self._key_response_get(bucket_name, query, key_name, headers)
+            return self._key_response_get(bucket_name, query, key_name, headers=request.headers)
         elif method == 'PUT':
             return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
@@ -684,10 +684,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 parts=parts
             )
         version_id = query.get('versionId', [None])[0]
+        if_modified_since = headers.get('If-Modified-Since', None)
         key = self.backend.get_key(
             bucket_name, key_name, version_id=version_id)
         if key is None:
             raise MissingKey(key_name)
+        if if_modified_since:
+            if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
+        if if_modified_since and key.last_modified < if_modified_since:
+            return 304, response_headers, 'Not Modified'
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
