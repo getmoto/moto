@@ -99,7 +99,18 @@ def test_rrset():
     rrsets[0].resource_records[0].should.equal('5.6.7.8')
 
     changes = ResourceRecordSets(conn, zoneid)
+    change = changes.add_change("UPSERT", "foo.bar.testdns.aws.com", "TXT")
+    change.add_value("foo")
+    changes.commit()
+
+    rrsets = conn.get_all_rrsets(zoneid)
+    rrsets.should.have.length_of(2)
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
+    rrsets[1].resource_records[0].should.equal('foo')
+
+    changes = ResourceRecordSets(conn, zoneid)
     changes.add_change("DELETE", "foo.bar.testdns.aws.com", "A")
+    changes.add_change("DELETE", "foo.bar.testdns.aws.com", "TXT")
     changes.commit()
 
     changes = ResourceRecordSets(conn, zoneid)
@@ -113,12 +124,12 @@ def test_rrset():
     rrsets.should.have.length_of(2)
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="foo.bar.testdns.aws.com", type="A")
+        zoneid, name="bar.foo.testdns.aws.com", type="A")
     rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('1.2.3.4')
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="bar.foo.testdns.aws.com", type="A")
+        zoneid, name="foo.bar.testdns.aws.com", type="A")
     rrsets.should.have.length_of(2)
     resource_records = [rr for rr_set in rrsets for rr in rr_set.resource_records]
     resource_records.should.contain('1.2.3.4')
@@ -520,7 +531,7 @@ def test_change_resource_record_sets_crud_valid():
 
     # Create A Record.
     a_record_endpoint_payload = {
-        'Comment': 'create A record prod.redis.db',
+        'Comment': 'Create A record prod.redis.db',
         'Changes': [
             {
                 'Action': 'CREATE',
@@ -545,15 +556,15 @@ def test_change_resource_record_sets_crud_valid():
     a_record_detail['TTL'].should.equal(10)
     a_record_detail['ResourceRecords'].should.equal([{'Value': '127.0.0.1'}])
 
-    # Update type to CNAME
+    # Update A Record.
     cname_record_endpoint_payload = {
-        'Comment': 'Update to CNAME prod.redis.db',
+        'Comment': 'Update A record prod.redis.db',
         'Changes': [
             {
                 'Action': 'UPSERT',
                 'ResourceRecordSet': {
                     'Name': 'prod.redis.db.',
-                    'Type': 'CNAME',
+                    'Type': 'A',
                     'TTL': 60,
                     'ResourceRecords': [{
                         'Value': '192.168.1.1'
@@ -568,9 +579,26 @@ def test_change_resource_record_sets_crud_valid():
     len(response['ResourceRecordSets']).should.equal(1)
     cname_record_detail = response['ResourceRecordSets'][0]
     cname_record_detail['Name'].should.equal('prod.redis.db.')
-    cname_record_detail['Type'].should.equal('CNAME')
+    cname_record_detail['Type'].should.equal('A')
     cname_record_detail['TTL'].should.equal(60)
     cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
+
+    # Delete record with wrong type.
+    delete_payload = {
+        'Comment': 'delete prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'DELETE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'CNAME',
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload)
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(1)
 
     # Delete record.
     delete_payload = {
@@ -580,7 +608,7 @@ def test_change_resource_record_sets_crud_valid():
                 'Action': 'DELETE',
                 'ResourceRecordSet': {
                     'Name': 'prod.redis.db',
-                    'Type': 'CNAME',
+                    'Type': 'A',
                 }
             }
         ]

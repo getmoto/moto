@@ -30,7 +30,7 @@ from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
-from .utils import make_function_arn
+from .utils import make_function_arn, make_function_ver_arn
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ except ImportError:
 
 _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
-docker_3 = docker.__version__.startswith("3")
+docker_3 = docker.__version__[0] >= '3'
 
 
 def zip2tar(zip_bytes):
@@ -215,12 +215,12 @@ class LambdaFunction(BaseModel):
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
 
-        self.function_arn = make_function_arn(self.region, ACCOUNT_ID, self.function_name, version)
+        self.function_arn = make_function_arn(self.region, ACCOUNT_ID, self.function_name)
 
         self.tags = dict()
 
     def set_version(self, version):
-        self.function_arn = make_function_arn(self.region, ACCOUNT_ID, self.function_name, version)
+        self.function_arn = make_function_ver_arn(self.region, ACCOUNT_ID, self.function_name, version)
         self.version = version
         self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -504,6 +504,14 @@ class LambdaStorage(object):
         except ValueError:
             return self._functions[name]['latest']
 
+    def list_versions_by_function(self, name):
+        if name not in self._functions:
+            return None
+
+        latest = copy.copy(self._functions[name]['latest'])
+        latest.function_arn += ':$LATEST'
+        return [latest] + self._functions[name]['versions']
+
     def get_arn(self, arn):
         return self._arns.get(arn, None)
 
@@ -534,6 +542,7 @@ class LambdaStorage(object):
         fn.set_version(new_version)
 
         self._functions[name]['versions'].append(fn)
+        self._arns[fn.function_arn] = fn
         return fn
 
     def del_function(self, name, qualifier=None):
@@ -603,6 +612,9 @@ class LambdaBackend(BaseBackend):
 
         self._lambdas.put_function(fn)
 
+        if spec.get('Publish'):
+            ver = self.publish_function(function_name)
+            fn.version = ver.version
         return fn
 
     def publish_function(self, function_name):
@@ -610,6 +622,9 @@ class LambdaBackend(BaseBackend):
 
     def get_function(self, function_name, qualifier=None):
         return self._lambdas.get_function(function_name, qualifier)
+
+    def list_versions_by_function(self, function_name):
+        return self._lambdas.list_versions_by_function(function_name)
 
     def get_function_by_arn(self, function_arn):
         return self._lambdas.get_arn(function_arn)

@@ -12,6 +12,8 @@ import sure  # noqa
 
 from freezegun import freeze_time
 from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings
+from nose.tools import assert_raises
+from botocore.exceptions import ClientError
 
 _lambda_region = 'us-west-2'
 
@@ -280,7 +282,7 @@ def test_create_function_from_aws_bucket():
     result.pop('LastModified')
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -289,7 +291,7 @@ def test_create_function_from_aws_bucket():
         'Description': 'test lambda function',
         'Timeout': 3,
         'MemorySize': 128,
-        'Version': '$LATEST',
+        'Version': '1',
         'VpcConfig': {
             "SecurityGroupIds": ["sg-123abc"],
             "SubnetIds": ["subnet-123abc"],
@@ -325,7 +327,7 @@ def test_create_function_from_zipfile():
 
     result.should.equal({
         'FunctionName': 'testFunction',
-        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
+        'FunctionArn': 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
         'Runtime': 'python2.7',
         'Role': 'test-iam-role',
         'Handler': 'lambda_function.lambda_handler',
@@ -334,7 +336,7 @@ def test_create_function_from_zipfile():
         'Timeout': 3,
         'MemorySize': 128,
         'CodeSha256': hashlib.sha256(zip_content).hexdigest(),
-        'Version': '$LATEST',
+        'Version': '1',
         'VpcConfig': {
             "SecurityGroupIds": [],
             "SubnetIds": [],
@@ -396,6 +398,13 @@ def test_get_function():
     # Test get function with
     result = conn.get_function(FunctionName='testFunction', Qualifier='$LATEST')
     result['Configuration']['Version'].should.equal('$LATEST')
+    result['Configuration']['FunctionArn'].should.equal('arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST')
+
+
+    # Test get function when can't find function name
+    with assert_raises(ClientError):
+        conn.get_function(FunctionName='junk', Qualifier='$LATEST')
+
 
 
 @mock_lambda
@@ -457,14 +466,15 @@ def test_publish():
         Description='test lambda function',
         Timeout=3,
         MemorySize=128,
-        Publish=True,
+        Publish=False,
     )
 
     function_list = conn.list_functions()
     function_list['Functions'].should.have.length_of(1)
     latest_arn = function_list['Functions'][0]['FunctionArn']
 
-    conn.publish_version(FunctionName='testFunction')
+    res = conn.publish_version(FunctionName='testFunction')
+    assert res['ResponseMetadata']['HTTPStatusCode'] == 201
 
     function_list = conn.list_functions()
     function_list['Functions'].should.have.length_of(2)
@@ -477,7 +487,7 @@ def test_publish():
 
     function_list = conn.list_functions()
     function_list['Functions'].should.have.length_of(1)
-    function_list['Functions'][0]['FunctionArn'].should.contain('testFunction:$LATEST')
+    function_list['Functions'][0]['FunctionArn'].should.contain('testFunction')
 
 
 @mock_lambda
@@ -520,7 +530,7 @@ def test_list_create_list_get_delete_list():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
@@ -693,7 +703,7 @@ def test_invoke_async_function():
     )
 
     success_result = conn.invoke_async(
-        FunctionName='testFunction', 
+        FunctionName='testFunction',
         InvokeArgs=json.dumps({'test': 'event'})
         )
 
@@ -733,7 +743,7 @@ def test_get_function_created_with_zipfile():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:$LATEST'.format(_lambda_region),
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction'.format(_lambda_region),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,
@@ -819,3 +829,107 @@ def get_function_policy():
     assert isinstance(response['Policy'], str)
     res = json.loads(response['Policy'])
     assert res['Statement'][0]['Action'] == 'lambda:InvokeFunction'
+
+
+@mock_lambda
+@mock_s3
+def test_list_versions_by_function():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-west-2')
+
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='arn:aws:iam::123456789012:role/test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    res = conn.publish_version(FunctionName='testFunction')
+    assert res['ResponseMetadata']['HTTPStatusCode'] == 201
+    versions = conn.list_versions_by_function(FunctionName='testFunction')
+    assert len(versions['Versions']) == 3
+    assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST'
+    assert versions['Versions'][1]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:1'
+    assert versions['Versions'][2]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction:2'
+
+    conn.create_function(
+        FunctionName='testFunction_2',
+        Runtime='python2.7',
+        Role='arn:aws:iam::123456789012:role/test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=False,
+    )
+    versions = conn.list_versions_by_function(FunctionName='testFunction_2')
+    assert len(versions['Versions']) == 1
+    assert versions['Versions'][0]['FunctionArn'] == 'arn:aws:lambda:us-west-2:123456789012:function:testFunction_2:$LATEST'
+
+
+@mock_lambda
+@mock_s3
+def test_create_function_with_already_exists():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-west-2')
+
+    conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    assert response['FunctionName'] == 'testFunction'
+
+
+@mock_lambda
+@mock_s3
+def test_list_versions_by_function_for_nonexistent_function():
+    conn = boto3.client('lambda', 'us-west-2')
+    versions = conn.list_versions_by_function(FunctionName='testFunction')
+
+    assert len(versions['Versions']) == 0
