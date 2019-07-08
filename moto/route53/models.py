@@ -120,7 +120,7 @@ class RecordSet(BaseModel):
                 properties["HostedZoneId"])
 
         try:
-            hosted_zone.delete_rrset_by_name(resource_name)
+            hosted_zone.delete_rrset({'Name': resource_name})
         except KeyError:
             pass
 
@@ -171,7 +171,13 @@ class RecordSet(BaseModel):
             self.hosted_zone_name)
         if not hosted_zone:
             hosted_zone = route53_backend.get_hosted_zone(self.hosted_zone_id)
-        hosted_zone.delete_rrset_by_name(self.name)
+        hosted_zone.delete_rrset({'Name': self.name, 'Type': self.type_})
+
+
+def reverse_domain_name(domain_name):
+    if domain_name.endswith('.'):  # normalize without trailing dot
+        domain_name = domain_name[:-1]
+    return '.'.join(reversed(domain_name.split('.')))
 
 
 class FakeZone(BaseModel):
@@ -199,9 +205,13 @@ class FakeZone(BaseModel):
             self.rrsets.append(new_rrset)
         return new_rrset
 
-    def delete_rrset_by_name(self, name):
+    def delete_rrset(self, rrset):
         self.rrsets = [
-            record_set for record_set in self.rrsets if record_set.name != name]
+            record_set
+            for record_set in self.rrsets
+            if record_set.name != rrset['Name'] or
+            (rrset.get('Type') is not None and record_set.type_ != rrset['Type'])
+        ]
 
     def delete_rrset_by_id(self, set_identifier):
         self.rrsets = [
@@ -209,12 +219,15 @@ class FakeZone(BaseModel):
 
     def get_record_sets(self, start_type, start_name):
         record_sets = list(self.rrsets)  # Copy the list
+        if start_name:
+            record_sets = [
+                record_set
+                for record_set in record_sets
+                if reverse_domain_name(record_set.name) >= reverse_domain_name(start_name)
+            ]
         if start_type:
             record_sets = [
                 record_set for record_set in record_sets if record_set.type_ >= start_type]
-        if start_name:
-            record_sets = [
-                record_set for record_set in record_sets if record_set.name >= start_name]
 
         return record_sets
 

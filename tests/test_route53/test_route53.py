@@ -110,6 +110,7 @@ def test_rrset():
 
     changes = ResourceRecordSets(conn, zoneid)
     changes.add_change("DELETE", "foo.bar.testdns.aws.com", "A")
+    changes.add_change("DELETE", "foo.bar.testdns.aws.com", "TXT")
     changes.commit()
 
     changes = ResourceRecordSets(conn, zoneid)
@@ -123,12 +124,12 @@ def test_rrset():
     rrsets.should.have.length_of(2)
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="foo.bar.testdns.aws.com", type="A")
+        zoneid, name="bar.foo.testdns.aws.com", type="A")
     rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('1.2.3.4')
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="bar.foo.testdns.aws.com", type="A")
+        zoneid, name="foo.bar.testdns.aws.com", type="A")
     rrsets.should.have.length_of(2)
     resource_records = [rr for rr_set in rrsets for rr in rr_set.resource_records]
     resource_records.should.contain('1.2.3.4')
@@ -617,7 +618,7 @@ def test_change_resource_record_sets_crud_valid():
     })
     cname_alias_record_detail.should_not.contain('ResourceRecords')
 
-    # Delete record.
+    # Delete record with wrong type.
     delete_payload = {
         'Comment': 'delete prod.redis.db',
         'Changes': [
@@ -626,6 +627,23 @@ def test_change_resource_record_sets_crud_valid():
                 'ResourceRecordSet': {
                     'Name': 'prod.redis.db',
                     'Type': 'CNAME',
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload)
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(1)
+
+    # Delete record.
+    delete_payload = {
+        'Comment': 'delete prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'DELETE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'A',
                 }
             }
         ]

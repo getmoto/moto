@@ -54,6 +54,7 @@ from .exceptions import (
     InvalidNetworkInterfaceIdError,
     InvalidParameterValueError,
     InvalidParameterValueErrorTagNull,
+    InvalidParameterValueErrorUnknownAttribute,
     InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
     InvalidRouteTableIdError,
@@ -383,6 +384,10 @@ class NetworkInterfaceBackend(object):
 
 
 class Instance(TaggedEC2Resource, BotoInstance):
+    VALID_ATTRIBUTES = {'instanceType', 'kernel', 'ramdisk', 'userData', 'disableApiTermination',
+                        'instanceInitiatedShutdownBehavior', 'rootDeviceName', 'blockDeviceMapping',
+                        'productCodes', 'sourceDestCheck', 'groupSet', 'ebsOptimized', 'sriovNetSupport'}
+
     def __init__(self, ec2_backend, image_id, user_data, security_groups, **kwargs):
         super(Instance, self).__init__()
         self.ec2_backend = ec2_backend
@@ -405,6 +410,8 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.launch_time = utc_date_and_time()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
+        self.instance_initiated_shutdown_behavior = kwargs.get("instance_initiated_shutdown_behavior", "stop")
+        self.sriov_net_support = "simple"
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
         associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
@@ -788,14 +795,22 @@ class InstanceBackend(object):
         setattr(instance, key, value)
         return instance
 
-    def modify_instance_security_groups(self, instance_id, new_group_list):
+    def modify_instance_security_groups(self, instance_id, new_group_id_list):
         instance = self.get_instance(instance_id)
+        new_group_list = []
+        for new_group_id in new_group_id_list:
+            new_group_list.append(self.get_security_group_from_id(new_group_id))
         setattr(instance, 'security_groups', new_group_list)
         return instance
 
-    def describe_instance_attribute(self, instance_id, key):
-        if key == 'group_set':
+    def describe_instance_attribute(self, instance_id, attribute):
+        if attribute not in Instance.VALID_ATTRIBUTES:
+            raise InvalidParameterValueErrorUnknownAttribute(attribute)
+
+        if attribute == 'groupSet':
             key = 'security_groups'
+        else:
+            key = camelcase_to_underscores(attribute)
         instance = self.get_instance(instance_id)
         value = getattr(instance, key)
         return instance, value

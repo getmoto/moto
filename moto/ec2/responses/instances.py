@@ -46,6 +46,7 @@ class InstanceResponse(BaseResponse):
         associate_public_ip = self._get_param('AssociatePublicIpAddress')
         key_name = self._get_param('KeyName')
         ebs_optimized = self._get_param('EbsOptimized')
+        instance_initiated_shutdown_behavior = self._get_param("InstanceInitiatedShutdownBehavior")
         tags = self._parse_tag_specification("TagSpecification")
         region_name = self.region
 
@@ -55,7 +56,7 @@ class InstanceResponse(BaseResponse):
                 instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
                 owner_id=owner_id, key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
-                tags=tags, ebs_optimized=ebs_optimized)
+                tags=tags, ebs_optimized=ebs_optimized, instance_initiated_shutdown_behavior=instance_initiated_shutdown_behavior)
 
             template = self.response_template(EC2_RUN_INSTANCES)
             return template.render(reservation=new_reservation)
@@ -113,12 +114,11 @@ class InstanceResponse(BaseResponse):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
         attribute = self._get_param('Attribute')
-        key = camelcase_to_underscores(attribute)
         instance_id = self._get_param('InstanceId')
         instance, value = self.ec2_backend.describe_instance_attribute(
-            instance_id, key)
+            instance_id, attribute)
 
-        if key == "group_set":
+        if attribute == "groupSet":
             template = self.response_template(
                 EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
         else:
@@ -597,7 +597,9 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
+    {% if value is not none %}
     <value>{{ value }}</value>
+    {% endif %}
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 
@@ -605,9 +607,9 @@ EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
-    {% for sg_id in value %}
+    {% for sg in value %}
       <item>
-        <groupId>{{ sg_id }}</groupId>
+        <groupId>{{ sg.id }}</groupId>
       </item>
     {% endfor %}
   </{{ attribute }}>

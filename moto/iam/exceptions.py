@@ -26,12 +26,28 @@ class IAMReportNotPresentException(RESTError):
             "ReportNotPresent", message)
 
 
+class IAMLimitExceededException(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(IAMLimitExceededException, self).__init__(
+            "LimitExceeded", message)
+
+
 class MalformedCertificate(RESTError):
     code = 400
 
     def __init__(self, cert):
         super(MalformedCertificate, self).__init__(
             'MalformedCertificate', 'Certificate {cert} is malformed'.format(cert=cert))
+
+
+class MalformedPolicyDocument(RESTError):
+    code = 400
+
+    def __init__(self, message=""):
+        super(MalformedPolicyDocument, self).__init__(
+            'MalformedPolicyDocument', message)
 
 
 class DuplicateTags(RESTError):

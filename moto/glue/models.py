@@ -138,6 +138,12 @@ class FakeTable(BaseModel):
                 raise PartitionAlreadyExistsException()
         self.partitions[key] = partition
 
+    def delete_partition(self, values):
+        try:
+            del self.partitions[str(values)]
+        except KeyError:
+            raise PartitionNotFoundException()
+
 
 class FakePartition(BaseModel):
     def __init__(self, database_name, table_name, partiton_input):

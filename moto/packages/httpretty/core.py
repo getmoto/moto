@@ -268,10 +268,26 @@ class fakesock(object):
         _sent_data = []
 
         def __init__(self, family=socket.AF_INET, type=socket.SOCK_STREAM,
-                     protocol=0):
-            self.truesock = (old_socket(family, type, protocol)
-                             if httpretty.allow_net_connect
-                             else None)
+                     proto=0, fileno=None, _sock=None):
+            """
+                Matches both the Python 2 API:
+                    def __init__(self, family=AF_INET, type=SOCK_STREAM, proto=0, _sock=None):
+                    https://github.com/python/cpython/blob/2.7/Lib/socket.py
+
+                and the Python 3 API:
+                    def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+                    https://github.com/python/cpython/blob/3.5/Lib/socket.py
+            """
+            if httpretty.allow_net_connect:
+                if PY3:
+                    self.truesock = old_socket(family, type, proto, fileno)
+                else:
+                    # If Python 2, if parameters are passed as arguments, instead of kwargs,
+                    # the 4th argument `_sock` will be interpreted as the `fileno`.
+                    # Check if _sock is none, and if so, pass fileno.
+                    self.truesock = old_socket(family, type, proto, fileno or _sock)
+            else:
+                self.truesock = None
             self._closed = True
             self.fd = FakeSockFile()
             self.fd.socket = self
