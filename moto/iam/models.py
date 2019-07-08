@@ -685,6 +685,7 @@ class IAMBackend(BaseBackend):
         for p, d in role.policies.items():
             if p == policy_name:
                 return p, d
+        raise IAMNotFoundException("Policy Document {0} not attached to role {1}".format(policy_name, role_name))
 
     def list_role_policies(self, role_name):
         role = self.get_role(role_name)
@@ -777,7 +778,6 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
         if not policy:
             raise IAMNotFoundException("Policy not found")
-            
         if len(policy.versions) >= 5:
             raise IAMLimitExceededException("A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version.")
         set_as_default = (set_as_default == "true")  # convert it to python bool

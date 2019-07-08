@@ -75,7 +75,8 @@ class SNSResponse(BaseResponse):
 
     def create_topic(self):
         name = self._get_param('Name')
-        topic = self.backend.create_topic(name)
+        attributes = self._get_attributes()
+        topic = self.backend.create_topic(name, attributes)
 
         if self.request_json:
             return json.dumps({
