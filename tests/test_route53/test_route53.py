@@ -110,6 +110,7 @@ def test_rrset():
 
     changes = ResourceRecordSets(conn, zoneid)
     changes.add_change("DELETE", "foo.bar.testdns.aws.com", "A")
+    changes.add_change("DELETE", "foo.bar.testdns.aws.com", "TXT")
     changes.commit()
 
     changes = ResourceRecordSets(conn, zoneid)
@@ -582,7 +583,7 @@ def test_change_resource_record_sets_crud_valid():
     cname_record_detail['TTL'].should.equal(60)
     cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
 
-    # Delete record.
+    # Delete record with wrong type.
     delete_payload = {
         'Comment': 'delete prod.redis.db',
         'Changes': [
@@ -591,6 +592,23 @@ def test_change_resource_record_sets_crud_valid():
                 'ResourceRecordSet': {
                     'Name': 'prod.redis.db',
                     'Type': 'CNAME',
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload)
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(1)
+
+    # Delete record.
+    delete_payload = {
+        'Comment': 'delete prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'DELETE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'A',
                 }
             }
         ]
