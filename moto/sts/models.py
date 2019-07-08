@@ -38,6 +38,9 @@ class AssumedRole(BaseModel):
 
 class STSBackend(BaseBackend):
 
+    def __init__(self):
+        self.assumed_roles = []
+
     def get_session_token(self, duration):
         token = Token(duration=duration)
         return token
@@ -48,6 +51,7 @@ class STSBackend(BaseBackend):
 
     def assume_role(self, **kwargs):
         role = AssumedRole(**kwargs)
+        self.assumed_roles.append(role)
         return role
 
 

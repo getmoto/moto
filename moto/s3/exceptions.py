@@ -213,3 +213,35 @@ class BucketAccessDeniedError(BucketError):
 
     def __init__(self, *args, **kwargs):
         super(BucketAccessDeniedError, self).__init__('AccessDenied', 'Access Denied', *args, **kwargs)
+
+
+class S3InvalidTokenError(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(S3InvalidTokenError, self).__init__('InvalidToken', 'The provided token is malformed or otherwise invalid.',  *args, **kwargs)
+
+
+class BucketInvalidTokenError(BucketError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(BucketInvalidTokenError, self).__init__('InvalidToken', 'The provided token is malformed or otherwise invalid.', *args, **kwargs)
+
+
+class S3InvalidAccessKeyIdError(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(S3InvalidAccessKeyIdError, self).__init__(
+            'InvalidAccessKeyId',
+            "The AWS Access Key Id you provided does not exist in our records.", *args, **kwargs)
+
+
+class BucketInvalidAccessKeyIdError(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(BucketInvalidAccessKeyIdError, self).__init__(
+            'InvalidAccessKeyId',
+            "The AWS Access Key Id you provided does not exist in our records.", *args, **kwargs)

@@ -111,21 +111,19 @@ class ActionAuthenticatorMixin(object):
     INITIAL_NO_AUTH_ACTION_COUNT = int(os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", 999999999))
     request_count = 0
 
-    def _authenticate_action(self, iam_request):
-        iam_request.check_signature()
-
+    def _authenticate_action(self, iam_request_cls):
         if ActionAuthenticatorMixin.request_count >= ActionAuthenticatorMixin.INITIAL_NO_AUTH_ACTION_COUNT:
+            iam_request = iam_request_cls(method=self.method, path=self.path, data=self.data, headers=self.headers)
+            iam_request.check_signature()
             iam_request.check_action_permitted()
         else:
             ActionAuthenticatorMixin.request_count += 1
 
     def _authenticate_normal_action(self):
-        iam_request = IAMRequest(method=self.method, path=self.path, data=self.data, headers=self.headers)
-        self._authenticate_action(iam_request)
+        self._authenticate_action(IAMRequest)
 
     def _authenticate_s3_action(self):
-        iam_request = S3IAMRequest(method=self.method, path=self.path, data=self.data, headers=self.headers)
-        self._authenticate_action(iam_request)
+        self._authenticate_action(S3IAMRequest)
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):

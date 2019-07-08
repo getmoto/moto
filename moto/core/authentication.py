@@ -6,19 +6,115 @@ from enum import Enum
 from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
+
 from moto.iam.models import ACCOUNT_ID, Policy
-
 from moto.iam import iam_backend
+from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError, InvalidAccessKeyIdError, AuthFailureError
+from moto.s3.exceptions import BucketAccessDeniedError, S3AccessDeniedError, BucketInvalidTokenError, S3InvalidTokenError, S3InvalidAccessKeyIdError, BucketInvalidAccessKeyIdError
+from moto.sts import sts_backend
 
-from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError
-from moto.s3.exceptions import BucketAccessDeniedError, S3AccessDeniedError
 
-ACCESS_KEY_STORE = {
-    "AKIAJDULPKHCC4KGTYVA": {
-        "owner": "avatao-user",
-        "secret_access_key": "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"
-    }
-}
+def create_access_key(access_key_id, headers):
+    if access_key_id.startswith("AKIA") or "X-Amz-Security-Token" not in headers:
+        return IAMUserAccessKey(access_key_id, headers)
+    else:
+        return AssumedRoleAccessKey(access_key_id, headers)
+
+
+class IAMUserAccessKey:
+
+    def __init__(self, access_key_id, headers):
+        iam_users = iam_backend.list_users('/', None, None)
+        for iam_user in iam_users:
+            for access_key in iam_user.access_keys:
+                if access_key.access_key_id == access_key_id:
+                    self._owner_user_name = iam_user.name
+                    self._access_key_id = access_key_id
+                    self._secret_access_key = access_key.secret_access_key
+                    if "X-Amz-Security-Token" in headers:
+                        raise CreateAccessKeyFailure(reason="InvalidToken")
+                    return
+        raise CreateAccessKeyFailure(reason="InvalidId")
+
+    @property
+    def arn(self):
+        return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
+            account_id=ACCOUNT_ID,
+            iam_user_name=self._owner_user_name
+        )
+
+    def create_credentials(self):
+        return Credentials(self._access_key_id, self._secret_access_key)
+
+    def collect_policies(self):
+        user_policies = []
+
+        inline_policy_names = iam_backend.list_user_policies(self._owner_user_name)
+        for inline_policy_name in inline_policy_names:
+            inline_policy = iam_backend.get_user_policy(self._owner_user_name, inline_policy_name)
+            user_policies.append(inline_policy)
+
+        attached_policies, _ = iam_backend.list_attached_user_policies(self._owner_user_name)
+        user_policies += attached_policies
+
+        user_groups = iam_backend.get_groups_for_user(self._owner_user_name)
+        for user_group in user_groups:
+            inline_group_policy_names = iam_backend.list_group_policies(user_group)
+            for inline_group_policy_name in inline_group_policy_names:
+                inline_user_group_policy = iam_backend.get_group_policy(user_group.name, inline_group_policy_name)
+                user_policies.append(inline_user_group_policy)
+
+            attached_group_policies = iam_backend.list_attached_group_policies(user_group.name)
+            user_policies += attached_group_policies
+
+        return user_policies
+
+
+class AssumedRoleAccessKey:
+
+    def __init__(self, access_key_id, headers):
+        for assumed_role in sts_backend.assumed_roles:
+            if assumed_role.access_key_id == access_key_id:
+                self._access_key_id = access_key_id
+                self._secret_access_key = assumed_role.secret_access_key
+                self._session_token = assumed_role.session_token
+                self._owner_role_name = assumed_role.arn.split("/")[-1]
+                self._session_name = assumed_role.session_name
+                if headers["X-Amz-Security-Token"] != self._session_name:
+                    raise CreateAccessKeyFailure(reason="InvalidToken")
+                return
+        raise CreateAccessKeyFailure(reason="InvalidId")
+
+    @property
+    def arn(self):
+        return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
+            account_id=ACCOUNT_ID,
+            role_name=self._owner_role_name,
+            session_name=self._session_name
+        )
+
+    def create_credentials(self):
+        return Credentials(self._access_key_id, self._secret_access_key, self._session_token)
+
+    def collect_policies(self):
+        role_policies = []
+
+        inline_policy_names = iam_backend.list_role_policies(self._owner_role_name)
+        for inline_policy_name in inline_policy_names:
+            inline_policy = iam_backend.get_role_policy(self._owner_role_name, inline_policy_name)
+            role_policies.append(inline_policy)
+
+        attached_policies, _ = iam_backend.list_attached_role_policies(self._owner_role_name)
+        role_policies += attached_policies
+
+        return role_policies
+
+
+class CreateAccessKeyFailure(Exception):
+
+    def __init__(self, reason, *args):
+        super().__init__(*args)
+        self.reason = reason
 
 
 class IAMRequestBase(ABC):
@@ -31,10 +127,13 @@ class IAMRequestBase(ABC):
         self._headers = headers
         credential_scope = self._get_string_between('Credential=', ',', self._headers['Authorization'])
         credential_data = credential_scope.split('/')
-        self._access_key = credential_data[0]
         self._region = credential_data[2]
         self._service = credential_data[3]
         self._action = self._service + ":" + self._data["Action"][0]
+        try:
+            self._access_key = create_access_key(access_key_id=credential_data[0], headers=headers)
+        except CreateAccessKeyFailure as e:
+            self._raise_invalid_access_key(e.reason)
 
     def check_signature(self):
         original_signature = self._get_string_between('Signature=', ',', self._headers['Authorization'])
@@ -43,48 +142,30 @@ class IAMRequestBase(ABC):
             raise SignatureDoesNotMatchError()
 
     def check_action_permitted(self):
-        iam_user_name = ACCESS_KEY_STORE[self._access_key]["owner"]
-        user_policies = self._collect_policies_for_iam_user(iam_user_name)
+        self._check_action_permitted_for_iam_user()
+
+    def _check_action_permitted_for_iam_user(self):
+        policies = self._access_key.collect_policies()
 
         permitted = False
-        for policy in user_policies:
+        for policy in policies:
             iam_policy = IAMPolicy(policy)
             permission_result = iam_policy.is_action_permitted(self._action)
             if permission_result == PermissionResult.DENIED:
-                self._raise_access_denied(iam_user_name)
+                self._raise_access_denied()
             elif permission_result == PermissionResult.PERMITTED:
                 permitted = True
 
         if not permitted:
-            self._raise_access_denied(iam_user_name)
+            self._raise_access_denied()
 
     @abstractmethod
-    def _raise_access_denied(self, iam_user_name):
+    def _raise_access_denied(self):
         raise NotImplementedError()
 
-    @staticmethod
-    def _collect_policies_for_iam_user(iam_user_name):
-        user_policies = []
-
-        inline_policy_names = iam_backend.list_user_policies(iam_user_name)
-        for inline_policy_name in inline_policy_names:
-            inline_policy = iam_backend.get_user_policy(iam_user_name, inline_policy_name)
-            user_policies.append(inline_policy)
-
-        attached_policies, _ = iam_backend.list_attached_user_policies(iam_user_name)
-        user_policies += attached_policies
-
-        user_groups = iam_backend.get_groups_for_user(iam_user_name)
-        for user_group in user_groups:
-            inline_group_policy_names = iam_backend.list_group_policies(user_group)
-            for inline_group_policy_name in inline_group_policy_names:
-                inline_user_group_policy = iam_backend.get_group_policy(user_group.name, inline_group_policy_name)
-                user_policies.append(inline_user_group_policy)
-
-            attached_group_policies = iam_backend.list_attached_group_policies(user_group.name)
-            user_policies += attached_group_policies
-
-        return user_policies
+    @abstractmethod
+    def _raise_invalid_access_key(self, reason):
+        raise NotImplementedError()
 
     @abstractmethod
     def _create_auth(self, credentials):
@@ -107,11 +188,7 @@ class IAMRequestBase(ABC):
         return request
 
     def _calculate_signature(self):
-        if self._access_key not in ACCESS_KEY_STORE:
-            raise InvalidClientTokenIdError()
-        secret_key = ACCESS_KEY_STORE[self._access_key]["secret_access_key"]
-
-        credentials = Credentials(self._access_key, secret_key)
+        credentials = self._access_key.create_credentials()
         auth = self._create_auth(credentials)
         request = self._create_aws_request()
         canonical_request = auth.canonical_request(request)
@@ -125,23 +202,41 @@ class IAMRequestBase(ABC):
 
 class IAMRequest(IAMRequestBase):
 
+    def _raise_invalid_access_key(self, _):
+        if self._service == "ec2":
+            raise AuthFailureError()
+        else:
+            raise InvalidClientTokenIdError()
+
     def _create_auth(self, credentials):
         return SigV4Auth(credentials, self._service, self._region)
 
-    def _raise_access_denied(self, iam_user_name):
+    def _raise_access_denied(self):
         raise AccessDeniedError(
-            account_id=ACCOUNT_ID,
-            iam_user_name=iam_user_name,
+            user_arn=self._access_key.arn,
             action=self._action
         )
 
 
 class S3IAMRequest(IAMRequestBase):
 
+    def _raise_invalid_access_key(self, reason):
+
+        if reason == "InvalidToken":
+            if "BucketName" in self._data:
+                raise BucketInvalidTokenError(bucket=self._data["BucketName"])
+            else:
+                raise S3InvalidTokenError()
+        else:
+            if "BucketName" in self._data:
+                raise BucketInvalidAccessKeyIdError(bucket=self._data["BucketName"])
+            else:
+                raise S3InvalidAccessKeyIdError()
+
     def _create_auth(self, credentials):
         return S3SigV4Auth(credentials, self._service, self._region)
 
-    def _raise_access_denied(self, _):
+    def _raise_access_denied(self):
         if "BucketName" in self._data:
             raise BucketAccessDeniedError(bucket=self._data["BucketName"])
         else:

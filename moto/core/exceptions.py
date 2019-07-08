@@ -88,11 +88,29 @@ class InvalidClientTokenIdError(RESTError):
 class AccessDeniedError(RESTError):
     code = 403
 
-    def __init__(self, account_id, iam_user_name, action):
+    def __init__(self, user_arn, action):
         super(AccessDeniedError, self).__init__(
             'AccessDenied',
-            "User: arn:aws:iam::{account_id}:user/{iam_user_name} is not authorized to perform: {operation}".format(
-                account_id=account_id,
-                iam_user_name=iam_user_name,
+            "User: {user_arn} is not authorized to perform: {operation}".format(
+                user_arn=user_arn,
                 operation=action
             ))
+
+
+class InvalidAccessKeyIdError(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidAccessKeyIdError, self).__init__(
+            'InvalidAccessKeyId',
+            "The AWS Access Key Id you provided does not exist in our records.")
+
+
+class AuthFailureError(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(AuthFailureError, self).__init__(
+            'AuthFailure',
+            "AWS was not able to validate the provided access credentials")
+
