@@ -311,6 +311,15 @@ def test_put_role_policy():
     policy.should.equal("test policy")
 
 
+@mock_iam
+def test_get_role_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_role_policy(RoleName="my-role", PolicyName="does-not-exist")
+
+
 @mock_iam_deprecated()
 def test_update_assume_role_policy():
     conn = boto.connect_iam()
