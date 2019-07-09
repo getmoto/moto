@@ -6,6 +6,7 @@ from enum import Enum
 from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
+from six import string_types
 
 from moto.iam.models import ACCOUNT_ID, Policy
 from moto.iam import iam_backend
@@ -80,7 +81,7 @@ class AssumedRoleAccessKey:
                 self._session_token = assumed_role.session_token
                 self._owner_role_name = assumed_role.arn.split("/")[-1]
                 self._session_name = assumed_role.session_name
-                if headers["X-Amz-Security-Token"] != self._session_name:
+                if headers["X-Amz-Security-Token"] != self._session_token:
                     raise CreateAccessKeyFailure(reason="InvalidToken")
                 return
         raise CreateAccessKeyFailure(reason="InvalidId")
@@ -101,7 +102,7 @@ class AssumedRoleAccessKey:
 
         inline_policy_names = iam_backend.list_role_policies(self._owner_role_name)
         for inline_policy_name in inline_policy_names:
-            inline_policy = iam_backend.get_role_policy(self._owner_role_name, inline_policy_name)
+            _, inline_policy = iam_backend.get_role_policy(self._owner_role_name, inline_policy_name)
             role_policies.append(inline_policy)
 
         attached_policies, _ = iam_backend.list_attached_role_policies(self._owner_role_name)
@@ -252,6 +253,8 @@ class IAMPolicy:
         if isinstance(self._policy, Policy):
             default_version = next(policy_version for policy_version in self._policy.versions if policy_version.is_default)
             policy_document = default_version.document
+        elif isinstance(self._policy, string_types):
+            policy_document = self._policy
         else:
             policy_document = self._policy["policy_document"]
 
