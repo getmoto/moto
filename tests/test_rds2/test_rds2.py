@@ -34,6 +34,7 @@ def test_create_database():
     db_instance['IAMDatabaseAuthenticationEnabled'].should.equal(False)
     db_instance['DbiResourceId'].should.contain("db-")
     db_instance['CopyTagsToSnapshot'].should.equal(False)
+    db_instance['InstanceCreateTime'].should.be.a("datetime.datetime")
 
 
 @mock_rds2

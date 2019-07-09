@@ -70,6 +70,7 @@ class Database(BaseModel):
             self.port = Database.default_port(self.engine)
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
+        self.instance_create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
@@ -148,6 +149,7 @@ class Database(BaseModel):
               <VpcSecurityGroups/>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
+              <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
               <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
               <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
               <ReadReplicaDBInstanceIdentifiers>
@@ -373,7 +375,7 @@ class Database(BaseModel):
             "Address": "{{ database.address }}",
             "Port": "{{ database.port }}"
         },
-        "InstanceCreateTime": null,
+        "InstanceCreateTime": "{{ database.instance_create_time }}",
         "Iops": null,
         "ReadReplicaDBInstanceIdentifiers": [{%- for replica in database.replicas -%}
             {%- if not loop.first -%},{%- endif -%}
