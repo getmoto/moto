@@ -626,7 +626,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         key = self.body['Key']
         return_values = self.body.get('ReturnValues', 'NONE')
-        update_expression = self.body.get('UpdateExpression')
+        update_expression = self.body.get('UpdateExpression', '').strip()
         attribute_updates = self.body.get('AttributeUpdates')
         expression_attribute_names = self.body.get(
             'ExpressionAttributeNames', {})
