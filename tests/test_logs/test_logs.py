@@ -17,6 +17,8 @@ def test_log_group_create():
 
     response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
     assert len(response['logGroups']) == 1
+    # AWS defaults to Never Expire for log group retention
+    assert response['logGroups'][0].get('retentionInDays') == None
 
     response = conn.delete_log_group(logGroupName=log_group_name)
 
@@ -125,4 +127,38 @@ def test_filter_logs_interleaved():
         resulting_event['eventId'].should.equal(str(resulting_event['eventId']))
         resulting_event['timestamp'].should.equal(original_message['timestamp'])
         resulting_event['message'].should.equal(original_message['message'])
+
+@mock_logs
+def test_put_retention_policy():
+    conn = boto3.client('logs', 'us-west-2')
+    log_group_name = 'dummy'
+    response = conn.create_log_group(logGroupName=log_group_name)
+
+    response = conn.put_retention_policy(logGroupName=log_group_name, retentionInDays=7)
+
+    response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
+    assert len(response['logGroups']) == 1
+    assert response['logGroups'][0].get('retentionInDays') == 7
+
+    response = conn.delete_log_group(logGroupName=log_group_name)
+
+@mock_logs
+def test_delete_retention_policy():
+    conn = boto3.client('logs', 'us-west-2')
+    log_group_name = 'dummy'
+    response = conn.create_log_group(logGroupName=log_group_name)
+
+    response = conn.put_retention_policy(logGroupName=log_group_name, retentionInDays=7)
+
+    response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
+    assert len(response['logGroups']) == 1
+    assert response['logGroups'][0].get('retentionInDays') == 7
+
+    response = conn.delete_retention_policy(logGroupName=log_group_name)
+
+    response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
+    assert len(response['logGroups']) == 1
+    assert response['logGroups'][0].get('retentionInDays') == None
+
+    response = conn.delete_log_group(logGroupName=log_group_name)
 

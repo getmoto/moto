@@ -16,7 +16,7 @@ from moto import mock_ec2_deprecated, mock_ec2
 
 @mock_ec2_deprecated
 def test_create_and_delete_volume():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
 
     all_volumes = conn.get_all_volumes()
@@ -52,7 +52,7 @@ def test_create_and_delete_volume():
 
 @mock_ec2_deprecated
 def test_create_encrypted_volume_dryrun():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     with assert_raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
     ex.exception.error_code.should.equal('DryRunOperation')
@@ -63,7 +63,7 @@ def test_create_encrypted_volume_dryrun():
 
 @mock_ec2_deprecated
 def test_create_encrypted_volume():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
 
     with assert_raises(EC2ResponseError) as ex:
@@ -79,7 +79,7 @@ def test_create_encrypted_volume():
 
 @mock_ec2_deprecated
 def test_filter_volume_by_id():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume1 = conn.create_volume(80, "us-east-1a")
     volume2 = conn.create_volume(36, "us-east-1b")
     volume3 = conn.create_volume(20, "us-east-1c")
@@ -99,7 +99,7 @@ def test_filter_volume_by_id():
 
 @mock_ec2_deprecated
 def test_volume_filters():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
 
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
@@ -196,7 +196,7 @@ def test_volume_filters():
 
 @mock_ec2_deprecated
 def test_volume_attach_and_detach():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     reservation = conn.run_instances('ami-1234abcd')
     instance = reservation.instances[0]
     volume = conn.create_volume(80, "us-east-1a")
@@ -252,7 +252,7 @@ def test_volume_attach_and_detach():
 
 @mock_ec2_deprecated
 def test_create_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
 
     with assert_raises(EC2ResponseError) as ex:
@@ -291,7 +291,7 @@ def test_create_snapshot():
 
 @mock_ec2_deprecated
 def test_create_encrypted_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
     snapshot = volume.create_snapshot('a test snapshot')
     snapshot.update()
@@ -306,7 +306,7 @@ def test_create_encrypted_snapshot():
 
 @mock_ec2_deprecated
 def test_filter_snapshot_by_id():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume1 = conn.create_volume(36, "us-east-1a")
     snap1 = volume1.create_snapshot('a test snapshot 1')
     volume2 = conn.create_volume(42, 'us-east-1a')
@@ -333,7 +333,7 @@ def test_filter_snapshot_by_id():
 
 @mock_ec2_deprecated
 def test_snapshot_filters():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume1 = conn.create_volume(20, "us-east-1a", encrypted=False)
     volume2 = conn.create_volume(25, "us-east-1a", encrypted=True)
 
@@ -394,12 +394,17 @@ def test_snapshot_filters():
     set([snap.id for snap in snapshots_by_encrypted]
         ).should.equal({snapshot3.id})
 
+    snapshots_by_owner_id = conn.get_all_snapshots(
+        filters={'owner-id': '123456789012'})
+    set([snap.id for snap in snapshots_by_owner_id]
+        ).should.equal({snapshot1.id, snapshot2.id, snapshot3.id})
+
 
 @mock_ec2_deprecated
 def test_snapshot_attribute():
     import copy
 
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
     snapshot = volume.create_snapshot()
 
@@ -502,7 +507,7 @@ def test_snapshot_attribute():
 
 @mock_ec2_deprecated
 def test_create_volume_from_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a")
     snapshot = volume.create_snapshot('a test snapshot')
 
@@ -524,7 +529,7 @@ def test_create_volume_from_snapshot():
 
 @mock_ec2_deprecated
 def test_create_volume_from_encrypted_snapshot():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     volume = conn.create_volume(80, "us-east-1a", encrypted=True)
 
     snapshot = volume.create_snapshot('a test snapshot')
@@ -569,7 +574,7 @@ def test_modify_attribute_blockDeviceMapping():
 
 @mock_ec2_deprecated
 def test_volume_tag_escaping():
-    conn = boto.connect_ec2('the_key', 'the_secret')
+    conn = boto.ec2.connect_to_region("us-east-1")
     vol = conn.create_volume(10, 'us-east-1a')
     snapshot = conn.create_snapshot(vol.id, 'Desc')
 
@@ -589,6 +594,18 @@ def test_volume_tag_escaping():
     dict(snaps[0].tags).should.equal({'key': '</closed>'})
 
 
+@mock_ec2
+def test_volume_property_hidden_when_no_tags_exist():
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+
+    volume_response = ec2_client.create_volume(
+        Size=10,
+        AvailabilityZone='us-east-1a'
+    )
+
+    volume_response.get('Tags').should.equal(None)
+
+
 @freeze_time
 @mock_ec2
 def test_copy_snapshot():
@@ -602,26 +619,26 @@ def test_copy_snapshot():
     create_snapshot_response = ec2_client.create_snapshot(
         VolumeId=volume_response['VolumeId']
     )
-    
+
     copy_snapshot_response = dest_ec2_client.copy_snapshot(
         SourceSnapshotId=create_snapshot_response['SnapshotId'],
         SourceRegion="eu-west-1"
     )
-    
+
     ec2 = boto3.resource('ec2', region_name='eu-west-1')
     dest_ec2 = boto3.resource('ec2', region_name='eu-west-2')
-    
+
     source = ec2.Snapshot(create_snapshot_response['SnapshotId'])
     dest = dest_ec2.Snapshot(copy_snapshot_response['SnapshotId'])
-    
+
     attribs = ['data_encryption_key_id', 'encrypted',
                 'kms_key_id', 'owner_alias', 'owner_id',
                 'progress', 'state', 'state_message',
                 'tags', 'volume_id', 'volume_size']
-    
+
     for attrib in attribs:
         getattr(source, attrib).should.equal(getattr(dest, attrib))
-    
+
     # Copy from non-existent source ID.
     with assert_raises(ClientError) as cm:
         create_snapshot_error = ec2_client.create_snapshot(

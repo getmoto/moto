@@ -5,6 +5,8 @@ import sure  # noqa
 import boto3
 
 from moto import mock_iot
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 
 
 @mock_iot
@@ -226,7 +228,7 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
 
 @mock_iot
 def test_certs():
-    client = boto3.client('iot', region_name='ap-northeast-1')
+    client = boto3.client('iot', region_name='us-east-1')
     cert = client.create_keys_and_certificate(setAsActive=True)
     cert.should.have.key('certificateArn').which.should_not.be.none
     cert.should.have.key('certificateId').which.should_not.be.none
@@ -243,6 +245,29 @@ def test_certs():
     cert_desc.should.have.key('certificateId').which.should_not.be.none
     cert_desc.should.have.key('certificatePem').which.should_not.be.none
     cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+    cert_pem = cert_desc['certificatePem']
+
+    res = client.list_certificates()
+    for cert in res['certificates']:
+        cert.should.have.key('certificateArn').which.should_not.be.none
+        cert.should.have.key('certificateId').which.should_not.be.none
+        cert.should.have.key('status').which.should_not.be.none
+        cert.should.have.key('creationDate').which.should_not.be.none
+
+    client.update_certificate(certificateId=cert_id, newStatus='REVOKED')
+    cert = client.describe_certificate(certificateId=cert_id)
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('status').which.should.equal('REVOKED')
+
+    client.delete_certificate(certificateId=cert_id)
+    res = client.list_certificates()
+    res.should.have.key('certificates')
+
+    # Test register_certificate flow
+    cert = client.register_certificate(certificatePem=cert_pem, setAsActive=True)
+    cert.should.have.key('certificateId').which.should_not.be.none
+    cert.should.have.key('certificateArn').which.should_not.be.none
+    cert_id = cert['certificateId']
 
     res = client.list_certificates()
     res.should.have.key('certificates').which.should.have.length_of(1)
@@ -254,8 +279,99 @@ def test_certs():
 
     client.update_certificate(certificateId=cert_id, newStatus='REVOKED')
     cert = client.describe_certificate(certificateId=cert_id)
-    cert_desc.should.have.key('status').which.should.equal('ACTIVE')
+    cert_desc = cert['certificateDescription']
+    cert_desc.should.have.key('status').which.should.equal('REVOKED')
 
+    client.delete_certificate(certificateId=cert_id)
+    res = client.list_certificates()
+    res.should.have.key('certificates')
+
+
+@mock_iot
+def test_delete_policy_validation():
+    doc = """{
+    "Version": "2012-10-17",
+    "Statement":[
+        {
+            "Effect":"Allow",
+            "Action":[
+                "iot: *"
+            ],
+            "Resource":"*"
+        }
+      ]
+    }
+    """
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+    policy_name = 'my-policy'
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
+
+    with assert_raises(ClientError) as e:
+        client.delete_policy(policyName=policy_name)
+    e.exception.response['Error']['Message'].should.contain(
+        'The policy cannot be deleted as the policy is attached to one or more principals (name=%s)' % policy_name)
+    res = client.list_policies()
+    res.should.have.key('policies').which.should.have.length_of(1)
+
+    client.detach_principal_policy(policyName=policy_name, principal=cert_arn)
+    client.delete_policy(policyName=policy_name)
+    res = client.list_policies()
+    res.should.have.key('policies').which.should.have.length_of(0)
+
+
+@mock_iot
+def test_delete_certificate_validation():
+    doc = """{
+    "Version": "2012-10-17",
+    "Statement":[
+        {
+            "Effect":"Allow",
+            "Action":[
+                "iot: *"
+            ],
+            "Resource":"*"
+        }
+      ]
+    }
+    """
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_id = cert['certificateId']
+    cert_arn = cert['certificateArn']
+    policy_name = 'my-policy'
+    thing_name = 'thing-1'
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
+    client.create_thing(thingName=thing_name)
+    client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
+
+    with assert_raises(ClientError) as e:
+        client.delete_certificate(certificateId=cert_id)
+    e.exception.response['Error']['Message'].should.contain(
+        'Certificate must be deactivated (not ACTIVE) before deletion.')
+    res = client.list_certificates()
+    res.should.have.key('certificates').which.should.have.length_of(1)
+
+    client.update_certificate(certificateId=cert_id, newStatus='REVOKED')
+    with assert_raises(ClientError) as e:
+        client.delete_certificate(certificateId=cert_id)
+    e.exception.response['Error']['Message'].should.contain(
+        'Things must be detached before deletion (arn: %s)' % cert_arn)
+    res = client.list_certificates()
+    res.should.have.key('certificates').which.should.have.length_of(1)
+
+    client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
+    with assert_raises(ClientError) as e:
+        client.delete_certificate(certificateId=cert_id)
+    e.exception.response['Error']['Message'].should.contain(
+        'Certificate policies must be detached before deletion (arn: %s)' % cert_arn)
+    res = client.list_certificates()
+    res.should.have.key('certificates').which.should.have.length_of(1)
+
+    client.detach_principal_policy(policyName=policy_name, principal=cert_arn)
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
     res.should.have.key('certificates').which.should.have.length_of(0)
@@ -309,6 +425,47 @@ def test_policy():
 
 @mock_iot
 def test_principal_policy():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    policy_name = 'my-policy'
+    doc = '{}'
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    for policy in res['policies']:
+        policy.should.have.key('policyName').which.should_not.be.none
+        policy.should.have.key('policyArn').which.should_not.be.none
+
+    # do nothing if policy have already attached to certificate
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(1)
+    for policy in res['policies']:
+        policy.should.have.key('policyName').which.should_not.be.none
+        policy.should.have.key('policyArn').which.should_not.be.none
+
+    res = client.list_policy_principals(policyName=policy_name)
+    res.should.have.key('principals').which.should.have.length_of(1)
+    for principal in res['principals']:
+        principal.should_not.be.none
+
+    client.detach_policy(policyName=policy_name, target=cert_arn)
+    res = client.list_principal_policies(principal=cert_arn)
+    res.should.have.key('policies').which.should.have.length_of(0)
+    res = client.list_policy_principals(policyName=policy_name)
+    res.should.have.key('principals').which.should.have.length_of(0)
+    with assert_raises(ClientError) as e:
+        client.detach_policy(policyName=policy_name, target=cert_arn)
+    e.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+
+
+@mock_iot
+def test_principal_policy_deprecated():
     client = boto3.client('iot', region_name='ap-northeast-1')
     policy_name = 'my-policy'
     doc = '{}'

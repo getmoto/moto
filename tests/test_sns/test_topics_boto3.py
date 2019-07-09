@@ -32,6 +32,18 @@ def test_create_and_delete_topic():
         topics = topics_json["Topics"]
         topics.should.have.length_of(0)
 
+
+@mock_sns
+def test_create_topic_with_attributes():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(Name='some-topic-with-attribute', Attributes={'DisplayName': 'test-topic'})
+    topics_json = conn.list_topics()
+    topic_arn = topics_json["Topics"][0]['TopicArn']
+
+    attributes = conn.get_topic_attributes(TopicArn=topic_arn)['Attributes']
+    attributes['DisplayName'].should.equal('test-topic')
+
+
 @mock_sns
 def test_create_topic_should_be_indempodent():
     conn = boto3.client("sns", region_name="us-east-1")

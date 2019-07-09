@@ -84,10 +84,10 @@ ASSUME_ROLE_RESPONSE = """<AssumeRoleResponse xmlns="https://sts.amazonaws.com/d
 2011-06-15/">
   <AssumeRoleResult>
     <Credentials>
-      <SessionToken>BQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/LTo6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3zrkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiBeb/AXlzBBko7b15fjrBs2+cTQtpZ3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE</SessionToken>
-      <SecretAccessKey>aJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY</SecretAccessKey>
+      <SessionToken>{{ role.session_token }}</SessionToken>
+      <SecretAccessKey>{{ role.secret_access_key }}</SecretAccessKey>
       <Expiration>{{ role.expiration_ISO8601 }}</Expiration>
-      <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
+      <AccessKeyId>{{ role.access_key_id }}</AccessKeyId>
     </Credentials>
     <AssumedRoleUser>
       <Arn>{{ role.arn }}</Arn>

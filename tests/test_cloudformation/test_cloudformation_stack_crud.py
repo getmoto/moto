@@ -266,9 +266,9 @@ def test_delete_stack_by_name():
         template_body=dummy_template_json,
     )
 
-    conn.list_stacks().should.have.length_of(1)
+    conn.describe_stacks().should.have.length_of(1)
     conn.delete_stack("test_stack")
-    conn.list_stacks().should.have.length_of(0)
+    conn.describe_stacks().should.have.length_of(0)
 
 
 @mock_cloudformation_deprecated
@@ -279,9 +279,9 @@ def test_delete_stack_by_id():
         template_body=dummy_template_json,
     )
 
-    conn.list_stacks().should.have.length_of(1)
+    conn.describe_stacks().should.have.length_of(1)
     conn.delete_stack(stack_id)
-    conn.list_stacks().should.have.length_of(0)
+    conn.describe_stacks().should.have.length_of(0)
     with assert_raises(BotoServerError):
         conn.describe_stacks("test_stack")
 
@@ -296,9 +296,9 @@ def test_delete_stack_with_resource_missing_delete_attr():
         template_body=dummy_template_json3,
     )
 
-    conn.list_stacks().should.have.length_of(1)
+    conn.describe_stacks().should.have.length_of(1)
     conn.delete_stack("test_stack")
-    conn.list_stacks().should.have.length_of(0)
+    conn.describe_stacks().should.have.length_of(0)
 
 
 @mock_cloudformation_deprecated

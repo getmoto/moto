@@ -14,10 +14,12 @@ import itertools
 
 
 class Parameter(BaseModel):
-    def __init__(self, name, value, type, description, keyid, last_modified_date, version):
+    def __init__(self, name, value, type, description, allowed_pattern, keyid,
+            last_modified_date, version):
         self.name = name
         self.type = type
         self.description = description
+        self.allowed_pattern = allowed_pattern
         self.keyid = keyid
         self.last_modified_date = last_modified_date
         self.version = version
@@ -58,6 +60,10 @@ class Parameter(BaseModel):
 
         if self.keyid:
             r['KeyId'] = self.keyid
+
+        if self.allowed_pattern:
+            r['AllowedPattern'] = self.allowed_pattern
+
         return r
 
 
@@ -291,7 +297,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             return self._parameters[name]
         return None
 
-    def put_parameter(self, name, description, value, type, keyid, overwrite):
+    def put_parameter(self, name, description, value, type, allowed_pattern,
+            keyid, overwrite):
         previous_parameter = self._parameters.get(name)
         version = 1
 
@@ -302,8 +309,8 @@ class SimpleSystemManagerBackend(BaseBackend):
                 return
 
         last_modified_date = time.time()
-        self._parameters[name] = Parameter(
-            name, value, type, description, keyid, last_modified_date, version)
+        self._parameters[name] = Parameter(name, value, type, description,
+            allowed_pattern, keyid, last_modified_date, version)
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):

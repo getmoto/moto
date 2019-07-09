@@ -19,7 +19,7 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, metadata_from_headers, parse_region_from_url
+from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
 
@@ -193,7 +193,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'location' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_BUCKET_LOCATION)
-            return template.render(location=bucket.location)
+
+            location = bucket.location
+            # us-east-1 is different - returns a None location
+            if location == DEFAULT_REGION_NAME:
+                location = None
+
+            return template.render(location=location)
         elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.rules:
@@ -250,6 +256,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if not bucket.notification_configuration:
                 return 200, {}, ""
             template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
+            return template.render(bucket=bucket)
+        elif "accelerate" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if bucket.accelerate_configuration is None:
+                template = self.response_template(S3_BUCKET_ACCELERATE_NOT_SET)
+                return 200, {}, template.render()
+            template = self.response_template(S3_BUCKET_ACCELERATE)
             return template.render(bucket=bucket)
 
         elif 'versions' in querystring:
@@ -338,9 +351,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
-            result_keys = self._get_results_from_token(result_keys, limit)
+            if not delimiter:
+                result_keys = self._get_results_from_token(result_keys, limit)
+            else:
+                result_folders = self._get_results_from_token(result_folders, limit)
 
-        result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
+        if not delimiter:
+            result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
+        else:
+            result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
 
         return template.render(
             bucket=bucket,
@@ -358,7 +377,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _get_results_from_token(self, result_keys, token):
         continuation_index = 0
         for key in result_keys:
-            if key.name > token:
+            if (key.name if isinstance(key, FakeKey) else key) > token:
                 break
             continuation_index += 1
         return result_keys[continuation_index:]
@@ -367,7 +386,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if len(result_keys) > max_keys:
             is_truncated = 'true'
             result_keys = result_keys[:max_keys]
-            next_continuation_token = result_keys[-1].name
+            item = result_keys[-1]
+            next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
             next_continuation_token = None
@@ -429,11 +449,31 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 raise MalformedXML()
             except Exception as e:
                 raise e
+        elif "accelerate" in querystring:
+            try:
+                accelerate_status = self._accelerate_config_from_xml(body)
+                self.backend.put_bucket_accelerate_configuration(bucket_name, accelerate_status)
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
 
         else:
             if body:
+                # us-east-1, the default AWS region behaves a bit differently
+                # - you should not use it as a location constraint --> it fails
+                # - querying the location constraint returns None
                 try:
-                    region_name = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+                    forced_region = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+
+                    if forced_region == DEFAULT_REGION_NAME:
+                        raise S3ClientError(
+                            'InvalidLocationConstraint',
+                            'The specified location-constraint is not valid'
+                        )
+                    else:
+                        region_name = forced_region
                 except KeyError:
                     pass
 
@@ -617,7 +657,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             body = b''
 
         if method == 'GET':
-            return self._key_response_get(bucket_name, query, key_name, headers)
+            return self._key_response_get(bucket_name, query, key_name, headers=request.headers)
         elif method == 'PUT':
             return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
@@ -644,10 +684,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 parts=parts
             )
         version_id = query.get('versionId', [None])[0]
+        if_modified_since = headers.get('If-Modified-Since', None)
         key = self.backend.get_key(
             bucket_name, key_name, version_id=version_id)
         if key is None:
             raise MissingKey(key_name)
+        if if_modified_since:
+            if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
+        if if_modified_since and key.last_modified < if_modified_since:
+            return 304, response_headers, 'Not Modified'
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
@@ -667,6 +712,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
             if 'x-amz-copy-source' in request.headers:
                 src = unquote(request.headers.get("x-amz-copy-source")).lstrip("/")
                 src_bucket, src_key = src.split("/", 1)
+
+                src_key, src_version_id = src_key.split("?versionId=") if "?versionId=" in src_key else (src_key, None)
                 src_range = request.headers.get(
                     'x-amz-copy-source-range', '').split("bytes=")[-1]
 
@@ -676,9 +723,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 except ValueError:
                     start_byte, end_byte = None, None
 
-                key = self.backend.copy_part(
-                    bucket_name, upload_id, part_number, src_bucket,
-                    src_key, start_byte, end_byte)
+                if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+                    key = self.backend.copy_part(
+                        bucket_name, upload_id, part_number, src_bucket,
+                        src_key, src_version_id, start_byte, end_byte)
+                else:
+                    return 404, response_headers, ""
+
                 template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
             else:
@@ -709,7 +760,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # Copy key
             # you can have a quoted ?version=abc with a version Id, so work on
             # we need to parse the unquoted string first
-            src_key = request.headers.get("x-amz-copy-source")
+            src_key = clean_key_name(request.headers.get("x-amz-copy-source"))
             if isinstance(src_key, six.binary_type):
                 src_key = src_key.decode('utf-8')
             src_key_parsed = urlparse(src_key)
@@ -717,8 +768,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
-            self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
-                                  storage=storage_class, acl=acl, src_version_id=src_version_id)
+
+            if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
+                                      storage=storage_class, acl=acl, src_version_id=src_version_id)
+            else:
+                return 404, response_headers, ""
+
             new_key = self.backend.get_key(bucket_name, key_name)
             mdirective = request.headers.get('x-amz-metadata-directive')
             if mdirective is not None and mdirective == 'REPLACE':
@@ -1010,6 +1066,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         return parsed_xml["NotificationConfiguration"]
 
+    def _accelerate_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        config = parsed_xml['AccelerateConfiguration']
+        return config['Status']
+
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
@@ -1176,7 +1237,7 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>"""
 
 S3_BUCKET_LOCATION = """<?xml version="1.0" encoding="UTF-8"?>
-<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{{ location }}</LocationConstraint>"""
+<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{% if location != None %}{{ location }}{% endif %}</LocationConstraint>"""
 
 S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
 <LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
@@ -1279,7 +1340,7 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% for key in key_list %}
     <Version>
         <Key>{{ key.name }}</Key>
-        <VersionId>{{ key.version_id }}</VersionId>
+        <VersionId>{% if key.version_id is none %}null{% else %}{{ key.version_id }}{% endif %}</VersionId>
         <IsLatest>{% if latest_versions[key.name] == key.version_id %}true{% else %}false{% endif %}</IsLatest>
         <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
         <ETag>{{ key.etag }}</ETag>
@@ -1661,4 +1722,14 @@ S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </CloudFunctionConfiguration>
   {% endfor %}
 </NotificationConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Status>{{ bucket.accelerate_configuration }}</Status>
+</AccelerateConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE_NOT_SET = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 """

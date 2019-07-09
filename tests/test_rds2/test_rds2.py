@@ -34,6 +34,7 @@ def test_create_database():
     db_instance['IAMDatabaseAuthenticationEnabled'].should.equal(False)
     db_instance['DbiResourceId'].should.contain("db-")
     db_instance['CopyTagsToSnapshot'].should.equal(False)
+    db_instance['InstanceCreateTime'].should.be.a("datetime.datetime")
 
 
 @mock_rds2
@@ -1045,9 +1046,9 @@ def test_create_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet1 = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
     subnet2 = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/26')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.2.0/24')['Subnet']
 
     subnet_ids = [subnet1['SubnetId'], subnet2['SubnetId']]
     conn = boto3.client('rds', region_name='us-west-2')
@@ -1069,7 +1070,7 @@ def test_create_database_in_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_subnet_group(DBSubnetGroupName='db_subnet1',
@@ -1094,7 +1095,7 @@ def test_describe_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_subnet_group(DBSubnetGroupName="db_subnet1",
@@ -1123,7 +1124,7 @@ def test_delete_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -1149,7 +1150,7 @@ def test_list_tags_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -1176,7 +1177,7 @@ def test_add_tags_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -1207,7 +1208,7 @@ def test_remove_tags_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()

@@ -1,7 +1,9 @@
 from __future__ import unicode_literals
 
 import hashlib
+import re
 from copy import copy
+from datetime import datetime
 from random import random
 
 from botocore.exceptions import ParamValidationError
@@ -105,7 +107,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id
         self.image_digest = digest
-        self.image_pushed_at = None
+        self.image_pushed_at = str(datetime.utcnow().isoformat())
 
     def _create_digest(self):
         image_contents = 'docker_image{0}'.format(int(random() * 10 ** 6))
@@ -118,6 +120,12 @@ class Image(BaseObject):
 
     def get_image_manifest(self):
         return self.image_manifest
+
+    def remove_tag(self, tag):
+        if tag is not None and tag in self.image_tags:
+            self.image_tags.remove(tag)
+            if self.image_tags:
+                self.image_tag = self.image_tags[-1]
 
     def update_tag(self, tag):
         self.image_tag = tag
@@ -151,7 +159,7 @@ class Image(BaseObject):
         response_object['repositoryName'] = self.repository
         response_object['registryId'] = self.registry_id
         response_object['imageSizeInBytes'] = self.image_size_in_bytes
-        response_object['imagePushedAt'] = '2017-05-09'
+        response_object['imagePushedAt'] = self.image_pushed_at
         return {k: v for k, v in response_object.items() if v is not None and v != []}
 
     @property
@@ -163,6 +171,13 @@ class Image(BaseObject):
         response_object['imageManifest'] = self.image_manifest
         response_object['repositoryName'] = self.repository
         response_object['registryId'] = self.registry_id
+        return {k: v for k, v in response_object.items() if v is not None and v != [None]}
+
+    @property
+    def response_batch_delete_image(self):
+        response_object = {}
+        response_object['imageDigest'] = self.get_image_digest()
+        response_object['imageTag'] = self.image_tag
         return {k: v for k, v in response_object.items() if v is not None and v != [None]}
 
 
@@ -307,6 +322,106 @@ class ECRBackend(BaseBackend):
                 'failureCode': 'ImageNotFound',
                 'failureReason': 'Requested image not found'
             })
+
+        return response
+
+    def batch_delete_image(self, repository_name, registry_id=None, image_ids=None):
+        if repository_name in self.repositories:
+            repository = self.repositories[repository_name]
+        else:
+            raise RepositoryNotFoundException(
+                repository_name, registry_id or DEFAULT_REGISTRY_ID
+            )
+
+        if not image_ids:
+            raise ParamValidationError(
+                msg='Missing required parameter in input: "imageIds"'
+            )
+
+        response = {
+            "imageIds": [],
+            "failures": []
+        }
+
+        for image_id in image_ids:
+            image_found = False
+
+            # Is request missing both digest and tag?
+            if "imageDigest" not in image_id and "imageTag" not in image_id:
+                response["failures"].append(
+                    {
+                        "imageId": {},
+                        "failureCode": "MissingDigestAndTag",
+                        "failureReason": "Invalid request parameters: both tag and digest cannot be null",
+                    }
+                )
+                continue
+
+            # If we have a digest, is it valid?
+            if "imageDigest" in image_id:
+                pattern = re.compile("^[0-9a-zA-Z_+\.-]+:[0-9a-fA-F]{64}")
+                if not pattern.match(image_id.get("imageDigest")):
+                    response["failures"].append(
+                        {
+                            "imageId": {
+                                "imageDigest": image_id.get("imageDigest", "null")
+                            },
+                            "failureCode": "InvalidImageDigest",
+                            "failureReason": "Invalid request parameters: image digest should satisfy the regex '[a-zA-Z0-9-_+.]+:[a-fA-F0-9]+'",
+                        }
+                    )
+                    continue
+
+            for num, image in enumerate(repository.images):
+
+                # Search by matching both digest and tag
+                if "imageDigest" in image_id and "imageTag" in image_id:
+                    if (
+                        image_id["imageDigest"] == image.get_image_digest() and
+                        image_id["imageTag"] in image.image_tags
+                    ):
+                        image_found = True
+                        for image_tag in reversed(image.image_tags):
+                            repository.images[num].image_tag = image_tag
+                            response["imageIds"].append(
+                                image.response_batch_delete_image
+                            )
+                            repository.images[num].remove_tag(image_tag)
+                        del repository.images[num]
+
+                # Search by matching digest
+                elif "imageDigest" in image_id and image.get_image_digest() == image_id["imageDigest"]:
+                    image_found = True
+                    for image_tag in reversed(image.image_tags):
+                        repository.images[num].image_tag = image_tag
+                        response["imageIds"].append(image.response_batch_delete_image)
+                        repository.images[num].remove_tag(image_tag)
+                    del repository.images[num]
+
+                # Search by matching tag
+                elif "imageTag" in image_id and image_id["imageTag"] in image.image_tags:
+                    image_found = True
+                    repository.images[num].image_tag = image_id["imageTag"]
+                    response["imageIds"].append(image.response_batch_delete_image)
+                    if len(image.image_tags) > 1:
+                        repository.images[num].remove_tag(image_id["imageTag"])
+                    else:
+                        repository.images.remove(image)
+
+                if not image_found:
+                    failure_response = {
+                        "imageId": {},
+                        "failureCode": "ImageNotFound",
+                        "failureReason": "Requested image not found",
+                    }
+
+                    if "imageDigest" in image_id:
+                        failure_response["imageId"]["imageDigest"] = image_id.get("imageDigest", "null")
+
+                    if "imageTag" in image_id:
+                        failure_response["imageId"]["imageTag"] = image_id.get("imageTag", "null")
+
+                    response["failures"].append(failure_response)
 
         return response
 

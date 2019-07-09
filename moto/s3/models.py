@@ -8,19 +8,29 @@ import itertools
 import codecs
 import random
 import string
+import tempfile
+import sys
+import uuid
 
 import six
 
 from bisect import insort
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from .exceptions import BucketAlreadyExists, MissingBucket, InvalidPart, EntityTooSmall, MissingKey, \
-    InvalidNotificationDestination, MalformedXML, InvalidStorageClass
+from .exceptions import (
+    BucketAlreadyExists, MissingBucket, InvalidBucketName, InvalidPart, InvalidRequest,
+    EntityTooSmall, MissingKey, InvalidNotificationDestination, MalformedXML, InvalidStorageClass,
+    InvalidTargetBucketForLogging, DuplicateTagKeys, CrossLocationLoggingProhibitted
+)
 from .utils import clean_key_name, _VersionedKeyStore
 
+MAX_BUCKET_NAME_LENGTH = 63
+MIN_BUCKET_NAME_LENGTH = 3
 UPLOAD_ID_BYTES = 43
 UPLOAD_PART_MIN_SIZE = 5242880
 STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA"]
+DEFAULT_KEY_BUFFER_SIZE = 16 * 1024 * 1024
+DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 
 
 class FakeDeleteMarker(BaseModel):
@@ -29,7 +39,7 @@ class FakeDeleteMarker(BaseModel):
         self.key = key
         self.name = key.name
         self.last_modified = datetime.datetime.utcnow()
-        self._version_id = key.version_id + 1
+        self._version_id = str(uuid.uuid4())
 
     @property
     def last_modified_ISO8601(self):
@@ -42,9 +52,9 @@ class FakeDeleteMarker(BaseModel):
 
 class FakeKey(BaseModel):
 
-    def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0):
+    def __init__(self, name, value, storage="STANDARD", etag=None, is_versioned=False, version_id=0,
+                 max_buffer_size=DEFAULT_KEY_BUFFER_SIZE):
         self.name = name
-        self.value = value
         self.last_modified = datetime.datetime.utcnow()
         self.acl = get_canned_acl('private')
         self.website_redirect_location = None
@@ -56,14 +66,37 @@ class FakeKey(BaseModel):
         self._is_versioned = is_versioned
         self._tagging = FakeTagging()
 
+        self._value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
+        self._max_buffer_size = max_buffer_size
+        self.value = value
+
     @property
     def version_id(self):
         return self._version_id
 
-    def copy(self, new_name=None):
+    @property
+    def value(self):
+        self._value_buffer.seek(0)
+        return self._value_buffer.read()
+
+    @value.setter
+    def value(self, new_value):
+        self._value_buffer.seek(0)
+        self._value_buffer.truncate()
+
+        # Hack for working around moto's own unit tests; this probably won't
+        # actually get hit in normal use.
+        if isinstance(new_value, six.text_type):
+            new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
+        self._value_buffer.write(new_value)
+
+    def copy(self, new_name=None, new_is_versioned=None):
         r = copy.deepcopy(self)
         if new_name is not None:
             r.name = new_name
+        if new_is_versioned is not None:
+            r._is_versioned = new_is_versioned
+            r.refresh_version()
         return r
 
     def set_metadata(self, metadata, replace=False):
@@ -83,29 +116,34 @@ class FakeKey(BaseModel):
         self.acl = acl
 
     def append_to_value(self, value):
-        self.value += value
+        self._value_buffer.seek(0, os.SEEK_END)
+        self._value_buffer.write(value)
+
         self.last_modified = datetime.datetime.utcnow()
         self._etag = None  # must recalculate etag
         if self._is_versioned:
-            self._version_id += 1
+            self._version_id = str(uuid.uuid4())
         else:
-            self._is_versioned = 0
+            self._version_id = None
 
     def restore(self, days):
         self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
 
-    def increment_version(self):
-        self._version_id += 1
+    def refresh_version(self):
+        self._version_id = str(uuid.uuid4())
+        self.last_modified = datetime.datetime.utcnow()
 
     @property
     def etag(self):
         if self._etag is None:
             value_md5 = hashlib.md5()
-            if isinstance(self.value, six.text_type):
-                value = self.value.encode("utf-8")
-            else:
-                value = self.value
-            value_md5.update(value)
+            self._value_buffer.seek(0)
+            while True:
+                block = self._value_buffer.read(DEFAULT_KEY_BUFFER_SIZE)
+                if not block:
+                    break
+                value_md5.update(block)
+
             self._etag = value_md5.hexdigest()
         return '"{0}"'.format(self._etag)
 
@@ -132,7 +170,7 @@ class FakeKey(BaseModel):
         res = {
             'ETag': self.etag,
             'last-modified': self.last_modified_RFC1123,
-            'content-length': str(len(self.value)),
+            'content-length': str(self.size),
         }
         if self._storage_class != 'STANDARD':
             res['x-amz-storage-class'] = self._storage_class
@@ -150,7 +188,8 @@ class FakeKey(BaseModel):
 
     @property
     def size(self):
-        return len(self.value)
+        self._value_buffer.seek(0, os.SEEK_END)
+        return self._value_buffer.tell()
 
     @property
     def storage_class(self):
@@ -160,6 +199,26 @@ class FakeKey(BaseModel):
     def expiry_date(self):
         if self._expiry is not None:
             return self._expiry.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    # Keys need to be pickleable due to some implementation details of boto3.
+    # Since file objects aren't pickleable, we need to override the default
+    # behavior. The following is adapted from the Python docs:
+    # https://docs.python.org/3/library/pickle.html#handling-stateful-objects
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['value'] = self.value
+        del state['_value_buffer']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update({
+            k: v for k, v in six.iteritems(state)
+            if k != 'value'
+        })
+
+        self._value_buffer = \
+            tempfile.SpooledTemporaryFile(max_size=self._max_buffer_size)
+        self.value = state['value']
 
 
 class FakeMultipart(BaseModel):
@@ -407,6 +466,7 @@ class FakeBucket(BaseModel):
         self.cors = []
         self.logging = {}
         self.notification_configuration = None
+        self.accelerate_configuration = None
 
     @property
     def location(self):
@@ -501,7 +561,6 @@ class FakeBucket(BaseModel):
         self.rules = []
 
     def set_cors(self, rules):
-        from moto.s3.exceptions import InvalidRequest, MalformedXML
         self.cors = []
 
         if len(rules) > 100:
@@ -551,7 +610,6 @@ class FakeBucket(BaseModel):
             self.logging = {}
             return
 
-        from moto.s3.exceptions import InvalidTargetBucketForLogging, CrossLocationLoggingProhibitted
         # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
         if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
             raise InvalidTargetBucketForLogging("The target bucket for logging does not exist.")
@@ -599,6 +657,13 @@ class FakeBucket(BaseModel):
                 if region != self.region_name:
                     raise InvalidNotificationDestination()
 
+    def set_accelerate_configuration(self, accelerate_config):
+        if self.accelerate_configuration is None and accelerate_config == 'Suspended':
+            # Cannot "suspend" a not active acceleration. Leaves it undefined
+            return
+
+        self.accelerate_configuration = accelerate_config
+
     def set_website_configuration(self, website_configuration):
         self.website_configuration = website_configuration
 
@@ -634,6 +699,8 @@ class S3Backend(BaseBackend):
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
             raise BucketAlreadyExists(bucket=bucket_name)
+        if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
+            raise InvalidBucketName()
         new_bucket = FakeBucket(name=bucket_name, region_name=region_name)
         self.buckets[bucket_name] = new_bucket
         return new_bucket
@@ -663,17 +730,18 @@ class S3Backend(BaseBackend):
 
     def get_bucket_latest_versions(self, bucket_name):
         versions = self.get_bucket_versions(bucket_name)
-        maximum_version_per_key = {}
+        latest_modified_per_key = {}
         latest_versions = {}
 
         for version in versions:
             name = version.name
+            last_modified = version.last_modified
             version_id = version.version_id
-            maximum_version_per_key[name] = max(
-                version_id,
-                maximum_version_per_key.get(name, -1)
+            latest_modified_per_key[name] = max(
+                last_modified,
+                latest_modified_per_key.get(name, datetime.datetime.min)
             )
-            if version_id == maximum_version_per_key[name]:
+            if last_modified == latest_modified_per_key[name]:
                 latest_versions[name] = version_id
 
         return latest_versions
@@ -721,20 +789,19 @@ class S3Backend(BaseBackend):
 
         bucket = self.get_bucket(bucket_name)
 
-        old_key = bucket.keys.get(key_name, None)
-        if old_key is not None and bucket.is_versioned:
-            new_version_id = old_key._version_id + 1
-        else:
-            new_version_id = 0
-
         new_key = FakeKey(
             name=key_name,
             value=value,
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
-            version_id=new_version_id)
-        bucket.keys[key_name] = new_key
+            version_id=str(uuid.uuid4()) if bucket.is_versioned else None)
+
+        keys = [
+            key for key in bucket.keys.getlist(key_name, [])
+            if key.version_id != new_key.version_id
+        ] + [new_key]
+        bucket.keys.setlist(key_name, keys)
 
         return new_key
 
@@ -773,6 +840,9 @@ class S3Backend(BaseBackend):
         return key
 
     def put_bucket_tagging(self, bucket_name, tagging):
+        tag_keys = [tag.key for tag in tagging.tag_set.tags]
+        if len(tag_keys) != len(set(tag_keys)):
+            raise DuplicateTagKeys()
         bucket = self.get_bucket(bucket_name)
         bucket.set_tags(tagging)
 
@@ -795,6 +865,15 @@ class S3Backend(BaseBackend):
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
+
+    def put_bucket_accelerate_configuration(self, bucket_name, accelerate_configuration):
+        if accelerate_configuration not in ['Enabled', 'Suspended']:
+            raise MalformedXML()
+
+        bucket = self.get_bucket(bucket_name)
+        if bucket.name.find('.') != -1:
+            raise InvalidRequest('PutBucketAccelerateConfiguration')
+        bucket.set_accelerate_configuration(accelerate_configuration)
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
@@ -833,12 +912,11 @@ class S3Backend(BaseBackend):
         return multipart.set_part(part_id, value)
 
     def copy_part(self, dest_bucket_name, multipart_id, part_id,
-                  src_bucket_name, src_key_name, start_byte, end_byte):
-        src_key_name = clean_key_name(src_key_name)
-        src_bucket = self.get_bucket(src_bucket_name)
+                  src_bucket_name, src_key_name, src_version_id, start_byte, end_byte):
         dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
-        src_value = src_bucket.keys[src_key_name].value
+
+        src_value = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id).value
         if start_byte is not None:
             src_value = src_value[start_byte:end_byte + 1]
         return multipart.set_part(part_id, src_value)
@@ -915,17 +993,15 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         key = self.get_key(src_bucket_name, src_key_name,
                            version_id=src_version_id)
-        if dest_key_name != src_key_name:
-            key = key.copy(dest_key_name)
-        dest_bucket.keys[dest_key_name] = key
 
-        # By this point, the destination key must exist, or KeyError
-        if dest_bucket.is_versioned:
-            dest_bucket.keys[dest_key_name].increment_version()
+        new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
+
         if storage is not None:
-            key.set_storage_class(storage)
+            new_key.set_storage_class(storage)
         if acl is not None:
-            key.set_acl(acl)
+            new_key.set_acl(acl)
+
+        dest_bucket.keys[dest_key_name] = new_key
 
     def set_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)

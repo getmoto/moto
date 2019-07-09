@@ -131,7 +131,7 @@ class InvalidActionTypeError(ELBClientError):
     def __init__(self, invalid_name, index):
         super(InvalidActionTypeError, self).__init__(
             "ValidationError",
-            "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: Member must satisfy enum value set: [forward]" % (invalid_name, index)
+            "1 validation error detected: Value '%s' at 'actions.%s.member.type' failed to satisfy constraint: Member must satisfy enum value set: [forward, redirect]" % (invalid_name, index)
         )
 
 

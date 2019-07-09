@@ -1,8 +1,11 @@
 from __future__ import unicode_literals
 import boto
+import boto3
 import sure  # noqa
+from nose.tools import assert_raises
+from botocore.exceptions import ClientError
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 
 
 @mock_ec2_deprecated
@@ -27,12 +30,12 @@ def test_new_subnet_associates_with_default_network_acl():
     conn = boto.connect_vpc('the_key', 'the secret')
     vpc = conn.get_all_vpcs()[0]
 
-    subnet = conn.create_subnet(vpc.id, "10.0.0.0/18")
+    subnet = conn.create_subnet(vpc.id, "172.31.112.0/20")
     all_network_acls = conn.get_all_network_acls()
     all_network_acls.should.have.length_of(1)
 
     acl = all_network_acls[0]
-    acl.associations.should.have.length_of(4)
+    acl.associations.should.have.length_of(7)
     [a.subnet_id for a in acl.associations].should.contain(subnet.id)
 
 
@@ -173,3 +176,77 @@ def test_network_acl_tagging():
                             if na.id == network_acl.id)
     test_network_acl.tags.should.have.length_of(1)
     test_network_acl.tags["a key"].should.equal("some value")
+
+
+@mock_ec2
+def test_new_subnet_in_new_vpc_associates_with_default_network_acl():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    new_vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    new_vpc.reload()
+
+    subnet = ec2.create_subnet(VpcId=new_vpc.id, CidrBlock='10.0.0.0/24')
+    subnet.reload()
+
+    new_vpcs_default_network_acl = next(iter(new_vpc.network_acls.all()), None)
+    new_vpcs_default_network_acl.reload()
+    new_vpcs_default_network_acl.vpc_id.should.equal(new_vpc.id)
+    new_vpcs_default_network_acl.associations.should.have.length_of(1)
+    new_vpcs_default_network_acl.associations[0]['SubnetId'].should.equal(subnet.id)
+
+
+@mock_ec2
+def test_default_network_acl_default_entries():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    default_network_acl = next(iter(ec2.network_acls.all()), None)
+    default_network_acl.is_default.should.be.ok
+
+    default_network_acl.entries.should.have.length_of(4)
+    unique_entries = []
+    for entry in default_network_acl.entries:
+        entry['CidrBlock'].should.equal('0.0.0.0/0')
+        entry['Protocol'].should.equal('-1')
+        entry['RuleNumber'].should.be.within([100, 32767])
+        entry['RuleAction'].should.be.within(['allow', 'deny'])
+        assert type(entry['Egress']) is bool
+        if entry['RuleAction'] == 'allow':
+            entry['RuleNumber'].should.be.equal(100)
+        else:
+            entry['RuleNumber'].should.be.equal(32767)
+        if entry not in unique_entries:
+            unique_entries.append(entry)
+
+    unique_entries.should.have.length_of(4)
+
+
+@mock_ec2
+def test_delete_default_network_acl_default_entry():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    default_network_acl = next(iter(ec2.network_acls.all()), None)
+    default_network_acl.is_default.should.be.ok
+
+    default_network_acl.entries.should.have.length_of(4)
+    first_default_network_acl_entry = default_network_acl.entries[0]
+
+    default_network_acl.delete_entry(Egress=first_default_network_acl_entry['Egress'],
+                                     RuleNumber=first_default_network_acl_entry['RuleNumber'])
+
+    default_network_acl.entries.should.have.length_of(3)
+
+
+@mock_ec2
+def test_duplicate_network_acl_entry():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+    default_network_acl = next(iter(ec2.network_acls.all()), None)
+    default_network_acl.is_default.should.be.ok
+
+    rule_number = 200
+    egress = True
+    default_network_acl.create_entry(CidrBlock="0.0.0.0/0", Egress=egress, Protocol="-1", RuleAction="allow", RuleNumber=rule_number)
+
+    with assert_raises(ClientError) as ex:
+        default_network_acl.create_entry(CidrBlock="10.0.0.0/0", Egress=egress, Protocol="-1", RuleAction="deny", RuleNumber=rule_number)
+    str(ex.exception).should.equal(
+        "An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry "
+        "operation: The network acl entry identified by {} already exists.".format(rule_number))
+
+
