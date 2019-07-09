@@ -97,15 +97,6 @@ class AccessDeniedError(RESTError):
             ))
 
 
-class InvalidAccessKeyIdError(RESTError):
-    code = 400
-
-    def __init__(self):
-        super(InvalidAccessKeyIdError, self).__init__(
-            'InvalidAccessKeyId',
-            "The AWS Access Key Id you provided does not exist in our records.")
-
-
 class AuthFailureError(RESTError):
     code = 400
 

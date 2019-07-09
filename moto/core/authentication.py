@@ -10,7 +10,7 @@ from six import string_types
 
 from moto.iam.models import ACCOUNT_ID, Policy
 from moto.iam import iam_backend
-from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError, InvalidAccessKeyIdError, AuthFailureError
+from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError, AuthFailureError
 from moto.s3.exceptions import BucketAccessDeniedError, S3AccessDeniedError, BucketInvalidTokenError, S3InvalidTokenError, S3InvalidAccessKeyIdError, BucketInvalidAccessKeyIdError
 from moto.sts import sts_backend
 
