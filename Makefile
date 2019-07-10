@@ -14,6 +14,7 @@ init:
 
 lint:
 	flake8 moto
+	black --check .
 
 test: lint
 	rm -f .coverage

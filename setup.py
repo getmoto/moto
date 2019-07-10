@@ -11,20 +11,22 @@ import sys
 # Borrowed from pip at https://github.com/pypa/pip/blob/62c27dee45625e1b63d1e023b0656310f276e050/setup.py#L11-L15
 here = os.path.abspath(os.path.dirname(__file__))
 
+
 def read(*parts):
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
-    with codecs.open(os.path.join(here, *parts), 'r') as fp:
+    with codecs.open(os.path.join(here, *parts), "r") as fp:
         return fp.read()
 
 
 def get_version():
-    version_file = read('moto', '__init__.py')
-    version_match = re.search(r'^__version__ = [\'"]([^\'"]*)[\'"]',
-                              version_file, re.MULTILINE)
+    version_file = read("moto", "__init__.py")
+    version_match = re.search(
+        r'^__version__ = [\'"]([^\'"]*)[\'"]', version_file, re.MULTILINE
+    )
     if version_match:
         return version_match.group(1)
-    raise RuntimeError('Unable to find version string.')
+    raise RuntimeError("Unable to find version string.")
 
 
 install_requires = [
@@ -49,12 +51,10 @@ install_requires = [
     "responses>=0.9.0",
     "idna<2.9,>=2.5",
     "cfn-lint",
-    "sshpubkeys>=3.1.0,<4.0"
+    "sshpubkeys>=3.1.0,<4.0",
 ]
 
-extras_require = {
-    'server': ['flask'],
-}
+extras_require = {"server": ["flask"]}
 
 # https://hynek.me/articles/conditional-python-dependencies/
 if int(setuptools.__version__.split(".", 1)[0]) < 18:
@@ -65,20 +65,16 @@ else:
 
 
 setup(
-    name='moto',
+    name="moto",
     version=get_version(),
-    description='A library that allows your python tests to easily'
-                ' mock out the boto library',
-    long_description=read('README.md'),
-    long_description_content_type='text/markdown',
-    author='Steve Pulec',
-    author_email='spulec@gmail.com',
-    url='https://github.com/spulec/moto',
-    entry_points={
-        'console_scripts': [
-            'moto_server = moto.server:main',
-        ],
-    },
+    description="A library that allows your python tests to easily"
+    " mock out the boto library",
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
+    author="Steve Pulec",
+    author_email="spulec@gmail.com",
+    url="https://github.com/spulec/moto",
+    entry_points={"console_scripts": ["moto_server = moto.server:main"]},
     packages=find_packages(exclude=("tests", "tests.*")),
     install_requires=install_requires,
     extras_require=extras_require,

@@ -5,74 +5,102 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class VPCs(BaseResponse):
-
     def create_vpc(self):
-        cidr_block = self._get_param('CidrBlock')
-        instance_tenancy = self._get_param('InstanceTenancy', if_none='default')
-        amazon_provided_ipv6_cidr_blocks = self._get_param('AmazonProvidedIpv6CidrBlock')
-        vpc = self.ec2_backend.create_vpc(cidr_block, instance_tenancy,
-                                          amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_blocks)
-        doc_date = '2013-10-15' if 'Boto/' in self.headers.get('user-agent', '') else '2016-11-15'
+        cidr_block = self._get_param("CidrBlock")
+        instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
+        amazon_provided_ipv6_cidr_blocks = self._get_param(
+            "AmazonProvidedIpv6CidrBlock"
+        )
+        vpc = self.ec2_backend.create_vpc(
+            cidr_block,
+            instance_tenancy,
+            amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_blocks,
+        )
+        doc_date = (
+            "2013-10-15"
+            if "Boto/" in self.headers.get("user-agent", "")
+            else "2016-11-15"
+        )
         template = self.response_template(CREATE_VPC_RESPONSE)
         return template.render(vpc=vpc, doc_date=doc_date)
 
     def delete_vpc(self):
-        vpc_id = self._get_param('VpcId')
+        vpc_id = self._get_param("VpcId")
         vpc = self.ec2_backend.delete_vpc(vpc_id)
         template = self.response_template(DELETE_VPC_RESPONSE)
         return template.render(vpc=vpc)
 
     def describe_vpcs(self):
-        vpc_ids = self._get_multi_param('VpcId')
+        vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
         vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
-        doc_date = '2013-10-15' if 'Boto/' in self.headers.get('user-agent', '') else '2016-11-15'
+        doc_date = (
+            "2013-10-15"
+            if "Boto/" in self.headers.get("user-agent", "")
+            else "2016-11-15"
+        )
         template = self.response_template(DESCRIBE_VPCS_RESPONSE)
         return template.render(vpcs=vpcs, doc_date=doc_date)
 
     def describe_vpc_attribute(self):
-        vpc_id = self._get_param('VpcId')
-        attribute = self._get_param('Attribute')
+        vpc_id = self._get_param("VpcId")
+        attribute = self._get_param("Attribute")
         attr_name = camelcase_to_underscores(attribute)
         value = self.ec2_backend.describe_vpc_attribute(vpc_id, attr_name)
         template = self.response_template(DESCRIBE_VPC_ATTRIBUTE_RESPONSE)
         return template.render(vpc_id=vpc_id, attribute=attribute, value=value)
 
     def modify_vpc_attribute(self):
-        vpc_id = self._get_param('VpcId')
+        vpc_id = self._get_param("VpcId")
 
-        for attribute in ('EnableDnsSupport', 'EnableDnsHostnames'):
-            if self.querystring.get('%s.Value' % attribute):
+        for attribute in ("EnableDnsSupport", "EnableDnsHostnames"):
+            if self.querystring.get("%s.Value" % attribute):
                 attr_name = camelcase_to_underscores(attribute)
-                attr_value = self.querystring.get('%s.Value' % attribute)[0]
-                self.ec2_backend.modify_vpc_attribute(
-                    vpc_id, attr_name, attr_value)
+                attr_value = self.querystring.get("%s.Value" % attribute)[0]
+                self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
                 return MODIFY_VPC_ATTRIBUTE_RESPONSE
 
     def associate_vpc_cidr_block(self):
-        vpc_id = self._get_param('VpcId')
-        amazon_provided_ipv6_cidr_blocks = self._get_param('AmazonProvidedIpv6CidrBlock')
+        vpc_id = self._get_param("VpcId")
+        amazon_provided_ipv6_cidr_blocks = self._get_param(
+            "AmazonProvidedIpv6CidrBlock"
+        )
         # todo test on AWS if can create an association for IPV4 and IPV6 in the same call?
-        cidr_block = self._get_param('CidrBlock') if not amazon_provided_ipv6_cidr_blocks else None
-        value = self.ec2_backend.associate_vpc_cidr_block(vpc_id, cidr_block, amazon_provided_ipv6_cidr_blocks)
+        cidr_block = (
+            self._get_param("CidrBlock")
+            if not amazon_provided_ipv6_cidr_blocks
+            else None
+        )
+        value = self.ec2_backend.associate_vpc_cidr_block(
+            vpc_id, cidr_block, amazon_provided_ipv6_cidr_blocks
+        )
         if not amazon_provided_ipv6_cidr_blocks:
             render_template = ASSOCIATE_VPC_CIDR_BLOCK_RESPONSE
         else:
             render_template = IPV6_ASSOCIATE_VPC_CIDR_BLOCK_RESPONSE
         template = self.response_template(render_template)
-        return template.render(vpc_id=vpc_id, value=value, cidr_block=value['cidr_block'],
-                               association_id=value['association_id'], cidr_block_state='associating')
+        return template.render(
+            vpc_id=vpc_id,
+            value=value,
+            cidr_block=value["cidr_block"],
+            association_id=value["association_id"],
+            cidr_block_state="associating",
+        )
 
     def disassociate_vpc_cidr_block(self):
-        association_id = self._get_param('AssociationId')
+        association_id = self._get_param("AssociationId")
         value = self.ec2_backend.disassociate_vpc_cidr_block(association_id)
-        if "::" in value.get('cidr_block', ''):
+        if "::" in value.get("cidr_block", ""):
             render_template = IPV6_DISASSOCIATE_VPC_CIDR_BLOCK_RESPONSE
         else:
             render_template = DISASSOCIATE_VPC_CIDR_BLOCK_RESPONSE
         template = self.response_template(render_template)
-        return template.render(vpc_id=value['vpc_id'], cidr_block=value['cidr_block'],
-                               association_id=value['association_id'], cidr_block_state='disassociating')
+        return template.render(
+            vpc_id=value["vpc_id"],
+            cidr_block=value["cidr_block"],
+            association_id=value["association_id"],
+            cidr_block_state="disassociating",
+        )
 
 
 CREATE_VPC_RESPONSE = """

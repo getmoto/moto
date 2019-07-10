@@ -109,14 +109,14 @@ STATUSES = {
 
 
 class HttpBaseClass(BaseClass):
-    GET = 'GET'
-    PUT = 'PUT'
-    POST = 'POST'
-    DELETE = 'DELETE'
-    HEAD = 'HEAD'
-    PATCH = 'PATCH'
-    OPTIONS = 'OPTIONS'
-    CONNECT = 'CONNECT'
+    GET = "GET"
+    PUT = "PUT"
+    POST = "POST"
+    DELETE = "DELETE"
+    HEAD = "HEAD"
+    PATCH = "PATCH"
+    OPTIONS = "OPTIONS"
+    CONNECT = "CONNECT"
     METHODS = (GET, PUT, POST, DELETE, HEAD, PATCH, OPTIONS, CONNECT)
 
 
@@ -133,12 +133,12 @@ def parse_requestline(s):
         ...
     ValueError: Not a Request-Line
     """
-    methods = '|'.join(HttpBaseClass.METHODS)
-    m = re.match(r'(' + methods + ')\s+(.*)\s+HTTP/(1.[0|1])', s, re.I)
+    methods = "|".join(HttpBaseClass.METHODS)
+    m = re.match(r"(" + methods + ")\s+(.*)\s+HTTP/(1.[0|1])", s, re.I)
     if m:
         return m.group(1).upper(), m.group(2), m.group(3)
     else:
-        raise ValueError('Not a Request-Line')
+        raise ValueError("Not a Request-Line")
 
 
 def last_requestline(sent_data):

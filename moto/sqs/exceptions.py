@@ -28,5 +28,4 @@ class QueueAlreadyExists(RESTError):
     code = 400
 
     def __init__(self, message):
-        super(QueueAlreadyExists, self).__init__(
-            "QueueAlreadyExists", message)
+        super(QueueAlreadyExists, self).__init__("QueueAlreadyExists", message)

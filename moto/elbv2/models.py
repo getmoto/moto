@@ -29,12 +29,11 @@ from .exceptions import (
     RuleNotFoundError,
     DuplicatePriorityError,
     InvalidTargetGroupNameError,
-    InvalidModifyRuleArgumentsError
+    InvalidModifyRuleArgumentsError,
 )
 
 
 class FakeHealthStatus(BaseModel):
-
     def __init__(self, instance_id, port, health_port, status, reason=None):
         self.instance_id = instance_id
         self.port = port
@@ -44,23 +43,25 @@ class FakeHealthStatus(BaseModel):
 
 
 class FakeTargetGroup(BaseModel):
-    HTTP_CODE_REGEX = re.compile(r'(?:(?:\d+-\d+|\d+),?)+')
+    HTTP_CODE_REGEX = re.compile(r"(?:(?:\d+-\d+|\d+),?)+")
 
-    def __init__(self,
-                 name,
-                 arn,
-                 vpc_id,
-                 protocol,
-                 port,
-                 healthcheck_protocol=None,
-                 healthcheck_port=None,
-                 healthcheck_path=None,
-                 healthcheck_interval_seconds=None,
-                 healthcheck_timeout_seconds=None,
-                 healthy_threshold_count=None,
-                 unhealthy_threshold_count=None,
-                 matcher=None,
-                 target_type=None):
+    def __init__(
+        self,
+        name,
+        arn,
+        vpc_id,
+        protocol,
+        port,
+        healthcheck_protocol=None,
+        healthcheck_port=None,
+        healthcheck_path=None,
+        healthcheck_interval_seconds=None,
+        healthcheck_timeout_seconds=None,
+        healthy_threshold_count=None,
+        unhealthy_threshold_count=None,
+        matcher=None,
+        target_type=None,
+    ):
 
         # TODO: default values differs when you add Network Load balancer
         self.name = name
@@ -68,9 +69,9 @@ class FakeTargetGroup(BaseModel):
         self.vpc_id = vpc_id
         self.protocol = protocol
         self.port = port
-        self.healthcheck_protocol = healthcheck_protocol or 'HTTP'
-        self.healthcheck_port = healthcheck_port or 'traffic-port'
-        self.healthcheck_path = healthcheck_path or '/'
+        self.healthcheck_protocol = healthcheck_protocol or "HTTP"
+        self.healthcheck_port = healthcheck_port or "traffic-port"
+        self.healthcheck_path = healthcheck_path or "/"
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
         self.healthy_threshold_count = healthy_threshold_count or 5
@@ -78,14 +79,14 @@ class FakeTargetGroup(BaseModel):
         self.load_balancer_arns = []
         self.tags = {}
         if matcher is None:
-            self.matcher = {'HttpCode': '200'}
+            self.matcher = {"HttpCode": "200"}
         else:
             self.matcher = matcher
         self.target_type = target_type
 
         self.attributes = {
-            'deregistration_delay.timeout_seconds': 300,
-            'stickiness.enabled': 'false',
+            "deregistration_delay.timeout_seconds": 300,
+            "stickiness.enabled": "false",
         }
 
         self.targets = OrderedDict()
@@ -96,14 +97,14 @@ class FakeTargetGroup(BaseModel):
 
     def register(self, targets):
         for target in targets:
-            self.targets[target['id']] = {
-                'id': target['id'],
-                'port': target.get('port', self.port),
+            self.targets[target["id"]] = {
+                "id": target["id"],
+                "port": target.get("port", self.port),
             }
 
     def deregister(self, targets):
         for target in targets:
-            t = self.targets.pop(target['id'], None)
+            t = self.targets.pop(target["id"], None)
             if not t:
                 raise InvalidTargetError()
 
@@ -113,20 +114,22 @@ class FakeTargetGroup(BaseModel):
         self.tags[key] = value
 
     def health_for(self, target):
-        t = self.targets.get(target['id'])
+        t = self.targets.get(target["id"])
         if t is None:
             raise InvalidTargetError()
-        return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'healthy')
+        return FakeHealthStatus(t["id"], t["port"], self.healthcheck_port, "healthy")
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get('Name')
+        name = properties.get("Name")
         vpc_id = properties.get("VpcId")
-        protocol = properties.get('Protocol')
+        protocol = properties.get("Protocol")
         port = properties.get("Port")
         healthcheck_protocol = properties.get("HealthCheckProtocol")
         healthcheck_port = properties.get("HealthCheckPort")
@@ -157,8 +160,16 @@ class FakeTargetGroup(BaseModel):
 
 
 class FakeListener(BaseModel):
-
-    def __init__(self, load_balancer_arn, arn, protocol, port, ssl_policy, certificate, default_actions):
+    def __init__(
+        self,
+        load_balancer_arn,
+        arn,
+        protocol,
+        port,
+        ssl_policy,
+        certificate,
+        default_actions,
+    ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
         self.protocol = protocol.upper()
@@ -171,9 +182,9 @@ class FakeListener(BaseModel):
         self._default_rule = FakeRule(
             listener_arn=self.arn,
             conditions=[],
-            priority='default',
+            priority="default",
             actions=default_actions,
-            is_default=True
+            is_default=True,
         )
 
     @property
@@ -189,11 +200,15 @@ class FakeListener(BaseModel):
 
     def register(self, rule):
         self._non_default_rules.append(rule)
-        self._non_default_rules = sorted(self._non_default_rules, key=lambda x: x.priority)
+        self._non_default_rules = sorted(
+            self._non_default_rules, key=lambda x: x.priority
+        )
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
         load_balancer_arn = properties.get("LoadBalancerArn")
@@ -204,17 +219,26 @@ class FakeListener(BaseModel):
         # transform default actions to confirm with the rest of the code and XML templates
         if "DefaultActions" in properties:
             default_actions = []
-            for i, action in enumerate(properties['DefaultActions']):
-                action_type = action['Type']
-                if action_type == 'forward':
-                    default_actions.append({'type': action_type, 'target_group_arn': action['TargetGroupArn']})
-                elif action_type == 'redirect':
-                    redirect_action = {'type': action_type, }
-                    for redirect_config_key, redirect_config_value in action['RedirectConfig'].items():
+            for i, action in enumerate(properties["DefaultActions"]):
+                action_type = action["Type"]
+                if action_type == "forward":
+                    default_actions.append(
+                        {
+                            "type": action_type,
+                            "target_group_arn": action["TargetGroupArn"],
+                        }
+                    )
+                elif action_type == "redirect":
+                    redirect_action = {"type": action_type}
+                    for redirect_config_key, redirect_config_value in action[
+                        "RedirectConfig"
+                    ].items():
                         # need to match the output of _get_list_prefix
-                        if redirect_config_key == 'StatusCode':
-                            redirect_config_key = 'status_code'
-                        redirect_action['redirect_config._' + redirect_config_key.lower()] = redirect_config_value
+                        if redirect_config_key == "StatusCode":
+                            redirect_config_key = "status_code"
+                        redirect_action[
+                            "redirect_config._" + redirect_config_key.lower()
+                        ] = redirect_config_value
                     default_actions.append(redirect_action)
                 else:
                     raise InvalidActionTypeError(action_type, i + 1)
@@ -222,15 +246,17 @@ class FakeListener(BaseModel):
             default_actions = None
 
         listener = elbv2_backend.create_listener(
-            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions)
+            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
+        )
         return listener
 
 
 class FakeRule(BaseModel):
-
     def __init__(self, listener_arn, conditions, priority, actions, is_default):
         self.listener_arn = listener_arn
-        self.arn = listener_arn.replace(':listener/', ':listener-rule/') + "/%s" % (id(self))
+        self.arn = listener_arn.replace(":listener/", ":listener-rule/") + "/%s" % (
+            id(self)
+        )
         self.conditions = conditions
         self.priority = priority  # int or 'default'
         self.actions = actions
@@ -238,20 +264,36 @@ class FakeRule(BaseModel):
 
 
 class FakeBackend(BaseModel):
-
     def __init__(self, instance_port):
         self.instance_port = instance_port
         self.policy_names = []
 
     def __repr__(self):
-        return "FakeBackend(inp: %s, policies: %s)" % (self.instance_port, self.policy_names)
+        return "FakeBackend(inp: %s, policies: %s)" % (
+            self.instance_port,
+            self.policy_names,
+        )
 
 
 class FakeLoadBalancer(BaseModel):
-    VALID_ATTRS = {'access_logs.s3.enabled', 'access_logs.s3.bucket', 'access_logs.s3.prefix',
-                   'deletion_protection.enabled', 'idle_timeout.timeout_seconds'}
+    VALID_ATTRS = {
+        "access_logs.s3.enabled",
+        "access_logs.s3.bucket",
+        "access_logs.s3.prefix",
+        "deletion_protection.enabled",
+        "idle_timeout.timeout_seconds",
+    }
 
-    def __init__(self, name, security_groups, subnets, vpc_id, arn, dns_name, scheme='internet-facing'):
+    def __init__(
+        self,
+        name,
+        security_groups,
+        subnets,
+        vpc_id,
+        arn,
+        dns_name,
+        scheme="internet-facing",
+    ):
         self.name = name
         self.created_time = datetime.datetime.now()
         self.scheme = scheme
@@ -263,13 +305,13 @@ class FakeLoadBalancer(BaseModel):
         self.arn = arn
         self.dns_name = dns_name
 
-        self.stack = 'ipv4'
+        self.stack = "ipv4"
         self.attrs = {
-            'access_logs.s3.enabled': 'false',
-            'access_logs.s3.bucket': None,
-            'access_logs.s3.prefix': None,
-            'deletion_protection.enabled': 'false',
-            'idle_timeout.timeout_seconds': '60'
+            "access_logs.s3.enabled": "false",
+            "access_logs.s3.bucket": None,
+            "access_logs.s3.prefix": None,
+            "deletion_protection.enabled": "false",
+            "idle_timeout.timeout_seconds": "60",
         }
 
     @property
@@ -289,25 +331,29 @@ class FakeLoadBalancer(BaseModel):
             del self.tags[key]
 
     def delete(self, region):
-        ''' Not exposed as part of the ELB API - used for CloudFormation. '''
+        """ Not exposed as part of the ELB API - used for CloudFormation. """
         elbv2_backends[region].delete_load_balancer(self.arn)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get('Name', resource_name)
+        name = properties.get("Name", resource_name)
         security_groups = properties.get("SecurityGroups")
-        subnet_ids = properties.get('Subnets')
-        scheme = properties.get('Scheme', 'internet-facing')
+        subnet_ids = properties.get("Subnets")
+        scheme = properties.get("Scheme", "internet-facing")
 
-        load_balancer = elbv2_backend.create_load_balancer(name, security_groups, subnet_ids, scheme=scheme)
+        load_balancer = elbv2_backend.create_load_balancer(
+            name, security_groups, subnet_ids, scheme=scheme
+        )
         return load_balancer
 
     def get_cfn_attribute(self, attribute_name):
-        '''
+        """
         Implemented attributes:
         * DNSName
         * LoadBalancerName
@@ -318,25 +364,27 @@ class FakeLoadBalancer(BaseModel):
         * SecurityGroups
 
         This method is similar to models.py:FakeLoadBalancer.get_cfn_attribute()
-        '''
+        """
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
         not_implemented_yet = [
-            'CanonicalHostedZoneID',
-            'LoadBalancerFullName',
-            'SecurityGroups',
+            "CanonicalHostedZoneID",
+            "LoadBalancerFullName",
+            "SecurityGroups",
         ]
-        if attribute_name == 'DNSName':
+        if attribute_name == "DNSName":
             return self.dns_name
-        elif attribute_name == 'LoadBalancerName':
+        elif attribute_name == "LoadBalancerName":
             return self.name
         elif attribute_name in not_implemented_yet:
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "%s" ]"' % attribute_name)
+            raise NotImplementedError(
+                '"Fn::GetAtt" : [ "{0}" , "%s" ]"' % attribute_name
+            )
         else:
             raise UnformattedGetAttTemplateException()
 
 
 class ELBv2Backend(BaseBackend):
-
     def __init__(self, region_name=None):
         self.region_name = region_name
         self.target_groups = OrderedDict()
@@ -367,7 +415,9 @@ class ELBv2Backend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_load_balancer(self, name, security_groups, subnet_ids, scheme='internet-facing'):
+    def create_load_balancer(
+        self, name, security_groups, subnet_ids, scheme="internet-facing"
+    ):
         vpc_id = None
         subnets = []
         if not subnet_ids:
@@ -379,7 +429,9 @@ class ELBv2Backend(BaseBackend):
             subnets.append(subnet)
 
         vpc_id = subnets[0].vpc_id
-        arn = make_arn_for_load_balancer(account_id=1, name=name, region_name=self.region_name)
+        arn = make_arn_for_load_balancer(
+            account_id=1, name=name, region_name=self.region_name
+        )
         dns_name = "%s-1.%s.elb.amazonaws.com" % (name, self.region_name)
 
         if arn in self.load_balancers:
@@ -392,7 +444,8 @@ class ELBv2Backend(BaseBackend):
             scheme=scheme,
             subnets=subnets,
             vpc_id=vpc_id,
-            dns_name=dns_name)
+            dns_name=dns_name,
+        )
         self.load_balancers[arn] = new_load_balancer
         return new_load_balancer
 
@@ -404,13 +457,13 @@ class ELBv2Backend(BaseBackend):
 
         # validate conditions
         for condition in conditions:
-            field = condition['field']
-            if field not in ['path-pattern', 'host-header']:
+            field = condition["field"]
+            if field not in ["path-pattern", "host-header"]:
                 raise InvalidConditionFieldError(field)
 
-            values = condition['values']
+            values = condition["values"]
             if len(values) == 0:
-                raise InvalidConditionValueError('A condition value must be specified')
+                raise InvalidConditionValueError("A condition value must be specified")
             if len(values) > 1:
                 raise InvalidConditionValueError(
                     "The '%s' field contains too many values; the limit is '1'" % field
@@ -425,15 +478,17 @@ class ELBv2Backend(BaseBackend):
                 raise PriorityInUseError()
 
         # validate Actions
-        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        target_group_arns = [
+            target_group.arn for target_group in self.target_groups.values()
+        ]
         for i, action in enumerate(actions):
             index = i + 1
-            action_type = action['type']
-            if action_type == 'forward':
-                action_target_group_arn = action['target_group_arn']
+            action_type = action["type"]
+            if action_type == "forward":
+                action_target_group_arn = action["target_group_arn"]
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
-            elif action_type == 'redirect':
+            elif action_type == "redirect":
                 # nothing to do
                 pass
             else:
@@ -452,18 +507,20 @@ class ELBv2Backend(BaseBackend):
             raise InvalidTargetGroupNameError(
                 "Target group name '%s' cannot be longer than '32' characters" % name
             )
-        if not re.match('^[a-zA-Z0-9\-]+$', name):
+        if not re.match("^[a-zA-Z0-9\-]+$", name):
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)" % name
+                "Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)"
+                % name
             )
 
         # undocumented validation
-        if not re.match('(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$', name):
+        if not re.match("(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$", name):
             raise InvalidTargetGroupNameError(
-                "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$" % name
+                "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$"
+                % name
             )
 
-        if name.startswith('-') or name.endswith('-'):
+        if name.startswith("-") or name.endswith("-"):
             raise InvalidTargetGroupNameError(
                 "Target group name '%s' cannot begin or end with '-'" % name
             )
@@ -471,41 +528,78 @@ class ELBv2Backend(BaseBackend):
             if target_group.name == name:
                 raise DuplicateTargetGroupName()
 
-        valid_protocols = ['HTTPS', 'HTTP', 'TCP']
-        if kwargs.get('healthcheck_protocol') and kwargs['healthcheck_protocol'] not in valid_protocols:
+        valid_protocols = ["HTTPS", "HTTP", "TCP"]
+        if (
+            kwargs.get("healthcheck_protocol")
+            and kwargs["healthcheck_protocol"] not in valid_protocols
+        ):
             raise InvalidConditionValueError(
                 "Value {} at 'healthCheckProtocol' failed to satisfy constraint: "
-                "Member must satisfy enum value set: {}".format(kwargs['healthcheck_protocol'], valid_protocols))
-        if kwargs.get('protocol') and kwargs['protocol'] not in valid_protocols:
+                "Member must satisfy enum value set: {}".format(
+                    kwargs["healthcheck_protocol"], valid_protocols
+                )
+            )
+        if kwargs.get("protocol") and kwargs["protocol"] not in valid_protocols:
             raise InvalidConditionValueError(
                 "Value {} at 'protocol' failed to satisfy constraint: "
-                "Member must satisfy enum value set: {}".format(kwargs['protocol'], valid_protocols))
+                "Member must satisfy enum value set: {}".format(
+                    kwargs["protocol"], valid_protocols
+                )
+            )
 
-        if kwargs.get('matcher') and FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs['matcher']['HttpCode']) is None:
-            raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
+        if (
+            kwargs.get("matcher")
+            and FakeTargetGroup.HTTP_CODE_REGEX.match(kwargs["matcher"]["HttpCode"])
+            is None
+        ):
+            raise RESTError(
+                "InvalidParameterValue",
+                "HttpCode must be like 200 | 200-399 | 200,201 ...",
+            )
 
-        arn = make_arn_for_target_group(account_id=1, name=name, region_name=self.region_name)
+        arn = make_arn_for_target_group(
+            account_id=1, name=name, region_name=self.region_name
+        )
         target_group = FakeTargetGroup(name, arn, **kwargs)
         self.target_groups[target_group.arn] = target_group
         return target_group
 
-    def create_listener(self, load_balancer_arn, protocol, port, ssl_policy, certificate, default_actions):
+    def create_listener(
+        self,
+        load_balancer_arn,
+        protocol,
+        port,
+        ssl_policy,
+        certificate,
+        default_actions,
+    ):
         balancer = self.load_balancers.get(load_balancer_arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()
         if port in balancer.listeners:
             raise DuplicateListenerError()
 
-        arn = load_balancer_arn.replace(':loadbalancer/', ':listener/') + "/%s%s" % (port, id(self))
-        listener = FakeListener(load_balancer_arn, arn, protocol, port, ssl_policy, certificate, default_actions)
+        arn = load_balancer_arn.replace(":loadbalancer/", ":listener/") + "/%s%s" % (
+            port,
+            id(self),
+        )
+        listener = FakeListener(
+            load_balancer_arn,
+            arn,
+            protocol,
+            port,
+            ssl_policy,
+            certificate,
+            default_actions,
+        )
         balancer.listeners[listener.arn] = listener
         for i, action in enumerate(default_actions):
-            action_type = action['type']
-            if action_type == 'forward':
-                if action['target_group_arn'] in self.target_groups.keys():
-                    target_group = self.target_groups[action['target_group_arn']]
+            action_type = action["type"]
+            if action_type == "forward":
+                if action["target_group_arn"] in self.target_groups.keys():
+                    target_group = self.target_groups[action["target_group_arn"]]
                     target_group.load_balancer_arns.append(load_balancer_arn)
-            elif action_type == 'redirect':
+            elif action_type == "redirect":
                 # nothing to do
                 pass
             else:
@@ -550,7 +644,7 @@ class ELBv2Backend(BaseBackend):
             )
         if listener_arn is not None and rule_arns is not None:
             raise InvalidDescribeRulesRequest(
-                'Listener rule ARNs and a listener ARN cannot be specified at the same time'
+                "Listener rule ARNs and a listener ARN cannot be specified at the same time"
             )
         if listener_arn:
             listener = self.describe_listeners(None, [listener_arn])[0]
@@ -570,8 +664,11 @@ class ELBv2Backend(BaseBackend):
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
-            return [tg for tg in self.target_groups.values()
-                    if load_balancer_arn in tg.load_balancer_arns]
+            return [
+                tg
+                for tg in self.target_groups.values()
+                if load_balancer_arn in tg.load_balancer_arns
+            ]
 
         if target_group_arns:
             try:
@@ -631,7 +728,9 @@ class ELBv2Backend(BaseBackend):
             if self._any_listener_using(target_group_arn):
                 raise ResourceInUseError(
                     "The target group '{}' is currently in use by a listener or a rule".format(
-                        target_group_arn))
+                        target_group_arn
+                    )
+                )
             del self.target_groups[target_group_arn]
             return target_group
 
@@ -653,31 +752,36 @@ class ELBv2Backend(BaseBackend):
 
         if conditions:
             for condition in conditions:
-                field = condition['field']
-                if field not in ['path-pattern', 'host-header']:
+                field = condition["field"]
+                if field not in ["path-pattern", "host-header"]:
                     raise InvalidConditionFieldError(field)
 
-                values = condition['values']
+                values = condition["values"]
                 if len(values) == 0:
-                    raise InvalidConditionValueError('A condition value must be specified')
+                    raise InvalidConditionValueError(
+                        "A condition value must be specified"
+                    )
                 if len(values) > 1:
                     raise InvalidConditionValueError(
-                        "The '%s' field contains too many values; the limit is '1'" % field
+                        "The '%s' field contains too many values; the limit is '1'"
+                        % field
                     )
                 # TODO: check pattern of value for 'host-header'
                 # TODO: check pattern of value for 'path-pattern'
 
         # validate Actions
-        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        target_group_arns = [
+            target_group.arn for target_group in self.target_groups.values()
+        ]
         if actions:
             for i, action in enumerate(actions):
                 index = i + 1
-                action_type = action['type']
-                if action_type == 'forward':
-                    action_target_group_arn = action['target_group_arn']
+                action_type = action["type"]
+                if action_type == "forward":
+                    action_target_group_arn = action["target_group_arn"]
                     if action_target_group_arn not in target_group_arns:
                         raise ActionTargetGroupNotFoundError(action_target_group_arn)
-                elif action_type == 'redirect':
+                elif action_type == "redirect":
                     # nothing to do
                     pass
                 else:
@@ -716,16 +820,18 @@ class ELBv2Backend(BaseBackend):
 
     def set_rule_priorities(self, rule_priorities):
         # validate
-        priorities = [rule_priority['priority'] for rule_priority in rule_priorities]
+        priorities = [rule_priority["priority"] for rule_priority in rule_priorities]
         for priority in set(priorities):
             if priorities.count(priority) > 1:
                 raise DuplicatePriorityError(priority)
 
         # validate
         for rule_priority in rule_priorities:
-            given_rule_arn = rule_priority['rule_arn']
-            priority = rule_priority['priority']
-            _given_rules = self.describe_rules(listener_arn=None, rule_arns=[given_rule_arn])
+            given_rule_arn = rule_priority["rule_arn"]
+            priority = rule_priority["priority"]
+            _given_rules = self.describe_rules(
+                listener_arn=None, rule_arns=[given_rule_arn]
+            )
             if not _given_rules:
                 raise RuleNotFoundError()
             given_rule = _given_rules[0]
@@ -737,9 +843,11 @@ class ELBv2Backend(BaseBackend):
         # modify
         modified_rules = []
         for rule_priority in rule_priorities:
-            given_rule_arn = rule_priority['rule_arn']
-            priority = rule_priority['priority']
-            _given_rules = self.describe_rules(listener_arn=None, rule_arns=[given_rule_arn])
+            given_rule_arn = rule_priority["rule_arn"]
+            priority = rule_priority["priority"]
+            _given_rules = self.describe_rules(
+                listener_arn=None, rule_arns=[given_rule_arn]
+            )
             if not _given_rules:
                 raise RuleNotFoundError()
             given_rule = _given_rules[0]
@@ -748,15 +856,21 @@ class ELBv2Backend(BaseBackend):
         return modified_rules
 
     def set_ip_address_type(self, arn, ip_type):
-        if ip_type not in ('internal', 'dualstack'):
-            raise RESTError('InvalidParameterValue', 'IpAddressType must be either internal | dualstack')
+        if ip_type not in ("internal", "dualstack"):
+            raise RESTError(
+                "InvalidParameterValue",
+                "IpAddressType must be either internal | dualstack",
+            )
 
         balancer = self.load_balancers.get(arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()
 
-        if ip_type == 'dualstack' and balancer.scheme == 'internal':
-            raise RESTError('InvalidConfigurationRequest', 'Internal load balancers cannot be dualstack')
+        if ip_type == "dualstack" and balancer.scheme == "internal":
+            raise RESTError(
+                "InvalidConfigurationRequest",
+                "Internal load balancers cannot be dualstack",
+            )
 
         balancer.stack = ip_type
 
@@ -768,7 +882,10 @@ class ELBv2Backend(BaseBackend):
         # Check all security groups exist
         for sec_group_id in sec_groups:
             if self.ec2_backend.get_security_group_from_id(sec_group_id) is None:
-                raise RESTError('InvalidSecurityGroup', 'Security group {0} does not exist'.format(sec_group_id))
+                raise RESTError(
+                    "InvalidSecurityGroup",
+                    "Security group {0} does not exist".format(sec_group_id),
+                )
 
         balancer.security_groups = sec_groups
 
@@ -784,7 +901,10 @@ class ELBv2Backend(BaseBackend):
                 subnet = self.ec2_backend.get_subnet(subnet)
 
                 if subnet.availability_zone in sub_zone_list:
-                    raise RESTError('InvalidConfigurationRequest', 'More than 1 subnet cannot be specified for 1 availability zone')
+                    raise RESTError(
+                        "InvalidConfigurationRequest",
+                        "More than 1 subnet cannot be specified for 1 availability zone",
+                    )
 
                 sub_zone_list[subnet.availability_zone] = subnet.id
                 subnet_objects.append(subnet)
@@ -792,7 +912,10 @@ class ELBv2Backend(BaseBackend):
                 raise SubnetNotFoundError()
 
         if len(sub_zone_list) < 2:
-            raise RESTError('InvalidConfigurationRequest', 'More than 1 availability zone must be specified')
+            raise RESTError(
+                "InvalidConfigurationRequest",
+                "More than 1 availability zone must be specified",
+            )
 
         balancer.subnets = subnet_objects
 
@@ -805,7 +928,9 @@ class ELBv2Backend(BaseBackend):
 
         for key in attrs:
             if key not in FakeLoadBalancer.VALID_ATTRS:
-                raise RESTError('InvalidConfigurationRequest', 'Key {0} not valid'.format(key))
+                raise RESTError(
+                    "InvalidConfigurationRequest", "Key {0} not valid".format(key)
+                )
 
         balancer.attrs.update(attrs)
         return balancer.attrs
@@ -817,17 +942,33 @@ class ELBv2Backend(BaseBackend):
 
         return balancer.attrs
 
-    def modify_target_group(self, arn, health_check_proto=None, health_check_port=None, health_check_path=None, health_check_interval=None,
-                            health_check_timeout=None, healthy_threshold_count=None, unhealthy_threshold_count=None, http_codes=None):
+    def modify_target_group(
+        self,
+        arn,
+        health_check_proto=None,
+        health_check_port=None,
+        health_check_path=None,
+        health_check_interval=None,
+        health_check_timeout=None,
+        healthy_threshold_count=None,
+        unhealthy_threshold_count=None,
+        http_codes=None,
+    ):
         target_group = self.target_groups.get(arn)
         if target_group is None:
             raise TargetGroupNotFoundError()
 
-        if http_codes is not None and FakeTargetGroup.HTTP_CODE_REGEX.match(http_codes) is None:
-            raise RESTError('InvalidParameterValue', 'HttpCode must be like 200 | 200-399 | 200,201 ...')
+        if (
+            http_codes is not None
+            and FakeTargetGroup.HTTP_CODE_REGEX.match(http_codes) is None
+        ):
+            raise RESTError(
+                "InvalidParameterValue",
+                "HttpCode must be like 200 | 200-399 | 200,201 ...",
+            )
 
         if http_codes is not None:
-            target_group.matcher['HttpCode'] = http_codes
+            target_group.matcher["HttpCode"] = http_codes
         if health_check_interval is not None:
             target_group.healthcheck_interval_seconds = health_check_interval
         if health_check_path is not None:
@@ -845,7 +986,15 @@ class ELBv2Backend(BaseBackend):
 
         return target_group
 
-    def modify_listener(self, arn, port=None, protocol=None, ssl_policy=None, certificates=None, default_actions=None):
+    def modify_listener(
+        self,
+        arn,
+        port=None,
+        protocol=None,
+        ssl_policy=None,
+        certificates=None,
+        default_actions=None,
+    ):
         for load_balancer in self.load_balancers.values():
             if arn in load_balancer.listeners:
                 break
@@ -864,33 +1013,46 @@ class ELBv2Backend(BaseBackend):
             listener.port = port
 
         if protocol is not None:
-            if protocol not in ('HTTP', 'HTTPS', 'TCP'):
-                raise RESTError('UnsupportedProtocol', 'Protocol {0} is not supported'.format(protocol))
+            if protocol not in ("HTTP", "HTTPS", "TCP"):
+                raise RESTError(
+                    "UnsupportedProtocol",
+                    "Protocol {0} is not supported".format(protocol),
+                )
 
             # HTTPS checks
-            if protocol == 'HTTPS':
+            if protocol == "HTTPS":
                 # HTTPS
 
                 # Might already be HTTPS so may not provide certs
-                if certificates is None and listener.protocol != 'HTTPS':
-                    raise RESTError('InvalidConfigurationRequest', 'Certificates must be provided for HTTPS')
+                if certificates is None and listener.protocol != "HTTPS":
+                    raise RESTError(
+                        "InvalidConfigurationRequest",
+                        "Certificates must be provided for HTTPS",
+                    )
 
                 # Check certificates exist
                 if certificates is not None:
                     default_cert = None
                     all_certs = set()  # for SNI
                     for cert in certificates:
-                        if cert['is_default'] == 'true':
-                            default_cert = cert['certificate_arn']
+                        if cert["is_default"] == "true":
+                            default_cert = cert["certificate_arn"]
                         try:
-                            self.acm_backend.get_certificate(cert['certificate_arn'])
+                            self.acm_backend.get_certificate(cert["certificate_arn"])
                         except Exception:
-                            raise RESTError('CertificateNotFound', 'Certificate {0} not found'.format(cert['certificate_arn']))
+                            raise RESTError(
+                                "CertificateNotFound",
+                                "Certificate {0} not found".format(
+                                    cert["certificate_arn"]
+                                ),
+                            )
 
-                        all_certs.add(cert['certificate_arn'])
+                        all_certs.add(cert["certificate_arn"])
 
                     if default_cert is None:
-                        raise RESTError('InvalidConfigurationRequest', 'No default certificate')
+                        raise RESTError(
+                            "InvalidConfigurationRequest", "No default certificate"
+                        )
 
                     listener.certificate = default_cert
                     listener.certificates = list(all_certs)
@@ -912,7 +1074,7 @@ class ELBv2Backend(BaseBackend):
             for listener in load_balancer.listeners.values():
                 for rule in listener.rules:
                     for action in rule.actions:
-                        if action.get('target_group_arn') == target_group_arn:
+                        if action.get("target_group_arn") == target_group_arn:
                             return True
         return False
 

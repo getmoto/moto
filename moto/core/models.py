@@ -35,9 +35,10 @@ class BaseMockAWS(object):
 
         self.backends_for_urls = {}
         from moto.backends import BACKENDS
+
         default_backends = {
-            "instance_metadata": BACKENDS['instance_metadata']['global'],
-            "moto_api": BACKENDS['moto_api']['global'],
+            "instance_metadata": BACKENDS["instance_metadata"]["global"],
+            "moto_api": BACKENDS["moto_api"]["global"],
         }
         self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
@@ -68,7 +69,7 @@ class BaseMockAWS(object):
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
-            raise RuntimeError('Called stop() before start().')
+            raise RuntimeError("Called stop() before start().")
 
         if self.__class__.nested_count == 0:
             self.disable_patching()
@@ -81,6 +82,7 @@ class BaseMockAWS(object):
             finally:
                 self.stop()
             return result
+
         functools.update_wrapper(wrapper, func)
         wrapper.__wrapped__ = func
         return wrapper
@@ -118,7 +120,6 @@ class BaseMockAWS(object):
 
 
 class HttprettyMockAWS(BaseMockAWS):
-
     def reset(self):
         HTTPretty.reset()
 
@@ -140,18 +141,26 @@ class HttprettyMockAWS(BaseMockAWS):
         HTTPretty.reset()
 
 
-RESPONSES_METHODS = [responses.GET, responses.DELETE, responses.HEAD,
-                     responses.OPTIONS, responses.PATCH, responses.POST, responses.PUT]
+RESPONSES_METHODS = [
+    responses.GET,
+    responses.DELETE,
+    responses.HEAD,
+    responses.OPTIONS,
+    responses.PATCH,
+    responses.POST,
+    responses.PUT,
+]
 
 
 class CallbackResponse(responses.CallbackResponse):
-    '''
+    """
     Need to subclass so we can change a couple things
-    '''
+    """
+
     def get_response(self, request):
-        '''
+        """
         Need to override this so we can pass decode_content=False
-        '''
+        """
         headers = self.get_headers()
 
         result = self.callback(request)
@@ -173,17 +182,17 @@ class CallbackResponse(responses.CallbackResponse):
         )
 
     def _url_matches(self, url, other, match_querystring=False):
-        '''
+        """
         Need to override this so we can fix querystrings breaking regex matching
-        '''
+        """
         if not match_querystring:
-            other = other.split('?', 1)[0]
+            other = other.split("?", 1)[0]
 
         if responses._is_string(url):
             if responses._has_unicode(url):
                 url = responses._clean_unicode(url)
                 if not isinstance(other, six.text_type):
-                    other = other.encode('ascii').decode('utf8')
+                    other = other.encode("ascii").decode("utf8")
             return self._url_matches_strict(url, other)
         elif isinstance(url, responses.Pattern) and url.match(other):
             return True
@@ -191,7 +200,10 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
+botocore_mock = responses.RequestsMock(
+    assert_all_requests_are_fired=False,
+    target="botocore.vendored.requests.adapters.HTTPAdapter.send",
+)
 responses_mock = responses._default_mock
 
 
@@ -201,11 +213,15 @@ class ResponsesMockAWS(BaseMockAWS):
         responses_mock.reset()
 
     def enable_patching(self):
-        if not hasattr(botocore_mock, '_patcher') or not hasattr(botocore_mock._patcher, 'target'):
+        if not hasattr(botocore_mock, "_patcher") or not hasattr(
+            botocore_mock._patcher, "target"
+        ):
             # Check for unactivated patcher
             botocore_mock.start()
 
-        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+        if not hasattr(responses_mock, "_patcher") or not hasattr(
+            responses_mock._patcher, "target"
+        ):
             responses_mock.start()
 
         for method in RESPONSES_METHODS:
@@ -242,15 +258,13 @@ class ResponsesMockAWS(BaseMockAWS):
             pass
 
 
-BOTOCORE_HTTP_METHODS = [
-    'GET', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'
-]
+BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
 
 
 class MockRawResponse(BytesIO):
     def __init__(self, input):
         if isinstance(input, six.text_type):
-            input = input.encode('utf-8')
+            input = input.encode("utf-8")
         super(MockRawResponse, self).__init__(input)
 
     def stream(self, **kwargs):
@@ -281,7 +295,7 @@ class BotocoreStubber(object):
         found_index = None
         matchers = self.methods.get(request.method)
 
-        base_url = request.url.split('?', 1)[0]
+        base_url = request.url.split("?", 1)[0]
         for i, (pattern, callback) in enumerate(matchers):
             if pattern.match(base_url):
                 if found_index is None:
@@ -294,8 +308,10 @@ class BotocoreStubber(object):
         if response_callback is not None:
             for header, value in request.headers.items():
                 if isinstance(value, six.binary_type):
-                    request.headers[header] = value.decode('utf-8')
-            status, headers, body = response_callback(request, request.url, request.headers)
+                    request.headers[header] = value.decode("utf-8")
+            status, headers, body = response_callback(
+                request, request.url, request.headers
+            )
             body = MockRawResponse(body)
             response = AWSResponse(request.url, status, headers, body)
 
@@ -303,7 +319,7 @@ class BotocoreStubber(object):
 
 
 botocore_stubber = BotocoreStubber()
-BUILTIN_HANDLERS.append(('before-send', botocore_stubber))
+BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
 
 
 class BotocoreEventMockAWS(BaseMockAWS):
@@ -319,7 +335,9 @@ class BotocoreEventMockAWS(BaseMockAWS):
                     pattern = re.compile(key)
                     botocore_stubber.register_response(method, pattern, value)
 
-        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+        if not hasattr(responses_mock, "_patcher") or not hasattr(
+            responses_mock._patcher, "target"
+        ):
             responses_mock.start()
 
         for method in RESPONSES_METHODS:
@@ -350,9 +368,9 @@ MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
-
     def reset(self):
         import requests
+
         requests.post("http://localhost:5000/moto-api/reset")
 
     def enable_patching(self):
@@ -364,13 +382,13 @@ class ServerModeMockAWS(BaseMockAWS):
         import mock
 
         def fake_boto3_client(*args, **kwargs):
-            if 'endpoint_url' not in kwargs:
-                kwargs['endpoint_url'] = "http://localhost:5000"
+            if "endpoint_url" not in kwargs:
+                kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args, **kwargs):
-            if 'endpoint_url' not in kwargs:
-                kwargs['endpoint_url'] = "http://localhost:5000"
+            if "endpoint_url" not in kwargs:
+                kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_resource(*args, **kwargs)
 
         def fake_httplib_send_output(self, message_body=None, *args, **kwargs):
@@ -378,7 +396,7 @@ class ServerModeMockAWS(BaseMockAWS):
                 bytes_buffer = []
                 for chunk in mixed_buffer:
                     if isinstance(chunk, six.text_type):
-                        bytes_buffer.append(chunk.encode('utf-8'))
+                        bytes_buffer.append(chunk.encode("utf-8"))
                     else:
                         bytes_buffer.append(chunk)
                 msg = b"\r\n".join(bytes_buffer)
@@ -399,10 +417,12 @@ class ServerModeMockAWS(BaseMockAWS):
             if message_body is not None:
                 self.send(message_body)
 
-        self._client_patcher = mock.patch('boto3.client', fake_boto3_client)
-        self._resource_patcher = mock.patch('boto3.resource', fake_boto3_resource)
+        self._client_patcher = mock.patch("boto3.client", fake_boto3_client)
+        self._resource_patcher = mock.patch("boto3.resource", fake_boto3_resource)
         if six.PY2:
-            self._httplib_patcher = mock.patch('httplib.HTTPConnection._send_output', fake_httplib_send_output)
+            self._httplib_patcher = mock.patch(
+                "httplib.HTTPConnection._send_output", fake_httplib_send_output
+            )
 
         self._client_patcher.start()
         self._resource_patcher.start()
@@ -418,7 +438,6 @@ class ServerModeMockAWS(BaseMockAWS):
 
 
 class Model(type):
-
     def __new__(self, clsname, bases, namespace):
         cls = super(Model, self).__new__(self, clsname, bases, namespace)
         cls.__models__ = {}
@@ -433,9 +452,11 @@ class Model(type):
     @staticmethod
     def prop(model_name):
         """ decorator to mark a class method as returning model values """
+
         def dec(f):
             f.__returns_model__ = model_name
             return f
+
         return dec
 
 
@@ -445,7 +466,7 @@ model_data = defaultdict(dict)
 class InstanceTrackerMeta(type):
     def __new__(meta, name, bases, dct):
         cls = super(InstanceTrackerMeta, meta).__new__(meta, name, bases, dct)
-        if name == 'BaseModel':
+        if name == "BaseModel":
             return cls
 
         service = cls.__module__.split(".")[1]
@@ -464,7 +485,6 @@ class BaseModel(object):
 
 
 class BaseBackend(object):
-
     def reset(self):
         for service, models in model_data.items():
             for model_name, model in models.items():
@@ -476,8 +496,9 @@ class BaseBackend(object):
     def _url_module(self):
         backend_module = self.__class__.__module__
         backend_urls_module_name = backend_module.replace("models", "urls")
-        backend_urls_module = __import__(backend_urls_module_name, fromlist=[
-                                         'url_bases', 'url_paths'])
+        backend_urls_module = __import__(
+            backend_urls_module_name, fromlist=["url_bases", "url_paths"]
+        )
         return backend_urls_module
 
     @property
@@ -533,9 +554,9 @@ class BaseBackend(object):
 
     def decorator(self, func=None):
         if settings.TEST_SERVER_MODE:
-            mocked_backend = ServerModeMockAWS({'global': self})
+            mocked_backend = ServerModeMockAWS({"global": self})
         else:
-            mocked_backend = MockAWS({'global': self})
+            mocked_backend = MockAWS({"global": self})
 
         if func:
             return mocked_backend(func)
@@ -544,9 +565,9 @@ class BaseBackend(object):
 
     def deprecated_decorator(self, func=None):
         if func:
-            return HttprettyMockAWS({'global': self})(func)
+            return HttprettyMockAWS({"global": self})(func)
         else:
-            return HttprettyMockAWS({'global': self})
+            return HttprettyMockAWS({"global": self})
 
 
 class base_decorator(object):
@@ -572,9 +593,9 @@ class deprecated_base_decorator(base_decorator):
 
 
 class MotoAPIBackend(BaseBackend):
-
     def reset(self):
         from moto.backends import BACKENDS
+
         for name, backends in BACKENDS.items():
             if name == "moto_api":
                 continue

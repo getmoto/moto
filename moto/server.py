@@ -34,7 +34,7 @@ class DomainDispatcherApplication(object):
         self.service = service
 
     def get_backend_for_host(self, host):
-        if host == 'moto_api':
+        if host == "moto_api":
             return host
 
         if self.service:
@@ -45,51 +45,57 @@ class DomainDispatcherApplication(object):
 
         for backend_name, backend in BACKENDS.items():
             for url_base in list(backend.values())[0].url_bases:
-                if re.match(url_base, 'http://%s' % host):
+                if re.match(url_base, "http://%s" % host):
                     return backend_name
 
         raise RuntimeError('Invalid host: "%s"' % host)
 
     def get_application(self, environ):
-        path_info = environ.get('PATH_INFO', '')
+        path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
         if six.PY2 and isinstance(path_info, str):
             path_info = six.u(path_info)
         if six.PY3 and isinstance(path_info, six.binary_type):
-            path_info = path_info.decode('utf-8')
+            path_info = path_info.decode("utf-8")
 
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
         else:
-            host = environ['HTTP_HOST'].split(':')[0]
-        if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
+            host = environ["HTTP_HOST"].split(":")[0]
+        if host in {"localhost", "motoserver"} or host.startswith("192.168."):
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
             try:
-                _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[
-                    1].split("/")
+                _, _, region, service, _ = (
+                    environ["HTTP_AUTHORIZATION"].split(",")[0].split()[1].split("/")
+                )
             except (KeyError, ValueError):
                 # Some cognito-idp endpoints (e.g. change password) do not receive an auth header.
-                if environ.get('HTTP_X_AMZ_TARGET', '').startswith('AWSCognitoIdentityProviderService'):
-                    service = 'cognito-idp'
+                if environ.get("HTTP_X_AMZ_TARGET", "").startswith(
+                    "AWSCognitoIdentityProviderService"
+                ):
+                    service = "cognito-idp"
                 else:
-                    service = 's3'
+                    service = "s3"
 
-                region = 'us-east-1'
-            if service == 'dynamodb':
-                if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
-                    host = 'dynamodbstreams'
+                region = "us-east-1"
+            if service == "dynamodb":
+                if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
+                    host = "dynamodbstreams"
                 else:
-                    dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
+                    dynamo_api_version = (
+                        environ["HTTP_X_AMZ_TARGET"].split("_")[1].split(".")[0]
+                    )
                     # If Newer API version, use dynamodb2
                     if dynamo_api_version > "20111205":
                         host = "dynamodb2"
             else:
                 host = "{service}.{region}.amazonaws.com".format(
-                    service=service, region=region)
+                    service=service, region=region
+                )
 
         with self.lock:
             backend = self.get_backend_for_host(host)
@@ -113,15 +119,18 @@ class RegexConverter(BaseConverter):
 
 
 class AWSTestHelper(FlaskClient):
-
     def action_data(self, action_name, **kwargs):
         """
         Method calls resource with action_name and returns data of response.
         """
         opts = {"Action": action_name}
         opts.update(kwargs)
-        res = self.get("/?{0}".format(urlencode(opts)),
-                       headers={"Host": "{0}.us-east-1.amazonaws.com".format(self.application.service)})
+        res = self.get(
+            "/?{0}".format(urlencode(opts)),
+            headers={
+                "Host": "{0}.us-east-1.amazonaws.com".format(self.application.service)
+            },
+        )
         return res.data.decode("utf-8")
 
     def action_json(self, action_name, **kwargs):
@@ -143,11 +152,11 @@ def create_backend_app(service):
     # Reset view functions to reset the app
     backend_app.view_functions = {}
     backend_app.url_map = Map()
-    backend_app.url_map.converters['regex'] = RegexConverter
+    backend_app.url_map.converters["regex"] = RegexConverter
     backend = list(BACKENDS[service].values())[0]
     for url_path, handler in backend.flask_paths.items():
-        if handler.__name__ == 'dispatch':
-            endpoint = '{0}.dispatch'.format(handler.__self__.__name__)
+        if handler.__name__ == "dispatch":
+            endpoint = "{0}.dispatch".format(handler.__self__.__name__)
         else:
             endpoint = None
 
@@ -178,54 +187,57 @@ def main(argv=sys.argv[1:]):
     parser.add_argument(
         "service",
         type=str,
-        nargs='?',  # http://stackoverflow.com/a/4480202/731592
-        default=None)
-    parser.add_argument(
-        '-H', '--host', type=str,
-        help='Which host to bind',
-        default='127.0.0.1')
-    parser.add_argument(
-        '-p', '--port', type=int,
-        help='Port number to use for connection',
-        default=5000)
-    parser.add_argument(
-        '-r', '--reload',
-        action='store_true',
-        help='Reload server on a file change',
-        default=False
+        nargs="?",  # http://stackoverflow.com/a/4480202/731592
+        default=None,
     )
     parser.add_argument(
-        '-s', '--ssl',
-        action='store_true',
-        help='Enable SSL encrypted connection with auto-generated certificate (use https://... URL)',
-        default=False
+        "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"
     )
     parser.add_argument(
-        '-c', '--ssl-cert', type=str,
-        help='Path to SSL certificate',
-        default=None)
+        "-p", "--port", type=int, help="Port number to use for connection", default=5000
+    )
     parser.add_argument(
-        '-k', '--ssl-key', type=str,
-        help='Path to SSL private key',
-        default=None)
+        "-r",
+        "--reload",
+        action="store_true",
+        help="Reload server on a file change",
+        default=False,
+    )
+    parser.add_argument(
+        "-s",
+        "--ssl",
+        action="store_true",
+        help="Enable SSL encrypted connection with auto-generated certificate (use https://... URL)",
+        default=False,
+    )
+    parser.add_argument(
+        "-c", "--ssl-cert", type=str, help="Path to SSL certificate", default=None
+    )
+    parser.add_argument(
+        "-k", "--ssl-key", type=str, help="Path to SSL private key", default=None
+    )
 
     args = parser.parse_args(argv)
 
     # Wrap the main application
-    main_app = DomainDispatcherApplication(
-        create_backend_app, service=args.service)
+    main_app = DomainDispatcherApplication(create_backend_app, service=args.service)
     main_app.debug = True
 
     ssl_context = None
     if args.ssl_key and args.ssl_cert:
         ssl_context = (args.ssl_cert, args.ssl_key)
     elif args.ssl:
-        ssl_context = 'adhoc'
+        ssl_context = "adhoc"
 
-    run_simple(args.host, args.port, main_app,
-               threaded=True, use_reloader=args.reload,
-               ssl_context=ssl_context)
+    run_simple(
+        args.host,
+        args.port,
+        main_app,
+        threaded=True,
+        use_reloader=args.reload,
+        ssl_context=ssl_context,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -2,11 +2,14 @@ from __future__ import unicode_literals
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.sts.utils import random_access_key_id, random_secret_access_key, random_session_token
+from moto.sts.utils import (
+    random_access_key_id,
+    random_secret_access_key,
+    random_session_token,
+)
 
 
 class Token(BaseModel):
-
     def __init__(self, duration, name=None, policy=None):
         now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
@@ -19,7 +22,6 @@ class Token(BaseModel):
 
 
 class AssumedRole(BaseModel):
-
     def __init__(self, role_session_name, role_arn, policy, duration, external_id):
         self.session_name = role_session_name
         self.arn = role_arn
@@ -37,7 +39,6 @@ class AssumedRole(BaseModel):
 
 
 class STSBackend(BaseBackend):
-
     def get_session_token(self, duration):
         token = Token(duration=duration)
         return token

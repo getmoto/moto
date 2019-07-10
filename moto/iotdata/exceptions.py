@@ -10,8 +10,7 @@ class ResourceNotFoundException(IoTDataPlaneClientError):
     def __init__(self):
         self.code = 404
         super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException",
-            "The specified resource does not exist"
+            "ResourceNotFoundException", "The specified resource does not exist"
         )
 
 

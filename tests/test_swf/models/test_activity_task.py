@@ -2,11 +2,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
-from moto.swf.models import (
-    ActivityTask,
-    ActivityType,
-    Timeout,
-)
+from moto.swf.models import ActivityTask, ActivityType, Timeout
 
 from ..utils import (
     ACTIVITY_TASK_TIMEOUTS,
@@ -149,6 +145,7 @@ def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     wfe.complete(123)
 
     task.timeout.when.called_with(Timeout(task, 0, "foo")).should.throw(
-        SWFWorkflowExecutionClosedError)
+        SWFWorkflowExecutionClosedError
+    )
     task.complete.when.called_with().should.throw(SWFWorkflowExecutionClosedError)
     task.fail.when.called_with().should.throw(SWFWorkflowExecutionClosedError)

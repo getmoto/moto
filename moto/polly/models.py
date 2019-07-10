@@ -32,33 +32,36 @@ class Lexicon(BaseModel):
         try:
             root = ET.fromstring(self.content)
             self.size = len(self.content)
-            self.last_modified = int((datetime.datetime.now() -
-                                      datetime.datetime(1970, 1, 1)).total_seconds())
-            self.lexemes_count = len(root.findall('.'))
+            self.last_modified = int(
+                (
+                    datetime.datetime.now() - datetime.datetime(1970, 1, 1)
+                ).total_seconds()
+            )
+            self.lexemes_count = len(root.findall("."))
 
             for key, value in root.attrib.items():
-                if key.endswith('alphabet'):
+                if key.endswith("alphabet"):
                     self.alphabet = value
-                elif key.endswith('lang'):
+                elif key.endswith("lang"):
                     self.language_code = value
 
         except Exception as err:
-            raise ValueError('Failure parsing XML: {0}'.format(err))
+            raise ValueError("Failure parsing XML: {0}".format(err))
 
     def to_dict(self):
         return {
-            'Attributes': {
-                'Alphabet': self.alphabet,
-                'LanguageCode': self.language_code,
-                'LastModified': self.last_modified,
-                'LexemesCount': self.lexemes_count,
-                'LexiconArn': self.arn,
-                'Size': self.size
+            "Attributes": {
+                "Alphabet": self.alphabet,
+                "LanguageCode": self.language_code,
+                "LastModified": self.last_modified,
+                "LexemesCount": self.lexemes_count,
+                "LexiconArn": self.arn,
+                "Size": self.size,
             }
         }
 
     def __repr__(self):
-        return '<Lexicon {0}>'.format(self.name)
+        return "<Lexicon {0}>".format(self.name)
 
 
 class PollyBackend(BaseBackend):
@@ -77,7 +80,7 @@ class PollyBackend(BaseBackend):
         if language_code is None:
             return VOICE_DATA
 
-        return [item for item in VOICE_DATA if item['LanguageCode'] == language_code]
+        return [item for item in VOICE_DATA if item["LanguageCode"] == language_code]
 
     def delete_lexicon(self, name):
         # implement here
@@ -93,7 +96,7 @@ class PollyBackend(BaseBackend):
 
         for name, lexicon in self._lexicons.items():
             lexicon_dict = lexicon.to_dict()
-            lexicon_dict['Name'] = name
+            lexicon_dict["Name"] = name
 
             result.append(lexicon_dict)
 
@@ -111,4 +114,6 @@ class PollyBackend(BaseBackend):
 
 
 available_regions = boto3.session.Session().get_available_regions("polly")
-polly_backends = {region: PollyBackend(region_name=region) for region in available_regions}
+polly_backends = {
+    region: PollyBackend(region_name=region) for region in available_regions
+}

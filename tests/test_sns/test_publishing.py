@@ -18,25 +18,38 @@ def test_publish_to_sqs():
     conn = boto.connect_sns()
     conn.create_topic("some-topic")
     topics_json = conn.get_all_topics()
-    topic_arn = topics_json["ListTopicsResponse"][
-        "ListTopicsResult"]["Topics"][0]['TopicArn']
+    topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0][
+        "TopicArn"
+    ]
 
     sqs_conn = boto.connect_sqs()
     sqs_conn.create_queue("test-queue")
 
-    conn.subscribe(topic_arn, "sqs",
-                   "arn:aws:sqs:us-east-1:123456789012:test-queue")
+    conn.subscribe(topic_arn, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue")
 
-    message_to_publish = 'my message'
+    message_to_publish = "my message"
     subject_to_publish = "test subject"
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(topic=topic_arn, message=message_to_publish, subject=subject_to_publish)
-    published_message_id = published_message['PublishResponse']['PublishResult']['MessageId']
+        published_message = conn.publish(
+            topic=topic_arn, message=message_to_publish, subject=subject_to_publish
+        )
+    published_message_id = published_message["PublishResponse"]["PublishResult"][
+        "MessageId"
+    ]
 
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, subject_to_publish, 'us-east-1')
-    acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", '2015-01-01T12:00:00.000Z', message.get_body())
+    expected = MESSAGE_FROM_SQS_TEMPLATE % (
+        message_to_publish,
+        published_message_id,
+        subject_to_publish,
+        "us-east-1",
+    )
+    acquired_message = re.sub(
+        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        "2015-01-01T12:00:00.000Z",
+        message.get_body(),
+    )
     acquired_message.should.equal(expected)
 
 
@@ -46,24 +59,37 @@ def test_publish_to_sqs_in_different_region():
     conn = boto.sns.connect_to_region("us-west-1")
     conn.create_topic("some-topic")
     topics_json = conn.get_all_topics()
-    topic_arn = topics_json["ListTopicsResponse"][
-        "ListTopicsResult"]["Topics"][0]['TopicArn']
+    topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0][
+        "TopicArn"
+    ]
 
     sqs_conn = boto.sqs.connect_to_region("us-west-2")
     sqs_conn.create_queue("test-queue")
 
-    conn.subscribe(topic_arn, "sqs",
-                   "arn:aws:sqs:us-west-2:123456789012:test-queue")
+    conn.subscribe(topic_arn, "sqs", "arn:aws:sqs:us-west-2:123456789012:test-queue")
 
-    message_to_publish = 'my message'
+    message_to_publish = "my message"
     subject_to_publish = "test subject"
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(topic=topic_arn, message=message_to_publish, subject=subject_to_publish)
-    published_message_id = published_message['PublishResponse']['PublishResult']['MessageId']
+        published_message = conn.publish(
+            topic=topic_arn, message=message_to_publish, subject=subject_to_publish
+        )
+    published_message_id = published_message["PublishResponse"]["PublishResult"][
+        "MessageId"
+    ]
 
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, subject_to_publish, 'us-west-1')
+    expected = MESSAGE_FROM_SQS_TEMPLATE % (
+        message_to_publish,
+        published_message_id,
+        subject_to_publish,
+        "us-west-1",
+    )
 
-    acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", '2015-01-01T12:00:00.000Z', message.get_body())
+    acquired_message = re.sub(
+        "\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
+        "2015-01-01T12:00:00.000Z",
+        message.get_body(),
+    )
     acquired_message.should.equal(expected)
