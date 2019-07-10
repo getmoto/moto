@@ -1,5 +1,6 @@
 import json
 import re
+import sys
 from abc import ABC, abstractmethod
 from enum import Enum
 
@@ -121,7 +122,7 @@ class CreateAccessKeyFailure(Exception):
 class IAMRequestBase(ABC):
 
     def __init__(self, method, path, data, headers):
-        print(f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}")
+        print(f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}", file=sys.stderr)
         self._method = method
         self._path = path
         self._data = data
@@ -130,7 +131,7 @@ class IAMRequestBase(ABC):
         credential_data = credential_scope.split('/')
         self._region = credential_data[2]
         self._service = credential_data[3]
-        self._action = self._service + ":" + self._data["Action"][0]
+        self._action = self._service + ":" + (self._data["Action"][0] if isinstance(self._data["Action"], list) else self._data["Action"])
         try:
             self._access_key = create_access_key(access_key_id=credential_data[0], headers=headers)
         except CreateAccessKeyFailure as e:
@@ -143,9 +144,6 @@ class IAMRequestBase(ABC):
             raise SignatureDoesNotMatchError()
 
     def check_action_permitted(self):
-        self._check_action_permitted_for_iam_user()
-
-    def _check_action_permitted_for_iam_user(self):
         policies = self._access_key.collect_policies()
 
         permitted = False
