@@ -2,7 +2,7 @@ import requests
 import sure  # noqa
 
 import boto3
-from moto import mock_sqs
+from moto import mock_sqs, settings
 
 
 @mock_sqs
@@ -14,8 +14,9 @@ def test_passthrough_requests():
     assert res.status_code == 200
 
 
-@mock_sqs
-def test_requests_to_amazon_subdomains_dont_work():
-    res = requests.get("https://fakeservice.amazonaws.com/foo/bar")
-    assert res.content == b"The method is not implemented"
-    assert res.status_code == 400
+if settings.TEST_SERVER_MODE:
+    @mock_sqs
+    def test_requests_to_amazon_subdomains_dont_work():
+        res = requests.get("https://fakeservice.amazonaws.com/foo/bar")
+        assert res.content == b"The method is not implemented"
+        assert res.status_code == 400
