@@ -14,7 +14,7 @@ def test_passthrough_requests():
     assert res.status_code == 200
 
 
-if settings.TEST_SERVER_MODE:
+if not settings.TEST_SERVER_MODE:
     @mock_sqs
     def test_requests_to_amazon_subdomains_dont_work():
         res = requests.get("https://fakeservice.amazonaws.com/foo/bar")
