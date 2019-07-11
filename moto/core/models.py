@@ -193,53 +193,8 @@ class CallbackResponse(responses.CallbackResponse):
 
 botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
 responses_mock = responses._default_mock
-
-
-class ResponsesMockAWS(BaseMockAWS):
-    def reset(self):
-        botocore_mock.reset()
-        responses_mock.reset()
-
-    def enable_patching(self):
-        if not hasattr(botocore_mock, '_patcher') or not hasattr(botocore_mock._patcher, 'target'):
-            # Check for unactivated patcher
-            botocore_mock.start()
-
-        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
-            responses_mock.start()
-
-        for method in RESPONSES_METHODS:
-            for backend in self.backends_for_urls.values():
-                for key, value in backend.urls.items():
-                    responses_mock.add(
-                        CallbackResponse(
-                            method=method,
-                            url=re.compile(key),
-                            callback=convert_flask_to_responses_response(value),
-                            stream=True,
-                            match_querystring=False,
-                        )
-                    )
-                    botocore_mock.add(
-                        CallbackResponse(
-                            method=method,
-                            url=re.compile(key),
-                            callback=convert_flask_to_responses_response(value),
-                            stream=True,
-                            match_querystring=False,
-                        )
-                    )
-
-    def disable_patching(self):
-        try:
-            botocore_mock.stop()
-        except RuntimeError:
-            pass
-
-        try:
-            responses_mock.stop()
-        except RuntimeError:
-            pass
+# Add passthrough to allow any other requests to work
+responses_mock.add_passthru("http")
 
 
 BOTOCORE_HTTP_METHODS = [
@@ -306,6 +261,14 @@ botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(('before-send', botocore_stubber))
 
 
+def not_implemented_callback(request):
+    status = 400
+    headers = {}
+    response = "The method is not implemented"
+
+    return status, headers, response
+
+
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self):
         botocore_stubber.reset()
@@ -335,6 +298,24 @@ class BotocoreEventMockAWS(BaseMockAWS):
                             match_querystring=False,
                         )
                     )
+            responses_mock.add(
+                CallbackResponse(
+                    method=method,
+                    url=re.compile("https?://.+.amazonaws.com/.*"),
+                    callback=not_implemented_callback,
+                    stream=True,
+                    match_querystring=False,
+                )
+            )
+            botocore_mock.add(
+                CallbackResponse(
+                    method=method,
+                    url=re.compile("https?://.+.amazonaws.com/.*"),
+                    callback=not_implemented_callback,
+                    stream=True,
+                    match_querystring=False,
+                )
+            )
 
     def disable_patching(self):
         botocore_stubber.enabled = False

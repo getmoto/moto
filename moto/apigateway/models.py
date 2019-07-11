@@ -388,10 +388,16 @@ class RestAPI(BaseModel):
         stage_url_upper = STAGE_URL.format(api_id=self.id.upper(),
             region_name=self.region_name, stage_name=stage_name)
 
-        responses.add_callback(responses.GET, stage_url_lower,
-                               callback=self.resource_callback)
-        responses.add_callback(responses.GET, stage_url_upper,
-                               callback=self.resource_callback)
+        for url in [stage_url_lower, stage_url_upper]:
+            responses._default_mock._matches.insert(0,
+                responses.CallbackResponse(
+                    url=url,
+                    method=responses.GET,
+                    callback=self.resource_callback,
+                    content_type="text/plain",
+                    match_querystring=False,
+                )
+            )
 
     def create_stage(self, name, deployment_id, variables=None, description='', cacheClusterEnabled=None, cacheClusterSize=None):
         if variables is None:
