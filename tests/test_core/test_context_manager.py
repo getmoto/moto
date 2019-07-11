@@ -2,7 +2,7 @@ import sure  # noqa
 import boto3
 from moto import mock_sqs
 
-def test_reset_api():
+def test_context_manager_returns_mock():
     with mock_sqs() as sqs_mock:
         conn = boto3.client("sqs", region_name='us-west-1')
         conn.create_queue(QueueName="queue1")
