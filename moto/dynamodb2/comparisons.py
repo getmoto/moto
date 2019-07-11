@@ -1004,8 +1004,7 @@ class OpOr(Op):
 
     def expr(self, item):
         lhs = self.lhs.expr(item)
-        rhs = self.rhs.expr(item)
-        return lhs or rhs
+        return lhs or self.rhs.expr(item)
 
 
 class Func(object):
