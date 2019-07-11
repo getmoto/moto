@@ -108,7 +108,7 @@ class _TemplateEnvironmentMixin(object):
 
 class ActionAuthenticatorMixin(object):
 
-    INITIAL_NO_AUTH_ACTION_COUNT = int(os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", 999999999))
+    INITIAL_NO_AUTH_ACTION_COUNT = float(os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", float("inf")))
     request_count = 0
 
     def _authenticate_action(self, iam_request_cls):
