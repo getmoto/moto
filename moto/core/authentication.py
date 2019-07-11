@@ -245,27 +245,29 @@ class S3IAMRequest(IAMRequestBase):
 class IAMPolicy:
 
     def __init__(self, policy):
-        self._policy = policy
+        if isinstance(policy, Policy):
+            default_version = next(policy_version for policy_version in policy.versions if policy_version.is_default)
+            policy_document = default_version.document
+        elif isinstance(policy, string_types):
+            policy_document = policy
+        else:
+            policy_document = policy["policy_document"]
+
+        self._policy_json = json.loads(policy_document)
 
     def is_action_permitted(self, action):
-        if isinstance(self._policy, Policy):
-            default_version = next(policy_version for policy_version in self._policy.versions if policy_version.is_default)
-            policy_document = default_version.document
-        elif isinstance(self._policy, string_types):
-            policy_document = self._policy
-        else:
-            policy_document = self._policy["policy_document"]
-
-        policy_json = json.loads(policy_document)
-
         permitted = False
-        for policy_statement in policy_json["Statement"]:
-            iam_policy_statement = IAMPolicyStatement(policy_statement)
-            permission_result = iam_policy_statement.is_action_permitted(action)
-            if permission_result == PermissionResult.DENIED:
-                return permission_result
-            elif permission_result == PermissionResult.PERMITTED:
-                permitted = True
+        if isinstance(self._policy_json["Statement"], list):
+            for policy_statement in self._policy_json["Statement"]:
+                iam_policy_statement = IAMPolicyStatement(policy_statement)
+                permission_result = iam_policy_statement.is_action_permitted(action)
+                if permission_result == PermissionResult.DENIED:
+                    return permission_result
+                elif permission_result == PermissionResult.PERMITTED:
+                    permitted = True
+        else:  # dict
+            iam_policy_statement = IAMPolicyStatement(self._policy_json["Statement"])
+            return iam_policy_statement.is_action_permitted(action)
 
         if permitted:
             return PermissionResult.PERMITTED
