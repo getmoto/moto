@@ -34,7 +34,7 @@ class RDS2Response(BaseResponse):
             "master_user_password": self._get_param('MasterUserPassword'),
             "master_username": self._get_param('MasterUsername'),
             "multi_az": self._get_bool_param("MultiAZ"),
-            # OptionGroupName
+            "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param('Port'),
             # PreferredBackupWindow
             # PreferredMaintenanceWindow
