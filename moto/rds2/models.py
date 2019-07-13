@@ -149,7 +149,14 @@ class Database(BaseModel):
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
               {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
               <MultiAZ>{{ database.multi_az }}</MultiAZ>
-              <VpcSecurityGroups/>
+              <VpcSecurityGroups>
+                {% for vpc_security_group_id in database.vpc_security_group_ids %}
+                <VpcSecurityGroupMembership>
+                  <Status>active</Status>
+                  <VpcSecurityGroupId>{{ vpc_security_group_id }}</VpcSecurityGroupId>
+                </VpcSecurityGroupMembership>
+                {% endfor %}
+              </VpcSecurityGroups>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
               <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
@@ -323,6 +330,7 @@ class Database(BaseModel):
             "storage_encrypted": properties.get("StorageEncrypted"),
             "storage_type": properties.get("StorageType"),
             "tags": properties.get("Tags"),
+            "vpc_security_group_ids": properties.get('VpcSecurityGroupIds', []),
         }
 
         rds2_backend = rds2_backends[region_name]
@@ -397,10 +405,12 @@ class Database(BaseModel):
         "SecondaryAvailabilityZone": null,
         "StatusInfos": null,
         "VpcSecurityGroups": [
+            {% for vpc_security_group_id in database.vpc_security_group_ids %}
             {
                 "Status": "active",
-                "VpcSecurityGroupId": "sg-123456"
+                "VpcSecurityGroupId": "{{ vpc_security_group_id }}"
             }
+            {% endfor %}
         ],
         "DBInstanceArn": "{{ database.db_instance_arn }}"
       }""")

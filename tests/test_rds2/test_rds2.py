@@ -18,7 +18,8 @@ def test_create_database():
                                        MasterUsername='root',
                                        MasterUserPassword='hunter2',
                                        Port=1234,
-                                       DBSecurityGroups=["my_sg"])
+                                       DBSecurityGroups=["my_sg"],
+                                       VpcSecurityGroupIds=['sg-123456'])
     db_instance = database['DBInstance']
     db_instance['AllocatedStorage'].should.equal(10)
     db_instance['DBInstanceClass'].should.equal("db.m1.small")
@@ -35,6 +36,7 @@ def test_create_database():
     db_instance['DbiResourceId'].should.contain("db-")
     db_instance['CopyTagsToSnapshot'].should.equal(False)
     db_instance['InstanceCreateTime'].should.be.a("datetime.datetime")
+    db_instance['VpcSecurityGroups'][0]['VpcSecurityGroupId'].should.equal('sg-123456')
 
 
 @mock_rds2
@@ -260,9 +262,11 @@ def test_modify_db_instance():
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(10)
     conn.modify_db_instance(DBInstanceIdentifier='db-master-1',
                             AllocatedStorage=20,
-                            ApplyImmediately=True)
+                            ApplyImmediately=True,
+                            VpcSecurityGroupIds=['sg-123456'])
     instances = conn.describe_db_instances(DBInstanceIdentifier='db-master-1')
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(20)
+    instances['DBInstances'][0]['VpcSecurityGroups'][0]['VpcSecurityGroupId'].should.equal('sg-123456')
 
 
 @mock_rds2
