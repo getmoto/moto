@@ -70,7 +70,7 @@ class EmailResponse(BaseResponse):
                     break
                 destinations[dest_type].append(address[0])
 
-        message = ses_backend.send_email(source, subject, body, destinations)
+        message = ses_backend.send_email(source, subject, body, destinations, self.region)
         template = self.response_template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
@@ -92,7 +92,7 @@ class EmailResponse(BaseResponse):
                 break
             destinations.append(address[0])
 
-        message = ses_backend.send_raw_email(source, destinations, raw_data)
+        message = ses_backend.send_raw_email(source, destinations, raw_data, self.region)
         template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 
@@ -100,6 +100,18 @@ class EmailResponse(BaseResponse):
         quota = ses_backend.get_send_quota()
         template = self.response_template(GET_SEND_QUOTA_RESPONSE)
         return template.render(quota=quota)
+
+    def set_identity_notification_topic(self):
+
+        identity = self.querystring.get("Identity")[0]
+        not_type = self.querystring.get("NotificationType")[0]
+        sns_topic = self.querystring.get("SnsTopic")
+        if sns_topic:
+            sns_topic = sns_topic[0]
+
+        ses_backend.set_identity_notification_topic(identity, not_type, sns_topic)
+        template = self.response_template(SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE)
+        return template.render()
 
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
@@ -200,3 +212,10 @@ GET_SEND_QUOTA_RESPONSE = """<GetSendQuotaResponse xmlns="http://ses.amazonaws.c
     <RequestId>273021c6-c866-11e0-b926-699e21c3af9e</RequestId>
   </ResponseMetadata>
 </GetSendQuotaResponse>"""
+
+SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE = """<SetIdentityNotificationTopicResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <SetIdentityNotificationTopicResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</SetIdentityNotificationTopicResponse>"""

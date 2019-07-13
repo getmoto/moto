@@ -10,7 +10,7 @@ endif
 
 init:
 	@python setup.py develop
-	@pip install -r requirements.txt
+	@pip install -r requirements-dev.txt
 
 lint:
 	flake8 moto
