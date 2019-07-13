@@ -1,9 +1,10 @@
 import json
 import logging
 import re
-from abc import ABC, abstractmethod
+from abc import abstractmethod, ABCMeta
 from enum import Enum
 
+import six
 from botocore.auth import SigV4Auth, S3SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
@@ -25,7 +26,7 @@ def create_access_key(access_key_id, headers):
         return AssumedRoleAccessKey(access_key_id, headers)
 
 
-class IAMUserAccessKey:
+class IAMUserAccessKey(object):
 
     def __init__(self, access_key_id, headers):
         iam_users = iam_backend.list_users('/', None, None)
@@ -74,7 +75,7 @@ class IAMUserAccessKey:
         return user_policies
 
 
-class AssumedRoleAccessKey:
+class AssumedRoleAccessKey(object):
 
     def __init__(self, access_key_id, headers):
         for assumed_role in sts_backend.assumed_roles:
@@ -121,7 +122,8 @@ class CreateAccessKeyFailure(Exception):
         self.reason = reason
 
 
-class IAMRequestBase(ABC):
+@six.add_metaclass(ABCMeta)
+class IAMRequestBase(object):
 
     def __init__(self, method, path, data, headers):
         log.debug("Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
@@ -245,7 +247,7 @@ class S3IAMRequest(IAMRequestBase):
             raise S3AccessDeniedError()
 
 
-class IAMPolicy:
+class IAMPolicy(object):
 
     def __init__(self, policy):
         if isinstance(policy, Policy):
@@ -278,7 +280,7 @@ class IAMPolicy:
             return PermissionResult.NEUTRAL
 
 
-class IAMPolicyStatement:
+class IAMPolicyStatement(object):
 
     def __init__(self, statement):
         self._statement = statement
