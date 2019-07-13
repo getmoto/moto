@@ -1,6 +1,6 @@
 import json
+import logging
 import re
-import sys
 from abc import ABC, abstractmethod
 from enum import Enum
 
@@ -14,6 +14,8 @@ from moto.iam import iam_backend
 from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError, AuthFailureError
 from moto.s3.exceptions import BucketAccessDeniedError, S3AccessDeniedError, BucketInvalidTokenError, S3InvalidTokenError, S3InvalidAccessKeyIdError, BucketInvalidAccessKeyIdError
 from moto.sts import sts_backend
+
+log = logging.getLogger(__name__)
 
 
 def create_access_key(access_key_id, headers):
@@ -122,9 +124,8 @@ class CreateAccessKeyFailure(Exception):
 class IAMRequestBase(ABC):
 
     def __init__(self, method, path, data, headers):
-        print("Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
-            class_name=self.__class__.__name__, method=method, path=path, data=data, headers=headers),
-            file=sys.stderr)
+        log.debug("Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
+            class_name=self.__class__.__name__, method=method, path=path, data=data, headers=headers))
         self._method = method
         self._path = path
         self._data = data
@@ -314,7 +315,7 @@ class IAMPolicyStatement:
     @staticmethod
     def _match(pattern, string):
         pattern = pattern.replace("*", ".*")
-        pattern = f"^{pattern}$"
+        pattern = "^{pattern}$".format(pattern=pattern)
         return re.match(pattern, string)
 
 
