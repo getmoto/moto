@@ -20,6 +20,7 @@ from .exceptions import (RDSClientError,
                          DBSecurityGroupNotFoundError,
                          DBSubnetGroupNotFoundError,
                          DBParameterGroupNotFoundError,
+                         OptionGroupNotFoundFaultError,
                          InvalidDBClusterStateFaultError,
                          InvalidDBInstanceStateError,
                          SnapshotQuotaExceededError,
@@ -70,6 +71,7 @@ class Database(BaseModel):
             self.port = Database.default_port(self.engine)
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
+        self.instance_create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
@@ -99,6 +101,8 @@ class Database(BaseModel):
             'preferred_backup_window', '13:14-13:44')
         self.license_model = kwargs.get('license_model', 'general-public-license')
         self.option_group_name = kwargs.get('option_group_name', None)
+        if self.option_group_name and self.option_group_name not in rds2_backends[self.region].option_groups:
+            raise OptionGroupNotFoundFaultError(self.option_group_name)
         self.default_option_groups = {"MySQL": "default.mysql5.6",
                                       "mysql": "default.mysql5.6",
                                       "postgres": "default.postgres9.3"
@@ -148,6 +152,7 @@ class Database(BaseModel):
               <VpcSecurityGroups/>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
               <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
+              <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
               <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
               <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
               <ReadReplicaDBInstanceIdentifiers>
@@ -173,6 +178,10 @@ class Database(BaseModel):
               <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <OptionGroupMemberships>
+                <OptionGroupMembership>
+                  <OptionGroupName>{{ database.option_group_name }}</OptionGroupName>
+                  <Status>in-sync</Status>
+                </OptionGroupMembership>
               </OptionGroupMemberships>
               <DBParameterGroups>
                 {% for db_parameter_group in database.db_parameter_groups() %}
@@ -373,7 +382,7 @@ class Database(BaseModel):
             "Address": "{{ database.address }}",
             "Port": "{{ database.port }}"
         },
-        "InstanceCreateTime": null,
+        "InstanceCreateTime": "{{ database.instance_create_time }}",
         "Iops": null,
         "ReadReplicaDBInstanceIdentifiers": [{%- for replica in database.replicas -%}
             {%- if not loop.first -%},{%- endif -%}
@@ -873,13 +882,16 @@ class RDS2Backend(BaseBackend):
 
     def create_option_group(self, option_group_kwargs):
         option_group_id = option_group_kwargs['name']
-        valid_option_group_engines = {'mysql': ['5.6'],
-                                      'oracle-se1': ['11.2'],
-                                      'oracle-se': ['11.2'],
-                                      'oracle-ee': ['11.2'],
+        valid_option_group_engines = {'mariadb': ['10.0', '10.1', '10.2', '10.3'],
+                                      'mysql': ['5.5', '5.6', '5.7', '8.0'],
+                                      'oracle-se2': ['11.2', '12.1', '12.2'],
+                                      'oracle-se1': ['11.2', '12.1', '12.2'],
+                                      'oracle-se': ['11.2', '12.1', '12.2'],
+                                      'oracle-ee': ['11.2', '12.1', '12.2'],
                                       'sqlserver-se': ['10.50', '11.00'],
-                                      'sqlserver-ee': ['10.50', '11.00']
-                                      }
+                                      'sqlserver-ee': ['10.50', '11.00'],
+                                      'sqlserver-ex': ['10.50', '11.00'],
+                                      'sqlserver-web': ['10.50', '11.00']}
         if option_group_kwargs['name'] in self.option_groups:
             raise RDSClientError('OptionGroupAlreadyExistsFault',
                                  'An option group named {0} already exists.'.format(option_group_kwargs['name']))
@@ -905,8 +917,7 @@ class RDS2Backend(BaseBackend):
         if option_group_name in self.option_groups:
             return self.option_groups.pop(option_group_name)
         else:
-            raise RDSClientError(
-                'OptionGroupNotFoundFault', 'Specified OptionGroupName: {0} not found.'.format(option_group_name))
+            raise OptionGroupNotFoundFaultError(option_group_name)
 
     def describe_option_groups(self, option_group_kwargs):
         option_group_list = []
@@ -935,8 +946,7 @@ class RDS2Backend(BaseBackend):
             else:
                 option_group_list.append(option_group)
         if not len(option_group_list):
-            raise RDSClientError('OptionGroupNotFoundFault',
-                                 'Specified OptionGroupName: {0} not found.'.format(option_group_kwargs['name']))
+            raise OptionGroupNotFoundFaultError(option_group_kwargs['name'])
         return option_group_list[marker:max_records + marker]
 
     @staticmethod
@@ -965,8 +975,7 @@ class RDS2Backend(BaseBackend):
 
     def modify_option_group(self, option_group_name, options_to_include=None, options_to_remove=None, apply_immediately=None):
         if option_group_name not in self.option_groups:
-            raise RDSClientError('OptionGroupNotFoundFault',
-                                 'Specified OptionGroupName: {0} not found.'.format(option_group_name))
+            raise OptionGroupNotFoundFaultError(option_group_name)
         if not options_to_include and not options_to_remove:
             raise RDSClientError('InvalidParameterValue',
                                  'At least one option must be added, modified, or removed.')

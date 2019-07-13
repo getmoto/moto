@@ -60,6 +60,15 @@ class DBParameterGroupNotFoundError(RDSClientError):
             'DB Parameter Group {0} not found.'.format(db_parameter_group_name))
 
 
+class OptionGroupNotFoundFaultError(RDSClientError):
+
+    def __init__(self, option_group_name):
+        super(OptionGroupNotFoundFaultError, self).__init__(
+            'OptionGroupNotFoundFault',
+            'Specified OptionGroupName: {0} not found.'.format(option_group_name)
+        )
+
+
 class InvalidDBClusterStateFaultError(RDSClientError):
 
     def __init__(self, database_identifier):

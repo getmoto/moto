@@ -32,67 +32,6 @@ def get_empty_str_error():
                              ))
 
 
-def condition_expression_to_expected(condition_expression, expression_attribute_names, expression_attribute_values):
-    """
-    Limited condition expression syntax parsing.
-    Supports Global Negation ex: NOT(inner expressions).
-    Supports simple AND conditions ex: cond_a AND cond_b and cond_c.
-    Atomic expressions supported are attribute_exists(key), attribute_not_exists(key) and #key = :value.
-    """
-    expected = {}
-    if condition_expression and 'OR' not in condition_expression:
-        reverse_re = re.compile('^NOT\s*\((.*)\)$')
-        reverse_m = reverse_re.match(condition_expression.strip())
-
-        reverse = False
-        if reverse_m:
-            reverse = True
-            condition_expression = reverse_m.group(1)
-
-        cond_items = [c.strip() for c in condition_expression.split('AND')]
-        if cond_items:
-            exists_re = re.compile('^attribute_exists\s*\((.*)\)$')
-            not_exists_re = re.compile(
-                '^attribute_not_exists\s*\((.*)\)$')
-            equals_re = re.compile('^(#?\w+)\s*=\s*(\:?\w+)')
-
-        for cond in cond_items:
-            exists_m = exists_re.match(cond)
-            not_exists_m = not_exists_re.match(cond)
-            equals_m = equals_re.match(cond)
-
-            if exists_m:
-                attribute_name = expression_attribute_names_lookup(exists_m.group(1), expression_attribute_names)
-                expected[attribute_name] = {'Exists': True if not reverse else False}
-            elif not_exists_m:
-                attribute_name = expression_attribute_names_lookup(not_exists_m.group(1), expression_attribute_names)
-                expected[attribute_name] = {'Exists': False if not reverse else True}
-            elif equals_m:
-                attribute_name = expression_attribute_names_lookup(equals_m.group(1), expression_attribute_names)
-                attribute_value = expression_attribute_values_lookup(equals_m.group(2), expression_attribute_values)
-                expected[attribute_name] = {
-                    'AttributeValueList': [attribute_value],
-                    'ComparisonOperator': 'EQ' if not reverse else 'NEQ'}
-
-    return expected
-
-
-def expression_attribute_names_lookup(attribute_name, expression_attribute_names):
-    if attribute_name.startswith('#') and attribute_name in expression_attribute_names:
-        return expression_attribute_names[attribute_name]
-    else:
-        return attribute_name
-
-
-def expression_attribute_values_lookup(attribute_value, expression_attribute_values):
-    if isinstance(attribute_value, six.string_types) and \
-            attribute_value.startswith(':') and\
-            attribute_value in expression_attribute_values:
-        return expression_attribute_values[attribute_value]
-    else:
-        return attribute_value
-
-
 class DynamoHandler(BaseResponse):
 
     def get_endpoint_name(self, headers):
@@ -288,18 +227,18 @@ class DynamoHandler(BaseResponse):
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
-        if not expected:
-            condition_expression = self.body.get('ConditionExpression')
-            expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-            expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
-            expected = condition_expression_to_expected(condition_expression,
-                                                        expression_attribute_names,
-                                                        expression_attribute_values)
-            if expected:
-                overwrite = False
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
+
+        if condition_expression:
+            overwrite = False
 
         try:
-            result = self.dynamodb_backend.put_item(name, item, expected, overwrite)
+            result = self.dynamodb_backend.put_item(
+                name, item, expected, condition_expression,
+                expression_attribute_names, expression_attribute_values,
+                overwrite)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
@@ -626,7 +565,7 @@ class DynamoHandler(BaseResponse):
         name = self.body['TableName']
         key = self.body['Key']
         return_values = self.body.get('ReturnValues', 'NONE')
-        update_expression = self.body.get('UpdateExpression')
+        update_expression = self.body.get('UpdateExpression', '').strip()
         attribute_updates = self.body.get('AttributeUpdates')
         expression_attribute_names = self.body.get(
             'ExpressionAttributeNames', {})
@@ -653,13 +592,9 @@ class DynamoHandler(BaseResponse):
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
-        if not expected:
-            condition_expression = self.body.get('ConditionExpression')
-            expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-            expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
-            expected = condition_expression_to_expected(condition_expression,
-                                                        expression_attribute_names,
-                                                        expression_attribute_values)
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
         # Support spaces between operators in an update expression
         # E.g. `a = b + c` -> `a=b+c`
@@ -670,7 +605,7 @@ class DynamoHandler(BaseResponse):
         try:
             item = self.dynamodb_backend.update_item(
                 name, key, update_expression, attribute_updates, expression_attribute_names,
-                expression_attribute_values, expected
+                expression_attribute_values, expected, condition_expression
             )
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
