@@ -219,7 +219,7 @@ class S3InvalidTokenError(S3ClientError):
     code = 400
 
     def __init__(self, *args, **kwargs):
-        super(S3InvalidTokenError, self).__init__('InvalidToken', 'The provided token is malformed or otherwise invalid.',  *args, **kwargs)
+        super(S3InvalidTokenError, self).__init__('InvalidToken', 'The provided token is malformed or otherwise invalid.', *args, **kwargs)
 
 
 class BucketInvalidTokenError(BucketError):

@@ -122,7 +122,9 @@ class CreateAccessKeyFailure(Exception):
 class IAMRequestBase(ABC):
 
     def __init__(self, method, path, data, headers):
-        print(f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}", file=sys.stderr)
+        print("Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
+            class_name=self.__class__.__name__, method=method, path=path, data=data, headers=headers),
+            file=sys.stderr)
         self._method = method
         self._path = path
         self._data = data

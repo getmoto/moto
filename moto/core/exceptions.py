@@ -104,4 +104,3 @@ class AuthFailureError(RESTError):
         super(AuthFailureError, self).__init__(
             'AuthFailure',
             "AWS was not able to validate the provided access credentials")
-
