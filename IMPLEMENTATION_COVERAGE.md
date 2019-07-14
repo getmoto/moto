@@ -175,7 +175,7 @@
 - [ ] put_integration_response
 - [ ] put_method
 - [ ] put_method_response
-- [ ] put_rest_api
+- [X] put_rest_api
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
 - [ ] test_invoke_method

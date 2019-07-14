@@ -36,6 +36,24 @@ def test_create_and_get_rest_api():
 
 
 @mock_apigateway
+def test_put_rest_api():
+    client = boto3.client('apigateway', region_name='us-west-2')
+
+    response = client.create_rest_api(
+        name='my_api',
+        description='this is my api',
+    )
+    api_id = response['id']
+
+    response_put = client.put_rest_api(
+        restApiId=api_id,
+        body=b'{}'
+    )
+
+    response_put.should.equal(response)
+
+
+@mock_apigateway
 def test_list_and_delete_apis():
     client = boto3.client('apigateway', region_name='us-west-2')
 

@@ -48,6 +48,9 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == 'DELETE':
             rest_api = self.backend.delete_rest_api(function_id)
             return 200, {}, json.dumps(rest_api.to_dict())
+        elif self.method == 'PUT':
+            rest_api = self.backend.get_rest_api(function_id)
+            return 200, {}, json.dumps(rest_api.to_dict())
 
     def resources(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
