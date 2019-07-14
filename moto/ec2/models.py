@@ -201,7 +201,7 @@ class TaggedEC2Resource(BaseModel):
 
 class NetworkInterface(TaggedEC2Resource):
     def __init__(self, ec2_backend, subnet, private_ip_address, device_index=0,
-                 public_ip_auto_assign=True, group_ids=None):
+                 public_ip_auto_assign=True, group_ids=None, description=None):
         self.ec2_backend = ec2_backend
         self.id = random_eni_id()
         self.device_index = device_index
@@ -209,6 +209,7 @@ class NetworkInterface(TaggedEC2Resource):
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
+        self.description = description
 
         self.public_ip = None
         self.public_ip_auto_assign = public_ip_auto_assign
@@ -246,11 +247,13 @@ class NetworkInterface(TaggedEC2Resource):
             subnet = None
 
         private_ip_address = properties.get('PrivateIpAddress', None)
+        description = properties.get('Description', None)
 
         network_interface = ec2_backend.create_network_interface(
             subnet,
             private_ip_address,
-            group_ids=security_group_ids
+            group_ids=security_group_ids,
+            description=description
         )
         return network_interface
 
@@ -298,6 +301,8 @@ class NetworkInterface(TaggedEC2Resource):
             return [group.id for group in self._group_set]
         elif filter_name == 'availability-zone':
             return self.subnet.availability_zone
+        elif filter_name == 'description':
+            return self.description
         else:
             return super(NetworkInterface, self).get_filter_value(
                 filter_name, 'DescribeNetworkInterfaces')
@@ -308,9 +313,9 @@ class NetworkInterfaceBackend(object):
         self.enis = {}
         super(NetworkInterfaceBackend, self).__init__()
 
-    def create_network_interface(self, subnet, private_ip_address, group_ids=None, **kwargs):
+    def create_network_interface(self, subnet, private_ip_address, group_ids=None, description=None, **kwargs):
         eni = NetworkInterface(
-            self, subnet, private_ip_address, group_ids=group_ids, **kwargs)
+            self, subnet, private_ip_address, group_ids=group_ids, description=description, **kwargs)
         self.enis[eni.id] = eni
         return eni
 
@@ -343,6 +348,12 @@ class NetworkInterfaceBackend(object):
                             if group.id in _filter_value:
                                 enis.append(eni)
                                 break
+                elif _filter == 'private-ip-address:':
+                    enis = [eni for eni in enis if eni.private_ip_address in _filter_value]
+                elif _filter == 'subnet-id':
+                    enis = [eni for eni in enis if eni.subnet.id in _filter_value]
+                elif _filter == 'description':
+                    enis = [eni for eni in enis if eni.description in _filter_value]
                 else:
                     self.raise_not_implemented_error(
                         "The filter '{0}' for DescribeNetworkInterfaces".format(_filter))
