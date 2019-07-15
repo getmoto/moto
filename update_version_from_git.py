@@ -74,7 +74,7 @@ def prerelease_version():
     ver, commits_since, githash = get_git_version_info()
     initpy_ver = get_version()
 
-    assert len(initpy_ver.split('.')) in [3, 4], 'moto/__init__.py version should be like 0.0.2 or 0.0.2.dev'
+    assert len(initpy_ver.split('.')) == 4, 'moto/__init__.py version should be like 0.0.2.dev'
     assert initpy_ver > ver, 'the moto/__init__.py version should be newer than the last tagged release.'
     return '{initpy_ver}.dev{commits_since}'.format(initpy_ver=initpy_ver, commits_since=commits_since)
 
