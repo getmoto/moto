@@ -74,8 +74,7 @@ def prerelease_version():
     ver, commits_since, githash = get_git_version_info()
     initpy_ver = get_version()
 
-    print("Retrieve prerelease version", initpy_ver)
-    assert len(initpy_ver.split('.')) == 4, 'moto/__init__.py version should be like 0.0.2.dev'
+    assert len(initpy_ver.split('.')) in [3, 4], 'moto/__init__.py version should be like 0.0.2.dev'
     assert initpy_ver > ver, 'the moto/__init__.py version should be newer than the last tagged release.'
     return '{initpy_ver}.dev{commits_since}'.format(initpy_ver=initpy_ver, commits_since=commits_since)
 
@@ -109,6 +108,7 @@ def release_version_correct():
 
         new_version = prerelease_version()
         print('updating version in __init__.py to {new_version}'.format(new_version=new_version))
+        assert len(new_version.split('.')) == 4, 'moto/__init__.py version should be like 0.0.2.dev'
         migrate_version(initpy, new_version)
     else:
         # check that we are a tag with the same version as in __init__.py
