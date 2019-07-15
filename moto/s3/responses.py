@@ -809,13 +809,20 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
         version_id = query.get('versionId', [None])[0]
+        part_number = query.get('partNumber', [None])[0]
+        if part_number:
+            part_number = int(part_number)
 
         if_modified_since = headers.get('If-Modified-Since', None)
         if if_modified_since:
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
 
         key = self.backend.get_key(
-            bucket_name, key_name, version_id=version_id)
+            bucket_name,
+            key_name,
+            version_id=version_id,
+            part_number=part_number
+        )
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
