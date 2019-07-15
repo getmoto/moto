@@ -111,6 +111,7 @@ def release_version_correct():
         assert len(new_version.split('.')) == 4, 'moto/__init__.py version should be like 0.0.2.dev'
         migrate_version(initpy, new_version)
     else:
+        assert False, "No non-master deployments yet"
         # check that we are a tag with the same version as in __init__.py
         assert get_version() == git_tag_name(), 'git tag/branch name not the same as moto/__init__.py __verion__'
 
