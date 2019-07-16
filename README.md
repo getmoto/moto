@@ -5,6 +5,9 @@
 [![Build Status](https://travis-ci.org/spulec/moto.svg?branch=master)](https://travis-ci.org/spulec/moto)
 [![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.svg?branch=master)](https://coveralls.io/r/spulec/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
+![PyPI](https://img.shields.io/pypi/v/moto.svg)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
+![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)
 
 # In a nutshell
 
