@@ -379,6 +379,7 @@ class SQSBackend(BaseBackend):
 
     def reset(self):
         region_name = self.region_name
+        self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name)
 
