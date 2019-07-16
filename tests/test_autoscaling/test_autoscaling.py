@@ -824,6 +824,62 @@ def test_update_autoscaling_group_boto3():
 
 
 @mock_autoscaling
+def test_update_autoscaling_group_min_size_desired_capacity_change():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+
+    client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=2,
+        MaxSize=20,
+        DesiredCapacity=3,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
+    )
+    client.update_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        MinSize=5,
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg'])
+    group = response['AutoScalingGroups'][0]
+    group['DesiredCapacity'].should.equal(5)
+    group['MinSize'].should.equal(5)
+    group['Instances'].should.have.length_of(5)
+
+
+@mock_autoscaling
+def test_update_autoscaling_group_max_size_desired_capacity_change():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+
+    client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=2,
+        MaxSize=20,
+        DesiredCapacity=10,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
+    )
+    client.update_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        MaxSize=5,
+    )
+    response = client.describe_auto_scaling_groups(
+        AutoScalingGroupNames=['test_asg'])
+    group = response['AutoScalingGroups'][0]
+    group['DesiredCapacity'].should.equal(5)
+    group['MaxSize'].should.equal(5)
+    group['Instances'].should.have.length_of(5)
+
+
+@mock_autoscaling
 def test_autoscaling_taqs_update_boto3():
     mocked_networking = setup_networking()
     client = boto3.client('autoscaling', region_name='us-east-1')
