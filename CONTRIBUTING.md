@@ -2,6 +2,14 @@
 
 Moto has a [Code of Conduct](https://github.com/spulec/moto/blob/master/CODE_OF_CONDUCT.md), you can expect to be treated with respect at all times when interacting with this project.
 
+## Feature Requests
+
+Because of the large number of feature requests for new services/endpoints that are opened against Moto, we handle triaging of issues slightly differently than most projects. Feature requests should be submitted in the [issue tracker](https://github.com/spulec/moto/issues), with a description of the expected behavior & use case, where they’ll remain closed until sufficient interest, measured by 👍 reactions, has been [shown by the community](https://github.com/spulec/moto/issues?utf8=%E2%9C%93&q=label%3A%22enhancement%22+sort%3Areactions-%2B1-desc+). Before submitting a request, please search for similar ones in the [closed issues](https://github.com/spulec/moto/issues?q=is%3Aissue+is%3Aclosed+label%3Aenhancement).
+
+This means that all feature request issues opened will be closed as above. Issues that will not be closed include bugs, questions, and cleanup.
+
+Moto has a philosophy of accepting partial features (a half-implemented endpoint is better than nothing). As a result, we consider many things feature requests that one might think of as bugs in a different library. We have a strict definition of bugs limited to regressions. These will be marked as bugs and will be prioritized over features.
+
 ## Running the tests locally
 
 Moto has a Makefile which has some helpful commands for getting setup. You should be able to run `make init` to install the dependencies and then `make test` to run the tests.
