@@ -50,5 +50,8 @@ class STSBackend(BaseBackend):
         role = AssumedRole(**kwargs)
         return role
 
+    def assume_role_with_web_identity(self, **kwargs):
+        return self.assume_role(**kwargs)
+
 
 sts_backend = STSBackend()
