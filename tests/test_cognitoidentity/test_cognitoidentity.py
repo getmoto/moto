@@ -68,7 +68,7 @@ def test_get_open_id_token_for_developer_identity():
         },
         TokenDuration=123
     )
-    assert len(result['Token'])
+    assert len(result['Token']) > 0
     assert result['IdentityId'] == '12345'
 
 @mock_cognitoidentity
@@ -83,3 +83,15 @@ def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id()
     )
     assert len(result['Token']) > 0
     assert len(result['IdentityId']) > 0
+
+@mock_cognitoidentity
+def test_get_open_id_token():
+    conn = boto3.client('cognito-identity', 'us-west-2')
+    result = conn.get_open_id_token(
+        IdentityId='12345',
+        Logins={
+            'someurl': '12345'
+        }
+    )
+    assert len(result['Token']) > 0
+    assert result['IdentityId'] == '12345'
