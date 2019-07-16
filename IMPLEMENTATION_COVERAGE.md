@@ -928,6 +928,7 @@
 - [ ] update_user_attributes
 - [ ] update_user_pool
 - [X] update_user_pool_client
+- [X] update_user_pool_domain
 - [ ] verify_software_token
 - [ ] verify_user_attribute
 

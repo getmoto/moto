@@ -50,7 +50,13 @@ class CognitoIdpResponse(BaseResponse):
     def create_user_pool_domain(self):
         domain = self._get_param("Domain")
         user_pool_id = self._get_param("UserPoolId")
-        cognitoidp_backends[self.region].create_user_pool_domain(user_pool_id, domain)
+        custom_domain_config = self._get_param("CustomDomainConfig")
+        user_pool_domain = cognitoidp_backends[self.region].create_user_pool_domain(
+            user_pool_id, domain, custom_domain_config
+        )
+        domain_description = user_pool_domain.to_json(extended=False)
+        if domain_description:
+            return json.dumps(domain_description)
         return ""
 
     def describe_user_pool_domain(self):
@@ -67,6 +73,17 @@ class CognitoIdpResponse(BaseResponse):
     def delete_user_pool_domain(self):
         domain = self._get_param("Domain")
         cognitoidp_backends[self.region].delete_user_pool_domain(domain)
+        return ""
+
+    def update_user_pool_domain(self):
+        domain = self._get_param("Domain")
+        custom_domain_config = self._get_param("CustomDomainConfig")
+        user_pool_domain = cognitoidp_backends[self.region].update_user_pool_domain(
+            domain, custom_domain_config
+        )
+        domain_description = user_pool_domain.to_json(extended=False)
+        if domain_description:
+            return json.dumps(domain_description)
         return ""
 
     # User pool client
