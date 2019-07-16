@@ -161,7 +161,7 @@ def test_elastic_network_interfaces_filtering():
         subnet.id, groups=[security_group1.id, security_group2.id])
     eni2 = conn.create_network_interface(
         subnet.id, groups=[security_group1.id])
-    eni3 = conn.create_network_interface(subnet.id)
+    eni3 = conn.create_network_interface(subnet.id, description='test description')
 
     all_enis = conn.get_all_network_interfaces()
     all_enis.should.have.length_of(3)
@@ -188,6 +188,12 @@ def test_elastic_network_interfaces_filtering():
         filters={'network-interface-id': eni1.id, 'group-id': security_group1.id})
     enis_by_group.should.have.length_of(1)
     set([eni.id for eni in enis_by_group]).should.equal(set([eni1.id]))
+
+    # Filter by Description
+    enis_by_description = conn.get_all_network_interfaces(
+        filters={'description': eni3.description })
+    enis_by_description.should.have.length_of(1)
+    enis_by_description[0].description.should.equal(eni3.description)
 
     # Unsupported filter
     conn.get_all_network_interfaces.when.called_with(
@@ -341,6 +347,106 @@ def test_elastic_network_interfaces_get_by_subnet_id():
     filters = [{'Name': 'subnet-id', 'Values': ['subnet-aaaa1111']}]
     enis = list(ec2.network_interfaces.filter(Filters=filters))
     enis.should.have.length_of(0)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_get_by_description():
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    ec2_client = boto3.client('ec2', region_name='us-west-2')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-2a')
+
+    eni1 = ec2.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress='10.0.10.5', Description='test interface')
+
+    # The status of the new interface should be 'available'
+    waiter = ec2_client.get_waiter('network_interface_available')
+    waiter.wait(NetworkInterfaceIds=[eni1.id])
+
+    filters = [{'Name': 'description', 'Values': [eni1.description]}]
+    enis = list(ec2.network_interfaces.filter(Filters=filters))
+    enis.should.have.length_of(1)
+
+    filters = [{'Name': 'description', 'Values': ['bad description']}]
+    enis = list(ec2.network_interfaces.filter(Filters=filters))
+    enis.should.have.length_of(0)
+
+
+@mock_ec2
+def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
+    ec2_client = boto3.client('ec2', region_name='us-west-2')
+
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock='10.0.0.0/24', AvailabilityZone='us-west-2a')
+
+    eni1 = ec2.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress='10.0.10.5', Description='test interface')
+
+    # The status of the new interface should be 'available'
+    waiter = ec2_client.get_waiter('network_interface_available')
+    waiter.wait(NetworkInterfaceIds=[eni1.id])
+
+    # Filter by network-interface-id
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'network-interface-id', 'Values': [eni1.id]}])
+    response['NetworkInterfaces'].should.have.length_of(1)
+    response['NetworkInterfaces'][0]['NetworkInterfaceId'].should.equal(eni1.id)
+    response['NetworkInterfaces'][0]['PrivateIpAddress'].should.equal(eni1.private_ip_address)
+    response['NetworkInterfaces'][0]['Description'].should.equal(eni1.description)
+
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'network-interface-id', 'Values': ['bad-id']}])
+    response['NetworkInterfaces'].should.have.length_of(0)
+
+    # Filter by private-ip-address
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'private-ip-address', 'Values': [eni1.private_ip_address]}])
+    response['NetworkInterfaces'].should.have.length_of(1)
+    response['NetworkInterfaces'][0]['NetworkInterfaceId'].should.equal(eni1.id)
+    response['NetworkInterfaces'][0]['PrivateIpAddress'].should.equal(eni1.private_ip_address)
+    response['NetworkInterfaces'][0]['Description'].should.equal(eni1.description)
+
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'private-ip-address', 'Values': ['11.11.11.11']}])
+    response['NetworkInterfaces'].should.have.length_of(0)
+
+    # Filter by sunet-id
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'subnet-id', 'Values': [eni1.subnet.id]}])
+    response['NetworkInterfaces'].should.have.length_of(1)
+    response['NetworkInterfaces'][0]['NetworkInterfaceId'].should.equal(eni1.id)
+    response['NetworkInterfaces'][0]['PrivateIpAddress'].should.equal(eni1.private_ip_address)
+    response['NetworkInterfaces'][0]['Description'].should.equal(eni1.description)
+
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'subnet-id', 'Values': ['sn-bad-id']}])
+    response['NetworkInterfaces'].should.have.length_of(0)
+
+    # Filter by description
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'description', 'Values': [eni1.description]}])
+    response['NetworkInterfaces'].should.have.length_of(1)
+    response['NetworkInterfaces'][0]['NetworkInterfaceId'].should.equal(eni1.id)
+    response['NetworkInterfaces'][0]['PrivateIpAddress'].should.equal(eni1.private_ip_address)
+    response['NetworkInterfaces'][0]['Description'].should.equal(eni1.description)
+
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'description', 'Values': ['bad description']}])
+    response['NetworkInterfaces'].should.have.length_of(0)
+
+    # Filter by multiple filters
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{'Name': 'private-ip-address', 'Values': [eni1.private_ip_address]},
+                 {'Name': 'network-interface-id', 'Values': [eni1.id]},
+                 {'Name': 'subnet-id', 'Values': [eni1.subnet.id]}])
+    response['NetworkInterfaces'].should.have.length_of(1)
+    response['NetworkInterfaces'][0]['NetworkInterfaceId'].should.equal(eni1.id)
+    response['NetworkInterfaces'][0]['PrivateIpAddress'].should.equal(eni1.private_ip_address)
+    response['NetworkInterfaces'][0]['Description'].should.equal(eni1.description)
 
 
 @mock_ec2_deprecated
