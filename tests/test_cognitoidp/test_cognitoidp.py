@@ -134,6 +134,22 @@ def test_create_user_pool_domain():
 
 
 @mock_cognitoidp
+def test_create_user_pool_domain_custom_domain_config():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    domain = str(uuid.uuid4())
+    custom_domain_config = {
+        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012",
+    }
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    result = conn.create_user_pool_domain(
+        UserPoolId=user_pool_id, Domain=domain, CustomDomainConfig=custom_domain_config
+    )
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    result["CloudFrontDomain"].should.equal("e2c343b3293ee505.cloudfront.net")
+
+
+@mock_cognitoidp
 def test_describe_user_pool_domain():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -160,6 +176,23 @@ def test_delete_user_pool_domain():
     # back with status 200 and a DomainDescription of {}
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     result["DomainDescription"].keys().should.have.length_of(0)
+
+
+@mock_cognitoidp
+def test_update_user_pool_domain():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    domain = str(uuid.uuid4())
+    custom_domain_config = {
+        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012",
+    }
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
+    result = conn.update_user_pool_domain(
+        UserPoolId=user_pool_id, Domain=domain, CustomDomainConfig=custom_domain_config
+    )
+    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    result["CloudFrontDomain"].should.equal("e2c343b3293ee505.cloudfront.net")
 
 
 @mock_cognitoidp
