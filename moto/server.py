@@ -59,13 +59,14 @@ class DomainDispatcherApplication(object):
         if six.PY3 and isinstance(path_info, six.binary_type):
             path_info = path_info.decode('utf-8')
 
+        host = None
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
-        else:
+        elif host is None:
             host = environ['HTTP_HOST'].split(':')[0]
-        if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
+
             # Fall back to parsing auth header to find service
             # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
             try:
