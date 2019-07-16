@@ -33,7 +33,6 @@ install_requires = [
     "boto3>=1.9.86",
     "botocore>=1.12.86",
     "cryptography>=2.3.0",
-    "datetime",
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
