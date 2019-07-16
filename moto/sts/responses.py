@@ -39,6 +39,24 @@ class TokenResponse(BaseResponse):
         template = self.response_template(ASSUME_ROLE_RESPONSE)
         return template.render(role=role)
 
+    def assume_role_with_web_identity(self):
+        role_session_name = self.querystring.get('RoleSessionName')[0]
+        role_arn = self.querystring.get('RoleArn')[0]
+
+        policy = self.querystring.get('Policy', [None])[0]
+        duration = int(self.querystring.get('DurationSeconds', [3600])[0])
+        external_id = self.querystring.get('ExternalId', [None])[0]
+
+        role = sts_backend.assume_role_with_web_identity(
+            role_session_name=role_session_name,
+            role_arn=role_arn,
+            policy=policy,
+            duration=duration,
+            external_id=external_id,
+        )
+        template = self.response_template(ASSUME_ROLE_WITH_WEB_IDENTITY_RESPONSE)
+        return template.render(role=role)
+
     def get_caller_identity(self):
         template = self.response_template(GET_CALLER_IDENTITY_RESPONSE)
         return template.render()
@@ -99,6 +117,27 @@ ASSUME_ROLE_RESPONSE = """<AssumeRoleResponse xmlns="https://sts.amazonaws.com/d
     <RequestId>c6104cbe-af31-11e0-8154-cbc7ccf896c7</RequestId>
   </ResponseMetadata>
 </AssumeRoleResponse>"""
+
+
+ASSUME_ROLE_WITH_WEB_IDENTITY_RESPONSE = """<AssumeRoleWithWebIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleWithWebIdentityResult>
+    <Credentials>
+      <SessionToken>{{ role.session_token }}</SessionToken>
+      <SecretAccessKey>{{ role.secret_access_key }}</SecretAccessKey>
+      <Expiration>{{ role.expiration_ISO8601 }}</Expiration>
+      <AccessKeyId>{{ role.access_key_id }}</AccessKeyId>
+    </Credentials>
+    <AssumedRoleUser>
+      <Arn>{{ role.arn }}</Arn>
+      <AssumedRoleId>ARO123EXAMPLE123:{{ role.session_name }}</AssumedRoleId>
+    </AssumedRoleUser>
+    <PackedPolicySize>6</PackedPolicySize>
+  </AssumeRoleWithWebIdentityResult>
+  <ResponseMetadata>
+    <RequestId>c6104cbe-af31-11e0-8154-cbc7ccf896c7</RequestId>
+  </ResponseMetadata>
+</AssumeRoleWithWebIdentityResponse>"""
+
 
 GET_CALLER_IDENTITY_RESPONSE = """<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <GetCallerIdentityResult>
