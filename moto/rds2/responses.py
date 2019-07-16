@@ -43,7 +43,7 @@ class RDS2Response(BaseResponse):
             "security_groups": self._get_multi_param('DBSecurityGroups.DBSecurityGroupName'),
             "storage_encrypted": self._get_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType", 'standard'),
-            # VpcSecurityGroupIds.member.N
+            "vpc_security_group_ids": self._get_multi_param("VpcSecurityGroupIds.VpcSecurityGroupId"),
             "tags": list(),
         }
         args['tags'] = self.unpack_complex_list_params(
