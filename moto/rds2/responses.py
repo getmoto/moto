@@ -280,7 +280,7 @@ class RDS2Response(BaseResponse):
 
     def describe_option_groups(self):
         kwargs = self._get_option_group_kwargs()
-        kwargs['max_records'] = self._get_param('MaxRecords')
+        kwargs['max_records'] = self._get_int_param('MaxRecords')
         kwargs['marker'] = self._get_param('Marker')
         option_groups = self.backend.describe_option_groups(kwargs)
         template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
@@ -329,7 +329,7 @@ class RDS2Response(BaseResponse):
 
     def describe_db_parameter_groups(self):
         kwargs = self._get_db_parameter_group_kwargs()
-        kwargs['max_records'] = self._get_param('MaxRecords')
+        kwargs['max_records'] = self._get_int_param('MaxRecords')
         kwargs['marker'] = self._get_param('Marker')
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
         template = self.response_template(

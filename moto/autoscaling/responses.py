@@ -48,7 +48,7 @@ class AutoScalingResponse(BaseResponse):
             start = all_names.index(marker) + 1
         else:
             start = 0
-        max_records = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        max_records = self._get_int_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
         launch_configurations_resp = all_launch_configurations[start:start + max_records]
         next_token = None
         if len(all_launch_configurations) > start + max_records:
