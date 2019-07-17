@@ -406,10 +406,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
         self._spot_fleet_id = kwargs.get("spot_fleet_id", None)
-        associate_public_ip = kwargs.get("associate_public_ip", False)
+        self.associate_public_ip = kwargs.get("associate_public_ip", False)
         if in_ec2_classic:
             # If we are in EC2-Classic, autoassign a public IP
-            associate_public_ip = True
+            self.associate_public_ip = True
 
         amis = self.ec2_backend.describe_images(filters={'image-id': image_id})
         ami = amis[0] if amis else None
@@ -440,9 +440,9 @@ class Instance(TaggedEC2Resource, BotoInstance):
             self.vpc_id = subnet.vpc_id
             self._placement.zone = subnet.availability_zone
 
-            if associate_public_ip is None:
+            if self.associate_public_ip is None:
                 # Mapping public ip hasnt been explicitly enabled or disabled
-                associate_public_ip = subnet.map_public_ip_on_launch == 'true'
+                self.associate_public_ip = subnet.map_public_ip_on_launch == 'true'
         elif placement:
             self._placement.zone = placement
         else:
@@ -454,7 +454,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.prep_nics(
             kwargs.get("nics", {}),
             private_ip=kwargs.get("private_ip"),
-            associate_public_ip=associate_public_ip
+            associate_public_ip=self.associate_public_ip
         )
 
     def __del__(self):

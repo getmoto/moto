@@ -74,6 +74,7 @@ class AutoScalingResponse(BaseResponse):
             desired_capacity=self._get_int_param('DesiredCapacity'),
             max_size=self._get_int_param('MaxSize'),
             min_size=self._get_int_param('MinSize'),
+            instance_id=self._get_param('InstanceId'),
             launch_config_name=self._get_param('LaunchConfigurationName'),
             vpc_zone_identifier=self._get_param('VPCZoneIdentifier'),
             default_cooldown=self._get_int_param('DefaultCooldown'),

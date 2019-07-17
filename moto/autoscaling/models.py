@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import random
 
 from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
+from moto.ec2.exceptions import InvalidInstanceIdError
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
@@ -10,7 +12,7 @@ from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from .exceptions import (
-    AutoscalingClientError, ResourceContentionError,
+    AutoscalingClientError, ResourceContentionError, InvalidInstanceError
 )
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
@@ -72,6 +74,26 @@ class FakeLaunchConfiguration(BaseModel):
         self.ebs_optimized = ebs_optimized
         self.associate_public_ip_address = associate_public_ip_address
         self.block_device_mapping_dict = block_device_mapping_dict
+
+    @classmethod
+    def create_from_instance(cls, name, instance, backend):
+        config = backend.create_launch_configuration(
+            name=name,
+            image_id=instance.image_id,
+            kernel_id='',
+            ramdisk_id='',
+            key_name=instance.key_name,
+            security_groups=instance.security_groups,
+            user_data=instance.user_data,
+            instance_type=instance.instance_type,
+            instance_monitoring=False,
+            instance_profile_name=None,
+            spot_price=None,
+            ebs_optimized=instance.ebs_optimized,
+            associate_public_ip_address=instance.associate_public_ip,
+            block_device_mappings=instance.block_device_mapping
+        )
+        return config
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -408,13 +430,13 @@ class AutoScalingBackend(BaseBackend):
         self.launch_configurations.pop(launch_configuration_name, None)
 
     def create_auto_scaling_group(self, name, availability_zones,
-                                 desired_capacity, max_size, min_size,
-                                 launch_config_name, vpc_zone_identifier,
-                                 default_cooldown, health_check_period,
-                                 health_check_type, load_balancers,
-                                 target_group_arns, placement_group,
-                                 termination_policies, tags,
-                                 new_instances_protected_from_scale_in=False):
+                                  desired_capacity, max_size, min_size,
+                                  instance_id, launch_config_name,
+                                  vpc_zone_identifier, default_cooldown,
+                                  health_check_period, health_check_type,
+                                  load_balancers, target_group_arns,
+                                  placement_group,termination_policies, tags,
+                                  new_instances_protected_from_scale_in=False):
 
         def make_int(value):
             return int(value) if value is not None else value
@@ -427,6 +449,13 @@ class AutoScalingBackend(BaseBackend):
             health_check_period = 300
         else:
             health_check_period = make_int(health_check_period)
+        if launch_config_name is None and instance_id is not None:
+            try:
+                instance = self.ec2_backend.get_instance(instance_id)
+                launch_config_name = name
+                FakeLaunchConfiguration.create_from_instance(launch_config_name, instance, self)
+            except InvalidInstanceIdError:
+                raise InvalidInstanceError(instance_id)
 
         group = FakeAutoScalingGroup(
             name=name,
