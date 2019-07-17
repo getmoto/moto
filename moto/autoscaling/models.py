@@ -435,7 +435,7 @@ class AutoScalingBackend(BaseBackend):
                                   vpc_zone_identifier, default_cooldown,
                                   health_check_period, health_check_type,
                                   load_balancers, target_group_arns,
-                                  placement_group,termination_policies, tags,
+                                  placement_group, termination_policies, tags,
                                   new_instances_protected_from_scale_in=False):
 
         def make_int(value):
