@@ -430,13 +430,14 @@ class AutoScalingBackend(BaseBackend):
         self.launch_configurations.pop(launch_configuration_name, None)
 
     def create_auto_scaling_group(self, name, availability_zones,
-                                  desired_capacity, max_size, min_size,
-                                  instance_id, launch_config_name,
-                                  vpc_zone_identifier, default_cooldown,
-                                  health_check_period, health_check_type,
-                                  load_balancers, target_group_arns,
-                                  placement_group, termination_policies, tags,
-                                  new_instances_protected_from_scale_in=False):
+                                 desired_capacity, max_size, min_size,
+                                 launch_config_name, vpc_zone_identifier,
+                                 default_cooldown, health_check_period,
+                                 health_check_type, load_balancers,
+                                 target_group_arns, placement_group,
+                                 termination_policies, tags,
+                                 new_instances_protected_from_scale_in=False,
+                                  instance_id=None):
 
         def make_int(value):
             return int(value) if value is not None else value
