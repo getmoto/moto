@@ -1208,6 +1208,12 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
         <HealthCheckPort>{{ target_health.health_port }}</HealthCheckPort>
         <TargetHealth>
           <State>{{ target_health.status }}</State>
+          {% if target_health.reason %}
+            <Reason>{{ target_health.reason }}</Reason>
+          {% endif %}
+          {% if target_health.description %}
+            <Description>{{ target_health.description }}</Description>
+          {% endif %}
         </TargetHealth>
         <Target>
           <Port>{{ target_health.port }}</Port>

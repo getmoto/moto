@@ -35,12 +35,13 @@ from .exceptions import (
 
 class FakeHealthStatus(BaseModel):
 
-    def __init__(self, instance_id, port, health_port, status, reason=None):
+    def __init__(self, instance_id, port, health_port, status, reason=None, description=None):
         self.instance_id = instance_id
         self.port = port
         self.health_port = health_port
         self.status = status
         self.reason = reason
+        self.description = description
 
 
 class FakeTargetGroup(BaseModel):
@@ -69,7 +70,7 @@ class FakeTargetGroup(BaseModel):
         self.protocol = protocol
         self.port = port
         self.healthcheck_protocol = healthcheck_protocol or 'HTTP'
-        self.healthcheck_port = healthcheck_port or 'traffic-port'
+        self.healthcheck_port = healthcheck_port or str(self.port)
         self.healthcheck_path = healthcheck_path or '/'
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
@@ -112,10 +113,14 @@ class FakeTargetGroup(BaseModel):
             raise TooManyTagsError()
         self.tags[key] = value
 
-    def health_for(self, target):
+    def health_for(self, target, ec2_backend):
         t = self.targets.get(target['id'])
         if t is None:
             raise InvalidTargetError()
+        if t['id'].startswith("i-"):  # EC2 instance ID
+            instance = ec2_backend.get_instance_by_id(t['id'])
+            if instance.state == "stopped":
+                return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'unused', 'Target.InvalidState', 'Target is in the stopped state')
         return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'healthy')
 
     @classmethod
@@ -712,7 +717,7 @@ class ELBv2Backend(BaseBackend):
 
         if not targets:
             targets = target_group.targets.values()
-        return [target_group.health_for(target) for target in targets]
+        return [target_group.health_for(target, self.ec2_backend) for target in targets]
 
     def set_rule_priorities(self, rule_priorities):
         # validate
