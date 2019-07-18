@@ -1269,3 +1269,36 @@ def test_set_desired_capacity_down_boto3():
     instance_ids = {instance['InstanceId'] for instance in group['Instances']}
     set(protected).should.equal(instance_ids)
     set(unprotected).should_not.be.within(instance_ids)  # only unprotected killed
+
+
+@mock_autoscaling
+@mock_ec2
+def test_terminate_instance_in_autoscaling_group():
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName='test_launch_configuration'
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName='test_asg',
+        LaunchConfigurationName='test_launch_configuration',
+        MinSize=1,
+        MaxSize=20,
+        VPCZoneIdentifier=mocked_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=False
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    original_instance_id = next(
+        instance['InstanceId']
+        for instance in response['AutoScalingGroups'][0]['Instances']
+    )
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+    ec2_client.terminate_instances(InstanceIds=[original_instance_id])
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=['test_asg'])
+    replaced_instance_id = next(
+        instance['InstanceId']
+        for instance in response['AutoScalingGroups'][0]['Instances']
+    )
+    replaced_instance_id.should_not.equal(original_instance_id)
