@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 from boto.ec2.instancetype import InstanceType
+
+from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring, \
@@ -64,6 +66,7 @@ class InstanceResponse(BaseResponse):
         instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('TerminateInstance'):
             instances = self.ec2_backend.terminate_instances(instance_ids)
+            autoscaling_backends[self.region].notify_terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
             return template.render(instances=instances)
 
