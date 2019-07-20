@@ -7,11 +7,13 @@ from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 
 from moto import mock_autoscaling, mock_ec2_deprecated, mock_elb_deprecated, mock_elb, mock_autoscaling_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
-from utils import setup_networking, setup_networking_deprecated
+from utils import setup_networking, setup_networking_deprecated, setup_instance_with_networking
 
 
 @mock_autoscaling_deprecated
@@ -722,6 +724,67 @@ def test_create_autoscaling_group_boto3():
         NewInstancesProtectedFromScaleIn=False,
     )
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+
+@mock_autoscaling
+def test_create_autoscaling_group_from_instance():
+    autoscaling_group_name = 'test_asg'
+    image_id = 'ami-0cc293023f983ed53'
+    instance_type = 't2.micro'
+
+    mocked_instance_with_networking = setup_instance_with_networking(image_id, instance_type)
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    response = client.create_auto_scaling_group(
+        AutoScalingGroupName=autoscaling_group_name,
+        InstanceId=mocked_instance_with_networking['instance'],
+        MinSize=1,
+        MaxSize=3,
+        DesiredCapacity=2,
+        Tags=[
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'propogated-tag-key',
+             'Value': 'propogate-tag-value',
+             'PropagateAtLaunch': True
+             },
+            {'ResourceId': 'test_asg',
+             'ResourceType': 'auto-scaling-group',
+             'Key': 'not-propogated-tag-key',
+             'Value': 'not-propogate-tag-value',
+             'PropagateAtLaunch': False
+             }],
+        VPCZoneIdentifier=mocked_instance_with_networking['subnet1'],
+        NewInstancesProtectedFromScaleIn=False,
+    )
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+
+    describe_launch_configurations_response = client.describe_launch_configurations()
+    describe_launch_configurations_response['LaunchConfigurations'].should.have.length_of(1)
+    launch_configuration_from_instance = describe_launch_configurations_response['LaunchConfigurations'][0]
+    launch_configuration_from_instance['LaunchConfigurationName'].should.equal('test_asg')
+    launch_configuration_from_instance['ImageId'].should.equal(image_id)
+    launch_configuration_from_instance['InstanceType'].should.equal(instance_type)
+
+
+@mock_autoscaling
+def test_create_autoscaling_group_from_invalid_instance_id():
+    invalid_instance_id = 'invalid_instance'
+
+    mocked_networking = setup_networking()
+    client = boto3.client('autoscaling', region_name='us-east-1')
+    with assert_raises(ClientError) as ex:
+        client.create_auto_scaling_group(
+            AutoScalingGroupName='test_asg',
+            InstanceId=invalid_instance_id,
+            MinSize=9,
+            MaxSize=15,
+            DesiredCapacity=12,
+            VPCZoneIdentifier=mocked_networking['subnet1'],
+            NewInstancesProtectedFromScaleIn=False,
+        )
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Code'].should.equal('ValidationError')
+    ex.exception.response['Error']['Message'].should.equal('Instance [{0}] is invalid.'.format(invalid_instance_id))
 
 
 @mock_autoscaling

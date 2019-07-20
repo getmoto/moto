@@ -31,3 +31,18 @@ def setup_networking_deprecated():
         "10.11.2.0/24",
         availability_zone='us-east-1b')
     return {'vpc': vpc.id, 'subnet1': subnet1.id, 'subnet2': subnet2.id}
+
+
+@mock_ec2
+def setup_instance_with_networking(image_id, instance_type):
+    mock_data = setup_networking()
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+    instances = ec2.create_instances(
+        ImageId=image_id,
+        InstanceType=instance_type,
+        MaxCount=1,
+        MinCount=1,
+        SubnetId=mock_data['subnet1']
+    )
+    mock_data['instance'] = instances[0].id
+    return mock_data
