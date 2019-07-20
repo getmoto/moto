@@ -141,6 +141,23 @@ class GlueResponse(BaseResponse):
 
         return json.dumps({'Partition': p.as_dict()})
 
+    def batch_get_partition(self):
+        database_name = self.parameters.get('DatabaseName')
+        table_name = self.parameters.get('TableName')
+        partitions_to_get = self.parameters.get('PartitionsToGet')
+
+        table = self.glue_backend.get_table(database_name, table_name)
+
+        partitions = []
+        for values in partitions_to_get:
+            try:
+                p = table.get_partition(values=values["Values"])
+                partitions.append(p.as_dict())
+            except PartitionNotFoundException:
+                continue
+
+        return json.dumps({'Partitions': partitions})
+
     def create_partition(self):
         database_name = self.parameters.get('DatabaseName')
         table_name = self.parameters.get('TableName')
