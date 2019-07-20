@@ -2064,7 +2064,7 @@ class EBSBackend(object):
     def delete_volume(self, volume_id):
         if volume_id in self.volumes:
             volume = self.volumes[volume_id]
-            if volume.attachment is not None:
+            if volume.attachment:
                 raise VolumeInUseError(volume_id, volume.attachment.instance.id)
             return self.volumes.pop(volume_id)
         raise InvalidVolumeIdError(volume_id)
