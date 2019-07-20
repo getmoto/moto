@@ -3,10 +3,13 @@ import json
 
 import boto
 import boto3
+from botocore.client import ClientError
 from freezegun import freeze_time
+from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_sts, mock_sts_deprecated
+from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -95,7 +98,7 @@ def test_assume_role_with_web_identity():
     })
     s3_role = "arn:aws:iam::123456789012:role/test-role"
     role = conn.assume_role_with_web_identity(
-            s3_role, "session-name", policy, duration_seconds=123)
+        s3_role, "session-name", policy, duration_seconds=123)
 
     credentials = role.credentials
     credentials.expiration.should.equal('2012-01-01T12:02:03.000Z')
@@ -117,3 +120,32 @@ def test_get_caller_identity():
     identity['Arn'].should.equal('arn:aws:sts::123456789012:user/moto')
     identity['UserId'].should.equal('AKIAIOSFODNN7EXAMPLE')
     identity['Account'].should.equal('123456789012')
+
+
+@mock_sts
+def test_federation_token_with_too_long_policy():
+    "Trying to get a federation token with a policy longer than 2048 character should fail"
+    cli = boto3.client("sts", region_name='us-east-1')
+    resource_tmpl = 'arn:aws:s3:::yyyy-xxxxx-cloud-default/my_default_folder/folder-name-%s/*'
+    statements = []
+    for num in range(30):
+        statements.append(
+            {
+                'Effect': 'Allow',
+                'Action': ['s3:*'],
+                'Resource': resource_tmpl % str(num)
+            }
+        )
+    policy = {
+        'Version': '2012-10-17',
+        'Statement': statements
+    }
+    json_policy = json.dumps(policy)
+    assert len(json_policy) > MAX_FEDERATION_TOKEN_POLICY_LENGTH
+
+    with assert_raises(ClientError) as exc:
+        cli.get_federation_token(Name='foo', DurationSeconds=3600, Policy=json_policy)
+    exc.exception.response['Error']['Code'].should.equal('ValidationError')
+    exc.exception.response['Error']['Message'].should.contain(
+        str(MAX_FEDERATION_TOKEN_POLICY_LENGTH)
+    )

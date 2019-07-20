@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
+from .exceptions import STSValidationError
 from .models import sts_backend
+
+MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 
 
 class TokenResponse(BaseResponse):
@@ -15,6 +18,15 @@ class TokenResponse(BaseResponse):
     def get_federation_token(self):
         duration = int(self.querystring.get('DurationSeconds', [43200])[0])
         policy = self.querystring.get('Policy', [None])[0]
+
+        if policy is not None and len(policy) > MAX_FEDERATION_TOKEN_POLICY_LENGTH:
+            raise STSValidationError(
+                "1 validation error detected: Value "
+                "'{\"Version\": \"2012-10-17\", \"Statement\": [...]}' "
+                "at 'policy' failed to satisfy constraint: Member must have length less than or "
+                " equal to %s" % MAX_FEDERATION_TOKEN_POLICY_LENGTH
+            )
+
         name = self.querystring.get('Name')[0]
         token = sts_backend.get_federation_token(
             duration=duration, name=name, policy=policy)
