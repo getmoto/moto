@@ -815,16 +815,16 @@
 - [ ] update_user_profile
 
 ## cognito-identity - 0% implemented
-- [ ] create_identity_pool
+- [X] create_identity_pool
 - [ ] delete_identities
 - [ ] delete_identity_pool
 - [ ] describe_identity
 - [ ] describe_identity_pool
-- [ ] get_credentials_for_identity
-- [ ] get_id
+- [X] get_credentials_for_identity
+- [X] get_id
 - [ ] get_identity_pool_roles
-- [ ] get_open_id_token
-- [ ] get_open_id_token_for_developer_identity
+- [X] get_open_id_token
+- [X] get_open_id_token_for_developer_identity
 - [ ] list_identities
 - [ ] list_identity_pools
 - [ ] lookup_developer_identity
