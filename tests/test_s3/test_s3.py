@@ -1683,7 +1683,7 @@ def test_boto3_multipart_part_size():
     parts = []
     n_parts = 10
     for i in range(1, n_parts + 1):
-        part_size = 5 * 1024 * 1024
+        part_size = REDUCED_PART_SIZE + i
         body = b'1' * part_size
         part = s3.upload_part(
             Bucket='mybucket',
@@ -1704,7 +1704,7 @@ def test_boto3_multipart_part_size():
 
     for i in range(1, n_parts + 1):
         obj = s3.head_object(Bucket='mybucket', Key='the-key', PartNumber=i)
-        assert obj["ContentLength"] == part_size
+        assert obj["ContentLength"] == REDUCED_PART_SIZE + i
 
 
 @mock_s3
