@@ -669,6 +669,91 @@ def test_register_targets():
 
 @mock_ec2
 @mock_elbv2
+def test_stopped_instance_target():
+    target_group_port = 8080
+
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.0/26',
+        AvailabilityZone='us-east-1b')
+
+    conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    response = conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=target_group_port,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    target_group = response.get('TargetGroups')[0]
+
+    # No targets registered yet
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
+    response.get('TargetHealthDescriptions').should.have.length_of(0)
+
+    response = ec2.create_instances(
+        ImageId='ami-1234abcd', MinCount=1, MaxCount=1)
+    instance = response[0]
+
+    target_dict = {
+        'Id': instance.id,
+        'Port': 500
+    }
+
+    response = conn.register_targets(
+        TargetGroupArn=target_group.get('TargetGroupArn'),
+        Targets=[target_dict])
+
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
+    response.get('TargetHealthDescriptions').should.have.length_of(1)
+    target_health_description = response.get('TargetHealthDescriptions')[0]
+
+    target_health_description['Target'].should.equal(target_dict)
+    target_health_description['HealthCheckPort'].should.equal(str(target_group_port))
+    target_health_description['TargetHealth'].should.equal({
+        'State': 'healthy'
+    })
+
+    instance.stop()
+
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
+    response.get('TargetHealthDescriptions').should.have.length_of(1)
+    target_health_description = response.get('TargetHealthDescriptions')[0]
+    target_health_description['Target'].should.equal(target_dict)
+    target_health_description['HealthCheckPort'].should.equal(str(target_group_port))
+    target_health_description['TargetHealth'].should.equal({
+        'State': 'unused',
+        'Reason': 'Target.InvalidState',
+        'Description': 'Target is in the stopped state'
+    })
+
+
+@mock_ec2
+@mock_elbv2
 def test_target_group_attributes():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
