@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
 
+import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds, unix_time
 from .utils import generate_key_id
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 
 class Key(BaseModel):
@@ -12,11 +15,14 @@ class Key(BaseModel):
         self.id = generate_key_id()
         self.policy = policy
         self.key_usage = key_usage
+        self.key_state = "Enabled"
         self.description = description
         self.enabled = True
         self.region = region
         self.account_id = "0123456789012"
         self.key_rotation_status = False
+        self.deletion_date = None
+        self.tags = {}
 
     @property
     def physical_resource_id(self):
@@ -27,17 +33,21 @@ class Key(BaseModel):
         return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
 
     def to_dict(self):
-        return {
+        key_dict = {
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": "2015-01-01 00:00:00",
+                "CreationDate": "%d" % unix_time(),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
                 "KeyUsage": self.key_usage,
+                "KeyState": self.key_state,
             }
         }
+        if self.key_state == 'PendingDeletion':
+            key_dict['KeyMetadata']['DeletionDate'] = iso_8601_datetime_without_milliseconds(self.deletion_date)
+        return key_dict
 
     def delete(self, region_name):
         kms_backends[region_name].delete_key(self.id)
@@ -55,8 +65,13 @@ class Key(BaseModel):
         )
         key.key_rotation_status = properties['EnableKeyRotation']
         key.enabled = properties['Enabled']
-
         return key
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+        if attribute_name == 'Arn':
+            return self.arn
+        raise UnformattedGetAttTemplateException()
 
 
 class KmsBackend(BaseBackend):
@@ -69,6 +84,18 @@ class KmsBackend(BaseBackend):
         key = Key(policy, key_usage, description, region)
         self.keys[key.id] = key
         return key
+
+    def update_key_description(self, key_id, description):
+        key = self.keys[self.get_key_id(key_id)]
+        key.description = description
+
+    def tag_resource(self, key_id, tags):
+        key = self.keys[self.get_key_id(key_id)]
+        key.tags = tags
+
+    def list_resource_tags(self, key_id):
+        key = self.keys[self.get_key_id(key_id)]
+        return key.tags
 
     def delete_key(self, key_id):
         if key_id in self.keys:
@@ -103,8 +130,10 @@ class KmsBackend(BaseBackend):
         self.key_to_aliases[target_key_id].add(alias_name)
 
     def delete_alias(self, alias_name):
+        """Delete the alias."""
         for aliases in self.key_to_aliases.values():
-            aliases.remove(alias_name)
+            if alias_name in aliases:
+                aliases.remove(alias_name)
 
     def get_all_aliases(self):
         return self.key_to_aliases
@@ -129,6 +158,40 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id):
         return self.keys[self.get_key_id(key_id)].policy
+
+    def disable_key(self, key_id):
+        self.keys[key_id].enabled = False
+        self.keys[key_id].key_state = 'Disabled'
+
+    def enable_key(self, key_id):
+        self.keys[key_id].enabled = True
+        self.keys[key_id].key_state = 'Enabled'
+
+    def cancel_key_deletion(self, key_id):
+        self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].deletion_date = None
+
+    def schedule_key_deletion(self, key_id, pending_window_in_days):
+        if 7 <= pending_window_in_days <= 30:
+            self.keys[key_id].enabled = False
+            self.keys[key_id].key_state = 'PendingDeletion'
+            self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
+            return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+
+    def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens):
+        key = self.keys[self.get_key_id(key_id)]
+
+        if key_spec:
+            if key_spec == 'AES_128':
+                bytes = 16
+            else:
+                bytes = 32
+        else:
+            bytes = number_of_bytes
+
+        plaintext = os.urandom(bytes)
+
+        return plaintext, key.arn
 
 
 kms_backends = {}

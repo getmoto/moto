@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+import time
 
 from boto.glacier.layer1 import Layer1
 import sure  # noqa
@@ -39,24 +40,11 @@ def test_describe_job():
     job_id = job_response['JobId']
 
     job = conn.describe_job(vault_name, job_id)
-    json.loads(job.read().decode("utf-8")).should.equal({
-        'CompletionDate': '2013-03-20T17:03:43.221Z',
-        'VaultARN': None,
-        'RetrievalByteRange': None,
-        'SHA256TreeHash': None,
-        'Completed': True,
-        'InventorySizeInBytes': '0',
-        'JobId': job_id,
-        'Action': 'InventoryRetrieval',
-        'JobDescription': None,
-        'SNSTopic': None,
-        'ArchiveSizeInBytes': 0,
-        'ArchiveId': archive_id,
-        'ArchiveSHA256TreeHash': None,
-        'CreationDate': '2013-03-20T17:03:43.221Z',
-        'StatusMessage': None,
-        'StatusCode': 'Succeeded',
-    })
+    joboutput = json.loads(job.read().decode("utf-8"))
+    
+    joboutput.should.have.key('Tier').which.should.equal('Standard')
+    joboutput.should.have.key('StatusCode').which.should.equal('InProgress')
+    joboutput.should.have.key('VaultARN').which.should.equal('arn:aws:glacier:RegionInfo:us-west-2:012345678901:vaults/my_vault')
 
 
 @mock_glacier_deprecated
@@ -96,5 +84,7 @@ def test_get_job_output():
     })
     job_id = job_response['JobId']
 
+    time.sleep(6)
+    
     output = conn.get_job_output(vault_name, job_id)
     output.read().decode("utf-8").should.equal("some stuff")

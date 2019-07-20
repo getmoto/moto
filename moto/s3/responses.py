@@ -4,22 +4,25 @@ import re
 
 import six
 from moto.core.utils import str_to_rfc_1123_datetime
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, urlparse, unquote
 
 import xmltodict
 
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin
+from moto.core.utils import path_url
 
-from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
+from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_name_from_url, \
+    parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
-
-from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder
-from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, FakeTag
-from .utils import bucket_name_from_url, metadata_from_headers
+from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder, MalformedXML, \
+    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
+from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
+    FakeTag
+from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
-REGION_URL_REGEX = r'\.s3-(.+?)\.amazonaws\.com'
+
 DEFAULT_REGION_NAME = 'us-east-1'
 
 
@@ -55,8 +58,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if not host:
             host = urlparse(request.url).netloc
 
-        if not host or host.startswith("localhost") or re.match(r"^[^.]+$", host):
-            # For localhost or local domain names, default to path-based buckets
+        if (not host or host.startswith('localhost') or host.startswith('localstack') or
+                re.match(r'^[^.]+$', host) or re.match(r'^.*\.svc\.cluster\.local$', host)):
+            # Default to path-based buckets for (1) localhost, (2) localstack hosts (e.g. localstack.dev),
+            # (3) local host names that do not contain a "." (e.g., Docker container host names), or
+            # (4) kubernetes host names
             return False
 
         match = re.match(r'^([^\[\]:]+)(:\d+)?$', host)
@@ -68,8 +74,9 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         match = re.match(r'^\[(.+)\](:\d+)?$', host)
         if match:
-            match = re.match(r'^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)([\dA-F]{1,4}(\3|:\b)|\2){5}(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z',
-                             match.groups()[0], re.IGNORECASE)
+            match = re.match(
+                r'^(((?=.*(::))(?!.*\3.+\3))\3?|[\dA-F]{1,4}:)([\dA-F]{1,4}(\3|:\b)|\2){5}(([\dA-F]{1,4}(\3|:\b|$)|\2){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})\Z',
+                match.groups()[0], re.IGNORECASE)
             if match:
                 return False
 
@@ -123,10 +130,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         parsed_url = urlparse(full_url)
         querystring = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
-        region_name = DEFAULT_REGION_NAME
-        region_match = re.search(REGION_URL_REGEX, full_url)
-        if region_match:
-            region_name = region_match.groups()[0]
+        region_name = parse_region_from_url(full_url)
 
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
@@ -167,7 +171,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             # HEAD (which the real API responds with), and instead
             # raises NoSuchBucket, leading to inconsistency in
             # error response between real and mocked responses.
-            return 404, {}, "Not Found"
+            return 404, {}, ""
         return 200, {}, ""
 
     def _bucket_response_get(self, bucket_name, querystring, headers):
@@ -189,7 +193,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
         elif 'location' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             template = self.response_template(S3_BUCKET_LOCATION)
-            return template.render(location=bucket.location)
+
+            location = bucket.location
+            # us-east-1 is different - returns a None location
+            if location == DEFAULT_REGION_NAME:
+                location = None
+
+            return template.render(location=location)
         elif 'lifecycle' in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.rules:
@@ -227,6 +237,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_BUCKET_TAGGING_RESPONSE)
             return template.render(bucket=bucket)
+        elif 'logging' in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.logging:
+                template = self.response_template(S3_NO_LOGGING_CONFIG)
+                return 200, {}, template.render()
+            template = self.response_template(S3_LOGGING_CONFIG)
+            return 200, {}, template.render(logging=bucket.logging)
         elif "cors" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if len(bucket.cors) == 0:
@@ -234,6 +251,20 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_BUCKET_CORS_RESPONSE)
             return template.render(bucket=bucket)
+        elif "notification" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.notification_configuration:
+                return 200, {}, ""
+            template = self.response_template(S3_GET_BUCKET_NOTIFICATION_CONFIG)
+            return template.render(bucket=bucket)
+        elif "accelerate" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if bucket.accelerate_configuration is None:
+                template = self.response_template(S3_BUCKET_ACCELERATE_NOT_SET)
+                return 200, {}, template.render()
+            template = self.response_template(S3_BUCKET_ACCELERATE)
+            return template.render(bucket=bucket)
+
         elif 'versions' in querystring:
             delimiter = querystring.get('delimiter', [None])[0]
             encoding_type = querystring.get('encoding-type', [None])[0]
@@ -320,10 +351,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if continuation_token or start_after:
             limit = continuation_token or start_after
-            result_keys = self._get_results_from_token(result_keys, limit)
+            if not delimiter:
+                result_keys = self._get_results_from_token(result_keys, limit)
+            else:
+                result_folders = self._get_results_from_token(result_folders, limit)
 
-        result_keys, is_truncated, \
-            next_continuation_token = self._truncate_result(result_keys, max_keys)
+        if not delimiter:
+            result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
+        else:
+            result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
 
         return template.render(
             bucket=bucket,
@@ -341,7 +377,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _get_results_from_token(self, result_keys, token):
         continuation_index = 0
         for key in result_keys:
-            if key.name > token:
+            if (key.name if isinstance(key, FakeKey) else key) > token:
                 break
             continuation_index += 1
         return result_keys[continuation_index:]
@@ -350,7 +386,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if len(result_keys) > max_keys:
             is_truncated = 'true'
             result_keys = result_keys[:max_keys]
-            next_continuation_token = result_keys[-1].name
+            item = result_keys[-1]
+            next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
             next_continuation_token = None
@@ -378,8 +415,11 @@ class ResponseObject(_TemplateEnvironmentMixin):
             self.backend.set_bucket_policy(bucket_name, body)
             return 'True'
         elif 'acl' in querystring:
-            # TODO: Support the XML-based ACL format
-            self.backend.set_bucket_acl(bucket_name, self._acl_from_headers(request.headers))
+            # Headers are first. If not set, then look at the body (consistent with the documentation):
+            acls = self._acl_from_headers(request.headers)
+            if not acls:
+                acls = self._acl_from_xml(body)
+            self.backend.set_bucket_acl(bucket_name, acls)
             return ""
         elif "tagging" in querystring:
             tagging = self._bucket_tagging_from_xml(body)
@@ -389,16 +429,51 @@ class ResponseObject(_TemplateEnvironmentMixin):
             self.backend.set_bucket_website_configuration(bucket_name, body)
             return ""
         elif "cors" in querystring:
-            from moto.s3.exceptions import MalformedXML
             try:
                 self.backend.put_bucket_cors(bucket_name, self._cors_from_xml(body))
                 return ""
             except KeyError:
                 raise MalformedXML()
+        elif "logging" in querystring:
+            try:
+                self.backend.put_bucket_logging(bucket_name, self._logging_from_xml(body))
+                return ""
+            except KeyError:
+                raise MalformedXML()
+        elif "notification" in querystring:
+            try:
+                self.backend.put_bucket_notification_configuration(bucket_name,
+                                                                   self._notification_config_from_xml(body))
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
+        elif "accelerate" in querystring:
+            try:
+                accelerate_status = self._accelerate_config_from_xml(body)
+                self.backend.put_bucket_accelerate_configuration(bucket_name, accelerate_status)
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
+
         else:
             if body:
+                # us-east-1, the default AWS region behaves a bit differently
+                # - you should not use it as a location constraint --> it fails
+                # - querying the location constraint returns None
                 try:
-                    region_name = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+                    forced_region = xmltodict.parse(body)['CreateBucketConfiguration']['LocationConstraint']
+
+                    if forced_region == DEFAULT_REGION_NAME:
+                        raise S3ClientError(
+                            'InvalidLocationConstraint',
+                            'The specified location-constraint is not valid'
+                        )
+                    else:
+                        region_name = forced_region
                 except KeyError:
                     pass
 
@@ -453,7 +528,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
         if isinstance(request, HTTPrettyRequest):
             path = request.path
         else:
-            path = request.full_path if hasattr(request, 'full_path') else request.path_url
+            path = request.full_path if hasattr(request, 'full_path') else path_url(request.url)
 
         if self.is_delete_keys(request, path, bucket_name):
             return self._bucket_response_delete_keys(request, body, bucket_name, headers)
@@ -513,6 +588,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         def toint(i):
             return int(i) if i else None
+
         begin, end = map(toint, rspec.split('-'))
         if begin is not None:  # byte range
             end = last if end is None else min(end, last)
@@ -581,7 +657,7 @@ class ResponseObject(_TemplateEnvironmentMixin):
             body = b''
 
         if method == 'GET':
-            return self._key_response_get(bucket_name, query, key_name, headers)
+            return self._key_response_get(bucket_name, query, key_name, headers=request.headers)
         elif method == 'PUT':
             return self._key_response_put(request, body, bucket_name, query, key_name, headers)
         elif method == 'HEAD':
@@ -608,10 +684,15 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 parts=parts
             )
         version_id = query.get('versionId', [None])[0]
+        if_modified_since = headers.get('If-Modified-Since', None)
         key = self.backend.get_key(
             bucket_name, key_name, version_id=version_id)
         if key is None:
             raise MissingKey(key_name)
+        if if_modified_since:
+            if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
+        if if_modified_since and key.last_modified < if_modified_since:
+            return 304, response_headers, 'Not Modified'
         if 'acl' in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
@@ -629,8 +710,10 @@ class ResponseObject(_TemplateEnvironmentMixin):
             upload_id = query['uploadId'][0]
             part_number = int(query['partNumber'][0])
             if 'x-amz-copy-source' in request.headers:
-                src = request.headers.get("x-amz-copy-source").lstrip("/")
+                src = unquote(request.headers.get("x-amz-copy-source")).lstrip("/")
                 src_bucket, src_key = src.split("/", 1)
+
+                src_key, src_version_id = src_key.split("?versionId=") if "?versionId=" in src_key else (src_key, None)
                 src_range = request.headers.get(
                     'x-amz-copy-source-range', '').split("bytes=")[-1]
 
@@ -640,9 +723,13 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 except ValueError:
                     start_byte, end_byte = None, None
 
-                key = self.backend.copy_part(
-                    bucket_name, upload_id, part_number, src_bucket,
-                    src_key, start_byte, end_byte)
+                if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+                    key = self.backend.copy_part(
+                        bucket_name, upload_id, part_number, src_bucket,
+                        src_key, src_version_id, start_byte, end_byte)
+                else:
+                    return 404, response_headers, ""
+
                 template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
                 response = template.render(part=key)
             else:
@@ -671,12 +758,23 @@ class ResponseObject(_TemplateEnvironmentMixin):
 
         if 'x-amz-copy-source' in request.headers:
             # Copy key
-            src_key_parsed = urlparse(request.headers.get("x-amz-copy-source"))
-            src_bucket, src_key = src_key_parsed.path.lstrip("/").split("/", 1)
+            # you can have a quoted ?version=abc with a version Id, so work on
+            # we need to parse the unquoted string first
+            src_key = clean_key_name(request.headers.get("x-amz-copy-source"))
+            if isinstance(src_key, six.binary_type):
+                src_key = src_key.decode('utf-8')
+            src_key_parsed = urlparse(src_key)
+            src_bucket, src_key = unquote(src_key_parsed.path).\
+                lstrip("/").split("/", 1)
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
-            self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
-                                  storage=storage_class, acl=acl, src_version_id=src_version_id)
+
+            if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+                self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
+                                      storage=storage_class, acl=acl, src_version_id=src_version_id)
+            else:
+                return 404, response_headers, ""
+
             new_key = self.backend.get_key(bucket_name, key_name)
             mdirective = request.headers.get('x-amz-metadata-directive')
             if mdirective is not None and mdirective == 'REPLACE':
@@ -711,13 +809,20 @@ class ResponseObject(_TemplateEnvironmentMixin):
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
         version_id = query.get('versionId', [None])[0]
+        part_number = query.get('partNumber', [None])[0]
+        if part_number:
+            part_number = int(part_number)
 
         if_modified_since = headers.get('If-Modified-Since', None)
         if if_modified_since:
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
 
         key = self.backend.get_key(
-            bucket_name, key_name, version_id=version_id)
+            bucket_name,
+            key_name,
+            version_id=version_id,
+            part_number=part_number
+        )
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
@@ -728,6 +833,58 @@ class ResponseObject(_TemplateEnvironmentMixin):
                 return 200, response_headers, ""
         else:
             return 404, response_headers, ""
+
+    def _acl_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        if not parsed_xml.get("AccessControlPolicy"):
+            raise MalformedACLError()
+
+        # The owner is needed for some reason...
+        if not parsed_xml["AccessControlPolicy"].get("Owner"):
+            # TODO: Validate that the Owner is actually correct.
+            raise MalformedACLError()
+
+        # If empty, then no ACLs:
+        if parsed_xml["AccessControlPolicy"].get("AccessControlList") is None:
+            return []
+
+        if not parsed_xml["AccessControlPolicy"]["AccessControlList"].get("Grant"):
+            raise MalformedACLError()
+
+        permissions = [
+            "READ",
+            "WRITE",
+            "READ_ACP",
+            "WRITE_ACP",
+            "FULL_CONTROL"
+        ]
+
+        if not isinstance(parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"], list):
+            parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"] = \
+                [parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"]]
+
+        grants = self._get_grants_from_xml(parsed_xml["AccessControlPolicy"]["AccessControlList"]["Grant"],
+                                           MalformedACLError, permissions)
+        return FakeAcl(grants)
+
+    def _get_grants_from_xml(self, grant_list, exception_type, permissions):
+        grants = []
+        for grant in grant_list:
+            if grant.get("Permission", "") not in permissions:
+                raise exception_type()
+
+            if grant["Grantee"].get("@xsi:type", "") not in ["CanonicalUser", "AmazonCustomerByEmail", "Group"]:
+                raise exception_type()
+
+            # TODO: Verify that the proper grantee data is supplied based on the type.
+
+            grants.append(FakeGrant(
+                [FakeGrantee(id=grant["Grantee"].get("ID", ""), display_name=grant["Grantee"].get("DisplayName", ""),
+                             uri=grant["Grantee"].get("URI", ""))],
+                [grant["Permission"]])
+            )
+
+        return grants
 
     def _acl_from_headers(self, headers):
         canned_acl = headers.get('x-amz-acl', '')
@@ -811,6 +968,115 @@ class ResponseObject(_TemplateEnvironmentMixin):
             return [cors for cors in parsed_xml["CORSConfiguration"]["CORSRule"]]
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
+
+    def _logging_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+
+        if not parsed_xml["BucketLoggingStatus"].get("LoggingEnabled"):
+            return {}
+
+        if not parsed_xml["BucketLoggingStatus"]["LoggingEnabled"].get("TargetBucket"):
+            raise MalformedXML()
+
+        if not parsed_xml["BucketLoggingStatus"]["LoggingEnabled"].get("TargetPrefix"):
+            parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetPrefix"] = ""
+
+        # Get the ACLs:
+        if parsed_xml["BucketLoggingStatus"]["LoggingEnabled"].get("TargetGrants"):
+            permissions = [
+                "READ",
+                "WRITE",
+                "FULL_CONTROL"
+            ]
+            if not isinstance(parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"]["Grant"], list):
+                target_grants = self._get_grants_from_xml(
+                    [parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"]["Grant"]],
+                    MalformedXML,
+                    permissions
+                )
+            else:
+                target_grants = self._get_grants_from_xml(
+                    parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"]["Grant"],
+                    MalformedXML,
+                    permissions
+                )
+
+            parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"] = target_grants
+
+        return parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]
+
+    def _notification_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+
+        if not len(parsed_xml["NotificationConfiguration"]):
+            return {}
+
+        # The types of notifications, and their required fields (apparently lambda is categorized by the API as
+        # "CloudFunction"):
+        notification_fields = [
+            ("Topic", "sns"),
+            ("Queue", "sqs"),
+            ("CloudFunction", "lambda")
+        ]
+
+        event_names = [
+            's3:ReducedRedundancyLostObject',
+            's3:ObjectCreated:*',
+            's3:ObjectCreated:Put',
+            's3:ObjectCreated:Post',
+            's3:ObjectCreated:Copy',
+            's3:ObjectCreated:CompleteMultipartUpload',
+            's3:ObjectRemoved:*',
+            's3:ObjectRemoved:Delete',
+            's3:ObjectRemoved:DeleteMarkerCreated'
+        ]
+
+        found_notifications = 0  # Tripwire -- if this is not ever set, then there were no notifications
+        for name, arn_string in notification_fields:
+            # 1st verify that the proper notification configuration has been passed in (with an ARN that is close
+            # to being correct -- nothing too complex in the ARN logic):
+            the_notification = parsed_xml["NotificationConfiguration"].get("{}Configuration".format(name))
+            if the_notification:
+                found_notifications += 1
+                if not isinstance(the_notification, list):
+                    the_notification = parsed_xml["NotificationConfiguration"]["{}Configuration".format(name)] \
+                        = [the_notification]
+
+                for n in the_notification:
+                    if not n[name].startswith("arn:aws:{}:".format(arn_string)):
+                        raise InvalidNotificationARN()
+
+                    # 2nd, verify that the Events list is correct:
+                    assert n["Event"]
+                    if not isinstance(n["Event"], list):
+                        n["Event"] = [n["Event"]]
+
+                    for event in n["Event"]:
+                        if event not in event_names:
+                            raise InvalidNotificationEvent()
+
+                    # Parse out the filters:
+                    if n.get("Filter"):
+                        # Error if S3Key is blank:
+                        if not n["Filter"]["S3Key"]:
+                            raise KeyError()
+
+                        if not isinstance(n["Filter"]["S3Key"]["FilterRule"], list):
+                            n["Filter"]["S3Key"]["FilterRule"] = [n["Filter"]["S3Key"]["FilterRule"]]
+
+                        for filter_rule in n["Filter"]["S3Key"]["FilterRule"]:
+                            assert filter_rule["Name"] in ["suffix", "prefix"]
+                            assert filter_rule["Value"]
+
+        if not found_notifications:
+            return {}
+
+        return parsed_xml["NotificationConfiguration"]
+
+    def _accelerate_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+        config = parsed_xml['AccelerateConfiguration']
+        return config['Status']
 
     def _key_response_delete(self, bucket_name, query, key_name, headers):
         if query.get('uploadId'):
@@ -978,14 +1244,37 @@ S3_DELETE_BUCKET_WITH_ITEMS_ERROR = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>"""
 
 S3_BUCKET_LOCATION = """<?xml version="1.0" encoding="UTF-8"?>
-<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{{ location }}</LocationConstraint>"""
+<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">{% if location != None %}{{ location }}{% endif %}</LocationConstraint>"""
 
 S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
 <LifecycleConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
     {% for rule in rules %}
     <Rule>
         <ID>{{ rule.id }}</ID>
+        {% if rule.filter %}
+        <Filter>
+            <Prefix>{{ rule.filter.prefix }}</Prefix>
+            {% if rule.filter.tag %}
+            <Tag>
+                <Key>{{ rule.filter.tag.key }}</Key>
+                <Value>{{ rule.filter.tag.value }}</Value>
+            </Tag>
+            {% endif %}
+            {% if rule.filter.and_filter %}
+            <And>
+                <Prefix>{{ rule.filter.and_filter.prefix }}</Prefix>
+                {% for tag in rule.filter.and_filter.tags %}
+                <Tag>
+                    <Key>{{ tag.key }}</Key>
+                    <Value>{{ tag.value }}</Value>
+                </Tag>
+                {% endfor %}
+            </And>
+            {% endif %}
+        </Filter>
+        {% else %}
         <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
+        {% endif %}
         <Status>{{ rule.status }}</Status>
         {% if rule.storage_class %}
         <Transition>
@@ -998,7 +1287,7 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
            <StorageClass>{{ rule.storage_class }}</StorageClass>
         </Transition>
         {% endif %}
-        {% if rule.expiration_days or rule.expiration_date %}
+        {% if rule.expiration_days or rule.expiration_date or rule.expired_object_delete_marker %}
         <Expiration>
             {% if rule.expiration_days %}
                <Days>{{ rule.expiration_days }}</Days>
@@ -1006,7 +1295,26 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% if rule.expiration_date %}
                <Date>{{ rule.expiration_date }}</Date>
             {% endif %}
+            {% if rule.expired_object_delete_marker %}
+                <ExpiredObjectDeleteMarker>{{ rule.expired_object_delete_marker }}</ExpiredObjectDeleteMarker>
+            {% endif %}
         </Expiration>
+        {% endif %}
+        {% if rule.nvt_noncurrent_days and rule.nvt_storage_class %}
+        <NoncurrentVersionTransition>
+           <NoncurrentDays>{{ rule.nvt_noncurrent_days }}</NoncurrentDays>
+           <StorageClass>{{ rule.nvt_storage_class }}</StorageClass>
+        </NoncurrentVersionTransition>
+        {% endif %}
+        {% if rule.nve_noncurrent_days %}
+        <NoncurrentVersionExpiration>
+           <NoncurrentDays>{{ rule.nve_noncurrent_days }}</NoncurrentDays>
+        </NoncurrentVersionExpiration>
+        {% endif %}
+        {% if rule.aimu_days %}
+        <AbortIncompleteMultipartUpload>
+           <DaysAfterInitiation>{{ rule.aimu_days }}</DaysAfterInitiation>
+        </AbortIncompleteMultipartUpload>
         {% endif %}
     </Rule>
     {% endfor %}
@@ -1039,7 +1347,7 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% for key in key_list %}
     <Version>
         <Key>{{ key.name }}</Key>
-        <VersionId>{{ key.version_id }}</VersionId>
+        <VersionId>{% if key.version_id is none %}null{% else %}{{ key.version_id }}{% endif %}</VersionId>
         <IsLatest>{% if latest_versions[key.name] == key.version_id %}true{% else %}false{% endif %}</IsLatest>
         <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
         <ETag>{{ key.etag }}</ETag>
@@ -1053,10 +1361,10 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% endfor %}
     {% for marker in delete_marker_list %}
     <DeleteMarker>
-        <Key>{{ marker.key.name }}</Key>
+        <Key>{{ marker.name }}</Key>
         <VersionId>{{ marker.version_id }}</VersionId>
-        <IsLatest>{% if latest_versions[marker.key.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
-        <LastModified>{{ marker.key.last_modified_ISO8601 }}</LastModified>
+        <IsLatest>{% if latest_versions[marker.name] == marker.version_id %}true{% else %}false{% endif %}</IsLatest>
+        <LastModified>{{ marker.last_modified_ISO8601 }}</LastModified>
         <Owner>
             <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
             <DisplayName>webfile</DisplayName>
@@ -1213,7 +1521,7 @@ S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   </Owner>
   <StorageClass>STANDARD</StorageClass>
   <PartNumberMarker>1</PartNumberMarker>
-  <NextPartNumberMarker>{{ count }} </NextPartNumberMarker>
+  <NextPartNumberMarker>{{ count }}</NextPartNumberMarker>
   <MaxParts>{{ count }}</MaxParts>
   <IsTruncated>false</IsTruncated>
   {% for part in parts %}
@@ -1319,4 +1627,116 @@ S3_NO_CORS_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   <RequestId>44425877V1D0A2F9</RequestId>
   <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
 </Error>
+"""
+
+S3_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01">
+  <LoggingEnabled>
+    <TargetBucket>{{ logging["TargetBucket"] }}</TargetBucket>
+    <TargetPrefix>{{ logging["TargetPrefix"] }}</TargetPrefix>
+    {% if logging.get("TargetGrants") %}
+    <TargetGrants>
+      {% for grant in logging["TargetGrants"] %}
+      <Grant>
+        <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:type="{{ grant.grantees[0].type }}">
+          {% if grant.grantees[0].uri %}
+          <URI>{{ grant.grantees[0].uri }}</URI>
+          {% endif %}
+          {% if grant.grantees[0].id %}
+          <ID>{{ grant.grantees[0].id }}</ID>
+          {% endif %}
+          {% if grant.grantees[0].display_name %}
+          <DisplayName>{{ grant.grantees[0].display_name }}</DisplayName>
+          {% endif %}
+        </Grantee>
+        <Permission>{{ grant.permissions[0] }}</Permission>
+      </Grant>
+      {% endfor %}
+    </TargetGrants>
+    {% endif %}
+  </LoggingEnabled>
+</BucketLoggingStatus>
+"""
+
+S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01" />
+"""
+
+S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<NotificationConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  {% for topic in bucket.notification_configuration.topic %}
+  <TopicConfiguration>
+    <Id>{{ topic.id }}</Id>
+    <Topic>{{ topic.arn }}</Topic>
+    {% for event in topic.events %}
+    <Event>{{ event }}</Event>
+    {% endfor %}
+    {% if topic.filters %}
+      <Filter>
+        <S3Key>
+          {% for rule in topic.filters["S3Key"]["FilterRule"] %}
+          <FilterRule>
+            <Name>{{ rule["Name"] }}</Name>
+            <Value>{{ rule["Value"] }}</Value>
+          </FilterRule>
+          {% endfor %}
+        </S3Key>
+      </Filter>
+    {% endif %}
+  </TopicConfiguration>
+  {% endfor %}
+  {% for queue in bucket.notification_configuration.queue %}
+  <QueueConfiguration>
+    <Id>{{ queue.id }}</Id>
+    <Queue>{{ queue.arn }}</Queue>
+    {% for event in queue.events %}
+    <Event>{{ event }}</Event>
+    {% endfor %}
+    {% if queue.filters %}
+      <Filter>
+        <S3Key>
+          {% for rule in queue.filters["S3Key"]["FilterRule"] %}
+          <FilterRule>
+            <Name>{{ rule["Name"] }}</Name>
+            <Value>{{ rule["Value"] }}</Value>
+          </FilterRule>
+          {% endfor %}
+        </S3Key>
+      </Filter>
+    {% endif %}
+  </QueueConfiguration>
+  {% endfor %}
+  {% for cf in bucket.notification_configuration.cloud_function %}
+  <CloudFunctionConfiguration>
+    <Id>{{ cf.id }}</Id>
+    <CloudFunction>{{ cf.arn }}</CloudFunction>
+    {% for event in cf.events %}
+    <Event>{{ event }}</Event>
+    {% endfor %}
+    {% if cf.filters %}
+      <Filter>
+        <S3Key>
+          {% for rule in cf.filters["S3Key"]["FilterRule"] %}
+          <FilterRule>
+            <Name>{{ rule["Name"] }}</Name>
+            <Value>{{ rule["Value"] }}</Value>
+          </FilterRule>
+          {% endfor %}
+        </S3Key>
+      </Filter>
+    {% endif %}
+  </CloudFunctionConfiguration>
+  {% endfor %}
+</NotificationConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Status>{{ bucket.accelerate_configuration }}</Status>
+</AccelerateConfiguration>
+"""
+
+S3_BUCKET_ACCELERATE_NOT_SET = """
+<AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
 """

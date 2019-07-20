@@ -180,14 +180,14 @@ class ELBV2Response(BaseResponse):
         vpc_id = self._get_param('VpcId')
         protocol = self._get_param('Protocol')
         port = self._get_param('Port')
-        healthcheck_protocol = self._get_param('HealthCheckProtocol', 'HTTP')
-        healthcheck_port = self._get_param('HealthCheckPort', 'traffic-port')
-        healthcheck_path = self._get_param('HealthCheckPath', '/')
-        healthcheck_interval_seconds = self._get_param('HealthCheckIntervalSeconds', '30')
-        healthcheck_timeout_seconds = self._get_param('HealthCheckTimeoutSeconds', '5')
-        healthy_threshold_count = self._get_param('HealthyThresholdCount', '5')
-        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount', '2')
-        http_codes = self._get_param('Matcher.HttpCode', '200')
+        healthcheck_protocol = self._get_param('HealthCheckProtocol')
+        healthcheck_port = self._get_param('HealthCheckPort')
+        healthcheck_path = self._get_param('HealthCheckPath')
+        healthcheck_interval_seconds = self._get_param('HealthCheckIntervalSeconds')
+        healthcheck_timeout_seconds = self._get_param('HealthCheckTimeoutSeconds')
+        healthy_threshold_count = self._get_param('HealthyThresholdCount')
+        unhealthy_threshold_count = self._get_param('UnhealthyThresholdCount')
+        matcher = self._get_param('Matcher')
 
         target_group = self.elbv2_backend.create_target_group(
             name,
@@ -201,7 +201,7 @@ class ELBV2Response(BaseResponse):
             healthcheck_timeout_seconds=healthcheck_timeout_seconds,
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
-            matcher={'HttpCode': http_codes}
+            matcher=matcher,
         )
 
         template = self.response_template(CREATE_TARGET_GROUP_TEMPLATE)
@@ -242,7 +242,7 @@ class ELBV2Response(BaseResponse):
             start = all_names.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
+        page_size = self._get_int_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
         load_balancers_resp = all_load_balancers[start:start + page_size]
         next_marker = None
         if len(all_load_balancers) > start + page_size:
@@ -468,7 +468,7 @@ class ELBV2Response(BaseResponse):
     def describe_account_limits(self):
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
-        # page_size = self._get_param('PageSize')
+        # page_size = self._get_int_param('PageSize')
 
         limits = {
             'application-load-balancers': 20,
@@ -489,7 +489,7 @@ class ELBV2Response(BaseResponse):
         names = self._get_multi_param('Names.member.')
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
-        # page_size = self._get_param('PageSize')
+        # page_size = self._get_int_param('PageSize')
 
         policies = SSL_POLICIES
         if names:
@@ -704,7 +704,11 @@ CREATE_RULE_TEMPLATE = """<CreateRuleResponse xmlns="http://elasticloadbalancing
           {% for action in rule.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
+            {% if action["type"] == "forward" %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% elif action["type"] == "redirect" %}
+            <RedirectConfig>{{ action["redirect_config"] }}</RedirectConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Actions>
@@ -772,7 +776,15 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
           {% for action in listener.default_actions %}
           <member>
             <Type>{{ action.type }}</Type>
-            <TargetGroupArn>{{ action.target_group_arn }}</TargetGroupArn>
+            {% if action["type"] == "forward" %}
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% elif action["type"] == "redirect" %}
+            <RedirectConfig>
+                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
+                <Port>{{ action["redirect_config._port"] }}</Port>
+                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
+            </RedirectConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </DefaultActions>
@@ -877,7 +889,15 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
           {% for action in rule.actions %}
           <member>
             <Type>{{ action["type"] }}</Type>
+            {% if action["type"] == "forward" %}
             <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% elif action["type"] == "redirect" %}
+            <RedirectConfig>
+                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
+                <Port>{{ action["redirect_config._port"] }}</Port>
+                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
+            </RedirectConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </Actions>
@@ -970,7 +990,15 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
           {% for action in listener.default_actions %}
           <member>
             <Type>{{ action.type }}</Type>
-            <TargetGroupArn>{{ action.target_group_arn }}</TargetGroupArn>
+            {% if action["type"] == "forward" %}
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>m
+            {% elif action["type"] == "redirect" %}
+            <RedirectConfig>
+                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
+                <Port>{{ action["redirect_config._port"] }}</Port>
+                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
+            </RedirectConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </DefaultActions>
@@ -1180,6 +1208,12 @@ DESCRIBE_TARGET_HEALTH_TEMPLATE = """<DescribeTargetHealthResponse xmlns="http:/
         <HealthCheckPort>{{ target_health.health_port }}</HealthCheckPort>
         <TargetHealth>
           <State>{{ target_health.status }}</State>
+          {% if target_health.reason %}
+            <Reason>{{ target_health.reason }}</Reason>
+          {% endif %}
+          {% if target_health.description %}
+            <Description>{{ target_health.description }}</Description>
+          {% endif %}
         </TargetHealth>
         <Target>
           <Port>{{ target_health.port }}</Port>
@@ -1399,7 +1433,15 @@ MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadb
           {% for action in listener.default_actions %}
           <member>
             <Type>{{ action.type }}</Type>
-            <TargetGroupArn>{{ action.target_group_arn }}</TargetGroupArn>
+            {% if action["type"] == "forward" %}
+            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {% elif action["type"] == "redirect" %}
+            <RedirectConfig>
+                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
+                <Port>{{ action["redirect_config._port"] }}</Port>
+                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
+            </RedirectConfig>
+            {% endif %}
           </member>
           {% endfor %}
         </DefaultActions>

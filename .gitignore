@@ -13,3 +13,9 @@ build/
 .DS_Store
 python_env
 .ropeproject/
+.pytest_cache/
+venv/
+.python-version
+.vscode/
+tests/file.tmp
+.eggs/

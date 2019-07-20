@@ -10,7 +10,7 @@ endif
 
 init:
 	@python setup.py develop
-	@pip install -r requirements.txt
+	@pip install -r requirements-dev.txt
 
 lint:
 	flake8 moto
@@ -19,6 +19,7 @@ test: lint
 	rm -f .coverage
 	rm -rf cover
 	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
+
 test_server:
 	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
 
@@ -36,14 +37,13 @@ tag_github_release:
 	git tag `python setup.py --version`
 	git push origin `python setup.py --version`
 
-publish: implementation_coverage \
-	upload_pypi_artifact \
+publish: upload_pypi_artifact \
 	tag_github_release \
 	push_dockerhub_image
 
 implementation_coverage:
-	./scripts/implementation_coverage.py > IMPLEMENTATION_COVERAGE.md
-	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage"
+	./scripts/implementation_coverage.py
+	git commit IMPLEMENTATION_COVERAGE.md -m "Updating implementation coverage" || true
 
 scaffold:
 	@pip install -r requirements-dev.txt > /dev/null

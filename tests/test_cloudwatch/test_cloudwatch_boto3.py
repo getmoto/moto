@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import boto3
 from botocore.exceptions import ClientError
+from datetime import datetime, timedelta
+import pytz
 import sure   # noqa
 
 from moto import mock_cloudwatch
@@ -125,18 +127,98 @@ def test_alarm_state():
     )
     len(resp['MetricAlarms']).should.equal(1)
     resp['MetricAlarms'][0]['AlarmName'].should.equal('testalarm1')
+    resp['MetricAlarms'][0]['StateValue'].should.equal('ALARM')
 
     resp = client.describe_alarms(
         StateValue='OK'
     )
     len(resp['MetricAlarms']).should.equal(1)
     resp['MetricAlarms'][0]['AlarmName'].should.equal('testalarm2')
+    resp['MetricAlarms'][0]['StateValue'].should.equal('OK')
 
     # Just for sanity
     resp = client.describe_alarms()
     len(resp['MetricAlarms']).should.equal(2)
 
 
+@mock_cloudwatch
+def test_put_metric_data_no_dimensions():
+    conn = boto3.client('cloudwatch', region_name='us-east-1')
+
+    conn.put_metric_data(
+        Namespace='tester',
+        MetricData=[
+            dict(
+                MetricName='metric',
+                Value=1.5,
+            )
+        ]
+    )
+
+    metrics = conn.list_metrics()['Metrics']
+    metrics.should.have.length_of(1)
+    metric = metrics[0]
+    metric['Namespace'].should.equal('tester')
+    metric['MetricName'].should.equal('metric')
 
 
 
+@mock_cloudwatch
+def test_put_metric_data_with_statistics():
+    conn = boto3.client('cloudwatch', region_name='us-east-1')
+
+    conn.put_metric_data(
+        Namespace='tester',
+        MetricData=[
+            dict(
+                MetricName='statmetric',
+                Timestamp=datetime(2015, 1, 1),
+                # no Value to test  https://github.com/spulec/moto/issues/1615
+                StatisticValues=dict(
+                    SampleCount=123.0,
+                    Sum=123.0,
+                    Minimum=123.0,
+                    Maximum=123.0
+                ),
+                Unit='Milliseconds',
+                StorageResolution=123
+            )
+        ]
+    )
+
+    metrics = conn.list_metrics()['Metrics']
+    metrics.should.have.length_of(1)
+    metric = metrics[0]
+    metric['Namespace'].should.equal('tester')
+    metric['MetricName'].should.equal('statmetric')
+    # TODO: test statistics - https://github.com/spulec/moto/issues/1615
+
+@mock_cloudwatch
+def test_get_metric_statistics():
+    conn = boto3.client('cloudwatch', region_name='us-east-1')
+    utc_now = datetime.now(tz=pytz.utc)
+
+    conn.put_metric_data(
+        Namespace='tester',
+        MetricData=[
+            dict(
+                MetricName='metric',
+                Value=1.5,
+                Timestamp=utc_now
+            )
+        ]
+    )
+
+    stats = conn.get_metric_statistics(
+        Namespace='tester',
+        MetricName='metric',
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=['SampleCount', 'Sum']
+    )
+
+    stats['Datapoints'].should.have.length_of(1)
+    datapoint = stats['Datapoints'][0]
+    datapoint['SampleCount'].should.equal(1.0)
+    datapoint['Sum'].should.equal(1.5)

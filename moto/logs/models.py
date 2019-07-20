@@ -1,6 +1,10 @@
 from moto.core import BaseBackend
 import boto.logs
 from moto.core.utils import unix_time_millis
+from .exceptions import (
+    ResourceNotFoundException,
+    ResourceAlreadyExistsException
+)
 
 
 class LogEvent:
@@ -15,7 +19,7 @@ class LogEvent:
 
     def to_filter_dict(self):
         return {
-            "eventId": self.eventId,
+            "eventId": str(self.eventId),
             "ingestionTime": self.ingestionTime,
             # "logStreamName":
             "message": self.message,
@@ -49,23 +53,29 @@ class LogStream:
         self.__class__._log_ids += 1
 
     def _update(self):
-        self.firstEventTimestamp = min([x.timestamp for x in self.events])
-        self.lastEventTimestamp = max([x.timestamp for x in self.events])
+        # events can be empty when stream is described soon after creation
+        self.firstEventTimestamp = min([x.timestamp for x in self.events]) if self.events else None
+        self.lastEventTimestamp = max([x.timestamp for x in self.events]) if self.events else None
 
     def to_describe_dict(self):
         # Compute start and end times
         self._update()
 
-        return {
+        res = {
             "arn": self.arn,
             "creationTime": self.creationTime,
-            "firstEventTimestamp": self.firstEventTimestamp,
-            "lastEventTimestamp": self.lastEventTimestamp,
-            "lastIngestionTime": self.lastIngestionTime,
             "logStreamName": self.logStreamName,
             "storedBytes": self.storedBytes,
-            "uploadSequenceToken": str(self.uploadSequenceToken),
         }
+        if self.events:
+            rest = {
+                "firstEventTimestamp": self.firstEventTimestamp,
+                "lastEventTimestamp": self.lastEventTimestamp,
+                "lastIngestionTime": self.lastIngestionTime,
+                "uploadSequenceToken": str(self.uploadSequenceToken),
+            }
+            res.update(rest)
+        return res
 
     def put_log_events(self, log_group_name, log_stream_name, log_events, sequence_token):
         # TODO: ensure sequence_token
@@ -76,7 +86,7 @@ class LogStream:
         self.events += [LogEvent(self.lastIngestionTime, log_event) for log_event in log_events]
         self.uploadSequenceToken += 1
 
-        return self.uploadSequenceToken
+        return '{:056d}'.format(self.uploadSequenceToken)
 
     def get_log_events(self, log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head):
         def filter_func(event):
@@ -122,22 +132,30 @@ class LogGroup:
     def __init__(self, region, name, tags):
         self.name = name
         self.region = region
+        self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
+            region=region, log_group=name)
+        self.creationTime = unix_time_millis()
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
+        self.retentionInDays = None  # AWS defaults to Never Expire for log group retention
 
     def create_log_stream(self, log_stream_name):
-        assert log_stream_name not in self.streams
+        if log_stream_name in self.streams:
+            raise ResourceAlreadyExistsException()
         self.streams[log_stream_name] = LogStream(self.region, self.name, log_stream_name)
 
     def delete_log_stream(self, log_stream_name):
-        assert log_stream_name in self.streams
+        if log_stream_name not in self.streams:
+            raise ResourceNotFoundException()
         del self.streams[log_stream_name]
 
     def describe_log_streams(self, descending, limit, log_group_name, log_stream_name_prefix, next_token, order_by):
+        # responses only logStreamName, creationTime, arn, storedBytes when no events are stored.
+
         log_streams = [(name, stream.to_describe_dict()) for name, stream in self.streams.items() if name.startswith(log_stream_name_prefix)]
 
         def sorter(item):
-            return item[0] if order_by == 'logStreamName' else item[1]['lastEventTimestamp']
+            return item[0] if order_by == 'logStreamName' else item[1].get('lastEventTimestamp', 0)
 
         if next_token is None:
             next_token = 0
@@ -151,18 +169,18 @@ class LogGroup:
         return log_streams_page, new_token
 
     def put_log_events(self, log_group_name, log_stream_name, log_events, sequence_token):
-        assert log_stream_name in self.streams
+        if log_stream_name not in self.streams:
+            raise ResourceNotFoundException()
         stream = self.streams[log_stream_name]
         return stream.put_log_events(log_group_name, log_stream_name, log_events, sequence_token)
 
     def get_log_events(self, log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head):
-        assert log_stream_name in self.streams
+        if log_stream_name not in self.streams:
+            raise ResourceNotFoundException()
         stream = self.streams[log_stream_name]
         return stream.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
 
     def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
-        assert not filter_pattern  # TODO: impl
-
         streams = [stream for name, stream in self.streams.items() if not log_stream_names or name in log_stream_names]
 
         events = []
@@ -170,7 +188,7 @@ class LogGroup:
             events += stream.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
 
         if interleaved:
-            events = sorted(events, key=lambda event: event.timestamp)
+            events = sorted(events, key=lambda event: event['timestamp'])
 
         if next_token is None:
             next_token = 0
@@ -182,6 +200,22 @@ class LogGroup:
 
         searched_streams = [{"logStreamName": stream.logStreamName, "searchedCompletely": True} for stream in streams]
         return events_page, next_token, searched_streams
+
+    def to_describe_dict(self):
+        log_group = {
+            "arn": self.arn,
+            "creationTime": self.creationTime,
+            "logGroupName": self.name,
+            "metricFilterCount": 0,
+            "storedBytes": sum(s.storedBytes for s in self.streams.values()),
+        }
+        # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
+        if self.retentionInDays:
+            log_group["retentionInDays"] = self.retentionInDays
+        return log_group
+
+    def set_retention_policy(self, retention_in_days):
+        self.retentionInDays = retention_in_days
 
 
 class LogsBackend(BaseBackend):
@@ -195,7 +229,8 @@ class LogsBackend(BaseBackend):
         self.__init__(region_name)
 
     def create_log_group(self, log_group_name, tags):
-        assert log_group_name not in self.groups
+        if log_group_name in self.groups:
+            raise ResourceAlreadyExistsException()
         self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
 
     def ensure_log_group(self, log_group_name, tags):
@@ -204,39 +239,74 @@ class LogsBackend(BaseBackend):
         self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
 
     def delete_log_group(self, log_group_name):
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         del self.groups[log_group_name]
 
+    def describe_log_groups(self, limit, log_group_name_prefix, next_token):
+        if log_group_name_prefix is None:
+            log_group_name_prefix = ''
+        if next_token is None:
+            next_token = 0
+
+        groups = [group.to_describe_dict() for name, group in self.groups.items() if name.startswith(log_group_name_prefix)]
+        groups = sorted(groups, key=lambda x: x['creationTime'], reverse=True)
+        groups_page = groups[next_token:next_token + limit]
+
+        next_token += limit
+        if next_token >= len(groups):
+            next_token = None
+
+        return groups_page, next_token
+
     def create_log_stream(self, log_group_name, log_stream_name):
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.create_log_stream(log_stream_name)
 
     def delete_log_stream(self, log_group_name, log_stream_name):
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.delete_log_stream(log_stream_name)
 
     def describe_log_streams(self, descending, limit, log_group_name, log_stream_name_prefix, next_token, order_by):
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.describe_log_streams(descending, limit, log_group_name, log_stream_name_prefix, next_token, order_by)
 
     def put_log_events(self, log_group_name, log_stream_name, log_events, sequence_token):
         # TODO: add support for sequence_tokens
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.put_log_events(log_group_name, log_stream_name, log_events, sequence_token)
 
     def get_log_events(self, log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head):
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
 
     def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
-        assert log_group_name in self.groups
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.filter_log_events(log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved)
+
+    def put_retention_policy(self, log_group_name, retention_in_days):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        return log_group.set_retention_policy(retention_in_days)
+
+    def delete_retention_policy(self, log_group_name):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        return log_group.set_retention_policy(None)
 
 
 logs_backends = {region.name: LogsBackend(region.name) for region in boto.logs.regions()}

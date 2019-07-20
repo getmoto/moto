@@ -1,0 +1,2 @@
+class InvalidIndexNameError(ValueError):
+    pass

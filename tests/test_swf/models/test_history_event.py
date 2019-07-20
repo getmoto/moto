@@ -1,4 +1,5 @@
 from freezegun import freeze_time
+import sure  # noqa
 
 from moto.swf.models import HistoryEvent
 

@@ -33,3 +33,14 @@ class IoTDataPlaneResponse(BaseResponse):
             thing_name=thing_name,
         )
         return json.dumps(payload.to_dict())
+
+    def publish(self):
+        topic = self._get_param("topic")
+        qos = self._get_int_param("qos")
+        payload = self._get_param("payload")
+        self.iotdata_backend.publish(
+            topic=topic,
+            qos=qos,
+            payload=payload,
+        )
+        return json.dumps(dict())

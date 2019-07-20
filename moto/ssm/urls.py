@@ -3,6 +3,7 @@ from .responses import SimpleSystemManagerResponse
 
 url_bases = [
     "https?://ssm.(.+).amazonaws.com",
+    "https?://ssm.(.+).amazonaws.com.cn",
 ]
 
 url_paths = {

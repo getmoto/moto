@@ -19,6 +19,7 @@ class RDS2Response(BaseResponse):
             "allocated_storage": self._get_int_param('AllocatedStorage'),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
+            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param('DBInstanceClass'),
             "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
             "db_name": self._get_param("DBName"),
@@ -33,7 +34,7 @@ class RDS2Response(BaseResponse):
             "master_user_password": self._get_param('MasterUserPassword'),
             "master_username": self._get_param('MasterUsername'),
             "multi_az": self._get_bool_param("MultiAZ"),
-            # OptionGroupName
+            "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param('Port'),
             # PreferredBackupWindow
             # PreferredMaintenanceWindow
@@ -42,7 +43,7 @@ class RDS2Response(BaseResponse):
             "security_groups": self._get_multi_param('DBSecurityGroups.DBSecurityGroupName'),
             "storage_encrypted": self._get_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType", 'standard'),
-            # VpcSecurityGroupIds.member.N
+            "vpc_security_group_ids": self._get_multi_param("VpcSecurityGroupIds.VpcSecurityGroupId"),
             "tags": list(),
         }
         args['tags'] = self.unpack_complex_list_params(
@@ -123,7 +124,7 @@ class RDS2Response(BaseResponse):
             start = all_ids.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        page_size = self._get_int_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
         instances_resp = all_instances[start:start + page_size]
         next_marker = None
         if len(all_instances) > start + page_size:
@@ -135,6 +136,9 @@ class RDS2Response(BaseResponse):
     def modify_db_instance(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         db_kwargs = self._get_db_kwargs()
+        new_db_instance_identifier = self._get_param('NewDBInstanceIdentifier')
+        if new_db_instance_identifier:
+            db_kwargs['new_db_instance_identifier'] = new_db_instance_identifier
         database = self.backend.modify_database(
             db_instance_identifier, db_kwargs)
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
@@ -156,7 +160,7 @@ class RDS2Response(BaseResponse):
     def create_db_snapshot(self):
         db_instance_identifier = self._get_param('DBInstanceIdentifier')
         db_snapshot_identifier = self._get_param('DBSnapshotIdentifier')
-        tags = self._get_param('Tags', [])
+        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
         snapshot = self.backend.create_snapshot(db_instance_identifier, db_snapshot_identifier, tags)
         template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
@@ -276,7 +280,7 @@ class RDS2Response(BaseResponse):
 
     def describe_option_groups(self):
         kwargs = self._get_option_group_kwargs()
-        kwargs['max_records'] = self._get_param('MaxRecords')
+        kwargs['max_records'] = self._get_int_param('MaxRecords')
         kwargs['marker'] = self._get_param('Marker')
         option_groups = self.backend.describe_option_groups(kwargs)
         template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
@@ -325,7 +329,7 @@ class RDS2Response(BaseResponse):
 
     def describe_db_parameter_groups(self):
         kwargs = self._get_db_parameter_group_kwargs()
-        kwargs['max_records'] = self._get_param('MaxRecords')
+        kwargs['max_records'] = self._get_int_param('MaxRecords')
         kwargs['marker'] = self._get_param('Marker')
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
         template = self.response_template(

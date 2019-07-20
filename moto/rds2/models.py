@@ -20,6 +20,7 @@ from .exceptions import (RDSClientError,
                          DBSecurityGroupNotFoundError,
                          DBSubnetGroupNotFoundError,
                          DBParameterGroupNotFoundError,
+                         OptionGroupNotFoundFaultError,
                          InvalidDBClusterStateFaultError,
                          InvalidDBInstanceStateError,
                          SnapshotQuotaExceededError,
@@ -70,9 +71,13 @@ class Database(BaseModel):
             self.port = Database.default_port(self.engine)
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.db_name = kwargs.get("db_name")
+        self.instance_create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
+        self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
+        if self.copy_tags_to_snapshot is None:
+            self.copy_tags_to_snapshot = False
         self.backup_retention_period = kwargs.get("backup_retention_period")
         if self.backup_retention_period is None:
             self.backup_retention_period = 1
@@ -96,6 +101,8 @@ class Database(BaseModel):
             'preferred_backup_window', '13:14-13:44')
         self.license_model = kwargs.get('license_model', 'general-public-license')
         self.option_group_name = kwargs.get('option_group_name', None)
+        if self.option_group_name and self.option_group_name not in rds2_backends[self.region].option_groups:
+            raise OptionGroupNotFoundFaultError(self.option_group_name)
         self.default_option_groups = {"MySQL": "default.mysql5.6",
                                       "mysql": "default.mysql5.6",
                                       "postgres": "default.postgres9.3"
@@ -103,6 +110,8 @@ class Database(BaseModel):
         if not self.option_group_name and self.engine in self.default_option_groups:
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get('character_set_name', None)
+        self.iam_database_authentication_enabled = False
+        self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get('tags', [])
 
     @property
@@ -140,8 +149,17 @@ class Database(BaseModel):
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
               {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
               <MultiAZ>{{ database.multi_az }}</MultiAZ>
-              <VpcSecurityGroups/>
+              <VpcSecurityGroups>
+                {% for vpc_security_group_id in database.vpc_security_group_ids %}
+                <VpcSecurityGroupMembership>
+                  <Status>active</Status>
+                  <VpcSecurityGroupId>{{ vpc_security_group_id }}</VpcSecurityGroupId>
+                </VpcSecurityGroupMembership>
+                {% endfor %}
+              </VpcSecurityGroups>
               <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
+              <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
+              <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
               <PreferredBackupWindow>03:50-04:20</PreferredBackupWindow>
               <PreferredMaintenanceWindow>wed:06:38-wed:07:08</PreferredMaintenanceWindow>
               <ReadReplicaDBInstanceIdentifiers>
@@ -163,9 +181,14 @@ class Database(BaseModel):
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
               <Engine>{{ database.engine }}</Engine>
+              <IAMDatabaseAuthenticationEnabled>{{database.iam_database_authentication_enabled }}</IAMDatabaseAuthenticationEnabled>
               <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <OptionGroupMemberships>
+                <OptionGroupMembership>
+                  <OptionGroupName>{{ database.option_group_name }}</OptionGroupName>
+                  <Status>in-sync</Status>
+                </OptionGroupMembership>
               </OptionGroupMemberships>
               <DBParameterGroups>
                 {% for db_parameter_group in database.db_parameter_groups() %}
@@ -204,6 +227,7 @@ class Database(BaseModel):
               </DBSubnetGroup>
               {% endif %}
               <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
+              <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
               <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>
@@ -300,11 +324,13 @@ class Database(BaseModel):
             "db_parameter_group_name": properties.get('DBParameterGroupName'),
             "port": properties.get('Port', 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
+            "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
             "region": region_name,
             "security_groups": security_groups,
             "storage_encrypted": properties.get("StorageEncrypted"),
             "storage_type": properties.get("StorageType"),
             "tags": properties.get("Tags"),
+            "vpc_security_group_ids": properties.get('VpcSecurityGroupIds', []),
         }
 
         rds2_backend = rds2_backends[region_name]
@@ -358,12 +384,13 @@ class Database(BaseModel):
         "PreferredBackupWindow": "{{ database.preferred_backup_window }}",
         "PreferredMaintenanceWindow": "{{ database.preferred_maintenance_window }}",
         "PubliclyAccessible": "{{ database.publicly_accessible }}",
+        "CopyTagsToSnapshot": "{{ database.copy_tags_to_snapshot }}",
         "AllocatedStorage": "{{ database.allocated_storage }}",
         "Endpoint": {
             "Address": "{{ database.address }}",
             "Port": "{{ database.port }}"
         },
-        "InstanceCreateTime": null,
+        "InstanceCreateTime": "{{ database.instance_create_time }}",
         "Iops": null,
         "ReadReplicaDBInstanceIdentifiers": [{%- for replica in database.replicas -%}
             {%- if not loop.first -%},{%- endif -%}
@@ -378,10 +405,12 @@ class Database(BaseModel):
         "SecondaryAvailabilityZone": null,
         "StatusInfos": null,
         "VpcSecurityGroups": [
+            {% for vpc_security_group_id in database.vpc_security_group_ids %}
             {
                 "Status": "active",
-                "VpcSecurityGroupId": "sg-123456"
+                "VpcSecurityGroupId": "{{ vpc_security_group_id }}"
             }
+            {% endfor %}
         ],
         "DBInstanceArn": "{{ database.db_instance_arn }}"
       }""")
@@ -407,10 +436,10 @@ class Database(BaseModel):
 
 
 class Snapshot(BaseModel):
-    def __init__(self, database, snapshot_id, tags=None):
+    def __init__(self, database, snapshot_id, tags):
         self.database = database
         self.snapshot_id = snapshot_id
-        self.tags = tags or []
+        self.tags = tags
         self.created_at = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
 
     @property
@@ -451,6 +480,20 @@ class Snapshot(BaseModel):
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
             </DBSnapshot>""")
         return template.render(snapshot=self, database=self.database)
+
+    def get_tags(self):
+        return self.tags
+
+    def add_tags(self, tags):
+        new_keys = [tag_set['Key'] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set[
+            'Key'] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys):
+        self.tags = [tag_set for tag_set in self.tags if tag_set[
+            'Key'] not in tag_keys]
 
 
 class SecurityGroup(BaseModel):
@@ -687,6 +730,10 @@ class RDS2Backend(BaseBackend):
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.snapshots) >= int(os.environ.get('MOTO_RDS_SNAPSHOT_LIMIT', '100')):
             raise SnapshotQuotaExceededError()
+        if tags is None:
+            tags = list()
+        if database.copy_tags_to_snapshot and not tags:
+            tags = database.get_tags()
         snapshot = Snapshot(database, db_snapshot_identifier, tags)
         self.snapshots[db_snapshot_identifier] = snapshot
         return snapshot
@@ -722,10 +769,11 @@ class RDS2Backend(BaseBackend):
 
     def describe_snapshots(self, db_instance_identifier, db_snapshot_identifier):
         if db_instance_identifier:
+            db_instance_snapshots = []
             for snapshot in self.snapshots.values():
                 if snapshot.database.db_instance_identifier == db_instance_identifier:
-                    return [snapshot]
-            raise DBSnapshotNotFoundError()
+                    db_instance_snapshots.append(snapshot)
+            return db_instance_snapshots
 
         if db_snapshot_identifier:
             if db_snapshot_identifier in self.snapshots:
@@ -736,6 +784,10 @@ class RDS2Backend(BaseBackend):
 
     def modify_database(self, db_instance_identifier, db_kwargs):
         database = self.describe_databases(db_instance_identifier)[0]
+        if 'new_db_instance_identifier' in db_kwargs:
+            del self.databases[db_instance_identifier]
+            db_instance_identifier = db_kwargs['db_instance_identifier'] = db_kwargs.pop('new_db_instance_identifier')
+            self.databases[db_instance_identifier] = database
         database.update(db_kwargs)
         return database
 
@@ -753,13 +805,13 @@ class RDS2Backend(BaseBackend):
             raise InvalidDBInstanceStateError(db_instance_identifier, 'stop')
         if db_snapshot_identifier:
             self.create_snapshot(db_instance_identifier, db_snapshot_identifier)
-        database.status = 'shutdown'
+        database.status = 'stopped'
         return database
 
     def start_database(self, db_instance_identifier):
         database = self.describe_databases(db_instance_identifier)[0]
         # todo: bunch of different error messages to be generated from this api call
-        if database.status != 'shutdown':
+        if database.status != 'stopped':
             raise InvalidDBInstanceStateError(db_instance_identifier, 'start')
         database.status = 'available'
         return database
@@ -778,13 +830,13 @@ class RDS2Backend(BaseBackend):
 
     def delete_database(self, db_instance_identifier, db_snapshot_name=None):
         if db_instance_identifier in self.databases:
+            if db_snapshot_name:
+                self.create_snapshot(db_instance_identifier, db_snapshot_name)
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)
                 primary.remove_replica(database)
             database.status = 'deleting'
-            if db_snapshot_name:
-                self.snapshots[db_snapshot_name] = Snapshot(database, db_snapshot_name)
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
@@ -840,13 +892,16 @@ class RDS2Backend(BaseBackend):
 
     def create_option_group(self, option_group_kwargs):
         option_group_id = option_group_kwargs['name']
-        valid_option_group_engines = {'mysql': ['5.6'],
-                                      'oracle-se1': ['11.2'],
-                                      'oracle-se': ['11.2'],
-                                      'oracle-ee': ['11.2'],
+        valid_option_group_engines = {'mariadb': ['10.0', '10.1', '10.2', '10.3'],
+                                      'mysql': ['5.5', '5.6', '5.7', '8.0'],
+                                      'oracle-se2': ['11.2', '12.1', '12.2'],
+                                      'oracle-se1': ['11.2', '12.1', '12.2'],
+                                      'oracle-se': ['11.2', '12.1', '12.2'],
+                                      'oracle-ee': ['11.2', '12.1', '12.2'],
                                       'sqlserver-se': ['10.50', '11.00'],
-                                      'sqlserver-ee': ['10.50', '11.00']
-                                      }
+                                      'sqlserver-ee': ['10.50', '11.00'],
+                                      'sqlserver-ex': ['10.50', '11.00'],
+                                      'sqlserver-web': ['10.50', '11.00']}
         if option_group_kwargs['name'] in self.option_groups:
             raise RDSClientError('OptionGroupAlreadyExistsFault',
                                  'An option group named {0} already exists.'.format(option_group_kwargs['name']))
@@ -872,8 +927,7 @@ class RDS2Backend(BaseBackend):
         if option_group_name in self.option_groups:
             return self.option_groups.pop(option_group_name)
         else:
-            raise RDSClientError(
-                'OptionGroupNotFoundFault', 'Specified OptionGroupName: {0} not found.'.format(option_group_name))
+            raise OptionGroupNotFoundFaultError(option_group_name)
 
     def describe_option_groups(self, option_group_kwargs):
         option_group_list = []
@@ -902,8 +956,7 @@ class RDS2Backend(BaseBackend):
             else:
                 option_group_list.append(option_group)
         if not len(option_group_list):
-            raise RDSClientError('OptionGroupNotFoundFault',
-                                 'Specified OptionGroupName: {0} not found.'.format(option_group_kwargs['name']))
+            raise OptionGroupNotFoundFaultError(option_group_kwargs['name'])
         return option_group_list[marker:max_records + marker]
 
     @staticmethod
@@ -932,8 +985,7 @@ class RDS2Backend(BaseBackend):
 
     def modify_option_group(self, option_group_name, options_to_include=None, options_to_remove=None, apply_immediately=None):
         if option_group_name not in self.option_groups:
-            raise RDSClientError('OptionGroupNotFoundFault',
-                                 'Specified OptionGroupName: {0} not found.'.format(option_group_name))
+            raise OptionGroupNotFoundFaultError(option_group_name)
         if not options_to_include and not options_to_remove:
             raise RDSClientError('InvalidParameterValue',
                                  'At least one option must be added, modified, or removed.')
@@ -1019,8 +1071,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].get_tags()
             elif resource_type == 'snapshot':  # DB Snapshot
-                # TODO: Complete call to tags on resource type DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].get_tags()
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
@@ -1050,7 +1102,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].remove_tags(tag_keys)
             elif resource_type == 'snapshot':  # DB Snapshot
-                return None
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].remove_tags(tag_keys)
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].remove_tags(tag_keys)
@@ -1079,7 +1132,8 @@ class RDS2Backend(BaseBackend):
                 if resource_name in self.security_groups:
                     return self.security_groups[resource_name].add_tags(tags)
             elif resource_type == 'snapshot':  # DB Snapshot
-                return []
+                if resource_name in self.snapshots:
+                    return self.snapshots[resource_name].add_tags(tags)
             elif resource_type == 'subgrp':  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)

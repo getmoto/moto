@@ -7,8 +7,11 @@ import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
 
+from utils import setup_networking_deprecated
+
 
 def setup_autoscale_group():
+    mocked_networking = setup_networking_deprecated()
     conn = boto.connect_autoscale()
     config = LaunchConfiguration(
         name='tester',
@@ -22,6 +25,7 @@ def setup_autoscale_group():
         max_size=2,
         min_size=2,
         launch_config=config,
+        vpc_zone_identifier=mocked_networking['subnet1'],
     )
     conn.create_auto_scaling_group(group)
     return group

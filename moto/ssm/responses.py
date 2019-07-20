@@ -85,9 +85,10 @@ class SimpleSystemManagerResponse(BaseResponse):
         path = self._get_param('Path')
         with_decryption = self._get_param('WithDecryption')
         recursive = self._get_param('Recursive', False)
+        filters = self._get_param('ParameterFilters')
 
         result = self.ssm_backend.get_parameters_by_path(
-            path, with_decryption, recursive
+            path, with_decryption, recursive, filters
         )
 
         response = {
@@ -117,7 +118,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         end = token + page_size
         for parameter in result[token:]:
-            param_data = parameter.response_object(False)
+            param_data = parameter.describe_response_object(False)
             add = False
 
             if filters:
@@ -159,12 +160,22 @@ class SimpleSystemManagerResponse(BaseResponse):
         description = self._get_param('Description')
         value = self._get_param('Value')
         type_ = self._get_param('Type')
+        allowed_pattern = self._get_param('AllowedPattern')
         keyid = self._get_param('KeyId')
         overwrite = self._get_param('Overwrite', False)
 
-        self.ssm_backend.put_parameter(
-            name, description, value, type_, keyid, overwrite)
-        return json.dumps({})
+        result = self.ssm_backend.put_parameter(
+            name, description, value, type_, allowed_pattern, keyid, overwrite)
+
+        if result is None:
+            error = {
+                '__type': 'ParameterAlreadyExists',
+                'message': 'Parameter {0} already exists.'.format(name)
+            }
+            return json.dumps(error), dict(status=400)
+
+        response = {'Version': result}
+        return json.dumps(response)
 
     def add_tags_to_resource(self):
         resource_id = self._get_param('ResourceId')
@@ -190,3 +201,18 @@ class SimpleSystemManagerResponse(BaseResponse):
         tag_list = [{'Key': k, 'Value': v} for (k, v) in tags.items()]
         response = {'TagList': tag_list}
         return json.dumps(response)
+
+    def send_command(self):
+        return json.dumps(
+            self.ssm_backend.send_command(**self.request_params)
+        )
+
+    def list_commands(self):
+        return json.dumps(
+            self.ssm_backend.list_commands(**self.request_params)
+        )
+
+    def get_command_invocation(self):
+        return json.dumps(
+            self.ssm_backend.get_command_invocation(**self.request_params)
+        )

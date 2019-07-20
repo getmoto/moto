@@ -268,7 +268,7 @@ class ELBBackend(BaseBackend):
                 protocol = port['protocol']
                 instance_port = port['instance_port']
                 lb_port = port['load_balancer_port']
-                ssl_certificate_id = port.get('sslcertificate_id')
+                ssl_certificate_id = port.get('ssl_certificate_id')
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
                         if protocol != listener.protocol:

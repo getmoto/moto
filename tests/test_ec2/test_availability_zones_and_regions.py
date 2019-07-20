@@ -36,6 +36,11 @@ def test_boto3_describe_regions():
     for rec in resp['Regions']:
         rec['Endpoint'].should.contain(rec['RegionName'])
 
+    test_region = 'us-east-1' 
+    resp = ec2.describe_regions(RegionNames=[test_region])
+    resp['Regions'].should.have.length_of(1)
+    resp['Regions'][0].should.have.key('RegionName').which.should.equal(test_region)
+
 
 @mock_ec2
 def test_boto3_availability_zones():

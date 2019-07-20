@@ -1,4 +1,5 @@
 from moto.swf.models import GenericType
+import sure  # noqa
 
 
 # Tests for GenericType (ActivityType, WorkflowType)

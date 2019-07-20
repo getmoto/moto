@@ -1,15 +1,13 @@
 from __future__ import unicode_literals
 
 
-from datetime import datetime
-from dateutil.tz import tzutc
 import boto3
 from freezegun import freeze_time
 import requests
 import sure  # noqa
 from botocore.exceptions import ClientError
 
-from moto.packages.responses import responses
+import responses
 from moto import mock_apigateway, settings
 
 
@@ -965,3 +963,157 @@ def test_http_proxying_integration():
 
     if not settings.TEST_SERVER_MODE:
         requests.get(deploy_url).content.should.equal(b"a fake response")
+
+
+@mock_apigateway
+def test_api_keys():
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+    response = client.get_api_keys()
+    len(response['items']).should.equal(0)
+
+    apikey_value = '12345'
+    apikey_name = 'TESTKEY1'
+    payload = {'value': apikey_value, 'name': apikey_name}
+    response = client.create_api_key(**payload)
+    apikey = client.get_api_key(apiKey=response['id'])
+    apikey['name'].should.equal(apikey_name)
+    apikey['value'].should.equal(apikey_value)
+
+    apikey_name = 'TESTKEY2'
+    payload = {'name': apikey_name }
+    response = client.create_api_key(**payload)
+    apikey_id = response['id']
+    apikey = client.get_api_key(apiKey=apikey_id)
+    apikey['name'].should.equal(apikey_name)
+    len(apikey['value']).should.equal(40)
+
+    response = client.get_api_keys()
+    len(response['items']).should.equal(2)
+
+    client.delete_api_key(apiKey=apikey_id)
+
+    response = client.get_api_keys()
+    len(response['items']).should.equal(1)
+
+@mock_apigateway
+def test_usage_plans():
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+    response = client.get_usage_plans()
+    len(response['items']).should.equal(0)
+
+    usage_plan_name = 'TEST-PLAN'
+    payload = {'name': usage_plan_name}
+    response = client.create_usage_plan(**payload)
+    usage_plan = client.get_usage_plan(usagePlanId=response['id'])
+    usage_plan['name'].should.equal(usage_plan_name)
+    usage_plan['apiStages'].should.equal([])
+
+    usage_plan_name = 'TEST-PLAN-2'
+    usage_plan_description = 'Description'
+    usage_plan_quota = {'limit': 10, 'period': 'DAY', 'offset': 0}
+    usage_plan_throttle = {'rateLimit': 2, 'burstLimit': 1}
+    usage_plan_api_stages = [{'apiId': 'foo', 'stage': 'bar'}]
+    payload = {'name': usage_plan_name, 'description': usage_plan_description, 'quota': usage_plan_quota, 'throttle': usage_plan_throttle, 'apiStages': usage_plan_api_stages}
+    response = client.create_usage_plan(**payload)
+    usage_plan_id = response['id']
+    usage_plan = client.get_usage_plan(usagePlanId=usage_plan_id)
+    usage_plan['name'].should.equal(usage_plan_name)
+    usage_plan['description'].should.equal(usage_plan_description)
+    usage_plan['apiStages'].should.equal(usage_plan_api_stages)
+    usage_plan['throttle'].should.equal(usage_plan_throttle)
+    usage_plan['quota'].should.equal(usage_plan_quota)
+
+    response = client.get_usage_plans()
+    len(response['items']).should.equal(2)
+
+    client.delete_usage_plan(usagePlanId=usage_plan_id)
+
+    response = client.get_usage_plans()
+    len(response['items']).should.equal(1)
+
+@mock_apigateway
+def test_usage_plan_keys():
+    region_name = 'us-west-2'
+    usage_plan_id = 'test_usage_plan_id'
+    client = boto3.client('apigateway', region_name=region_name)
+    usage_plan_id = "test"
+
+    # Create an API key so we can use it
+    key_name = 'test-api-key'
+    response = client.create_api_key(name=key_name)
+    key_id = response["id"]
+    key_value = response["value"]
+
+    # Get current plan keys (expect none)
+    response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
+    len(response['items']).should.equal(0)
+
+    # Create usage plan key
+    key_type = 'API_KEY'
+    payload = {'usagePlanId': usage_plan_id, 'keyId': key_id, 'keyType': key_type }
+    response = client.create_usage_plan_key(**payload)
+    usage_plan_key_id = response["id"]
+
+    # Get current plan keys (expect 1)
+    response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
+    len(response['items']).should.equal(1)
+
+    # Get a single usage plan key and check it matches the created one
+    usage_plan_key = client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId=usage_plan_key_id)
+    usage_plan_key['name'].should.equal(key_name)
+    usage_plan_key['id'].should.equal(key_id)
+    usage_plan_key['type'].should.equal(key_type)
+    usage_plan_key['value'].should.equal(key_value)
+
+    # Delete usage plan key
+    client.delete_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
+
+    # Get current plan keys (expect none)
+    response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
+    len(response['items']).should.equal(0)
+
+@mock_apigateway
+def test_create_usage_plan_key_non_existent_api_key():
+    region_name = 'us-west-2'
+    usage_plan_id = 'test_usage_plan_id'
+    client = boto3.client('apigateway', region_name=region_name)
+    usage_plan_id = "test"
+
+    # Attempt to create a usage plan key for a API key that doesn't exists
+    payload = {'usagePlanId': usage_plan_id, 'keyId': 'non-existent', 'keyType': 'API_KEY' }
+    client.create_usage_plan_key.when.called_with(**payload).should.throw(ClientError)
+
+
+@mock_apigateway
+def test_get_usage_plans_using_key_id():
+    region_name = 'us-west-2'
+    client = boto3.client('apigateway', region_name=region_name)
+
+    # Create 2 Usage Plans
+    # one will be attached to an API Key, the other will remain unattached
+    attached_plan = client.create_usage_plan(name='Attached')
+    unattached_plan = client.create_usage_plan(name='Unattached')
+
+    # Create an API key
+    # to attach to the usage plan
+    key_name = 'test-api-key'
+    response = client.create_api_key(name=key_name)
+    key_id = response["id"]
+
+    # Create a Usage Plan Key
+    # Attached the Usage Plan and API Key
+    key_type = 'API_KEY'
+    payload = {'usagePlanId': attached_plan['id'], 'keyId': key_id, 'keyType': key_type}
+    response = client.create_usage_plan_key(**payload)
+
+    # All usage plans should be returned when keyId is not included
+    all_plans = client.get_usage_plans()
+    len(all_plans['items']).should.equal(2)
+
+    # Only the usage plan attached to the given api key are included
+    only_plans_with_key = client.get_usage_plans(keyId=key_id)
+    len(only_plans_with_key['items']).should.equal(1)
+    only_plans_with_key['items'][0]['name'].should.equal(attached_plan['name'])
+    only_plans_with_key['items'][0]['id'].should.equal(attached_plan['id'])

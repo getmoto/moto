@@ -1,4 +1,5 @@
 from collections import namedtuple
+import sure  # noqa
 
 from moto.swf.exceptions import SWFUnknownResourceFault
 from moto.swf.models import Domain

@@ -136,3 +136,59 @@ def test_send_raw_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota['SentLast24Hours'])
     sent_count.should.equal(2)
+
+
+@mock_ses
+def test_send_raw_email_without_source():
+    conn = boto3.client('ses', region_name='us-east-1')
+
+    message = MIMEMultipart()
+    message['Subject'] = 'Test'
+    message['From'] = 'test@example.com'
+    message['To'] = 'to@example.com, foo@example.com'
+
+    # Message body
+    part = MIMEText('test file attached')
+    message.attach(part)
+
+    # Attachment
+    part = MIMEText('contents of test file here')
+    part.add_header('Content-Disposition', 'attachment; filename=test.txt')
+    message.attach(part)
+
+    kwargs = dict(
+        RawMessage={'Data': message.as_string()},
+    )
+
+    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+
+    conn.verify_email_identity(EmailAddress="test@example.com")
+    conn.send_raw_email(**kwargs)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota['SentLast24Hours'])
+    sent_count.should.equal(2)
+
+
+@mock_ses
+def test_send_raw_email_without_source_or_from():
+    conn = boto3.client('ses', region_name='us-east-1')
+
+    message = MIMEMultipart()
+    message['Subject'] = 'Test'
+    message['To'] = 'to@example.com, foo@example.com'
+
+    # Message body
+    part = MIMEText('test file attached')
+    message.attach(part)
+    # Attachment
+    part = MIMEText('contents of test file here')
+    part.add_header('Content-Disposition', 'attachment; filename=test.txt')
+    message.attach(part)
+
+    kwargs = dict(
+        RawMessage={'Data': message.as_string()},
+    )
+
+    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+

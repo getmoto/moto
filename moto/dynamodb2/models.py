@@ -5,13 +5,18 @@ import datetime
 import decimal
 import json
 import re
+import uuid
+import six
 
 import boto3
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
-from .comparisons import get_comparison_func, get_filter_expression, Op
+from .comparisons import get_comparison_func
+from .comparisons import get_filter_expression
+from .comparisons import get_expected
+from .exceptions import InvalidIndexNameError
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -65,8 +70,34 @@ class DynamoType(object):
                 return int(self.value)
             except ValueError:
                 return float(self.value)
+        elif self.is_set():
+            sub_type = self.type[0]
+            return set([DynamoType({sub_type: v}).cast_value
+                        for v in self.value])
+        elif self.is_list():
+            return [DynamoType(v).cast_value for v in self.value]
+        elif self.is_map():
+            return dict([
+                (k, DynamoType(v).cast_value)
+                for k, v in self.value.items()])
         else:
             return self.value
+
+    def child_attr(self, key):
+        """
+        Get Map or List children by key. str for Map, int for List.
+
+        Returns DynamoType or None.
+        """
+        if isinstance(key, six.string_types) and self.is_map() and key in self.value:
+            return DynamoType(self.value[key])
+
+        if isinstance(key, int) and self.is_list():
+            idx = key
+            if idx >= 0 and idx < len(self.value):
+                return DynamoType(self.value[idx])
+
+        return None
 
     def to_json(self):
         return {self.type: self.value}
@@ -84,6 +115,12 @@ class DynamoType(object):
 
     def is_set(self):
         return self.type == 'SS' or self.type == 'NS' or self.type == 'BS'
+
+    def is_list(self):
+        return self.type == 'L'
+
+    def is_map(self):
+        return self.type == 'M'
 
     def same_type(self, other):
         return self.type == other.type
@@ -135,7 +172,9 @@ class Item(BaseModel):
         assert len(parts) % 2 == 0, "Mismatched operators and values in update expression: '{}'".format(update_expression)
         for action, valstr in zip(parts[:-1:2], parts[1::2]):
             action = action.upper()
-            values = valstr.split(',')
+
+            # "Should" retain arguments in side (...)
+            values = re.split(r',(?![^(]*\))', valstr)
             for value in values:
                 # A Real value
                 value = value.lstrip(":").rstrip(",").strip()
@@ -145,13 +184,58 @@ class Item(BaseModel):
                 if action == "REMOVE":
                     self.attrs.pop(value, None)
                 elif action == 'SET':
-                    key, value = value.split("=")
+                    key, value = value.split("=", 1)
                     key = key.strip()
                     value = value.strip()
-                    if value in expression_attribute_values:
-                        self.attrs[key] = DynamoType(expression_attribute_values[value])
+
+                    # If not exists, changes value to a default if needed, else its the same as it was
+                    if value.startswith('if_not_exists'):
+                        # Function signature
+                        match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+                        if not match:
+                            raise TypeError
+
+                        path, value = match.groups()
+
+                        # If it already exists, get its value so we dont overwrite it
+                        if path in self.attrs:
+                            value = self.attrs[path]
+
+                    if type(value) != DynamoType:
+                        if value in expression_attribute_values:
+                            value = DynamoType(expression_attribute_values[value])
+                        else:
+                            value = DynamoType({"S": value})
+
+                    if '.' not in key:
+                        self.attrs[key] = value
                     else:
-                        self.attrs[key] = DynamoType({"S": value})
+                        # Handle nested dict updates
+                        key_parts = key.split('.')
+                        attr = key_parts.pop(0)
+                        if attr not in self.attrs:
+                            raise ValueError
+
+                        last_val = self.attrs[attr].value
+                        for key_part in key_parts:
+                            # Hack but it'll do, traverses into a dict
+                            last_val_type = list(last_val.keys())
+                            if last_val_type and last_val_type[0] == 'M':
+                                    last_val = last_val['M']
+
+                            if key_part not in last_val:
+                                last_val[key_part] = {'M': {}}
+
+                            last_val = last_val[key_part]
+
+                        # We have reference to a nested object but we cant just assign to it
+                        current_type = list(last_val.keys())[0]
+                        if current_type == value.type:
+                            last_val[current_type] = value.value
+                        else:
+                            last_val[value.type] = value.value
+                            del last_val[current_type]
+
                 elif action == 'ADD':
                     key, value = value.split(" ", 1)
                     key = key.strip()
@@ -218,9 +302,9 @@ class Item(BaseModel):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
-                elif update_action['Value'].keys() == ['N']:
+                elif set(update_action['Value'].keys()) == set(['N']):
                     self.attrs[attribute_name] = DynamoType({"N": new_value})
-                elif update_action['Value'].keys() == ['NULL']:
+                elif set(update_action['Value'].keys()) == set(['NULL']):
                     if attribute_name in self.attrs:
                         del self.attrs[attribute_name]
                 else:
@@ -243,11 +327,97 @@ class Item(BaseModel):
                     # TODO: implement other data types
                     raise NotImplementedError(
                         'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
+            elif action == 'DELETE':
+                if set(update_action['Value'].keys()) == set(['SS']):
+                    existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
+                    new_set = set(existing.value).difference(set(new_value))
+                    self.attrs[attribute_name] = DynamoType({
+                        "SS": list(new_set)
+                    })
+                else:
+                    raise NotImplementedError(
+                        'ADD not supported for %s' % ', '.join(update_action['Value'].keys()))
+            else:
+                raise NotImplementedError(
+                    '%s action not support for update_with_attribute_updates' % action)
+
+
+class StreamRecord(BaseModel):
+    def __init__(self, table, stream_type, event_name, old, new, seq):
+        old_a = old.to_json()['Attributes'] if old is not None else {}
+        new_a = new.to_json()['Attributes'] if new is not None else {}
+
+        rec = old if old is not None else new
+        keys = {table.hash_key_attr: rec.hash_key.to_json()}
+        if table.range_key_attr is not None:
+            keys[table.range_key_attr] = rec.range_key.to_json()
+
+        self.record = {
+            'eventID': uuid.uuid4().hex,
+            'eventName': event_name,
+            'eventSource': 'aws:dynamodb',
+            'eventVersion': '1.0',
+            'awsRegion': 'us-east-1',
+            'dynamodb': {
+                'StreamViewType': stream_type,
+                'ApproximateCreationDateTime': datetime.datetime.utcnow().isoformat(),
+                'SequenceNumber': seq,
+                'SizeBytes': 1,
+                'Keys': keys
+            }
+        }
+
+        if stream_type in ('NEW_IMAGE', 'NEW_AND_OLD_IMAGES'):
+            self.record['dynamodb']['NewImage'] = new_a
+        if stream_type in ('OLD_IMAGE', 'NEW_AND_OLD_IMAGES'):
+            self.record['dynamodb']['OldImage'] = old_a
+
+        # This is a substantial overestimate but it's the easiest to do now
+        self.record['dynamodb']['SizeBytes'] = len(
+            json.dumps(self.record['dynamodb']))
+
+    def to_json(self):
+        return self.record
+
+
+class StreamShard(BaseModel):
+    def __init__(self, table):
+        self.table = table
+        self.id = 'shardId-00000001541626099285-f35f62ef'
+        self.starting_sequence_number = 1100000000017454423009
+        self.items = []
+        self.created_on = datetime.datetime.utcnow()
+
+    def to_json(self):
+        return {
+            'ShardId': self.id,
+            'SequenceNumberRange': {
+                'StartingSequenceNumber': str(self.starting_sequence_number)
+            }
+        }
+
+    def add(self, old, new):
+        t = self.table.stream_specification['StreamViewType']
+        if old is None:
+            event_name = 'INSERT'
+        elif new is None:
+            event_name = 'DELETE'
+        else:
+            event_name = 'MODIFY'
+        seq = len(self.items) + self.starting_sequence_number
+        self.items.append(
+            StreamRecord(self.table, t, event_name, old, new, seq))
+
+    def get(self, start, quantity):
+        start -= self.starting_sequence_number
+        assert start >= 0
+        end = start + quantity
+        return [i.to_json() for i in self.items[start:end]]
 
 
 class Table(BaseModel):
 
-    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None):
+    def __init__(self, table_name, schema=None, attr=None, throughput=None, indexes=None, global_indexes=None, streams=None):
         self.name = table_name
         self.attr = attr
         self.schema = schema
@@ -278,9 +448,40 @@ class Table(BaseModel):
             'TimeToLiveStatus': 'DISABLED'  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
             # 'AttributeName': 'string'  # Can contain this
         }
+        self.set_stream_specification(streams)
+
+    @classmethod
+    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
+        properties = cloudformation_json['Properties']
+        params = {}
+
+        if 'KeySchema' in properties:
+            params['schema'] = properties['KeySchema']
+        if 'AttributeDefinitions' in properties:
+            params['attr'] = properties['AttributeDefinitions']
+        if 'GlobalSecondaryIndexes' in properties:
+            params['global_indexes'] = properties['GlobalSecondaryIndexes']
+        if 'ProvisionedThroughput' in properties:
+            params['throughput'] = properties['ProvisionedThroughput']
+        if 'LocalSecondaryIndexes' in properties:
+            params['indexes'] = properties['LocalSecondaryIndexes']
+
+        table = dynamodb_backends[region_name].create_table(name=properties['TableName'], **params)
+        return table
 
     def _generate_arn(self, name):
         return 'arn:aws:dynamodb:us-east-1:123456789011:table/' + name
+
+    def set_stream_specification(self, streams):
+        self.stream_specification = streams
+        if streams and (streams.get('StreamEnabled') or streams.get('StreamViewType')):
+            self.stream_specification['StreamEnabled'] = True
+            self.latest_stream_label = datetime.datetime.utcnow().isoformat()
+            self.stream_shard = StreamShard(self)
+        else:
+            self.stream_specification = {'StreamEnabled': False}
+            self.latest_stream_label = None
+            self.stream_shard = None
 
     def describe(self, base_key='TableDescription'):
         results = {
@@ -298,6 +499,11 @@ class Table(BaseModel):
                 'LocalSecondaryIndexes': [index for index in self.indexes],
             }
         }
+        if self.stream_specification and self.stream_specification['StreamEnabled']:
+            results[base_key]['StreamSpecification'] = self.stream_specification
+            if self.latest_stream_label:
+                results[base_key]['LatestStreamLabel'] = self.latest_stream_label
+                results[base_key]['LatestStreamArn'] = self.table_arn + '/stream/' + self.latest_stream_label
         return results
 
     def __len__(self):
@@ -331,57 +537,48 @@ class Table(BaseModel):
             keys.append(range_key)
         return keys
 
-    def put_item(self, item_attrs, expected=None, overwrite=False):
+    def put_item(self, item_attrs, expected=None, condition_expression=None,
+                 expression_attribute_names=None,
+                 expression_attribute_values=None, overwrite=False):
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
             range_value = DynamoType(item_attrs.get(self.range_key_attr))
         else:
             range_value = None
 
+        if expected is None:
+            expected = {}
+            lookup_range_value = range_value
+        else:
+            expected_range_value = expected.get(
+                self.range_key_attr, {}).get("Value")
+            if(expected_range_value is None):
+                lookup_range_value = range_value
+            else:
+                lookup_range_value = DynamoType(expected_range_value)
+        current = self.get_item(hash_value, lookup_range_value)
+
         item = Item(hash_value, self.hash_key_type, range_value,
                     self.range_key_type, item_attrs)
 
         if not overwrite:
-            if expected is None:
-                expected = {}
-                lookup_range_value = range_value
-            else:
-                expected_range_value = expected.get(
-                    self.range_key_attr, {}).get("Value")
-                if(expected_range_value is None):
-                    lookup_range_value = range_value
-                else:
-                    lookup_range_value = DynamoType(expected_range_value)
+            if not get_expected(expected).expr(current):
+                raise ValueError('The conditional request failed')
+            condition_op = get_filter_expression(
+                condition_expression,
+                expression_attribute_names,
+                expression_attribute_values)
+            if not condition_op.expr(current):
+                raise ValueError('The conditional request failed')
 
-            current = self.get_item(hash_value, lookup_range_value)
-
-            if current is None:
-                current_attr = {}
-            elif hasattr(current, 'attrs'):
-                current_attr = current.attrs
-            else:
-                current_attr = current
-
-            for key, val in expected.items():
-                if 'Exists' in val and val['Exists'] is False:
-                    if key in current_attr:
-                        raise ValueError("The conditional request failed")
-                elif key not in current_attr:
-                    raise ValueError("The conditional request failed")
-                elif 'Value' in val and DynamoType(val['Value']).value != current_attr[key].value:
-                    raise ValueError("The conditional request failed")
-                elif 'ComparisonOperator' in val:
-                    comparison_func = get_comparison_func(
-                        val['ComparisonOperator'])
-                    dynamo_types = [DynamoType(ele) for ele in val[
-                        "AttributeValueList"]]
-                    for t in dynamo_types:
-                        if not comparison_func(current_attr[key].value, t.value):
-                            raise ValueError('The conditional request failed')
         if range_value:
             self.items[hash_value][range_value] = item
         else:
             self.items[hash_value] = item
+
+        if self.stream_shard is not None:
+            self.stream_shard.add(current, item)
+
         return item
 
     def __nonzero__(self):
@@ -412,9 +609,14 @@ class Table(BaseModel):
     def delete_item(self, hash_key, range_key):
         try:
             if range_key:
-                return self.items[hash_key].pop(range_key)
+                item = self.items[hash_key].pop(range_key)
             else:
-                return self.items.pop(hash_key)
+                item = self.items.pop(hash_key)
+
+            if self.stream_shard is not None:
+                self.stream_shard.add(item, None)
+
+            return item
         except KeyError:
             return None
 
@@ -422,8 +624,9 @@ class Table(BaseModel):
               exclusive_start_key, scan_index_forward, projection_expression,
               index_name=None, filter_expression=None, **filter_kwargs):
         results = []
+
         if index_name:
-            all_indexes = (self.global_indexes or []) + (self.indexes or [])
+            all_indexes = self.all_indexes()
             indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
             if index_name not in indexes_by_name:
                 raise ValueError('Invalid index: %s for table: %s. Available indexes are: %s' % (
@@ -438,23 +641,27 @@ class Table(BaseModel):
                 raise ValueError('Missing Hash Key. KeySchema: %s' %
                                  index['KeySchema'])
 
-            possible_results = []
-            for item in self.all_items():
-                if not isinstance(item, Item):
-                    continue
-                item_hash_key = item.attrs.get(index_hash_key['AttributeName'])
-                if item_hash_key and item_hash_key == hash_key:
-                    possible_results.append(item)
-        else:
-            possible_results = [item for item in list(self.all_items()) if isinstance(
-                item, Item) and item.hash_key == hash_key]
-
-        if index_name:
             try:
                 index_range_key = [key for key in index[
                     'KeySchema'] if key['KeyType'] == 'RANGE'][0]
             except IndexError:
                 index_range_key = None
+
+            possible_results = []
+            for item in self.all_items():
+                if not isinstance(item, Item):
+                    continue
+                item_hash_key = item.attrs.get(index_hash_key['AttributeName'])
+                if index_range_key is None:
+                    if item_hash_key and item_hash_key == hash_key:
+                        possible_results.append(item)
+                else:
+                    item_range_key = item.attrs.get(index_range_key['AttributeName'])
+                    if item_hash_key and item_hash_key == hash_key and item_range_key:
+                        possible_results.append(item)
+        else:
+            possible_results = [item for item in list(self.all_items()) if isinstance(
+                item, Item) and item.hash_key == hash_key]
 
         if range_comparison:
             if index_name and not index_range_key:
@@ -491,14 +698,6 @@ class Table(BaseModel):
         else:
             results.sort(key=lambda item: item.range_key)
 
-        if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            results = copy.deepcopy(results)
-            for result in results:
-                for attr in list(result.attrs):
-                    if attr not in expressions:
-                        result.attrs.pop(attr)
-
         if scan_index_forward is False:
             results.reverse()
 
@@ -506,6 +705,14 @@ class Table(BaseModel):
 
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
+
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            results = copy.deepcopy(results)
+            for result in results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
         results, last_evaluated_key = self._trim_results(results, limit,
                                                          exclusive_start_key)
@@ -519,11 +726,39 @@ class Table(BaseModel):
             else:
                 yield hash_set
 
-    def scan(self, filters, limit, exclusive_start_key, filter_expression=None):
+    def all_indexes(self):
+        return (self.global_indexes or []) + (self.indexes or [])
+
+    def has_idx_items(self, index_name):
+
+        all_indexes = self.all_indexes()
+        indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+        idx = indexes_by_name[index_name]
+        idx_col_set = set([i['AttributeName'] for i in idx['KeySchema']])
+
+        for hash_set in self.items.values():
+            if self.range_key_attr:
+                for item in hash_set.values():
+                    if idx_col_set.issubset(set(item.attrs)):
+                        yield item
+            else:
+                if idx_col_set.issubset(set(hash_set.attrs)):
+                    yield hash_set
+
+    def scan(self, filters, limit, exclusive_start_key, filter_expression=None, index_name=None, projection_expression=None):
         results = []
         scanned_count = 0
+        all_indexes = self.all_indexes()
+        indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
 
-        for item in self.all_items():
+        if index_name:
+            if index_name not in indexes_by_name:
+                raise InvalidIndexNameError('The table does not have the specified index: %s' % index_name)
+            items = self.has_idx_items(index_name)
+        else:
+            items = self.all_items()
+
+        for item in items:
             scanned_count += 1
             passes_all_conditions = True
             for attribute_name, (comparison_operator, comparison_objs) in filters.items():
@@ -549,11 +784,19 @@ class Table(BaseModel):
             if passes_all_conditions:
                 results.append(item)
 
+        if projection_expression:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            results = copy.deepcopy(results)
+            for result in results:
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
+
         results, last_evaluated_key = self._trim_results(results, limit,
-                                                         exclusive_start_key)
+                                                         exclusive_start_key, index_name)
         return results, scanned_count, last_evaluated_key
 
-    def _trim_results(self, results, limit, exclusive_start_key):
+    def _trim_results(self, results, limit, exclusive_start_key, scaned_index=None):
         if exclusive_start_key is not None:
             hash_key = DynamoType(exclusive_start_key.get(self.hash_key_attr))
             range_key = exclusive_start_key.get(self.range_key_attr)
@@ -572,6 +815,14 @@ class Table(BaseModel):
             }
             if results[-1].range_key is not None:
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
+
+            if scaned_index:
+                all_indexes = self.all_indexes()
+                indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
+                idx = indexes_by_name[scaned_index]
+                idx_col_list = [i['AttributeName'] for i in idx['KeySchema']]
+                for col in idx_col_list:
+                    last_evaluated_key[col] = results[-1].attrs[col]
 
         return results, last_evaluated_key
 
@@ -630,6 +881,13 @@ class DynamoDBBackend(BaseBackend):
         table.throughput = throughput
         return table
 
+    def update_table_streams(self, name, stream_specification):
+        table = self.tables[name]
+        if (stream_specification.get('StreamEnabled') or stream_specification.get('StreamViewType')) and table.latest_stream_label:
+            raise ValueError('Table already has stream enabled')
+        table.set_stream_specification(stream_specification)
+        return table
+
     def update_table_global_indexes(self, name, global_index_updates):
         table = self.tables[name]
         gsis_by_name = dict((i['IndexName'], i) for i in table.global_indexes)
@@ -660,14 +918,20 @@ class DynamoDBBackend(BaseBackend):
 
                 gsis_by_name[gsi_to_create['IndexName']] = gsi_to_create
 
-        table.global_indexes = gsis_by_name.values()
+        # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
+        # parts of the codebase
+        table.global_indexes = list(gsis_by_name.values())
         return table
 
-    def put_item(self, table_name, item_attrs, expected=None, overwrite=False):
+    def put_item(self, table_name, item_attrs, expected=None,
+                 condition_expression=None, expression_attribute_names=None,
+                 expression_attribute_values=None, overwrite=False):
         table = self.tables.get(table_name)
         if not table:
             return None
-        return table.put_item(item_attrs, expected, overwrite)
+        return table.put_item(item_attrs, expected, condition_expression,
+                              expression_attribute_names,
+                              expression_attribute_values, overwrite)
 
     def get_table_keys_name(self, table_name, keys):
         """
@@ -723,15 +987,12 @@ class DynamoDBBackend(BaseBackend):
         range_values = [DynamoType(range_value)
                         for range_value in range_value_dicts]
 
-        if filter_expression is not None:
-            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
-        else:
-            filter_expression = Op(None, None)  # Will always eval to true
+        filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
 
         return table.query(hash_key, range_comparison, range_values, limit,
                            exclusive_start_key, scan_index_forward, projection_expression, index_name, filter_expression, **filter_kwargs)
 
-    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values):
+    def scan(self, table_name, filters, limit, exclusive_start_key, filter_expression, expr_names, expr_values, index_name, projection_expression):
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -741,15 +1002,14 @@ class DynamoDBBackend(BaseBackend):
             dynamo_types = [DynamoType(value) for value in comparison_values]
             scan_filters[key] = (comparison_operator, dynamo_types)
 
-        if filter_expression is not None:
-            filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
-        else:
-            filter_expression = Op(None, None)  # Will always eval to true
+        filter_expression = get_filter_expression(filter_expression, expr_names, expr_values)
 
-        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression)
+        projection_expression = ','.join([expr_names.get(attr, attr) for attr in projection_expression.replace(' ', '').split(',')])
+
+        return table.scan(scan_filters, limit, exclusive_start_key, filter_expression, index_name, projection_expression)
 
     def update_item(self, table_name, key, update_expression, attribute_updates, expression_attribute_names,
-                    expression_attribute_values, expected=None):
+                    expression_attribute_values, expected=None, condition_expression=None):
         table = self.get_table(table_name)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
@@ -768,32 +1028,17 @@ class DynamoDBBackend(BaseBackend):
 
         item = table.get_item(hash_value, range_value)
 
-        if item is None:
-            item_attr = {}
-        elif hasattr(item, 'attrs'):
-            item_attr = item.attrs
-        else:
-            item_attr = item
-
         if not expected:
             expected = {}
 
-        for key, val in expected.items():
-            if 'Exists' in val and val['Exists'] is False:
-                if key in item_attr:
-                    raise ValueError("The conditional request failed")
-            elif key not in item_attr:
-                raise ValueError("The conditional request failed")
-            elif 'Value' in val and DynamoType(val['Value']).value != item_attr[key].value:
-                raise ValueError("The conditional request failed")
-            elif 'ComparisonOperator' in val:
-                comparison_func = get_comparison_func(
-                    val['ComparisonOperator'])
-                dynamo_types = [DynamoType(ele) for ele in val[
-                    "AttributeValueList"]]
-                for t in dynamo_types:
-                    if not comparison_func(item_attr[key].value, t.value):
-                        raise ValueError('The conditional request failed')
+        if not get_expected(expected).expr(item):
+            raise ValueError('The conditional request failed')
+        condition_op = get_filter_expression(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values)
+        if not condition_op.expr(item):
+            raise ValueError('The conditional request failed')
 
         # Update does not fail on new items, so create one
         if item is None:

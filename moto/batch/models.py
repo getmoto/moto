@@ -295,6 +295,14 @@ class Job(threading.Thread, BaseModel):
         }
         if self.job_stopped:
             result['stoppedAt'] = datetime2int(self.job_stopped_at)
+            result['container'] = {}
+            result['container']['command'] = ['/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"']
+            result['container']['privileged'] = False
+            result['container']['readonlyRootFilesystem'] = False
+            result['container']['ulimits'] = {}
+            result['container']['vcpus'] = 1
+            result['container']['volumes'] = ''
+            result['container']['logStreamName'] = self.log_stream_name
         if self.job_stopped_reason is not None:
             result['statusReason'] = self.job_stopped_reason
         return result
@@ -378,6 +386,7 @@ class Job(threading.Thread, BaseModel):
                 # Send to cloudwatch
                 log_group = '/aws/batch/job'
                 stream_name = '{0}/default/{1}'.format(self.job_definition.name, self.job_id)
+                self.log_stream_name = stream_name
                 self._log_backend.ensure_log_group(log_group, None)
                 self._log_backend.create_log_stream(log_group, stream_name)
                 self._log_backend.put_log_events(log_group, stream_name, logs, None)

@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends
+from .models import ecr_backends, DEFAULT_REGISTRY_ID
 
 
 class ECRResponse(BaseResponse):
@@ -84,14 +84,21 @@ class ECRResponse(BaseResponse):
                 'ECR.batch_check_layer_availability is not yet implemented')
 
     def batch_delete_image(self):
-        if self.is_not_dryrun('BatchDeleteImage'):
-            raise NotImplementedError(
-                'ECR.batch_delete_image is not yet implemented')
+        repository_str = self._get_param('repositoryName')
+        registry_id = self._get_param('registryId')
+        image_ids = self._get_param('imageIds')
+
+        response = self.ecr_backend.batch_delete_image(repository_str, registry_id, image_ids)
+        return json.dumps(response)
 
     def batch_get_image(self):
-        if self.is_not_dryrun('BatchGetImage'):
-            raise NotImplementedError(
-                'ECR.batch_get_image is not yet implemented')
+        repository_str = self._get_param('repositoryName')
+        registry_id = self._get_param('registryId')
+        image_ids = self._get_param('imageIds')
+        accepted_media_types = self._get_param('acceptedMediaTypes')
+
+        response = self.ecr_backend.batch_get_image(repository_str, registry_id, image_ids, accepted_media_types)
+        return json.dumps(response)
 
     def can_paginate(self):
         if self.is_not_dryrun('CanPaginate'):
@@ -116,7 +123,7 @@ class ECRResponse(BaseResponse):
     def get_authorization_token(self):
         registry_ids = self._get_param('registryIds')
         if not registry_ids:
-            registry_ids = [self.region]
+            registry_ids = [DEFAULT_REGISTRY_ID]
         auth_data = []
         for registry_id in registry_ids:
             password = '{}-auth-token'.format(registry_id)
@@ -124,7 +131,7 @@ class ECRResponse(BaseResponse):
             auth_data.append({
                 'authorizationToken': auth_token,
                 'expiresAt': time.mktime(datetime(2015, 1, 1).timetuple()),
-                'proxyEndpoint': 'https://012345678910.dkr.ecr.{}.amazonaws.com'.format(registry_id)
+                'proxyEndpoint': 'https://{}.dkr.ecr.{}.amazonaws.com'.format(registry_id, self.region)
             })
         return json.dumps({'authorizationData': auth_data})
 

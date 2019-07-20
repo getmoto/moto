@@ -5,7 +5,31 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
+from .exceptions import InvalidIndexNameError
 from .models import dynamodb_backends, dynamo_json_dump
+
+
+def has_empty_keys_or_values(_dict):
+    if _dict == "":
+        return True
+    if not isinstance(_dict, dict):
+        return False
+    return any(
+        key == '' or value == '' or
+        has_empty_keys_or_values(value)
+        for key, value in _dict.items()
+    )
+
+
+def get_empty_str_error():
+    er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+    return (400,
+            {'server': 'amazon.com'},
+            dynamo_json_dump({'__type': er,
+                              'message': ('One or more parameter values were '
+                                          'invalid: An AttributeValue may not '
+                                          'contain an empty string')}
+                             ))
 
 
 class DynamoHandler(BaseResponse):
@@ -72,8 +96,16 @@ class DynamoHandler(BaseResponse):
         body = self.body
         # get the table name
         table_name = body['TableName']
-        # get the throughput
-        throughput = body["ProvisionedThroughput"]
+        # check billing mode and get the throughput
+        if "BillingMode" in body.keys() and body["BillingMode"] == "PAY_PER_REQUEST":
+            if "ProvisionedThroughput" in body.keys():
+                er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+                return self.error(er,
+                                  'ProvisionedThroughput cannot be specified \
+                                   when BillingMode is PAY_PER_REQUEST')
+            throughput = None
+        else:         # Provisioned (default billing mode)
+            throughput = body.get("ProvisionedThroughput")
         # getting the schema
         key_schema = body['KeySchema']
         # getting attribute definition
@@ -81,13 +113,16 @@ class DynamoHandler(BaseResponse):
         # getting the indexes
         global_indexes = body.get("GlobalSecondaryIndexes", [])
         local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
+        # get the stream specification
+        streams = body.get("StreamSpecification")
 
         table = self.dynamodb_backend.create_table(table_name,
                                                    schema=key_schema,
                                                    throughput=throughput,
                                                    attr=attr,
                                                    global_indexes=global_indexes,
-                                                   indexes=local_secondary_indexes)
+                                                   indexes=local_secondary_indexes,
+                                                   streams=streams)
         if table is not None:
             return dynamo_json_dump(table.describe())
         else:
@@ -140,12 +175,20 @@ class DynamoHandler(BaseResponse):
 
     def update_table(self):
         name = self.body['TableName']
+        table = self.dynamodb_backend.get_table(name)
         if 'GlobalSecondaryIndexUpdates' in self.body:
             table = self.dynamodb_backend.update_table_global_indexes(
                 name, self.body['GlobalSecondaryIndexUpdates'])
         if 'ProvisionedThroughput' in self.body:
             throughput = self.body["ProvisionedThroughput"]
             table = self.dynamodb_backend.update_table_throughput(name, throughput)
+        if 'StreamSpecification' in self.body:
+            try:
+                table = self.dynamodb_backend.update_table_streams(name, self.body['StreamSpecification'])
+            except ValueError:
+                er = 'com.amazonaws.dynamodb.v20111205#ResourceInUseException'
+                return self.error(er, 'Cannot enable stream')
+
         return dynamo_json_dump(table.describe())
 
     def describe_table(self):
@@ -160,17 +203,14 @@ class DynamoHandler(BaseResponse):
     def put_item(self):
         name = self.body['TableName']
         item = self.body['Item']
+        return_values = self.body.get('ReturnValues', 'NONE')
 
-        res = re.search('\"\"', json.dumps(item))
-        if res:
+        if return_values not in ('ALL_OLD', 'NONE'):
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
-            return (400,
-                {'server': 'amazon.com'},
-                dynamo_json_dump({'__type': er,
-                                'message': ('One or more parameter values were '
-                                            'invalid: An AttributeValue may not '
-                                            'contain an empty string')}
-                                 ))
+            return self.error(er, 'Return values set to invalid value')
+
+        if has_empty_keys_or_values(item):
+            return get_empty_str_error()
 
         overwrite = 'Expected' not in self.body
         if not overwrite:
@@ -178,31 +218,27 @@ class DynamoHandler(BaseResponse):
         else:
             expected = None
 
+        if return_values == 'ALL_OLD':
+            existing_item = self.dynamodb_backend.get_item(name, item)
+            if existing_item:
+                existing_attributes = existing_item.to_json()['Attributes']
+            else:
+                existing_attributes = {}
+
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
-        if not expected:
-            condition_expression = self.body.get('ConditionExpression')
-            if condition_expression and 'OR' not in condition_expression:
-                cond_items = [c.strip()
-                              for c in condition_expression.split('AND')]
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
-                if cond_items:
-                    expected = {}
-                    overwrite = False
-                    exists_re = re.compile('^attribute_exists\((.*)\)$')
-                    not_exists_re = re.compile(
-                        '^attribute_not_exists\((.*)\)$')
-
-                for cond in cond_items:
-                    exists_m = exists_re.match(cond)
-                    not_exists_m = not_exists_re.match(cond)
-                    if exists_m:
-                        expected[exists_m.group(1)] = {'Exists': True}
-                    elif not_exists_m:
-                        expected[not_exists_m.group(1)] = {'Exists': False}
+        if condition_expression:
+            overwrite = False
 
         try:
-            result = self.dynamodb_backend.put_item(name, item, expected, overwrite)
+            result = self.dynamodb_backend.put_item(
+                name, item, expected, condition_expression,
+                expression_attribute_names, expression_attribute_values,
+                overwrite)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
@@ -213,6 +249,10 @@ class DynamoHandler(BaseResponse):
                 'TableName': name,
                 'CapacityUnits': 1
             }
+            if return_values == 'ALL_OLD':
+                item_dict['Attributes'] = existing_attributes
+            else:
+                item_dict.pop('Attributes', None)
             return dynamo_json_dump(item_dict)
         else:
             er = 'com.amazonaws.dynamodb.v20111205#ResourceNotFoundException'
@@ -370,7 +410,7 @@ class DynamoHandler(BaseResponse):
                     range_values = [value_alias_map[
                         range_key_expression_components[2]]]
             else:
-                hash_key_expression = key_condition_expression
+                hash_key_expression = key_condition_expression.strip('()')
                 range_comparison = None
                 range_values = []
 
@@ -457,9 +497,10 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get('FilterExpression')
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
-
+        projection_expression = self.body.get('ProjectionExpression', '')
         exclusive_start_key = self.body.get('ExclusiveStartKey')
         limit = self.body.get("Limit")
+        index_name = self.body.get('IndexName')
 
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(name, filters,
@@ -467,7 +508,12 @@ class DynamoHandler(BaseResponse):
                                                                                   exclusive_start_key,
                                                                                   filter_expression,
                                                                                   expression_attribute_names,
-                                                                                  expression_attribute_values)
+                                                                                  expression_attribute_values,
+                                                                                  index_name,
+                                                                                  projection_expression)
+        except InvalidIndexNameError as err:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, str(err))
         except ValueError as err:
             er = 'com.amazonaws.dynamodb.v20111205#ValidationError'
             return self.error(er, 'Bad Filter Expression: {0}'.format(err))
@@ -497,7 +543,11 @@ class DynamoHandler(BaseResponse):
     def delete_item(self):
         name = self.body['TableName']
         keys = self.body['Key']
-        return_values = self.body.get('ReturnValues', '')
+        return_values = self.body.get('ReturnValues', 'NONE')
+        if return_values not in ('ALL_OLD', 'NONE'):
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Return values set to invalid value')
+
         table = self.dynamodb_backend.get_table(name)
         if not table:
             er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
@@ -514,13 +564,26 @@ class DynamoHandler(BaseResponse):
     def update_item(self):
         name = self.body['TableName']
         key = self.body['Key']
-        update_expression = self.body.get('UpdateExpression')
+        return_values = self.body.get('ReturnValues', 'NONE')
+        update_expression = self.body.get('UpdateExpression', '').strip()
         attribute_updates = self.body.get('AttributeUpdates')
         expression_attribute_names = self.body.get(
             'ExpressionAttributeNames', {})
         expression_attribute_values = self.body.get(
             'ExpressionAttributeValues', {})
         existing_item = self.dynamodb_backend.get_item(name, key)
+        if existing_item:
+            existing_attributes = existing_item.to_json()['Attributes']
+        else:
+            existing_attributes = {}
+
+        if return_values not in ('NONE', 'ALL_OLD', 'ALL_NEW', 'UPDATED_OLD',
+                                 'UPDATED_NEW'):
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Return values set to invalid value')
+
+        if has_empty_keys_or_values(expression_attribute_values):
+            return get_empty_str_error()
 
         if 'Expected' in self.body:
             expected = self.body['Expected']
@@ -529,25 +592,9 @@ class DynamoHandler(BaseResponse):
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
-        if not expected:
-            condition_expression = self.body.get('ConditionExpression')
-            if condition_expression and 'OR' not in condition_expression:
-                cond_items = [c.strip()
-                              for c in condition_expression.split('AND')]
-
-                if cond_items:
-                    expected = {}
-                    exists_re = re.compile('^attribute_exists\((.*)\)$')
-                    not_exists_re = re.compile(
-                        '^attribute_not_exists\((.*)\)$')
-
-                for cond in cond_items:
-                    exists_m = exists_re.match(cond)
-                    not_exists_m = not_exists_re.match(cond)
-                    if exists_m:
-                        expected[exists_m.group(1)] = {'Exists': True}
-                    elif not_exists_m:
-                        expected[not_exists_m.group(1)] = {'Exists': False}
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
         # Support spaces between operators in an update expression
         # E.g. `a = b + c` -> `a=b+c`
@@ -558,7 +605,7 @@ class DynamoHandler(BaseResponse):
         try:
             item = self.dynamodb_backend.update_item(
                 name, key, update_expression, attribute_updates, expression_attribute_names,
-                expression_attribute_values, expected
+                expression_attribute_values, expected, condition_expression
             )
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
@@ -572,8 +619,26 @@ class DynamoHandler(BaseResponse):
             'TableName': name,
             'CapacityUnits': 0.5
         }
-        if not existing_item:
+        unchanged_attributes = {
+            k for k in existing_attributes.keys()
+            if existing_attributes[k] == item_dict['Attributes'].get(k)
+        }
+        changed_attributes = set(existing_attributes.keys()).union(item_dict['Attributes'].keys()).difference(unchanged_attributes)
+
+        if return_values == 'NONE':
             item_dict['Attributes'] = {}
+        elif return_values == 'ALL_OLD':
+            item_dict['Attributes'] = existing_attributes
+        elif return_values == 'UPDATED_OLD':
+            item_dict['Attributes'] = {
+                k: v for k, v in existing_attributes.items()
+                if k in changed_attributes
+            }
+        elif return_values == 'UPDATED_NEW':
+            item_dict['Attributes'] = {
+                k: v for k, v in item_dict['Attributes'].items()
+                if k in changed_attributes
+            }
 
         return dynamo_json_dump(item_dict)
 

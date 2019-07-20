@@ -17,7 +17,7 @@ class ResourceNotFoundError(BadRequest):
 class ResourceInUseError(BadRequest):
 
     def __init__(self, message):
-        super(ResourceNotFoundError, self).__init__()
+        super(ResourceInUseError, self).__init__()
         self.description = json.dumps({
             "message": message,
             '__type': 'ResourceInUseException',

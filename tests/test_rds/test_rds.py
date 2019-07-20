@@ -174,8 +174,8 @@ def test_add_security_group_to_database():
 def test_add_database_subnet_group():
     vpc_conn = boto.vpc.connect_to_region("us-west-2")
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet1 = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
-    subnet2 = vpc_conn.create_subnet(vpc.id, "10.2.0.0/24")
+    subnet1 = vpc_conn.create_subnet(vpc.id, "10.0.1.0/24")
+    subnet2 = vpc_conn.create_subnet(vpc.id, "10.0.2.0/24")
 
     subnet_ids = [subnet1.id, subnet2.id]
     conn = boto.rds.connect_to_region("us-west-2")
@@ -191,7 +191,7 @@ def test_add_database_subnet_group():
 def test_describe_database_subnet_group():
     vpc_conn = boto.vpc.connect_to_region("us-west-2")
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.0.1.0/24")
 
     conn = boto.rds.connect_to_region("us-west-2")
     conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
@@ -209,7 +209,7 @@ def test_describe_database_subnet_group():
 def test_delete_database_subnet_group():
     vpc_conn = boto.vpc.connect_to_region("us-west-2")
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.0.1.0/24")
 
     conn = boto.rds.connect_to_region("us-west-2")
     conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
@@ -227,7 +227,7 @@ def test_delete_database_subnet_group():
 def test_create_database_in_subnet_group():
     vpc_conn = boto.vpc.connect_to_region("us-west-2")
     vpc = vpc_conn.create_vpc("10.0.0.0/16")
-    subnet = vpc_conn.create_subnet(vpc.id, "10.1.0.0/24")
+    subnet = vpc_conn.create_subnet(vpc.id, "10.0.1.0/24")
 
     conn = boto.rds.connect_to_region("us-west-2")
     conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])

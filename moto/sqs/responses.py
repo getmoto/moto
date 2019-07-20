@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
+
+import re
 from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores, amz_crc32, amzn_request_id
+from moto.core.utils import amz_crc32, amzn_request_id
 from .utils import parse_message_attributes
 from .models import sqs_backends
 from .exceptions import (
@@ -15,12 +17,11 @@ from .exceptions import (
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 DEFAULT_RECEIVED_MESSAGES = 1
-SQS_REGION_REGEX = r'://(.+?)\.queue\.amazonaws\.com'
 
 
 class SQSResponse(BaseResponse):
 
-    region_regex = SQS_REGION_REGEX
+    region_regex = re.compile(r'://(.+?)\.queue\.amazonaws\.com')
 
     @property
     def sqs_backend(self):
@@ -29,7 +30,7 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self):
         if not hasattr(self, '_attribute'):
-            self._attribute = self._get_map_prefix('Attribute', key_end='Name', value_end='Value')
+            self._attribute = self._get_map_prefix('Attribute', key_end='.Name', value_end='.Value')
         return self._attribute
 
     def _get_queue_name(self):
@@ -86,7 +87,8 @@ class SQSResponse(BaseResponse):
         try:
             queue = self.sqs_backend.get_queue(queue_name)
         except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
@@ -170,7 +172,8 @@ class SQSResponse(BaseResponse):
         try:
             queue = self.sqs_backend.get_queue(queue_name)
         except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
@@ -178,9 +181,8 @@ class SQSResponse(BaseResponse):
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-        for key, value in self.attribute.items():
-            key = camelcase_to_underscores(key)
-            self.sqs_backend.set_queue_attribute(queue_name, key, value)
+        self.sqs_backend.set_queue_attributes(queue_name, self.attribute)
+
         return SET_QUEUE_ATTRIBUTE_RESPONSE
 
     def delete_queue(self):
@@ -196,6 +198,8 @@ class SQSResponse(BaseResponse):
     def send_message(self):
         message = self._get_param('MessageBody')
         delay_seconds = int(self._get_param('DelaySeconds', 0))
+        message_group_id = self._get_param("MessageGroupId")
+        message_dedupe_id = self._get_param("MessageDeduplicationId")
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
@@ -211,7 +215,9 @@ class SQSResponse(BaseResponse):
             queue_name,
             message,
             message_attributes=message_attributes,
-            delay_seconds=delay_seconds
+            delay_seconds=delay_seconds,
+            deduplication_id=message_dedupe_id,
+            group_id=message_group_id
         )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
@@ -319,10 +325,26 @@ class SQSResponse(BaseResponse):
         except TypeError:
             message_count = DEFAULT_RECEIVED_MESSAGES
 
+        if message_count < 1 or message_count > 10:
+            return self._error(
+                "InvalidParameterValue",
+                "An error occurred (InvalidParameterValue) when calling "
+                "the ReceiveMessage operation: Value %s for parameter "
+                "MaxNumberOfMessages is invalid. Reason: must be between "
+                "1 and 10, if provided." % message_count)
+
         try:
             wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
         except TypeError:
-            wait_time = queue.wait_time_seconds
+            wait_time = int(queue.receive_message_wait_time_seconds)
+
+        if wait_time < 0 or wait_time > 20:
+            return self._error(
+                "InvalidParameterValue",
+                "An error occurred (InvalidParameterValue) when calling "
+                "the ReceiveMessage operation: Value %s for parameter "
+                "WaitTimeSeconds is invalid. Reason: must be &lt;= 0 and "
+                "&gt;= 20 if provided." % wait_time)
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
@@ -398,7 +420,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
         <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
     </CreateQueueResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </CreateQueueResponse>"""
 
@@ -407,7 +429,7 @@ GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
         <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </GetQueueUrlResponse>"""
 
@@ -418,13 +440,13 @@ LIST_QUEUES_RESPONSE = """<ListQueuesResponse>
         {% endfor %}
     </ListQueuesResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </ListQueuesResponse>"""
 
 DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </DeleteQueueResponse>"""
 
@@ -438,13 +460,13 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
     {% endfor %}
   </GetQueueAttributesResult>
   <ResponseMetadata>
-    <RequestId>{{ requestid }}</RequestId>
+    <RequestId></RequestId>
   </ResponseMetadata>
 </GetQueueAttributesResponse>"""
 
 SET_QUEUE_ATTRIBUTE_RESPONSE = """<SetQueueAttributesResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </SetQueueAttributesResponse>"""
 
@@ -461,7 +483,7 @@ SEND_MESSAGE_RESPONSE = """<SendMessageResponse>
         </MessageId>
     </SendMessageResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </SendMessageResponse>"""
 
@@ -489,6 +511,18 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
             <Name>ApproximateFirstReceiveTimestamp</Name>
             <Value>{{ message.approximate_first_receive_timestamp }}</Value>
           </Attribute>
+          {% if message.deduplication_id is not none %}
+          <Attribute>
+            <Name>MessageDeduplicationId</Name>
+            <Value>{{ message.deduplication_id }}</Value>
+          </Attribute>
+          {% endif %}
+          {% if message.group_id is not none %}
+          <Attribute>
+            <Name>MessageGroupId</Name>
+            <Value>{{ message.group_id }}</Value>
+          </Attribute>
+          {% endif %}
           {% if message.message_attributes.items()|count > 0 %}
           <MD5OfMessageAttributes>{{- message.attribute_md5 -}}</MD5OfMessageAttributes>
           {% endif %}
@@ -509,7 +543,7 @@ RECEIVE_MESSAGE_RESPONSE = """<ReceiveMessageResponse>
     {% endfor %}
   </ReceiveMessageResult>
   <ResponseMetadata>
-    <RequestId>{{ requestid }}</RequestId>
+    <RequestId></RequestId>
   </ResponseMetadata>
 </ReceiveMessageResponse>"""
 
@@ -527,13 +561,13 @@ SEND_MESSAGE_BATCH_RESPONSE = """<SendMessageBatchResponse>
     {% endfor %}
 </SendMessageBatchResult>
 <ResponseMetadata>
-    <RequestId>{{ requestid }}</RequestId>
+    <RequestId></RequestId>
 </ResponseMetadata>
 </SendMessageBatchResponse>"""
 
 DELETE_MESSAGE_RESPONSE = """<DeleteMessageResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </DeleteMessageResponse>"""
 
@@ -546,13 +580,13 @@ DELETE_MESSAGE_BATCH_RESPONSE = """<DeleteMessageBatchResponse>
         {% endfor %}
     </DeleteMessageBatchResult>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </DeleteMessageBatchResponse>"""
 
 CHANGE_MESSAGE_VISIBILITY_RESPONSE = """<ChangeMessageVisibilityResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </ChangeMessageVisibilityResponse>"""
 
@@ -579,7 +613,7 @@ CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE = """<ChangeMessageVisibilityBatchRespo
 
 PURGE_QUEUE_RESPONSE = """<PurgeQueueResponse>
     <ResponseMetadata>
-        <RequestId>{{ requestid }}</RequestId>
+        <RequestId></RequestId>
     </ResponseMetadata>
 </PurgeQueueResponse>"""
 

@@ -4,7 +4,7 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
-from .exceptions import StageNotFoundException
+from .exceptions import StageNotFoundException, ApiKeyNotFoundException
 
 
 class APIGatewayResponse(BaseResponse):
@@ -226,3 +226,79 @@ class APIGatewayResponse(BaseResponse):
             deployment = self.backend.delete_deployment(
                 function_id, deployment_id)
         return 200, {}, json.dumps(deployment)
+
+    def apikeys(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == 'POST':
+            apikey_response = self.backend.create_apikey(json.loads(self.body))
+        elif self.method == 'GET':
+            apikeys_response = self.backend.get_apikeys()
+            return 200, {}, json.dumps({"item": apikeys_response})
+        return 200, {}, json.dumps(apikey_response)
+
+    def apikey_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        apikey = url_path_parts[2]
+
+        if self.method == 'GET':
+            apikey_response = self.backend.get_apikey(apikey)
+        elif self.method == 'DELETE':
+            apikey_response = self.backend.delete_apikey(apikey)
+        return 200, {}, json.dumps(apikey_response)
+
+    def usage_plans(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        if self.method == 'POST':
+            usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
+        elif self.method == 'GET':
+            api_key_id = self.querystring.get("keyId", [None])[0]
+            usage_plans_response = self.backend.get_usage_plans(api_key_id=api_key_id)
+            return 200, {}, json.dumps({"item": usage_plans_response})
+        return 200, {}, json.dumps(usage_plan_response)
+
+    def usage_plan_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        usage_plan = url_path_parts[2]
+
+        if self.method == 'GET':
+            usage_plan_response = self.backend.get_usage_plan(usage_plan)
+        elif self.method == 'DELETE':
+            usage_plan_response = self.backend.delete_usage_plan(usage_plan)
+        return 200, {}, json.dumps(usage_plan_response)
+
+    def usage_plan_keys(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        usage_plan_id = url_path_parts[2]
+
+        if self.method == 'POST':
+            try:
+                usage_plan_response = self.backend.create_usage_plan_key(usage_plan_id, json.loads(self.body))
+            except ApiKeyNotFoundException as error:
+                return error.code, {}, '{{"message":"{0}","code":"{1}"}}'.format(error.message, error.error_type)
+
+        elif self.method == 'GET':
+            usage_plans_response = self.backend.get_usage_plan_keys(usage_plan_id)
+            return 200, {}, json.dumps({"item": usage_plans_response})
+
+        return 200, {}, json.dumps(usage_plan_response)
+
+    def usage_plan_key_individual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        usage_plan_id = url_path_parts[2]
+        key_id = url_path_parts[4]
+
+        if self.method == 'GET':
+            usage_plan_response = self.backend.get_usage_plan_key(usage_plan_id, key_id)
+        elif self.method == 'DELETE':
+            usage_plan_response = self.backend.delete_usage_plan_key(usage_plan_id, key_id)
+        return 200, {}, json.dumps(usage_plan_response)

@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 import base64
 from collections import defaultdict
+import copy
 import datetime
+import docker
 import docker.errors
 import hashlib
 import io
@@ -17,17 +19,22 @@ import tarfile
 import calendar
 import threading
 import traceback
+import weakref
 import requests.adapters
 
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
+from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
+from .utils import make_function_arn, make_function_ver_arn
 
 logger = logging.getLogger(__name__)
+
+ACCOUNT_ID = '123456789012'
 
 
 try:
@@ -38,6 +45,7 @@ except ImportError:
 
 _stderr_regex = re.compile(r'START|END|REPORT RequestId: .*')
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
+docker_3 = docker.__version__[0] >= '3'
 
 
 def zip2tar(zip_bytes):
@@ -98,7 +106,11 @@ class _DockerDataVolumeContext:
 
             # It doesn't exist so we need to create it
             self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(self._lambda_func.code_sha_256)
-            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes={self.name: '/tmp/data'}, detach=True)
+            if docker_3:
+                volumes = {self.name: {'bind': '/tmp/data', 'mode': 'rw'}}
+            else:
+                volumes = {self.name: '/tmp/data'}
+            container = self._lambda_func.docker_client.containers.run('alpine', 'sleep 100', volumes=volumes, detach=True)
             try:
                 tar_bytes = zip2tar(self._lambda_func.code_bytes)
                 container.put_archive('/tmp/data', tar_bytes)
@@ -121,7 +133,7 @@ class _DockerDataVolumeContext:
 
 
 class LambdaFunction(BaseModel):
-    def __init__(self, spec, region, validate_s3=True):
+    def __init__(self, spec, region, validate_s3=True, version=1):
         # required
         self.region = region
         self.code = spec['Code']
@@ -161,7 +173,7 @@ class LambdaFunction(BaseModel):
             'VpcConfig', {'SubnetIds': [], 'SecurityGroupIds': []})
 
         # auto-generated
-        self.version = '$LATEST'
+        self.version = version
         self.last_modified = datetime.datetime.utcnow().strftime(
             '%Y-%m-%d %H:%M:%S')
 
@@ -203,10 +215,14 @@ class LambdaFunction(BaseModel):
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
 
-        self.function_arn = 'arn:aws:lambda:{}:123456789012:function:{}'.format(
-            self.region, self.function_name)
+        self.function_arn = make_function_arn(self.region, ACCOUNT_ID, self.function_name)
 
         self.tags = dict()
+
+    def set_version(self, version):
+        self.function_arn = make_function_ver_arn(self.region, ACCOUNT_ID, self.function_name, version)
+        self.version = version
+        self.last_modified = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
 
     @property
     def vpc_config(self):
@@ -214,6 +230,10 @@ class LambdaFunction(BaseModel):
         if config['SecurityGroupIds']:
             config.update({"VpcId": "vpc-123abc"})
         return config
+
+    @property
+    def physical_resource_id(self):
+        return self.function_name
 
     def __repr__(self):
         return json.dumps(self.get_configuration())
@@ -231,7 +251,7 @@ class LambdaFunction(BaseModel):
             "Role": self.role,
             "Runtime": self.run_time,
             "Timeout": self.timeout,
-            "Version": self.version,
+            "Version": str(self.version),
             "VpcConfig": self.vpc_config,
         }
 
@@ -255,14 +275,14 @@ class LambdaFunction(BaseModel):
     def convert(s):
         try:
             return str(s, encoding='utf-8')
-        except:
+        except Exception:
             return s
 
     @staticmethod
     def is_json(test_str):
         try:
             response = json.loads(test_str)
-        except:
+        except Exception:
             response = test_str
         return response
 
@@ -304,6 +324,10 @@ class LambdaFunction(BaseModel):
                             exit_code = -1
                             container.stop()
                             container.kill()
+                        else:
+                            if docker_3:
+                                exit_code = exit_code['StatusCode']
+
                         output = container.logs(stdout=False, stderr=True)
                         output += container.logs(stdout=True, stderr=False)
                         container.remove()
@@ -366,7 +390,7 @@ class LambdaFunction(BaseModel):
             'Role': properties['Role'],
             'Runtime': properties['Runtime'],
         }
-        optional_properties = 'Description MemorySize Publish Timeout VpcConfig'.split()
+        optional_properties = 'Description MemorySize Publish Timeout VpcConfig Environment'.split()
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
         # default logic
         for prop in optional_properties:
@@ -389,8 +413,7 @@ class LambdaFunction(BaseModel):
         from moto.cloudformation.exceptions import \
             UnformattedGetAttTemplateException
         if attribute_name == 'Arn':
-            return 'arn:aws:lambda:{0}:123456789012:function:{1}'.format(
-                self.region, self.function_name)
+            return make_function_arn(self.region, ACCOUNT_ID, self.function_name)
         raise UnformattedGetAttTemplateException()
 
     @staticmethod
@@ -436,6 +459,9 @@ class LambdaVersion(BaseModel):
     def __init__(self, spec):
         self.version = spec['Version']
 
+    def __repr__(self):
+        return str(self.logical_resource_id)
+
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json,
                                         region_name):
@@ -446,9 +472,130 @@ class LambdaVersion(BaseModel):
         return LambdaVersion(spec)
 
 
+class LambdaStorage(object):
+    def __init__(self):
+        # Format 'func_name' {'alias': {}, 'versions': []}
+        self._functions = {}
+        self._arns = weakref.WeakValueDictionary()
+
+    def _get_latest(self, name):
+        return self._functions[name]['latest']
+
+    def _get_version(self, name, version):
+        index = version - 1
+
+        try:
+            return self._functions[name]['versions'][index]
+        except IndexError:
+            return None
+
+    def _get_alias(self, name, alias):
+        return self._functions[name]['alias'].get(alias, None)
+
+    def get_function(self, name, qualifier=None):
+        if name not in self._functions:
+            return None
+
+        if qualifier is None:
+            return self._get_latest(name)
+
+        try:
+            return self._get_version(name, int(qualifier))
+        except ValueError:
+            return self._functions[name]['latest']
+
+    def list_versions_by_function(self, name):
+        if name not in self._functions:
+            return None
+
+        latest = copy.copy(self._functions[name]['latest'])
+        latest.function_arn += ':$LATEST'
+        return [latest] + self._functions[name]['versions']
+
+    def get_arn(self, arn):
+        return self._arns.get(arn, None)
+
+    def put_function(self, fn):
+        """
+        :param fn: Function
+        :type fn: LambdaFunction
+        """
+        if fn.function_name in self._functions:
+            self._functions[fn.function_name]['latest'] = fn
+        else:
+            self._functions[fn.function_name] = {
+                'latest': fn,
+                'versions': [],
+                'alias': weakref.WeakValueDictionary()
+            }
+
+        self._arns[fn.function_arn] = fn
+
+    def publish_function(self, name):
+        if name not in self._functions:
+            return None
+        if not self._functions[name]['latest']:
+            return None
+
+        new_version = len(self._functions[name]['versions']) + 1
+        fn = copy.copy(self._functions[name]['latest'])
+        fn.set_version(new_version)
+
+        self._functions[name]['versions'].append(fn)
+        self._arns[fn.function_arn] = fn
+        return fn
+
+    def del_function(self, name, qualifier=None):
+        if name in self._functions:
+            if not qualifier:
+                # Something is still reffing this so delete all arns
+                latest = self._functions[name]['latest'].function_arn
+                del self._arns[latest]
+
+                for fn in self._functions[name]['versions']:
+                    del self._arns[fn.function_arn]
+
+                del self._functions[name]
+
+                return True
+
+            elif qualifier == '$LATEST':
+                self._functions[name]['latest'] = None
+
+                # If theres no functions left
+                if not self._functions[name]['versions'] and not self._functions[name]['latest']:
+                    del self._functions[name]
+
+                return True
+
+            else:
+                fn = self.get_function(name, qualifier)
+                if fn:
+                    self._functions[name]['versions'].remove(fn)
+
+                    # If theres no functions left
+                    if not self._functions[name]['versions'] and not self._functions[name]['latest']:
+                        del self._functions[name]
+
+                    return True
+
+        return False
+
+    def all(self):
+        result = []
+
+        for function_group in self._functions.values():
+            if function_group['latest'] is not None:
+                result.append(function_group['latest'])
+
+            result.extend(function_group['versions'])
+
+        return result
+
+
 class LambdaBackend(BaseBackend):
     def __init__(self, region_name):
-        self._functions = {}
+        self._lambdas = LambdaStorage()
         self.region_name = region_name
 
     def reset(self):
@@ -456,33 +603,39 @@ class LambdaBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def has_function(self, function_name):
-        return function_name in self._functions
-
-    def has_function_arn(self, function_arn):
-        return self.get_function_by_arn(function_arn) is not None
-
     def create_function(self, spec):
-        fn = LambdaFunction(spec, self.region_name)
-        self._functions[fn.function_name] = fn
+        function_name = spec.get('FunctionName', None)
+        if function_name is None:
+            raise RESTError('InvalidParameterValueException', 'Missing FunctionName')
+
+        fn = LambdaFunction(spec, self.region_name, version='$LATEST')
+
+        self._lambdas.put_function(fn)
+
+        if spec.get('Publish'):
+            ver = self.publish_function(function_name)
+            fn.version = ver.version
         return fn
 
-    def get_function(self, function_name):
-        return self._functions[function_name]
+    def publish_function(self, function_name):
+        return self._lambdas.publish_function(function_name)
+
+    def get_function(self, function_name, qualifier=None):
+        return self._lambdas.get_function(function_name, qualifier)
+
+    def list_versions_by_function(self, function_name):
+        return self._lambdas.list_versions_by_function(function_name)
 
     def get_function_by_arn(self, function_arn):
-        for function in self._functions.values():
-            if function.function_arn == function_arn:
-                return function
-        return None
+        return self._lambdas.get_arn(function_arn)
 
-    def delete_function(self, function_name):
-        del self._functions[function_name]
+    def delete_function(self, function_name, qualifier=None):
+        return self._lambdas.del_function(function_name, qualifier)
 
     def list_functions(self):
-        return self._functions.values()
+        return self._lambdas.all()
 
-    def send_message(self, function_name, message):
+    def send_message(self, function_name, message, subject=None, qualifier=None):
         event = {
             "Records": [
                 {
@@ -509,29 +662,37 @@ class LambdaBackend(BaseBackend):
                         "Type": "Notification",
                         "UnsubscribeUrl": "EXAMPLE",
                         "TopicArn": "arn:aws:sns:EXAMPLE",
-                        "Subject": "TestInvoke"
+                        "Subject": subject or "TestInvoke"
                     }
                 }
             ]
 
         }
-        self._functions[function_name].invoke(json.dumps(event), {}, {})
-        pass
+        func = self._lambdas.get_function(function_name, qualifier)
+        func.invoke(json.dumps(event), {}, {})
 
     def list_tags(self, resource):
         return self.get_function_by_arn(resource).tags
 
     def tag_resource(self, resource, tags):
-        self.get_function_by_arn(resource).tags.update(tags)
+        fn = self.get_function_by_arn(resource)
+        if not fn:
+            return False
+
+        fn.tags.update(tags)
+        return True
 
     def untag_resource(self, resource, tagKeys):
-        function = self.get_function_by_arn(resource)
-        for key in tagKeys:
-            try:
-                del function.tags[key]
-            except KeyError:
-                pass
-                # Don't care
+        fn = self.get_function_by_arn(resource)
+        if fn:
+            for key in tagKeys:
+                try:
+                    del fn.tags[key]
+                except KeyError:
+                    pass
+                    # Don't care
+            return True
+        return False
 
     def add_policy(self, function_name, policy):
         self.get_function(function_name).policy = policy
@@ -546,3 +707,4 @@ lambda_backends = {_region.name: LambdaBackend(_region.name)
                    for _region in boto.awslambda.regions()}
 
 lambda_backends['ap-southeast-2'] = LambdaBackend('ap-southeast-2')
+lambda_backends['us-gov-west-1'] = LambdaBackend('us-gov-west-1')

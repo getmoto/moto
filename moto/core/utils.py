@@ -8,6 +8,7 @@ import random
 import re
 import six
 import string
+from six.moves.urllib.parse import urlparse
 
 
 REQUEST_ID_LONG = string.digits + string.ascii_uppercase
@@ -18,6 +19,8 @@ def camelcase_to_underscores(argument):
     python underscore variable like the_new_attribute'''
     result = ''
     prev_char_title = True
+    if not argument:
+        return argument
     for index, char in enumerate(argument):
         try:
             next_char_title = argument[index + 1].istitle()
@@ -277,10 +280,20 @@ def amzn_request_id(f):
 
         # Update request ID in XML
         try:
-            body = body.replace('{{ requestid }}', request_id)
+            body = re.sub(r'(?<=<RequestId>).*(?=<\/RequestId>)', request_id, body)
         except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
             pass
 
         return status, headers, body
 
     return _wrapper
+
+
+def path_url(url):
+    parsed_url = urlparse(url)
+    path = parsed_url.path
+    if not path:
+        path = '/'
+    if parsed_url.query:
+        path = path + '?' + parsed_url.query
+    return path

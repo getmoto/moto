@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 from boto.ec2.instancetype import InstanceType
+
+from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring, \
@@ -45,6 +47,8 @@ class InstanceResponse(BaseResponse):
         private_ip = self._get_param('PrivateIpAddress')
         associate_public_ip = self._get_param('AssociatePublicIpAddress')
         key_name = self._get_param('KeyName')
+        ebs_optimized = self._get_param('EbsOptimized')
+        instance_initiated_shutdown_behavior = self._get_param("InstanceInitiatedShutdownBehavior")
         tags = self._parse_tag_specification("TagSpecification")
         region_name = self.region
 
@@ -54,7 +58,7 @@ class InstanceResponse(BaseResponse):
                 instance_type=instance_type, placement=placement, region_name=region_name, subnet_id=subnet_id,
                 owner_id=owner_id, key_name=key_name, security_group_ids=security_group_ids,
                 nics=nics, private_ip=private_ip, associate_public_ip=associate_public_ip,
-                tags=tags)
+                tags=tags, ebs_optimized=ebs_optimized, instance_initiated_shutdown_behavior=instance_initiated_shutdown_behavior)
 
             template = self.response_template(EC2_RUN_INSTANCES)
             return template.render(reservation=new_reservation)
@@ -63,6 +67,7 @@ class InstanceResponse(BaseResponse):
         instance_ids = self._get_multi_param('InstanceId')
         if self.is_not_dryrun('TerminateInstance'):
             instances = self.ec2_backend.terminate_instances(instance_ids)
+            autoscaling_backends[self.region].notify_terminate_instances(instance_ids)
             template = self.response_template(EC2_TERMINATE_INSTANCES)
             return template.render(instances=instances)
 
@@ -112,12 +117,11 @@ class InstanceResponse(BaseResponse):
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
         attribute = self._get_param('Attribute')
-        key = camelcase_to_underscores(attribute)
         instance_id = self._get_param('InstanceId')
         instance, value = self.ec2_backend.describe_instance_attribute(
-            instance_id, key)
+            instance_id, attribute)
 
-        if key == "group_set":
+        if attribute == "groupSet":
             template = self.response_template(
                 EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
         else:
@@ -242,7 +246,8 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <dnsName>{{ instance.public_dns }}</dnsName>
           <reason/>
           <keyName>{{ instance.key_name }}</keyName>
-          <amiLaunchIndex>0</amiLaunchIndex>
+          <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
+          <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           <launchTime>{{ instance.launch_time }}</launchTime>
           <placement>
@@ -381,7 +386,8 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <dnsName>{{ instance.public_dns }}</dnsName>
                     <reason>{{ instance._reason }}</reason>
                     <keyName>{{ instance.key_name }}</keyName>
-                    <amiLaunchIndex>0</amiLaunchIndex>
+                    <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
+                    <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
                     <productCodes/>
                     <instanceType>{{ instance.instance_type }}</instanceType>
                     <launchTime>{{ instance.launch_time }}</launchTime>
@@ -447,6 +453,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
                     <clientToken>ABCDE1234567890123</clientToken>
+                    {% if instance.get_tags() %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
                         <item>
@@ -457,6 +464,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                         </item>
                       {% endfor %}
                     </tagSet>
+                    {% endif %}
                     <hypervisor>xen</hypervisor>
                     <networkInterfaceSet>
                       {% for nic in instance.nics.values() %}
@@ -592,7 +600,9 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
+    {% if value is not none %}
     <value>{{ value }}</value>
+    {% endif %}
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 
@@ -600,9 +610,9 @@ EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
-    {% for sg_id in value %}
+    {% for sg in value %}
       <item>
-        <groupId>{{ sg_id }}</groupId>
+        <groupId>{{ sg.id }}</groupId>
       </item>
     {% endfor %}
   </{{ attribute }}>

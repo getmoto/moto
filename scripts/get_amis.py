@@ -1,7 +1,7 @@
 import boto3
 import json
 
-# Taken from free tear list when creating an instance
+# Taken from free tier list when creating an instance
 instances = [
     'ami-760aaa0f', 'ami-bb9a6bc2', 'ami-35e92e4c', 'ami-785db401', 'ami-b7e93bce', 'ami-dca37ea5', 'ami-999844e0',
     'ami-9b32e8e2', 'ami-f8e54081', 'ami-bceb39c5', 'ami-03cf127a', 'ami-1ecc1e67', 'ami-c2ff2dbb', 'ami-12c6146b',

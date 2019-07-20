@@ -1,4 +1,6 @@
 from __future__ import unicode_literals
+
+import json
 import os
 import boto3
 import botocore
@@ -6,7 +8,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_elbv2, mock_ec2, mock_acm
+from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation
 from moto.elbv2 import elbv2_backends
 
 
@@ -25,7 +27,7 @@ def test_create_load_balancer():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -67,7 +69,7 @@ def test_describe_load_balancers():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
@@ -110,7 +112,7 @@ def test_add_remove_tags():
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
     subnet1 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
@@ -232,7 +234,7 @@ def test_create_elb_in_multiple_region():
             InstanceTenancy='default')
         subnet1 = ec2.create_subnet(
             VpcId=vpc.id,
-            CidrBlock='172.28.7.192/26',
+            CidrBlock='172.28.7.0/26',
             AvailabilityZone=region + 'a')
         subnet2 = ec2.create_subnet(
             VpcId=vpc.id,
@@ -273,7 +275,7 @@ def test_create_target_group_and_listeners():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -339,6 +341,10 @@ def test_create_target_group_and_listeners():
         'TargetGroupArn': target_group.get('TargetGroupArn'),
         'Type': 'forward'}])
     http_listener_arn = listener.get('ListenerArn')
+
+    response = conn.describe_target_groups(LoadBalancerArn=load_balancer_arn,
+                                           Names=['a-target'])
+    response.get('TargetGroups').should.have.length_of(1)
 
     # And another with SSL
     response = conn.create_listener(
@@ -411,6 +417,45 @@ def test_create_target_group_and_listeners():
     conn.delete_target_group(TargetGroupArn=target_group.get('TargetGroupArn'))
     response = conn.describe_target_groups()
     response.get('TargetGroups').should.have.length_of(0)
+
+
+@mock_elbv2
+@mock_ec2
+def test_create_target_group_without_non_required_parameters():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.0/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    # request without HealthCheckIntervalSeconds parameter
+    # which is default to 30 seconds
+    response = conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080'
+    )
+    target_group = response.get('TargetGroups')[0]
+    target_group.should_not.be.none
 
 
 @mock_elbv2
@@ -493,7 +538,7 @@ def test_describe_paginated_balancers():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     for i in range(51):
@@ -528,7 +573,7 @@ def test_delete_load_balancer():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -561,7 +606,7 @@ def test_register_targets():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     conn.create_load_balancer(
@@ -624,6 +669,91 @@ def test_register_targets():
 
 @mock_ec2
 @mock_elbv2
+def test_stopped_instance_target():
+    target_group_port = 8080
+
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.0/26',
+        AvailabilityZone='us-east-1b')
+
+    conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    response = conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=target_group_port,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+    target_group = response.get('TargetGroups')[0]
+
+    # No targets registered yet
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
+    response.get('TargetHealthDescriptions').should.have.length_of(0)
+
+    response = ec2.create_instances(
+        ImageId='ami-1234abcd', MinCount=1, MaxCount=1)
+    instance = response[0]
+
+    target_dict = {
+        'Id': instance.id,
+        'Port': 500
+    }
+
+    response = conn.register_targets(
+        TargetGroupArn=target_group.get('TargetGroupArn'),
+        Targets=[target_dict])
+
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
+    response.get('TargetHealthDescriptions').should.have.length_of(1)
+    target_health_description = response.get('TargetHealthDescriptions')[0]
+
+    target_health_description['Target'].should.equal(target_dict)
+    target_health_description['HealthCheckPort'].should.equal(str(target_group_port))
+    target_health_description['TargetHealth'].should.equal({
+        'State': 'healthy'
+    })
+
+    instance.stop()
+
+    response = conn.describe_target_health(
+        TargetGroupArn=target_group.get('TargetGroupArn'))
+    response.get('TargetHealthDescriptions').should.have.length_of(1)
+    target_health_description = response.get('TargetHealthDescriptions')[0]
+    target_health_description['Target'].should.equal(target_dict)
+    target_health_description['HealthCheckPort'].should.equal(str(target_group_port))
+    target_health_description['TargetHealth'].should.equal({
+        'State': 'unused',
+        'Reason': 'Target.InvalidState',
+        'Description': 'Target is in the stopped state'
+    })
+
+
+@mock_ec2
+@mock_elbv2
 def test_target_group_attributes():
     conn = boto3.client('elbv2', region_name='us-east-1')
     ec2 = boto3.resource('ec2', region_name='us-east-1')
@@ -637,7 +767,7 @@ def test_target_group_attributes():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -728,7 +858,7 @@ def test_handle_listener_rules():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1033,7 +1163,7 @@ def test_describe_invalid_target_group():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = conn.create_load_balancer(
@@ -1062,6 +1192,50 @@ def test_describe_invalid_target_group():
     # Check error raises correctly
     with assert_raises(ClientError):
         conn.describe_target_groups(Names=['invalid'])
+
+
+@mock_elbv2
+@mock_ec2
+def test_describe_target_groups_no_arguments():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.0/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    conn.create_target_group(
+        Name='a-target',
+        Protocol='HTTP',
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol='HTTP',
+        HealthCheckPort='8080',
+        HealthCheckPath='/',
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=5,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={'HttpCode': '200'})
+
+    assert len(conn.describe_target_groups()['TargetGroups']) == 1
 
 
 @mock_elbv2
@@ -1099,7 +1273,7 @@ def test_set_ip_address_type():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1149,7 +1323,7 @@ def test_set_security_groups():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1186,11 +1360,11 @@ def test_set_subnets():
     vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
     subnet1 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.64/26',
         AvailabilityZone='us-east-1b')
     subnet3 = ec2.create_subnet(
         VpcId=vpc.id,
@@ -1243,7 +1417,7 @@ def test_set_subnets():
         AvailabilityZone='us-east-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='us-east-1b')
 
     response = client.create_load_balancer(
@@ -1332,7 +1506,7 @@ def test_modify_listener_http_to_https():
         AvailabilityZone='eu-central-1a')
     subnet2 = ec2.create_subnet(
         VpcId=vpc.id,
-        CidrBlock='172.28.7.192/26',
+        CidrBlock='172.28.7.0/26',
         AvailabilityZone='eu-central-1b')
 
     response = client.create_load_balancer(
@@ -1432,3 +1606,208 @@ def test_modify_listener_http_to_https():
                 {'Type': 'forward', 'TargetGroupArn': target_group_arn}
             ]
         )
+
+
+@mock_ec2
+@mock_elbv2
+@mock_cloudformation
+def test_create_target_groups_through_cloudformation():
+    cfn_conn = boto3.client('cloudformation', region_name='us-east-1')
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+
+    # test that setting a name manually as well as letting cloudformation create a name both work
+    # this is a special case because test groups have a name length limit of 22 characters, and must be unique
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-name
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                },
+            },
+            "testGroup1": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "VpcId": {"Ref": "testVPC"},
+                },
+            },
+            "testGroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "Port": 90,
+                    "Protocol": "HTTP",
+                    "VpcId": {"Ref": "testVPC"},
+                },
+            },
+            "testGroup3": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "Name": "MyTargetGroup",
+                    "Port": 70,
+                    "Protocol": "HTTPS",
+                    "VpcId": {"Ref": "testVPC"},
+                },
+            },
+        }
+    }
+    template_json = json.dumps(template)
+    cfn_conn.create_stack(
+        StackName="test-stack",
+        TemplateBody=template_json,
+    )
+
+    describe_target_groups_response = elbv2_client.describe_target_groups()
+    target_group_dicts = describe_target_groups_response['TargetGroups']
+    assert len(target_group_dicts) == 3
+
+    # there should be 2 target groups with the same prefix of 10 characters (since the random suffix is 12)
+    # and one named MyTargetGroup
+    assert len([tg for tg in target_group_dicts if tg['TargetGroupName'] == 'MyTargetGroup']) == 1
+    assert len(
+        [tg for tg in target_group_dicts if tg['TargetGroupName'].startswith('test-stack')]
+    ) == 2
+
+
+@mock_elbv2
+@mock_ec2
+def test_redirect_action_listener_rule():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.128/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    response = conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                    Protocol='HTTP',
+                                    Port=80,
+                                    DefaultActions=[
+                                        {'Type': 'redirect',
+                                         'RedirectConfig': {
+                                             'Protocol': 'HTTPS',
+                                             'Port': '443',
+                                             'StatusCode': 'HTTP_301'
+                                         }}])
+
+    listener = response.get('Listeners')[0]
+    expected_default_actions = [{
+        'Type': 'redirect',
+        'RedirectConfig': {
+            'Protocol': 'HTTPS',
+            'Port': '443',
+            'StatusCode': 'HTTP_301'
+        }
+    }]
+    listener.get('DefaultActions').should.equal(expected_default_actions)
+    listener_arn = listener.get('ListenerArn')
+
+    describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
+    describe_rules_response['Rules'][0]['Actions'].should.equal(expected_default_actions)
+
+    describe_listener_response = conn.describe_listeners(ListenerArns=[listener_arn, ])
+    describe_listener_actions = describe_listener_response['Listeners'][0]['DefaultActions']
+    describe_listener_actions.should.equal(expected_default_actions)
+
+    modify_listener_response = conn.modify_listener(ListenerArn=listener_arn, Port=81)
+    modify_listener_actions = modify_listener_response['Listeners'][0]['DefaultActions']
+    modify_listener_actions.should.equal(expected_default_actions)
+
+
+@mock_elbv2
+@mock_cloudformation
+def test_redirect_action_listener_rule_cloudformation():
+    cnf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                },
+            },
+            "subnet1": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "subnet2": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.1.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "testLb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "my-lb",
+                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
+                    "Type": "application",
+                    "SecurityGroups": [],
+                }
+            },
+            "testListener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "LoadBalancerArn": {"Ref": "testLb"},
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "DefaultActions": [{
+                        "Type": "redirect",
+                        "RedirectConfig": {
+                            "Port": "443",
+                            "Protocol": "HTTPS",
+                            "StatusCode": "HTTP_301",
+                        }
+                    }]
+                }
+
+            }
+        }
+    }
+    template_json = json.dumps(template)
+    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
+
+    describe_load_balancers_response = elbv2_client.describe_load_balancers(Names=['my-lb',])
+    describe_load_balancers_response['LoadBalancers'].should.have.length_of(1)
+    load_balancer_arn = describe_load_balancers_response['LoadBalancers'][0]['LoadBalancerArn']
+
+    describe_listeners_response = elbv2_client.describe_listeners(LoadBalancerArn=load_balancer_arn)
+
+    describe_listeners_response['Listeners'].should.have.length_of(1)
+    describe_listeners_response['Listeners'][0]['DefaultActions'].should.equal([{
+        'Type': 'redirect',
+        'RedirectConfig': {
+            'Port': '443', 'Protocol': 'HTTPS', 'StatusCode': 'HTTP_301',
+        }
+    },])

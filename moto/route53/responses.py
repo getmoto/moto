@@ -123,6 +123,9 @@ class Route53(BaseResponse):
                     """ % (record_set['Name'], the_zone.name)
                     return 400, headers, error_msg
 
+                if not record_set['Name'].endswith('.'):
+                    record_set['Name'] += '.'
+
                 if action in ('CREATE', 'UPSERT'):
                     if 'ResourceRecords' in record_set:
                         resource_records = list(
@@ -131,10 +134,7 @@ class Route53(BaseResponse):
                             # Depending on how many records there are, this may
                             # or may not be a list
                             resource_records = [resource_records]
-                        record_values = [x['Value'] for x in resource_records]
-                    elif 'AliasTarget' in record_set:
-                        record_values = [record_set['AliasTarget']['DNSName']]
-                    record_set['ResourceRecords'] = record_values
+                        record_set['ResourceRecords'] = [x['Value'] for x in resource_records]
                     if action == 'CREATE':
                         the_zone.add_rrset(record_set)
                     else:
@@ -144,13 +144,13 @@ class Route53(BaseResponse):
                         the_zone.delete_rrset_by_id(
                             record_set["SetIdentifier"])
                     else:
-                        the_zone.delete_rrset_by_name(record_set["Name"])
+                        the_zone.delete_rrset(record_set)
 
             return 200, headers, CHANGE_RRSET_RESPONSE
 
         elif method == "GET":
             querystring = parse_qs(parsed_url.query)
-            template = Template(LIST_RRSET_REPONSE)
+            template = Template(LIST_RRSET_RESPONSE)
             start_type = querystring.get("type", [None])[0]
             start_name = querystring.get("name", [None])[0]
             record_sets = the_zone.get_record_sets(start_type, start_name)
@@ -182,9 +182,9 @@ class Route53(BaseResponse):
         elif method == "DELETE":
             health_check_id = parsed_url.path.split("/")[-1]
             route53_backend.delete_health_check(health_check_id)
-            return 200, headers, DELETE_HEALTH_CHECK_REPONSE
+            return 200, headers, DELETE_HEALTH_CHECK_RESPONSE
         elif method == "GET":
-            template = Template(LIST_HEALTH_CHECKS_REPONSE)
+            template = Template(LIST_HEALTH_CHECKS_RESPONSE)
             health_checks = route53_backend.get_health_checks()
             return 200, headers, template.render(health_checks=health_checks)
 
@@ -248,7 +248,7 @@ CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="htt
 </ChangeTagsForResourceResponse>
 """
 
-LIST_RRSET_REPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+LIST_RRSET_RESPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
    <ResourceRecordSets>
    {% for record_set in record_sets %}
       {{ record_set.to_xml() }}
@@ -350,7 +350,7 @@ CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   {{ health_check.to_xml() }}
 </CreateHealthCheckResponse>"""
 
-LIST_HEALTH_CHECKS_REPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListHealthChecksResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
    <HealthChecks>
    {% for health_check in health_checks %}
@@ -361,6 +361,6 @@ LIST_HEALTH_CHECKS_REPONSE = """<?xml version="1.0" encoding="UTF-8"?>
    <MaxItems>{{ health_checks|length }}</MaxItems>
 </ListHealthChecksResponse>"""
 
-DELETE_HEALTH_CHECK_REPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+DELETE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <DeleteHealthCheckResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
 </DeleteHealthCheckResponse>"""

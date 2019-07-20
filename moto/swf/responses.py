@@ -326,9 +326,9 @@ class SWFResponse(BaseResponse):
         _workflow_type = self._params["workflowType"]
         workflow_name = _workflow_type["name"]
         workflow_version = _workflow_type["version"]
-        _default_task_list = self._params.get("defaultTaskList")
-        if _default_task_list:
-            task_list = _default_task_list.get("name")
+        _task_list = self._params.get("taskList")
+        if _task_list:
+            task_list = _task_list.get("name")
         else:
             task_list = None
         child_policy = self._params.get("childPolicy")
@@ -507,3 +507,20 @@ class SWFResponse(BaseResponse):
         )
         # TODO: make it dynamic when we implement activity tasks cancellation
         return json.dumps({"cancelRequested": False})
+
+    def signal_workflow_execution(self):
+        domain_name = self._params["domain"]
+        signal_name = self._params["signalName"]
+        workflow_id = self._params["workflowId"]
+        _input = self._params["input"]
+        run_id = self._params["runId"]
+
+        self._check_string(domain_name)
+        self._check_string(signal_name)
+        self._check_string(workflow_id)
+        self._check_none_or_string(_input)
+        self._check_none_or_string(run_id)
+
+        self.swf_backend.signal_workflow_execution(
+            domain_name, signal_name, workflow_id, _input, run_id)
+        return ""

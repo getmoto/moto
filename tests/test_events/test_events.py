@@ -1,11 +1,10 @@
 import random
-
 import boto3
+import json
 
 from moto.events import mock_events
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
-
 
 RULES = [
     {'Name': 'test1', 'ScheduleExpression': 'rate(5 minutes)'},
@@ -108,6 +107,13 @@ def test_enable_disable_rule():
     rule = client.describe_rule(Name=rule_name)
     assert(rule['State'] == 'ENABLED')
 
+    # Test invalid name
+    try:
+        client.enable_rule(Name='junk')
+
+    except ClientError as ce:
+        assert ce.response['Error']['Code'] == 'ResourceNotFoundException'
+
 
 @mock_events
 def test_list_rule_names_by_target():
@@ -177,17 +183,19 @@ def test_remove_targets():
 def test_permissions():
     client = boto3.client('events', 'eu-central-1')
 
-    client.put_permission(Action='PutEvents', Principal='111111111111', StatementId='Account1')
-    client.put_permission(Action='PutEvents', Principal='222222222222', StatementId='Account2')
+    client.put_permission(Action='events:PutEvents', Principal='111111111111', StatementId='Account1')
+    client.put_permission(Action='events:PutEvents', Principal='222222222222', StatementId='Account2')
 
     resp = client.describe_event_bus()
-    assert len(resp['Policy']['Statement']) == 2
+    resp_policy = json.loads(resp['Policy'])
+    assert len(resp_policy['Statement']) == 2
 
     client.remove_permission(StatementId='Account2')
 
     resp = client.describe_event_bus()
-    assert len(resp['Policy']['Statement']) == 1
-    assert resp['Policy']['Statement'][0]['Sid'] == 'Account1'
+    resp_policy = json.loads(resp['Policy'])
+    assert len(resp_policy['Statement']) == 1
+    assert resp_policy['Statement'][0]['Sid'] == 'Account1'
 
 
 @mock_events

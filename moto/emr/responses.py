@@ -267,6 +267,18 @@ class ElasticMapReduceResponse(BaseResponse):
             else:
                 kwargs['running_ami_version'] = '1.0.0'
 
+        custom_ami_id = self._get_param('CustomAmiId')
+        if custom_ami_id:
+            kwargs['custom_ami_id'] = custom_ami_id
+            if release_label and release_label < 'emr-5.7.0':
+                message = 'Custom AMI is not allowed'
+                raise EmrError(error_type='ValidationException',
+                            message=message, template='error_json')
+            elif ami_version:
+                message = 'Custom AMI is not supported in this version of EMR'
+                raise EmrError(error_type='ValidationException',
+                            message=message, template='error_json')
+
         cluster = self.backend.run_job_flow(**kwargs)
 
         applications = self._get_list_prefix('Applications.member')
@@ -375,6 +387,9 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
         </member>
         {% endfor %}
       </Configurations>
+      {% if cluster.custom_ami_id is not none %}
+      <CustomAmiId>{{ cluster.custom_ami_id }}</CustomAmiId>
+      {% endif %}
       <Ec2InstanceAttributes>
         <AdditionalMasterSecurityGroups>
         {% for each in cluster.additional_master_security_groups %}
@@ -462,10 +477,10 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
               <ScriptBootstrapAction>
                 <Args>
                   {% for arg in bootstrap_action.args %}
-                  <member>{{ arg }}</member>
+                  <member>{{ arg | escape }}</member>
                   {% endfor %}
                 </Args>
-                <Path>{{ bootstrap_action.script_path }}</Path>
+                <Path>{{ bootstrap_action.script_path | escape }}</Path>
               </ScriptBootstrapAction>
             </BootstrapActionConfig>
           </member>
@@ -568,12 +583,12 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
                 <MainClass>{{ step.main_class }}</MainClass>
                 <Args>
                   {% for arg in step.args %}
-                  <member>{{ arg }}</member>
+                  <member>{{ arg | escape }}</member>
                   {% endfor %}
                 </Args>
                 <Properties/>
               </HadoopJarStep>
-              <Name>{{ step.name }}</Name>
+              <Name>{{ step.name | escape }}</Name>
             </StepConfig>
           </member>
           {% endfor %}
@@ -596,7 +611,7 @@ DESCRIBE_STEP_TEMPLATE = """<DescribeStepResponse xmlns="http://elasticmapreduce
       <Config>
         <Args>
           {% for arg in step.args %}
-          <member>{{ arg }}</member>
+          <member>{{ arg | escape }}</member>
           {% endfor %}
         </Args>
         <Jar>{{ step.jar }}</Jar>
@@ -605,21 +620,19 @@ DESCRIBE_STEP_TEMPLATE = """<DescribeStepResponse xmlns="http://elasticmapreduce
           {% for key, val in step.properties.items() %}
           <member>
             <key>{{ key }}</key>
-            <value>{{ val }}</value>
+            <value>{{ val | escape }}</value>
           </member>
           {% endfor %}
         </Properties>
       </Config>
       <Id>{{ step.id }}</Id>
-      <Name>{{ step.name }}</Name>
+      <Name>{{ step.name | escape }}</Name>
       <Status>
-<!-- does not exist for botocore 1.4.28
         <FailureDetails>
           <Reason/>
           <Message/>
           <LogFile/>
         </FailureDetails>
--->
         <State>{{ step.state }}</State>
         <StateChangeReason>{{ step.state_change_reason }}</StateChangeReason>
         <Timeline>
@@ -646,7 +659,7 @@ LIST_BOOTSTRAP_ACTIONS_TEMPLATE = """<ListBootstrapActionsResponse xmlns="http:/
       <member>
         <Args>
           {% for arg in bootstrap_action.args %}
-          <member>{{ arg }}</member>
+          <member>{{ arg | escape }}</member>
           {% endfor %}
         </Args>
         <Name>{{ bootstrap_action.name }}</Name>
@@ -760,22 +773,22 @@ LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazo
         <Config>
           <Args>
             {% for arg in step.args %}
-            <member>{{ arg }}</member>
+            <member>{{ arg | escape }}</member>
             {% endfor %}
           </Args>
-          <Jar>{{ step.jar }}</Jar>
+          <Jar>{{ step.jar | escape }}</Jar>
           <MainClass/>
           <Properties>
             {% for key, val in step.properties.items() %}
             <member>
               <key>{{ key }}</key>
-              <value>{{ val }}</value>
+              <value>{{ val | escape }}</value>
             </member>
             {% endfor %}
           </Properties>
         </Config>
         <Id>{{ step.id }}</Id>
-        <Name>{{ step.name }}</Name>
+        <Name>{{ step.name | escape }}</Name>
         <Status>
 <!-- does not exist for botocore 1.4.28
           <FailureDetails>

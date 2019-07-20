@@ -398,11 +398,82 @@ class Stack(BaseModel):
         return response
 
 
+class App(BaseModel):
+
+    def __init__(self, stack_id, name, type,
+                 shortname=None,
+                 description=None,
+                 datasources=None,
+                 app_source=None,
+                 domains=None,
+                 enable_ssl=False,
+                 ssl_configuration=None,
+                 attributes=None,
+                 environment=None):
+        self.stack_id = stack_id
+        self.name = name
+        self.type = type
+        self.shortname = shortname
+        self.description = description
+
+        self.datasources = datasources
+        if datasources is None:
+            self.datasources = []
+
+        self.app_source = app_source
+        if app_source is None:
+            self.app_source = {}
+
+        self.domains = domains
+        if domains is None:
+            self.domains = []
+
+        self.enable_ssl = enable_ssl
+
+        self.ssl_configuration = ssl_configuration
+        if ssl_configuration is None:
+            self.ssl_configuration = {}
+
+        self.attributes = attributes
+        if attributes is None:
+            self.attributes = {}
+
+        self.environment = environment
+        if environment is None:
+            self.environment = {}
+
+        self.id = "{0}".format(uuid.uuid4())
+        self.created_at = datetime.datetime.utcnow()
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def to_dict(self):
+        d = {
+            "AppId": self.id,
+            "AppSource": self.app_source,
+            "Attributes": self.attributes,
+            "CreatedAt": self.created_at.isoformat(),
+            "Datasources": self.datasources,
+            "Description": self.description,
+            "Domains": self.domains,
+            "EnableSsl": self.enable_ssl,
+            "Environment": self.environment,
+            "Name": self.name,
+            "Shortname": self.shortname,
+            "SslConfiguration": self.ssl_configuration,
+            "StackId": self.stack_id,
+            "Type": self.type
+        }
+        return d
+
+
 class OpsWorksBackend(BaseBackend):
 
     def __init__(self, ec2_backend):
         self.stacks = {}
         self.layers = {}
+        self.apps = {}
         self.instances = {}
         self.ec2_backend = ec2_backend
 
@@ -434,6 +505,20 @@ class OpsWorksBackend(BaseBackend):
         self.layers[layer.id] = layer
         self.stacks[stackid].layers.append(layer)
         return layer
+
+    def create_app(self, **kwargs):
+        name = kwargs['name']
+        stackid = kwargs['stack_id']
+        if stackid not in self.stacks:
+            raise ResourceNotFoundException(stackid)
+        if name in [a.name for a in self.stacks[stackid].apps]:
+            raise ValidationException(
+                'There is already an app named "{0}" '
+                'for this stack'.format(name))
+        app = App(**kwargs)
+        self.apps[app.id] = app
+        self.stacks[stackid].apps.append(app)
+        return app
 
     def create_instance(self, **kwargs):
         stack_id = kwargs['stack_id']
@@ -501,6 +586,22 @@ class OpsWorksBackend(BaseBackend):
         if unknown_layers:
             raise ResourceNotFoundException(", ".join(unknown_layers))
         return [self.layers[id].to_dict() for id in layer_ids]
+
+    def describe_apps(self, stack_id, app_ids):
+        if stack_id is not None and app_ids is not None:
+            raise ValidationException(
+                "Please provide one or more app IDs or a stack ID"
+            )
+        if stack_id is not None:
+            if stack_id not in self.stacks:
+                raise ResourceNotFoundException(
+                    "Unable to find stack with ID {0}".format(stack_id))
+            return [app.to_dict() for app in self.stacks[stack_id].apps]
+
+        unknown_apps = set(app_ids) - set(self.apps.keys())
+        if unknown_apps:
+            raise ResourceNotFoundException(", ".join(unknown_apps))
+        return [self.apps[id].to_dict() for id in app_ids]
 
     def describe_instances(self, instance_ids, layer_id, stack_id):
         if len(list(filter(None, (instance_ids, layer_id, stack_id)))) != 1:

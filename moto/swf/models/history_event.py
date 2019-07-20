@@ -25,6 +25,7 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
     "ActivityTaskTimedOut",
     "DecisionTaskTimedOut",
     "WorkflowExecutionTimedOut",
+    "WorkflowExecutionSignaled"
 )
 
 

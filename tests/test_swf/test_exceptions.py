@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import sure  # noqa
 
 import json
 

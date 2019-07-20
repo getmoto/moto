@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from moto.core.exceptions import RESTError
 
 
 class MessageNotInflight(Exception):
@@ -21,3 +22,11 @@ class MessageAttributesInvalid(Exception):
 class QueueDoesNotExist(Exception):
     status_code = 404
     description = "The specified queue does not exist for this wsdl version."
+
+
+class QueueAlreadyExists(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(QueueAlreadyExists, self).__init__(
+            "QueueAlreadyExists", message)

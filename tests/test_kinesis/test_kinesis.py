@@ -1,9 +1,12 @@
 from __future__ import unicode_literals
 
+import datetime
+import time
+
 import boto.kinesis
-from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
 import boto3
-import sure  # noqa
+from boto.kinesis.exceptions import ResourceNotFoundException, \
+    InvalidArgumentException
 
 from moto import mock_kinesis, mock_kinesis_deprecated
 
@@ -12,7 +15,7 @@ from moto import mock_kinesis, mock_kinesis_deprecated
 def test_create_cluster():
     conn = boto.kinesis.connect_to_region("us-west-2")
 
-    conn.create_stream("my_stream", 2)
+    conn.create_stream("my_stream", 3)
 
     stream_response = conn.describe_stream("my_stream")
 
@@ -24,7 +27,7 @@ def test_create_cluster():
     stream["StreamStatus"].should.equal("ACTIVE")
 
     shards = stream['Shards']
-    shards.should.have.length_of(2)
+    shards.should.have.length_of(3)
 
 
 @mock_kinesis_deprecated
@@ -71,6 +74,23 @@ def test_list_many_streams():
     has_more_streams.should.equal(False)
 
 
+@mock_kinesis
+def test_describe_stream_summary():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = 'my_stream_summary'
+    shard_count = 5
+    conn.create_stream(StreamName=stream_name, ShardCount=shard_count)
+
+    resp = conn.describe_stream_summary(StreamName=stream_name)
+    stream = resp["StreamDescriptionSummary"]
+
+    stream["StreamName"].should.equal(stream_name)
+    stream["OpenShardCount"].should.equal(shard_count)
+    stream["StreamARN"].should.equal(
+        "arn:aws:kinesis:us-west-2:123456789012:{}".format(stream_name))
+    stream["StreamStatus"].should.equal("ACTIVE")
+
+
 @mock_kinesis_deprecated
 def test_basic_shard_iterator():
     conn = boto.kinesis.connect_to_region("us-west-2")
@@ -87,6 +107,7 @@ def test_basic_shard_iterator():
     response = conn.get_records(shard_iterator)
     shard_iterator = response['NextShardIterator']
     response['Records'].should.equal([])
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis_deprecated
@@ -97,7 +118,8 @@ def test_get_invalid_shard_iterator():
     conn.create_stream(stream_name, 1)
 
     conn.get_shard_iterator.when.called_with(
-        stream_name, "123", 'TRIM_HORIZON').should.throw(ResourceNotFoundException)
+        stream_name, "123", 'TRIM_HORIZON').should.throw(
+        ResourceNotFoundException)
 
 
 @mock_kinesis_deprecated
@@ -223,6 +245,7 @@ def test_get_records_after_sequence_number():
     response = conn.get_records(shard_iterator)
     # And the first result returned should be the third item
     response['Records'][0]['Data'].should.equal('3')
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis_deprecated
@@ -260,6 +283,192 @@ def test_get_records_latest():
     response['Records'].should.have.length_of(1)
     response['Records'][0]['PartitionKey'].should.equal('last_record')
     response['Records'][0]['Data'].should.equal('last_record')
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_at_timestamp():
+    # AT_TIMESTAMP - Read the first record at or after the specified timestamp
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    # Create some data
+    for index in range(1, 5):
+        conn.put_record(StreamName=stream_name,
+                        Data=str(index),
+                        PartitionKey=str(index))
+
+    # When boto3 floors the timestamp that we pass to get_shard_iterator to
+    # second precision even though AWS supports ms precision:
+    # http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html
+    # To test around this limitation we wait until we well into the next second
+    # before capturing the time and storing the records we expect to retrieve.
+    time.sleep(1.0)
+    timestamp = datetime.datetime.utcnow()
+
+    keys = [str(i) for i in range(5, 10)]
+    for k in keys:
+        conn.put_record(StreamName=stream_name,
+                        Data=k,
+                        PartitionKey=k)
+
+    # Get a shard iterator
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='AT_TIMESTAMP',
+                                       Timestamp=timestamp)
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+
+    response['Records'].should.have.length_of(len(keys))
+    partition_keys = [r['PartitionKey'] for r in response['Records']]
+    partition_keys.should.equal(keys)
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_at_very_old_timestamp():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    # Create some data
+    keys = [str(i) for i in range(1, 5)]
+    for k in keys:
+        conn.put_record(StreamName=stream_name,
+                        Data=k,
+                        PartitionKey=k)
+
+    # Get a shard iterator
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='AT_TIMESTAMP',
+                                       Timestamp=1)
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+    response['Records'].should.have.length_of(len(keys))
+    partition_keys = [r['PartitionKey'] for r in response['Records']]
+    partition_keys.should.equal(keys)
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_timestamp_filtering():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.put_record(StreamName=stream_name,
+                    Data='0',
+                    PartitionKey='0')
+
+    time.sleep(1.0)
+    timestamp = datetime.datetime.utcnow()
+
+    conn.put_record(StreamName=stream_name,
+                    Data='1',
+                    PartitionKey='1')
+
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='AT_TIMESTAMP',
+                                       Timestamp=timestamp)
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+    response['Records'].should.have.length_of(1)
+    response['Records'][0]['PartitionKey'].should.equal('1')
+    response['Records'][0]['ApproximateArrivalTimestamp'].should.be. \
+        greater_than(timestamp)
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_millis_behind_latest():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    conn.put_record(StreamName=stream_name,
+                    Data='0',
+                    PartitionKey='0')
+    time.sleep(1.0)
+    conn.put_record(StreamName=stream_name,
+                    Data='1',
+                    PartitionKey='1')
+
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='TRIM_HORIZON')
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator, Limit=1)
+    response['Records'].should.have.length_of(1)
+    response['MillisBehindLatest'].should.be.greater_than(0)
+
+
+@mock_kinesis
+def test_get_records_at_very_new_timestamp():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    # Create some data
+    keys = [str(i) for i in range(1, 5)]
+    for k in keys:
+        conn.put_record(StreamName=stream_name,
+                        Data=k,
+                        PartitionKey=k)
+
+    timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+
+    # Get a shard iterator
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='AT_TIMESTAMP',
+                                       Timestamp=timestamp)
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+
+    response['Records'].should.have.length_of(0)
+    response['MillisBehindLatest'].should.equal(0)
+
+
+@mock_kinesis
+def test_get_records_from_empty_stream_at_timestamp():
+    conn = boto3.client('kinesis', region_name="us-west-2")
+    stream_name = "my_stream"
+    conn.create_stream(StreamName=stream_name, ShardCount=1)
+
+    timestamp = datetime.datetime.utcnow()
+
+    # Get a shard iterator
+    response = conn.describe_stream(StreamName=stream_name)
+    shard_id = response['StreamDescription']['Shards'][0]['ShardId']
+    response = conn.get_shard_iterator(StreamName=stream_name,
+                                       ShardId=shard_id,
+                                       ShardIteratorType='AT_TIMESTAMP',
+                                       Timestamp=timestamp)
+    shard_iterator = response['ShardIterator']
+
+    response = conn.get_records(ShardIterator=shard_iterator)
+
+    response['Records'].should.have.length_of(0)
+    response['MillisBehindLatest'].should.equal(0)
 
 
 @mock_kinesis_deprecated
@@ -271,7 +480,8 @@ def test_invalid_shard_iterator_type():
     response = conn.describe_stream(stream_name)
     shard_id = response['StreamDescription']['Shards'][0]['ShardId']
     response = conn.get_shard_iterator.when.called_with(
-        stream_name, shard_id, 'invalid-type').should.throw(InvalidArgumentException)
+        stream_name, shard_id, 'invalid-type').should.throw(
+        InvalidArgumentException)
 
 
 @mock_kinesis_deprecated
@@ -359,7 +569,8 @@ def test_split_shard():
 
     shard_range = shards[0]['HashKeyRange']
     new_starting_hash = (
-        int(shard_range['EndingHashKey']) + int(shard_range['StartingHashKey'])) // 2
+                            int(shard_range['EndingHashKey']) + int(
+                                shard_range['StartingHashKey'])) // 2
     conn.split_shard("my_stream", shards[0]['ShardId'], str(new_starting_hash))
 
     stream_response = conn.describe_stream(stream_name)
@@ -372,7 +583,8 @@ def test_split_shard():
 
     shard_range = shards[2]['HashKeyRange']
     new_starting_hash = (
-        int(shard_range['EndingHashKey']) + int(shard_range['StartingHashKey'])) // 2
+                            int(shard_range['EndingHashKey']) + int(
+                                shard_range['StartingHashKey'])) // 2
     conn.split_shard("my_stream", shards[2]['ShardId'], str(new_starting_hash))
 
     stream_response = conn.describe_stream(stream_name)
@@ -402,7 +614,8 @@ def test_merge_shards():
     shards.should.have.length_of(4)
 
     conn.merge_shards.when.called_with(
-        stream_name, 'shardId-000000000000', 'shardId-000000000002').should.throw(InvalidArgumentException)
+        stream_name, 'shardId-000000000000',
+        'shardId-000000000002').should.throw(InvalidArgumentException)
 
     stream_response = conn.describe_stream(stream_name)
 

@@ -4,11 +4,13 @@ from nose.tools import assert_raises
 import itertools
 
 import boto
+import boto3
+from botocore.exceptions import ClientError
 from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto import mock_ec2_deprecated, mock_ec2
 from nose.tools import assert_raises
 
 
@@ -385,3 +387,96 @@ def test_filter_instances_by_wildcard_tags():
 
     reservations = conn.get_all_instances(filters={'tag-value': 'Value*'})
     reservations.should.have.length_of(2)
+
+
+@mock_ec2
+def test_create_volume_with_tags():
+    client = boto3.client('ec2', 'us-west-2')
+    response = client.create_volume(
+            AvailabilityZone='us-west-2',
+            Encrypted=False,
+            Size=40,
+            TagSpecifications=[
+                {
+                    'ResourceType': 'volume',
+                    'Tags': [
+                        {
+                            'Key': 'TEST_TAG',
+                            'Value': 'TEST_VALUE'
+                        }
+                    ],
+                }
+            ]
+        )
+    
+    assert response['Tags'][0]['Key'] == 'TEST_TAG'
+
+
+@mock_ec2
+def test_create_snapshot_with_tags():
+    client = boto3.client('ec2', 'us-west-2')
+    volume_id = client.create_volume(
+        AvailabilityZone='us-west-2',
+        Encrypted=False,
+        Size=40,
+        TagSpecifications=[
+            {
+                'ResourceType': 'volume',
+                'Tags': [
+                    {
+                        'Key': 'TEST_TAG',
+                        'Value': 'TEST_VALUE'
+                    }
+                ],
+            }
+        ]
+    )['VolumeId']
+    snapshot = client.create_snapshot(
+        VolumeId=volume_id,
+        TagSpecifications=[
+            {
+                'ResourceType': 'snapshot',
+                'Tags': [
+                    {
+                        'Key': 'TEST_SNAPSHOT_TAG',
+                        'Value': 'TEST_SNAPSHOT_VALUE'
+                    }
+                ],
+            }
+        ]
+    )
+
+    expected_tags = [{
+        'Key': 'TEST_SNAPSHOT_TAG',
+        'Value': 'TEST_SNAPSHOT_VALUE'
+    }]
+
+    assert snapshot['Tags'] == expected_tags
+
+
+@mock_ec2
+def test_create_tag_empty_resource():
+    # create ec2 client in us-west-1
+    client = boto3.client('ec2', region_name='us-west-1')
+    # create tag with empty resource
+    with assert_raises(ClientError) as ex:
+        client.create_tags(
+            Resources=[],
+            Tags=[{'Key': 'Value'}]
+        )
+    ex.exception.response['Error']['Code'].should.equal('MissingParameter')
+    ex.exception.response['Error']['Message'].should.equal('The request must contain the parameter resourceIdSet')
+
+
+@mock_ec2
+def test_delete_tag_empty_resource():
+    # create ec2 client in us-west-1
+    client = boto3.client('ec2', region_name='us-west-1')
+    # delete tag with empty resource
+    with assert_raises(ClientError) as ex:
+        client.delete_tags(
+            Resources=[],
+            Tags=[{'Key': 'Value'}]
+        )
+    ex.exception.response['Error']['Code'].should.equal('MissingParameter')
+    ex.exception.response['Error']['Message'].should.equal('The request must contain the parameter resourceIdSet')

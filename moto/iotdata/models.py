@@ -184,6 +184,10 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
 
+    def publish(self, topic, qos, payload):
+        # do nothing because client won't know about the result
+        return None
+
 
 available_regions = boto3.session.Session().get_available_regions("iot-data")
 iotdata_backends = {region: IoTDataPlaneBackend(region) for region in available_regions}

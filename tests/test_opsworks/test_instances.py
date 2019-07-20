@@ -23,6 +23,20 @@ def test_create_instance():
         Shortname="TestLayerShortName"
     )['LayerId']
 
+    second_stack_id = client.create_stack(
+        Name="test_stack_2",
+        Region="us-east-1",
+        ServiceRoleArn="service_arn",
+        DefaultInstanceProfileArn="profile_arn"
+    )['StackId']
+
+    second_layer_id = client.create_layer(
+        StackId=second_stack_id,
+        Type="custom",
+        Name="SecondTestLayer",
+        Shortname="SecondTestLayerShortName"
+    )['LayerId']
+
     response = client.create_instance(
         StackId=stack_id, LayerIds=[layer_id], InstanceType="t2.micro"
     )
@@ -36,6 +50,14 @@ def test_create_instance():
     client.create_instance.when.called_with(
         StackId=stack_id, LayerIds=["nothere"], InstanceType="t2.micro"
     ).should.throw(Exception, "nothere")
+    # ClientError
+    client.create_instance.when.called_with(
+        StackId=stack_id, LayerIds=[second_layer_id], InstanceType="t2.micro"
+    ).should.throw(Exception, "Please only provide layer IDs from the same stack")
+    # ClientError
+    client.start_instance.when.called_with(
+        InstanceId="nothere"
+    ).should.throw(Exception, "Unable to find instance with ID nothere")
 
 
 @mock_opsworks
@@ -131,6 +153,32 @@ def test_describe_instances():
     response.should.have.length_of(2)
     S2L1_i1.should_not.be.within([i["InstanceId"] for i in response])
 
+    # ClientError
+    client.describe_instances.when.called_with(
+        StackId=S1,
+        LayerId=S1L1
+    ).should.throw(
+        Exception, "Please provide either one or more"
+    )
+    # ClientError
+    client.describe_instances.when.called_with(
+        StackId="nothere"
+    ).should.throw(
+        Exception, "nothere"
+    )
+    # ClientError
+    client.describe_instances.when.called_with(
+        LayerId="nothere"
+    ).should.throw(
+        Exception, "nothere"
+    )
+    # ClientError
+    client.describe_instances.when.called_with(
+        InstanceIds=["nothere"]
+    ).should.throw(
+        Exception, "nothere"
+    )
+
 
 @mock_opsworks
 @mock_ec2
@@ -155,7 +203,7 @@ def test_ec2_integration():
     )['LayerId']
 
     instance_id = opsworks.create_instance(
-        StackId=stack_id, LayerIds=[layer_id], InstanceType="t2.micro"
+        StackId=stack_id, LayerIds=[layer_id], InstanceType="t2.micro", SshKeyName="testSSH"
     )['InstanceId']
 
     ec2 = boto3.client('ec2', region_name='us-east-1')

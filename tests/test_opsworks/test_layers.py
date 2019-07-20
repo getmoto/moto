@@ -62,6 +62,15 @@ def test_create_layer_response():
         Exception, re.compile(
             r'already a layer with shortname "TestLayerShortName"')
     )
+    # ClientError
+    client.create_layer.when.called_with(
+        StackId="nothere",
+        Type="custom",
+        Name="TestLayer",
+        Shortname="_"
+    ).should.throw(
+        Exception, "nothere"
+    )
 
 
 @freeze_time("2015-01-01")
@@ -86,3 +95,23 @@ def test_describe_layers():
     rv1['Layers'].should.equal(rv2['Layers'])
 
     rv1['Layers'][0]['Name'].should.equal("TestLayer")
+
+    # ClientError
+    client.describe_layers.when.called_with(
+        StackId=stack_id,
+        LayerIds=[layer_id]
+    ).should.throw(
+        Exception, "Please provide one or more layer IDs or a stack ID"
+    )
+    # ClientError
+    client.describe_layers.when.called_with(
+        StackId="nothere"
+    ).should.throw(
+        Exception, "Unable to find stack with ID nothere"
+    )
+    # ClientError
+    client.describe_layers.when.called_with(
+        LayerIds=["nothere"]
+    ).should.throw(
+        Exception, "nothere"
+    )

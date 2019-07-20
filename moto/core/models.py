@@ -2,14 +2,19 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from collections import defaultdict
 import functools
 import inspect
+import os
 import re
 import six
+from io import BytesIO
+from collections import defaultdict
+from botocore.handlers import BUILTIN_HANDLERS
+from botocore.awsrequest import AWSResponse
 
+import mock
 from moto import settings
-from moto.packages.responses import responses
+import responses
 from moto.packages.httpretty import HTTPretty
 from .utils import (
     convert_httpretty_response,
@@ -33,6 +38,10 @@ class BaseMockAWS(object):
         self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
 
+        # "Mock" the AWS credentials as they can't be mocked in Botocore currently
+        FAKE_KEYS = {"AWS_ACCESS_KEY_ID": "foobar_key", "AWS_SECRET_ACCESS_KEY": "foobar_secret"}
+        self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
+
         if self.__class__.nested_count == 0:
             self.reset()
 
@@ -43,11 +52,14 @@ class BaseMockAWS(object):
 
     def __enter__(self):
         self.start()
+        return self
 
     def __exit__(self, *args):
         self.stop()
 
     def start(self, reset=True):
+        self.env_variables_mocks.start()
+
         self.__class__.nested_count += 1
         if reset:
             for backend in self.backends.values():
@@ -56,6 +68,7 @@ class BaseMockAWS(object):
         self.enable_patching()
 
     def stop(self):
+        self.env_variables_mocks.stop()
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
@@ -87,6 +100,17 @@ class BaseMockAWS(object):
 
             # Check if this is a classmethod. If so, skip patching
             if inspect.ismethod(attr_value) and attr_value.__self__ is klass:
+                continue
+
+            # Check if this is a staticmethod. If so, skip patching
+            for cls in inspect.getmro(klass):
+                if attr_value.__name__ not in cls.__dict__:
+                    continue
+                bound_attr_value = cls.__dict__[attr_value.__name__]
+                if not isinstance(bound_attr_value, staticmethod):
+                    break
+            else:
+                # It is a staticmethod, skip patching
                 continue
 
             try:
@@ -124,34 +148,209 @@ RESPONSES_METHODS = [responses.GET, responses.DELETE, responses.HEAD,
                      responses.OPTIONS, responses.PATCH, responses.POST, responses.PUT]
 
 
-class ResponsesMockAWS(BaseMockAWS):
+class CallbackResponse(responses.CallbackResponse):
+    '''
+    Need to subclass so we can change a couple things
+    '''
+    def get_response(self, request):
+        '''
+        Need to override this so we can pass decode_content=False
+        '''
+        headers = self.get_headers()
 
+        result = self.callback(request)
+        if isinstance(result, Exception):
+            raise result
+
+        status, r_headers, body = result
+        body = responses._handle_body(body)
+        headers.update(r_headers)
+
+        return responses.HTTPResponse(
+            status=status,
+            reason=six.moves.http_client.responses.get(status),
+            body=body,
+            headers=headers,
+            preload_content=False,
+            # Need to not decode_content to mimic requests
+            decode_content=False,
+        )
+
+    def _url_matches(self, url, other, match_querystring=False):
+        '''
+        Need to override this so we can fix querystrings breaking regex matching
+        '''
+        if not match_querystring:
+            other = other.split('?', 1)[0]
+
+        if responses._is_string(url):
+            if responses._has_unicode(url):
+                url = responses._clean_unicode(url)
+                if not isinstance(other, six.text_type):
+                    other = other.encode('ascii').decode('utf8')
+            return self._url_matches_strict(url, other)
+        elif isinstance(url, responses.Pattern) and url.match(other):
+            return True
+        else:
+            return False
+
+
+botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
+responses_mock = responses._default_mock
+
+
+class ResponsesMockAWS(BaseMockAWS):
     def reset(self):
-        responses.reset()
+        botocore_mock.reset()
+        responses_mock.reset()
 
     def enable_patching(self):
-        responses.start()
+        if not hasattr(botocore_mock, '_patcher') or not hasattr(botocore_mock._patcher, 'target'):
+            # Check for unactivated patcher
+            botocore_mock.start()
+
+        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+            responses_mock.start()
+
         for method in RESPONSES_METHODS:
             for backend in self.backends_for_urls.values():
                 for key, value in backend.urls.items():
-                    responses.add_callback(
-                        method=method,
-                        url=re.compile(key),
-                        callback=convert_flask_to_responses_response(value),
+                    responses_mock.add(
+                        CallbackResponse(
+                            method=method,
+                            url=re.compile(key),
+                            callback=convert_flask_to_responses_response(value),
+                            stream=True,
+                            match_querystring=False,
+                        )
                     )
-
-        for pattern in responses.mock._urls:
-            pattern['stream'] = True
+                    botocore_mock.add(
+                        CallbackResponse(
+                            method=method,
+                            url=re.compile(key),
+                            callback=convert_flask_to_responses_response(value),
+                            stream=True,
+                            match_querystring=False,
+                        )
+                    )
 
     def disable_patching(self):
         try:
-            responses.stop()
-        except AttributeError:
+            botocore_mock.stop()
+        except RuntimeError:
             pass
-        responses.reset()
+
+        try:
+            responses_mock.stop()
+        except RuntimeError:
+            pass
 
 
-MockAWS = ResponsesMockAWS
+BOTOCORE_HTTP_METHODS = [
+    'GET', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'
+]
+
+
+class MockRawResponse(BytesIO):
+    def __init__(self, input):
+        if isinstance(input, six.text_type):
+            input = input.encode('utf-8')
+        super(MockRawResponse, self).__init__(input)
+
+    def stream(self, **kwargs):
+        contents = self.read()
+        while contents:
+            yield contents
+            contents = self.read()
+
+
+class BotocoreStubber(object):
+    def __init__(self):
+        self.enabled = False
+        self.methods = defaultdict(list)
+
+    def reset(self):
+        self.methods.clear()
+
+    def register_response(self, method, pattern, response):
+        matchers = self.methods[method]
+        matchers.append((pattern, response))
+
+    def __call__(self, event_name, request, **kwargs):
+        if not self.enabled:
+            return None
+
+        response = None
+        response_callback = None
+        found_index = None
+        matchers = self.methods.get(request.method)
+
+        base_url = request.url.split('?', 1)[0]
+        for i, (pattern, callback) in enumerate(matchers):
+            if pattern.match(base_url):
+                if found_index is None:
+                    found_index = i
+                    response_callback = callback
+                else:
+                    matchers.pop(found_index)
+                    break
+
+        if response_callback is not None:
+            for header, value in request.headers.items():
+                if isinstance(value, six.binary_type):
+                    request.headers[header] = value.decode('utf-8')
+            status, headers, body = response_callback(request, request.url, request.headers)
+            body = MockRawResponse(body)
+            response = AWSResponse(request.url, status, headers, body)
+
+        return response
+
+
+botocore_stubber = BotocoreStubber()
+BUILTIN_HANDLERS.append(('before-send', botocore_stubber))
+
+
+class BotocoreEventMockAWS(BaseMockAWS):
+    def reset(self):
+        botocore_stubber.reset()
+        responses_mock.reset()
+
+    def enable_patching(self):
+        botocore_stubber.enabled = True
+        for method in BOTOCORE_HTTP_METHODS:
+            for backend in self.backends_for_urls.values():
+                for key, value in backend.urls.items():
+                    pattern = re.compile(key)
+                    botocore_stubber.register_response(method, pattern, value)
+
+        if not hasattr(responses_mock, '_patcher') or not hasattr(responses_mock._patcher, 'target'):
+            responses_mock.start()
+
+        for method in RESPONSES_METHODS:
+            # for backend in default_backends.values():
+            for backend in self.backends_for_urls.values():
+                for key, value in backend.urls.items():
+                    responses_mock.add(
+                        CallbackResponse(
+                            method=method,
+                            url=re.compile(key),
+                            callback=convert_flask_to_responses_response(value),
+                            stream=True,
+                            match_querystring=False,
+                        )
+                    )
+
+    def disable_patching(self):
+        botocore_stubber.enabled = False
+        self.reset()
+
+        try:
+            responses_mock.stop()
+        except RuntimeError:
+            pass
+
+
+MockAWS = BotocoreEventMockAWS
 
 
 class ServerModeMockAWS(BaseMockAWS):
@@ -270,10 +469,14 @@ class BaseModel(object):
 
 class BaseBackend(object):
 
-    def reset(self):
+    def _reset_model_refs(self):
+        # Remove all references to the models stored
         for service, models in model_data.items():
             for model_name, model in models.items():
                 model.instances = []
+
+    def reset(self):
+        self._reset_model_refs()
         self.__dict__ = {}
         self.__init__()
 

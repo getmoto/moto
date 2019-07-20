@@ -18,18 +18,57 @@ def test_create_database():
                                        MasterUsername='root',
                                        MasterUserPassword='hunter2',
                                        Port=1234,
-                                       DBSecurityGroups=["my_sg"])
-    database['DBInstance']['AllocatedStorage'].should.equal(10)
-    database['DBInstance']['DBInstanceClass'].should.equal("db.m1.small")
-    database['DBInstance']['LicenseModel'].should.equal("license-included")
-    database['DBInstance']['MasterUsername'].should.equal("root")
-    database['DBInstance']['DBSecurityGroups'][0][
+                                       DBSecurityGroups=["my_sg"],
+                                       VpcSecurityGroupIds=['sg-123456'])
+    db_instance = database['DBInstance']
+    db_instance['AllocatedStorage'].should.equal(10)
+    db_instance['DBInstanceClass'].should.equal("db.m1.small")
+    db_instance['LicenseModel'].should.equal("license-included")
+    db_instance['MasterUsername'].should.equal("root")
+    db_instance['DBSecurityGroups'][0][
         'DBSecurityGroupName'].should.equal('my_sg')
-    database['DBInstance']['DBInstanceArn'].should.equal(
+    db_instance['DBInstanceArn'].should.equal(
         'arn:aws:rds:us-west-2:1234567890:db:db-master-1')
-    database['DBInstance']['DBInstanceStatus'].should.equal('available')
-    database['DBInstance']['DBName'].should.equal('staging-postgres')
-    database['DBInstance']['DBInstanceIdentifier'].should.equal("db-master-1")
+    db_instance['DBInstanceStatus'].should.equal('available')
+    db_instance['DBName'].should.equal('staging-postgres')
+    db_instance['DBInstanceIdentifier'].should.equal("db-master-1")
+    db_instance['IAMDatabaseAuthenticationEnabled'].should.equal(False)
+    db_instance['DbiResourceId'].should.contain("db-")
+    db_instance['CopyTagsToSnapshot'].should.equal(False)
+    db_instance['InstanceCreateTime'].should.be.a("datetime.datetime")
+    db_instance['VpcSecurityGroups'][0]['VpcSecurityGroupId'].should.equal('sg-123456')
+
+
+@mock_rds2
+def test_create_database_non_existing_option_group():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance.when.called_with(
+        DBInstanceIdentifier='db-master-1',
+        AllocatedStorage=10,
+        Engine='postgres',
+        DBName='staging-postgres',
+        DBInstanceClass='db.m1.small',
+        OptionGroupName='non-existing').should.throw(ClientError)
+
+
+@mock_rds2
+def test_create_database_with_option_group():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_option_group(OptionGroupName='my-og',
+                             EngineName='mysql',
+                             MajorEngineVersion='5.6',
+                             OptionGroupDescription='test option group')
+    database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBName='staging-postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       OptionGroupName='my-og')
+    db_instance = database['DBInstance']
+    db_instance['AllocatedStorage'].should.equal(10)
+    db_instance['DBInstanceClass'].should.equal('db.m1.small')
+    db_instance['DBName'].should.equal('staging-postgres')
+    db_instance['OptionGroupMemberships'][0]['OptionGroupName'].should.equal('my-og')
 
 
 @mock_rds2
@@ -50,7 +89,7 @@ def test_stop_database():
     # test stopping database should shutdown
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
     # test rdsclient error when trying to stop an already stopped database
     conn.stop_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
     # test stopping a stopped database with snapshot should error and no snapshot should exist for that call
@@ -76,10 +115,10 @@ def test_start_database():
     mydb['DBInstanceStatus'].should.equal('available')
     # test starting an already started database should error
     conn.start_db_instance.when.called_with(DBInstanceIdentifier=mydb['DBInstanceIdentifier']).should.throw(ClientError)
-    # stop and test start - should go from shutdown to available, create snapshot and check snapshot
+    # stop and test start - should go from stopped to available, create snapshot and check snapshot
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'], DBSnapshotIdentifier='rocky4570-rds-snap')
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
     response = conn.describe_db_snapshots()
     response['DBSnapshots'][0]['DBSnapshotIdentifier'].should.equal('rocky4570-rds-snap')
     response = conn.start_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
@@ -93,7 +132,7 @@ def test_start_database():
     # test stopping database not invoking snapshot should succeed.
     response = conn.stop_db_instance(DBInstanceIdentifier=mydb['DBInstanceIdentifier'])
     response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    response['DBInstance']['DBInstanceStatus'].should.equal('shutdown')
+    response['DBInstance']['DBInstanceStatus'].should.equal('stopped')
 
 
 @mock_rds2
@@ -197,6 +236,9 @@ def test_get_databases_paginated():
     resp2 = conn.describe_db_instances(Marker=resp["Marker"])
     resp2["DBInstances"].should.have.length_of(1)
 
+    resp3 = conn.describe_db_instances(MaxRecords=100)
+    resp3["DBInstances"].should.have.length_of(51)
+
 
 @mock_rds2
 def test_describe_non_existant_database():
@@ -220,9 +262,33 @@ def test_modify_db_instance():
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(10)
     conn.modify_db_instance(DBInstanceIdentifier='db-master-1',
                             AllocatedStorage=20,
-                            ApplyImmediately=True)
+                            ApplyImmediately=True,
+                            VpcSecurityGroupIds=['sg-123456'])
     instances = conn.describe_db_instances(DBInstanceIdentifier='db-master-1')
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(20)
+    instances['DBInstances'][0]['VpcSecurityGroups'][0]['VpcSecurityGroupId'].should.equal('sg-123456')
+
+
+@mock_rds2
+def test_rename_db_instance():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       DBInstanceClass='postgres',
+                                       Engine='db.m1.small',
+                                       MasterUsername='root',
+                                       MasterUserPassword='hunter2',
+                                       Port=1234,
+                                       DBSecurityGroups=['my_sg'])
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    list(instances['DBInstances']).should.have.length_of(1)
+    conn.describe_db_instances.when.called_with(DBInstanceIdentifier="db-master-2").should.throw(ClientError)
+    conn.modify_db_instance(DBInstanceIdentifier='db-master-1',
+                            NewDBInstanceIdentifier='db-master-2',
+                            ApplyImmediately=True)
+    conn.describe_db_instances.when.called_with(DBInstanceIdentifier="db-master-1").should.throw(ClientError)
+    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-2")
+    list(instances['DBInstances']).should.have.length_of(1)
 
 
 @mock_rds2
@@ -312,6 +378,49 @@ def test_create_db_snapshots():
     snapshot.get('Engine').should.equal('postgres')
     snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
     snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshotArn'])
+    result['TagList'].should.equal([])
+
+
+@mock_rds2
+def test_create_db_snapshots_copy_tags():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_snapshot.when.called_with(
+        DBInstanceIdentifier='db-primary-1',
+        DBSnapshotIdentifier='snapshot-1').should.throw(ClientError)
+
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"],
+                            CopyTagsToSnapshot=True,
+                            Tags=[
+                                {
+                                    'Key': 'foo',
+                                    'Value': 'bar',
+                                },
+                                {
+                                    'Key': 'foo1',
+                                    'Value': 'bar1',
+                                },
+                            ])
+
+    snapshot = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                       DBSnapshotIdentifier='g-1').get('DBSnapshot')
+
+    snapshot.get('Engine').should.equal('postgres')
+    snapshot.get('DBInstanceIdentifier').should.equal('db-primary-1')
+    snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshotArn'])
+    result['TagList'].should.equal([{'Value': 'bar',
+                                     'Key': 'foo'},
+                                    {'Value': 'bar1',
+                                     'Key': 'foo1'}])
 
 
 @mock_rds2
@@ -326,8 +435,6 @@ def test_describe_db_snapshots():
                             MasterUserPassword='hunter2',
                             Port=1234,
                             DBSecurityGroups=["my_sg"])
-    conn.describe_db_snapshots.when.called_with(
-        DBInstanceIdentifier="db-primary-1").should.throw(ClientError)
 
     created = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
                                       DBSnapshotIdentifier='snapshot-1').get('DBSnapshot')
@@ -341,6 +448,11 @@ def test_describe_db_snapshots():
     snapshot = by_snapshot_id[0]
     snapshot.should.equal(created)
     snapshot.get('Engine').should.equal('postgres')
+
+    conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                            DBSnapshotIdentifier='snapshot-2')
+    snapshots = conn.describe_db_snapshots(DBInstanceIdentifier='db-primary-1').get('DBSnapshots')
+    snapshots.should.have.length_of(2)
 
 
 @mock_rds2
@@ -627,6 +739,117 @@ def test_remove_tags_db():
 
 
 @mock_rds2
+def test_list_tags_snapshot():
+    conn = boto3.client('rds', region_name='us-west-2')
+    result = conn.list_tags_for_resource(
+        ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:foo')
+    result['TagList'].should.equal([])
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+    snapshot = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                       DBSnapshotIdentifier='snapshot-with-tags',
+                                       Tags=[
+                                           {
+                                               'Key': 'foo',
+                                               'Value': 'bar',
+                                           },
+                                           {
+                                               'Key': 'foo1',
+                                               'Value': 'bar1',
+                                           },
+                                       ])
+    result = conn.list_tags_for_resource(ResourceName=snapshot['DBSnapshot']['DBSnapshotArn'])
+    result['TagList'].should.equal([{'Value': 'bar',
+                                     'Key': 'foo'},
+                                    {'Value': 'bar1',
+                                     'Key': 'foo1'}])
+
+
+@mock_rds2
+def test_add_tags_snapshot():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+    snapshot = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                       DBSnapshotIdentifier='snapshot-without-tags',
+                                       Tags=[
+                                           {
+                                               'Key': 'foo',
+                                               'Value': 'bar',
+                                           },
+                                           {
+                                               'Key': 'foo1',
+                                               'Value': 'bar1',
+                                           },
+                                       ])
+    result = conn.list_tags_for_resource(
+        ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-without-tags')
+    list(result['TagList']).should.have.length_of(2)
+    conn.add_tags_to_resource(ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-without-tags',
+                              Tags=[
+                                  {
+                                      'Key': 'foo',
+                                      'Value': 'fish',
+                                  },
+                                  {
+                                      'Key': 'foo2',
+                                      'Value': 'bar2',
+                                  },
+                              ])
+    result = conn.list_tags_for_resource(
+        ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-without-tags')
+    list(result['TagList']).should.have.length_of(3)
+
+
+@mock_rds2
+def test_remove_tags_snapshot():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_db_instance(DBInstanceIdentifier='db-primary-1',
+                            AllocatedStorage=10,
+                            Engine='postgres',
+                            DBName='staging-postgres',
+                            DBInstanceClass='db.m1.small',
+                            MasterUsername='root',
+                            MasterUserPassword='hunter2',
+                            Port=1234,
+                            DBSecurityGroups=["my_sg"])
+    snapshot = conn.create_db_snapshot(DBInstanceIdentifier='db-primary-1',
+                                       DBSnapshotIdentifier='snapshot-with-tags',
+                                       Tags=[
+                                           {
+                                               'Key': 'foo',
+                                               'Value': 'bar',
+                                           },
+                                           {
+                                               'Key': 'foo1',
+                                               'Value': 'bar1',
+                                           },
+                                       ])
+    result = conn.list_tags_for_resource(
+        ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-with-tags')
+    list(result['TagList']).should.have.length_of(2)
+    conn.remove_tags_from_resource(
+        ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-with-tags', TagKeys=['foo'])
+    result = conn.list_tags_for_resource(
+        ResourceName='arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-with-tags')
+    len(result['TagList']).should.equal(1)
+
+
+@mock_rds2
 def test_add_tags_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test',
@@ -860,9 +1083,9 @@ def test_create_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet1 = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
     subnet2 = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/26')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.2.0/24')['Subnet']
 
     subnet_ids = [subnet1['SubnetId'], subnet2['SubnetId']]
     conn = boto3.client('rds', region_name='us-west-2')
@@ -884,7 +1107,7 @@ def test_create_database_in_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_subnet_group(DBSubnetGroupName='db_subnet1',
@@ -909,7 +1132,7 @@ def test_describe_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_subnet_group(DBSubnetGroupName="db_subnet1",
@@ -938,7 +1161,7 @@ def test_delete_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -964,7 +1187,7 @@ def test_list_tags_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -991,7 +1214,7 @@ def test_add_tags_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -1022,7 +1245,7 @@ def test_remove_tags_database_subnet_group():
     vpc_conn = boto3.client('ec2', 'us-west-2')
     vpc = vpc_conn.create_vpc(CidrBlock='10.0.0.0/16')['Vpc']
     subnet = vpc_conn.create_subnet(
-        VpcId=vpc['VpcId'], CidrBlock='10.1.0.0/24')['Subnet']
+        VpcId=vpc['VpcId'], CidrBlock='10.0.1.0/24')['Subnet']
 
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()

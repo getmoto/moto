@@ -33,6 +33,18 @@ class LogsResponse(BaseResponse):
         self.logs_backend.delete_log_group(log_group_name)
         return ''
 
+    def describe_log_groups(self):
+        log_group_name_prefix = self._get_param('logGroupNamePrefix')
+        next_token = self._get_param('nextToken')
+        limit = self._get_param('limit', 50)
+        assert limit <= 50
+        groups, next_token = self.logs_backend.describe_log_groups(
+            limit, log_group_name_prefix, next_token)
+        return json.dumps({
+            "logGroups": groups,
+            "nextToken": next_token
+        })
+
     def create_log_stream(self):
         log_group_name = self._get_param('logGroupName')
         log_stream_name = self._get_param('logStreamName')
@@ -87,9 +99,8 @@ class LogsResponse(BaseResponse):
 
         events, next_backward_token, next_foward_token = \
             self.logs_backend.get_log_events(log_group_name, log_stream_name, start_time, end_time, limit, next_token, start_from_head)
-
         return json.dumps({
-            "events": [ob.__dict__ for ob in events],
+            "events": events,
             "nextBackwardToken": next_backward_token,
             "nextForwardToken": next_foward_token
         })
@@ -112,3 +123,14 @@ class LogsResponse(BaseResponse):
             "nextToken": next_token,
             "searchedLogStreams": searched_streams
         })
+
+    def put_retention_policy(self):
+        log_group_name = self._get_param('logGroupName')
+        retention_in_days = self._get_param('retentionInDays')
+        self.logs_backend.put_retention_policy(log_group_name, retention_in_days)
+        return ''
+
+    def delete_retention_policy(self):
+        log_group_name = self._get_param('logGroupName')
+        self.logs_backend.delete_retention_policy(log_group_name)
+        return ''

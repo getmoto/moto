@@ -1,16 +1,15 @@
 from __future__ import unicode_literals
-from six.moves.urllib.parse import parse_qs
 
 import boto
+import json
 import re
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto.packages.responses import responses
 from moto import mock_sns_deprecated, mock_sqs_deprecated
 
 
-MESSAGE_FROM_SQS_TEMPLATE = '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:123456789012:some-topic",\n  "Type": "Notification",\n  "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"\n}'
+MESSAGE_FROM_SQS_TEMPLATE = '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "%s",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:123456789012:some-topic",\n  "Type": "Notification",\n  "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"\n}'
 
 
 @mock_sqs_deprecated
@@ -29,13 +28,14 @@ def test_publish_to_sqs():
                    "arn:aws:sqs:us-east-1:123456789012:test-queue")
 
     message_to_publish = 'my message'
+    subject_to_publish = "test subject"
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(topic=topic_arn, message=message_to_publish)
+        published_message = conn.publish(topic=topic_arn, message=message_to_publish, subject=subject_to_publish)
     published_message_id = published_message['PublishResponse']['PublishResult']['MessageId']
 
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, 'us-east-1')
+    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, subject_to_publish, 'us-east-1')
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", '2015-01-01T12:00:00.000Z', message.get_body())
     acquired_message.should.equal(expected)
 
@@ -56,13 +56,14 @@ def test_publish_to_sqs_in_different_region():
                    "arn:aws:sqs:us-west-2:123456789012:test-queue")
 
     message_to_publish = 'my message'
+    subject_to_publish = "test subject"
     with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(topic=topic_arn, message=message_to_publish)
+        published_message = conn.publish(topic=topic_arn, message=message_to_publish, subject=subject_to_publish)
     published_message_id = published_message['PublishResponse']['PublishResult']['MessageId']
 
     queue = sqs_conn.get_queue("test-queue")
     message = queue.read(1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, 'us-west-1')
+    expected = MESSAGE_FROM_SQS_TEMPLATE  % (message_to_publish, published_message_id, subject_to_publish, 'us-west-1')
 
     acquired_message = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z", '2015-01-01T12:00:00.000Z', message.get_body())
     acquired_message.should.equal(expected)

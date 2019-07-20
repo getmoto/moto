@@ -75,6 +75,24 @@ class OpsWorksResponse(BaseResponse):
         layer = self.opsworks_backend.create_layer(**kwargs)
         return json.dumps({"LayerId": layer.id}, indent=1)
 
+    def create_app(self):
+        kwargs = dict(
+            stack_id=self.parameters.get('StackId'),
+            name=self.parameters.get('Name'),
+            type=self.parameters.get('Type'),
+            shortname=self.parameters.get('Shortname'),
+            description=self.parameters.get('Description'),
+            datasources=self.parameters.get('DataSources'),
+            app_source=self.parameters.get('AppSource'),
+            domains=self.parameters.get('Domains'),
+            enable_ssl=self.parameters.get('EnableSsl'),
+            ssl_configuration=self.parameters.get('SslConfiguration'),
+            attributes=self.parameters.get('Attributes'),
+            environment=self.parameters.get('Environment')
+        )
+        app = self.opsworks_backend.create_app(**kwargs)
+        return json.dumps({"AppId": app.id}, indent=1)
+
     def create_instance(self):
         kwargs = dict(
             stack_id=self.parameters.get("StackId"),
@@ -109,6 +127,12 @@ class OpsWorksResponse(BaseResponse):
         layer_ids = self.parameters.get("LayerIds")
         layers = self.opsworks_backend.describe_layers(stack_id, layer_ids)
         return json.dumps({"Layers": layers}, indent=1)
+
+    def describe_apps(self):
+        stack_id = self.parameters.get("StackId")
+        app_ids = self.parameters.get("AppIds")
+        apps = self.opsworks_backend.describe_apps(stack_id, app_ids)
+        return json.dumps({"Apps": apps}, indent=1)
 
     def describe_instances(self):
         instance_ids = self.parameters.get("InstanceIds")

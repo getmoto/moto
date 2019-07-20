@@ -75,6 +75,26 @@ get_attribute_output = {
     }
 }
 
+get_availability_zones_output = {
+    "Outputs": {
+        "Output1": {
+            "Value": {"Fn::GetAZs": ""}
+        }
+    }
+}
+
+parameters = {
+    "Parameters": {
+        "Param": {
+            "Type": "String",
+        },
+        "NoEchoParam": {
+            "Type": "String",
+            "NoEcho": True
+        }
+    }
+}
+
 split_select_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -146,6 +166,11 @@ bad_outputs_template = dict(
     list(dummy_template.items()) + list(bad_output.items()))
 get_attribute_outputs_template = dict(
     list(dummy_template.items()) + list(get_attribute_output.items()))
+get_availability_zones_template = dict(
+    list(dummy_template.items()) + list(get_availability_zones_output.items()))
+
+parameters_template = dict(
+    list(dummy_template.items()) + list(parameters.items()))
 
 dummy_template_json = json.dumps(dummy_template)
 name_type_template_json = json.dumps(name_type_template)
@@ -153,6 +178,9 @@ output_type_template_json = json.dumps(outputs_template)
 bad_output_template_json = json.dumps(bad_outputs_template)
 get_attribute_outputs_template_json = json.dumps(
     get_attribute_outputs_template)
+get_availability_zones_template_json = json.dumps(
+    get_availability_zones_template)
+parameters_template_json = json.dumps(parameters_template)
 split_select_template_json = json.dumps(split_select_template)
 sub_template_json = json.dumps(sub_template)
 export_value_template_json = json.dumps(export_value_template)
@@ -242,10 +270,52 @@ def test_parse_stack_with_get_attribute_outputs():
     output.should.be.a(Output)
     output.value.should.equal("my-queue")
 
+def test_parse_stack_with_get_attribute_kms():
+    from .fixtures.kms_key import template
+
+    template_json = json.dumps(template)
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=template_json,
+        parameters={},
+        region_name='us-west-1')
+
+    stack.output_map.should.have.length_of(1)
+    list(stack.output_map.keys())[0].should.equal('KeyArn')
+    output = list(stack.output_map.values())[0]
+    output.should.be.a(Output)
+
+def test_parse_stack_with_get_availability_zones():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=get_availability_zones_template_json,
+        parameters={},
+        region_name='us-east-1')
+
+    stack.output_map.should.have.length_of(1)
+    list(stack.output_map.keys())[0].should.equal('Output1')
+    output = list(stack.output_map.values())[0]
+    output.should.be.a(Output)
+    output.value.should.equal([ "us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d" ])
+
 
 def test_parse_stack_with_bad_get_attribute_outputs():
     FakeStack.when.called_with(
         "test_id", "test_stack", bad_output_template_json, {}, "us-west-1").should.throw(ValidationError)
+
+
+def test_parse_stack_with_parameters():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=parameters_template_json,
+        parameters={"Param": "visible value", "NoEchoParam": "hidden value"},
+        region_name='us-west-1')
+
+    stack.resource_map.no_echo_parameter_keys.should.have("NoEchoParam")
+    stack.resource_map.no_echo_parameter_keys.should_not.have("Param")
 
 
 def test_parse_equals_condition():
@@ -406,8 +476,8 @@ def test_short_form_func_in_yaml_teamplate():
     KeySplit: !Split [A, B]
     KeySub: !Sub A
     """
-    yaml.add_multi_constructor('', yaml_tag_constructor)
-    template_dict = yaml.load(template)
+    yaml.add_multi_constructor('', yaml_tag_constructor, Loader=yaml.Loader)
+    template_dict = yaml.load(template, Loader=yaml.Loader)
     key_and_expects = [
         ['KeyRef', {'Ref': 'foo'}],
         ['KeyB64', {'Fn::Base64': 'valueToEncode'}],

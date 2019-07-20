@@ -21,6 +21,16 @@ from moto.core.utils import convert_flask_to_httpretty_response
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
 
 
+DEFAULT_SERVICE_REGION = ('s3', 'us-east-1')
+
+# Map of unsigned calls to service-region as per AWS API docs
+# https://docs.aws.amazon.com/cognito/latest/developerguide/resource-permissions.html#amazon-cognito-signed-versus-unsigned-apis
+UNSIGNED_REQUESTS = {
+    'AWSCognitoIdentityService': ('cognito-identity', 'us-east-1'),
+    'AWSCognitoIdentityProviderService': ('cognito-idp', 'us-east-1'),
+}
+
+
 class DomainDispatcherApplication(object):
     """
     Dispatch requests to different applications based on the "Host:" header
@@ -34,6 +44,9 @@ class DomainDispatcherApplication(object):
         self.service = service
 
     def get_backend_for_host(self, host):
+        if host == 'moto_api':
+            return host
+
         if self.service:
             return self.service
 
@@ -46,6 +59,32 @@ class DomainDispatcherApplication(object):
                     return backend_name
 
         raise RuntimeError('Invalid host: "%s"' % host)
+
+    def infer_service_region(self, environ):
+        auth = environ.get('HTTP_AUTHORIZATION')
+        if auth:
+            # Signed request
+            # Parse auth header to find service assuming a SigV4 request
+            # https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html
+            # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
+            try:
+                credential_scope = auth.split(",")[0].split()[1]
+                _, _, region, service, _ = credential_scope.split("/")
+                return service, region
+            except ValueError:
+                # Signature format does not match, this is exceptional and we can't
+                # infer a service-region. A reduced set of services still use
+                # the deprecated SigV2, ergo prefer S3 as most likely default.
+                # https://docs.aws.amazon.com/general/latest/gr/signature-version-2.html
+                return DEFAULT_SERVICE_REGION
+        else:
+            # Unsigned request
+            target = environ.get('HTTP_X_AMZ_TARGET')
+            if target:
+                service, _ = target.split('.', 1)
+                return UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
+            # S3 is the last resort when the target is also unknown
+            return DEFAULT_SERVICE_REGION
 
     def get_application(self, environ):
         path_info = environ.get('PATH_INFO', '')
@@ -63,19 +102,15 @@ class DomainDispatcherApplication(object):
         else:
             host = environ['HTTP_HOST'].split(':')[0]
         if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
-            # Fall back to parsing auth header to find service
-            # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
-            try:
-                _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[
-                    1].split("/")
-            except (KeyError, ValueError):
-                region = 'us-east-1'
-                service = 's3'
+            service, region = self.infer_service_region(environ)
             if service == 'dynamodb':
-                dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
-                # If Newer API version, use dynamodb2
-                if dynamo_api_version > "20111205":
-                    host = "dynamodb2"
+                if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
+                    host = 'dynamodbstreams'
+                else:
+                    dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
+                    # If Newer API version, use dynamodb2
+                    if dynamo_api_version > "20111205":
+                        host = "dynamodb2"
             else:
                 host = "{service}.{region}.amazonaws.com".format(
                     service=service, region=region)
@@ -186,9 +221,17 @@ def main(argv=sys.argv[1:]):
     parser.add_argument(
         '-s', '--ssl',
         action='store_true',
-        help='Enable SSL encrypted connection (use https://... URL)',
+        help='Enable SSL encrypted connection with auto-generated certificate (use https://... URL)',
         default=False
     )
+    parser.add_argument(
+        '-c', '--ssl-cert', type=str,
+        help='Path to SSL certificate',
+        default=None)
+    parser.add_argument(
+        '-k', '--ssl-key', type=str,
+        help='Path to SSL private key',
+        default=None)
 
     args = parser.parse_args(argv)
 
@@ -197,9 +240,15 @@ def main(argv=sys.argv[1:]):
         create_backend_app, service=args.service)
     main_app.debug = True
 
+    ssl_context = None
+    if args.ssl_key and args.ssl_cert:
+        ssl_context = (args.ssl_cert, args.ssl_key)
+    elif args.ssl:
+        ssl_context = 'adhoc'
+
     run_simple(args.host, args.port, main_app,
                threaded=True, use_reloader=args.reload,
-               ssl_context='adhoc' if args.ssl else None)
+               ssl_context=ssl_context)
 
 
 if __name__ == '__main__':

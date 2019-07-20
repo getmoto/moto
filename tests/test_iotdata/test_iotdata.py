@@ -85,3 +85,9 @@ def test_update():
     payload.should.have.key('metadata').which.should.have.key('desired').which.should.have.key('led')
     payload.should.have.key('version').which.should.equal(2)
     payload.should.have.key('timestamp')
+
+
+@mock_iotdata
+def test_publish():
+    client = boto3.client('iot-data', region_name='ap-northeast-1')
+    client.publish(topic='test/topic', qos=1, payload=b'')

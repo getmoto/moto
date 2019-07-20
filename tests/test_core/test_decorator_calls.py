@@ -85,3 +85,14 @@ class TesterWithSetup(unittest.TestCase):
     def test_still_the_same(self):
         bucket = self.conn.get_bucket('mybucket')
         bucket.name.should.equal("mybucket")
+
+
+@mock_s3_deprecated
+class TesterWithStaticmethod(object):
+
+    @staticmethod
+    def static(*args):
+        assert not args or not isinstance(args[0], TesterWithStaticmethod)
+
+    def test_no_instance_sent_to_staticmethod(self):
+        self.static()

@@ -10,9 +10,10 @@ class ElasticNetworkInterfaces(BaseResponse):
         private_ip_address = self._get_param('PrivateIpAddress')
         groups = self._get_multi_param('SecurityGroupId')
         subnet = self.ec2_backend.get_subnet(subnet_id)
+        description = self._get_param('Description')
         if self.is_not_dryrun('CreateNetworkInterface'):
             eni = self.ec2_backend.create_network_interface(
-                subnet, private_ip_address, groups)
+                subnet, private_ip_address, groups, description)
             template = self.response_template(
                 CREATE_NETWORK_INTERFACE_RESPONSE)
             return template.render(eni=eni)
@@ -78,7 +79,11 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
         <subnetId>{{ eni.subnet.id }}</subnetId>
         <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
         <availabilityZone>us-west-2a</availabilityZone>
+        {% if eni.description %}
+        <description>{{ eni.description }}</description>
+        {% else %}
         <description/>
+        {% endif %}
         <ownerId>498654062920</ownerId>
         <requesterManaged>false</requesterManaged>
         <status>pending</status>
@@ -121,7 +126,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
            <subnetId>{{ eni.subnet.id }}</subnetId>
            <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
            <availabilityZone>us-west-2a</availabilityZone>
-           <description>Primary network interface</description>
+           <description>{{ eni.description }}</description>
            <ownerId>190610284047</ownerId>
            <requesterManaged>false</requesterManaged>
            {% if eni.attachment_id %}

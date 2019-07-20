@@ -41,6 +41,56 @@ def test_create_fifo_queue_fail():
 
 
 @mock_sqs
+def test_create_queue_with_same_attributes():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    dlq_url = sqs.create_queue(QueueName='test-queue-dlq')['QueueUrl']
+    dlq_arn = sqs.get_queue_attributes(QueueUrl=dlq_url)['Attributes']['QueueArn']
+
+    attributes = {
+        'DelaySeconds': '900',
+        'MaximumMessageSize': '262144',
+        'MessageRetentionPeriod': '1209600',
+        'ReceiveMessageWaitTimeSeconds': '20',
+        'RedrivePolicy': '{"deadLetterTargetArn": "%s", "maxReceiveCount": 100}' % (dlq_arn),
+        'VisibilityTimeout': '43200'
+    }
+
+    sqs.create_queue(
+        QueueName='test-queue',
+        Attributes=attributes
+    )
+
+    sqs.create_queue(
+        QueueName='test-queue',
+        Attributes=attributes
+    )
+
+
+@mock_sqs
+def test_create_queue_with_different_attributes_fail():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'VisibilityTimeout': '10',
+        }
+    )
+    try:
+        sqs.create_queue(
+            QueueName='test-queue',
+            Attributes={
+                'VisibilityTimeout': '60',
+            }
+        )
+    except botocore.exceptions.ClientError as err:
+        err.response['Error']['Code'].should.equal('QueueAlreadyExists')
+    else:
+        raise RuntimeError('Should of raised QueueAlreadyExists Exception')
+
+
+@mock_sqs
 def test_create_fifo_queue():
     sqs = boto3.client('sqs', region_name='us-east-1')
     resp = sqs.create_queue(
@@ -73,19 +123,39 @@ def test_create_queue():
 
 
 @mock_sqs
+def test_create_queue_kms():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    new_queue = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'KmsMasterKeyId': 'master-key-id',
+            'KmsDataKeyReusePeriodSeconds': '600'
+        })
+    new_queue.should_not.be.none
+
+    queue = sqs.get_queue_by_name(QueueName='test-queue')
+
+    queue.attributes.get('KmsMasterKeyId').should.equal('master-key-id')
+    queue.attributes.get('KmsDataKeyReusePeriodSeconds').should.equal('600')
+
+
+@mock_sqs
 def test_get_nonexistent_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     with assert_raises(ClientError) as err:
         sqs.get_queue_by_name(QueueName='nonexisting-queue')
     ex = err.exception
     ex.operation_name.should.equal('GetQueueUrl')
-    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+    ex.response['Error']['Code'].should.equal(
+        'AWS.SimpleQueueService.NonExistentQueue')
 
     with assert_raises(ClientError) as err:
         sqs.Queue('http://whatever-incorrect-queue-address').load()
     ex = err.exception
     ex.operation_name.should.equal('GetQueueAttributes')
-    ex.response['Error']['Code'].should.equal('QueueDoesNotExist')
+    ex.response['Error']['Code'].should.equal(
+        'AWS.SimpleQueueService.NonExistentQueue')
 
 
 @mock_sqs
@@ -148,6 +218,28 @@ def test_message_with_complex_attributes():
 
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_send_message_with_message_group_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-group-id.fifo",
+                             Attributes={'FifoQueue': 'true'})
+
+    sent = queue.send_message(
+        MessageBody="mydata",
+        MessageDeduplicationId="dedupe_id_1",
+        MessageGroupId="group_id_1",
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+    message_attributes = messages[0].attributes
+    message_attributes.should.contain('MessageGroupId')
+    message_attributes['MessageGroupId'].should.equal('group_id_1')
+    message_attributes.should.contain('MessageDeduplicationId')
+    message_attributes['MessageDeduplicationId'].should.equal('dedupe_id_1')
 
 
 @mock_sqs
@@ -324,7 +416,9 @@ def test_send_receive_message_timestamps():
     conn.create_queue(QueueName="test-queue")
     queue = sqs.Queue("test-queue")
 
-    queue.send_message(MessageBody="derp")
+    response = queue.send_message(MessageBody="derp")
+    assert response['ResponseMetadata']['RequestId']
+
     messages = conn.receive_message(
         QueueUrl=queue.url, MaxNumberOfMessages=1)['Messages']
 
@@ -334,6 +428,36 @@ def test_send_receive_message_timestamps():
 
     int.when.called_with(sent_timestamp).shouldnt.throw(ValueError)
     int.when.called_with(approximate_first_receive_timestamp).shouldnt.throw(ValueError)
+
+
+@mock_sqs
+def test_max_number_of_messages_invalid_param():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    with assert_raises(ClientError):
+        queue.receive_messages(MaxNumberOfMessages=11)
+
+    with assert_raises(ClientError):
+        queue.receive_messages(MaxNumberOfMessages=0)
+
+    # no error but also no messages returned
+    queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=0)
+
+
+@mock_sqs
+def test_wait_time_seconds_invalid_param():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName='test-queue')
+
+    with assert_raises(ClientError):
+        queue.receive_messages(WaitTimeSeconds=-1)
+
+    with assert_raises(ClientError):
+        queue.receive_messages(WaitTimeSeconds=21)
+
+    # no error but also no messages returned
+    queue.receive_messages(WaitTimeSeconds=0)
 
 
 @mock_sqs
@@ -348,20 +472,6 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
     queue = sqs.create_queue(QueueName="blah")
 
     messages = queue.receive_messages(WaitTimeSeconds=0)
-    messages.should.equal([])
-
-
-@mock_sqs
-def test_receive_messages_with_wait_seconds_timeout_of_negative_one():
-    """
-    test that zero messages is returned with a wait_seconds_timeout of negative 1
-    :return:
-    """
-
-    sqs = boto3.resource('sqs', region_name='us-east-1')
-    queue = sqs.create_queue(QueueName="blah")
-
-    messages = queue.receive_messages(WaitTimeSeconds=-1)
     messages.should.equal([])
 
 
@@ -890,7 +1000,7 @@ def test_create_fifo_queue_with_dlq():
 def test_queue_with_dlq():
     if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
         raise SkipTest('Cant manipulate time in server mode')
-    
+
     sqs = boto3.client('sqs', region_name='us-east-1')
 
     with freeze_time("2015-01-01 12:00:00"):
@@ -932,3 +1042,198 @@ def test_queue_with_dlq():
 
     resp = sqs.list_dead_letter_source_queues(QueueUrl=queue_url1)
     resp['queueUrls'][0].should.equal(queue_url2)
+
+
+@mock_sqs
+def test_redrive_policy_available():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+
+    resp = sqs.create_queue(QueueName='test-deadletter')
+    queue_url1 = resp['QueueUrl']
+    queue_arn1 = sqs.get_queue_attributes(QueueUrl=queue_url1)['Attributes']['QueueArn']
+    redrive_policy = {
+        'deadLetterTargetArn': queue_arn1,
+        'maxReceiveCount': 1,
+    }
+
+    resp = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'RedrivePolicy': json.dumps(redrive_policy)
+        }
+    )
+
+    queue_url2 = resp['QueueUrl']
+    attributes = sqs.get_queue_attributes(QueueUrl=queue_url2)['Attributes']
+    assert 'RedrivePolicy' in attributes
+    assert json.loads(attributes['RedrivePolicy']) == redrive_policy
+
+    # Cant have redrive policy without maxReceiveCount
+    with assert_raises(ClientError):
+        sqs.create_queue(
+            QueueName='test-queue2',
+            Attributes={
+                'FifoQueue': 'true',
+                'RedrivePolicy': json.dumps({'deadLetterTargetArn': queue_arn1})
+            }
+        )
+
+
+@mock_sqs
+def test_redrive_policy_non_existent_queue():
+    sqs = boto3.client('sqs', region_name='us-east-1')
+    redrive_policy = {
+        'deadLetterTargetArn': 'arn:aws:sqs:us-east-1:123456789012:no-queue',
+        'maxReceiveCount': 1,
+    }
+
+    with assert_raises(ClientError):
+        sqs.create_queue(
+            QueueName='test-queue',
+            Attributes={
+                'RedrivePolicy': json.dumps(redrive_policy)
+            }
+        )
+
+
+@mock_sqs
+def test_redrive_policy_set_attributes():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    queue = sqs.create_queue(QueueName='test-queue')
+    deadletter_queue = sqs.create_queue(QueueName='test-deadletter')
+
+    redrive_policy = {
+        'deadLetterTargetArn': deadletter_queue.attributes['QueueArn'],
+        'maxReceiveCount': 1,
+    }
+
+    queue.set_attributes(Attributes={
+        'RedrivePolicy': json.dumps(redrive_policy)})
+
+    copy = sqs.get_queue_by_name(QueueName='test-queue')
+    assert 'RedrivePolicy' in copy.attributes
+    copy_policy = json.loads(copy.attributes['RedrivePolicy'])
+    assert copy_policy == redrive_policy
+
+
+@mock_sqs
+def test_receive_messages_with_message_group_id():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-queue.fifo",
+                             Attributes={
+                                 'FifoQueue': 'true',
+                             })
+    queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
+    queue.send_message(
+        MessageBody="message-1",
+        MessageGroupId="group"
+    )
+    queue.send_message(
+        MessageBody="message-2",
+        MessageGroupId="group"
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    message = messages[0]
+
+    # received message is not deleted!
+
+    messages = queue.receive_messages(WaitTimeSeconds=0)
+    messages.should.have.length_of(0)
+
+    # message is now processed, next one should be available
+    message.delete()
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_receive_messages_with_message_group_id_on_requeue():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+    queue = sqs.create_queue(QueueName="test-queue.fifo",
+                             Attributes={
+                                 'FifoQueue': 'true',
+                             })
+    queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
+    queue.send_message(
+        MessageBody="message-1",
+        MessageGroupId="group"
+    )
+    queue.send_message(
+        MessageBody="message-2",
+        MessageGroupId="group"
+    )
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    message = messages[0]
+
+    # received message is not deleted!
+
+    messages = queue.receive_messages(WaitTimeSeconds=0)
+    messages.should.have.length_of(0)
+
+    # message is now available again, next one should be available
+    message.change_visibility(VisibilityTimeout=0)
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+    messages[0].message_id.should.equal(message.message_id)
+
+
+@mock_sqs
+def test_receive_messages_with_message_group_id_on_visibility_timeout():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Cant manipulate time in server mode')
+
+    with freeze_time("2015-01-01 12:00:00"):
+        sqs = boto3.resource('sqs', region_name='us-east-1')
+        queue = sqs.create_queue(QueueName="test-queue.fifo",
+                                 Attributes={
+                                     'FifoQueue': 'true',
+                                 })
+        queue.set_attributes(Attributes={"VisibilityTimeout": "3600"})
+        queue.send_message(
+            MessageBody="message-1",
+            MessageGroupId="group"
+        )
+        queue.send_message(
+            MessageBody="message-2",
+            MessageGroupId="group"
+        )
+
+        messages = queue.receive_messages()
+        messages.should.have.length_of(1)
+        message = messages[0]
+
+        # received message is not deleted!
+
+        messages = queue.receive_messages(WaitTimeSeconds=0)
+        messages.should.have.length_of(0)
+
+        message.change_visibility(VisibilityTimeout=10)
+
+    with freeze_time("2015-01-01 12:00:05"):
+        # no timeout yet
+        messages = queue.receive_messages(WaitTimeSeconds=0)
+        messages.should.have.length_of(0)
+
+    with freeze_time("2015-01-01 12:00:15"):
+        # message is now available again, next one should be available
+        messages = queue.receive_messages()
+        messages.should.have.length_of(1)
+        messages[0].message_id.should.equal(message.message_id)
+
+@mock_sqs
+def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    queue = sqs.create_queue(
+        QueueName='test-queue',
+        Attributes={
+            'ReceiveMessageWaitTimeSeconds': '2',
+        }
+    )
+
+    queue.receive_messages()

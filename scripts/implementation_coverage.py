@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 import moto
+import os
 from botocore import xform_name
 from botocore.session import Session
 import boto3
 
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+
 def get_moto_implementation(service_name):
-    if not hasattr(moto, service_name):
+    service_name_standardized = service_name.replace("-", "") if "-" in service_name else service_name
+    if not hasattr(moto, service_name_standardized):
         return None
-    module = getattr(moto, service_name)
+    module = getattr(moto, service_name_standardized)
     if module is None:
         return None
-    mock = getattr(module, "mock_{}".format(service_name))
+    mock = getattr(module, "mock_{}".format(service_name_standardized))
     if mock is None:
         return None
     backends = list(mock().backends.values())
@@ -42,9 +47,8 @@ def calculate_implementation_coverage():
     return coverage
 
 
-def print_implementation_coverage():
-    coverage = calculate_implementation_coverage()
-    for service_name in coverage:
+def print_implementation_coverage(coverage):
+    for service_name in sorted(coverage):
         implemented = coverage.get(service_name)['implemented']
         not_implemented = coverage.get(service_name)['not_implemented']
         operations = sorted(implemented + not_implemented)
@@ -65,5 +69,39 @@ def print_implementation_coverage():
                 print("- [ ] {}".format(op))
 
 
+def write_implementation_coverage_to_file(coverage):
+    # try deleting the implementation coverage file
+    try:
+        os.remove("../IMPLEMENTATION_COVERAGE.md")
+    except OSError:
+        pass
+
+    implementation_coverage_file = "{}/../IMPLEMENTATION_COVERAGE.md".format(script_dir)
+    # rewrite the implementation coverage file with updated values
+    print("Writing to {}".format(implementation_coverage_file))
+    with open(implementation_coverage_file, "a+") as file:
+        for service_name in sorted(coverage):
+            implemented = coverage.get(service_name)['implemented']
+            not_implemented = coverage.get(service_name)['not_implemented']
+            operations = sorted(implemented + not_implemented)
+
+            if implemented and not_implemented:
+                percentage_implemented = int(100.0 * len(implemented) / (len(implemented) + len(not_implemented)))
+            elif implemented:
+                percentage_implemented = 100
+            else:
+                percentage_implemented = 0
+
+            file.write("\n")
+            file.write("## {} - {}% implemented\n".format(service_name, percentage_implemented))
+            for op in operations:
+                if op in implemented:
+                    file.write("- [X] {}\n".format(op))
+                else:
+                    file.write("- [ ] {}\n".format(op))
+
+
 if __name__ == '__main__':
-    print_implementation_coverage()
+    cov = calculate_implementation_coverage()
+    write_implementation_coverage_to_file(cov)
+    print_implementation_coverage(cov)

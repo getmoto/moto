@@ -64,11 +64,46 @@ def test_assume_role():
 
     credentials = role.credentials
     credentials.expiration.should.equal('2012-01-01T12:02:03.000Z')
-    credentials.session_token.should.equal(
-        "BQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/LTo6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3zrkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiBeb/AXlzBBko7b15fjrBs2+cTQtpZ3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE")
-    credentials.access_key.should.equal("AKIAIOSFODNN7EXAMPLE")
-    credentials.secret_key.should.equal(
-        "aJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
+    credentials.session_token.should.have.length_of(356)
+    assert credentials.session_token.startswith("FQoGZXIvYXdzE")
+    credentials.access_key.should.have.length_of(20)
+    assert credentials.access_key.startswith("ASIA")
+    credentials.secret_key.should.have.length_of(40)
+
+    role.user.arn.should.equal("arn:aws:iam::123456789012:role/test-role")
+    role.user.assume_role_id.should.contain("session-name")
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_sts_deprecated
+def test_assume_role_with_web_identity():
+    conn = boto.connect_sts()
+
+    policy = json.dumps({
+        "Statement": [
+            {
+                "Sid": "Stmt13690092345534",
+                "Action": [
+                    "S3:ListBucket"
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                    "arn:aws:s3:::foobar-tester"
+                ]
+            },
+        ]
+    })
+    s3_role = "arn:aws:iam::123456789012:role/test-role"
+    role = conn.assume_role_with_web_identity(
+            s3_role, "session-name", policy, duration_seconds=123)
+
+    credentials = role.credentials
+    credentials.expiration.should.equal('2012-01-01T12:02:03.000Z')
+    credentials.session_token.should.have.length_of(356)
+    assert credentials.session_token.startswith("FQoGZXIvYXdzE")
+    credentials.access_key.should.have.length_of(20)
+    assert credentials.access_key.startswith("ASIA")
+    credentials.secret_key.should.have.length_of(40)
 
     role.user.arn.should.equal("arn:aws:iam::123456789012:role/test-role")
     role.user.assume_role_id.should.contain("session-name")

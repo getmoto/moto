@@ -1,5 +1,6 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
+import sure  # noqa
 
 from moto import mock_swf_deprecated
 

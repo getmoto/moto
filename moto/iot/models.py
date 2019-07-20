@@ -1,15 +1,23 @@
 from __future__ import unicode_literals
-import time
-import boto3
-import string
-import random
+
 import hashlib
+import random
+import re
+import string
+import time
 import uuid
-from moto.core import BaseBackend, BaseModel
 from collections import OrderedDict
+from datetime import datetime
+
+import boto3
+
+from moto.core import BaseBackend, BaseModel
 from .exceptions import (
+    CertificateStateException,
+    DeleteConflictException,
     ResourceNotFoundException,
-    InvalidRequestException
+    InvalidRequestException,
+    VersionConflictException
 )
 
 
@@ -29,6 +37,7 @@ class FakeThing(BaseModel):
     def to_dict(self, include_default_client_id=False):
         obj = {
             'thingName': self.thing_name,
+            'thingArn': self.arn,
             'attributes': self.attributes,
             'version': self.version
         }
@@ -44,6 +53,7 @@ class FakeThingType(BaseModel):
         self.region_name = region_name
         self.thing_type_name = thing_type_name
         self.thing_type_properties = thing_type_properties
+        self.thing_type_id = str(uuid.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {
             'deprecated': False,
@@ -54,13 +64,39 @@ class FakeThingType(BaseModel):
     def to_dict(self):
         return {
             'thingTypeName': self.thing_type_name,
+            'thingTypeId': self.thing_type_id,
             'thingTypeProperties': self.thing_type_properties,
             'thingTypeMetadata': self.metadata
         }
 
 
+class FakeThingGroup(BaseModel):
+    def __init__(self, thing_group_name, parent_group_name, thing_group_properties, region_name):
+        self.region_name = region_name
+        self.thing_group_name = thing_group_name
+        self.thing_group_id = str(uuid.uuid4())  # I don't know the rule of id
+        self.version = 1  # TODO: tmp
+        self.parent_group_name = parent_group_name
+        self.thing_group_properties = thing_group_properties or {}
+        t = time.time()
+        self.metadata = {
+            'creationData': int(t * 1000) / 1000.0
+        }
+        self.arn = 'arn:aws:iot:%s:1:thinggroup/%s' % (self.region_name, thing_group_name)
+        self.things = OrderedDict()
+
+    def to_dict(self):
+        return {
+            'thingGroupName': self.thing_group_name,
+            'thingGroupId': self.thing_group_id,
+            'version': self.version,
+            'thingGroupProperties': self.thing_group_properties,
+            'thingGroupMetadata': self.metadata
+        }
+
+
 class FakeCertificate(BaseModel):
-    def __init__(self, certificate_pem, status, region_name):
+    def __init__(self, certificate_pem, status, region_name, ca_certificate_pem=None):
         m = hashlib.sha256()
         m.update(str(uuid.uuid4()).encode('utf-8'))
         self.certificate_id = m.hexdigest()
@@ -73,12 +109,18 @@ class FakeCertificate(BaseModel):
         self.transfer_data = {}
         self.creation_date = time.time()
         self.last_modified_date = self.creation_date
+
         self.ca_certificate_id = None
+        self.ca_certificate_pem = ca_certificate_pem
+        if ca_certificate_pem:
+            m.update(str(uuid.uuid4()).encode('utf-8'))
+            self.ca_certificate_id = m.hexdigest()
 
     def to_dict(self):
         return {
             'certificateArn': self.arn,
             'certificateId': self.certificate_id,
+            'caCertificateId': self.ca_certificate_id,
             'status': self.status,
             'creationDate': self.creation_date
         }
@@ -131,12 +173,78 @@ class FakePolicy(BaseModel):
         }
 
 
+class FakeJob(BaseModel):
+    JOB_ID_REGEX_PATTERN = "[a-zA-Z0-9_-]"
+    JOB_ID_REGEX = re.compile(JOB_ID_REGEX_PATTERN)
+
+    def __init__(self, job_id, targets, document_source, document, description, presigned_url_config, target_selection,
+                 job_executions_rollout_config, document_parameters, region_name):
+        if not self._job_id_matcher(self.JOB_ID_REGEX, job_id):
+            raise InvalidRequestException()
+
+        self.region_name = region_name
+        self.job_id = job_id
+        self.job_arn = 'arn:aws:iot:%s:1:job/%s' % (self.region_name, job_id)
+        self.targets = targets
+        self.document_source = document_source
+        self.document = document
+        self.description = description
+        self.presigned_url_config = presigned_url_config
+        self.target_selection = target_selection
+        self.job_executions_rollout_config = job_executions_rollout_config
+        self.status = None  # IN_PROGRESS | CANCELED | COMPLETED
+        self.comment = None
+        self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.last_updated_at = time.mktime(datetime(2015, 1, 1).timetuple())
+        self.completed_at = None
+        self.job_process_details = {
+            'processingTargets': targets,
+            'numberOfQueuedThings': 1,
+            'numberOfCanceledThings': 0,
+            'numberOfSucceededThings': 0,
+            'numberOfFailedThings': 0,
+            'numberOfRejectedThings': 0,
+            'numberOfInProgressThings': 0,
+            'numberOfRemovedThings': 0
+        }
+        self.document_parameters = document_parameters
+
+    def to_dict(self):
+        obj = {
+            'jobArn': self.job_arn,
+            'jobId': self.job_id,
+            'targets': self.targets,
+            'description': self.description,
+            'presignedUrlConfig': self.presigned_url_config,
+            'targetSelection': self.target_selection,
+            'jobExecutionsRolloutConfig': self.job_executions_rollout_config,
+            'status': self.status,
+            'comment': self.comment,
+            'createdAt': self.created_at,
+            'lastUpdatedAt': self.last_updated_at,
+            'completedAt': self.completedAt,
+            'jobProcessDetails': self.job_process_details,
+            'documentParameters': self.document_parameters,
+            'document': self.document,
+            'documentSource': self.document_source
+        }
+
+        return obj
+
+    def _job_id_matcher(self, regex, argument):
+        regex_match = regex.match(argument)
+        length_match = len(argument) <= 64
+        return regex_match and length_match
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
         self.region_name = region_name
         self.things = OrderedDict()
+        self.jobs = OrderedDict()
         self.thing_types = OrderedDict()
+        self.thing_groups = OrderedDict()
         self.certificates = OrderedDict()
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
@@ -174,15 +282,37 @@ class IoTBackend(BaseBackend):
 
     def list_thing_types(self, thing_type_name=None):
         if thing_type_name:
-            # It's wierd but thing_type_name is filterd by forward match, not complete match
+            # It's weird but thing_type_name is filtered by forward match, not complete match
             return [_ for _ in self.thing_types.values() if _.thing_type_name.startswith(thing_type_name)]
-        thing_types = self.thing_types.values()
-        return thing_types
+        return self.thing_types.values()
 
-    def list_things(self, attribute_name, attribute_value, thing_type_name):
-        # TODO: filter by attributess or thing_type
-        things = self.things.values()
-        return things
+    def list_things(self, attribute_name, attribute_value, thing_type_name, max_results, token):
+        all_things = [_.to_dict() for _ in self.things.values()]
+        if attribute_name is not None and thing_type_name is not None:
+            filtered_things = list(filter(lambda elem:
+                                          attribute_name in elem["attributes"] and
+                                          elem["attributes"][attribute_name] == attribute_value and
+                                          "thingTypeName" in elem and
+                                          elem["thingTypeName"] == thing_type_name, all_things))
+        elif attribute_name is not None and thing_type_name is None:
+            filtered_things = list(filter(lambda elem:
+                                          attribute_name in elem["attributes"] and
+                                          elem["attributes"][attribute_name] == attribute_value, all_things))
+        elif attribute_name is None and thing_type_name is not None:
+            filtered_things = list(
+                filter(lambda elem: "thingTypeName" in elem and elem["thingTypeName"] == thing_type_name, all_things))
+        else:
+            filtered_things = all_things
+
+        if token is None:
+            things = filtered_things[0:max_results]
+            next_token = str(max_results) if len(filtered_things) > max_results else None
+        else:
+            token = int(token)
+            things = filtered_things[token:token + max_results]
+            next_token = str(token + max_results) if len(filtered_things) > token + max_results else None
+
+        return things, next_token
 
     def describe_thing(self, thing_name):
         things = [_ for _ in self.things.values() if _.thing_name == thing_name]
@@ -256,7 +386,25 @@ class IoTBackend(BaseBackend):
         return certificate, key_pair
 
     def delete_certificate(self, certificate_id):
-        self.describe_certificate(certificate_id)
+        cert = self.describe_certificate(certificate_id)
+        if cert.status == 'ACTIVE':
+            raise CertificateStateException(
+                'Certificate must be deactivated (not ACTIVE) before deletion.', certificate_id)
+
+        certs = [k[0] for k, v in self.principal_things.items()
+                 if self._get_principal(k[0]).certificate_id == certificate_id]
+        if len(certs) > 0:
+            raise DeleteConflictException(
+                'Things must be detached before deletion (arn: %s)' % certs[0]
+            )
+
+        certs = [k[0] for k, v in self.principal_policies.items()
+                 if self._get_principal(k[0]).certificate_id == certificate_id]
+        if len(certs) > 0:
+            raise DeleteConflictException(
+                'Certificate policies must be detached before deletion (arn: %s)' % certs[0]
+            )
+
         del self.certificates[certificate_id]
 
     def describe_certificate(self, certificate_id):
@@ -267,6 +415,12 @@ class IoTBackend(BaseBackend):
 
     def list_certificates(self):
         return self.certificates.values()
+
+    def register_certificate(self, certificate_pem, ca_certificate_pem, set_as_active, status):
+        certificate = FakeCertificate(certificate_pem, 'ACTIVE' if set_as_active else status,
+                                      self.region_name, ca_certificate_pem)
+        self.certificates[certificate.certificate_id] = certificate
+        return certificate
 
     def update_certificate(self, certificate_id, new_status):
         cert = self.describe_certificate(certificate_id)
@@ -289,6 +443,14 @@ class IoTBackend(BaseBackend):
         return policies[0]
 
     def delete_policy(self, policy_name):
+
+        policies = [k[1] for k, v in self.principal_policies.items() if k[1] == policy_name]
+        if len(policies) > 0:
+            raise DeleteConflictException(
+                'The policy cannot be deleted as the policy is attached to one or more principals (name=%s)'
+                % policy_name
+            )
+
         policy = self.get_policy(policy_name)
         del self.policies[policy.name]
 
@@ -307,6 +469,14 @@ class IoTBackend(BaseBackend):
             pass
         raise ResourceNotFoundException()
 
+    def attach_policy(self, policy_name, target):
+        principal = self._get_principal(target)
+        policy = self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k in self.principal_policies:
+            return
+        self.principal_policies[k] = (principal, policy)
+
     def attach_principal_policy(self, policy_name, principal_arn):
         principal = self._get_principal(principal_arn)
         policy = self.get_policy(policy_name)
@@ -314,6 +484,15 @@ class IoTBackend(BaseBackend):
         if k in self.principal_policies:
             return
         self.principal_policies[k] = (principal, policy)
+
+    def detach_policy(self, policy_name, target):
+        # this may raises ResourceNotFoundException
+        self._get_principal(target)
+        self.get_policy(policy_name)
+        k = (target, policy_name)
+        if k not in self.principal_policies:
+            raise ResourceNotFoundException()
+        del self.principal_policies[k]
 
     def detach_principal_policy(self, policy_name, principal_arn):
         # this may raises ResourceNotFoundException
@@ -358,6 +537,135 @@ class IoTBackend(BaseBackend):
     def list_thing_principals(self, thing_name):
         principals = [k[0] for k, v in self.principal_things.items() if k[1] == thing_name]
         return principals
+
+    def describe_thing_group(self, thing_group_name):
+        thing_groups = [_ for _ in self.thing_groups.values() if _.thing_group_name == thing_group_name]
+        if len(thing_groups) == 0:
+            raise ResourceNotFoundException()
+        return thing_groups[0]
+
+    def create_thing_group(self, thing_group_name, parent_group_name, thing_group_properties):
+        thing_group = FakeThingGroup(thing_group_name, parent_group_name, thing_group_properties, self.region_name)
+        self.thing_groups[thing_group.arn] = thing_group
+        return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
+
+    def delete_thing_group(self, thing_group_name, expected_version):
+        thing_group = self.describe_thing_group(thing_group_name)
+        del self.thing_groups[thing_group.arn]
+
+    def list_thing_groups(self, parent_group, name_prefix_filter, recursive):
+        thing_groups = self.thing_groups.values()
+        return thing_groups
+
+    def update_thing_group(self, thing_group_name, thing_group_properties, expected_version):
+        thing_group = self.describe_thing_group(thing_group_name)
+        if expected_version and expected_version != thing_group.version:
+            raise VersionConflictException(thing_group_name)
+        attribute_payload = thing_group_properties.get('attributePayload', None)
+        if attribute_payload is not None and 'attributes' in attribute_payload:
+            do_merge = attribute_payload.get('merge', False)
+            attributes = attribute_payload['attributes']
+            if not do_merge:
+                thing_group.thing_group_properties['attributePayload']['attributes'] = attributes
+            else:
+                thing_group.thing_group_properties['attributePayload']['attributes'].update(attributes)
+        elif attribute_payload is not None and 'attributes' not in attribute_payload:
+            thing_group.attributes = {}
+        thing_group.version = thing_group.version + 1
+        return thing_group.version
+
+    def _identify_thing_group(self, thing_group_name, thing_group_arn):
+        # identify thing group
+        if thing_group_name is None and thing_group_arn is None:
+            raise InvalidRequestException(
+                ' Both thingGroupArn and thingGroupName are empty. Need to specify at least one of them'
+            )
+        if thing_group_name is not None:
+            thing_group = self.describe_thing_group(thing_group_name)
+            if thing_group_arn and thing_group.arn != thing_group_arn:
+                raise InvalidRequestException(
+                    'ThingGroupName thingGroupArn does not match specified thingGroupName in request'
+                )
+        elif thing_group_arn is not None:
+            if thing_group_arn not in self.thing_groups:
+                raise InvalidRequestException()
+            thing_group = self.thing_groups[thing_group_arn]
+        return thing_group
+
+    def _identify_thing(self, thing_name, thing_arn):
+        # identify thing
+        if thing_name is None and thing_arn is None:
+            raise InvalidRequestException(
+                'Both thingArn and thingName are empty. Need to specify at least one of them'
+            )
+        if thing_name is not None:
+            thing = self.describe_thing(thing_name)
+            if thing_arn and thing.arn != thing_arn:
+                raise InvalidRequestException(
+                    'ThingName thingArn does not match specified thingName in request'
+                )
+        elif thing_arn is not None:
+            if thing_arn not in self.things:
+                raise InvalidRequestException()
+            thing = self.things[thing_arn]
+        return thing
+
+    def add_thing_to_thing_group(self, thing_group_name, thing_group_arn, thing_name, thing_arn):
+        thing_group = self._identify_thing_group(thing_group_name, thing_group_arn)
+        thing = self._identify_thing(thing_name, thing_arn)
+        if thing.arn in thing_group.things:
+            # aws ignores duplicate registration
+            return
+        thing_group.things[thing.arn] = thing
+
+    def remove_thing_from_thing_group(self, thing_group_name, thing_group_arn, thing_name, thing_arn):
+        thing_group = self._identify_thing_group(thing_group_name, thing_group_arn)
+        thing = self._identify_thing(thing_name, thing_arn)
+        if thing.arn not in thing_group.things:
+            # aws ignores non-registered thing
+            return
+        del thing_group.things[thing.arn]
+
+    def list_things_in_thing_group(self, thing_group_name, recursive):
+        thing_group = self.describe_thing_group(thing_group_name)
+        return thing_group.things.values()
+
+    def list_thing_groups_for_thing(self, thing_name):
+        thing = self.describe_thing(thing_name)
+        all_thing_groups = self.list_thing_groups(None, None, None)
+        ret = []
+        for thing_group in all_thing_groups:
+            if thing.arn in thing_group.things:
+                ret.append({
+                    'groupName': thing_group.thing_group_name,
+                    'groupArn': thing_group.arn
+                })
+        return ret
+
+    def update_thing_groups_for_thing(self, thing_name, thing_groups_to_add, thing_groups_to_remove):
+        thing = self.describe_thing(thing_name)
+        for thing_group_name in thing_groups_to_add:
+            thing_group = self.describe_thing_group(thing_group_name)
+            self.add_thing_to_thing_group(
+                thing_group.thing_group_name, None,
+                thing.thing_name, None
+            )
+        for thing_group_name in thing_groups_to_remove:
+            thing_group = self.describe_thing_group(thing_group_name)
+            self.remove_thing_from_thing_group(
+                thing_group.thing_group_name, None,
+                thing.thing_name, None
+            )
+
+    def create_job(self, job_id, targets, document_source, document, description, presigned_url_config,
+                   target_selection, job_executions_rollout_config, document_parameters):
+        job = FakeJob(job_id, targets, document_source, document, description, presigned_url_config, target_selection,
+                      job_executions_rollout_config, document_parameters, self.region_name)
+        self.jobs[job_id] = job
+        return job.job_arn, job_id, description
+
+    def describe_job(self, job_id):
+        return self.jobs[job_id]
 
 
 available_regions = boto3.session.Session().get_available_regions("iot")

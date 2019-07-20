@@ -1,0 +1,27 @@
+#!/bin/bash
+
+main() {
+  set -euo pipefail  # Bash safemode
+
+  local version=$1
+  if [[ -z "${version}" ]]; then
+    echo "USAGE: $0 1.3.2"
+    echo "Provide a new version number as an argument to bump the version"
+    echo -n "Current:"
+    grep version= setup.py
+    return 1
+  fi
+
+  &>/dev/null which bumpversion || pip install bumpversion
+  bumpversion --new-version ${version} patch
+
+  git checkout -b version-${version}
+  # Commit the new version
+  git commit -a -m "bumping to version ${version}"
+  # Commit an updated IMPLEMENTATION_COVERAGE.md
+  make implementation_coverage || true
+  # Open a PR
+  open https://github.com/spulec/moto/compare/master...version-${version}
+}
+
+main $@

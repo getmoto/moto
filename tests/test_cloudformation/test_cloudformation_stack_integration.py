@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 import json
 
 import base64
+from decimal import Decimal
+
 import boto
 import boto.cloudformation
 import boto.datapipeline
@@ -22,6 +24,7 @@ from moto import (
     mock_cloudformation,
     mock_cloudformation_deprecated,
     mock_datapipeline_deprecated,
+    mock_dynamodb2,
     mock_ec2,
     mock_ec2_deprecated,
     mock_elb,
@@ -39,6 +42,7 @@ from moto import (
     mock_sqs,
     mock_sqs_deprecated,
     mock_elbv2)
+from moto.dynamodb2.models import Table
 
 from .fixtures import (
     ec2_classic_eip,
@@ -752,6 +756,9 @@ def test_vpc_single_instance_in_subnet():
     security_group.vpc_id.should.equal(vpc.id)
 
     stack = conn.describe_stacks()[0]
+
+    vpc.tags.should.have.key('Application').which.should.equal(stack.stack_id)
+
     resources = stack.describe_resources()
     vpc_resource = [
         resource for resource in resources if resource.resource_type == 'AWS::EC2::VPC'][0]
@@ -891,19 +898,25 @@ def test_iam_roles():
 
             "my-launch-config": {
                 "Properties": {
-                    "IamInstanceProfile": {"Ref": "my-instance-profile"},
+                    "IamInstanceProfile": {"Ref": "my-instance-profile-with-path"},
                     "ImageId": "ami-1234abcd",
                 },
                 "Type": "AWS::AutoScaling::LaunchConfiguration"
             },
-            "my-instance-profile": {
+            "my-instance-profile-with-path": {
                 "Properties": {
                     "Path": "my-path",
-                    "Roles": [{"Ref": "my-role"}],
+                    "Roles": [{"Ref": "my-role-with-path"}],
                 },
                 "Type": "AWS::IAM::InstanceProfile"
             },
-            "my-role": {
+            "my-instance-profile-no-path": {
+                "Properties": {
+                    "Roles": [{"Ref": "my-role-no-path"}],
+                },
+                "Type": "AWS::IAM::InstanceProfile"
+            },
+            "my-role-with-path": {
                 "Properties": {
                     "AssumeRolePolicyDocument": {
                         "Statement": [
@@ -961,6 +974,26 @@ def test_iam_roles():
                     ]
                 },
                 "Type": "AWS::IAM::Role"
+            },
+            "my-role-no-path": {
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": [
+                                    "sts:AssumeRole"
+                                ],
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "Service": [
+                                        "ec2.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                },
+                "Type": "AWS::IAM::Role"
             }
         }
     }
@@ -974,37 +1007,51 @@ def test_iam_roles():
 
     iam_conn = boto.iam.connect_to_region("us-west-1")
 
-    role_result = iam_conn.list_roles()['list_roles_response'][
-        'list_roles_result']['roles'][0]
-    role = iam_conn.get_role(role_result.role_name)
-    role.role_name.should.contain("my-role")
-    role.path.should.equal("my-path")
+    role_results = iam_conn.list_roles()['list_roles_response'][
+        'list_roles_result']['roles']
+    role_name_to_id = {}
+    for role_result in role_results:
+        role = iam_conn.get_role(role_result.role_name)
+        role.role_name.should.contain("my-role")
+        if 'with-path' in role.role_name:
+            role_name_to_id['with-path'] = role.role_id
+            role.path.should.equal("my-path")
+        else:
+            role_name_to_id['no-path'] = role.role_id
+            role.role_name.should.contain('no-path')
+            role.path.should.equal('/')
 
-    instance_profile_response = iam_conn.list_instance_profiles()[
-        'list_instance_profiles_response']
-    cfn_instance_profile = instance_profile_response[
-        'list_instance_profiles_result']['instance_profiles'][0]
-    instance_profile = iam_conn.get_instance_profile(
-        cfn_instance_profile.instance_profile_name)
-    instance_profile.instance_profile_name.should.contain(
-        "my-instance-profile")
-    instance_profile.path.should.equal("my-path")
-    instance_profile.role_id.should.equal(role.role_id)
+    instance_profile_responses = iam_conn.list_instance_profiles()[
+        'list_instance_profiles_response']['list_instance_profiles_result']['instance_profiles']
+    instance_profile_responses.should.have.length_of(2)
+    instance_profile_names = []
+
+    for instance_profile_response in instance_profile_responses:
+        instance_profile = iam_conn.get_instance_profile(instance_profile_response.instance_profile_name)
+        instance_profile_names.append(instance_profile.instance_profile_name)
+        instance_profile.instance_profile_name.should.contain(
+            "my-instance-profile")
+        if "with-path" in instance_profile.instance_profile_name:
+            instance_profile.path.should.equal("my-path")
+            instance_profile.role_id.should.equal(role_name_to_id['with-path'])
+        else:
+            instance_profile.instance_profile_name.should.contain('no-path')
+            instance_profile.role_id.should.equal(role_name_to_id['no-path'])
+            instance_profile.path.should.equal('/')
 
     autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
     launch_config = autoscale_conn.get_all_launch_configurations()[0]
-    launch_config.instance_profile_name.should.contain("my-instance-profile")
+    launch_config.instance_profile_name.should.contain("my-instance-profile-with-path")
 
     stack = conn.describe_stacks()[0]
     resources = stack.describe_resources()
-    instance_profile_resource = [
-        resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile'][0]
-    instance_profile_resource.physical_resource_id.should.equal(
-        instance_profile.instance_profile_name)
+    instance_profile_resources = [
+        resource for resource in resources if resource.resource_type == 'AWS::IAM::InstanceProfile']
+    {ip.physical_resource_id for ip in instance_profile_resources}.should.equal(set(instance_profile_names))
 
-    role_resource = [
-        resource for resource in resources if resource.resource_type == 'AWS::IAM::Role'][0]
-    role_resource.physical_resource_id.should.equal(role.role_id)
+    role_resources = [
+        resource for resource in resources if resource.resource_type == 'AWS::IAM::Role']
+    {r.physical_resource_id for r in role_resources}.should.equal(set(role_name_to_id.values()))
 
 
 @mock_ec2_deprecated()
@@ -1909,7 +1956,12 @@ def lambda_handler(event, context):
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": "test-role",
-                    "Runtime": "python2.7"
+                    "Runtime": "python2.7",
+                    "Environment": {
+                        "Variables": {
+                            "TEST_ENV_KEY": "test-env-val",
+                        }
+                    },
                 }
             }
         }
@@ -1930,6 +1982,9 @@ def lambda_handler(event, context):
     result['Functions'][0]['MemorySize'].should.equal(128)
     result['Functions'][0]['Role'].should.equal('test-role')
     result['Functions'][0]['Runtime'].should.equal('python2.7')
+    result['Functions'][0]['Environment'].should.equal({
+        "Variables": {"TEST_ENV_KEY": "test-env-val"}
+    })
 
 
 @mock_cloudformation
@@ -2034,7 +2089,7 @@ def test_stack_kms():
 def test_stack_spot_fleet():
     conn = boto3.client('ec2', 'us-east-1')
 
-    vpc = conn.create_vpc(CidrBlock="10.0.0.0/8")['Vpc']
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
     subnet = conn.create_subnet(
         VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
     subnet_id = subnet['SubnetId']
@@ -2113,6 +2168,78 @@ def test_stack_spot_fleet():
     launch_spec['WeightedCapacity'].should.equal(2.0)
 
 
+@mock_cloudformation()
+@mock_ec2()
+def test_stack_spot_fleet_should_figure_out_default_price():
+    conn = boto3.client('ec2', 'us-east-1')
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")['Vpc']
+    subnet = conn.create_subnet(
+        VpcId=vpc['VpcId'], CidrBlock='10.0.0.0/16', AvailabilityZone='us-east-1a')['Subnet']
+    subnet_id = subnet['SubnetId']
+
+    spot_fleet_template = {
+        'Resources': {
+            "SpotFleet1": {
+                "Type": "AWS::EC2::SpotFleet",
+                "Properties": {
+                    "SpotFleetRequestConfigData": {
+                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "TargetCapacity": 6,
+                        "AllocationStrategy": "diversified",
+                        "LaunchSpecifications": [
+                            {
+                                "EbsOptimized": "false",
+                                "InstanceType": 't2.small',
+                                "ImageId": "ami-1234",
+                                "SubnetId": subnet_id,
+                                "WeightedCapacity": "2",
+                            },
+                            {
+                                "EbsOptimized": "true",
+                                "InstanceType": 't2.large',
+                                "ImageId": "ami-1234",
+                                "Monitoring": {"Enabled": "true"},
+                                "SecurityGroups": [{"GroupId": "sg-123"}],
+                                "SubnetId": subnet_id,
+                                "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                                "WeightedCapacity": "4",
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    spot_fleet_template_json = json.dumps(spot_fleet_template)
+
+    cf_conn = boto3.client('cloudformation', 'us-east-1')
+    stack_id = cf_conn.create_stack(
+        StackName='test_stack',
+        TemplateBody=spot_fleet_template_json,
+    )['StackId']
+
+    stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
+    stack_resources['StackResourceSummaries'].should.have.length_of(1)
+    spot_fleet_id = stack_resources[
+        'StackResourceSummaries'][0]['PhysicalResourceId']
+
+    spot_fleet_requests = conn.describe_spot_fleet_requests(
+        SpotFleetRequestIds=[spot_fleet_id])['SpotFleetRequestConfigs']
+    len(spot_fleet_requests).should.equal(1)
+    spot_fleet_request = spot_fleet_requests[0]
+    spot_fleet_request['SpotFleetRequestState'].should.equal("active")
+    spot_fleet_config = spot_fleet_request['SpotFleetRequestConfig']
+
+    assert 'SpotPrice' not in spot_fleet_config
+    len(spot_fleet_config['LaunchSpecifications']).should.equal(2)
+    launch_spec1 = spot_fleet_config['LaunchSpecifications'][0]
+    launch_spec2 = spot_fleet_config['LaunchSpecifications'][1]
+
+    assert 'SpotPrice' not in launch_spec1
+    assert 'SpotPrice' not in launch_spec2
+
+
 @mock_ec2
 @mock_elbv2
 @mock_cloudformation
@@ -2127,6 +2254,10 @@ def test_stack_elbv2_resources_integration():
             "albname": {
                 "Description": "Load balancer name",
                 "Value": {"Fn::GetAtt": ["alb", "LoadBalancerName"]},
+            },
+            "canonicalhostedzoneid": {
+                "Description": "Load balancer canonical hosted zone ID",
+                "Value": {"Fn::GetAtt": ["alb", "CanonicalHostedZoneID"]},
             },
         },
         "Resources": {
@@ -2145,7 +2276,7 @@ def test_stack_elbv2_resources_integration():
                         "IpAddressType": "ipv4",
                   }
             },
-            "mytargetgroup": {
+            "mytargetgroup1": {
                 "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
                 "Properties": {
                     "HealthCheckIntervalSeconds": 30,
@@ -2158,7 +2289,7 @@ def test_stack_elbv2_resources_integration():
                     "Matcher": {
                         "HttpCode": "200,201"
                     },
-                    "Name": "mytargetgroup",
+                    "Name": "mytargetgroup1",
                     "Port": 80,
                     "Protocol": "HTTP",
                     "TargetType": "instance",
@@ -2173,12 +2304,37 @@ def test_stack_elbv2_resources_integration():
                     }
                 }
             },
+            "mytargetgroup2": {
+                "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+                "Properties": {
+                    "HealthCheckIntervalSeconds": 30,
+                    "HealthCheckPath": "/status",
+                    "HealthCheckPort": 8080,
+                    "HealthCheckProtocol": "HTTP",
+                    "HealthCheckTimeoutSeconds": 5,
+                    "HealthyThresholdCount": 30,
+                    "UnhealthyThresholdCount": 5,
+                    "Name": "mytargetgroup2",
+                    "Port": 8080,
+                    "Protocol": "HTTP",
+                    "TargetType": "instance",
+                    "Targets": [{
+                        "Id": {
+                            "Ref": "ec2instance",
+                            "Port": 8080,
+                        },
+                    }],
+                    "VpcId": {
+                        "Ref": "myvpc",
+                    }
+                }
+            },
             "listener": {
                 "Type": "AWS::ElasticLoadBalancingV2::Listener",
                 "Properties": {
                     "DefaultActions": [{
                         "Type": "forward",
-                        "TargetGroupArn": {"Ref": "mytargetgroup"}
+                        "TargetGroupArn": {"Ref": "mytargetgroup1"}
                     }],
                     "LoadBalancerArn": {"Ref": "alb"},
                     "Port": "80",
@@ -2232,8 +2388,10 @@ def test_stack_elbv2_resources_integration():
     load_balancers[0]['Type'].should.equal('application')
     load_balancers[0]['IpAddressType'].should.equal('ipv4')
 
-    target_groups = elbv2_conn.describe_target_groups()['TargetGroups']
-    len(target_groups).should.equal(1)
+    target_groups = sorted(
+        elbv2_conn.describe_target_groups()['TargetGroups'],
+        key=lambda tg: tg['TargetGroupName'])  # sort to do comparison with indexes
+    len(target_groups).should.equal(2)
     target_groups[0]['HealthCheckIntervalSeconds'].should.equal(30)
     target_groups[0]['HealthCheckPath'].should.equal('/status')
     target_groups[0]['HealthCheckPort'].should.equal('80')
@@ -2242,10 +2400,23 @@ def test_stack_elbv2_resources_integration():
     target_groups[0]['HealthyThresholdCount'].should.equal(30)
     target_groups[0]['UnhealthyThresholdCount'].should.equal(5)
     target_groups[0]['Matcher'].should.equal({'HttpCode': '200,201'})
-    target_groups[0]['TargetGroupName'].should.equal('mytargetgroup')
+    target_groups[0]['TargetGroupName'].should.equal('mytargetgroup1')
     target_groups[0]['Port'].should.equal(80)
     target_groups[0]['Protocol'].should.equal('HTTP')
     target_groups[0]['TargetType'].should.equal('instance')
+
+    target_groups[1]['HealthCheckIntervalSeconds'].should.equal(30)
+    target_groups[1]['HealthCheckPath'].should.equal('/status')
+    target_groups[1]['HealthCheckPort'].should.equal('8080')
+    target_groups[1]['HealthCheckProtocol'].should.equal('HTTP')
+    target_groups[1]['HealthCheckTimeoutSeconds'].should.equal(5)
+    target_groups[1]['HealthyThresholdCount'].should.equal(30)
+    target_groups[1]['UnhealthyThresholdCount'].should.equal(5)
+    target_groups[1]['Matcher'].should.equal({'HttpCode': '200'})
+    target_groups[1]['TargetGroupName'].should.equal('mytargetgroup2')
+    target_groups[1]['Port'].should.equal(8080)
+    target_groups[1]['Protocol'].should.equal('HTTP')
+    target_groups[1]['TargetType'].should.equal('instance')
 
     listeners = elbv2_conn.describe_listeners(LoadBalancerArn=load_balancers[0]['LoadBalancerArn'])['Listeners']
     len(listeners).should.equal(1)
@@ -2266,3 +2437,131 @@ def test_stack_elbv2_resources_integration():
 
     dns['OutputValue'].should.equal(load_balancers[0]['DNSName'])
     name['OutputValue'].should.equal(load_balancers[0]['LoadBalancerName'])
+
+
+@mock_dynamodb2
+@mock_cloudformation
+def test_stack_dynamodb_resources_integration():
+    dynamodb_template = {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Resources": {
+        "myDynamoDBTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "Album",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "Artist",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "Sales",
+                "AttributeType": "N"
+              },
+              {
+                "AttributeName": "NumberOfSongs",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "Album",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "Artist",
+                "KeyType": "RANGE"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": "5",
+              "WriteCapacityUnits": "5"
+            },
+            "TableName": "myTableName",
+            "GlobalSecondaryIndexes": [{
+              "IndexName": "myGSI",
+              "KeySchema": [
+                {
+                  "AttributeName": "Sales",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "Artist",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "Projection": {
+                "NonKeyAttributes": ["Album","NumberOfSongs"],
+                "ProjectionType": "INCLUDE"
+              },
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": "5",
+                "WriteCapacityUnits": "5"
+              }
+            },
+            {
+              "IndexName": "myGSI2",
+              "KeySchema": [
+                {
+                  "AttributeName": "NumberOfSongs",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "Sales",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "Projection": {
+                "NonKeyAttributes": ["Album","Artist"],
+                "ProjectionType": "INCLUDE"
+              },
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": "5",
+                "WriteCapacityUnits": "5"
+              }
+            }],
+            "LocalSecondaryIndexes":[{
+              "IndexName": "myLSI",
+              "KeySchema": [
+                {
+                  "AttributeName": "Album",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "Sales",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "Projection": {
+                "NonKeyAttributes": ["Artist","NumberOfSongs"],
+                "ProjectionType": "INCLUDE"
+              }
+            }]
+          }
+        }
+      }
+    }
+
+    dynamodb_template_json = json.dumps(dynamodb_template)
+
+    cfn_conn = boto3.client('cloudformation', 'us-east-1')
+    cfn_conn.create_stack(
+        StackName='dynamodb_stack',
+        TemplateBody=dynamodb_template_json,
+    )
+
+    dynamodb_conn = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb_conn.Table('myTableName')
+    table.name.should.equal('myTableName')
+
+    table.put_item(Item={"Album": "myAlbum", "Artist": "myArtist", "Sales": 10, "NumberOfSongs": 5})
+
+    response = table.get_item(Key={"Album": "myAlbum", "Artist": "myArtist"})
+
+    response['Item']['Album'].should.equal('myAlbum')
+    response['Item']['Sales'].should.equal(Decimal('10'))
+    response['Item']['NumberOfSongs'].should.equal(Decimal('5'))
+    response['Item']['Album'].should.equal('myAlbum')

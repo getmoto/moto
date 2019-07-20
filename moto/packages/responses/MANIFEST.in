@@ -1,2 +1,0 @@
-include README.rst CHANGES LICENSE
-global-exclude *~
