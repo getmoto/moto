@@ -279,6 +279,12 @@ class FakeAutoScalingGroup(BaseModel):
         if min_size is not None:
             self.min_size = min_size
 
+        if desired_capacity is None:
+            if min_size is not None and min_size > len(self.instance_states):
+                desired_capacity = min_size
+            if max_size is not None and max_size < len(self.instance_states):
+                desired_capacity = max_size
+
         if launch_config_name:
             self.launch_config = self.autoscaling_backend.launch_configurations[
                 launch_config_name]
