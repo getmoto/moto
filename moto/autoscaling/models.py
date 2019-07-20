@@ -684,6 +684,18 @@ class AutoScalingBackend(BaseBackend):
         for instance in protected_instances:
             instance.protected_from_scale_in = protected_from_scale_in
 
+    def notify_terminate_instances(self, instance_ids):
+        for autoscaling_group_name, autoscaling_group in self.autoscaling_groups.items():
+            original_instance_count = len(autoscaling_group.instance_states)
+            autoscaling_group.instance_states = list(filter(
+                lambda i_state: i_state.instance.id not in instance_ids,
+                autoscaling_group.instance_states
+            ))
+            difference = original_instance_count - len(autoscaling_group.instance_states)
+            if difference > 0:
+                autoscaling_group.replace_autoscaling_group_instances(difference, autoscaling_group.get_propagated_tags())
+                self.update_attached_elbs(autoscaling_group_name)
+
 
 autoscaling_backends = {}
 for region, ec2_backend in ec2_backends.items():
