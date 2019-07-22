@@ -58,8 +58,6 @@ class DomainDispatcherApplication(object):
                 if re.match(url_base, 'http://%s' % host):
                     return backend_name
 
-        raise RuntimeError('Invalid host: "%s"' % host)
-
     def infer_service_region(self, environ):
         auth = environ.get('HTTP_AUTHORIZATION')
         if auth:
@@ -95,29 +93,32 @@ class DomainDispatcherApplication(object):
         if six.PY3 and isinstance(path_info, six.binary_type):
             path_info = path_info.decode('utf-8')
 
-        host = None
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
         else:
             host = environ['HTTP_HOST'].split(':')[0]
-        if host is None:
-            service, region = self.infer_service_region(environ)
-            if service == 'dynamodb':
-                if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
-                    host = 'dynamodbstreams'
-                else:
-                    dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
-                    # If Newer API version, use dynamodb2
-                    if dynamo_api_version > "20111205":
-                        host = "dynamodb2"
-            else:
-                host = "{service}.{region}.amazonaws.com".format(
-                    service=service, region=region)
 
         with self.lock:
             backend = self.get_backend_for_host(host)
+            if not backend:
+                service, region = self.infer_service_region(environ)
+                if service == 'dynamodb':
+                    if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
+                        host = 'dynamodbstreams'
+                    else:
+                        dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
+                        # If Newer API version, use dynamodb2
+                        if dynamo_api_version > "20111205":
+                            host = "dynamodb2"
+                else:
+                    host = "{service}.{region}.amazonaws.com".format(
+                        service=service, region=region)
+                backend = self.get_backend_for_host(host)
+                if not backend:
+                    raise RuntimeError('Invalid host: "%s"' % host)
+
             app = self.app_instances.get(backend, None)
             if app is None:
                 app = self.create_app(backend)
