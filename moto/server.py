@@ -95,13 +95,14 @@ class DomainDispatcherApplication(object):
         if six.PY3 and isinstance(path_info, six.binary_type):
             path_info = path_info.decode('utf-8')
 
+        host = None
         if path_info.startswith("/moto-api") or path_info == "/favicon.ico":
             host = "moto_api"
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
         else:
             host = environ['HTTP_HOST'].split(':')[0]
-        if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
+        if host is None:
             service, region = self.infer_service_region(environ)
             if service == 'dynamodb':
                 if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
