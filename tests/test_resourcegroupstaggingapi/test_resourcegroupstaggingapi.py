@@ -227,6 +227,7 @@ def test_get_tag_values_ec2():
     resp['TagValues'].should.contain('MY_VALUE1')
     resp['TagValues'].should.contain('MY_VALUE4')
 
+
 @mock_ec2
 @mock_elbv2
 @mock_kms
@@ -255,22 +256,36 @@ def test_get_many_resources():
         Scheme='internal',
         Tags=[
             {
-                'Key': 'key_name', 
+                'Key': 'key_name',
                 'Value': 'a_value'
             },
             {
                 'Key': 'key_2',
                 'Value': 'val2'
             }
-            ]
-        )
+        ]
+    )
 
     elbv2.create_load_balancer(
         Name='my-other-lb',
         Subnets=[subnet1.id, subnet2.id],
         SecurityGroups=[security_group.id],
         Scheme='internal',
-        )
+    )
+
+    kms.create_key(
+        KeyUsage='ENCRYPT_DECRYPT',
+        Tags=[
+            {
+                'TagKey': 'key_name',
+                'TagValue': 'a_value'
+            },
+            {
+                'TagKey': 'key_2',
+                'TagValue': 'val2'
+            }
+        ]
+    )
 
     kms.create_key(
         KeyUsage='ENCRYPT_DECRYPT',
@@ -294,10 +309,8 @@ def test_get_many_resources():
     resp['ResourceTagMappingList'][0]['ResourceARN'].should.contain('loadbalancer/')
     resp = rtapi.get_resources(
         ResourceTypeFilters=['elasticloadbalancer:loadbalancer'],
-        TagFilters=[{
-                'Key': 'key_name'
-            }]
-        )
+        TagFilters=[{'Key': 'key_name'}]
+    )
 
     resp['ResourceTagMappingList'].should.have.length_of(1)
     resp['ResourceTagMappingList'][0]['Tags'].should.contain({'Key': 'key_name', 'Value': 'a_value'})
