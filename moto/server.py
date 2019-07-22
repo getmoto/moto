@@ -58,7 +58,7 @@ class DomainDispatcherApplication(object):
                 if re.match(url_base, 'http://%s' % host):
                     return backend_name
 
-    def infer_service_region(self, environ):
+    def infer_service_region_host(self, environ):
         auth = environ.get('HTTP_AUTHORIZATION')
         if auth:
             # Signed request
@@ -68,21 +68,34 @@ class DomainDispatcherApplication(object):
             try:
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
-                return service, region
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
                 # infer a service-region. A reduced set of services still use
                 # the deprecated SigV2, ergo prefer S3 as most likely default.
                 # https://docs.aws.amazon.com/general/latest/gr/signature-version-2.html
-                return DEFAULT_SERVICE_REGION
+                service, region = DEFAULT_SERVICE_REGION
         else:
             # Unsigned request
             target = environ.get('HTTP_X_AMZ_TARGET')
             if target:
                 service, _ = target.split('.', 1)
-                return UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
+                service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
             # S3 is the last resort when the target is also unknown
-            return DEFAULT_SERVICE_REGION
+            service, region = DEFAULT_SERVICE_REGION
+
+        if service == 'dynamodb':
+            if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
+                host = 'dynamodbstreams'
+            else:
+                dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
+                # If Newer API version, use dynamodb2
+                if dynamo_api_version > "20111205":
+                    host = "dynamodb2"
+        else:
+            host = "{service}.{region}.amazonaws.com".format(
+                service=service, region=region)
+
+        return host
 
     def get_application(self, environ):
         path_info = environ.get('PATH_INFO', '')
@@ -103,21 +116,9 @@ class DomainDispatcherApplication(object):
         with self.lock:
             backend = self.get_backend_for_host(host)
             if not backend:
-                service, region = self.infer_service_region(environ)
-                if service == 'dynamodb':
-                    if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
-                        host = 'dynamodbstreams'
-                    else:
-                        dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
-                        # If Newer API version, use dynamodb2
-                        if dynamo_api_version > "20111205":
-                            host = "dynamodb2"
-                else:
-                    host = "{service}.{region}.amazonaws.com".format(
-                        service=service, region=region)
+                # No regular backend found; try parsing other headers
+                host = self.infer_service_region_host(environ)
                 backend = self.get_backend_for_host(host)
-                if not backend:
-                    raise RuntimeError('Invalid host: "%s"' % host)
 
             app = self.app_instances.get(backend, None)
             if app is None:
