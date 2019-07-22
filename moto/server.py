@@ -80,8 +80,9 @@ class DomainDispatcherApplication(object):
             if target:
                 service, _ = target.split('.', 1)
                 service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
-            # S3 is the last resort when the target is also unknown
-            service, region = DEFAULT_SERVICE_REGION
+            else:
+                # S3 is the last resort when the target is also unknown
+                service, region = DEFAULT_SERVICE_REGION
 
         if service == 'dynamodb':
             if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
