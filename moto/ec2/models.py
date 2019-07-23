@@ -142,6 +142,8 @@ AMIS = json.load(
          __name__, 'resources/amis.json'), 'r')
 )
 
+OWNER_ID = "111122223333"
+
 
 def utc_date_and_time():
     return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
@@ -1087,7 +1089,7 @@ class TagBackend(object):
 
 class Ami(TaggedEC2Resource):
     def __init__(self, ec2_backend, ami_id, instance=None, source_ami=None,
-                 name=None, description=None, owner_id=111122223333,
+                 name=None, description=None, owner_id=OWNER_ID,
                  public=False, virtualization_type=None, architecture=None,
                  state='available', creation_date=None, platform=None,
                  image_type='machine', image_location=None, hypervisor=None,
@@ -1200,7 +1202,7 @@ class AmiBackend(object):
 
         ami = Ami(self, ami_id, instance=instance, source_ami=None,
                   name=name, description=description,
-                  owner_id=context.get_current_user() if context else '111122223333')
+                  owner_id=context.get_current_user() if context else OWNER_ID)
         self.amis[ami_id] = ami
         return ami
 
@@ -1468,7 +1470,7 @@ class SecurityGroup(TaggedEC2Resource):
         self.egress_rules = [SecurityRule(-1, None, None, ['0.0.0.0/0'], [])]
         self.enis = {}
         self.vpc_id = vpc_id
-        self.owner_id = "123456789012"
+        self.owner_id = OWNER_ID
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
@@ -1989,7 +1991,7 @@ class Volume(TaggedEC2Resource):
 
 
 class Snapshot(TaggedEC2Resource):
-    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False, owner_id='123456789012'):
+    def __init__(self, ec2_backend, snapshot_id, volume, description, encrypted=False, owner_id=OWNER_ID):
         self.id = snapshot_id
         self.volume = volume
         self.description = description
@@ -2491,7 +2493,7 @@ class VPCPeeringConnectionBackend(object):
 
 class Subnet(TaggedEC2Resource):
     def __init__(self, ec2_backend, subnet_id, vpc_id, cidr_block, availability_zone, default_for_az,
-                 map_public_ip_on_launch, owner_id=111122223333, assign_ipv6_address_on_creation=False):
+                 map_public_ip_on_launch, owner_id=OWNER_ID, assign_ipv6_address_on_creation=False):
         self.ec2_backend = ec2_backend
         self.id = subnet_id
         self.vpc_id = vpc_id
@@ -2657,7 +2659,7 @@ class SubnetBackend(object):
             raise InvalidAvailabilityZoneError(availability_zone, ", ".join([zone.name for zones in RegionsAndZonesBackend.zones.values() for zone in zones]))
         subnet = Subnet(self, subnet_id, vpc_id, cidr_block, availability_zone_data,
                         default_for_az, map_public_ip_on_launch,
-                        owner_id=context.get_current_user() if context else '111122223333', assign_ipv6_address_on_creation=False)
+                        owner_id=context.get_current_user() if context else OWNER_ID, assign_ipv6_address_on_creation=False)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id, vpc_id)
