@@ -146,7 +146,7 @@ class IAMRequestBase(object):
         original_signature = self._get_string_between('Signature=', ',', self._headers['Authorization'])
         calculated_signature = self._calculate_signature()
         if original_signature != calculated_signature:
-            raise SignatureDoesNotMatchError()
+            self._raise_signature_does_not_match()
 
     def check_action_permitted(self):
         policies = self._access_key.collect_policies()
@@ -162,6 +162,12 @@ class IAMRequestBase(object):
 
         if not permitted:
             self._raise_access_denied()
+
+    def _raise_signature_does_not_match(self):
+        if self._service == "ec2":
+            raise AuthFailureError()
+        else:
+            raise SignatureDoesNotMatchError()
 
     @abstractmethod
     def _raise_access_denied(self):
