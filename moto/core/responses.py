@@ -24,7 +24,7 @@ from werkzeug.exceptions import HTTPException
 import boto3
 from moto.compat import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
-from moto.settings import INITIAL_NO_AUTH_ACTION_COUNT
+from moto import settings
 
 log = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class ActionAuthenticatorMixin(object):
     request_count = 0
 
     def _authenticate_action(self, iam_request_cls):
-        if ActionAuthenticatorMixin.request_count >= INITIAL_NO_AUTH_ACTION_COUNT:
+        if ActionAuthenticatorMixin.request_count >= settings.INITIAL_NO_AUTH_ACTION_COUNT:
             iam_request = iam_request_cls(method=self.method, path=self.path, data=self.data, headers=self.headers)
             iam_request.check_signature()
             iam_request.check_action_permitted()

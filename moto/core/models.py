@@ -27,6 +27,22 @@ os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
 os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
 
+def set_initial_no_auth_action_count(initial_no_auth_action_count):
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            original_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+            settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
+            result = function(*args, **kwargs)
+            settings.INITIAL_NO_AUTH_ACTION_COUNT = original_initial_no_auth_action_count
+            return result
+
+        functools.update_wrapper(wrapper, function)
+        wrapper.__wrapped__ = function
+        return wrapper
+
+    return decorator
+
+
 class BaseMockAWS(object):
     nested_count = 0
 
