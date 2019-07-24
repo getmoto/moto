@@ -639,7 +639,7 @@ def test_delete_keys():
 
 
 @mock_s3_deprecated
-def test_delete_keys_with_invalid():
+def test_delete_keys_invalid():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
 
@@ -648,6 +648,7 @@ def test_delete_keys_with_invalid():
     Key(bucket=bucket, name='file3').set_contents_from_string('abc')
     Key(bucket=bucket, name='file4').set_contents_from_string('abc')
 
+    # non-existing key case
     result = bucket.delete_keys(['abc', 'file3'])
 
     result.deleted.should.have.length_of(1)
@@ -655,6 +656,18 @@ def test_delete_keys_with_invalid():
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal('file1')
+
+    # empty keys
+    result = bucket.delete_keys([])
+
+    result.deleted.should.have.length_of(0)
+    result.errors.should.have.length_of(0)
+
+@mock_s3
+def test_boto3_delete_empty_keys_list():
+    with assert_raises(ClientError) as err:
+        boto3.client('s3').delete_objects(Bucket='foobar', Delete={'Objects': []})
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3_deprecated

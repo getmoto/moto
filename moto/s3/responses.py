@@ -566,6 +566,8 @@ class ResponseObject(_TemplateEnvironmentMixin):
         keys = minidom.parseString(body).getElementsByTagName('Key')
         deleted_names = []
         error_names = []
+        if len(keys) == 0:
+            raise MalformedXML()
 
         for k in keys:
             key_name = k.firstChild.nodeValue
