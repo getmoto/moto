@@ -73,12 +73,12 @@ class IAMUserAccessKey(object):
 
         user_groups = iam_backend.get_groups_for_user(self._owner_user_name)
         for user_group in user_groups:
-            inline_group_policy_names = iam_backend.list_group_policies(user_group)
+            inline_group_policy_names = iam_backend.list_group_policies(user_group.name)
             for inline_group_policy_name in inline_group_policy_names:
                 inline_user_group_policy = iam_backend.get_group_policy(user_group.name, inline_group_policy_name)
                 user_policies.append(inline_user_group_policy)
 
-            attached_group_policies = iam_backend.list_attached_group_policies(user_group.name)
+            attached_group_policies, _ = iam_backend.list_attached_group_policies(user_group.name)
             user_policies += attached_group_policies
 
         return user_policies
