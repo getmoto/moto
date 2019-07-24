@@ -230,7 +230,7 @@ class BucketInvalidTokenError(BucketError):
 
 
 class S3InvalidAccessKeyIdError(S3ClientError):
-    code = 400
+    code = 403
 
     def __init__(self, *args, **kwargs):
         super(S3InvalidAccessKeyIdError, self).__init__(
@@ -239,9 +239,27 @@ class S3InvalidAccessKeyIdError(S3ClientError):
 
 
 class BucketInvalidAccessKeyIdError(S3ClientError):
-    code = 400
+    code = 403
 
     def __init__(self, *args, **kwargs):
         super(BucketInvalidAccessKeyIdError, self).__init__(
             'InvalidAccessKeyId',
             "The AWS Access Key Id you provided does not exist in our records.", *args, **kwargs)
+
+
+class S3SignatureDoesNotMatchError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(S3SignatureDoesNotMatchError, self).__init__(
+            'SignatureDoesNotMatch',
+            "The request signature we calculated does not match the signature you provided. Check your key and signing method.", *args, **kwargs)
+
+
+class BucketSignatureDoesNotMatchError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(BucketSignatureDoesNotMatchError, self).__init__(
+            'SignatureDoesNotMatch',
+            "The request signature we calculated does not match the signature you provided. Check your key and signing method.", *args, **kwargs)

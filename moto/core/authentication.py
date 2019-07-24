@@ -13,7 +13,16 @@ from six import string_types
 from moto.iam.models import ACCOUNT_ID, Policy
 from moto.iam import iam_backend
 from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError, AuthFailureError
-from moto.s3.exceptions import BucketAccessDeniedError, S3AccessDeniedError, BucketInvalidTokenError, S3InvalidTokenError, S3InvalidAccessKeyIdError, BucketInvalidAccessKeyIdError
+from moto.s3.exceptions import (
+    BucketAccessDeniedError,
+    S3AccessDeniedError,
+    BucketInvalidTokenError,
+    S3InvalidTokenError,
+    S3InvalidAccessKeyIdError,
+    BucketInvalidAccessKeyIdError,
+    BucketSignatureDoesNotMatchError,
+    S3SignatureDoesNotMatchError
+)
 from moto.sts import sts_backend
 
 log = logging.getLogger(__name__)
@@ -163,11 +172,9 @@ class IAMRequestBase(object):
         if not permitted:
             self._raise_access_denied()
 
+    @abstractmethod
     def _raise_signature_does_not_match(self):
-        if self._service == "ec2":
-            raise AuthFailureError()
-        else:
-            raise SignatureDoesNotMatchError()
+        raise NotImplementedError()
 
     @abstractmethod
     def _raise_access_denied(self):
@@ -212,6 +219,12 @@ class IAMRequestBase(object):
 
 class IAMRequest(IAMRequestBase):
 
+    def _raise_signature_does_not_match(self):
+        if self._service == "ec2":
+            raise AuthFailureError()
+        else:
+            raise SignatureDoesNotMatchError()
+
     def _raise_invalid_access_key(self, _):
         if self._service == "ec2":
             raise AuthFailureError()
@@ -230,8 +243,13 @@ class IAMRequest(IAMRequestBase):
 
 class S3IAMRequest(IAMRequestBase):
 
-    def _raise_invalid_access_key(self, reason):
+    def _raise_signature_does_not_match(self):
+        if "BucketName" in self._data:
+            raise BucketSignatureDoesNotMatchError(bucket=self._data["BucketName"])
+        else:
+            raise S3SignatureDoesNotMatchError()
 
+    def _raise_invalid_access_key(self, reason):
         if reason == "InvalidToken":
             if "BucketName" in self._data:
                 raise BucketInvalidTokenError(bucket=self._data["BucketName"])
