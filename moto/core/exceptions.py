@@ -68,7 +68,7 @@ class JsonRESTError(RESTError):
 
 
 class SignatureDoesNotMatchError(RESTError):
-    code = 400
+    code = 403
 
     def __init__(self):
         super(SignatureDoesNotMatchError, self).__init__(
@@ -77,7 +77,7 @@ class SignatureDoesNotMatchError(RESTError):
 
 
 class InvalidClientTokenIdError(RESTError):
-    code = 400
+    code = 403
 
     def __init__(self):
         super(InvalidClientTokenIdError, self).__init__(
@@ -98,7 +98,7 @@ class AccessDeniedError(RESTError):
 
 
 class AuthFailureError(RESTError):
-    code = 400
+    code = 401
 
     def __init__(self):
         super(AuthFailureError, self).__init__(
