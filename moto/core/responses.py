@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import functools
 from collections import defaultdict
 import datetime
 import json
@@ -122,6 +123,25 @@ class ActionAuthenticatorMixin(object):
 
     def _authenticate_s3_action(self):
         self._authenticate_action(S3IAMRequest)
+
+    @staticmethod
+    def set_initial_no_auth_action_count(initial_no_auth_action_count):
+        def decorator(function):
+            def wrapper(*args, **kwargs):
+                original_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+                settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
+                ActionAuthenticatorMixin.request_count = 0
+                try:
+                    result = function(*args, **kwargs)
+                finally:
+                    settings.INITIAL_NO_AUTH_ACTION_COUNT = original_initial_no_auth_action_count
+                return result
+
+            functools.update_wrapper(wrapper, function)
+            wrapper.__wrapped__ = function
+            return wrapper
+
+        return decorator
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
