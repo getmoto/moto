@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds, unix_time
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from .utils import generate_key_id
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 class Key(BaseModel):
 
-    def __init__(self, policy, key_usage, description, region):
+    def __init__(self, policy, key_usage, description, tags, region):
         self.id = generate_key_id()
         self.policy = policy
         self.key_usage = key_usage
@@ -22,7 +22,7 @@ class Key(BaseModel):
         self.account_id = "0123456789012"
         self.key_rotation_status = False
         self.deletion_date = None
-        self.tags = {}
+        self.tags = tags or {}
 
     @property
     def physical_resource_id(self):
@@ -37,7 +37,7 @@ class Key(BaseModel):
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": "%d" % unix_time(),
+                "CreationDate": iso_8601_datetime_without_milliseconds(datetime.now()),
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "KeyId": self.id,
@@ -61,6 +61,7 @@ class Key(BaseModel):
             policy=properties['KeyPolicy'],
             key_usage='ENCRYPT_DECRYPT',
             description=properties['Description'],
+            tags=properties.get('Tags'),
             region=region_name,
         )
         key.key_rotation_status = properties['EnableKeyRotation']
@@ -80,8 +81,8 @@ class KmsBackend(BaseBackend):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
 
-    def create_key(self, policy, key_usage, description, region):
-        key = Key(policy, key_usage, description, region)
+    def create_key(self, policy, key_usage, description, tags, region):
+        key = Key(policy, key_usage, description, tags, region)
         self.keys[key.id] = key
         return key
 
