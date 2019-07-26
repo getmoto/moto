@@ -1,3 +1,17 @@
+"""
+This implementation is NOT complete, there are many things to improve.
+The following is a list of the most important missing features and inaccuracies.
+
+TODO add support for more principals, apart from IAM users and assumed IAM roles
+TODO add support for the Resource and Condition parts of IAM policies
+TODO add support and create tests for all services in moto (for example, API Gateway is probably not supported currently)
+TODO implement service specific error messages (currently, EC2 and S3 are supported separately, everything else defaults to the errors IAM returns)
+TODO include information about the action's resource in error messages (once the Resource element in IAM policies is supported)
+TODO check all other actions that are performed by the action called by the user (for example, autoscaling:CreateAutoScalingGroup requires permission for iam:CreateServiceLinkedRole too - see https://docs.aws.amazon.com/autoscaling/ec2/userguide/control-access-using-iam.html)
+TODO add support for resource-based policies
+
+"""
+
 import json
 import logging
 import re
@@ -318,8 +332,6 @@ class IAMPolicyStatement(object):
         else:  # Action is present
             if self._check_element_matches("Action", action):
                 is_action_concerned = True
-
-        # TODO: check Resource/NotResource and Condition
 
         if is_action_concerned:
             if self._statement["Effect"] == "Allow":
