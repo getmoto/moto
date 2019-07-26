@@ -127,7 +127,7 @@ class AssumedRoleAccessKey(object):
 class CreateAccessKeyFailure(Exception):
 
     def __init__(self, reason, *args):
-        super().__init__(*args)
+        super(CreateAccessKeyFailure, self).__init__(*args)
         self.reason = reason
 
 

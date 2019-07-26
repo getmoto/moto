@@ -10,7 +10,7 @@ import io
 
 import pytz
 
-from moto.core.authentication import IAMRequest, S3IAMRequest
+from moto.core.access_control import IAMRequest, S3IAMRequest
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
@@ -110,7 +110,7 @@ class ActionAuthenticatorMixin(object):
 
     request_count = 0
 
-    def _authenticate_action(self, iam_request_cls):
+    def _authenticate_and_authorize_action(self, iam_request_cls):
         if ActionAuthenticatorMixin.request_count >= settings.INITIAL_NO_AUTH_ACTION_COUNT:
             iam_request = iam_request_cls(method=self.method, path=self.path, data=self.data, headers=self.headers)
             iam_request.check_signature()
@@ -118,11 +118,11 @@ class ActionAuthenticatorMixin(object):
         else:
             ActionAuthenticatorMixin.request_count += 1
 
-    def _authenticate_normal_action(self):
-        self._authenticate_action(IAMRequest)
+    def _authenticate_and_authorize_normal_action(self):
+        self._authenticate_and_authorize_action(IAMRequest)
 
-    def _authenticate_s3_action(self):
-        self._authenticate_action(S3IAMRequest)
+    def _authenticate_and_authorize_s3_action(self):
+        self._authenticate_and_authorize_action(S3IAMRequest)
 
     @staticmethod
     def set_initial_no_auth_action_count(initial_no_auth_action_count):
@@ -319,7 +319,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         headers = self.response_headers
 
         try:
-            self._authenticate_normal_action()
+            self._authenticate_and_authorize_normal_action()
         except HTTPException as http_error:
             response = http_error.description, dict(status=http_error.code)
             return self._send_response(headers, response)

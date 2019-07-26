@@ -120,7 +120,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def all_buckets(self):
         self.data["Action"] = "ListAllMyBuckets"
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         # No bucket specified. Listing all buckets
         all_buckets = self.backend.get_all_buckets()
@@ -266,7 +266,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _bucket_response_get(self, bucket_name, querystring):
         self._set_action("BUCKET", "GET", querystring)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         if 'uploads' in querystring:
             for unsup in ('delimiter', 'max-uploads'):
@@ -500,7 +500,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 411, {}, "Content-Length required"
 
         self._set_action("BUCKET", "PUT", querystring)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         if 'versioning' in querystring:
             ver = re.search('<Status>([A-Za-z]+)</Status>', body.decode())
@@ -602,7 +602,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _bucket_response_delete(self, body, bucket_name, querystring):
         self._set_action("BUCKET", "DELETE", querystring)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         if 'policy' in querystring:
             self.backend.delete_bucket_policy(bucket_name, body)
@@ -638,12 +638,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if self.is_delete_keys(request, path, bucket_name):
             self.data["Action"] = "DeleteObject"
-            self._authenticate_s3_action()
+            self._authenticate_and_authorize_s3_action()
 
             return self._bucket_response_delete_keys(request, body, bucket_name)
 
         self.data["Action"] = "PutObject"
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         # POST to bucket-url should create file from form
         if hasattr(request, 'form'):
@@ -797,7 +797,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
         self._set_action("KEY", "GET", query)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         response_headers = {}
         if query.get('uploadId'):
@@ -834,7 +834,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
         self._set_action("KEY", "PUT", query)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         response_headers = {}
         if query.get('uploadId') and query.get('partNumber'):
@@ -1204,7 +1204,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _key_response_delete(self, bucket_name, query, key_name):
         self._set_action("KEY", "DELETE", query)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         if query.get('uploadId'):
             upload_id = query['uploadId'][0]
@@ -1227,7 +1227,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _key_response_post(self, request, body, bucket_name, query, key_name):
         self._set_action("KEY", "POST", query)
-        self._authenticate_s3_action()
+        self._authenticate_and_authorize_s3_action()
 
         if body == b'' and 'uploads' in query:
             metadata = metadata_from_headers(request.headers)
