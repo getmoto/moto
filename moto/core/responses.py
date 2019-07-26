@@ -129,12 +129,14 @@ class ActionAuthenticatorMixin(object):
         def decorator(function):
             def wrapper(*args, **kwargs):
                 original_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+                original_request_count = ActionAuthenticatorMixin.request_count
                 settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
                 ActionAuthenticatorMixin.request_count = 0
                 try:
                     result = function(*args, **kwargs)
                 finally:
                     settings.INITIAL_NO_AUTH_ACTION_COUNT = original_initial_no_auth_action_count
+                    ActionAuthenticatorMixin.request_count = original_request_count
                 return result
 
             functools.update_wrapper(wrapper, function)
