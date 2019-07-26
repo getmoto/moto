@@ -727,6 +727,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.method = request.method
         self.path = self._get_path(request)
         self.headers = request.headers
+        if 'host' not in self.headers:
+            self.headers['host'] = urlparse(full_url).netloc
         response_headers = {}
         try:
             response = self._key_response(request, full_url, headers)
