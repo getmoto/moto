@@ -47,7 +47,7 @@ install_requires = [
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
     "idna<2.9,>=2.5",
-    "cfn-lint",
+    "cfn-lint>=0.4.0",
     "sshpubkeys>=3.1.0,<4.0"
 ]
 
