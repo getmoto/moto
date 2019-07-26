@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import io
+import requests
 
 import pytz
 
@@ -128,15 +129,23 @@ class ActionAuthenticatorMixin(object):
     def set_initial_no_auth_action_count(initial_no_auth_action_count):
         def decorator(function):
             def wrapper(*args, **kwargs):
-                original_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
-                original_request_count = ActionAuthenticatorMixin.request_count
-                settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
-                ActionAuthenticatorMixin.request_count = 0
+                if settings.TEST_SERVER_MODE:
+                    response = requests.get("http://localhost:5000/moto-api/reset-auth")
+                    original_initial_no_auth_action_count = response.json()['INITIAL_NO_AUTH_ACTION_COUNT']
+                    requests.post("http://localhost:5000/moto-api/reset-auth", data=str(initial_no_auth_action_count).encode())
+                else:
+                    original_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+                    original_request_count = ActionAuthenticatorMixin.request_count
+                    settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
+                    ActionAuthenticatorMixin.request_count = 0
                 try:
                     result = function(*args, **kwargs)
                 finally:
-                    settings.INITIAL_NO_AUTH_ACTION_COUNT = original_initial_no_auth_action_count
-                    ActionAuthenticatorMixin.request_count = original_request_count
+                    if settings.TEST_SERVER_MODE:
+                        requests.post("http://localhost:5000/moto-api/reset-auth", data=str(original_initial_no_auth_action_count).encode())
+                    else:
+                        ActionAuthenticatorMixin.request_count = original_request_count
+                        settings.INITIAL_NO_AUTH_ACTION_COUNT = original_initial_no_auth_action_count
                 return result
 
             functools.update_wrapper(wrapper, function)
@@ -623,6 +632,15 @@ class MotoAPIResponse(BaseResponse):
             moto_api_backend.reset()
             return 200, {}, json.dumps({"status": "ok"})
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
+
+    def reset_auth_response(self, request, full_url, headers):
+        if request.method == "POST":
+            settings.INITIAL_NO_AUTH_ACTION_COUNT = float(request.data.decode())
+            ActionAuthenticatorMixin.request_count = 0
+            return 200, {}, json.dumps({"status": "ok"})
+        elif request.method == "GET":
+            return 200, {}, json.dumps({"status": "ok", "INITIAL_NO_AUTH_ACTION_COUNT": str(settings.INITIAL_NO_AUTH_ACTION_COUNT)})
+        return 400, {}, json.dumps({"Error": "Need to POST to reset Moto Auth"})
 
     def model_data(self, request, full_url, headers):
         from moto.core.models import model_data
