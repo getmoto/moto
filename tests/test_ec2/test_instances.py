@@ -17,7 +17,8 @@ from boto.exception import EC2ResponseError, EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2_deprecated
+from moto import mock_ec2
 from tests.helpers import requires_boto_gte
 
 

@@ -7,7 +7,8 @@ import unittest
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_ec2_deprecated, mock_s3_deprecated
+from moto import mock_ec2_deprecated
+from moto import mock_s3_deprecated
 
 '''
 Test the different ways that the decorator can be used

@@ -3,7 +3,8 @@ import sure  # noqa
 from nose.tools import assert_raises
 import requests
 
-from moto import mock_ec2, settings
+from moto import mock_ec2
+from moto import settings
 
 if settings.TEST_SERVER_MODE:
     BASE_URL = 'http://localhost:5000'

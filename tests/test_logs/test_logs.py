@@ -3,7 +3,8 @@ import sure  # noqa
 import six
 from botocore.exceptions import ClientError
 
-from moto import mock_logs, settings
+from moto import mock_logs
+from moto import settings
 from nose.tools import assert_raises
 
 _logs_region = 'us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'

@@ -9,7 +9,10 @@ import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 from nose.tools import assert_raises
 
-from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from moto import mock_cloudformation
+from moto import mock_s3
+from moto import mock_sqs
+from moto import mock_ec2
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",

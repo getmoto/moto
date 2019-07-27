@@ -9,7 +9,8 @@ import json
 from moto.ec2 import utils as ec2_utils
 from uuid import UUID
 
-from moto import mock_cloudformation, mock_elbv2
+from moto import mock_cloudformation
+from moto import mock_elbv2
 from moto import mock_ecs
 from moto import mock_ec2
 from nose.tools import assert_raises

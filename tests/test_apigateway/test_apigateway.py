@@ -8,7 +8,8 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 import responses
-from moto import mock_apigateway, settings
+from moto import mock_apigateway
+from moto import settings
 
 
 @freeze_time("2015-01-01")

@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 import boto3
 import sure  # noqa
+from moto import mock_resourcegroupstaggingapi
+from moto import mock_s3
 from moto import mock_ec2
 from moto import mock_elbv2
 from moto import mock_kms
-from moto import mock_resourcegroupstaggingapi
-from moto import mock_s3
 
 
 @mock_s3
@@ -255,7 +255,7 @@ def test_get_many_resources():
         Scheme='internal',
         Tags=[
             {
-                'Key': 'key_name', 
+                'Key': 'key_name',
                 'Value': 'a_value'
             },
             {
@@ -276,7 +276,7 @@ def test_get_many_resources():
         KeyUsage='ENCRYPT_DECRYPT',
         Tags=[
             {
-                'TagKey': 'key_name', 
+                'TagKey': 'key_name',
                 'TagValue': 'a_value'
             },
             {

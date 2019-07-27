@@ -14,7 +14,11 @@ from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
 from boto.cloudformation.stack import Output
-from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from moto import mock_cloudformation
+from moto import mock_s3
+from moto import mock_sqs
+from moto import mock_ec2
+
 
 json_template = {
     "AWSTemplateFormatVersion": "2010-09-09",

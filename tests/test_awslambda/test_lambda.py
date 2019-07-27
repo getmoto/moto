@@ -11,7 +11,12 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings
+from moto import mock_lambda
+from moto import mock_s3
+from moto import mock_ec2
+from moto import mock_sns
+from moto import mock_logs
+from moto import settings
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 

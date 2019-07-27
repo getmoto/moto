@@ -3,18 +3,19 @@ from __future__ import unicode_literals, print_function
 from nose.tools import assert_raises
 
 import boto3
-from moto import mock_dynamodb2, mock_dynamodbstreams
+from moto import mock_dynamodb2
+from moto import mock_dynamodbstreams
 
 
 class TestCore():
     stream_arn = None
     mocks = []
-    
+
     def setup(self):
         self.mocks = [mock_dynamodb2(), mock_dynamodbstreams()]
         for m in self.mocks:
             m.start()
-            
+
         # create a table with a stream
         conn = boto3.client('dynamodb', region_name='us-east-1')
 
@@ -69,20 +70,20 @@ class TestCore():
 
         resp = conn.describe_stream(StreamArn=self.stream_arn)
         shard_id = resp['StreamDescription']['Shards'][0]['ShardId']
-        
+
         resp = conn.get_shard_iterator(
             StreamArn=self.stream_arn,
             ShardId=shard_id,
             ShardIteratorType='TRIM_HORIZON'
         )
         assert 'ShardIterator' in resp
-                
+
     def test_get_records_empty(self):
         conn = boto3.client('dynamodbstreams', region_name='us-east-1')
 
         resp = conn.describe_stream(StreamArn=self.stream_arn)
         shard_id = resp['StreamDescription']['Shards'][0]['ShardId']
-        
+
         resp = conn.get_shard_iterator(
             StreamArn=self.stream_arn,
             ShardId=shard_id,
@@ -116,12 +117,12 @@ class TestCore():
             TableName='test-streams',
             Key={'id': {'S': 'entry1'}}
         )
-        
+
         conn = boto3.client('dynamodbstreams', region_name='us-east-1')
-        
+
         resp = conn.describe_stream(StreamArn=self.stream_arn)
         shard_id = resp['StreamDescription']['Shards'][0]['ShardId']
-        
+
         resp = conn.get_shard_iterator(
             StreamArn=self.stream_arn,
             ShardId=shard_id,
@@ -165,7 +166,7 @@ class TestEdges():
                                    'WriteCapacityUnits': 1}
         )
         assert 'StreamSpecification' not in resp['TableDescription']
-        
+
         resp = conn.update_table(
             TableName='test-streams',
             StreamSpecification={
@@ -187,7 +188,7 @@ class TestEdges():
                     'StreamViewType': 'OLD_IMAGES'
                 }
             )
-        
+
     def test_stream_with_range_key(self):
         dyn = boto3.client('dynamodb', region_name='us-east-1')
 
@@ -231,4 +232,4 @@ class TestEdges():
         assert len(resp['Records']) == 2
         assert resp['Records'][0]['eventName'] == 'INSERT'
         assert resp['Records'][1]['eventName'] == 'INSERT'
-        
+

@@ -6,7 +6,8 @@ from boto3.dynamodb.conditions import Key
 import sure  # noqa
 from freezegun import freeze_time
 from boto.exception import JSONResponseError
-from moto import mock_dynamodb2, mock_dynamodb2_deprecated
+from moto import mock_dynamodb2
+from moto import mock_dynamodb2_deprecated
 from tests.helpers import requires_boto_gte
 import botocore
 try:

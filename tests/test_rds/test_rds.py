@@ -6,7 +6,9 @@ import boto.vpc
 from boto.exception import BotoServerError
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_rds_deprecated, mock_rds
+from moto import mock_ec2_deprecated
+from moto import mock_rds_deprecated
+from moto import mock_rds
 from tests.helpers import disable_on_py3
 
 

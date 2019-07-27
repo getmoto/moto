@@ -12,7 +12,8 @@ import uuid
 import botocore
 from nose.tools import assert_raises
 
-from moto import mock_route53, mock_route53_deprecated
+from moto import mock_route53
+from moto import mock_route53_deprecated
 
 
 @mock_route53_deprecated

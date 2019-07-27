@@ -9,7 +9,8 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2_deprecated
+from moto import mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
 from tests.helpers import requires_boto_gte
 

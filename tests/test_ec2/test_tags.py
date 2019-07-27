@@ -10,7 +10,8 @@ from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2_deprecated
+from moto import mock_ec2
 from nose.tools import assert_raises
 
 
@@ -408,7 +409,7 @@ def test_create_volume_with_tags():
                 }
             ]
         )
-    
+
     assert response['Tags'][0]['Key'] == 'TEST_TAG'
 
 

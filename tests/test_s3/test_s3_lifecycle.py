@@ -10,7 +10,8 @@ from botocore.exceptions import ClientError
 from datetime import datetime
 from nose.tools import assert_raises
 
-from moto import mock_s3_deprecated, mock_s3
+from moto import mock_s3_deprecated
+from moto import mock_s3
 
 
 @mock_s3_deprecated

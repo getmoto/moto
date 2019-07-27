@@ -5,7 +5,12 @@ import datetime
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs, mock_cloudformation
+from moto import mock_batch
+from moto import mock_iam
+from moto import mock_ec2
+from moto import mock_ecs
+from moto import mock_logs
+from moto import mock_cloudformation
 import functools
 import nose
 import json

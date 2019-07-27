@@ -4,7 +4,8 @@ import boto.ec2
 import boto3
 import sure  # noqa
 
-from moto import mock_ec2, mock_ec2_deprecated
+from moto import mock_ec2
+from moto import mock_ec2_deprecated
 
 
 @mock_ec2_deprecated
@@ -36,7 +37,7 @@ def test_boto3_describe_regions():
     for rec in resp['Regions']:
         rec['Endpoint'].should.contain(rec['RegionName'])
 
-    test_region = 'us-east-1' 
+    test_region = 'us-east-1'
     resp = ec2.describe_regions(RegionNames=[test_region])
     resp['Regions'].should.have.length_of(1)
     resp['Regions'][0].should.have.key('RegionName').which.should.equal(test_region)

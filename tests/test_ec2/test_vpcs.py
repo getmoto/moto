@@ -10,7 +10,8 @@ import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2, mock_ec2_deprecated
+from moto import mock_ec2
+from moto import mock_ec2_deprecated
 
 SAMPLE_DOMAIN_NAME = u'example.com'
 SAMPLE_NAME_SERVERS = [u'10.0.0.6', u'10.0.0.7']

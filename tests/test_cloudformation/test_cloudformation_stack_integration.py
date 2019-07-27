@@ -19,29 +19,28 @@ import boto.vpc
 import boto3
 import sure  # noqa
 
-from moto import (
-    mock_autoscaling_deprecated,
-    mock_cloudformation,
-    mock_cloudformation_deprecated,
-    mock_datapipeline_deprecated,
-    mock_dynamodb2,
-    mock_ec2,
-    mock_ec2_deprecated,
-    mock_elb,
-    mock_elb_deprecated,
-    mock_iam_deprecated,
-    mock_kms,
-    mock_lambda,
-    mock_rds_deprecated,
-    mock_rds2,
-    mock_rds2_deprecated,
-    mock_redshift,
-    mock_redshift_deprecated,
-    mock_route53_deprecated,
-    mock_sns_deprecated,
-    mock_sqs,
-    mock_sqs_deprecated,
-    mock_elbv2)
+from moto import mock_autoscaling_deprecated
+from moto import mock_cloudformation
+from moto import mock_cloudformation_deprecated
+from moto import mock_datapipeline_deprecated
+from moto import mock_dynamodb2
+from moto import mock_ec2
+from moto import mock_ec2_deprecated
+from moto import mock_elb
+from moto import mock_elb_deprecated
+from moto import mock_iam_deprecated
+from moto import mock_kms
+from moto import mock_lambda
+from moto import mock_rds_deprecated
+from moto import mock_rds2
+from moto import mock_rds2_deprecated
+from moto import mock_redshift
+from moto import mock_redshift_deprecated
+from moto import mock_route53_deprecated
+from moto import mock_sns_deprecated
+from moto import mock_sqs
+from moto import mock_sqs_deprecated
+from moto import mock_elbv2
 from moto.dynamodb2.models import Table
 
 from .fixtures import (

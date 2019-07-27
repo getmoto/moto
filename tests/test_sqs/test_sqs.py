@@ -16,7 +16,9 @@ import sure  # noqa
 import time
 import uuid
 
-from moto import settings, mock_sqs, mock_sqs_deprecated
+from moto import settings
+from moto import mock_sqs
+from moto import mock_sqs_deprecated
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises

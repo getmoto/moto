@@ -27,7 +27,9 @@ from nose.tools import assert_raises
 
 import sure  # noqa
 
-from moto import settings, mock_s3, mock_s3_deprecated
+from moto import settings
+from moto import mock_s3
+from moto import mock_s3_deprecated
 import moto.s3.models as s3model
 
 if settings.TEST_SERVER_MODE:
