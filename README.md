@@ -35,7 +35,7 @@ Now see how you could test it with Moto:
 
 ```python
 import boto3
-from moto import mock_s3
+from moto.s3 import mock_s3
 from mymodule import MyModel
 
 
@@ -168,7 +168,7 @@ To test it:
 
 ```python
 from . import add_servers
-from moto import mock_ec2
+from moto.ec2 import mock_ec2
 
 @mock_ec2
 def test_add_servers():
@@ -186,7 +186,7 @@ moto 1.0.X mock decorators are defined for boto3 and do not work with boto2. Use
 
 Using moto with boto2
 ```python
-from moto import mock_ec2_deprecated
+from moto.ec2 import mock_ec2_deprecated
 import boto
 
 @mock_ec2_deprecated
@@ -198,8 +198,8 @@ def test_something_with_ec2():
 
 When using both boto2 and boto3, one can do this to avoid confusion:
 ```python
-from moto import mock_ec2_deprecated as mock_ec2_b2
-from moto import mock_ec2
+from moto.ec2 import mock_ec2_deprecated as mock_ec2_b2
+from moto.ec2 import mock_ec2
 
 ```
 

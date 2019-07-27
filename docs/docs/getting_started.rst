@@ -49,7 +49,7 @@ With a decorator wrapping, all the calls to S3 are automatically mocked out.
 .. sourcecode:: python
 
     import boto
-    from moto import mock_s3
+    from moto.s3 import mock_s3
     from mymodule import MyModel
 
     @mock_s3
