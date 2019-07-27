@@ -32,28 +32,61 @@ install_requires = [
     "boto>=2.36.0",
     "boto3>=1.9.86",
     "botocore>=1.12.86",
-    "cryptography>=2.3.0",
-    "requests>=2.5",
     "xmltodict",
     "six>1.9",
     "werkzeug",
-    "PyYAML>=5.1",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "python-jose<4.0.0",
     "mock",
-    "docker>=2.5.1",
-    "jsondiff==1.1.2",
-    "aws-xray-sdk!=0.96,>=0.93",
+    "requests>=2.5",
     "responses>=0.9.0",
-    "idna<2.9,>=2.5",
-    "cfn-lint>=0.4.0",
-    "sshpubkeys>=3.1.0,<4.0"
 ]
 
+_dep_cryptography = "cryptography>=2.3.0"
+_dep_datetime = "datetime"  # ???
+_dep_PyYAML = "PyYAML>=5.1"
+_dep_python_jose = "python-jose<4.0.0"
+_dep_docker = "docker>=2.5.1"
+_dep_jsondiff = "jsondiff==1.1.2"
+_dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
+_dep_idna = "idna<2.9,>=2.5"  # ???
+_dep_cfn_lint = "cfn-lint>=0.4.0"
+_dep_sshpubkeys = "sshpubkeys>=3.1.0,<4.0"
+
+all_extra_deps = [
+    _dep_cryptography,
+    _dep_datetime,
+    _dep_PyYAML,
+    _dep_python_jose,
+    _dep_docker,
+    _dep_jsondiff,
+    _dep_aws_xray_sdk,
+    _dep_idna,
+    _dep_cfn_lint,
+    _dep_sshpubkeys,
+]
+
+# TODO: do we want to add ALL services here?
+# i.e. even those without extra dependencies.
+# Would be good for future-compatibility, I guess.
+extras_per_service = {
+    'ec2': [_dep_cryptography, _dep_sshpubkeys],
+    'acm': [_dep_cryptography],
+    'iam': [_dep_cryptography],
+    'cloudformation': [_dep_PyYAML, _dep_cfn_lint],
+    'cognitoidp': [_dep_python_jose],
+    'awslambda': [_dep_docker],
+    'batch': [_dep_docker],
+    'iotdata': [_dep_jsondiff],
+    'xray': [_dep_aws_xray_sdk],
+}
+
 extras_require = {
+    'all': all_extra_deps,
     'server': ['flask'],
 }
+
+extras_require.update(extras_per_service)
 
 # https://hynek.me/articles/conditional-python-dependencies/
 if int(setuptools.__version__.split(".", 1)[0]) < 18:
