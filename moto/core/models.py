@@ -15,6 +15,7 @@ from botocore.awsrequest import AWSResponse
 import mock
 from moto import settings
 import responses
+from moto.backends import get_backend
 from moto.packages.httpretty import HTTPretty
 from .utils import (
     convert_httpretty_response,
@@ -30,10 +31,9 @@ class BaseMockAWS(object):
         self.backends = backends
 
         self.backends_for_urls = {}
-        from moto.backends import BACKENDS
         default_backends = {
-            "instance_metadata": BACKENDS['instance_metadata']['global'],
-            "moto_api": BACKENDS['moto_api']['global'],
+            "instance_metadata": get_backend('instance_metadata')['global'],
+            "moto_api": get_backend('moto_api')['global'],
         }
         self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
@@ -582,11 +582,11 @@ class deprecated_base_decorator(base_decorator):
 class MotoAPIBackend(BaseBackend):
 
     def reset(self):
-        from moto.backends import BACKENDS
-        for name, backends in BACKENDS.items():
-            if name == "moto_api":
+        from moto.backends import _backends
+        for backend_name in _backends:
+            if backend_name == "moto_api":
                 continue
-            for region_name, backend in backends.items():
+            for _region_name, backend in get_backend(backend_name).items():
                 backend.reset()
         self.__init__()
 
