@@ -8,7 +8,6 @@ from collections import defaultdict
 import boto.rds2
 from jinja2 import Template
 from re import compile as re_compile
-from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
@@ -274,6 +273,7 @@ class Database(BaseModel):
             return self.address
         elif attribute_name == 'Endpoint.Port':
             return self.port
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         raise UnformattedGetAttTemplateException()
 
     @staticmethod

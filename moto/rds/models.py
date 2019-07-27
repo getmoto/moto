@@ -5,7 +5,6 @@ import datetime
 import boto.rds
 from jinja2 import Template
 
-from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
@@ -108,6 +107,7 @@ class Database(BaseModel):
             return self.address
         elif attribute_name == 'Endpoint.Port':
             return self.port
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
         raise UnformattedGetAttTemplateException()
 
     @classmethod
