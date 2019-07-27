@@ -10,7 +10,7 @@ from boto.exception import EC2ResponseError
 
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
+from moto.ec2 import mock_ec2_deprecated
 
 
 VPC_CIDR = "10.0.0.0/16"

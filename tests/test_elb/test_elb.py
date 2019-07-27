@@ -14,10 +14,10 @@ from boto.exception import BotoServerError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_elb
-from moto import mock_ec2
-from moto import mock_elb_deprecated
-from moto import mock_ec2_deprecated
+from moto.elb import mock_elb
+from moto.ec2 import mock_ec2
+from moto.elb import mock_elb_deprecated
+from moto.ec2 import mock_ec2_deprecated
 
 
 @mock_elb_deprecated

@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 import boto.glacier
 import sure  # noqa
 
-from moto import mock_glacier_deprecated
+from moto.glacier import mock_glacier_deprecated
 
 
 @mock_glacier_deprecated

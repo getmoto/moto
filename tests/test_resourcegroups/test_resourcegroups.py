@@ -4,7 +4,7 @@ import boto3
 import json
 import sure  # noqa
 
-from moto import mock_resourcegroups
+from moto.resourcegroups import mock_resourcegroups
 
 
 @mock_resourcegroups

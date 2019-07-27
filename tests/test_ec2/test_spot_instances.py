@@ -9,8 +9,8 @@ from botocore.exceptions import ClientError
 import pytz
 import sure  # noqa
 
-from moto import mock_ec2
-from moto import mock_ec2_deprecated
+from moto.ec2 import mock_ec2
+from moto.ec2 import mock_ec2_deprecated
 from moto.backends import get_model
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 

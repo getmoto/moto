@@ -3,7 +3,7 @@ import sure  # noqa
 import six
 from botocore.exceptions import ClientError
 
-from moto import mock_logs
+from moto.logs import mock_logs
 from moto import settings
 from nose.tools import assert_raises
 

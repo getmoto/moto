@@ -9,7 +9,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Package modules
-from moto import mock_cloudformation
+from moto.cloudformation import mock_cloudformation
 
 AWS_REGION = 'us-west-1'
 

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import pytz
 import sure  # noqa
 
-from moto import mock_cloudwatch_deprecated
+from moto.cloudwatch import mock_cloudwatch_deprecated
 
 
 def alarm_fixture(name="tester", action=None):

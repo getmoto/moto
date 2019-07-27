@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import boto
 from boto.exception import BotoServerError
-from moto import mock_sns_deprecated
+from moto.sns import mock_sns_deprecated
 import sure  # noqa
 
 

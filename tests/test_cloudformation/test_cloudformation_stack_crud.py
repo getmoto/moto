@@ -13,9 +13,9 @@ import sure  # noqa
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_cloudformation_deprecated
-from moto import mock_s3_deprecated
-from moto import mock_route53_deprecated
+from moto.cloudformation import mock_cloudformation_deprecated
+from moto.s3 import mock_s3_deprecated
+from moto.route53 import mock_route53_deprecated
 from moto.cloudformation import cloudformation_backends
 
 dummy_template = {

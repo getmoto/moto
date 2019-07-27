@@ -3,7 +3,7 @@ import boto
 
 import sure  # noqa
 
-from moto import mock_sns_deprecated
+from moto.sns import mock_sns_deprecated
 from moto.sns.models import DEFAULT_PAGE_SIZE
 
 

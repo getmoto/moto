@@ -10,8 +10,8 @@ from boto.exception import EC2ResponseError
 from boto.ec2.instance import Reservation
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
-from moto import mock_ec2
+from moto.ec2 import mock_ec2_deprecated
+from moto.ec2 import mock_ec2
 from nose.tools import assert_raises
 
 

@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_iam
+from moto.iam import mock_iam
 
 invalid_policy_document_test_cases = [
     {

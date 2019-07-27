@@ -5,8 +5,8 @@ import boto3
 import sure  # noqa
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
-from moto import mock_iotdata
-from moto import mock_iot
+from moto.iotdata import mock_iotdata
+from moto.iot import mock_iot
 
 
 @mock_iot

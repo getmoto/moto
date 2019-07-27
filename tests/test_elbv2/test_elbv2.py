@@ -8,10 +8,10 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_elbv2
-from moto import mock_ec2
-from moto import mock_acm
-from moto import mock_cloudformation
+from moto.elbv2 import mock_elbv2
+from moto.ec2 import mock_ec2
+from moto.acm import mock_acm
+from moto.cloudformation import mock_cloudformation
 from moto.elbv2 import elbv2_backends
 
 

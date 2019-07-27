@@ -5,7 +5,7 @@ from boto.ec2.autoscale.group import AutoScalingGroup
 from boto.ec2.autoscale.policy import ScalingPolicy
 import sure  # noqa
 
-from moto import mock_autoscaling_deprecated
+from moto.autoscaling import mock_autoscaling_deprecated
 
 from utils import setup_networking_deprecated
 

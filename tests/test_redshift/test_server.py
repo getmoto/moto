@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_redshift
+from moto.redshift import mock_redshift
 
 '''
 Test the different server responses

@@ -3,8 +3,8 @@ from __future__ import unicode_literals, print_function
 from nose.tools import assert_raises
 
 import boto3
-from moto import mock_dynamodb2
-from moto import mock_dynamodbstreams
+from moto.dynamodb2 import mock_dynamodb2
+from moto.dynamodbstreams import mock_dynamodbstreams
 
 
 class TestCore():

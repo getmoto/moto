@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_secretsmanager
+from moto.secretsmanager import mock_secretsmanager
 
 '''
 Test the different server responses for secretsmanager

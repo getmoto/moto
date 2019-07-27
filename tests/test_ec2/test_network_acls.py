@@ -5,8 +5,8 @@ import sure  # noqa
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2_deprecated
-from moto import mock_ec2
+from moto.ec2 import mock_ec2_deprecated
+from moto.ec2 import mock_ec2
 
 
 @mock_ec2_deprecated

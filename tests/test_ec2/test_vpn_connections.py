@@ -4,7 +4,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 from boto.exception import EC2ResponseError
 
-from moto import mock_ec2_deprecated
+from moto.ec2 import mock_ec2_deprecated
 
 
 @mock_ec2_deprecated

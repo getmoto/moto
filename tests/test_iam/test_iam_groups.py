@@ -8,8 +8,8 @@ import sure  # noqa
 
 from nose.tools import assert_raises
 from boto.exception import BotoServerError
-from moto import mock_iam
-from moto import mock_iam_deprecated
+from moto.iam import mock_iam
+from moto.iam import mock_iam_deprecated
 
 MOCK_POLICY = """
 {

@@ -10,8 +10,8 @@ import json
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_ssm
-from moto import mock_cloudformation
+from moto.ssm import mock_ssm
+from moto.cloudformation import mock_cloudformation
 
 
 @mock_ssm

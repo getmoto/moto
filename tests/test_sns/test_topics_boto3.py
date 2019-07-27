@@ -6,7 +6,7 @@ import json
 import sure  # noqa
 
 from botocore.exceptions import ClientError
-from moto import mock_sns
+from moto.sns import mock_sns
 from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
 

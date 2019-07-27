@@ -1,6 +1,6 @@
 import boto3
 import sure  # noqa
-from moto import mock_iam
+from moto.iam import mock_iam
 
 
 @mock_iam()

@@ -4,7 +4,7 @@ from nose.tools import assert_raises
 import requests
 
 import boto3
-from moto import mock_sqs
+from moto.sqs import mock_sqs
 from moto import settings
 
 base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else "http://motoapi.amazonaws.com"

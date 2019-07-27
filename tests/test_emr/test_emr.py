@@ -11,7 +11,7 @@ from boto.emr.step import StreamingStep
 import six
 import sure  # noqa
 
-from moto import mock_emr_deprecated
+from moto.emr import mock_emr_deprecated
 from tests.helpers import requires_boto_gte
 
 

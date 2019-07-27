@@ -7,7 +7,7 @@ import sure   # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_organizations
+from moto.organizations import mock_organizations
 from moto.organizations import utils
 from .organizations_test_utils import (
     validate_organization,

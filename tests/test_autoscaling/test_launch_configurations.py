@@ -6,8 +6,8 @@ from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 
 import sure  # noqa
 
-from moto import mock_autoscaling_deprecated
-from moto import mock_autoscaling
+from moto.autoscaling import mock_autoscaling_deprecated
+from moto.autoscaling import mock_autoscaling
 from tests.helpers import requires_boto_gte
 
 

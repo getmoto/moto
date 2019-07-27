@@ -8,7 +8,7 @@ import uuid
 
 from botocore.exceptions import ClientError
 
-from moto import mock_acm
+from moto.acm import mock_acm
 
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), 'resources')

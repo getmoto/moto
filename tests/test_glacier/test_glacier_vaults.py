@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto.glacier
 import sure  # noqa
 
-from moto import mock_glacier_deprecated
+from moto.glacier import mock_glacier_deprecated
 
 
 @mock_glacier_deprecated

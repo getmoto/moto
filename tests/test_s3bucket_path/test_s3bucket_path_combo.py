@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto
 from boto.s3.connection import OrdinaryCallingFormat
 
-from moto import mock_s3_deprecated
+from moto.s3 import mock_s3_deprecated
 
 
 def create_connection(key=None, secret=None):

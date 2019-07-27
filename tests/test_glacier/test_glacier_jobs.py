@@ -6,7 +6,7 @@ import time
 from boto.glacier.layer1 import Layer1
 import sure  # noqa
 
-from moto import mock_glacier_deprecated
+from moto.glacier import mock_glacier_deprecated
 
 
 @mock_glacier_deprecated

@@ -3,7 +3,7 @@ import sure  # noqa
 from nose.tools import assert_raises
 import requests
 
-from moto import mock_ec2
+from moto.ec2 import mock_ec2
 from moto import settings
 
 if settings.TEST_SERVER_MODE:

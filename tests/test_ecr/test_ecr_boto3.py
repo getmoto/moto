@@ -14,7 +14,7 @@ import boto3
 from botocore.exceptions import ClientError, ParamValidationError
 from dateutil.tz import tzlocal
 
-from moto import mock_ecr
+from moto.ecr import mock_ecr
 from nose import SkipTest
 
 

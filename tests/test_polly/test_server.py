@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_polly
+from moto.polly import mock_polly
 
 '''
 Test the different server responses

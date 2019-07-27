@@ -2,11 +2,11 @@ from __future__ import unicode_literals
 
 import boto3
 import sure  # noqa
-from moto import mock_resourcegroupstaggingapi
-from moto import mock_s3
-from moto import mock_ec2
-from moto import mock_elbv2
-from moto import mock_kms
+from moto.resourcegroupstaggingapi import mock_resourcegroupstaggingapi
+from moto.s3 import mock_s3
+from moto.ec2 import mock_ec2
+from moto.elbv2 import mock_elbv2
+from moto.kms import mock_kms
 
 
 @mock_s3

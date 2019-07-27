@@ -3,9 +3,9 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
-from moto import mock_ec2
-from moto import mock_kms
-from moto import mock_rds2
+from moto.ec2 import mock_ec2
+from moto.kms import mock_kms
+from moto.rds2 import mock_rds2
 
 
 @mock_rds2

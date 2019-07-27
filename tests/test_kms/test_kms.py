@@ -8,8 +8,8 @@ from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 
 from moto.kms.exceptions import NotFoundException as MotoNotFoundException
 import sure  # noqa
-from moto import mock_kms
-from moto import mock_kms_deprecated
+from moto.kms import mock_kms
+from moto.kms import mock_kms_deprecated
 from nose.tools import assert_raises
 from freezegun import freeze_time
 from datetime import date

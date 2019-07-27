@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 import boto3
 import sure  # noqa
 
-from moto import mock_opsworks
-from moto import mock_ec2
+from moto.opsworks import mock_opsworks
+from moto.ec2 import mock_ec2
 
 
 @mock_opsworks

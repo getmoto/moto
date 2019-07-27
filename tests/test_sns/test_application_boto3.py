@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 from botocore.exceptions import ClientError
-from moto import mock_sns
+from moto.sns import mock_sns
 import sure  # noqa
 
 

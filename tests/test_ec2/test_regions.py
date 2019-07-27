@@ -3,9 +3,9 @@ import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 import sure
-from moto import mock_ec2_deprecated
-from moto import mock_autoscaling_deprecated
-from moto import mock_elb_deprecated
+from moto.ec2 import mock_ec2_deprecated
+from moto.autoscaling import mock_autoscaling_deprecated
+from moto.elb import mock_elb_deprecated
 
 from moto.ec2 import ec2_backends
 

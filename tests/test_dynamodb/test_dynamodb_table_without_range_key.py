@@ -4,7 +4,7 @@ import boto
 import sure  # noqa
 from freezegun import freeze_time
 
-from moto import mock_dynamodb_deprecated
+from moto.dynamodb import mock_dynamodb_deprecated
 
 from boto.dynamodb import condition
 from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError

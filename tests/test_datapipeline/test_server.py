@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_datapipeline
+from moto.datapipeline import mock_datapipeline
 
 '''
 Test the different server responses

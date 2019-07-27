@@ -11,7 +11,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_emr
+from moto.emr import mock_emr
 
 
 run_job_flow_args = dict(

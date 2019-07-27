@@ -10,7 +10,7 @@ from botocore.client import ClientError
 from datetime import datetime
 import pytz
 
-from moto import mock_glue
+from moto.glue import mock_glue
 from . import helpers
 
 

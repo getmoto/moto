@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_cognitoidentity
+from moto.cognitoidentity import mock_cognitoidentity
 
 '''
 Test the different server responses

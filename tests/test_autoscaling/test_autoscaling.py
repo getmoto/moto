@@ -10,12 +10,12 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_autoscaling
-from moto import mock_ec2_deprecated
-from moto import mock_elb_deprecated
-from moto import mock_elb
-from moto import mock_autoscaling_deprecated
-from moto import mock_ec2
+from moto.autoscaling import mock_autoscaling
+from moto.ec2 import mock_ec2_deprecated
+from moto.elb import mock_elb_deprecated
+from moto.elb import mock_elb
+from moto.autoscaling import mock_autoscaling_deprecated
+from moto.ec2 import mock_ec2
 from tests.helpers import requires_boto_gte
 
 from utils import setup_networking, setup_networking_deprecated, setup_instance_with_networking

@@ -14,10 +14,10 @@ from moto.sqs.models import Queue
 from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
 from boto.cloudformation.stack import Output
-from moto import mock_cloudformation
-from moto import mock_s3
-from moto import mock_sqs
-from moto import mock_ec2
+from moto.cloudformation import mock_cloudformation
+from moto.s3 import mock_s3
+from moto.sqs import mock_sqs
+from moto.ec2 import mock_ec2
 
 
 json_template = {

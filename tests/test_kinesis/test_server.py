@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_kinesis
+from moto.kinesis import mock_kinesis
 
 '''
 Test the different server responses

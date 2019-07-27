@@ -8,8 +8,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 import sure  # noqa
 from freezegun import freeze_time
-from moto import mock_dynamodb2
-from moto import mock_dynamodb2_deprecated
+from moto.dynamodb2 import mock_dynamodb2
+from moto.dynamodb2 import mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
 try:

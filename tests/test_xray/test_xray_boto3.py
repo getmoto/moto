@@ -5,7 +5,7 @@ import json
 import botocore.exceptions
 import sure   # noqa
 
-from moto import mock_xray
+from moto.xray import mock_xray
 
 import datetime
 

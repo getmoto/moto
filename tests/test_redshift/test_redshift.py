@@ -16,10 +16,10 @@ from botocore.exceptions import (
 )
 import sure  # noqa
 
-from moto import mock_ec2
-from moto import mock_ec2_deprecated
-from moto import mock_redshift
-from moto import mock_redshift_deprecated
+from moto.ec2 import mock_ec2
+from moto.ec2 import mock_ec2_deprecated
+from moto.redshift import mock_redshift
+from moto.redshift import mock_redshift_deprecated
 
 
 @mock_redshift

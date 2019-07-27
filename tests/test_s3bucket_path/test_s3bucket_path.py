@@ -12,8 +12,8 @@ import requests
 
 import sure  # noqa
 
-from moto import mock_s3
-from moto import mock_s3_deprecated
+from moto.s3 import mock_s3
+from moto.s3 import mock_s3_deprecated
 
 
 def create_connection(key=None, secret=None):

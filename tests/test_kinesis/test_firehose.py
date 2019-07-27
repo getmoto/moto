@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa
 
-from moto import mock_kinesis
+from moto.kinesis import mock_kinesis
 
 
 def create_stream(client, stream_name):

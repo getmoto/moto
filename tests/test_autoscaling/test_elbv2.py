@@ -2,9 +2,9 @@ from __future__ import unicode_literals
 import boto3
 
 import sure  # noqa
-from moto import mock_autoscaling
-from moto import mock_ec2
-from moto import mock_elbv2
+from moto.autoscaling import mock_autoscaling
+from moto.ec2 import mock_ec2
+from moto.elbv2 import mock_elbv2
 
 from utils import setup_networking
 

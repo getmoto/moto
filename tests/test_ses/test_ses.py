@@ -6,7 +6,7 @@ from boto.exception import BotoServerError
 
 import sure  # noqa
 
-from moto import mock_ses_deprecated
+from moto.ses import mock_ses_deprecated
 
 
 @mock_ses_deprecated

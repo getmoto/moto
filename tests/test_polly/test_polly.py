@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 import boto3
 import sure  # noqa
 from nose.tools import assert_raises
-from moto import mock_polly
+from moto.polly import mock_polly
 
 # Polly only available in a few regions
 DEFAULT_REGION = 'eu-west-1'

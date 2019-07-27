@@ -7,7 +7,7 @@ from six.moves.email_mime_text import MIMEText
 
 import sure  # noqa
 
-from moto import mock_ses
+from moto.ses import mock_ses
 
 
 @mock_ses

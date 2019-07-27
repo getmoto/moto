@@ -6,7 +6,7 @@ import six
 import sure  # noqa
 
 from boto.exception import BotoServerError
-from moto import mock_sns_deprecated
+from moto.sns import mock_sns_deprecated
 from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
 

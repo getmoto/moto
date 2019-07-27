@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 
-from moto import mock_cognitoidentity
+from moto.cognitoidentity import mock_cognitoidentity
 import sure  # noqa
 
 from moto.cognitoidentity.utils import get_random_identity_id

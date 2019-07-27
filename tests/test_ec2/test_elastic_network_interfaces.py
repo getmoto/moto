@@ -11,9 +11,9 @@ import boto.ec2
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2
-from moto import mock_cloudformation_deprecated
-from moto import mock_ec2_deprecated
+from moto.ec2 import mock_ec2
+from moto.cloudformation import mock_cloudformation_deprecated
+from moto.ec2 import mock_ec2_deprecated
 from tests.helpers import requires_boto_gte
 from tests.test_cloudformation.fixtures import vpc_eni
 import json

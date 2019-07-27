@@ -1,7 +1,7 @@
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_swf_deprecated
+from moto.swf import mock_swf_deprecated
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION
 

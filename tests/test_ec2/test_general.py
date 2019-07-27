@@ -8,8 +8,8 @@ import boto3
 from boto.exception import EC2ResponseError
 import sure  # noqa
 
-from moto import mock_ec2_deprecated
-from moto import mock_ec2
+from moto.ec2 import mock_ec2_deprecated
+from moto.ec2 import mock_ec2
 
 
 @mock_ec2_deprecated

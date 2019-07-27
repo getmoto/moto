@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_iotdata
+from moto.iotdata import mock_iotdata
 
 '''
 Test the different server responses

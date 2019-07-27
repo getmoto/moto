@@ -8,7 +8,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 import responses
-from moto import mock_apigateway
+from moto.apigateway import mock_apigateway
 from moto import settings
 
 

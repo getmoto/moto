@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_batch
+from moto.batch import mock_batch
 
 '''
 Test the different server responses

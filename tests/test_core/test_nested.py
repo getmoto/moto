@@ -5,8 +5,8 @@ from boto.sqs.connection import SQSConnection
 from boto.sqs.message import Message
 from boto.ec2 import EC2Connection
 
-from moto import mock_sqs_deprecated
-from moto import mock_ec2_deprecated
+from moto.sqs import mock_sqs_deprecated
+from moto.ec2 import mock_ec2_deprecated
 
 
 class TestNestedDecorators(unittest.TestCase):

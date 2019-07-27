@@ -3,7 +3,7 @@ import boto3
 import sure  # noqa
 import re
 
-from moto import mock_opsworks
+from moto.opsworks import mock_opsworks
 
 
 @mock_opsworks

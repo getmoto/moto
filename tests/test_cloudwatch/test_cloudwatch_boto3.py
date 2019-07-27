@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 import sure   # noqa
 
-from moto import mock_cloudwatch
+from moto.cloudwatch import mock_cloudwatch
 
 
 @mock_cloudwatch

@@ -7,8 +7,8 @@ import requests
 import tests.backport_assert_raises
 from nose.tools import assert_raises
 
-from moto import mock_dynamodb
-from moto import mock_dynamodb_deprecated
+from moto.dynamodb import mock_dynamodb
+from moto.dynamodb import mock_dynamodb_deprecated
 from moto.dynamodb import dynamodb_backend
 
 from boto.exception import DynamoDBResponseError

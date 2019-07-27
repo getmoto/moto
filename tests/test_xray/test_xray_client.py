@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
-from moto import mock_xray_client
+from moto.xray import mock_xray_client
 from moto.xray import XRaySegment
-from moto import mock_dynamodb2
+from moto.dynamodb2 import mock_dynamodb2
 import sure   # noqa
 import boto3
 

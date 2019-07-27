@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 import boto3
 
-from moto import mock_iot
+from moto.iot import mock_iot
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 

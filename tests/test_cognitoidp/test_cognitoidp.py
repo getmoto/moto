@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError
 from jose import jws
 from nose.tools import assert_raises
 
-from moto import mock_cognitoidp
+from moto.cognitoidp import mock_cognitoidp
 
 
 @mock_cognitoidp

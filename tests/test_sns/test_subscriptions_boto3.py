@@ -7,7 +7,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
-from moto import mock_sns
+from moto.sns import mock_sns
 from moto.sns.models import DEFAULT_PAGE_SIZE
 
 

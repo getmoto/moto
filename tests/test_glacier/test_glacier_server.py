@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_glacier
+from moto.glacier import mock_glacier
 
 '''
 Test the different server responses

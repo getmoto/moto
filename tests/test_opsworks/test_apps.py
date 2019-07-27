@@ -4,7 +4,7 @@ from freezegun import freeze_time
 import sure  # noqa
 import re
 
-from moto import mock_opsworks
+from moto.opsworks import mock_opsworks
 
 
 @freeze_time("2015-01-01")

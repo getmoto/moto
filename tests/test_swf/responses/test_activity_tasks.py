@@ -2,7 +2,7 @@ from boto.swf.exceptions import SWFResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_swf_deprecated
+from moto.swf import mock_swf_deprecated
 from moto.swf import swf_backend
 
 from ..utils import setup_workflow, SCHEDULE_ACTIVITY_TASK_DECISION

@@ -1,8 +1,8 @@
 import boto
 import boto3
 from boto import vpc as boto_vpc
-from moto import mock_ec2
-from moto import mock_ec2_deprecated
+from moto.ec2 import mock_ec2
+from moto.ec2 import mock_ec2_deprecated
 
 
 @mock_ec2

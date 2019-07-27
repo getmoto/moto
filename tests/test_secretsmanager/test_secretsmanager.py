@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 
-from moto import mock_secretsmanager
+from moto.secretsmanager import mock_secretsmanager
 from botocore.exceptions import ClientError
 import string
 import unittest

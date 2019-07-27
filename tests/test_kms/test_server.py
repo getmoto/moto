@@ -4,7 +4,7 @@ import json
 import sure  # noqa
 
 import moto.server as server
-from moto import mock_kms
+from moto.kms import mock_kms
 
 '''
 Test the different server responses

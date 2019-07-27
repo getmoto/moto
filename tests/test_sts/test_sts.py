@@ -8,8 +8,8 @@ from freezegun import freeze_time
 from nose.tools import assert_raises
 import sure  # noqa
 
-from moto import mock_sts
-from moto import mock_sts_deprecated
+from moto.sts import mock_sts
+from moto.sts import mock_sts_deprecated
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 

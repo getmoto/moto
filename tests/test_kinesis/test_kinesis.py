@@ -8,8 +8,8 @@ import boto3
 from boto.kinesis.exceptions import ResourceNotFoundException, \
     InvalidArgumentException
 
-from moto import mock_kinesis
-from moto import mock_kinesis_deprecated
+from moto.kinesis import mock_kinesis
+from moto.kinesis import mock_kinesis_deprecated
 
 
 @mock_kinesis_deprecated
