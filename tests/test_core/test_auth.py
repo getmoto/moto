@@ -553,3 +553,133 @@ def test_access_denied_with_temporary_credentials():
             operation="rds:CreateDBInstance"
         )
     )
+
+
+@set_initial_no_auth_action_count(3)
+@mock_iam
+def test_get_user_from_credentials():
+    user_name = 'new-test-user'
+    inline_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "iam:*",
+                "Resource": "*"
+            }
+        ]
+    }
+    access_key = create_user_with_access_key_and_inline_policy(user_name, inline_policy_document)
+    client = boto3.client('iam', region_name='us-east-1',
+                          aws_access_key_id=access_key['AccessKeyId'],
+                          aws_secret_access_key=access_key['SecretAccessKey'])
+    client.get_user()['User']['UserName'].should.equal(user_name)
+
+
+@set_initial_no_auth_action_count(0)
+@mock_s3
+def test_s3_invalid_access_key_id():
+    client = boto3.client('s3', region_name='us-east-1', aws_access_key_id='invalid', aws_secret_access_key='invalid')
+    with assert_raises(ClientError) as ex:
+        client.list_buckets()
+    ex.exception.response['Error']['Code'].should.equal('InvalidAccessKeyId')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(403)
+    ex.exception.response['Error']['Message'].should.equal('The AWS Access Key Id you provided does not exist in our records.')
+
+
+@set_initial_no_auth_action_count(3)
+@mock_s3
+@mock_iam
+def test_s3_signature_does_not_match():
+    bucket_name = 'test-bucket'
+    access_key = create_user_with_access_key()
+    client = boto3.client('s3', region_name='us-east-1',
+                          aws_access_key_id=access_key['AccessKeyId'],
+                          aws_secret_access_key='invalid')
+    client.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as ex:
+        client.put_object(Bucket=bucket_name, Key="abc")
+    ex.exception.response['Error']['Code'].should.equal('SignatureDoesNotMatch')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(403)
+    ex.exception.response['Error']['Message'].should.equal('The request signature we calculated does not match the signature you provided. Check your key and signing method.')
+
+
+@set_initial_no_auth_action_count(7)
+@mock_s3
+@mock_iam
+def test_s3_access_denied_not_action():
+    user_name = 'test-user'
+    bucket_name = 'test-bucket'
+    inline_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+            }
+        ]
+    }
+    group_inline_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Deny",
+                "NotAction": "iam:GetUser",
+                "Resource": "*"
+            }
+        ]
+    }
+    access_key = create_user_with_access_key_and_inline_policy(user_name, inline_policy_document)
+    create_group_with_inline_policy_and_add_user(user_name, group_inline_policy_document)
+    client = boto3.client('s3', region_name='us-east-1',
+                          aws_access_key_id=access_key['AccessKeyId'],
+                          aws_secret_access_key=access_key['SecretAccessKey'])
+    client.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as ex:
+        client.delete_object(Bucket=bucket_name, Key='sdfsdf')
+    ex.exception.response['Error']['Code'].should.equal('AccessDenied')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(403)
+    ex.exception.response['Error']['Message'].should.equal('Access Denied')
+
+
+@set_initial_no_auth_action_count(4)
+@mock_iam
+@mock_sts
+@mock_s3
+def test_s3_invalid_token_with_temporary_credentials():
+    role_name = 'test-role'
+    session_name = 'test-session'
+    bucket_name = 'test-bucket-888'
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Principal": {"AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)},
+            "Action": "sts:AssumeRole"
+        }
+    }
+    attached_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    '*'
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+    credentials = create_role_with_inline_policy_and_assume_it(role_name, trust_policy_document,
+                                                               attached_policy_document, session_name)
+    client = boto3.client('s3', region_name='us-east-1',
+                          aws_access_key_id=credentials['AccessKeyId'],
+                          aws_secret_access_key=credentials['SecretAccessKey'],
+                          aws_session_token='invalid')
+    client.create_bucket(Bucket=bucket_name)
+    with assert_raises(ClientError) as ex:
+        client.list_bucket_metrics_configurations(Bucket=bucket_name)
+    ex.exception.response['Error']['Code'].should.equal('InvalidToken')
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    ex.exception.response['Error']['Message'].should.equal('The provided token is malformed or otherwise invalid.')
