@@ -7,15 +7,6 @@ url_bases = [
     r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(.*).amazonaws.com"
 ]
 
-
-def ambiguous_response1(*args, **kwargs):
-    return S3ResponseInstance.ambiguous_response(*args, **kwargs)
-
-
-def ambiguous_response2(*args, **kwargs):
-    return S3ResponseInstance.ambiguous_response(*args, **kwargs)
-
-
 url_paths = {
     # subdomain bucket
     '{0}/$': S3ResponseInstance.bucket_response,

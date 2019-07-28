@@ -1248,5 +1248,13 @@ class IAMBackend(BaseBackend):
                 return saml_provider
         raise IAMNotFoundException("SamlProvider {0} not found".format(saml_provider_arn))
 
+    def get_user_from_access_key_id(self, access_key_id):
+        for user_name, user in self.users.items():
+            access_keys = self.get_all_access_keys(user_name)
+            for access_key in access_keys:
+                if access_key.access_key_id == access_key_id:
+                    return user
+        return None
+
 
 iam_backend = IAMBackend()
