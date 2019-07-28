@@ -422,11 +422,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             revision = int(revision)
         else:
             family = task_definition_name
-            revision = len(self.task_definitions.get(family, []))
+            revision = self._get_last_task_definition_revision_id(family)
 
-        if family in self.task_definitions and 0 < revision <= len(self.task_definitions[family]):
-            return self.task_definitions[family][revision - 1]
-        elif family in self.task_definitions and revision == -1:
+        if family in self.task_definitions and revision in self.task_definitions[family]:
             return self.task_definitions[family][revision]
         else:
             raise Exception(
@@ -468,13 +466,14 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def register_task_definition(self, family, container_definitions, volumes):
         if family in self.task_definitions:
-            revision = len(self.task_definitions[family]) + 1
+            last_id = self._get_last_task_definition_revision_id(family)
+            revision = (last_id or 0) + 1
         else:
-            self.task_definitions[family] = []
+            self.task_definitions[family] = {}
             revision = 1
         task_definition = TaskDefinition(
             family, revision, container_definitions, volumes)
-        self.task_definitions[family].append(task_definition)
+        self.task_definitions[family][revision] = task_definition
 
         return task_definition
 
@@ -484,16 +483,18 @@ class EC2ContainerServiceBackend(BaseBackend):
         """
         task_arns = []
         for task_definition_list in self.task_definitions.values():
-            task_arns.extend(
-                [task_definition.arn for task_definition in task_definition_list])
+            task_arns.extend([
+                task_definition.arn
+                for task_definition in task_definition_list.values()
+            ])
         return task_arns
 
     def deregister_task_definition(self, task_definition_str):
         task_definition_name = task_definition_str.split('/')[-1]
         family, revision = task_definition_name.split(':')
         revision = int(revision)
-        if family in self.task_definitions and 0 < revision <= len(self.task_definitions[family]):
-            return self.task_definitions[family].pop(revision - 1)
+        if family in self.task_definitions and revision in self.task_definitions[family]:
+            return self.task_definitions[family].pop(revision)
         else:
             raise Exception(
                 "{0} is not a task_definition".format(task_definition_name))
@@ -949,6 +950,11 @@ class EC2ContainerServiceBackend(BaseBackend):
                 continue
 
             yield task_fam
+
+    def _get_last_task_definition_revision_id(self, family):
+        definitions = self.task_definitions.get(family, {})
+        if definitions:
+            return max(definitions.keys())
 
 
 available_regions = boto3.session.Session().get_available_regions("ecs")
