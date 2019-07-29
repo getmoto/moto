@@ -404,7 +404,7 @@ class DynamoHandler(BaseResponse):
                 elif 'begins_with' in range_key_expression:
                     range_comparison = 'BEGINS_WITH'
                     range_values = [
-                        value_alias_map[range_key_expression_components[1]],
+                        value_alias_map[range_key_expression_components[2]],
                     ]
                 else:
                     range_values = [value_alias_map[
