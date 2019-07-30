@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import logging
+# import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = 'moto'
