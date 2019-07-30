@@ -7,7 +7,12 @@ from botocore.exceptions import ClientError
 import tests.backport_assert_raises
 from nose.tools import assert_raises
 
-from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds2
+from moto.iam import mock_iam
+from moto.ec2 import mock_ec2
+from moto.s3 import mock_s3
+from moto.sts import mock_sts
+from moto.elbv2 import mock_elbv2
+from moto.rds2 import mock_rds2
 from moto.core import set_initial_no_auth_action_count
 from moto.iam.models import ACCOUNT_ID
 

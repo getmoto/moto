@@ -1,5 +1,6 @@
 import unittest
-from moto import mock_dynamodb2_deprecated, mock_dynamodb2
+from moto.dynamodb2 import mock_dynamodb2_deprecated
+from moto.dynamodb2 import mock_dynamodb2
 import socket
 
 from six import PY3

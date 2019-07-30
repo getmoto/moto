@@ -8,7 +8,9 @@ from six.moves.email_mime_text import MIMEText
 
 import sure  # noqa
 from nose import tools
-from moto import mock_ses, mock_sns, mock_sqs
+from moto.ses import mock_ses
+from moto.sns import mock_sns
+from moto.sqs import mock_sqs
 from moto.ses.models import SESFeedback
 
 

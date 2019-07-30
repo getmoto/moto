@@ -1,6 +1,7 @@
 import sure  # noqa
 import boto3
-from moto import mock_sqs, settings
+from moto.sqs import mock_sqs
+from moto import settings
 
 
 def test_context_manager_returns_mock():
