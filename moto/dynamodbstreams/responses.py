@@ -25,7 +25,7 @@ class DynamoDBStreamsHandler(BaseResponse):
         shard_iterator_type = self._get_param('ShardIteratorType')
         sequence_number = self._get_param('SequenceNumber')
         # according to documentation sequence_number param should be string
-        if isinstance(sequence_number, str) or isinstance(sequence_number, unicode):
+        if isinstance(sequence_number, "".__class__):
             sequence_number = int(sequence_number)
 
         return self.backend.get_shard_iterator(arn, shard_id,
