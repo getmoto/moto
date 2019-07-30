@@ -62,8 +62,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         family = self._get_param('family')
         container_definitions = self._get_param('containerDefinitions')
         volumes = self._get_param('volumes')
+        tags = self._get_param('tags')
         task_definition = self.ecs_backend.register_task_definition(
-            family, container_definitions, volumes)
+            family, container_definitions, volumes, tags)
         return json.dumps({
             'taskDefinition': task_definition.response_object
         })
@@ -313,3 +314,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         results = self.ecs_backend.list_task_definition_families(family_prefix, status, max_results, next_token)
 
         return json.dumps({'families': list(results)})
+
+    def list_tags_for_resource(self):
+        resource_arn = self._get_param('resourceArn')
+        tags = self.ecs_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({'tags': tags})

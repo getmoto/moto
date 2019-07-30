@@ -764,7 +764,7 @@ class S3Backend(BaseBackend):
                             prefix=''):
         bucket = self.get_bucket(bucket_name)
 
-        if any((delimiter, encoding_type, key_marker, version_id_marker)):
+        if any((delimiter, key_marker, version_id_marker)):
             raise NotImplementedError(
                 "Called get_bucket_versions with some of delimiter, encoding_type, key_marker, version_id_marker")
 
