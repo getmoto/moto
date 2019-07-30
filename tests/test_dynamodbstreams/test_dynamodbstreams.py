@@ -170,7 +170,7 @@ class TestCore():
         resp = conn.get_records(ShardIterator=resp['NextShardIterator'])
         assert len(resp['Records']) == 0
 
-        #check that if we get the shard iterator AT_SEQUENCE_NUMBER will get the MODIFY event
+        # check that if we get the shard iterator AT_SEQUENCE_NUMBER will get the MODIFY event
         resp = conn.get_shard_iterator(
             StreamArn=self.stream_arn,
             ShardId=shard_id,
@@ -183,7 +183,7 @@ class TestCore():
         assert resp['Records'][0]['eventName'] == 'MODIFY'
         assert resp['Records'][1]['eventName'] == 'DELETE'
 
-        #check that if we get the shard iterator AFTER_SEQUENCE_NUMBER will get the DELETE event
+        # check that if we get the shard iterator AFTER_SEQUENCE_NUMBER will get the DELETE event
         resp = conn.get_shard_iterator(
             StreamArn=self.stream_arn,
             ShardId=shard_id,
