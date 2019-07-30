@@ -23,8 +23,13 @@ class DynamoDBStreamsHandler(BaseResponse):
         arn = self._get_param('StreamArn')
         shard_id = self._get_param('ShardId')
         shard_iterator_type = self._get_param('ShardIteratorType')
+        sequence_number = self._get_param('SequenceNumber')
+        #according to documentation sequence_number param should be string
+        if isinstance(sequence_number, str):
+            sequence_number = int(sequence_number)
+
         return self.backend.get_shard_iterator(arn, shard_id,
-                                               shard_iterator_type)
+                                               shard_iterator_type, sequence_number)
 
     def get_records(self):
         arn = self._get_param('ShardIterator')

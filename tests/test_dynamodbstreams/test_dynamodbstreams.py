@@ -76,6 +76,34 @@ class TestCore():
             ShardIteratorType='TRIM_HORIZON'
         )
         assert 'ShardIterator' in resp
+
+    def test_get_shard_iterator_at_sequence_number(self):
+        conn = boto3.client('dynamodbstreams', region_name='us-east-1')
+
+        resp = conn.describe_stream(StreamArn=self.stream_arn)
+        shard_id = resp['StreamDescription']['Shards'][0]['ShardId']
+        
+        resp = conn.get_shard_iterator(
+            StreamArn=self.stream_arn,
+            ShardId=shard_id,
+            ShardIteratorType='AT_SEQUENCE_NUMBER',
+            SequenceNumber=resp['StreamDescription']['Shards'][0]['SequenceNumberRange']['StartingSequenceNumber']
+        )
+        assert 'ShardIterator' in resp
+
+    def test_get_shard_iterator_after_sequence_number(self):
+        conn = boto3.client('dynamodbstreams', region_name='us-east-1')
+
+        resp = conn.describe_stream(StreamArn=self.stream_arn)
+        shard_id = resp['StreamDescription']['Shards'][0]['ShardId']
+        
+        resp = conn.get_shard_iterator(
+            StreamArn=self.stream_arn,
+            ShardId=shard_id,
+            ShardIteratorType='AFTER_SEQUENCE_NUMBER',
+            SequenceNumber=resp['StreamDescription']['Shards'][0]['SequenceNumberRange']['StartingSequenceNumber']
+        )
+        assert 'ShardIterator' in resp
                 
     def test_get_records_empty(self):
         conn = boto3.client('dynamodbstreams', region_name='us-east-1')
@@ -135,10 +163,38 @@ class TestCore():
         assert resp['Records'][1]['eventName'] == 'MODIFY'
         assert resp['Records'][2]['eventName'] == 'DELETE'
 
+        sequence_number_modify = resp['Records'][1]['dynamodb']['SequenceNumber']
+
         # now try fetching from the next shard iterator, it should be
         # empty
         resp = conn.get_records(ShardIterator=resp['NextShardIterator'])
         assert len(resp['Records']) == 0
+
+        #check that if we get the shard iterator AT_SEQUENCE_NUMBER will get the MODIFY event
+        resp = conn.get_shard_iterator(
+            StreamArn=self.stream_arn,
+            ShardId=shard_id,
+            ShardIteratorType='AT_SEQUENCE_NUMBER',
+            SequenceNumber=sequence_number_modify
+        )
+        iterator_id = resp['ShardIterator']
+        resp = conn.get_records(ShardIterator=iterator_id)
+        assert len(resp['Records']) == 2
+        assert resp['Records'][0]['eventName'] == 'MODIFY'
+        assert resp['Records'][1]['eventName'] == 'DELETE'
+
+        #check that if we get the shard iterator AFTER_SEQUENCE_NUMBER will get the DELETE event
+        resp = conn.get_shard_iterator(
+            StreamArn=self.stream_arn,
+            ShardId=shard_id,
+            ShardIteratorType='AFTER_SEQUENCE_NUMBER',
+            SequenceNumber=sequence_number_modify
+        )
+        iterator_id = resp['ShardIterator']
+        resp = conn.get_records(ShardIterator=iterator_id)
+        assert len(resp['Records']) == 1
+        assert resp['Records'][0]['eventName'] == 'DELETE'
+
 
 
 class TestEdges():
