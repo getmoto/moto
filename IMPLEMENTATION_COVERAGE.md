@@ -181,7 +181,7 @@
 - [ ] test_invoke_method
 - [ ] untag_resource
 - [ ] update_account
-- [ ] update_api_key
+- [X] update_api_key
 - [ ] update_authorizer
 - [ ] update_base_path_mapping
 - [ ] update_client_certificate

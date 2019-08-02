@@ -988,13 +988,30 @@ def test_api_keys():
     apikey['name'].should.equal(apikey_name)
     len(apikey['value']).should.equal(40)
 
+    apikey_name = 'TESTKEY3'
+    payload = {'name': apikey_name }
+    response = client.create_api_key(**payload)
+    apikey_id = response['id']
+
+    patch_operations = [
+        {'op': 'replace', 'path': '/name', 'value': 'TESTKEY3_CHANGE'},
+        {'op': 'replace', 'path': '/customerId', 'value': '12345'},
+        {'op': 'replace', 'path': '/description', 'value': 'APIKEY UPDATE TEST'},
+        {'op': 'replace', 'path': '/enabled', 'value': 'false'},
+    ]
+    response = client.update_api_key(apiKey=apikey_id, patchOperations=patch_operations)
+    response['name'].should.equal('TESTKEY3_CHANGE')
+    response['customerId'].should.equal('12345')
+    response['description'].should.equal('APIKEY UPDATE TEST')
+    response['enabled'].should.equal(False)
+
     response = client.get_api_keys()
-    len(response['items']).should.equal(2)
+    len(response['items']).should.equal(3)
 
     client.delete_api_key(apiKey=apikey_id)
 
     response = client.get_api_keys()
-    len(response['items']).should.equal(1)
+    len(response['items']).should.equal(2)
 
 @mock_apigateway
 def test_usage_plans():
