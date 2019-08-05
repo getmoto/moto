@@ -17,7 +17,7 @@ from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_n
     parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
 from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder, MalformedXML, \
-    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
+    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent, ObjectNotInActiveTierError
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
 from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
@@ -902,7 +902,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
 
-            if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+            key = self.backend.get_key(src_bucket, src_key, version_id=src_version_id)
+
+            if key is not None:
+                if key.storage_class in ["GLACIER", "DEEP_ARCHIVE"]:
+                    raise ObjectNotInActiveTierError(key)
                 self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
                                       storage=storage_class, acl=acl, src_version_id=src_version_id)
             else:
