@@ -14,7 +14,8 @@ from jose import jws
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from .exceptions import GroupExistsException, NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
+from .exceptions import GroupExistsException, NotAuthorizedError, ResourceNotFoundError, UserNotFoundError, \
+    UsernameExistsException
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
@@ -560,6 +561,9 @@ class CognitoIdpBackend(BaseBackend):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
+
+        if username in user_pool.users:
+            raise UsernameExistsException(username)
 
         user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"], attributes)
         user_pool.users[user.username] = user
