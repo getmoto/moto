@@ -642,6 +642,87 @@ def test_describe_task_definition():
     len(resp['jobDefinitions']).should.equal(3)
 
 
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_submit_job_by_name():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = 'test_compute_env'
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type='UNMANAGED',
+        state='ENABLED',
+        serviceRole=iam_arn
+    )
+    arn = resp['computeEnvironmentArn']
+
+    resp = batch_client.create_job_queue(
+        jobQueueName='test_job_queue',
+        state='ENABLED',
+        priority=123,
+        computeEnvironmentOrder=[
+            {
+                'order': 123,
+                'computeEnvironment': arn
+            },
+        ]
+    )
+    queue_arn = resp['jobQueueArn']
+
+    job_definition_name = 'sleep10'
+
+    batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 128,
+            'command': ['sleep', '10']
+        }
+    )
+    batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 256,
+            'command': ['sleep', '10']
+        }
+    )
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 512,
+            'command': ['sleep', '10']
+        }
+    )
+    job_definition_arn = resp['jobDefinitionArn']
+
+    resp = batch_client.submit_job(
+        jobName='test1',
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name
+    )
+    job_id = resp['jobId']
+
+    resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+
+    # batch_client.terminate_job(jobId=job_id)
+
+    len(resp_jobs['jobs']).should.equal(1)
+    resp_jobs['jobs'][0]['jobId'].should.equal(job_id)
+    resp_jobs['jobs'][0]['jobQueue'].should.equal(queue_arn)
+    resp_jobs['jobs'][0]['jobDefinition'].should.equal(job_definition_arn)
+
 # SLOW TESTS
 @expected_failure
 @mock_logs
