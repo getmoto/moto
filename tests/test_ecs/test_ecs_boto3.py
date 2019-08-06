@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from datetime import datetime
 
 from copy import deepcopy
 
@@ -477,6 +478,8 @@ def test_describe_services():
     response['services'][0]['deployments'][0]['pendingCount'].should.equal(2)
     response['services'][0]['deployments'][0]['runningCount'].should.equal(0)
     response['services'][0]['deployments'][0]['status'].should.equal('PRIMARY')
+    (datetime.now() - response['services'][0]['deployments'][0]["createdAt"].replace(tzinfo=None)).seconds.should.be.within(0, 10)
+    (datetime.now() - response['services'][0]['deployments'][0]["updatedAt"].replace(tzinfo=None)).seconds.should.be.within(0, 10)
 
 
 @mock_ecs
