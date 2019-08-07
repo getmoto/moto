@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import six
-import sure   # noqa
 import datetime
 from moto.organizations import utils
 
