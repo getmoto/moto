@@ -162,3 +162,63 @@ def test_delete_retention_policy():
 
     response = conn.delete_log_group(logGroupName=log_group_name)
 
+
+@mock_logs
+def test_get_log_events():
+    conn = boto3.client('logs', 'us-west-2')
+    log_group_name = 'test'
+    log_stream_name = 'stream'
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name
+    )
+
+    events = [{'timestamp': x, 'message': str(x)} for x in range(20)]
+
+    conn.put_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        logEvents=events
+    )
+
+    resp = conn.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        limit=10)
+
+    resp['events'].should.have.length_of(10)
+    resp.should.have.key('nextForwardToken')
+    resp.should.have.key('nextBackwardToken')
+    for i in range(10):
+        resp['events'][i]['timestamp'].should.equal(i)
+        resp['events'][i]['message'].should.equal(str(i))
+
+    next_token = resp['nextForwardToken']
+
+    resp = conn.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=next_token,
+        limit=10)
+
+    resp['events'].should.have.length_of(10)
+    resp.should.have.key('nextForwardToken')
+    resp.should.have.key('nextBackwardToken')
+    resp['nextForwardToken'].should.equal(next_token)
+    for i in range(10):
+        resp['events'][i]['timestamp'].should.equal(i+10)
+        resp['events'][i]['message'].should.equal(str(i+10))
+
+    resp = conn.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=resp['nextBackwardToken'],
+        limit=10)
+
+    resp['events'].should.have.length_of(10)
+    resp.should.have.key('nextForwardToken')
+    resp.should.have.key('nextBackwardToken')
+    for i in range(10):
+        resp['events'][i]['timestamp'].should.equal(i)
+        resp['events'][i]['message'].should.equal(str(i))
