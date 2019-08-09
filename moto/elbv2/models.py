@@ -429,6 +429,17 @@ class ELBv2Backend(BaseBackend):
             if rule.priority == priority:
                 raise PriorityInUseError()
 
+        self._validate_actions(actions)
+
+        # TODO: check for error 'TooManyRegistrationsForTargetId'
+        # TODO: check for error 'TooManyRules'
+
+        # create rule
+        rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
+        listener.register(rule)
+        return [rule]
+
+    def _validate_actions(self, actions):
         # validate Actions
         target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
         for i, action in enumerate(actions):
@@ -443,14 +454,6 @@ class ELBv2Backend(BaseBackend):
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
-
-        # TODO: check for error 'TooManyRegistrationsForTargetId'
-        # TODO: check for error 'TooManyRules'
-
-        # create rule
-        rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
-        listener.register(rule)
-        return [rule]
 
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
@@ -673,20 +676,7 @@ class ELBv2Backend(BaseBackend):
                 # TODO: check pattern of value for 'path-pattern'
 
         # validate Actions
-        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
-        if actions:
-            for i, action in enumerate(actions):
-                index = i + 1
-                action_type = action['type']
-                if action_type == 'forward':
-                    action_target_group_arn = action['target_group_arn']
-                    if action_target_group_arn not in target_group_arns:
-                        raise ActionTargetGroupNotFoundError(action_target_group_arn)
-                elif action_type == 'redirect':
-                    # nothing to do
-                    pass
-                else:
-                    raise InvalidActionTypeError(action_type, index)
+        self._validate_actions(actions)
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
