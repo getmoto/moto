@@ -238,7 +238,7 @@ class KmsResponse(BaseResponse):
 
         value = self.parameters.get("CiphertextBlob")
         try:
-            return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
+            return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8"), 'KeyId': 'key_id'})
         except UnicodeDecodeError:
             # Generate data key will produce random bytes which when decrypted is still returned as base64
             return json.dumps({"Plaintext": value})
