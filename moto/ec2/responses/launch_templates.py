@@ -32,7 +32,7 @@ def xml_serialize(tree, key, value):
     else:
         node = tree
 
-    if isinstance(value, (str, int, float)):
+    if isinstance(value, (str, int, float, six.text_type)):
         node.text = str(value)
     elif isinstance(value, bool):
         node.text = str(value).lower()
