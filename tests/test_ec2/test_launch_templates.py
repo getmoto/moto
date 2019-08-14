@@ -8,7 +8,7 @@ from moto import mock_ec2
 
 @mock_ec2
 def test_launch_template_create():
-    cli = boto3.client("ec2")
+    cli = boto3.client("ec2", region_name="us-east-1")
 
     resp = cli.create_launch_template(
         LaunchTemplateName="test-template",
@@ -66,7 +66,7 @@ def test_describe_launch_template_versions():
         ],
     }
 
-    cli = boto3.client("ec2")
+    cli = boto3.client("ec2", region_name="us-east-1")
 
     create_resp = cli.create_launch_template(
         LaunchTemplateName="test-template",
@@ -90,7 +90,7 @@ def test_describe_launch_template_versions():
 
 @mock_ec2
 def test_create_launch_template_version():
-    cli = boto3.client("ec2")
+    cli = boto3.client("ec2", region_name="us-east-1")
 
     create_resp = cli.create_launch_template(
         LaunchTemplateName="test-template",
@@ -114,7 +114,7 @@ def test_create_launch_template_version():
 
 @mock_ec2
 def test_describe_template_versions_with_multiple_versions():
-    cli = boto3.client("ec2")
+    cli = boto3.client("ec2", region_name="us-east-1")
 
     cli.create_launch_template(
         LaunchTemplateName="test-template",
@@ -138,7 +138,7 @@ def test_describe_template_versions_with_multiple_versions():
 
 @mock_ec2
 def test_describe_launch_templates():
-    cli = boto3.client("ec2")
+    cli = boto3.client("ec2", region_name="us-east-1")
 
     lt_ids = []
     r = cli.create_launch_template(
@@ -179,7 +179,7 @@ def test_describe_launch_templates():
 
 @mock_ec2
 def test_describe_launch_templates_with_filters():
-    cli = boto3.client("ec2")
+    cli = boto3.client("ec2", region_name="us-east-1")
 
     r = cli.create_launch_template(
         LaunchTemplateName="test-template",
