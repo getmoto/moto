@@ -19,8 +19,6 @@ from boto.ec2.instance import Instance as BotoInstance, Reservation
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
-from xml.etree import ElementTree
-from xml.dom import minidom
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
@@ -4115,6 +4113,7 @@ class NatGatewayBackend(object):
     def delete_nat_gateway(self, nat_gateway_id):
         return self.nat_gateways.pop(nat_gateway_id)
 
+
 class LaunchTemplateVersion(object):
     def __init__(self, template, number, data, description):
         self.template = template
@@ -4122,6 +4121,7 @@ class LaunchTemplateVersion(object):
         self.data = data
         self.description = description
         self.create_time = utc_date_and_time()
+
 
 class LaunchTemplate(TaggedEC2Resource):
     def __init__(self, backend, name, template_data, version_description):
@@ -4144,10 +4144,10 @@ class LaunchTemplate(TaggedEC2Resource):
         return self.default_version == version.number
 
     def get_version(self, num):
-        return self.versions[num-1]
+        return self.versions[num - 1]
 
     def default_version(self):
-        return self.versions[self.default_version_number-1]
+        return self.versions[self.default_version_number - 1]
 
     def latest_version(self):
         return self.versions[-1]
@@ -4162,6 +4162,7 @@ class LaunchTemplate(TaggedEC2Resource):
         else:
             return super(LaunchTemplate, self).get_filter_value(
                 filter_name, "DescribeLaunchTemplates")
+
 
 class LaunchTemplateBackend(object):
     def __init__(self):

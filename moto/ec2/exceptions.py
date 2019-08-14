@@ -524,6 +524,7 @@ class OperationNotPermitted3(EC2ClientError):
                                                                                            acceptor_region)
         )
 
+
 class InvalidLaunchTemplateNameError(EC2ClientError):
     def __init__(self):
         super(InvalidLaunchTemplateNameError, self).__init__(

@@ -1,4 +1,3 @@
-import json
 import six
 import uuid
 from moto.core.responses import BaseResponse
@@ -18,6 +17,7 @@ def xml_root(name):
     ElementTree.SubElement(root, "requestId").text = request_id
 
     return root
+
 
 def xml_serialize(tree, key, value):
     if key:
@@ -43,19 +43,21 @@ def xml_serialize(tree, key, value):
         for item in value:
             xml_serialize(node, 'item', item)
 
+
 def pretty_xml(tree):
     rough = ElementTree.tostring(tree, 'utf-8')
     parsed = minidom.parseString(rough)
     return parsed.toprettyxml(indent='    ')
 
+
 def parse_object(raw_data):
     out_data = {}
     for key, value in six.iteritems(raw_data):
         key_fix_splits = key.split("_")
-        l = len(key_fix_splits)
+        key_len = len(key_fix_splits)
 
         new_key = ""
-        for i in range(0, l):
+        for i in range(0, key_len):
             new_key += key_fix_splits[i][0].upper() + key_fix_splits[i][1:]
 
         data = out_data
@@ -69,6 +71,7 @@ def parse_object(raw_data):
 
     out_data = parse_lists(out_data)
     return out_data
+
 
 def parse_lists(data):
     for key, value in six.iteritems(data):
@@ -86,6 +89,7 @@ def parse_lists(data):
                     new_value.append(lvalue)
                 data[key] = new_value
     return data
+
 
 class LaunchTemplates(BaseResponse):
     def create_launch_template(self):
@@ -126,8 +130,6 @@ class LaunchTemplates(BaseResponse):
             template = self.ec2_backend.get_launch_template_by_id(tmpl_id)
 
         version_description = self._get_param('VersionDescription')
-        tag_spec = self._get_param('TagSpecifications')
-        # source_version = self._get_int_param('SourceVersion')
 
         raw_template_data = self._get_dict_param('LaunchTemplateData.')
         template_data = parse_object(raw_template_data)
@@ -147,7 +149,6 @@ class LaunchTemplates(BaseResponse):
                 "versionNumber": version.number,
             })
             return pretty_xml(tree)
-
 
     # def delete_launch_template(self):
     #     pass
@@ -191,9 +192,12 @@ class LaunchTemplates(BaseResponse):
                 else:
                     vMax = min_version + max_results
 
-                ret_versions = template.versions[min_version-1:vMax-1]
+                vMin = min_version - 1
+                vMax = vMax - 1
+                ret_versions = template.versions[vMin:vMax]
             elif max_version:
-                ret_versions = template.versions[0:max_version-1]
+                vMax = max_version - 1
+                ret_versions = template.versions[:vMax]
             else:
                 ret_versions = template.versions
 
