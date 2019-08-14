@@ -191,6 +191,7 @@ def test_decrypt():
     conn = boto.kms.connect_to_region('us-west-2')
     response = conn.decrypt('ZW5jcnlwdG1l'.encode('utf-8'))
     response['Plaintext'].should.equal(b'encryptme')
+    response['KeyId'].should.equal('key_id')
 
 
 @mock_kms_deprecated
