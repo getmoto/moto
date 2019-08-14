@@ -4166,31 +4166,36 @@ class LaunchTemplate(TaggedEC2Resource):
 
 class LaunchTemplateBackend(object):
     def __init__(self):
-        self.launch_templates_by_name = {}
-        self.launch_templates_by_id = {}
+        self.launch_template_name_to_ids = {}
+        self.launch_templates = OrderedDict()
+        self.launch_template_insert_order = []
         super(LaunchTemplateBackend, self).__init__()
 
     def create_launch_template(self, name, description, template_data):
-        if name in self.launch_templates_by_name:
+        if name in self.launch_template_name_to_ids:
             raise InvalidLaunchTemplateNameError()
         template = LaunchTemplate(self, name, template_data, description)
-        self.launch_templates_by_id[template.id] = template
-        self.launch_templates_by_name[template.name] = template
+        self.launch_templates[template.id] = template
+        self.launch_template_name_to_ids[template.name] = template.id
+        self.launch_template_insert_order.append(template.id)
         return template
 
-    def get_launch_template_by_name(self, name):
-        return self.launch_templates_by_name[name]
+    def get_launch_template(self, template_id):
+        return self.launch_templates[template_id]
 
-    def get_launch_template_by_id(self, templ_id):
-        return self.launch_templates_by_id[templ_id]
+    def get_launch_template_by_name(self, name):
+        return self.get_launch_template(self.launch_template_name_to_ids[name])
 
     def get_launch_templates(self, template_names=None, template_ids=None, filters=None):
+        if template_names and not template_ids:
+            template_ids = []
+            for name in template_names:
+                template_ids.append(self.launch_template_name_to_ids[name])
+
         if template_ids:
-            templates = [self.launch_templates_by_id[tid] for tid in template_ids]
-        elif template_names:
-            templates = [self.launch_templates_by_name[name] for name in template_names]
+            templates = [self.launch_templates[tid] for tid in template_ids]
         else:
-            templates = list(self.launch_templates_by_name.values())
+            templates = list(self.launch_templates.values())
 
         return generic_filter(filters, templates)
 
@@ -4260,7 +4265,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
                 self.describe_internet_gateways(
                     internet_gateway_ids=[resource_id])
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['launch-template']:
-                self.get_launch_template_by_id(resource_id)
+                self.get_launch_template(resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-acl']:
                 self.get_all_network_acls()
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:

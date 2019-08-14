@@ -127,7 +127,7 @@ class LaunchTemplates(BaseResponse):
         if name:
             template = self.ec2_backend.get_launch_template_by_name(name)
         if tmpl_id:
-            template = self.ec2_backend.get_launch_template_by_id(tmpl_id)
+            template = self.ec2_backend.get_launch_template(tmpl_id)
 
         version_description = self._get_param('VersionDescription')
 
@@ -162,7 +162,7 @@ class LaunchTemplates(BaseResponse):
         if name:
             template = self.ec2_backend.get_launch_template_by_name(name)
         if template_id:
-            template = self.ec2_backend.get_launch_template_by_id(template_id)
+            template = self.ec2_backend.get_launch_template(template_id)
 
         max_results = self._get_int_param("MaxResults", 15)
         versions = self._get_multi_param("Versions")
