@@ -48,6 +48,7 @@ def test_launch_template_create():
     str(ex.exception).should.equal(
         'An error occurred (InvalidLaunchTemplateName.AlreadyExistsException) when calling the CreateLaunchTemplate operation: Launch template name already in use.')
 
+
 @mock_ec2
 def test_describe_launch_template_versions():
     template_data = {
@@ -135,6 +136,148 @@ def test_describe_template_versions_with_multiple_versions():
     resp["LaunchTemplateVersions"].should.have.length_of(2)
     resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"].should.equal("ami-abc123")
     resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"].should.equal("ami-def456")
+
+
+@mock_ec2
+def test_describe_launch_template_versions_with_versions_option():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    cli.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-abc123"
+        })
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-def456"
+        },
+        VersionDescription="new ami")
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-hij789"
+        },
+        VersionDescription="new ami, again")
+
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName="test-template",
+        Versions=["2","3"])
+
+    resp["LaunchTemplateVersions"].should.have.length_of(2)
+    resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"].should.equal("ami-def456")
+    resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"].should.equal("ami-hij789")
+
+
+@mock_ec2
+def test_describe_launch_template_versions_with_min():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    cli.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-abc123"
+        })
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-def456"
+        },
+        VersionDescription="new ami")
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-hij789"
+        },
+        VersionDescription="new ami, again")
+
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName="test-template",
+        MinVersion="2")
+
+    resp["LaunchTemplateVersions"].should.have.length_of(2)
+    resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"].should.equal("ami-def456")
+    resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"].should.equal("ami-hij789")
+
+
+@mock_ec2
+def test_describe_launch_template_versions_with_max():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    cli.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-abc123"
+        })
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-def456"
+        },
+        VersionDescription="new ami")
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-hij789"
+        },
+        VersionDescription="new ami, again")
+
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName="test-template",
+        MaxVersion="2")
+
+    resp["LaunchTemplateVersions"].should.have.length_of(2)
+    resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"].should.equal("ami-abc123")
+    resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"].should.equal("ami-def456")
+
+
+@mock_ec2
+def test_describe_launch_template_versions_with_min_and_max():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    cli.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-abc123"
+        })
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-def456"
+        },
+        VersionDescription="new ami")
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-hij789"
+        },
+        VersionDescription="new ami, again")
+
+    cli.create_launch_template_version(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-345abc"
+        },
+        VersionDescription="new ami, because why not")
+
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName="test-template",
+        MinVersion="2",
+        MaxVersion="3")
+
+    resp["LaunchTemplateVersions"].should.have.length_of(2)
+    resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"].should.equal("ami-def456")
+    resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"].should.equal("ami-hij789")
+
+
 
 @mock_ec2
 def test_describe_launch_templates():

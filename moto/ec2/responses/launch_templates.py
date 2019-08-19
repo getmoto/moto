@@ -164,9 +164,10 @@ class LaunchTemplates(BaseResponse):
             template = self.ec2_backend.get_launch_template(template_id)
 
         max_results = self._get_int_param("MaxResults", 15)
-        versions = self._get_multi_param("Versions")
+        versions = self._get_multi_param("LaunchTemplateVersion")
         min_version = self._get_int_param("MinVersion")
         max_version = self._get_int_param("MaxVersion")
+
 
         filters = filters_from_querystring(self.querystring)
         if filters:
@@ -192,10 +193,9 @@ class LaunchTemplates(BaseResponse):
                     vMax = min_version + max_results
 
                 vMin = min_version - 1
-                vMax = vMax - 1
                 ret_versions = template.versions[vMin:vMax]
             elif max_version:
-                vMax = max_version - 1
+                vMax = max_version
                 ret_versions = template.versions[:vMax]
             else:
                 ret_versions = template.versions
