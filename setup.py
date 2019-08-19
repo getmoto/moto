@@ -30,8 +30,8 @@ def get_version():
 install_requires = [
     "Jinja2>=2.10.1",
     "boto>=2.36.0",
-    "boto3>=1.9.86",
-    "botocore>=1.12.86",
+    "boto3>=1.9.201",
+    "botocore>=1.12.201",
     "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
