@@ -6,6 +6,7 @@ from botocore.client import ClientError
 
 from moto import mock_ec2
 
+
 @mock_ec2
 def test_launch_template_create():
     cli = boto3.client("ec2", region_name="us-east-1")
@@ -89,6 +90,7 @@ def test_describe_launch_template_versions():
     templ = resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]
     templ.should.equal(template_data)
 
+
 @mock_ec2
 def test_create_launch_template_version():
     cli = boto3.client("ec2", region_name="us-east-1")
@@ -112,6 +114,7 @@ def test_create_launch_template_version():
     version["LaunchTemplateId"].should.equal(create_resp["LaunchTemplate"]["LaunchTemplateId"])
     version["VersionDescription"].should.equal("new ami")
     version["VersionNumber"].should.equal(2)
+
 
 @mock_ec2
 def test_create_launch_template_version_by_id():
@@ -189,7 +192,7 @@ def test_describe_launch_template_versions_with_versions_option():
 
     resp = cli.describe_launch_template_versions(
         LaunchTemplateName="test-template",
-        Versions=["2","3"])
+        Versions=["2", "3"])
 
     resp["LaunchTemplateVersions"].should.have.length_of(2)
     resp["LaunchTemplateVersions"][0]["LaunchTemplateData"]["ImageId"].should.equal("ami-def456")
@@ -303,7 +306,6 @@ def test_describe_launch_template_versions_with_min_and_max():
     resp["LaunchTemplateVersions"][1]["LaunchTemplateData"]["ImageId"].should.equal("ami-hij789")
 
 
-
 @mock_ec2
 def test_describe_launch_templates():
     cli = boto3.client("ec2", region_name="us-east-1")
@@ -344,6 +346,7 @@ def test_describe_launch_templates():
     resp["LaunchTemplates"].should.have.length_of(2)
     resp["LaunchTemplates"][0]["LaunchTemplateName"].should.equal("test-template")
     resp["LaunchTemplates"][1]["LaunchTemplateName"].should.equal("test-template2")
+
 
 @mock_ec2
 def test_describe_launch_templates_with_filters():
@@ -388,7 +391,7 @@ def test_create_launch_template_with_tag_spec():
 
     cli.create_launch_template(
         LaunchTemplateName="test-template",
-        LaunchTemplateData={"ImageId":"ami-abc123"},
+        LaunchTemplateData={"ImageId": "ami-abc123"},
         TagSpecifications=[{
             "ResourceType": "instance",
             "Tags": [

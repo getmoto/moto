@@ -37,7 +37,7 @@ def xml_serialize(tree, key, value):
     elif isinstance(value, list):
         for item in value:
             xml_serialize(node, 'item', item)
-    elif value == None:
+    elif value is None:
         pass
     else:
         raise NotImplementedError("Don't know how to serialize \"{}\" to xml".format(value.__class__))
@@ -98,7 +98,6 @@ class LaunchTemplates(BaseResponse):
 
         raw_template_data = self._get_dict_param('LaunchTemplateData.')
         parsed_template_data = parse_object(raw_template_data)
-
 
         if self.is_not_dryrun('CreateLaunchTemplate'):
             if tag_spec:
@@ -175,7 +174,6 @@ class LaunchTemplates(BaseResponse):
         versions = self._get_multi_param("LaunchTemplateVersion")
         min_version = self._get_int_param("MinVersion")
         max_version = self._get_int_param("MaxVersion")
-
 
         filters = filters_from_querystring(self.querystring)
         if filters:
