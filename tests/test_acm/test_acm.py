@@ -291,6 +291,7 @@ def test_request_certificate():
     )
     resp.should.contain('CertificateArn')
     arn = resp['CertificateArn']
+    arn.should.match(r"arn:aws:acm:eu-central-1:\d{12}:certificate/")
 
     resp = client.request_certificate(
         DomainName='google.com',
