@@ -94,17 +94,25 @@ class LaunchTemplates(BaseResponse):
     def create_launch_template(self):
         name = self._get_param('LaunchTemplateName')
         version_description = self._get_param('VersionDescription')
-        tag_spec = self._get_param('TagSpecifications')
+        tag_spec = self._parse_tag_specification("TagSpecification")
 
         raw_template_data = self._get_dict_param('LaunchTemplateData.')
         parsed_template_data = parse_object(raw_template_data)
 
-        if tag_spec:
-            if 'TagSpecifications' not in parsed_template_data:
-                parsed_template_data['TagSpecifications'] = []
-            parsed_template_data['TagSpecifications'].extend(tag_spec)
 
         if self.is_not_dryrun('CreateLaunchTemplate'):
+            if tag_spec:
+                if 'TagSpecifications' not in parsed_template_data:
+                    parsed_template_data['TagSpecifications'] = []
+                converted_tag_spec = []
+                for resource_type, tags in six.iteritems(tag_spec):
+                    converted_tag_spec.append({
+                        "ResourceType": resource_type,
+                        "Tags": [{"Key": key, "Value": value} for key, value in six.iteritems(tags)],
+                    })
+
+                parsed_template_data['TagSpecifications'].extend(converted_tag_spec)
+
             template = self.ec2_backend.create_launch_template(name, version_description, parsed_template_data)
             version = template.default_version()
 

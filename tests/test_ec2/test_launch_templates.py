@@ -356,3 +356,32 @@ def test_describe_launch_templates_with_filters():
     resp["LaunchTemplates"].should.have.length_of(1)
     resp["LaunchTemplates"][0]["LaunchTemplateName"].should.equal("no-tags")
 
+
+@mock_ec2
+def test_create_launch_template_with_tag_spec():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    cli.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={"ImageId":"ami-abc123"},
+        TagSpecifications=[{
+            "ResourceType": "instance",
+            "Tags": [
+                {"Key": "key", "Value": "value"}
+            ]
+        }],
+    )
+
+    resp = cli.describe_launch_template_versions(
+        LaunchTemplateName="test-template",
+        Versions=["1"])
+    version = resp["LaunchTemplateVersions"][0]
+
+    version["LaunchTemplateData"].should.have.key("TagSpecifications")
+    version["LaunchTemplateData"]["TagSpecifications"].should.have.length_of(1)
+    version["LaunchTemplateData"]["TagSpecifications"][0].should.equal({
+        "ResourceType": "instance",
+        "Tags": [
+            {"Key": "key", "Value": "value"}
+        ]
+    })
