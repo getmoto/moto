@@ -20,28 +20,27 @@ def xml_root(name):
 
 
 def xml_serialize(tree, key, value):
-    if key:
-        name = key[0].lower() + key[1:]
-        if isinstance(value, list):
-            if name[-1] == 's':
-                name = name[:-1]
+    name = key[0].lower() + key[1:]
+    if isinstance(value, list):
+        if name[-1] == 's':
+            name = name[:-1]
 
-            name = name + 'Set'
+        name = name + 'Set'
 
-        node = ElementTree.SubElement(tree, name)
-    else:
-        node = tree
+    node = ElementTree.SubElement(tree, name)
 
     if isinstance(value, (str, int, float, six.text_type)):
         node.text = str(value)
-    elif isinstance(value, bool):
-        node.text = str(value).lower()
     elif isinstance(value, dict):
         for dictkey, dictvalue in six.iteritems(value):
             xml_serialize(node, dictkey, dictvalue)
     elif isinstance(value, list):
         for item in value:
             xml_serialize(node, 'item', item)
+    elif value == None:
+        pass
+    else:
+        raise NotImplementedError("Don't know how to serialize \"{}\" to xml".format(value.__class__))
 
 
 def pretty_xml(tree):
