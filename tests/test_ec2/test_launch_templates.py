@@ -114,7 +114,32 @@ def test_create_launch_template_version():
     version["VersionNumber"].should.equal(2)
 
 @mock_ec2
-def test_describe_template_versions_with_multiple_versions():
+def test_create_launch_template_version_by_id():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    create_resp = cli.create_launch_template(
+        LaunchTemplateName="test-template",
+        LaunchTemplateData={
+            "ImageId": "ami-abc123"
+        })
+
+    version_resp = cli.create_launch_template_version(
+        LaunchTemplateId=create_resp["LaunchTemplate"]["LaunchTemplateId"],
+        LaunchTemplateData={
+            "ImageId": "ami-def456"
+        },
+        VersionDescription="new ami")
+
+    version_resp.should.have.key("LaunchTemplateVersion")
+    version = version_resp["LaunchTemplateVersion"]
+    version["DefaultVersion"].should.equal(False)
+    version["LaunchTemplateId"].should.equal(create_resp["LaunchTemplate"]["LaunchTemplateId"])
+    version["VersionDescription"].should.equal("new ami")
+    version["VersionNumber"].should.equal(2)
+
+
+@mock_ec2
+def test_describe_launch_template_versions_with_multiple_versions():
     cli = boto3.client("ec2", region_name="us-east-1")
 
     cli.create_launch_template(
