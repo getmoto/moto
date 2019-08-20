@@ -132,8 +132,8 @@ class AWSCertificateManagerResponse(BaseResponse):
 
     def list_certificates(self):
         certs = []
-
-        for cert_bundle in self.acm_backend.get_certificates_list():
+        statuses = self._get_param('CertificateStatuses')
+        for cert_bundle in self.acm_backend.get_certificates_list(statuses):
             certs.append({
                 'CertificateArn': cert_bundle.arn,
                 'DomainName': cert_bundle.common_name
