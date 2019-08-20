@@ -464,7 +464,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
 
         key_count = len(result_keys) + len(result_folders)
-        
+
         return template.render(
             bucket=bucket,
             prefix=prefix or '',
