@@ -325,7 +325,7 @@ class AWSCertificateManagerBackend(BaseBackend):
 
         return bundle.arn
 
-    def get_certificates_list(self):
+    def get_certificates_list(self, statuses):
         """
         Get list of certificates
 
@@ -333,7 +333,9 @@ class AWSCertificateManagerBackend(BaseBackend):
         :rtype: list of CertBundle
         """
         for arn in self._certificates.keys():
-            yield self.get_certificate(arn)
+            cert = self.get_certificate(arn)
+            if not statuses or cert.status in statuses:
+                yield cert
 
     def get_certificate(self, arn):
         if arn not in self._certificates:
