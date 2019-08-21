@@ -66,7 +66,7 @@ def test_assume_role():
             },
         ]
     })
-    s3_role = "arn:aws:iam::123456789012:role/test-role"
+    s3_role = "arn:aws:iam::{account_id}:role/test-role".format(account_id=ACCOUNT_ID)
     assume_role_response = client.assume_role(RoleArn=s3_role, RoleSessionName=session_name,
                                               Policy=policy, DurationSeconds=900)
 
@@ -78,7 +78,7 @@ def test_assume_role():
     assert credentials['AccessKeyId'].startswith("ASIA")
     credentials['SecretAccessKey'].should.have.length_of(40)
 
-    assume_role_response['AssumedRoleUser']['Arn'].should.equal("arn:aws:iam::123456789012:role/test-role/" + session_name)
+    assume_role_response['AssumedRoleUser']['Arn'].should.equal(s3_role + "/" + session_name)
     assert assume_role_response['AssumedRoleUser']['AssumedRoleId'].startswith("AROA")
     assert assume_role_response['AssumedRoleUser']['AssumedRoleId'].endswith(":" + session_name)
     assume_role_response['AssumedRoleUser']['AssumedRoleId'].should.have.length_of(21 + 1 + len(session_name))
@@ -103,9 +103,10 @@ def test_assume_role_with_web_identity():
             },
         ]
     })
-    s3_role = "arn:aws:iam::123456789012:role/test-role"
+    s3_role = "arn:aws:iam::{account_id}:role/test-role".format(account_id=ACCOUNT_ID)
+    session_name = "session-name"
     role = conn.assume_role_with_web_identity(
-        s3_role, "session-name", policy, duration_seconds=123)
+        s3_role, session_name, policy, duration_seconds=123)
 
     credentials = role.credentials
     credentials.expiration.should.equal('2012-01-01T12:02:03.000Z')
@@ -115,7 +116,7 @@ def test_assume_role_with_web_identity():
     assert credentials.access_key.startswith("ASIA")
     credentials.secret_key.should.have.length_of(40)
 
-    role.user.arn.should.equal("arn:aws:iam::123456789012:role/test-role")
+    role.user.arn.should.equal(s3_role + "/" + session_name)
     role.user.assume_role_id.should.contain("session-name")
 
 
