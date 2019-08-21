@@ -39,6 +39,31 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def event_source_mappings(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        if request.method == 'GET':
+            querystring = self.querystring
+            event_source_arn = querystring.get('EventSourceArn', [None])[0]
+            function_name = querystring.get('FunctionName', [None])[0]
+            return self._list_event_source_mappings(event_source_arn, function_name)
+        elif request.method == 'POST':
+            return self._create_event_source_mapping(request, full_url, headers)
+        else:
+            raise ValueError("Cannot handle request")
+
+    def event_source_mapping(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        path = request.path if hasattr(request, 'path') else path_url(request.url)
+        uuid = path.split('/')[-1]
+        if request.method == 'GET':
+            return self._get_event_source_mapping(uuid)
+        elif request.method == 'PUT':
+            return self._update_event_source_mapping(uuid)
+        elif request.method == 'DELETE':
+            return self._delete_event_source_mapping(uuid)
+        else:
+            raise ValueError("Cannot handle request")
+
     def function(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         if request.method == 'GET':
@@ -176,6 +201,45 @@ class LambdaResponse(BaseResponse):
         else:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)
+
+    def _create_event_source_mapping(self, request, full_url, headers):
+        try:
+            fn = self.lambda_backend.create_event_source_mapping(self.json_body)
+        except ValueError as e:
+            return 400, {}, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
+        else:
+            config = fn.get_configuration()
+            return 201, {}, json.dumps(config)
+
+    def _list_event_source_mappings(self, event_source_arn, function_name):
+        esms = self.lambda_backend.list_event_source_mappings(event_source_arn, function_name)
+        result = {
+            'EventSourceMappings': [esm.get_configuration() for esm in esms]
+        }
+        return 200, {}, json.dumps(result)
+
+    def _get_event_source_mapping(self, uuid):
+        result = self.lambda_backend.get_event_source_mapping(uuid)
+        if result:
+            return 200, {}, json.dumps(result.get_configuration())
+        else:
+            return 404, {}, "{}"
+
+    def _update_event_source_mapping(self, uuid):
+        result = self.lambda_backend.update_event_source_mapping(uuid, self.json_body)
+        if result:
+            return 202, {}, json.dumps(result.get_configuration())
+        else:
+            return 404, {}, "{}"
+
+    def _delete_event_source_mapping(self, uuid):
+        esm = self.lambda_backend.delete_event_source_mapping(uuid)
+        if esm:
+            json_result = esm.get_configuration()
+            json_result.update({'State': 'Deleting'})
+            return 202, {}, json.dumps(json_result)
+        else:
+            return 404, {}, "{}"
 
     def _publish_function(self, request, full_url, headers):
         function_name = self.path.rsplit('/', 2)[-2]

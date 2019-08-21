@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import base64
+import time
 from collections import defaultdict
 import copy
 import datetime
@@ -31,6 +32,7 @@ from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .utils import make_function_arn, make_function_ver_arn
+from moto.sqs import sqs_backends
 
 logger = logging.getLogger(__name__)
 
@@ -429,24 +431,39 @@ class LambdaFunction(BaseModel):
 class EventSourceMapping(BaseModel):
     def __init__(self, spec):
         # required
-        self.function_name = spec['FunctionName']
+        self.function_arn = spec['FunctionArn']
         self.event_source_arn = spec['EventSourceArn']
-        self.starting_position = spec['StartingPosition']
-
+        self.uuid = str(uuid.uuid4())
+        self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
         # optional
-        self.batch_size = spec.get('BatchSize', 100)
+        self.starting_position = spec.get('StartingPosition', 'TRIM_HORIZON')
+        self.batch_size = spec.get('BatchSize', 10)  # TODO: Add source type-specific defaults
         self.enabled = spec.get('Enabled', True)
         self.starting_position_timestamp = spec.get('StartingPositionTimestamp',
                                                     None)
+
+    def get_configuration(self):
+        return {
+            'UUID': self.uuid,
+            'BatchSize': self.batch_size,
+            'EventSourceArn': self.event_source_arn,
+            'FunctionArn': self.function_arn,
+            'LastModified': self.last_modified,
+            'LastProcessingResult': '',
+            'State': 'Enabled' if self.enabled else 'Disabled',
+            'StateTransitionReason': 'User initiated'
+        }
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json,
                                         region_name):
         properties = cloudformation_json['Properties']
+        func = lambda_backends[region_name].get_function(properties['FunctionName'])
         spec = {
-            'FunctionName': properties['FunctionName'],
+            'FunctionArn': func.function_arn,
             'EventSourceArn': properties['EventSourceArn'],
-            'StartingPosition': properties['StartingPosition']
+            'StartingPosition': properties['StartingPosition'],
+            'BatchSize': properties.get('BatchSize', 100)
         }
         optional_properties = 'BatchSize Enabled StartingPositionTimestamp'.split()
         for prop in optional_properties:
@@ -466,8 +483,10 @@ class LambdaVersion(BaseModel):
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json,
                                         region_name):
         properties = cloudformation_json['Properties']
+        function_name = properties['FunctionName']
+        func = lambda_backends[region_name].publish_function(function_name)
         spec = {
-            'Version': properties.get('Version')
+            'Version': func.version
         }
         return LambdaVersion(spec)
 
@@ -514,6 +533,9 @@ class LambdaStorage(object):
 
     def get_arn(self, arn):
         return self._arns.get(arn, None)
+
+    def get_function_by_name_or_arn(self, input):
+        return self.get_function(input) or self.get_arn(input)
 
     def put_function(self, fn):
         """
@@ -596,6 +618,7 @@ class LambdaStorage(object):
 class LambdaBackend(BaseBackend):
     def __init__(self, region_name):
         self._lambdas = LambdaStorage()
+        self._event_source_mappings = {}
         self.region_name = region_name
 
     def reset(self):
@@ -617,6 +640,43 @@ class LambdaBackend(BaseBackend):
             fn.version = ver.version
         return fn
 
+    def create_event_source_mapping(self, spec):
+        required = [
+            'EventSourceArn',
+            'FunctionName',
+        ]
+        for param in required:
+            if not spec.get(param):
+                raise RESTError('InvalidParameterValueException', 'Missing {}'.format(param))
+
+        # Validate function name
+        func = self._lambdas.get_function_by_name_or_arn(spec.get('FunctionName', ''))
+        if not func:
+            raise RESTError('ResourceNotFoundException', 'Invalid FunctionName')
+
+        # Validate queue
+        for queue in sqs_backends[self.region_name].queues.values():
+            if queue.queue_arn == spec['EventSourceArn']:
+                if queue.lambda_event_source_mappings.get('func.function_arn'):
+                    # TODO: Correct exception?
+                    raise RESTError('ResourceConflictException', 'The resource already exists.')
+                if queue.fifo_queue:
+                    raise RESTError('InvalidParameterValueException',
+                                    '{} is FIFO'.format(queue.queue_arn))
+                else:
+                    esm_spec = {
+                        'EventSourceArn': spec['EventSourceArn'],
+                        'FunctionArn': func.function_arn,
+                    }
+                    esm = EventSourceMapping(esm_spec)
+                    self._event_source_mappings[esm.uuid] = esm
+
+                    # Set backend function on queue
+                    queue.lambda_event_source_mappings[esm.function_arn] = esm
+
+                    return esm
+        raise RESTError('ResourceNotFoundException', 'Invalid EventSourceArn')
+
     def publish_function(self, function_name):
         return self._lambdas.publish_function(function_name)
 
@@ -625,6 +685,33 @@ class LambdaBackend(BaseBackend):
 
     def list_versions_by_function(self, function_name):
         return self._lambdas.list_versions_by_function(function_name)
+
+    def get_event_source_mapping(self, uuid):
+        return self._event_source_mappings.get(uuid)
+
+    def delete_event_source_mapping(self, uuid):
+        return self._event_source_mappings.pop(uuid)
+
+    def update_event_source_mapping(self, uuid, spec):
+        esm = self.get_event_source_mapping(uuid)
+        if esm:
+            if spec.get('FunctionName'):
+                func = self._lambdas.get_function_by_name_or_arn(spec.get('FunctionName'))
+                esm.function_arn = func.function_arn
+            if 'BatchSize' in spec:
+                esm.batch_size = spec['BatchSize']
+            if 'Enabled' in spec:
+                esm.enabled = spec['Enabled']
+            return esm
+        return False
+
+    def list_event_source_mappings(self, event_source_arn, function_name):
+        esms = list(self._event_source_mappings.values())
+        if event_source_arn:
+            esms = list(filter(lambda x: x.event_source_arn == event_source_arn, esms))
+        if function_name:
+            esms = list(filter(lambda x: x.function_name == function_name, esms))
+        return esms
 
     def get_function_by_arn(self, function_arn):
         return self._lambdas.get_arn(function_arn)
@@ -635,7 +722,43 @@ class LambdaBackend(BaseBackend):
     def list_functions(self):
         return self._lambdas.all()
 
-    def send_message(self, function_name, message, subject=None, qualifier=None):
+    def send_sqs_batch(self, function_arn, messages, queue_arn):
+        success = True
+        for message in messages:
+            func = self.get_function_by_arn(function_arn)
+            result = self._send_sqs_message(func, message, queue_arn)
+            if not result:
+                success = False
+        return success
+
+    def _send_sqs_message(self, func, message, queue_arn):
+        event = {
+            "Records": [
+                {
+                    "messageId": message.id,
+                    "receiptHandle": message.receipt_handle,
+                    "body": message.body,
+                    "attributes": {
+                        "ApproximateReceiveCount": "1",
+                        "SentTimestamp": "1545082649183",
+                        "SenderId": "AIDAIENQZJOLO23YVJ4VO",
+                        "ApproximateFirstReceiveTimestamp": "1545082649185"
+                    },
+                    "messageAttributes": {},
+                    "md5OfBody": "098f6bcd4621d373cade4e832627b4f6",
+                    "eventSource": "aws:sqs",
+                    "eventSourceARN": queue_arn,
+                    "awsRegion": self.region_name
+                }
+            ]
+        }
+
+        request_headers = {}
+        response_headers = {}
+        func.invoke(json.dumps(event), request_headers, response_headers)
+        return 'x-amz-function-error' not in response_headers
+
+    def send_sns_message(self, function_name, message, subject=None, qualifier=None):
         event = {
             "Records": [
                 {
