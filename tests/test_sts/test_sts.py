@@ -6,7 +6,8 @@ import boto3
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_sts, mock_sts_deprecated
+from moto import mock_sts, mock_sts_deprecated, mock_iam
+from moto.iam.models import ACCOUNT_ID
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -26,7 +27,8 @@ def test_get_session_token():
 @mock_sts_deprecated
 def test_get_federation_token():
     conn = boto.connect_sts()
-    token = conn.get_federation_token(duration=123, name="Bob")
+    token_name = "Bob"
+    token = conn.get_federation_token(duration=123, name=token_name)
 
     token.credentials.expiration.should.equal('2012-01-01T12:02:03.000Z')
     token.credentials.session_token.should.equal(
@@ -35,8 +37,8 @@ def test_get_federation_token():
     token.credentials.secret_key.should.equal(
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYzEXAMPLEKEY")
     token.federated_user_arn.should.equal(
-        "arn:aws:sts::123456789012:federated-user/Bob")
-    token.federated_user_id.should.equal("123456789012:Bob")
+        "arn:aws:sts::{account_id}:federated-user/{token_name}".format(account_id=ACCOUNT_ID, token_name=token_name))
+    token.federated_user_id.should.equal(str(ACCOUNT_ID) + ":" + token_name)
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -72,17 +74,66 @@ def test_assume_role():
     assert credentials['AccessKeyId'].startswith("ASIA")
     credentials['SecretAccessKey'].should.have.length_of(40)
 
-    assume_role_response['AssumedRoleUser']['Arn'].should.equal("arn:aws:iam::123456789012:role/test-role")
+    assume_role_response['AssumedRoleUser']['Arn'].should.equal("arn:aws:iam::123456789012:role/test-role/" + session_name)
     assert assume_role_response['AssumedRoleUser']['AssumedRoleId'].startswith("AROA")
     assert assume_role_response['AssumedRoleUser']['AssumedRoleId'].endswith(":" + session_name)
     assume_role_response['AssumedRoleUser']['AssumedRoleId'].should.have.length_of(21 + 1 + len(session_name))
 
 
 @mock_sts
-def test_get_caller_identity():
+def test_get_caller_identity_with_default_credentials():
     identity = boto3.client(
         "sts", region_name='us-east-1').get_caller_identity()
 
-    identity['Arn'].should.equal('arn:aws:sts::123456789012:user/moto')
+    identity['Arn'].should.equal('arn:aws:sts::{account_id}:user/moto'.format(account_id=ACCOUNT_ID))
     identity['UserId'].should.equal('AKIAIOSFODNN7EXAMPLE')
-    identity['Account'].should.equal('123456789012')
+    identity['Account'].should.equal(str(ACCOUNT_ID))
+
+
+@mock_sts
+@mock_iam
+def test_get_caller_identity_with_iam_user_credentials():
+    iam_client = boto3.client("iam", region_name='us-east-1')
+    iam_user_name = "new-user"
+    iam_user = iam_client.create_user(UserName=iam_user_name)['User']
+    access_key = iam_client.create_access_key(UserName=iam_user_name)['AccessKey']
+
+    identity = boto3.client(
+        "sts", region_name='us-east-1', aws_access_key_id=access_key['AccessKeyId'],
+        aws_secret_access_key=access_key['SecretAccessKey']).get_caller_identity()
+
+    identity['Arn'].should.equal(iam_user['Arn'])
+    identity['UserId'].should.equal(iam_user['UserId'])
+    identity['Account'].should.equal(str(ACCOUNT_ID))
+
+
+@mock_sts
+@mock_iam
+def test_get_caller_identity_with_assumed_role_credentials():
+    iam_client = boto3.client("iam", region_name='us-east-1')
+    sts_client = boto3.client("sts", region_name='us-east-1')
+    iam_role_name = "new-user"
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Principal": {"AWS": "arn:aws:iam::{account_id}:root".format(account_id=ACCOUNT_ID)},
+            "Action": "sts:AssumeRole"
+        }
+    }
+    iam_role_arn = iam_client.role_arn = iam_client.create_role(
+        RoleName=iam_role_name,
+        AssumeRolePolicyDocument=json.dumps(trust_policy_document)
+    )['Role']['Arn']
+    session_name = "new-session"
+    assumed_role = sts_client.assume_role(RoleArn=iam_role_arn,
+                                          RoleSessionName=session_name)
+    access_key = assumed_role['Credentials']
+
+    identity = boto3.client(
+        "sts", region_name='us-east-1', aws_access_key_id=access_key['AccessKeyId'],
+        aws_secret_access_key=access_key['SecretAccessKey']).get_caller_identity()
+
+    identity['Arn'].should.equal(assumed_role['AssumedRoleUser']['Arn'])
+    identity['UserId'].should.equal(assumed_role['AssumedRoleUser']['AssumedRoleId'])
+    identity['Account'].should.equal(str(ACCOUNT_ID))
