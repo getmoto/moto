@@ -105,7 +105,7 @@ class CertBundle(BaseModel):
             self.arn = arn
 
     @classmethod
-    def generate_cert(cls, domain_name, sans=None):
+    def generate_cert(cls, domain_name, region, sans=None):
         if sans is None:
             sans = set()
         else:
@@ -152,7 +152,7 @@ class CertBundle(BaseModel):
             encryption_algorithm=serialization.NoEncryption()
         )
 
-        return cls(cert_armored, private_key, cert_type='AMAZON_ISSUED', cert_status='PENDING_VALIDATION')
+        return cls(cert_armored, private_key, cert_type='AMAZON_ISSUED', cert_status='PENDING_VALIDATION', region=region)
 
     def validate_pk(self):
         try:
@@ -357,7 +357,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             if arn is not None:
                 return arn
 
-        cert = CertBundle.generate_cert(domain_name, subject_alt_names)
+        cert = CertBundle.generate_cert(domain_name, region=self.region, sans=subject_alt_names)
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
         self._certificates[cert.arn] = cert
