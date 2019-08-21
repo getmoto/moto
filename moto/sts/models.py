@@ -127,5 +127,11 @@ class STSBackend(BaseBackend):
         # Fake method here to make implementation coverage script aware that this method is implemented
         pass
 
+    def get_assumed_role_from_access_key(self, access_key_id):
+        for assumed_role in self.assumed_roles:
+            if assumed_role.access_key_id == access_key_id:
+                return assumed_role
+        return None
+
 
 sts_backend = STSBackend()
