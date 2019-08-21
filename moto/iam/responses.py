@@ -178,9 +178,11 @@ class IamResponse(BaseResponse):
             'AssumeRolePolicyDocument')
         permissions_boundary = self._get_param(
             'PermissionsBoundary')
+        description = self._get_param('Description')
+        tags = self._get_multi_param('Tags.member')
 
         role = iam_backend.create_role(
-            role_name, assume_role_policy_document, path, permissions_boundary)
+            role_name, assume_role_policy_document, path, permissions_boundary, description, tags)
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -1002,6 +1004,7 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <Description>{{role.description}}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       {% if role.permissions_boundary %}
@@ -1009,6 +1012,16 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
           <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
       </PermissionsBoundary>
+      {% endif %}
+      {% if role.tags %}
+      <Tags>
+        {% for tag in role.get_tags() %}
+        <member>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
+        </member>
+        {% endfor %}
+      </Tags>
       {% endif %}
     </Role>
   </CreateRoleResult>
@@ -1043,6 +1056,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <Description>{{role.description}}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       {% if role.tags %}
@@ -1069,6 +1083,7 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <Description>{{role.description}}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       {% if role.tags %}
@@ -1759,8 +1774,15 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
                 <Arn>{{ role.arn }}</Arn>
                 <RoleName>{{ role.name }}</RoleName>
                 <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+                <Description>{{role.description}}</Description>
                 <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
                 <RoleId>{{ role.id }}</RoleId>
+                {% if role.permissions_boundary %}
+                <PermissionsBoundary>
+                  <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+                  <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+                </PermissionsBoundary>
+                {% endif %}
               </member>
               {% endfor %}
             </Roles>
