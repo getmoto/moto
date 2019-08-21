@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.sts.utils import random_access_key_id, random_secret_access_key, random_session_token
+from moto.sts.utils import random_access_key_id, random_secret_access_key, random_session_token, random_assumed_role_id
 
 
 class Token(BaseModel):
@@ -30,6 +30,7 @@ class AssumedRole(BaseModel):
         self.access_key_id = "ASIA" + random_access_key_id()
         self.secret_access_key = random_secret_access_key()
         self.session_token = random_session_token()
+        self.assumed_role_id = "AROA" + random_assumed_role_id()
 
     @property
     def expiration_ISO8601(self):

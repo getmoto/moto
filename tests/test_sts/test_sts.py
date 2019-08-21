@@ -40,10 +40,12 @@ def test_get_federation_token():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts_deprecated
+@mock_sts
 def test_assume_role():
-    conn = boto.connect_sts()
+    client = boto3.client(
+        "sts", region_name='us-east-1')
 
+    session_name = "session-name"
     policy = json.dumps({
         "Statement": [
             {
@@ -59,19 +61,21 @@ def test_assume_role():
         ]
     })
     s3_role = "arn:aws:iam::123456789012:role/test-role"
-    role = conn.assume_role(s3_role, "session-name",
-                            policy, duration_seconds=123)
+    assume_role_response = client.assume_role(RoleArn=s3_role, RoleSessionName=session_name,
+                                              Policy=policy, DurationSeconds=900)
 
-    credentials = role.credentials
-    credentials.expiration.should.equal('2012-01-01T12:02:03.000Z')
-    credentials.session_token.should.have.length_of(356)
-    assert credentials.session_token.startswith("FQoGZXIvYXdzE")
-    credentials.access_key.should.have.length_of(20)
-    assert credentials.access_key.startswith("ASIA")
-    credentials.secret_key.should.have.length_of(40)
+    credentials = assume_role_response['Credentials']
+    credentials['Expiration'].isoformat().should.equal('2012-01-01T12:15:00+00:00')
+    credentials['SessionToken'].should.have.length_of(356)
+    assert credentials['SessionToken'].startswith("FQoGZXIvYXdzE")
+    credentials['AccessKeyId'].should.have.length_of(20)
+    assert credentials['AccessKeyId'].startswith("ASIA")
+    credentials['SecretAccessKey'].should.have.length_of(40)
 
-    role.user.arn.should.equal("arn:aws:iam::123456789012:role/test-role")
-    role.user.assume_role_id.should.contain("session-name")
+    assume_role_response['AssumedRoleUser']['Arn'].should.equal("arn:aws:iam::123456789012:role/test-role")
+    assert assume_role_response['AssumedRoleUser']['AssumedRoleId'].startswith("AROA")
+    assert assume_role_response['AssumedRoleUser']['AssumedRoleId'].endswith(":" + session_name)
+    assume_role_response['AssumedRoleUser']['AssumedRoleId'].should.have.length_of(21 + 1 + len(session_name))
 
 
 @mock_sts

@@ -91,7 +91,7 @@ ASSUME_ROLE_RESPONSE = """<AssumeRoleResponse xmlns="https://sts.amazonaws.com/d
     </Credentials>
     <AssumedRoleUser>
       <Arn>{{ role.arn }}</Arn>
-      <AssumedRoleId>ARO123EXAMPLE123:{{ role.session_name }}</AssumedRoleId>
+      <AssumedRoleId>{{ role.assumed_role_id }}:{{ role.session_name }}</AssumedRoleId>
     </AssumedRoleUser>
     <PackedPolicySize>6</PackedPolicySize>
   </AssumeRoleResult>
