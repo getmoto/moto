@@ -22,7 +22,7 @@ class AssumedRole(BaseModel):
 
     def __init__(self, role_session_name, role_arn, policy, duration, external_id):
         self.session_name = role_session_name
-        self.arn = role_arn + "/" + role_session_name
+        self.role_arn = role_arn
         self.policy = policy
         now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
@@ -39,6 +39,10 @@ class AssumedRole(BaseModel):
     @property
     def user_id(self):
         return self.assumed_role_id + ":" + self.session_name
+
+    @property
+    def arn(self):
+        return self.role_arn + "/" + self.session_name
 
 
 class STSBackend(BaseBackend):

@@ -106,7 +106,7 @@ class AssumedRoleAccessKey(object):
                 self._access_key_id = access_key_id
                 self._secret_access_key = assumed_role.secret_access_key
                 self._session_token = assumed_role.session_token
-                self._owner_role_name = assumed_role.arn.split("/")[-1]
+                self._owner_role_name = assumed_role.role_arn.split("/")[-1]
                 self._session_name = assumed_role.session_name
                 if headers["X-Amz-Security-Token"] != self._session_token:
                     raise CreateAccessKeyFailure(reason="InvalidToken")
