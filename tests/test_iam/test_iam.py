@@ -944,7 +944,8 @@ def test_get_account_authorization_details():
     })
 
     conn = boto3.client('iam', region_name='us-east-1')
-    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    boundary = 'arn:aws:iam::123456789012:policy/boundary'
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/", Description='testing', PermissionsBoundary=boundary)
     conn.create_user(Path='/', UserName='testUser')
     conn.create_group(Path='/', GroupName='testGroup')
     conn.create_policy(
@@ -985,6 +986,11 @@ def test_get_account_authorization_details():
     assert len(result['GroupDetailList']) == 0
     assert len(result['Policies']) == 0
     assert len(result['RoleDetailList'][0]['InstanceProfileList']) == 1
+    assert result['RoleDetailList'][0]['InstanceProfileList'][0]['Roles'][0]['Description'] == 'testing'
+    assert result['RoleDetailList'][0]['InstanceProfileList'][0]['Roles'][0]['PermissionsBoundary'] == {
+        'PermissionsBoundaryType': 'PermissionsBoundaryPolicy',
+        'PermissionsBoundaryArn': 'arn:aws:iam::123456789012:policy/boundary'
+    }
     assert len(result['RoleDetailList'][0]['Tags']) == 2
     assert len(result['RoleDetailList'][0]['RolePolicyList']) == 1
     assert len(result['RoleDetailList'][0]['AttachedManagedPolicies']) == 1
@@ -1149,6 +1155,79 @@ def test_delete_saml_provider():
     # Verify that it's not in the list:
     resp = conn.list_signing_certificates(UserName='testing')
     assert not resp['Certificates']
+
+
+@mock_iam()
+def test_create_role_with_tags():
+    """Tests both the tag_role and get_role_tags capability"""
+    conn = boto3.client('iam', region_name='us-east-1')
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}", Tags=[
+        {
+            'Key': 'somekey',
+            'Value': 'somevalue'
+        },
+        {
+            'Key': 'someotherkey',
+            'Value': 'someothervalue'
+        }
+    ], Description='testing')
+
+    # Get role:
+    role = conn.get_role(RoleName='my-role')['Role']
+    assert len(role['Tags']) == 2
+    assert role['Tags'][0]['Key'] == 'somekey'
+    assert role['Tags'][0]['Value'] == 'somevalue'
+    assert role['Tags'][1]['Key'] == 'someotherkey'
+    assert role['Tags'][1]['Value'] == 'someothervalue'
+    assert role['Description'] == 'testing'
+
+    # Empty is good:
+    conn.create_role(RoleName="my-role2", AssumeRolePolicyDocument="{}", Tags=[
+        {
+            'Key': 'somekey',
+            'Value': ''
+        }
+    ])
+    tags = conn.list_role_tags(RoleName='my-role2')
+    assert len(tags['Tags']) == 1
+    assert tags['Tags'][0]['Key'] == 'somekey'
+    assert tags['Tags'][0]['Value'] == ''
+
+    # Test creating tags with invalid values:
+    # With more than 50 tags:
+    with assert_raises(ClientError) as ce:
+        too_many_tags = list(map(lambda x: {'Key': str(x), 'Value': str(x)}, range(0, 51)))
+        conn.create_role(RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=too_many_tags)
+    assert 'failed to satisfy constraint: Member must have length less than or equal to 50.' \
+           in ce.exception.response['Error']['Message']
+
+    # With a duplicate tag:
+    with assert_raises(ClientError) as ce:
+        conn.create_role(RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=[{'Key': '0', 'Value': ''}, {'Key': '0', 'Value': ''}])
+    assert 'Duplicate tag keys found. Please note that Tag keys are case insensitive.' \
+           in ce.exception.response['Error']['Message']
+
+    # Duplicate tag with different casing:
+    with assert_raises(ClientError) as ce:
+        conn.create_role(RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=[{'Key': 'a', 'Value': ''}, {'Key': 'A', 'Value': ''}])
+    assert 'Duplicate tag keys found. Please note that Tag keys are case insensitive.' \
+           in ce.exception.response['Error']['Message']
+
+    # With a really big key:
+    with assert_raises(ClientError) as ce:
+        conn.create_role(RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=[{'Key': '0' * 129, 'Value': ''}])
+    assert 'Member must have length less than or equal to 128.' in ce.exception.response['Error']['Message']
+
+    # With a really big value:
+    with assert_raises(ClientError) as ce:
+        conn.create_role(RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=[{'Key': '0', 'Value': '0' * 257}])
+    assert 'Member must have length less than or equal to 256.' in ce.exception.response['Error']['Message']
+
+    # With an invalid character:
+    with assert_raises(ClientError) as ce:
+        conn.create_role(RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=[{'Key': 'NOWAY!', 'Value': ''}])
+    assert 'Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+' \
+           in ce.exception.response['Error']['Message']
 
 
 @mock_iam()
@@ -1338,6 +1417,7 @@ def test_update_role_description():
 
     assert response['Role']['RoleName'] == 'my-role'
 
+
 @mock_iam()
 def test_update_role():
     conn = boto3.client('iam', region_name='us-east-1')
@@ -1348,6 +1428,7 @@ def test_update_role():
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
     response = conn.update_role_description(RoleName="my-role", Description="test")
     assert response['Role']['RoleName'] == 'my-role'
+
 
 @mock_iam()
 def test_update_role():
@@ -1443,6 +1524,8 @@ def test_create_role_no_path():
     resp = conn.create_role(RoleName='my-role', AssumeRolePolicyDocument='some policy', Description='test')
     resp.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-role')
     resp.get('Role').should_not.have.key('PermissionsBoundary')
+    resp.get('Role').get('Description').should.equal('test')
+
 
 @mock_iam()
 def test_create_role_with_permissions_boundary():
@@ -1454,6 +1537,7 @@ def test_create_role_with_permissions_boundary():
         'PermissionsBoundaryArn': boundary
     }
     resp.get('Role').get('PermissionsBoundary').should.equal(expected)
+    resp.get('Role').get('Description').should.equal('test')
 
     invalid_boundary_arn = 'arn:aws:iam::123456789:not_a_boundary'
     with assert_raises(ClientError):
