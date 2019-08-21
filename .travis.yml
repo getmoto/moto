@@ -47,11 +47,11 @@ deploy:
       - master
     skip_cleanup: true
     skip_existing: true
-  - provider: pypi
-    distributions: sdist bdist_wheel
-    user: spulec
-    password:
-      secure: NxnPylnTfekJmGyoufCw0lMoYRskSMJzvAIyAlJJVYKwEhmiCPOrdy5qV8i8mRZ1AkUsqU3jBZ/PD56n96clHW0E3d080UleRDj6JpyALVdeLfMqZl9kLmZ8bqakWzYq3VSJKw2zGP/L4tPGf8wTK1SUv9yl/YNDsBdCkjDverw=
-    on:
-      tags: true
-    skip_existing: true
+  # - provider: pypi
+  #   distributions: sdist bdist_wheel
+  #   user: spulec
+  #   password:
+  #     secure: NxnPylnTfekJmGyoufCw0lMoYRskSMJzvAIyAlJJVYKwEhmiCPOrdy5qV8i8mRZ1AkUsqU3jBZ/PD56n96clHW0E3d080UleRDj6JpyALVdeLfMqZl9kLmZ8bqakWzYq3VSJKw2zGP/L4tPGf8wTK1SUv9yl/YNDsBdCkjDverw=
+  #   on:
+  #     tags: true
+  #   skip_existing: true

@@ -298,7 +298,9 @@ class Item(BaseModel):
             new_value = list(update_action['Value'].values())[0]
             if action == 'PUT':
                 # TODO deal with other types
-                if isinstance(new_value, list) or isinstance(new_value, set):
+                if isinstance(new_value, list):
+                    self.attrs[attribute_name] = DynamoType({"L": new_value})
+                elif isinstance(new_value, set):
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})

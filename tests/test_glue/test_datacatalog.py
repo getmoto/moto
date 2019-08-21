@@ -420,6 +420,63 @@ def test_get_partition():
 
 
 @mock_glue
+def test_batch_get_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    values = [['2018-10-01'], ['2018-09-01']]
+
+    helpers.create_partition(client, database_name, table_name, values=values[0])
+    helpers.create_partition(client, database_name, table_name, values=values[1])
+
+    partitions_to_get = [
+        {'Values': values[0]},
+        {'Values': values[1]},
+    ]
+    response = client.batch_get_partition(DatabaseName=database_name, TableName=table_name, PartitionsToGet=partitions_to_get)
+
+    partitions = response['Partitions']
+    partitions.should.have.length_of(2)
+
+    partition = partitions[1]
+    partition['TableName'].should.equal(table_name)
+    partition['Values'].should.equal(values[1])
+
+
+@mock_glue
+def test_batch_get_partition_missing_partition():
+    client = boto3.client('glue', region_name='us-east-1')
+    database_name = 'myspecialdatabase'
+    table_name = 'myfirsttable'
+    helpers.create_database(client, database_name)
+
+    helpers.create_table(client, database_name, table_name)
+
+    values = [['2018-10-01'], ['2018-09-01'], ['2018-08-01']]
+
+    helpers.create_partition(client, database_name, table_name, values=values[0])
+    helpers.create_partition(client, database_name, table_name, values=values[2])
+
+    partitions_to_get = [
+        {'Values': values[0]},
+        {'Values': values[1]},
+        {'Values': values[2]},
+    ]
+    response = client.batch_get_partition(DatabaseName=database_name, TableName=table_name, PartitionsToGet=partitions_to_get)
+
+    partitions = response['Partitions']
+    partitions.should.have.length_of(2)
+
+    partitions[0]['Values'].should.equal(values[0])
+    partitions[1]['Values'].should.equal(values[2])
+
+
+
+@mock_glue
 def test_update_partition_not_found_moving():
     client = boto3.client('glue', region_name='us-east-1')
     database_name = 'myspecialdatabase'

@@ -181,7 +181,7 @@
 - [ ] test_invoke_method
 - [ ] untag_resource
 - [ ] update_account
-- [ ] update_api_key
+- [X] update_api_key
 - [ ] update_authorizer
 - [ ] update_base_path_mapping
 - [ ] update_client_certificate
@@ -815,16 +815,16 @@
 - [ ] update_user_profile
 
 ## cognito-identity - 0% implemented
-- [ ] create_identity_pool
+- [X] create_identity_pool
 - [ ] delete_identities
 - [ ] delete_identity_pool
 - [ ] describe_identity
 - [ ] describe_identity_pool
-- [ ] get_credentials_for_identity
-- [ ] get_id
+- [X] get_credentials_for_identity
+- [X] get_id
 - [ ] get_identity_pool_roles
-- [ ] get_open_id_token
-- [ ] get_open_id_token_for_developer_identity
+- [X] get_open_id_token
+- [X] get_open_id_token_for_developer_identity
 - [ ] list_identities
 - [ ] list_identity_pools
 - [ ] lookup_developer_identity
@@ -928,6 +928,7 @@
 - [ ] update_user_attributes
 - [ ] update_user_pool
 - [X] update_user_pool_client
+- [X] update_user_pool_domain
 - [ ] verify_software_token
 - [ ] verify_user_attribute
 
@@ -4127,7 +4128,7 @@
 ## sts - 42% implemented
 - [X] assume_role
 - [ ] assume_role_with_saml
-- [ ] assume_role_with_web_identity
+- [X] assume_role_with_web_identity
 - [ ] decode_authorization_message
 - [ ] get_caller_identity
 - [X] get_federation_token

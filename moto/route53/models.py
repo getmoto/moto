@@ -198,7 +198,7 @@ class FakeZone(BaseModel):
     def upsert_rrset(self, record_set):
         new_rrset = RecordSet(record_set)
         for i, rrset in enumerate(self.rrsets):
-            if rrset.name == new_rrset.name and rrset.type_ == new_rrset.type_:
+            if rrset.name == new_rrset.name and rrset.type_ == new_rrset.type_ and rrset.set_identifier == new_rrset.set_identifier:
                 self.rrsets[i] = new_rrset
                 break
         else:

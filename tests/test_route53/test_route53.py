@@ -652,6 +652,114 @@ def test_change_resource_record_sets_crud_valid():
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response['ResourceRecordSets']).should.equal(0)
 
+@mock_route53
+def test_change_weighted_resource_record_sets():
+    conn = boto3.client('route53', region_name='us-east-2')
+    conn.create_hosted_zone(
+        Name='test.vpc.internal.',
+        CallerReference=str(hash('test'))
+    )
+
+    zones = conn.list_hosted_zones_by_name(
+        DNSName='test.vpc.internal.'
+    )
+
+    hosted_zone_id = zones['HostedZones'][0]['Id']
+
+    #Create 2 weighted records
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            'Changes': [
+                {
+                    'Action': 'CREATE',
+                    'ResourceRecordSet': {
+                        'Name': 'test.vpc.internal',
+                        'Type': 'A',
+                        'SetIdentifier': 'test1',
+                        'Weight': 50,
+                        'AliasTarget': {
+                            'HostedZoneId': 'Z3AADJGX6KTTL2',
+                            'DNSName': 'internal-test1lb-447688172.us-east-2.elb.amazonaws.com.',
+                            'EvaluateTargetHealth': True
+                        }
+                    }
+                },
+
+                {
+                    'Action': 'CREATE',
+                    'ResourceRecordSet': {
+                        'Name': 'test.vpc.internal',
+                        'Type': 'A',
+                        'SetIdentifier': 'test2',
+                        'Weight': 50,
+                        'AliasTarget': {
+                            'HostedZoneId': 'Z3AADJGX6KTTL2',
+                            'DNSName': 'internal-testlb2-1116641781.us-east-2.elb.amazonaws.com.',
+                            'EvaluateTargetHealth': True
+                        }
+                    }
+                }
+            ]
+        }
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    record = response['ResourceRecordSets'][0]
+    #Update the first record to have a weight of 90
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            'Changes' : [
+                {
+                    'Action' : 'UPSERT',
+                    'ResourceRecordSet' : {
+                        'Name' : record['Name'],
+                        'Type' : record['Type'],
+                        'SetIdentifier' : record['SetIdentifier'],
+                        'Weight' : 90,
+                        'AliasTarget' : {
+                            'HostedZoneId' : record['AliasTarget']['HostedZoneId'],
+                            'DNSName' : record['AliasTarget']['DNSName'],
+                            'EvaluateTargetHealth' : record['AliasTarget']['EvaluateTargetHealth']
+                        }
+                    }
+                },
+            ]
+        }
+    )
+
+    record = response['ResourceRecordSets'][1]
+    #Update the second record to have a weight of 10
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            'Changes' : [
+                {
+                    'Action' : 'UPSERT',
+                    'ResourceRecordSet' : {
+                        'Name' : record['Name'],
+                        'Type' : record['Type'],
+                        'SetIdentifier' : record['SetIdentifier'],
+                        'Weight' : 10,
+                        'AliasTarget' : {
+                            'HostedZoneId' : record['AliasTarget']['HostedZoneId'],
+                            'DNSName' : record['AliasTarget']['DNSName'],
+                            'EvaluateTargetHealth' : record['AliasTarget']['EvaluateTargetHealth']
+                        }
+                    }
+                },
+            ]
+        }
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    for record in response['ResourceRecordSets']:
+        if record['SetIdentifier'] == 'test1':
+            record['Weight'].should.equal(90)
+        if record['SetIdentifier'] == 'test2':
+            record['Weight'].should.equal(10)
+
 
 @mock_route53
 def test_change_resource_record_invalid():

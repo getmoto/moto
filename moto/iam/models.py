@@ -694,7 +694,6 @@ class IAMBackend(BaseBackend):
     def _validate_tag_key(self, tag_key, exception_param='tags.X.member.key'):
         """Validates the tag key.
 
-        :param all_tags: Dict to check if there is a duplicate tag.
         :param tag_key: The tag key to check against.
         :param exception_param: The exception parameter to send over to help format the message. This is to reflect
                                 the difference between the tag and untag APIs.

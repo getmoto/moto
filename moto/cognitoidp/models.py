@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import functools
+import hashlib
 import itertools
 import json
 import os
@@ -154,20 +155,37 @@ class CognitoIdpUserPool(BaseModel):
 
 class CognitoIdpUserPoolDomain(BaseModel):
 
-    def __init__(self, user_pool_id, domain):
+    def __init__(self, user_pool_id, domain, custom_domain_config=None):
         self.user_pool_id = user_pool_id
         self.domain = domain
+        self.custom_domain_config = custom_domain_config or {}
 
-    def to_json(self):
-        return {
-            "UserPoolId": self.user_pool_id,
-            "AWSAccountId": str(uuid.uuid4()),
-            "CloudFrontDistribution": None,
-            "Domain": self.domain,
-            "S3Bucket": None,
-            "Status": "ACTIVE",
-            "Version": None,
-        }
+    def _distribution_name(self):
+        if self.custom_domain_config and \
+                'CertificateArn' in self.custom_domain_config:
+            hash = hashlib.md5(
+                self.custom_domain_config['CertificateArn'].encode('utf-8')
+            ).hexdigest()
+            return "{hash}.cloudfront.net".format(hash=hash[:16])
+        return None
+
+    def to_json(self, extended=True):
+        distribution = self._distribution_name()
+        if extended:
+            return {
+                "UserPoolId": self.user_pool_id,
+                "AWSAccountId": str(uuid.uuid4()),
+                "CloudFrontDistribution": distribution,
+                "Domain": self.domain,
+                "S3Bucket": None,
+                "Status": "ACTIVE",
+                "Version": None,
+            }
+        elif distribution:
+            return {
+                "CloudFrontDomain": distribution,
+            }
+        return None
 
 
 class CognitoIdpUserPoolClient(BaseModel):
@@ -338,11 +356,13 @@ class CognitoIdpBackend(BaseBackend):
         del self.user_pools[user_pool_id]
 
     # User pool domain
-    def create_user_pool_domain(self, user_pool_id, domain):
+    def create_user_pool_domain(self, user_pool_id, domain, custom_domain_config=None):
         if user_pool_id not in self.user_pools:
             raise ResourceNotFoundError(user_pool_id)
 
-        user_pool_domain = CognitoIdpUserPoolDomain(user_pool_id, domain)
+        user_pool_domain = CognitoIdpUserPoolDomain(
+            user_pool_id, domain, custom_domain_config=custom_domain_config
+        )
         self.user_pool_domains[domain] = user_pool_domain
         return user_pool_domain
 
@@ -357,6 +377,14 @@ class CognitoIdpBackend(BaseBackend):
             raise ResourceNotFoundError(domain)
 
         del self.user_pool_domains[domain]
+
+    def update_user_pool_domain(self, domain, custom_domain_config):
+        if domain not in self.user_pool_domains:
+            raise ResourceNotFoundError(domain)
+
+        user_pool_domain = self.user_pool_domains[domain]
+        user_pool_domain.custom_domain_config = custom_domain_config
+        return user_pool_domain
 
     # User pool client
     def create_user_pool_client(self, user_pool_id, extended_config):

@@ -12,6 +12,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from moto.ec2.models import OWNER_ID
 
 
 @mock_ec2_deprecated
@@ -395,7 +396,7 @@ def test_snapshot_filters():
         ).should.equal({snapshot3.id})
 
     snapshots_by_owner_id = conn.get_all_snapshots(
-        filters={'owner-id': '123456789012'})
+        filters={'owner-id': OWNER_ID})
     set([snap.id for snap in snapshots_by_owner_id]
         ).should.equal({snapshot1.id, snapshot2.id, snapshot3.id})
 

@@ -2,9 +2,11 @@ from __future__ import unicode_literals
 
 import datetime
 import re
+from jinja2 import Template
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import camelcase_to_underscores
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
 from .utils import make_arn_for_target_group
@@ -35,12 +37,13 @@ from .exceptions import (
 
 class FakeHealthStatus(BaseModel):
 
-    def __init__(self, instance_id, port, health_port, status, reason=None):
+    def __init__(self, instance_id, port, health_port, status, reason=None, description=None):
         self.instance_id = instance_id
         self.port = port
         self.health_port = health_port
         self.status = status
         self.reason = reason
+        self.description = description
 
 
 class FakeTargetGroup(BaseModel):
@@ -69,7 +72,7 @@ class FakeTargetGroup(BaseModel):
         self.protocol = protocol
         self.port = port
         self.healthcheck_protocol = healthcheck_protocol or 'HTTP'
-        self.healthcheck_port = healthcheck_port or 'traffic-port'
+        self.healthcheck_port = healthcheck_port or str(self.port)
         self.healthcheck_path = healthcheck_path or '/'
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or 5
@@ -112,10 +115,14 @@ class FakeTargetGroup(BaseModel):
             raise TooManyTagsError()
         self.tags[key] = value
 
-    def health_for(self, target):
+    def health_for(self, target, ec2_backend):
         t = self.targets.get(target['id'])
         if t is None:
             raise InvalidTargetError()
+        if t['id'].startswith("i-"):  # EC2 instance ID
+            instance = ec2_backend.get_instance_by_id(t['id'])
+            if instance.state == "stopped":
+                return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'unused', 'Target.InvalidState', 'Target is in the stopped state')
         return FakeHealthStatus(t['id'], t['port'], self.healthcheck_port, 'healthy')
 
     @classmethod
@@ -208,13 +215,12 @@ class FakeListener(BaseModel):
                 action_type = action['Type']
                 if action_type == 'forward':
                     default_actions.append({'type': action_type, 'target_group_arn': action['TargetGroupArn']})
-                elif action_type == 'redirect':
-                    redirect_action = {'type': action_type, }
-                    for redirect_config_key, redirect_config_value in action['RedirectConfig'].items():
+                elif action_type in ['redirect', 'authenticate-cognito']:
+                    redirect_action = {'type': action_type}
+                    key = 'RedirectConfig' if action_type == 'redirect' else 'AuthenticateCognitoConfig'
+                    for redirect_config_key, redirect_config_value in action[key].items():
                         # need to match the output of _get_list_prefix
-                        if redirect_config_key == 'StatusCode':
-                            redirect_config_key = 'status_code'
-                        redirect_action['redirect_config._' + redirect_config_key.lower()] = redirect_config_value
+                        redirect_action[camelcase_to_underscores(key) + '._' + camelcase_to_underscores(redirect_config_key)] = redirect_config_value
                     default_actions.append(redirect_action)
                 else:
                     raise InvalidActionTypeError(action_type, i + 1)
@@ -224,6 +230,32 @@ class FakeListener(BaseModel):
         listener = elbv2_backend.create_listener(
             load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions)
         return listener
+
+
+class FakeAction(BaseModel):
+    def __init__(self, data):
+        self.data = data
+        self.type = data.get("type")
+
+    def to_xml(self):
+        template = Template("""<Type>{{ action.type }}</Type>
+            {% if action.type == "forward" %}
+            <TargetGroupArn>{{ action.data["target_group_arn"] }}</TargetGroupArn>
+            {% elif action.type == "redirect" %}
+            <RedirectConfig>
+                <Protocol>{{ action.data["redirect_config._protocol"] }}</Protocol>
+                <Port>{{ action.data["redirect_config._port"] }}</Port>
+                <StatusCode>{{ action.data["redirect_config._status_code"] }}</StatusCode>
+            </RedirectConfig>
+            {% elif action.type == "authenticate-cognito" %}
+            <AuthenticateCognitoConfig>
+                <UserPoolArn>{{ action.data["authenticate_cognito_config._user_pool_arn"] }}</UserPoolArn>
+                <UserPoolClientId>{{ action.data["authenticate_cognito_config._user_pool_client_id"] }}</UserPoolClientId>
+                <UserPoolDomain>{{ action.data["authenticate_cognito_config._user_pool_domain"] }}</UserPoolDomain>
+            </AuthenticateCognitoConfig>
+            {% endif %}
+            """)
+        return template.render(action=self)
 
 
 class FakeRule(BaseModel):
@@ -397,6 +429,7 @@ class ELBv2Backend(BaseBackend):
         return new_load_balancer
 
     def create_rule(self, listener_arn, conditions, priority, actions):
+        actions = [FakeAction(action) for action in actions]
         listeners = self.describe_listeners(None, [listener_arn])
         if not listeners:
             raise ListenerNotFoundError()
@@ -424,20 +457,7 @@ class ELBv2Backend(BaseBackend):
             if rule.priority == priority:
                 raise PriorityInUseError()
 
-        # validate Actions
-        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
-        for i, action in enumerate(actions):
-            index = i + 1
-            action_type = action['type']
-            if action_type == 'forward':
-                action_target_group_arn = action['target_group_arn']
-                if action_target_group_arn not in target_group_arns:
-                    raise ActionTargetGroupNotFoundError(action_target_group_arn)
-            elif action_type == 'redirect':
-                # nothing to do
-                pass
-            else:
-                raise InvalidActionTypeError(action_type, index)
+        self._validate_actions(actions)
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
@@ -446,6 +466,21 @@ class ELBv2Backend(BaseBackend):
         rule = FakeRule(listener.arn, conditions, priority, actions, is_default=False)
         listener.register(rule)
         return [rule]
+
+    def _validate_actions(self, actions):
+        # validate Actions
+        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
+        for i, action in enumerate(actions):
+            index = i + 1
+            action_type = action.type
+            if action_type == 'forward':
+                action_target_group_arn = action.data['target_group_arn']
+                if action_target_group_arn not in target_group_arns:
+                    raise ActionTargetGroupNotFoundError(action_target_group_arn)
+            elif action_type in ['redirect', 'authenticate-cognito']:
+                pass
+            else:
+                raise InvalidActionTypeError(action_type, index)
 
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
@@ -490,26 +525,22 @@ class ELBv2Backend(BaseBackend):
         return target_group
 
     def create_listener(self, load_balancer_arn, protocol, port, ssl_policy, certificate, default_actions):
+        default_actions = [FakeAction(action) for action in default_actions]
         balancer = self.load_balancers.get(load_balancer_arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()
         if port in balancer.listeners:
             raise DuplicateListenerError()
 
+        self._validate_actions(default_actions)
+
         arn = load_balancer_arn.replace(':loadbalancer/', ':listener/') + "/%s%s" % (port, id(self))
         listener = FakeListener(load_balancer_arn, arn, protocol, port, ssl_policy, certificate, default_actions)
         balancer.listeners[listener.arn] = listener
-        for i, action in enumerate(default_actions):
-            action_type = action['type']
-            if action_type == 'forward':
-                if action['target_group_arn'] in self.target_groups.keys():
-                    target_group = self.target_groups[action['target_group_arn']]
-                    target_group.load_balancer_arns.append(load_balancer_arn)
-            elif action_type == 'redirect':
-                # nothing to do
-                pass
-            else:
-                raise InvalidActionTypeError(action_type, i + 1)
+        for action in default_actions:
+            if action.type == 'forward':
+                target_group = self.target_groups[action.data['target_group_arn']]
+                target_group.load_balancer_arns.append(load_balancer_arn)
 
         return listener
 
@@ -643,6 +674,7 @@ class ELBv2Backend(BaseBackend):
         raise ListenerNotFoundError()
 
     def modify_rule(self, rule_arn, conditions, actions):
+        actions = [FakeAction(action) for action in actions]
         # if conditions or actions is empty list, do not update the attributes
         if not conditions and not actions:
             raise InvalidModifyRuleArgumentsError()
@@ -668,20 +700,7 @@ class ELBv2Backend(BaseBackend):
                 # TODO: check pattern of value for 'path-pattern'
 
         # validate Actions
-        target_group_arns = [target_group.arn for target_group in self.target_groups.values()]
-        if actions:
-            for i, action in enumerate(actions):
-                index = i + 1
-                action_type = action['type']
-                if action_type == 'forward':
-                    action_target_group_arn = action['target_group_arn']
-                    if action_target_group_arn not in target_group_arns:
-                        raise ActionTargetGroupNotFoundError(action_target_group_arn)
-                elif action_type == 'redirect':
-                    # nothing to do
-                    pass
-                else:
-                    raise InvalidActionTypeError(action_type, index)
+        self._validate_actions(actions)
 
         # TODO: check for error 'TooManyRegistrationsForTargetId'
         # TODO: check for error 'TooManyRules'
@@ -712,7 +731,7 @@ class ELBv2Backend(BaseBackend):
 
         if not targets:
             targets = target_group.targets.values()
-        return [target_group.health_for(target) for target in targets]
+        return [target_group.health_for(target, self.ec2_backend) for target in targets]
 
     def set_rule_priorities(self, rule_priorities):
         # validate
@@ -846,6 +865,7 @@ class ELBv2Backend(BaseBackend):
         return target_group
 
     def modify_listener(self, arn, port=None, protocol=None, ssl_policy=None, certificates=None, default_actions=None):
+        default_actions = [FakeAction(action) for action in default_actions]
         for load_balancer in self.load_balancers.values():
             if arn in load_balancer.listeners:
                 break
@@ -912,7 +932,7 @@ class ELBv2Backend(BaseBackend):
             for listener in load_balancer.listeners.values():
                 for rule in listener.rules:
                     for action in rule.actions:
-                        if action.get('target_group_arn') == target_group_arn:
+                        if action.data.get('target_group_arn') == target_group_arn:
                             return True
         return False
 

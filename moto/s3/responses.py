@@ -17,7 +17,7 @@ from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_n
     parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
 from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder, MalformedXML, \
-    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
+    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent, ObjectNotInActiveTierError
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
 from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
@@ -686,6 +686,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         keys = minidom.parseString(body).getElementsByTagName('Key')
         deleted_names = []
         error_names = []
+        if len(keys) == 0:
+            raise MalformedXML()
 
         for k in keys:
             key_name = k.firstChild.nodeValue
@@ -900,7 +902,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
 
-            if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+            key = self.backend.get_key(src_bucket, src_key, version_id=src_version_id)
+
+            if key is not None:
+                if key.storage_class in ["GLACIER", "DEEP_ARCHIVE"]:
+                    raise ObjectNotInActiveTierError(key)
                 self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
                                       storage=storage_class, acl=acl, src_version_id=src_version_id)
             else:
@@ -940,13 +946,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
         version_id = query.get('versionId', [None])[0]
+        part_number = query.get('partNumber', [None])[0]
+        if part_number:
+            part_number = int(part_number)
 
         if_modified_since = headers.get('If-Modified-Since', None)
         if if_modified_since:
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
 
         key = self.backend.get_key(
-            bucket_name, key_name, version_id=version_id)
+            bucket_name,
+            key_name,
+            version_id=version_id,
+            part_number=part_number
+        )
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)

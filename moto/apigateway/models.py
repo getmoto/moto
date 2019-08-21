@@ -309,6 +309,25 @@ class ApiKey(BaseModel, dict):
         self['createdDate'] = self['lastUpdatedDate'] = int(time.time())
         self['stageKeys'] = stageKeys
 
+    def update_operations(self, patch_operations):
+        for op in patch_operations:
+            if op['op'] == 'replace':
+                if '/name' in op['path']:
+                    self['name'] = op['value']
+                elif '/customerId' in op['path']:
+                    self['customerId'] = op['value']
+                elif '/description' in op['path']:
+                    self['description'] = op['value']
+                elif '/enabled' in op['path']:
+                    self['enabled'] = self._str2bool(op['value'])
+            else:
+                raise Exception(
+                    'Patch operation "%s" not implemented' % op['op'])
+        return self
+
+    def _str2bool(self, v):
+        return v.lower() == "true"
+
 
 class UsagePlan(BaseModel, dict):
 
@@ -598,6 +617,10 @@ class APIGatewayBackend(BaseBackend):
 
     def get_apikey(self, api_key_id):
         return self.keys[api_key_id]
+
+    def update_apikey(self, api_key_id, patch_operations):
+        key = self.keys[api_key_id]
+        return key.update_operations(patch_operations)
 
     def delete_apikey(self, api_key_id):
         self.keys.pop(api_key_id)

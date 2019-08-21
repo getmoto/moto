@@ -514,10 +514,13 @@ class BatchBackend(BaseBackend):
         return self._job_definitions.get(arn)
 
     def get_job_definition_by_name(self, name):
-        for comp_env in self._job_definitions.values():
-            if comp_env.name == name:
-                return comp_env
-        return None
+        latest_revision = -1
+        latest_job = None
+        for job_def in self._job_definitions.values():
+            if job_def.name == name and job_def.revision > latest_revision:
+                latest_job = job_def
+                latest_revision = job_def.revision
+        return latest_job
 
     def get_job_definition_by_name_revision(self, name, revision):
         for job_def in self._job_definitions.values():
@@ -534,10 +537,13 @@ class BatchBackend(BaseBackend):
         :return: Job definition or None
         :rtype: JobDefinition or None
         """
-        env = self.get_job_definition_by_arn(identifier)
-        if env is None:
-            env = self.get_job_definition_by_name(identifier)
-        return env
+        job_def = self.get_job_definition_by_arn(identifier)
+        if job_def is None:
+            if ':' in identifier:
+                job_def = self.get_job_definition_by_name_revision(*identifier.split(':', 1))
+            else:
+                job_def = self.get_job_definition_by_name(identifier)
+        return job_def
 
     def get_job_definitions(self, identifier):
         """
@@ -984,9 +990,7 @@ class BatchBackend(BaseBackend):
         # TODO parameters, retries (which is a dict raw from request), job dependancies and container overrides are ignored for now
 
         # Look for job definition
-        job_def = self.get_job_definition_by_arn(job_def_id)
-        if job_def is None and ':' in job_def_id:
-            job_def = self.get_job_definition_by_name_revision(*job_def_id.split(':', 1))
+        job_def = self.get_job_definition(job_def_id)
         if job_def is None:
             raise ClientException('Job definition {0} does not exist'.format(job_def_id))
 

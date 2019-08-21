@@ -21,6 +21,16 @@ from moto.core.utils import convert_flask_to_httpretty_response
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH"]
 
 
+DEFAULT_SERVICE_REGION = ('s3', 'us-east-1')
+
+# Map of unsigned calls to service-region as per AWS API docs
+# https://docs.aws.amazon.com/cognito/latest/developerguide/resource-permissions.html#amazon-cognito-signed-versus-unsigned-apis
+UNSIGNED_REQUESTS = {
+    'AWSCognitoIdentityService': ('cognito-identity', 'us-east-1'),
+    'AWSCognitoIdentityProviderService': ('cognito-idp', 'us-east-1'),
+}
+
+
 class DomainDispatcherApplication(object):
     """
     Dispatch requests to different applications based on the "Host:" header
@@ -48,7 +58,45 @@ class DomainDispatcherApplication(object):
                 if re.match(url_base, 'http://%s' % host):
                     return backend_name
 
-        raise RuntimeError('Invalid host: "%s"' % host)
+    def infer_service_region_host(self, environ):
+        auth = environ.get('HTTP_AUTHORIZATION')
+        if auth:
+            # Signed request
+            # Parse auth header to find service assuming a SigV4 request
+            # https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html
+            # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
+            try:
+                credential_scope = auth.split(",")[0].split()[1]
+                _, _, region, service, _ = credential_scope.split("/")
+            except ValueError:
+                # Signature format does not match, this is exceptional and we can't
+                # infer a service-region. A reduced set of services still use
+                # the deprecated SigV2, ergo prefer S3 as most likely default.
+                # https://docs.aws.amazon.com/general/latest/gr/signature-version-2.html
+                service, region = DEFAULT_SERVICE_REGION
+        else:
+            # Unsigned request
+            target = environ.get('HTTP_X_AMZ_TARGET')
+            if target:
+                service, _ = target.split('.', 1)
+                service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
+            else:
+                # S3 is the last resort when the target is also unknown
+                service, region = DEFAULT_SERVICE_REGION
+
+        if service == 'dynamodb':
+            if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
+                host = 'dynamodbstreams'
+            else:
+                dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
+                # If Newer API version, use dynamodb2
+                if dynamo_api_version > "20111205":
+                    host = "dynamodb2"
+        else:
+            host = "{service}.{region}.amazonaws.com".format(
+                service=service, region=region)
+
+        return host
 
     def get_application(self, environ):
         path_info = environ.get('PATH_INFO', '')
@@ -65,34 +113,14 @@ class DomainDispatcherApplication(object):
             host = "instance_metadata"
         else:
             host = environ['HTTP_HOST'].split(':')[0]
-        if host in {'localhost', 'motoserver'} or host.startswith("192.168."):
-            # Fall back to parsing auth header to find service
-            # ['Credential=sdffdsa', '20170220', 'us-east-1', 'sns', 'aws4_request']
-            try:
-                _, _, region, service, _ = environ['HTTP_AUTHORIZATION'].split(",")[0].split()[
-                    1].split("/")
-            except (KeyError, ValueError):
-                # Some cognito-idp endpoints (e.g. change password) do not receive an auth header.
-                if environ.get('HTTP_X_AMZ_TARGET', '').startswith('AWSCognitoIdentityProviderService'):
-                    service = 'cognito-idp'
-                else:
-                    service = 's3'
-
-                region = 'us-east-1'
-            if service == 'dynamodb':
-                if environ['HTTP_X_AMZ_TARGET'].startswith('DynamoDBStreams'):
-                    host = 'dynamodbstreams'
-                else:
-                    dynamo_api_version = environ['HTTP_X_AMZ_TARGET'].split("_")[1].split(".")[0]
-                    # If Newer API version, use dynamodb2
-                    if dynamo_api_version > "20111205":
-                        host = "dynamodb2"
-            else:
-                host = "{service}.{region}.amazonaws.com".format(
-                    service=service, region=region)
 
         with self.lock:
             backend = self.get_backend_for_host(host)
+            if not backend:
+                # No regular backend found; try parsing other headers
+                host = self.infer_service_region_host(environ)
+                backend = self.get_backend_for_host(host)
+
             app = self.app_instances.get(backend, None)
             if app is None:
                 app = self.create_app(backend)

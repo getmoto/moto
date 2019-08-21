@@ -36,6 +36,7 @@ def test_create_cluster_boto3():
     response['Cluster']['NodeType'].should.equal('ds2.xlarge')
     create_time = response['Cluster']['ClusterCreateTime']
     create_time.should.be.lower_than(datetime.datetime.now(create_time.tzinfo))
+    create_time.should.be.greater_than(datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1))
 
 
 @mock_redshift

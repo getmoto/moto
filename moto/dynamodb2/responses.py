@@ -600,7 +600,7 @@ class DynamoHandler(BaseResponse):
         # E.g. `a = b + c` -> `a=b+c`
         if update_expression:
             update_expression = re.sub(
-                '\s*([=\+-])\s*', '\\1', update_expression)
+                r'\s*([=\+-])\s*', '\\1', update_expression)
 
         try:
             item = self.dynamodb_backend.update_item(

@@ -1342,6 +1342,46 @@ def test_query_missing_expr_names():
     resp['Items'][0]['client']['S'].should.equal('test2')
 
 
+# https://github.com/spulec/moto/issues/2328
+@mock_dynamodb2
+def test_update_item_with_list():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName='Table',
+        KeySchema=[
+            {
+                'AttributeName': 'key',
+                'KeyType': 'HASH'
+            }
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'key',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 1,
+            'WriteCapacityUnits': 1
+        }
+    )
+    table = dynamodb.Table('Table')
+    table.update_item(
+        Key={'key': 'the-key'},
+        AttributeUpdates={
+            'list': {'Value': [1, 2], 'Action': 'PUT'}
+        }
+    )
+
+    resp = table.get_item(Key={'key': 'the-key'})
+    resp['Item'].should.equal({
+        'key': 'the-key',
+        'list': [1, 2]
+    })
+
+
 # https://github.com/spulec/moto/issues/1342
 @mock_dynamodb2
 def test_update_item_on_map():
@@ -1962,6 +2002,36 @@ def test_condition_expression__attr_doesnt_exist():
     # Second time should fail
     with assert_raises(client.exceptions.ConditionalCheckFailedException):
         update_if_attr_doesnt_exist()
+
+
+@mock_dynamodb2
+def test_condition_expression__or_order():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    client.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'forum_name', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'forum_name', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+    )
+
+    # ensure that the RHS of the OR expression is not evaluated if the LHS
+    # returns true (as it would result an error)
+    client.update_item(
+        TableName='test',
+        Key={
+            'forum_name': {'S': 'the-key'},
+        },
+        UpdateExpression='set #ttl=:ttl',
+        ConditionExpression='attribute_not_exists(#ttl) OR #ttl <= :old_ttl',
+        ExpressionAttributeNames={'#ttl': 'ttl'},
+        ExpressionAttributeValues={
+            ':ttl': {'N': '6'},
+            ':old_ttl': {'N': '5'},
+        }
+    )
 
 
 @mock_dynamodb2

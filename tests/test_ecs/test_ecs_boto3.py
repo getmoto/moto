@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from datetime import datetime
 
 from copy import deepcopy
 
@@ -94,6 +95,10 @@ def test_register_task_definition():
                 }],
                 'logConfiguration': {'logDriver': 'json-file'}
             }
+        ],
+        tags=[
+            {'key': 'createdBy', 'value': 'moto-unittest'},
+            {'key': 'foo', 'value': 'bar'},
         ]
     )
     type(response['taskDefinition']).should.be(dict)
@@ -473,6 +478,8 @@ def test_describe_services():
     response['services'][0]['deployments'][0]['pendingCount'].should.equal(2)
     response['services'][0]['deployments'][0]['runningCount'].should.equal(0)
     response['services'][0]['deployments'][0]['status'].should.equal('PRIMARY')
+    (datetime.now() - response['services'][0]['deployments'][0]["createdAt"].replace(tzinfo=None)).seconds.should.be.within(0, 10)
+    (datetime.now() - response['services'][0]['deployments'][0]["updatedAt"].replace(tzinfo=None)).seconds.should.be.within(0, 10)
 
 
 @mock_ecs
@@ -2304,3 +2311,52 @@ def test_create_service_load_balancing():
     response['service']['status'].should.equal('ACTIVE')
     response['service']['taskDefinition'].should.equal(
         'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+
+
+@mock_ecs
+def test_list_tags_for_resource():
+    client = boto3.client('ecs', region_name='us-east-1')
+    response = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ],
+        tags=[
+            {'key': 'createdBy', 'value': 'moto-unittest'},
+            {'key': 'foo', 'value': 'bar'},
+        ]
+    )
+    type(response['taskDefinition']).should.be(dict)
+    response['taskDefinition']['revision'].should.equal(1)
+    response['taskDefinition']['taskDefinitionArn'].should.equal(
+        'arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:1')
+
+    task_definition_arn = response['taskDefinition']['taskDefinitionArn']
+    response = client.list_tags_for_resource(resourceArn=task_definition_arn)
+
+    type(response['tags']).should.be(list)
+    response['tags'].should.equal([
+        {'key': 'createdBy', 'value': 'moto-unittest'},
+        {'key': 'foo', 'value': 'bar'},
+    ])
+
+
+@mock_ecs
+def test_list_tags_for_resource_unknown():
+    client = boto3.client('ecs', region_name='us-east-1')
+    task_definition_arn = 'arn:aws:ecs:us-east-1:012345678910:task-definition/unknown:1'
+    try:
+        client.list_tags_for_resource(resourceArn=task_definition_arn)
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('ClientException')

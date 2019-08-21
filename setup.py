@@ -30,10 +30,9 @@ def get_version():
 install_requires = [
     "Jinja2>=2.10.1",
     "boto>=2.36.0",
-    "boto3>=1.9.86",
-    "botocore>=1.12.86",
+    "boto3>=1.9.201",
+    "botocore>=1.12.201",
     "cryptography>=2.3.0",
-    "datetime",
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
@@ -48,7 +47,7 @@ install_requires = [
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
     "idna<2.9,>=2.5",
-    "cfn-lint",
+    "cfn-lint>=0.4.0",
     "sshpubkeys>=3.1.0,<4.0"
 ]
 
@@ -89,7 +88,6 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",

@@ -5,6 +5,9 @@
 [![Build Status](https://travis-ci.org/spulec/moto.svg?branch=master)](https://travis-ci.org/spulec/moto)
 [![Coverage Status](https://coveralls.io/repos/spulec/moto/badge.svg?branch=master)](https://coveralls.io/r/spulec/moto)
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
+![PyPI](https://img.shields.io/pypi/v/moto.svg)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
+![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)
 
 # In a nutshell
 
@@ -75,6 +78,7 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 | Cognito Identity Provider | @mock_cognitoidp      | basic endpoints done            |
 |-------------------------------------------------------------------------------------|
 | Config                    | @mock_config          | basic endpoints done            |
+|                           |                       | core endpoints done             |
 |-------------------------------------------------------------------------------------|
 | Data Pipeline             | @mock_datapipeline    | basic endpoints done            |
 |-------------------------------------------------------------------------------------|
@@ -292,6 +296,96 @@ def test_describe_instances_allowed():
 ```
 
 See [the related test suite](https://github.com/spulec/moto/blob/master/tests/test_core/test_auth.py) for more examples.
+
+## Very Important -- Recommended Usage
+There are some important caveats to be aware of when using moto:
+
+*Failure to follow these guidelines could result in your tests mutating your __REAL__ infrastructure!*
+
+### How do I avoid tests from mutating my real infrastructure?
+You need to ensure that the mocks are actually in place. Changes made to recent versions of `botocore`
+have altered some of the mock behavior. In short, you need to ensure that you _always_ do the following:
+
+1. Ensure that your tests have dummy environment variables set up:
+    
+        export AWS_ACCESS_KEY_ID='testing'
+        export AWS_SECRET_ACCESS_KEY='testing'
+        export AWS_SECURITY_TOKEN='testing'
+        export AWS_SESSION_TOKEN='testing'
+   
+1. __VERY IMPORTANT__: ensure that you have your mocks set up __BEFORE__ your `boto3` client is established. 
+   This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
+   See the pesky imports section below on how to work around this.
+  
+### Example on usage?
+If you are a user of [pytest](https://pytest.org/en/latest/), you can leverage [pytest fixtures](https://pytest.org/en/latest/fixture.html#fixture)
+to help set up your mocks and other AWS resources that you would need.
+
+Here is an example:
+```python
+@pytest.fixture(scope='function')
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
+    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
+    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+
+@pytest.fixture(scope='function')
+def s3(aws_credentials):
+    with mock_s3():
+        yield boto3.client('s3', region_name='us-east-1')
+
+
+@pytest.fixture(scope='function')
+def sts(aws_credentials):
+    with mock_sts():
+        yield boto3.client('sts', region_name='us-east-1')
+
+
+@pytest.fixture(scope='function')
+def cloudwatch(aws_credentials):
+    with mock_cloudwatch():
+        yield boto3.client('cloudwatch', region_name='us-east-1')
+
+... etc.
+```
+
+In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`, 
+which sets the proper fake environment variables. The fake environment variables are used so that `botocore` doesn't try to locate real
+credentials on your system.
+
+Next, once you need to do anything with the mocked AWS environment, do something like:
+```python
+def test_create_bucket(s3):
+    # s3 is a fixture defined above that yields a boto3 s3 client.
+    # Feel free to instantiate another boto3 S3 client -- Keep note of the region though.
+    s3.create_bucket(Bucket="somebucket")
+   
+    result = s3.list_buckets()
+    assert len(result['Buckets']) == 1
+    assert result['Buckets'][0]['Name'] == 'somebucket'
+```
+
+### What about those pesky imports?
+Recall earlier, it was mentioned that mocks should be established __BEFORE__ the clients are set up. One way
+to avoid import issues is to make use of local Python imports -- i.e. import the module inside of the unit
+test you want to run vs. importing at the top of the file. 
+
+Example:
+```python
+def test_something(s3):
+   from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
+   # ^^ Importing here ensures that the mock has been established.      
+
+   sume_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
+                # a package-level S3 client will properly use the mock and not reach out to AWS.
+```
+
+### Other caveats
+For Tox, Travis CI, and other build systems, you might need to also perform a `touch ~/.aws/credentials` 
+command before running the tests. As long as that file is present (empty preferably) and the environment
+variables above are set, you should be good to go.
 
 ## Stand-alone Server Mode
 
