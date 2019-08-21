@@ -14,6 +14,7 @@ from .instances import InstanceResponse
 from .internet_gateways import InternetGateways
 from .ip_addresses import IPAddresses
 from .key_pairs import KeyPairs
+from .launch_templates import LaunchTemplates
 from .monitoring import Monitoring
 from .network_acls import NetworkACLs
 from .placement_groups import PlacementGroups
@@ -49,6 +50,7 @@ class EC2Response(
     InternetGateways,
     IPAddresses,
     KeyPairs,
+    LaunchTemplates,
     Monitoring,
     NetworkACLs,
     PlacementGroups,

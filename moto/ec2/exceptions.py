@@ -523,3 +523,11 @@ class OperationNotPermitted3(EC2ClientError):
                                                                                            pcx_id,
                                                                                            acceptor_region)
         )
+
+
+class InvalidLaunchTemplateNameError(EC2ClientError):
+    def __init__(self):
+        super(InvalidLaunchTemplateNameError, self).__init__(
+            "InvalidLaunchTemplateName.AlreadyExistsException",
+            "Launch template name already in use."
+        )
