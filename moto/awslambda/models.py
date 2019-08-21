@@ -435,9 +435,28 @@ class EventSourceMapping(BaseModel):
         self.event_source_arn = spec['EventSourceArn']
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        self.batch_size = ''  # Default to blank
+
+        # BatchSize service default/max mapping
+        batch_size_map = {
+            'kinesis': (100, 10000),
+            'dynamodb': (100, 1000),
+            'sqs': (10, 10),
+        }
+        source_type = self.event_source_arn.split(":")[2].lower()
+        batch_size_entry = batch_size_map.get(source_type)
+        if batch_size_entry:
+            # Use service default if not provided
+            batch_size = int(spec.get('BatchSize', batch_size_entry[0]))
+            if batch_size > batch_size_entry[1]:
+                raise ValueError(
+                        "InvalidParameterValueException",
+                        "BatchSize {} exceeds the max of {}".format(batch_size, batch_size_entry[1]))
+            else:
+                self.batch_size = batch_size
+
         # optional
         self.starting_position = spec.get('StartingPosition', 'TRIM_HORIZON')
-        self.batch_size = spec.get('BatchSize', 10)  # TODO: Add source type-specific defaults
         self.enabled = spec.get('Enabled', True)
         self.starting_position_timestamp = spec.get('StartingPositionTimestamp',
                                                     None)
