@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.iam.models import ACCOUNT_ID
 from moto.sts.utils import random_access_key_id, random_secret_access_key, random_session_token, random_assumed_role_id
 
 
@@ -42,7 +43,11 @@ class AssumedRole(BaseModel):
 
     @property
     def arn(self):
-        return self.role_arn + "/" + self.session_name
+        return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
+            account_id=ACCOUNT_ID,
+            role_name=self.role_arn.split("/")[-1],
+            session_name=self.session_name
+        )
 
 
 class STSBackend(BaseBackend):
