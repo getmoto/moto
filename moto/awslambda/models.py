@@ -449,9 +449,8 @@ class EventSourceMapping(BaseModel):
             # Use service default if not provided
             batch_size = int(spec.get('BatchSize', batch_size_entry[0]))
             if batch_size > batch_size_entry[1]:
-                raise ValueError(
-                        "InvalidParameterValueException",
-                        "BatchSize {} exceeds the max of {}".format(batch_size, batch_size_entry[1]))
+                raise ValueError("InvalidParameterValueException",
+                                 "BatchSize {} exceeds the max of {}".format(batch_size, batch_size_entry[1]))
             else:
                 self.batch_size = batch_size
 
