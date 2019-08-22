@@ -435,7 +435,6 @@ class EventSourceMapping(BaseModel):
         self.event_source_arn = spec['EventSourceArn']
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
-        self.batch_size = ''  # Default to blank
 
         # BatchSize service default/max mapping
         batch_size_map = {
@@ -453,6 +452,9 @@ class EventSourceMapping(BaseModel):
                                  "BatchSize {} exceeds the max of {}".format(batch_size, batch_size_entry[1]))
             else:
                 self.batch_size = batch_size
+        else:
+            raise ValueError("InvalidParameterValueException",
+                             "Unsupported event source type")
 
         # optional
         self.starting_position = spec.get('StartingPosition', 'TRIM_HORIZON')
@@ -668,7 +670,7 @@ class LambdaBackend(BaseBackend):
                 raise RESTError('InvalidParameterValueException', 'Missing {}'.format(param))
 
         # Validate function name
-        func = self._lambdas.get_function_by_name_or_arn(spec.get('FunctionName', ''))
+        func = self._lambdas.get_function_by_name_or_arn(spec.pop('FunctionName', ''))
         if not func:
             raise RESTError('ResourceNotFoundException', 'Invalid FunctionName')
 
@@ -682,11 +684,8 @@ class LambdaBackend(BaseBackend):
                     raise RESTError('InvalidParameterValueException',
                                     '{} is FIFO'.format(queue.queue_arn))
                 else:
-                    esm_spec = {
-                        'EventSourceArn': spec['EventSourceArn'],
-                        'FunctionArn': func.function_arn,
-                    }
-                    esm = EventSourceMapping(esm_spec)
+                    spec.update({'FunctionArn': func.function_arn})
+                    esm = EventSourceMapping(spec)
                     self._event_source_mappings[esm.uuid] = esm
 
                     # Set backend function on queue
