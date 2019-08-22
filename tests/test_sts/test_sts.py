@@ -9,7 +9,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 
-from moto import mock_sts, mock_sts_deprecated, mock_iam
+from moto import mock_sts, mock_sts_deprecated, mock_iam, settings
 from moto.iam.models import ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
@@ -72,7 +72,8 @@ def test_assume_role():
                                               Policy=policy, DurationSeconds=900)
 
     credentials = assume_role_response['Credentials']
-    credentials['Expiration'].isoformat().should.equal('2012-01-01T12:15:00+00:00')
+    if not settings.TEST_SERVER_MODE:
+        credentials['Expiration'].isoformat().should.equal('2012-01-01T12:15:00+00:00')
     credentials['SessionToken'].should.have.length_of(356)
     assert credentials['SessionToken'].startswith("FQoGZXIvYXdzE")
     credentials['AccessKeyId'].should.have.length_of(20)
