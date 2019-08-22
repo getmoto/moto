@@ -2141,3 +2141,55 @@ def test_scan_by_non_exists_index():
     ex.exception.response['Error']['Message'].should.equal(
         'The table does not have the specified index: non_exists_index'
     )
+
+
+@mock_dynamodb2
+def test_batch_items_returns_all():
+    dynamodb = _create_user_table()
+    returned_items = dynamodb.batch_get_item(RequestItems={
+        'users': {
+            'Keys': [{
+                'username': {'S': 'user0'}
+            }, {
+                'username': {'S': 'user1'}
+            }, {
+                'username': {'S': 'user2'}
+            }, {
+                'username': {'S': 'user3'}
+            }],
+            'ConsistentRead': True
+        }
+    })['Responses']['users']
+    assert len(returned_items) == 3
+    assert [item['username']['S'] for item in returned_items] == ['user1', 'user2', 'user3']
+
+
+@mock_dynamodb2
+def test_batch_items_should_throw_exception_for_duplicate_request():
+    client = _create_user_table()
+    with assert_raises(ClientError) as ex:
+        client.batch_get_item(RequestItems={
+            'users': {
+                'Keys': [{
+                    'username': {'S': 'user0'}
+                }, {
+                    'username': {'S': 'user0'}
+                }],
+                'ConsistentRead': True
+            }})
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal('Provided list of item keys contains duplicates')
+
+
+def _create_user_table():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    client.create_table(
+        TableName='users',
+        KeySchema=[{'AttributeName': 'username', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'username', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
+    )
+    client.put_item(TableName='users', Item={'username': {'S': 'user1'}, 'foo': {'S': 'bar'}})
+    client.put_item(TableName='users', Item={'username': {'S': 'user2'}, 'foo': {'S': 'bar'}})
+    client.put_item(TableName='users', Item={'username': {'S': 'user3'}, 'foo': {'S': 'bar'}})
+    return client
