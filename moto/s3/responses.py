@@ -463,10 +463,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
 
+        key_count = len(result_keys) + len(result_folders)
+
         return template.render(
             bucket=bucket,
             prefix=prefix or '',
             delimiter=delimiter,
+            key_count=key_count,
             result_keys=result_keys,
             result_folders=result_folders,
             fetch_owner=fetch_owner,
@@ -1330,7 +1333,7 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
   <Name>{{ bucket.name }}</Name>
   <Prefix>{{ prefix }}</Prefix>
   <MaxKeys>{{ max_keys }}</MaxKeys>
-  <KeyCount>{{ result_keys | length }}</KeyCount>
+  <KeyCount>{{ key_count }}</KeyCount>
 {% if delimiter %}
   <Delimiter>{{ delimiter }}</Delimiter>
 {% endif %}
