@@ -172,6 +172,8 @@ class IAMRequestBase(object):
             self._raise_signature_does_not_match()
 
     def check_action_permitted(self):
+        if self._action == 'sts:GetCallerIdentity':  # always allowed, even if there's an explicit Deny for it
+            return True
         policies = self._access_key.collect_policies()
 
         permitted = False
