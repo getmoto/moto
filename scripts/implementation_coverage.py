@@ -61,7 +61,8 @@ def print_implementation_coverage(coverage):
             percentage_implemented = 0
 
         print("")
-        print("## {} - {}% implemented".format(service_name, percentage_implemented))
+        print("## {}\n".format(service_name))
+        print("{}% implemented\n".format(percentage_implemented))
         for op in operations:
             if op in implemented:
                 print("- [X] {}".format(op))
@@ -93,7 +94,8 @@ def write_implementation_coverage_to_file(coverage):
                 percentage_implemented = 0
 
             file.write("\n")
-            file.write("## {} - {}% implemented\n".format(service_name, percentage_implemented))
+            file.write("## {}\n".format(service_name))
+            file.write("{}% implemented\n".format(percentage_implemented))
             for op in operations:
                 if op in implemented:
                     file.write("- [X] {}\n".format(op))
