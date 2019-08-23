@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import base64
+import uuid
 import botocore.client
 import boto3
 import hashlib
@@ -11,11 +12,12 @@ import zipfile
 import sure  # noqa
 
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings
+from moto import mock_lambda, mock_s3, mock_ec2, mock_sns, mock_logs, settings, mock_sqs
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
 _lambda_region = 'us-west-2'
+boto3.setup_default_session(region_name=_lambda_region)
 
 
 def _process_lambda(func_str):
@@ -56,6 +58,13 @@ def get_test_zip_file3():
 def lambda_handler(event, context):
     print("get_test_zip_file3 success")
     return event
+"""
+    return _process_lambda(pfunc)
+
+def get_test_zip_file4():
+    pfunc = """
+def lambda_handler(event, context):    
+    raise Exception('I failed!')
 """
     return _process_lambda(pfunc)
 
@@ -933,3 +942,306 @@ def test_list_versions_by_function_for_nonexistent_function():
     versions = conn.list_versions_by_function(FunctionName='testFunction')
 
     assert len(versions['Versions']) == 0
+
+
+@mock_logs
+@mock_lambda
+@mock_sqs
+def test_create_event_source_mapping():
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func['FunctionArn'],
+    )
+
+    assert response['EventSourceArn'] == queue.attributes['QueueArn']
+    assert response['FunctionArn'] == func['FunctionArn']
+    assert response['State'] == 'Enabled'
+
+
+@mock_logs
+@mock_lambda
+@mock_sqs
+def test_invoke_function_from_sqs():
+    logs_conn = boto3.client("logs")
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func['FunctionArn'],
+    )
+
+    assert response['EventSourceArn'] == queue.attributes['QueueArn']
+    assert response['State'] == 'Enabled'
+
+    sqs_client = boto3.client('sqs')
+    sqs_client.send_message(QueueUrl=queue.url, MessageBody='test')
+    start = time.time()
+    while (time.time() - start) < 30:
+        result = logs_conn.describe_log_streams(logGroupName='/aws/lambda/testFunction')
+        log_streams = result.get('logStreams')
+        if not log_streams:
+            time.sleep(1)
+            continue
+
+        assert len(log_streams) == 1
+        result = logs_conn.get_log_events(logGroupName='/aws/lambda/testFunction', logStreamName=log_streams[0]['logStreamName'])
+        for event in result.get('events'):
+            if event['message'] == 'get_test_zip_file3 success':
+                return
+        time.sleep(1)
+
+    assert False, "Test Failed"
+
+
+@mock_logs
+@mock_lambda
+@mock_sqs
+def test_invoke_function_from_sqs_exception():
+    logs_conn = boto3.client("logs")
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file4(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func['FunctionArn'],
+    )
+
+    assert response['EventSourceArn'] == queue.attributes['QueueArn']
+    assert response['State'] == 'Enabled'
+
+    entries = []
+    for i in range(3):
+        body = {
+            "uuid": str(uuid.uuid4()),
+            "test": "test_{}".format(i),
+        }
+        entry = {
+            'Id': str(i),
+            'MessageBody': json.dumps(body)
+        }
+        entries.append(entry)
+
+    queue.send_messages(Entries=entries)
+
+    start = time.time()
+    while (time.time() - start) < 30:
+        result = logs_conn.describe_log_streams(logGroupName='/aws/lambda/testFunction')
+        log_streams = result.get('logStreams')
+        if not log_streams:
+            time.sleep(1)
+            continue
+        assert len(log_streams) >= 1
+
+        result = logs_conn.get_log_events(logGroupName='/aws/lambda/testFunction', logStreamName=log_streams[0]['logStreamName'])
+        for event in result.get('events'):
+            if 'I failed!' in event['message']:
+                messages = queue.receive_messages(MaxNumberOfMessages=10)
+                # Verify messages are still visible and unprocessed
+                assert len(messages) is 3
+                return
+        time.sleep(1)
+
+    assert False, "Test Failed"
+
+
+@mock_logs
+@mock_lambda
+@mock_sqs
+def test_list_event_source_mappings():
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func['FunctionArn'],
+    )
+    mappings = conn.list_event_source_mappings(EventSourceArn='123')
+    assert len(mappings['EventSourceMappings']) == 0
+
+    mappings = conn.list_event_source_mappings(EventSourceArn=queue.attributes['QueueArn'])
+    assert len(mappings['EventSourceMappings']) == 1
+    assert mappings['EventSourceMappings'][0]['UUID'] == response['UUID']
+    assert mappings['EventSourceMappings'][0]['FunctionArn'] == func['FunctionArn']
+
+
+@mock_lambda
+@mock_sqs
+def test_get_event_source_mapping():
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func['FunctionArn'],
+    )
+    mapping = conn.get_event_source_mapping(UUID=response['UUID'])
+    assert mapping['UUID'] == response['UUID']
+    assert mapping['FunctionArn'] == func['FunctionArn']
+
+    conn.get_event_source_mapping.when.called_with(UUID='1')\
+        .should.throw(botocore.client.ClientError)
+
+
+@mock_lambda
+@mock_sqs
+def test_update_event_source_mapping():
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func1 = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    func2 = conn.create_function(
+        FunctionName='testFunction2',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func1['FunctionArn'],
+    )
+    assert response['FunctionArn'] == func1['FunctionArn']
+    assert response['BatchSize'] == 10
+    assert response['State'] == 'Enabled'
+
+    mapping = conn.update_event_source_mapping(
+        UUID=response['UUID'],
+        Enabled=False,
+        BatchSize=15,
+        FunctionName='testFunction2'
+
+    )
+    assert mapping['UUID'] == response['UUID']
+    assert mapping['FunctionArn'] == func2['FunctionArn']
+    assert mapping['State'] == 'Disabled'
+
+
+@mock_lambda
+@mock_sqs
+def test_delete_event_source_mapping():
+    sqs = boto3.resource('sqs')
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    conn = boto3.client('lambda')
+    func1 = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': get_test_zip_file3(),
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    response = conn.create_event_source_mapping(
+        EventSourceArn=queue.attributes['QueueArn'],
+        FunctionName=func1['FunctionArn'],
+    )
+    assert response['FunctionArn'] == func1['FunctionArn']
+    assert response['BatchSize'] == 10
+    assert response['State'] == 'Enabled'
+
+    response = conn.delete_event_source_mapping(UUID=response['UUID'])
+
+    assert response['State'] == 'Deleting'
+    conn.get_event_source_mapping.when.called_with(UUID=response['UUID'])\
+        .should.throw(botocore.client.ClientError)
