@@ -154,9 +154,9 @@ class SecretsManagerBackend(BaseBackend):
 
         return version_id
 
-    def put_secret_value(self, secret_id, secret_string, version_stages):
+    def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
 
-        version_id = self._add_secret(secret_id, secret_string, version_stages=version_stages)
+        version_id = self._add_secret(secret_id, secret_string, secret_binary, version_stages=version_stages)
 
         response = json.dumps({
             'ARN': secret_arn(self.region, secret_id),

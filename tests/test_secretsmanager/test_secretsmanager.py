@@ -5,9 +5,9 @@ import boto3
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
 import string
-import unittest
 import pytz
 from datetime import datetime
+import sure  # noqa
 from nose.tools import assert_raises
 from six import b
 
@@ -23,6 +23,7 @@ def test_get_secret_value():
     result = conn.get_secret_value(SecretId='java-util-test-password')
     assert result['SecretString'] == 'foosecret'
 
+
 @mock_secretsmanager
 def test_get_secret_value_binary():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
@@ -32,12 +33,14 @@ def test_get_secret_value_binary():
     result = conn.get_secret_value(SecretId='java-util-test-password')
     assert result['SecretBinary'] == b('foosecret')
 
+
 @mock_secretsmanager
 def test_get_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-exist')
+
 
 @mock_secretsmanager
 def test_get_secret_that_does_not_match():
@@ -71,6 +74,7 @@ def test_create_secret():
     assert result['Name'] == 'test-secret'
     secret = conn.get_secret_value(SecretId='test-secret')
     assert secret['SecretString'] == 'foosecret'
+
 
 @mock_secretsmanager
 def test_create_secret_with_tags():
@@ -216,6 +220,7 @@ def test_get_random_exclude_lowercase():
                                                ExcludeLowercase=True)
     assert any(c.islower() for c in random_password['RandomPassword']) == False
 
+
 @mock_secretsmanager
 def test_get_random_exclude_uppercase():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
@@ -223,6 +228,7 @@ def test_get_random_exclude_uppercase():
     random_password = conn.get_random_password(PasswordLength=55,
                                                ExcludeUppercase=True)
     assert any(c.isupper() for c in random_password['RandomPassword']) == False
+
 
 @mock_secretsmanager
 def test_get_random_exclude_characters_and_symbols():
@@ -232,6 +238,7 @@ def test_get_random_exclude_characters_and_symbols():
                                                ExcludeCharacters='xyzDje@?!.')
     assert any(c in 'xyzDje@?!.' for c in random_password['RandomPassword']) == False
 
+
 @mock_secretsmanager
 def test_get_random_exclude_numbers():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
@@ -239,6 +246,7 @@ def test_get_random_exclude_numbers():
     random_password = conn.get_random_password(PasswordLength=100,
                                                ExcludeNumbers=True)
     assert any(c.isdigit() for c in random_password['RandomPassword']) == False
+
 
 @mock_secretsmanager
 def test_get_random_exclude_punctuation():
@@ -249,12 +257,14 @@ def test_get_random_exclude_punctuation():
     assert any(c in string.punctuation
                for c in random_password['RandomPassword']) == False
 
+
 @mock_secretsmanager
 def test_get_random_include_space_false():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
     random_password = conn.get_random_password(PasswordLength=300)
     assert any(c.isspace() for c in random_password['RandomPassword']) == False
+
 
 @mock_secretsmanager
 def test_get_random_include_space_true():
@@ -263,6 +273,7 @@ def test_get_random_include_space_true():
     random_password = conn.get_random_password(PasswordLength=4,
                                                IncludeSpace=True)
     assert any(c.isspace() for c in random_password['RandomPassword']) == True
+
 
 @mock_secretsmanager
 def test_get_random_require_each_included_type():
@@ -275,6 +286,7 @@ def test_get_random_require_each_included_type():
     assert any(c in string.ascii_uppercase for c in random_password['RandomPassword']) == True
     assert any(c in string.digits for c in random_password['RandomPassword']) == True
 
+
 @mock_secretsmanager
 def test_get_random_too_short_password():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
@@ -282,12 +294,14 @@ def test_get_random_too_short_password():
     with assert_raises(ClientError):
         random_password = conn.get_random_password(PasswordLength=3)
 
+
 @mock_secretsmanager
 def test_get_random_too_long_password():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
     with assert_raises(Exception):
         random_password = conn.get_random_password(PasswordLength=5555)
+
 
 @mock_secretsmanager
 def test_describe_secret():
@@ -307,12 +321,14 @@ def test_describe_secret():
     assert secret_description_2['Name'] == ('test-secret-2')
     assert secret_description_2['ARN'] != '' # Test arn not empty
 
+
 @mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='i-dont-exist')
+
 
 @mock_secretsmanager
 def test_describe_secret_that_does_not_match():
@@ -500,6 +516,7 @@ def test_rotate_secret_rotation_period_zero():
     # test_server actually handles this error.
     assert True
 
+
 @mock_secretsmanager
 def test_rotate_secret_rotation_period_too_long():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
@@ -510,6 +527,7 @@ def test_rotate_secret_rotation_period_too_long():
     with assert_raises(ClientError):
         result = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME,
                                     RotationRules=rotation_rules)
+
 
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
@@ -525,6 +543,45 @@ def test_put_secret_value_puts_new_secret():
 
     assert get_secret_value_dict
     assert get_secret_value_dict['SecretString'] == 'foosecret'
+
+
+@mock_secretsmanager
+def test_put_secret_binary_value_puts_new_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    put_secret_value_dict = conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  SecretBinary=b('foosecret'),
+                                                  VersionStages=['AWSCURRENT'])
+    version_id = put_secret_value_dict['VersionId']
+
+    get_secret_value_dict = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME,
+                                                  VersionId=version_id,
+                                                  VersionStage='AWSCURRENT')
+
+    assert get_secret_value_dict
+    assert get_secret_value_dict['SecretBinary'] == b('foosecret')
+
+
+@mock_secretsmanager
+def test_create_and_put_secret_binary_value_puts_new_secret():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
+    conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME, SecretBinary=b('foosecret_update'))
+
+    latest_secret = conn.get_secret_value(SecretId=DEFAULT_SECRET_NAME)
+
+    assert latest_secret
+    assert latest_secret['SecretBinary'] == b('foosecret_update')
+
+
+@mock_secretsmanager
+def test_put_secret_binary_requires_either_string_or_binary():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+    with assert_raises(ClientError) as ire:
+        conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME)
+
+    ire.exception.response['Error']['Code'].should.equal('InvalidRequestException')
+    ire.exception.response['Error']['Message'].should.equal('You must provide either SecretString or SecretBinary.')
+
 
 @mock_secretsmanager
 def test_put_secret_value_can_get_first_version_if_put_twice():
