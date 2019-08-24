@@ -298,7 +298,7 @@ class Stage(BaseModel, dict):
 class ApiKey(BaseModel, dict):
 
     def __init__(self, name=None, description=None, enabled=True,
-                 generateDistinctId=False, value=None, stageKeys=None, customerId=None):
+                 generateDistinctId=False, value=None, stageKeys=None, tags=None, customerId=None):
         super(ApiKey, self).__init__()
         self['id'] = create_id()
         self['value'] = value if value else ''.join(random.sample(string.ascii_letters + string.digits, 40))
@@ -308,6 +308,7 @@ class ApiKey(BaseModel, dict):
         self['enabled'] = enabled
         self['createdDate'] = self['lastUpdatedDate'] = int(time.time())
         self['stageKeys'] = stageKeys
+        self['tags'] = tags
 
     def update_operations(self, patch_operations):
         for op in patch_operations:
