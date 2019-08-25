@@ -18,7 +18,7 @@ from moto.awslambda import lambda_backends
 
 from .exceptions import (
     SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter,
-    InvalidParameterValue
+    InvalidParameterValue, InternalError
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -131,13 +131,47 @@ class Subscription(BaseModel):
             message_attributes = {}
 
         def _field_match(field, rules, message_attributes):
-            if field not in message_attributes:
-                return False
             for rule in rules:
+                #  TODO: boolean value matching is not supported, SNS behavior unknown
                 if isinstance(rule, six.string_types):
-                    # only string value matching is supported
+                    if field not in message_attributes:
+                        return False
                     if message_attributes[field]['Value'] == rule:
                         return True
+                    try:
+                        json_data = json.loads(message_attributes[field]['Value'])
+                        if rule in json_data:
+                            return True
+                    except (ValueError, TypeError):
+                        pass
+                if isinstance(rule, (six.integer_types, float)):
+                    if field not in message_attributes:
+                        return False
+                    if message_attributes[field]['Type'] == 'Number':
+                        attribute_values = [message_attributes[field]['Value']]
+                    elif message_attributes[field]['Type'] == 'String.Array':
+                        try:
+                            attribute_values = json.loads(message_attributes[field]['Value'])
+                            if not isinstance(attribute_values, list):
+                                attribute_values = [attribute_values]
+                        except (ValueError, TypeError):
+                            return False
+                    else:
+                        return False
+
+                    for attribute_values in attribute_values:
+                        # Even the offical documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
+                        # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
+                        if int(attribute_values * 1000000) == int(rule * 1000000):
+                            return True
+                if isinstance(rule, dict):
+                    keyword = list(rule.keys())[0]
+                    attributes = list(rule.values())[0]
+                    if keyword == 'exists':
+                        if attributes and field in message_attributes:
+                            return True
+                        elif not attributes and field not in message_attributes:
+                            return True
             return False
 
         return all(_field_match(field, rules, message_attributes)
@@ -421,7 +455,49 @@ class SNSBackend(BaseBackend):
         subscription.attributes[name] = value
 
         if name == 'FilterPolicy':
-            subscription._filter_policy = json.loads(value)
+            filter_policy = json.loads(value)
+            self._validate_filter_policy(filter_policy)
+            subscription._filter_policy = filter_policy
+
+    def _validate_filter_policy(self, value):
+        # TODO: extend validation checks
+        combinations = 1
+        for rules in six.itervalues(value):
+            combinations *= len(rules)
+        # Even the offical documentation states the total combination of values must not exceed 100, in reality it is 150
+        # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
+        if combinations > 150:
+            raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Filter policy is too complex")
+
+        for field, rules in six.iteritems(value):
+            for rule in rules:
+                if rule is None:
+                    continue
+                if isinstance(rule, six.string_types):
+                    continue
+                if isinstance(rule, bool):
+                    continue
+                if isinstance(rule, (six.integer_types, float)):
+                    if rule <= -1000000000 or rule >= 1000000000:
+                        raise InternalError("Unknown")
+                    continue
+                if isinstance(rule, dict):
+                    keyword = list(rule.keys())[0]
+                    attributes = list(rule.values())[0]
+                    if keyword == 'anything-but':
+                        continue
+                    elif keyword == 'exists':
+                        if not isinstance(attributes, bool):
+                            raise SNSInvalidParameter("Invalid parameter: FilterPolicy: exists match pattern must be either true or false.")
+                        continue
+                    elif keyword == 'numeric':
+                        continue
+                    elif keyword == 'prefix':
+                        continue
+                    else:
+                        raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Unrecognized match type {type}".format(type=keyword))
+
+                raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Match value must be String, number, true, false, or null")
 
 
 sns_backends = {}
