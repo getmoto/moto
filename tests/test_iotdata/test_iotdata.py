@@ -86,6 +86,12 @@ def test_update():
     payload.should.have.key('version').which.should.equal(2)
     payload.should.have.key('timestamp')
 
+    raw_payload = b'{"state": {"desired": {"led": "on"}}, "version": 1}'
+    with assert_raises(ClientError) as ex:
+        client.update_thing_shadow(thingName=name, payload=raw_payload)
+    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(409)
+    ex.exception.response['Error']['Message'].should.equal('Version conflict')
+
 
 @mock_iotdata
 def test_publish():

@@ -6,6 +6,7 @@ import jsondiff
 from moto.core import BaseBackend, BaseModel
 from moto.iot import iot_backends
 from .exceptions import (
+    ConflictException,
     ResourceNotFoundException,
     InvalidRequestException
 )
@@ -161,6 +162,8 @@ class IoTDataPlaneBackend(BaseBackend):
         if any(_ for _ in payload['state'].keys() if _ not in ['desired', 'reported']):
             raise InvalidRequestException('State contains an invalid node')
 
+        if 'version' in payload and thing.thing_shadow.version != payload['version']:
+                raise ConflictException('Version conflict')
         new_shadow = FakeShadow.create_from_previous_version(thing.thing_shadow, payload)
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
