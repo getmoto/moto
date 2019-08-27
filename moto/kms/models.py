@@ -4,7 +4,7 @@ import os
 import boto.kms
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from .utils import generate_key_id
+from .utils import generate_key_id, generate_master_key
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -23,6 +23,7 @@ class Key(BaseModel):
         self.key_rotation_status = False
         self.deletion_date = None
         self.tags = tags or {}
+        self.key_material = generate_master_key()
 
     @property
     def physical_resource_id(self):

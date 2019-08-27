@@ -34,3 +34,23 @@ class NotAuthorizedException(JsonRESTError):
             "NotAuthorizedException", None)
 
         self.description = '{"__type":"NotAuthorizedException"}'
+
+
+class AccessDeniedException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(AccessDeniedException, self).__init__(
+            "AccessDeniedException", message)
+
+        self.description = '{"__type":"AccessDeniedException"}'
+
+
+class InvalidCiphertextException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidCiphertextException, self).__init__(
+            "InvalidCiphertextException", None)
+
+        self.description = '{"__type":"InvalidCiphertextException"}'
