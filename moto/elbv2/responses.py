@@ -775,16 +775,7 @@ CREATE_LISTENER_TEMPLATE = """<CreateListenerResponse xmlns="http://elasticloadb
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
-            <Type>{{ action.type }}</Type>
-            {% if action["type"] == "forward" %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
-            {% elif action["type"] == "redirect" %}
-            <RedirectConfig>
-                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
-                <Port>{{ action["redirect_config._port"] }}</Port>
-                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
-            </RedirectConfig>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </DefaultActions>
@@ -888,16 +879,7 @@ DESCRIBE_RULES_TEMPLATE = """<DescribeRulesResponse xmlns="http://elasticloadbal
         <Actions>
           {% for action in rule.actions %}
           <member>
-            <Type>{{ action["type"] }}</Type>
-            {% if action["type"] == "forward" %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
-            {% elif action["type"] == "redirect" %}
-            <RedirectConfig>
-                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
-                <Port>{{ action["redirect_config._port"] }}</Port>
-                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
-            </RedirectConfig>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>
@@ -989,16 +971,7 @@ DESCRIBE_LISTENERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://el
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
-            <Type>{{ action.type }}</Type>
-            {% if action["type"] == "forward" %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>m
-            {% elif action["type"] == "redirect" %}
-            <RedirectConfig>
-                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
-                <Port>{{ action["redirect_config._port"] }}</Port>
-                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
-            </RedirectConfig>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </DefaultActions>
@@ -1048,8 +1021,7 @@ MODIFY_RULE_TEMPLATE = """<ModifyRuleResponse xmlns="http://elasticloadbalancing
         <Actions>
           {% for action in rule.actions %}
           <member>
-            <Type>{{ action["type"] }}</Type>
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </Actions>
@@ -1432,16 +1404,7 @@ MODIFY_LISTENER_TEMPLATE = """<ModifyListenerResponse xmlns="http://elasticloadb
         <DefaultActions>
           {% for action in listener.default_actions %}
           <member>
-            <Type>{{ action.type }}</Type>
-            {% if action["type"] == "forward" %}
-            <TargetGroupArn>{{ action["target_group_arn"] }}</TargetGroupArn>
-            {% elif action["type"] == "redirect" %}
-            <RedirectConfig>
-                <Protocol>{{ action["redirect_config._protocol"] }}</Protocol>
-                <Port>{{ action["redirect_config._port"] }}</Port>
-                <StatusCode>{{ action["redirect_config._status_code"] }}</StatusCode>
-            </RedirectConfig>
-            {% endif %}
+            {{ action.to_xml() }}
           </member>
           {% endfor %}
         </DefaultActions>

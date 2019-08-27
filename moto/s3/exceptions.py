@@ -60,6 +60,17 @@ class MissingKey(S3ClientError):
         )
 
 
+class ObjectNotInActiveTierError(S3ClientError):
+    code = 403
+
+    def __init__(self, key_name):
+        super(ObjectNotInActiveTierError, self).__init__(
+            "ObjectNotInActiveTierError",
+            "The source object of the COPY operation is not in the active tier and is only stored in Amazon Glacier.",
+            Key=key_name,
+        )
+
+
 class InvalidPartOrder(S3ClientError):
     code = 400
 

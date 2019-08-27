@@ -119,7 +119,7 @@ class Subscription(BaseModel):
             else:
                 assert False
 
-            lambda_backends[region].send_message(function_name, message, subject=subject, qualifier=qualifier)
+            lambda_backends[region].send_sns_message(function_name, message, subject=subject, qualifier=qualifier)
 
     def _matches_filter_policy(self, message_attributes):
         # TODO: support Anything-but matching, prefix matching and

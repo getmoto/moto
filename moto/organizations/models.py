@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 import re
+import json
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
@@ -151,7 +152,6 @@ class FakeRoot(FakeOrganizationalUnit):
 class FakeServiceControlPolicy(BaseModel):
 
     def __init__(self, organization, **kwargs):
-        self.type = 'POLICY'
         self.content = kwargs.get('Content')
         self.description = kwargs.get('Description')
         self.name = kwargs.get('Name')
@@ -197,7 +197,38 @@ class OrganizationsBackend(BaseBackend):
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs['FeatureSet'])
-        self.ou.append(FakeRoot(self.org))
+        root_ou = FakeRoot(self.org)
+        self.ou.append(root_ou)
+        master_account = FakeAccount(
+            self.org,
+            AccountName='master',
+            Email=self.org.master_account_email,
+        )
+        master_account.id = self.org.master_account_id
+        self.accounts.append(master_account)
+        default_policy = FakeServiceControlPolicy(
+            self.org,
+            Name='FullAWSAccess',
+            Description='Allows access to every operation',
+            Type='SERVICE_CONTROL_POLICY',
+            Content=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "*",
+                            "Resource": "*"
+                        }
+                    ]
+                }
+            )
+        )
+        default_policy.id = utils.DEFAULT_POLICY_ID
+        default_policy.aws_managed = True
+        self.policies.append(default_policy)
+        self.attach_policy(PolicyId=default_policy.id, TargetId=root_ou.id)
+        self.attach_policy(PolicyId=default_policy.id, TargetId=master_account.id)
         return self.org.describe()
 
     def describe_organization(self):
@@ -216,6 +247,7 @@ class OrganizationsBackend(BaseBackend):
     def create_organizational_unit(self, **kwargs):
         new_ou = FakeOrganizationalUnit(self.org, **kwargs)
         self.ou.append(new_ou)
+        self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
         return new_ou.describe()
 
     def get_organizational_unit_by_id(self, ou_id):
@@ -258,6 +290,7 @@ class OrganizationsBackend(BaseBackend):
     def create_account(self, **kwargs):
         new_account = FakeAccount(self.org, **kwargs)
         self.accounts.append(new_account)
+        self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
         return new_account.create_account_status
 
     def get_account_by_id(self, account_id):
@@ -358,8 +391,7 @@ class OrganizationsBackend(BaseBackend):
 
     def attach_policy(self, **kwargs):
         policy = next((p for p in self.policies if p.id == kwargs['PolicyId']), None)
-        if (re.compile(utils.ROOT_ID_REGEX).match(kwargs['TargetId']) or
-                re.compile(utils.OU_ID_REGEX).match(kwargs['TargetId'])):
+        if (re.compile(utils.ROOT_ID_REGEX).match(kwargs['TargetId']) or re.compile(utils.OU_ID_REGEX).match(kwargs['TargetId'])):
             ou = next((ou for ou in self.ou if ou.id == kwargs['TargetId']), None)
             if ou is not None:
                 if ou not in ou.attached_policies:

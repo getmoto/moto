@@ -274,6 +274,27 @@ def test_access_denied_with_denying_policy():
 
 
 @set_initial_no_auth_action_count(3)
+@mock_sts
+def test_get_caller_identity_allowed_with_denying_policy():
+    user_name = 'test-user'
+    inline_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Deny",
+                "Action": "sts:GetCallerIdentity",
+                "Resource": "*"
+            }
+        ]
+    }
+    access_key = create_user_with_access_key_and_inline_policy(user_name, inline_policy_document)
+    client = boto3.client('sts', region_name='us-east-1',
+                          aws_access_key_id=access_key['AccessKeyId'],
+                          aws_secret_access_key=access_key['SecretAccessKey'])
+    client.get_caller_identity().should.be.a(dict)
+
+
+@set_initial_no_auth_action_count(3)
 @mock_ec2
 def test_allowed_with_wildcard_action():
     user_name = 'test-user'

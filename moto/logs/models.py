@@ -98,17 +98,29 @@ class LogStream:
 
             return True
 
+        def get_paging_token_from_index(index, back=False):
+            if index is not None:
+                return "b/{:056d}".format(index) if back else "f/{:056d}".format(index)
+            return 0
+
+        def get_index_from_paging_token(token):
+            if token is not None:
+                return int(token[2:])
+            return 0
+
         events = sorted(filter(filter_func, self.events), key=lambda event: event.timestamp, reverse=start_from_head)
-        back_token = next_token
-        if next_token is None:
-            next_token = 0
+        next_index = get_index_from_paging_token(next_token)
+        back_index = next_index
 
-        events_page = [event.to_response_dict() for event in events[next_token: next_token + limit]]
-        next_token += limit
-        if next_token >= len(self.events):
-            next_token = None
+        events_page = [event.to_response_dict() for event in events[next_index: next_index + limit]]
+        if next_index + limit < len(self.events):
+            next_index += limit
 
-        return events_page, back_token, next_token
+        back_index -= limit
+        if back_index <= 0:
+            back_index = 0
+
+        return events_page, get_paging_token_from_index(back_index, True), get_paging_token_from_index(next_index)
 
     def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
         def filter_func(event):

@@ -20,7 +20,6 @@ from boto.ec2.blockdevicemapping import BlockDeviceMapping, BlockDeviceType
 from boto.ec2.spotinstancerequest import SpotInstanceRequest as BotoSpotRequest
 from boto.ec2.launchspecification import LaunchSpecification
 
-
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
 from moto.core.models import Model, BaseModel
@@ -49,6 +48,7 @@ from .exceptions import (
     InvalidKeyPairDuplicateError,
     InvalidKeyPairFormatError,
     InvalidKeyPairNameError,
+    InvalidLaunchTemplateNameError,
     InvalidNetworkAclIdError,
     InvalidNetworkAttachmentIdError,
     InvalidNetworkInterfaceIdError,
@@ -98,6 +98,7 @@ from .utils import (
     random_internet_gateway_id,
     random_ip,
     random_ipv6_cidr,
+    random_launch_template_id,
     random_nat_gateway_id,
     random_key_pair,
     random_private_ip,
@@ -4113,6 +4114,92 @@ class NatGatewayBackend(object):
         return self.nat_gateways.pop(nat_gateway_id)
 
 
+class LaunchTemplateVersion(object):
+    def __init__(self, template, number, data, description):
+        self.template = template
+        self.number = number
+        self.data = data
+        self.description = description
+        self.create_time = utc_date_and_time()
+
+
+class LaunchTemplate(TaggedEC2Resource):
+    def __init__(self, backend, name, template_data, version_description):
+        self.ec2_backend = backend
+        self.name = name
+        self.id = random_launch_template_id()
+        self.create_time = utc_date_and_time()
+
+        self.versions = []
+        self.create_version(template_data, version_description)
+        self.default_version_number = 1
+
+    def create_version(self, data, description):
+        num = len(self.versions) + 1
+        version = LaunchTemplateVersion(self, num, data, description)
+        self.versions.append(version)
+        return version
+
+    def is_default(self, version):
+        return self.default_version == version.number
+
+    def get_version(self, num):
+        return self.versions[num - 1]
+
+    def default_version(self):
+        return self.versions[self.default_version_number - 1]
+
+    def latest_version(self):
+        return self.versions[-1]
+
+    @property
+    def latest_version_number(self):
+        return self.latest_version().number
+
+    def get_filter_value(self, filter_name):
+        if filter_name == 'launch-template-name':
+            return self.name
+        else:
+            return super(LaunchTemplate, self).get_filter_value(
+                filter_name, "DescribeLaunchTemplates")
+
+
+class LaunchTemplateBackend(object):
+    def __init__(self):
+        self.launch_template_name_to_ids = {}
+        self.launch_templates = OrderedDict()
+        self.launch_template_insert_order = []
+        super(LaunchTemplateBackend, self).__init__()
+
+    def create_launch_template(self, name, description, template_data):
+        if name in self.launch_template_name_to_ids:
+            raise InvalidLaunchTemplateNameError()
+        template = LaunchTemplate(self, name, template_data, description)
+        self.launch_templates[template.id] = template
+        self.launch_template_name_to_ids[template.name] = template.id
+        self.launch_template_insert_order.append(template.id)
+        return template
+
+    def get_launch_template(self, template_id):
+        return self.launch_templates[template_id]
+
+    def get_launch_template_by_name(self, name):
+        return self.get_launch_template(self.launch_template_name_to_ids[name])
+
+    def get_launch_templates(self, template_names=None, template_ids=None, filters=None):
+        if template_names and not template_ids:
+            template_ids = []
+            for name in template_names:
+                template_ids.append(self.launch_template_name_to_ids[name])
+
+        if template_ids:
+            templates = [self.launch_templates[tid] for tid in template_ids]
+        else:
+            templates = list(self.launch_templates.values())
+
+        return generic_filter(filters, templates)
+
+
 class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
                  RegionsAndZonesBackend, SecurityGroupBackend, AmiBackend,
                  VPCBackend, SubnetBackend, SubnetRouteTableAssociationBackend,
@@ -4122,7 +4209,7 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
                  VPCGatewayAttachmentBackend, SpotFleetBackend,
                  SpotRequestBackend, ElasticAddressBackend, KeyPairBackend,
                  DHCPOptionsSetBackend, NetworkAclBackend, VpnGatewayBackend,
-                 CustomerGatewayBackend, NatGatewayBackend):
+                 CustomerGatewayBackend, NatGatewayBackend, LaunchTemplateBackend):
     def __init__(self, region_name):
         self.region_name = region_name
         super(EC2Backend, self).__init__()
@@ -4177,6 +4264,8 @@ class EC2Backend(BaseBackend, InstanceBackend, TagBackend, EBSBackend,
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['internet-gateway']:
                 self.describe_internet_gateways(
                     internet_gateway_ids=[resource_id])
+            elif resource_prefix == EC2_RESOURCE_TO_PREFIX['launch-template']:
+                self.get_launch_template(resource_id)
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-acl']:
                 self.get_all_network_acls()
             elif resource_prefix == EC2_RESOURCE_TO_PREFIX['network-interface']:

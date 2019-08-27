@@ -52,6 +52,18 @@ class InvalidResourceTypeException(JsonRESTError):
         super(InvalidResourceTypeException, self).__init__("ValidationException", message)
 
 
+class NoSuchConfigurationAggregatorException(JsonRESTError):
+    code = 400
+
+    def __init__(self, number=1):
+        if number == 1:
+            message = 'The configuration aggregator does not exist. Check the configuration aggregator name and try again.'
+        else:
+            message = 'At least one of the configuration aggregators does not exist. Check the configuration aggregator' \
+                      ' names and try again.'
+        super(NoSuchConfigurationAggregatorException, self).__init__("NoSuchConfigurationAggregatorException", message)
+
+
 class NoSuchConfigurationRecorderException(JsonRESTError):
     code = 400
 
@@ -76,6 +88,14 @@ class NoSuchBucketException(JsonRESTError):
     def __init__(self):
         message = 'Cannot find a S3 bucket with an empty bucket name.'
         super(NoSuchBucketException, self).__init__("NoSuchBucketException", message)
+
+
+class InvalidNextTokenException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        message = 'The nextToken provided is invalid'
+        super(InvalidNextTokenException, self).__init__("InvalidNextTokenException", message)
 
 
 class InvalidS3KeyPrefixException(JsonRESTError):
@@ -147,3 +167,66 @@ class LastDeliveryChannelDeleteFailedException(JsonRESTError):
         message = 'Failed to delete last specified delivery channel with name \'{name}\', because there, ' \
                   'because there is a running configuration recorder.'.format(name=name)
         super(LastDeliveryChannelDeleteFailedException, self).__init__("LastDeliveryChannelDeleteFailedException", message)
+
+
+class TooManyAccountSources(JsonRESTError):
+    code = 400
+
+    def __init__(self, length):
+        locations = ['com.amazonaws.xyz'] * length
+
+        message = 'Value \'[{locations}]\' at \'accountAggregationSources\' failed to satisfy constraint: ' \
+                  'Member must have length less than or equal to 1'.format(locations=', '.join(locations))
+        super(TooManyAccountSources, self).__init__("ValidationException", message)
+
+
+class DuplicateTags(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(DuplicateTags, self).__init__(
+            'InvalidInput', 'Duplicate tag keys found. Please note that Tag keys are case insensitive.')
+
+
+class TagKeyTooBig(JsonRESTError):
+    code = 400
+
+    def __init__(self, tag, param='tags.X.member.key'):
+        super(TagKeyTooBig, self).__init__(
+            'ValidationException', "1 validation error detected: Value '{}' at '{}' failed to satisfy "
+                                   "constraint: Member must have length less than or equal to 128".format(tag, param))
+
+
+class TagValueTooBig(JsonRESTError):
+    code = 400
+
+    def __init__(self, tag):
+        super(TagValueTooBig, self).__init__(
+            'ValidationException', "1 validation error detected: Value '{}' at 'tags.X.member.value' failed to satisfy "
+                                   "constraint: Member must have length less than or equal to 256".format(tag))
+
+
+class InvalidParameterValueException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidParameterValueException, self).__init__('InvalidParameterValueException', message)
+
+
+class InvalidTagCharacters(JsonRESTError):
+    code = 400
+
+    def __init__(self, tag, param='tags.X.member.key'):
+        message = "1 validation error detected: Value '{}' at '{}' failed to satisfy ".format(tag, param)
+        message += 'constraint: Member must satisfy regular expression pattern: [\\\\p{L}\\\\p{Z}\\\\p{N}_.:/=+\\\\-@]+'
+
+        super(InvalidTagCharacters, self).__init__('ValidationException', message)
+
+
+class TooManyTags(JsonRESTError):
+    code = 400
+
+    def __init__(self, tags, param='tags'):
+        super(TooManyTags, self).__init__(
+            'ValidationException', "1 validation error detected: Value '{}' at '{}' failed to satisfy "
+                                   "constraint: Member must have length less than or equal to 50.".format(tags, param))

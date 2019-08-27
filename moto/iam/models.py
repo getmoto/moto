@@ -161,7 +161,7 @@ class InlinePolicy(Policy):
 
 class Role(BaseModel):
 
-    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary):
+    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary, description, tags):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -169,8 +169,8 @@ class Role(BaseModel):
         self.policies = {}
         self.managed_policies = {}
         self.create_date = datetime.utcnow()
-        self.tags = {}
-        self.description = ""
+        self.tags = tags
+        self.description = description
         self.permissions_boundary = permissions_boundary
 
     @property
@@ -185,7 +185,9 @@ class Role(BaseModel):
             role_name=resource_name,
             assume_role_policy_document=properties['AssumeRolePolicyDocument'],
             path=properties.get('Path', '/'),
-            permissions_boundary=properties.get('PermissionsBoundary', '')
+            permissions_boundary=properties.get('PermissionsBoundary', ''),
+            description=properties.get('Description', ''),
+            tags=properties.get('Tags', {})
         )
 
         policies = properties.get('Policies', [])
@@ -635,12 +637,13 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary):
+    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary, description, tags):
         role_id = random_resource_id()
         if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
             raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
 
-        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary)
+        clean_tags = self._tag_verification(tags)
+        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary, description, clean_tags)
         self.roles[role_id] = role
         return role
 
@@ -691,10 +694,26 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         return role.policies.keys()
 
+    def _tag_verification(self, tags):
+        if len(tags) > 50:
+            raise TooManyTags(tags)
+
+        tag_keys = {}
+        for tag in tags:
+            # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
+            ref_key = tag['Key'].lower()
+            self._check_tag_duplicate(tag_keys, ref_key)
+            self._validate_tag_key(tag['Key'])
+            if len(tag['Value']) > 256:
+                raise TagValueTooBig(tag['Value'])
+
+            tag_keys[ref_key] = tag
+
+        return tag_keys
+
     def _validate_tag_key(self, tag_key, exception_param='tags.X.member.key'):
         """Validates the tag key.
 
-        :param all_tags: Dict to check if there is a duplicate tag.
         :param tag_key: The tag key to check against.
         :param exception_param: The exception parameter to send over to help format the message. This is to reflect
                                 the difference between the tag and untag APIs.
@@ -741,23 +760,9 @@ class IAMBackend(BaseBackend):
         return tags, marker
 
     def tag_role(self, role_name, tags):
-        if len(tags) > 50:
-            raise TooManyTags(tags)
-
+        clean_tags = self._tag_verification(tags)
         role = self.get_role(role_name)
-
-        tag_keys = {}
-        for tag in tags:
-            # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
-            ref_key = tag['Key'].lower()
-            self._check_tag_duplicate(tag_keys, ref_key)
-            self._validate_tag_key(tag['Key'])
-            if len(tag['Value']) > 256:
-                raise TagValueTooBig(tag['Value'])
-
-            tag_keys[ref_key] = tag
-
-        role.tags.update(tag_keys)
+        role.tags.update(clean_tags)
 
     def untag_role(self, role_name, tag_keys):
         if len(tag_keys) > 50:

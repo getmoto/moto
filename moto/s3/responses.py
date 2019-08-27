@@ -17,7 +17,7 @@ from moto.s3bucket_path.utils import bucket_name_from_url as bucketpath_bucket_n
     parse_key_name as bucketpath_parse_key_name, is_delete_keys as bucketpath_is_delete_keys
 
 from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, MissingKey, InvalidPartOrder, MalformedXML, \
-    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent
+    MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent, ObjectNotInActiveTierError
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
 from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
@@ -463,10 +463,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
 
+        key_count = len(result_keys) + len(result_folders)
+
         return template.render(
             bucket=bucket,
             prefix=prefix or '',
             delimiter=delimiter,
+            key_count=key_count,
             result_keys=result_keys,
             result_folders=result_folders,
             fetch_owner=fetch_owner,
@@ -902,7 +905,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             src_version_id = parse_qs(src_key_parsed.query).get(
                 'versionId', [None])[0]
 
-            if self.backend.get_key(src_bucket, src_key, version_id=src_version_id):
+            key = self.backend.get_key(src_bucket, src_key, version_id=src_version_id)
+
+            if key is not None:
+                if key.storage_class in ["GLACIER", "DEEP_ARCHIVE"]:
+                    raise ObjectNotInActiveTierError(key)
                 self.backend.copy_key(src_bucket, src_key, bucket_name, key_name,
                                       storage=storage_class, acl=acl, src_version_id=src_version_id)
             else:
@@ -1326,7 +1333,7 @@ S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
   <Name>{{ bucket.name }}</Name>
   <Prefix>{{ prefix }}</Prefix>
   <MaxKeys>{{ max_keys }}</MaxKeys>
-  <KeyCount>{{ result_keys | length }}</KeyCount>
+  <KeyCount>{{ key_count }}</KeyCount>
 {% if delimiter %}
   <Delimiter>{{ delimiter }}</Delimiter>
 {% endif %}

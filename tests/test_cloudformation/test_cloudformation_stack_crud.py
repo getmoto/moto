@@ -593,9 +593,11 @@ def test_create_stack_lambda_and_dynamodb():
                 }
             },
             "func1version": {
-                "Type": "AWS::Lambda::LambdaVersion",
-                "Properties" : {
-                    "Version": "v1.2.3"
+                "Type": "AWS::Lambda::Version",
+                "Properties": {
+                    "FunctionName": {
+                        "Ref": "func1"
+                    }
                 }
             },
             "tab1": {
@@ -618,8 +620,10 @@ def test_create_stack_lambda_and_dynamodb():
             },
             "func1mapping": {
                 "Type": "AWS::Lambda::EventSourceMapping",
-                "Properties" : {
-                    "FunctionName": "v1.2.3",
+                "Properties": {
+                    "FunctionName": {
+                        "Ref": "func1"
+                    },
                     "EventSourceArn": "arn:aws:dynamodb:region:XXXXXX:table/tab1/stream/2000T00:00:00.000",
                     "StartingPosition": "0",
                     "BatchSize": 100,

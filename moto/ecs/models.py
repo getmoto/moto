@@ -8,6 +8,7 @@ import boto3
 import pytz
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import unix_time
 from moto.ec2 import ec2_backends
 from copy import copy
 
@@ -231,9 +232,9 @@ class Service(BaseObject):
 
         for deployment in response_object['deployments']:
             if isinstance(deployment['createdAt'], datetime):
-                deployment['createdAt'] = deployment['createdAt'].isoformat()
+                deployment['createdAt'] = unix_time(deployment['createdAt'].replace(tzinfo=None))
             if isinstance(deployment['updatedAt'], datetime):
-                deployment['updatedAt'] = deployment['updatedAt'].isoformat()
+                deployment['updatedAt'] = unix_time(deployment['updatedAt'].replace(tzinfo=None))
 
         return response_object
 

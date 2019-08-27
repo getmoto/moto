@@ -78,7 +78,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
-        self.create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.create_time = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
         self.status = 'available'
         self.node_type = node_type
         self.master_username = master_username

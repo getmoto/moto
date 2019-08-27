@@ -318,6 +318,9 @@ class DynamoHandler(BaseResponse):
 
         for table_name, table_request in table_batches.items():
             keys = table_request['Keys']
+            if self._contains_duplicates(keys):
+                er = 'com.amazon.coral.validate#ValidationException'
+                return self.error(er, 'Provided list of item keys contains duplicates')
             attributes_to_get = table_request.get('AttributesToGet')
             results["Responses"][table_name] = []
             for key in keys:
@@ -332,6 +335,15 @@ class DynamoHandler(BaseResponse):
                 "TableName": table_name
             })
         return dynamo_json_dump(results)
+
+    def _contains_duplicates(self, keys):
+        unique_keys = []
+        for k in keys:
+            if k in unique_keys:
+                return True
+            else:
+                unique_keys.append(k)
+        return False
 
     def query(self):
         name = self.body['TableName']
@@ -600,7 +612,7 @@ class DynamoHandler(BaseResponse):
         # E.g. `a = b + c` -> `a=b+c`
         if update_expression:
             update_expression = re.sub(
-                '\s*([=\+-])\s*', '\\1', update_expression)
+                r'\s*([=\+-])\s*', '\\1', update_expression)
 
         try:
             item = self.dynamodb_backend.update_item(
