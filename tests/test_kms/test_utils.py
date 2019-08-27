@@ -6,11 +6,12 @@ from parameterized import parameterized
 from moto.kms.exceptions import AccessDeniedException, InvalidCiphertextException, NotFoundException
 from moto.kms.models import Key
 from moto.kms.utils import (
+    _deserialize_ciphertext_blob,
+    _serialize_ciphertext_blob,
+    _serialize_encryption_context,
     generate_data_key,
     generate_master_key,
-    _serialize_ciphertext_blob,
-    _deserialize_ciphertext_blob,
-    _serialize_encryption_context,
+    MASTER_KEY_LEN,
     encrypt,
     decrypt,
     Ciphertext,
@@ -43,6 +44,20 @@ CIPHERTEXT_BLOB_VECTORS = (
         b"some ciphertext that is much longer now",
     ),
 )
+
+
+def test_generate_data_key():
+    test = generate_data_key(123)
+
+    test.should.be.a(bytes)
+    len(test).should.equal(123)
+
+
+def test_generate_master_key():
+    test = generate_master_key()
+
+    test.should.be.a(bytes)
+    len(test).should.equal(MASTER_KEY_LEN)
 
 
 @parameterized(ENCRYPTION_CONTEXT_VECTORS)
