@@ -777,18 +777,19 @@ def test_list_resource_tags():
     assert response["Tags"][0]["TagValue"] == "string"
 
 
+@parameterized((
+        (dict(KeySpec="AES_256"), 32),
+        (dict(KeySpec="AES_128"), 16),
+        (dict(NumberOfBytes=64), 64),
+))
 @mock_kms
-def test_generate_data_key_sizes():
+def test_generate_data_key_sizes(kwargs, expected_key_length):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
 
-    resp1 = client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_256")
-    resp2 = client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_128")
-    resp3 = client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], NumberOfBytes=64)
+    response = client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
 
-    assert len(resp1["Plaintext"]) == 32
-    assert len(resp2["Plaintext"]) == 16
-    assert len(resp3["Plaintext"]) == 64
+    assert len(response["Plaintext"]) == expected_key_length
 
 
 @mock_kms
@@ -802,22 +803,19 @@ def test_generate_data_key_decrypt():
     assert resp1["Plaintext"] == resp2["Plaintext"]
 
 
+@parameterized((
+        (dict(KeySpec="AES_257"),),
+        (dict(KeySpec="AES_128", NumberOfBytes=16),),
+        (dict(NumberOfBytes=2048),),
+        (dict(),),
+))
 @mock_kms
-def test_generate_data_key_invalid_size_params():
+def test_generate_data_key_invalid_size_params(kwargs):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
 
     with assert_raises(botocore.exceptions.ClientError) as err:
-        client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_257")
-
-    with assert_raises(botocore.exceptions.ClientError) as err:
-        client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_128", NumberOfBytes=16)
-
-    with assert_raises(botocore.exceptions.ClientError) as err:
-        client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], NumberOfBytes=2048)
-
-    with assert_raises(botocore.exceptions.ClientError) as err:
-        client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"])
+        client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
 
 
 @mock_kms
