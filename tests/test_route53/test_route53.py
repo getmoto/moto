@@ -409,8 +409,6 @@ def test_list_or_change_tags_for_resource_request():
         ResourceType="healthcheck", ResourceId=healthcheck_id)
     response["ResourceTagSet"]["Tags"].should.be.empty
 
-    print(response)
-
     tag1 = {"Key": "Deploy", "Value": "True"}
     tag2 = {"Key": "Name", "Value": "UnitTest"}
 
