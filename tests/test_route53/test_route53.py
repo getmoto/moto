@@ -404,6 +404,13 @@ def test_list_or_change_tags_for_resource_request():
     )
     healthcheck_id = health_check['HealthCheck']['Id']
 
+    # confirm this works for resources with zero tags
+    response = conn.list_tags_for_resource(
+        ResourceType="healthcheck", ResourceId=healthcheck_id)
+    response["ResourceTagSet"]["Tags"].should.be.empty
+
+    print(response)
+
     tag1 = {"Key": "Deploy", "Value": "True"}
     tag2 = {"Key": "Name", "Value": "UnitTest"}
 

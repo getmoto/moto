@@ -305,6 +305,7 @@ class Route53Backend(BaseBackend):
     def list_tags_for_resource(self, resource_id):
         if resource_id in self.resource_tags:
             return self.resource_tags[resource_id]
+        return {}
 
     def get_all_hosted_zones(self):
         return self.zones.values()
