@@ -214,6 +214,17 @@ class KmsBackend(BaseBackend):
         arn = self.keys[key_id].arn
         return plaintext, arn
 
+    def re_encrypt(
+        self, ciphertext_blob, source_encryption_context, destination_key_id, destination_encryption_context
+    ):
+        plaintext, decrypting_arn = self.decrypt(
+            ciphertext_blob=ciphertext_blob, encryption_context=source_encryption_context
+        )
+        new_ciphertext_blob, encrypting_arn = self.encrypt(
+            key_id=destination_key_id, plaintext=plaintext, encryption_context=destination_encryption_context
+        )
+        return new_ciphertext_blob, decrypting_arn, encrypting_arn
+
     def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens):
         key_id = self.any_id_to_key_id(key_id)
 

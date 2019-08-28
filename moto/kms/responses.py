@@ -260,6 +260,25 @@ class KmsResponse(BaseResponse):
 
         return json.dumps({"Plaintext": plaintext_response, 'KeyId': arn})
 
+    def re_encrypt(self):
+        ciphertext_blob = self.parameters.get("CiphertextBlob")
+        source_encryption_context = self.parameters.get("SourceEncryptionContext", {})
+        destination_key_id = self.parameters.get("DestinationKeyId")
+        destination_encryption_context = self.parameters.get("DestinationEncryptionContext", {})
+
+        new_ciphertext_blob, decrypting_arn, encrypting_arn = self.kms_backend.re_encrypt(
+            ciphertext_blob=ciphertext_blob,
+            source_encryption_context=source_encryption_context,
+            destination_key_id=destination_key_id,
+            destination_encryption_context=destination_encryption_context,
+        )
+
+        response_ciphertext_blob = base64.b64encode(new_ciphertext_blob).decode("utf-8")
+
+        return json.dumps(
+            {"CiphertextBlob": response_ciphertext_blob, "KeyId": encrypting_arn, "SourceKeyId": decrypting_arn}
+        )
+
     def disable_key(self):
         key_id = self.parameters.get('KeyId')
         _assert_valid_key_id(self.kms_backend.get_key_id(key_id))
