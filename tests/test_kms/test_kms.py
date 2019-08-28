@@ -68,12 +68,11 @@ def test_describe_key_via_alias():
 
 @mock_kms_deprecated
 def test_describe_key_via_alias_not_found():
-    # TODO: Fix in next commit: bug. Should (and now does) throw NotFoundError
     conn = boto.kms.connect_to_region("us-west-2")
     key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
     conn.create_alias(alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"])
 
-    conn.describe_key.when.called_with("alias/not-found-alias").should.throw(JSONResponseError)
+    conn.describe_key.when.called_with("alias/not-found-alias").should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
@@ -90,9 +89,8 @@ def test_describe_key_via_arn():
 
 @mock_kms_deprecated
 def test_describe_missing_key():
-    # TODO: Fix in next commit: bug. Should (and now does) throw NotFoundError
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.describe_key.when.called_with("not-a-key").should.throw(JSONResponseError)
+    conn.describe_key.when.called_with("not-a-key").should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
