@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import os
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
@@ -23,6 +24,7 @@ from freezegun import freeze_time
 import six
 import requests
 import tests.backport_assert_raises  # noqa
+from nose import SkipTest
 from nose.tools import assert_raises
 
 import sure  # noqa
@@ -2991,3 +2993,28 @@ def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
             AccelerateConfiguration={'Status': 'Enabled'},
         )
     exc.exception.response['Error']['Code'].should.equal('InvalidRequest')
+
+def store_and_read_back_a_key(key):
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    body = b'Some body'
+
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body=body
+    )
+
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal(body)
+
+@mock_s3
+def test_paths_with_leading_slashes_work():
+    store_and_read_back_a_key('/a-key')
+
+@mock_s3
+def test_root_dir_with_empty_name_works():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Does not work in server mode due to error in Workzeug')
+    store_and_read_back_a_key('/')
