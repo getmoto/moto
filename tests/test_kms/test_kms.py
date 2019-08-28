@@ -908,6 +908,21 @@ def test_re_encrypt_to_invalid_destination():
         )
 
 
+@parameterized(((12,), (44,), (91,)))
+@mock_kms
+def test_generate_random(number_of_bytes):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    response = client.generate_random(NumberOfBytes=number_of_bytes)
+
+    # Plaintext must NOT be base64-encoded
+    with assert_raises(Exception):
+        base64.b64decode(response["Plaintext"], validate=True)
+
+    response["Plaintext"].should.be.a(bytes)
+    len(response["Plaintext"]).should.equal(number_of_bytes)
+
+
 @mock_kms
 def test_enable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")

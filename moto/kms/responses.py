@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 import base64
 import json
+import os
 import re
+
 import six
 
 from moto.core.responses import BaseResponse
@@ -383,6 +385,15 @@ class KmsResponse(BaseResponse):
         del result['Plaintext']
 
         return json.dumps(result)
+
+    def generate_random(self):
+        number_of_bytes = self.parameters.get("NumberOfBytes")
+
+        entropy = os.urandom(number_of_bytes)
+
+        response_entropy = base64.b64encode(entropy).decode("utf-8")
+
+        return json.dumps({"Plaintext": response_entropy})
 
 
 def _assert_valid_key_id(key_id):
