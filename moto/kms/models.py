@@ -217,6 +217,8 @@ class KmsBackend(BaseBackend):
     def re_encrypt(
         self, ciphertext_blob, source_encryption_context, destination_key_id, destination_encryption_context
     ):
+        destination_key_id = self.any_id_to_key_id(destination_key_id)
+
         plaintext, decrypting_arn = self.decrypt(
             ciphertext_blob=ciphertext_blob, encryption_context=source_encryption_context
         )

@@ -890,6 +890,25 @@ def test_re_encrypt_decrypt(plaintext):
 
 
 @mock_kms
+def test_re_encrypt_to_invalid_destination():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(Description="key 1")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    encrypt_response = client.encrypt(
+        KeyId=key_id,
+        Plaintext=b"some plaintext",
+    )
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.re_encrypt(
+            CiphertextBlob=encrypt_response["CiphertextBlob"],
+            DestinationKeyId="8327948729348",
+        )
+
+
+@mock_kms
 def test_enable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
