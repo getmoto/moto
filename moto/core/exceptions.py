@@ -65,3 +65,42 @@ class JsonRESTError(RESTError):
 
     def get_body(self, *args, **kwargs):
         return self.description
+
+
+class SignatureDoesNotMatchError(RESTError):
+    code = 403
+
+    def __init__(self):
+        super(SignatureDoesNotMatchError, self).__init__(
+            'SignatureDoesNotMatch',
+            "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details.")
+
+
+class InvalidClientTokenIdError(RESTError):
+    code = 403
+
+    def __init__(self):
+        super(InvalidClientTokenIdError, self).__init__(
+            'InvalidClientTokenId',
+            "The security token included in the request is invalid.")
+
+
+class AccessDeniedError(RESTError):
+    code = 403
+
+    def __init__(self, user_arn, action):
+        super(AccessDeniedError, self).__init__(
+            'AccessDenied',
+            "User: {user_arn} is not authorized to perform: {operation}".format(
+                user_arn=user_arn,
+                operation=action
+            ))
+
+
+class AuthFailureError(RESTError):
+    code = 401
+
+    def __init__(self):
+        super(AuthFailureError, self).__init__(
+            'AuthFailure',
+            "AWS was not able to validate the provided access credentials")

@@ -4,7 +4,8 @@ import random
 import string
 
 MASTER_ACCOUNT_ID = '123456789012'
-MASTER_ACCOUNT_EMAIL = 'fakeorg@moto-example.com'
+MASTER_ACCOUNT_EMAIL = 'master@example.com'
+DEFAULT_POLICY_ID = 'p-FullAWSAccess'
 ORGANIZATION_ARN_FORMAT = 'arn:aws:organizations::{0}:organization/{1}'
 MASTER_ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{0}'
 ACCOUNT_ARN_FORMAT = 'arn:aws:organizations::{0}:account/{1}/{2}'
@@ -26,7 +27,7 @@ ROOT_ID_REGEX = r'r-[a-z0-9]{%s}' % ROOT_ID_SIZE
 OU_ID_REGEX = r'ou-[a-z0-9]{%s}-[a-z0-9]{%s}' % (ROOT_ID_SIZE, OU_ID_SUFFIX_SIZE)
 ACCOUNT_ID_REGEX = r'[0-9]{%s}' % ACCOUNT_ID_SIZE
 CREATE_ACCOUNT_STATUS_ID_REGEX = r'car-[a-z0-9]{%s}' % CREATE_ACCOUNT_STATUS_ID_SIZE
-SCP_ID_REGEX = r'p-[a-z0-9]{%s}' % SCP_ID_SIZE
+SCP_ID_REGEX = r'%s|p-[a-z0-9]{%s}' % (DEFAULT_POLICY_ID, SCP_ID_SIZE)
 
 
 def make_random_org_id():

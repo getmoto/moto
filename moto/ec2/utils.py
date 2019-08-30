@@ -20,6 +20,7 @@ EC2_RESOURCE_TO_PREFIX = {
     'image': 'ami',
     'instance': 'i',
     'internet-gateway': 'igw',
+    'launch-template': 'lt',
     'nat-gateway': 'nat',
     'network-acl': 'acl',
     'network-acl-subnet-assoc': 'aclassoc',
@@ -159,6 +160,10 @@ def random_eni_attach_id():
 
 def random_nat_gateway_id():
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX['nat-gateway'], size=17)
+
+
+def random_launch_template_id():
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX['launch-template'], size=17)
 
 
 def random_public_ip():

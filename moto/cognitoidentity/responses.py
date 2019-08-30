@@ -35,3 +35,8 @@ class CognitoIdentityResponse(BaseResponse):
         return cognitoidentity_backends[self.region].get_open_id_token_for_developer_identity(
             self._get_param('IdentityId') or get_random_identity_id(self.region)
         )
+
+    def get_open_id_token(self):
+        return cognitoidentity_backends[self.region].get_open_id_token(
+            self._get_param("IdentityId") or get_random_identity_id(self.region)
+        )

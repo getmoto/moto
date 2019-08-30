@@ -1,13 +1,17 @@
 from __future__ import unicode_literals
 
+import functools
 from collections import defaultdict
 import datetime
 import json
 import logging
 import re
 import io
+import requests
 
 import pytz
+
+from moto.core.access_control import IAMRequest, S3IAMRequest
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
@@ -22,7 +26,7 @@ from werkzeug.exceptions import HTTPException
 import boto3
 from moto.compat import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
-
+from moto import settings
 
 log = logging.getLogger(__name__)
 
@@ -103,7 +107,54 @@ class _TemplateEnvironmentMixin(object):
         return self.environment.get_template(template_id)
 
 
-class BaseResponse(_TemplateEnvironmentMixin):
+class ActionAuthenticatorMixin(object):
+
+    request_count = 0
+
+    def _authenticate_and_authorize_action(self, iam_request_cls):
+        if ActionAuthenticatorMixin.request_count >= settings.INITIAL_NO_AUTH_ACTION_COUNT:
+            iam_request = iam_request_cls(method=self.method, path=self.path, data=self.data, headers=self.headers)
+            iam_request.check_signature()
+            iam_request.check_action_permitted()
+        else:
+            ActionAuthenticatorMixin.request_count += 1
+
+    def _authenticate_and_authorize_normal_action(self):
+        self._authenticate_and_authorize_action(IAMRequest)
+
+    def _authenticate_and_authorize_s3_action(self):
+        self._authenticate_and_authorize_action(S3IAMRequest)
+
+    @staticmethod
+    def set_initial_no_auth_action_count(initial_no_auth_action_count):
+        def decorator(function):
+            def wrapper(*args, **kwargs):
+                if settings.TEST_SERVER_MODE:
+                    response = requests.post("http://localhost:5000/moto-api/reset-auth", data=str(initial_no_auth_action_count).encode())
+                    original_initial_no_auth_action_count = response.json()['PREVIOUS_INITIAL_NO_AUTH_ACTION_COUNT']
+                else:
+                    original_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+                    original_request_count = ActionAuthenticatorMixin.request_count
+                    settings.INITIAL_NO_AUTH_ACTION_COUNT = initial_no_auth_action_count
+                    ActionAuthenticatorMixin.request_count = 0
+                try:
+                    result = function(*args, **kwargs)
+                finally:
+                    if settings.TEST_SERVER_MODE:
+                        requests.post("http://localhost:5000/moto-api/reset-auth", data=str(original_initial_no_auth_action_count).encode())
+                    else:
+                        ActionAuthenticatorMixin.request_count = original_request_count
+                        settings.INITIAL_NO_AUTH_ACTION_COUNT = original_initial_no_auth_action_count
+                return result
+
+            functools.update_wrapper(wrapper, function)
+            wrapper.__wrapped__ = function
+            return wrapper
+
+        return decorator
+
+
+class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     default_region = 'us-east-1'
     # to extract region, use [^.]
@@ -167,6 +218,7 @@ class BaseResponse(_TemplateEnvironmentMixin):
         self.uri = full_url
         self.path = urlparse(full_url).path
         self.querystring = querystring
+        self.data = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.uri_match = None
@@ -273,6 +325,13 @@ class BaseResponse(_TemplateEnvironmentMixin):
 
     def call_action(self):
         headers = self.response_headers
+
+        try:
+            self._authenticate_and_authorize_normal_action()
+        except HTTPException as http_error:
+            response = http_error.description, dict(status=http_error.code)
+            return self._send_response(headers, response)
+
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
         if action in method_names:
@@ -285,22 +344,26 @@ class BaseResponse(_TemplateEnvironmentMixin):
             if isinstance(response, six.string_types):
                 return 200, headers, response
             else:
-                if len(response) == 2:
-                    body, new_headers = response
-                else:
-                    status, new_headers, body = response
-                status = new_headers.get('status', 200)
-                headers.update(new_headers)
-                # Cast status to string
-                if "status" in headers:
-                    headers['status'] = str(headers['status'])
-                return status, headers, body
+                return self._send_response(headers, response)
 
         if not action:
             return 404, headers, ''
 
         raise NotImplementedError(
             "The {0} action has not been implemented".format(action))
+
+    @staticmethod
+    def _send_response(headers, response):
+        if len(response) == 2:
+            body, new_headers = response
+        else:
+            status, new_headers, body = response
+        status = new_headers.get('status', 200)
+        headers.update(new_headers)
+        # Cast status to string
+        if "status" in headers:
+            headers['status'] = str(headers['status'])
+        return status, headers, body
 
     def _get_param(self, param_name, if_none=None):
         val = self.querystring.get(param_name)
@@ -568,6 +631,14 @@ class MotoAPIResponse(BaseResponse):
             moto_api_backend.reset()
             return 200, {}, json.dumps({"status": "ok"})
         return 400, {}, json.dumps({"Error": "Need to POST to reset Moto"})
+
+    def reset_auth_response(self, request, full_url, headers):
+        if request.method == "POST":
+            previous_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+            settings.INITIAL_NO_AUTH_ACTION_COUNT = float(request.data.decode())
+            ActionAuthenticatorMixin.request_count = 0
+            return 200, {}, json.dumps({"status": "ok", "PREVIOUS_INITIAL_NO_AUTH_ACTION_COUNT": str(previous_initial_no_auth_action_count)})
+        return 400, {}, json.dumps({"Error": "Need to POST to reset Moto Auth"})
 
     def model_data(self, request, full_url, headers):
         from moto.core.models import model_data

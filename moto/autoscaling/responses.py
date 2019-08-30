@@ -48,7 +48,7 @@ class AutoScalingResponse(BaseResponse):
             start = all_names.index(marker) + 1
         else:
             start = 0
-        max_records = self._get_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
+        max_records = self._get_int_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
         launch_configurations_resp = all_launch_configurations[start:start + max_records]
         next_token = None
         if len(all_launch_configurations) > start + max_records:
@@ -74,6 +74,7 @@ class AutoScalingResponse(BaseResponse):
             desired_capacity=self._get_int_param('DesiredCapacity'),
             max_size=self._get_int_param('MaxSize'),
             min_size=self._get_int_param('MinSize'),
+            instance_id=self._get_param('InstanceId'),
             launch_config_name=self._get_param('LaunchConfigurationName'),
             vpc_zone_identifier=self._get_param('VPCZoneIdentifier'),
             default_cooldown=self._get_int_param('DefaultCooldown'),

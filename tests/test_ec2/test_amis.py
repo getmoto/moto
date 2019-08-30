@@ -10,7 +10,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
-from moto.ec2.models import AMIS
+from moto.ec2.models import AMIS, OWNER_ID
 from tests.helpers import requires_boto_gte
 
 
@@ -150,6 +150,29 @@ def test_ami_copy():
     cm.exception.code.should.equal('InvalidAMIID.NotFound')
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_copy_image_changes_owner_id():
+    conn = boto3.client('ec2', region_name='us-east-1')
+
+    # this source AMI ID is from moto/ec2/resources/amis.json
+    source_ami_id = "ami-03cf127a"
+
+    # confirm the source ami owner id is different from the default owner id.
+    # if they're ever the same it means this test is invalid.
+    check_resp = conn.describe_images(ImageIds=[source_ami_id])
+    check_resp["Images"][0]["OwnerId"].should_not.equal(OWNER_ID)
+
+    copy_resp = conn.copy_image(
+        SourceImageId=source_ami_id,
+        Name="new-image",
+        Description="a copy of an image",
+        SourceRegion="us-east-1")
+
+    describe_resp = conn.describe_images(Owners=["self"])
+    describe_resp["Images"][0]["OwnerId"].should.equal(OWNER_ID)
+    describe_resp["Images"][0]["ImageId"].should.equal(copy_resp["ImageId"])
 
 
 @mock_ec2_deprecated

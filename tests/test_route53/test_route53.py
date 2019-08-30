@@ -110,6 +110,7 @@ def test_rrset():
 
     changes = ResourceRecordSets(conn, zoneid)
     changes.add_change("DELETE", "foo.bar.testdns.aws.com", "A")
+    changes.add_change("DELETE", "foo.bar.testdns.aws.com", "TXT")
     changes.commit()
 
     changes = ResourceRecordSets(conn, zoneid)
@@ -123,12 +124,12 @@ def test_rrset():
     rrsets.should.have.length_of(2)
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="foo.bar.testdns.aws.com", type="A")
+        zoneid, name="bar.foo.testdns.aws.com", type="A")
     rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('1.2.3.4')
+    rrsets[0].resource_records[0].should.equal('5.6.7.8')
 
     rrsets = conn.get_all_rrsets(
-        zoneid, name="bar.foo.testdns.aws.com", type="A")
+        zoneid, name="foo.bar.testdns.aws.com", type="A")
     rrsets.should.have.length_of(2)
     resource_records = [rr for rr_set in rrsets for rr in rr_set.resource_records]
     resource_records.should.contain('1.2.3.4')
@@ -172,14 +173,16 @@ def test_alias_rrset():
     changes.commit()
 
     rrsets = conn.get_all_rrsets(zoneid, type="A")
-    rrset_records = [(rr_set.name, rr) for rr_set in rrsets for rr in rr_set.resource_records]
-    rrset_records.should.have.length_of(2)
-    rrset_records.should.contain(('foo.alias.testdns.aws.com.', 'foo.testdns.aws.com'))
-    rrset_records.should.contain(('bar.alias.testdns.aws.com.', 'bar.testdns.aws.com'))
-    rrsets[0].resource_records[0].should.equal('foo.testdns.aws.com')
+    alias_targets = [rr_set.alias_dns_name for rr_set in rrsets]
+    alias_targets.should.have.length_of(2)
+    alias_targets.should.contain('foo.testdns.aws.com')
+    alias_targets.should.contain('bar.testdns.aws.com')
+    rrsets[0].alias_dns_name.should.equal('foo.testdns.aws.com')
+    rrsets[0].resource_records.should.have.length_of(0)
     rrsets = conn.get_all_rrsets(zoneid, type="CNAME")
     rrsets.should.have.length_of(1)
-    rrsets[0].resource_records[0].should.equal('bar.testdns.aws.com')
+    rrsets[0].alias_dns_name.should.equal('bar.testdns.aws.com')
+    rrsets[0].resource_records.should.have.length_of(0)
 
 
 @mock_route53_deprecated
@@ -582,7 +585,40 @@ def test_change_resource_record_sets_crud_valid():
     cname_record_detail['TTL'].should.equal(60)
     cname_record_detail['ResourceRecords'].should.equal([{'Value': '192.168.1.1'}])
 
-    # Delete record.
+    # Update to add Alias.
+    cname_alias_record_endpoint_payload = {
+        'Comment': 'Update to Alias prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'UPSERT',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db.',
+                    'Type': 'A',
+                    'TTL': 60,
+                    'AliasTarget': {
+                        'HostedZoneId': hosted_zone_id,
+                        'DNSName': 'prod.redis.alias.',
+                        'EvaluateTargetHealth': False,
+                    }
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=cname_alias_record_endpoint_payload)
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    cname_alias_record_detail = response['ResourceRecordSets'][0]
+    cname_alias_record_detail['Name'].should.equal('prod.redis.db.')
+    cname_alias_record_detail['Type'].should.equal('A')
+    cname_alias_record_detail['TTL'].should.equal(60)
+    cname_alias_record_detail['AliasTarget'].should.equal({
+        'HostedZoneId': hosted_zone_id,
+        'DNSName': 'prod.redis.alias.',
+        'EvaluateTargetHealth': False,
+    })
+    cname_alias_record_detail.should_not.contain('ResourceRecords')
+
+    # Delete record with wrong type.
     delete_payload = {
         'Comment': 'delete prod.redis.db',
         'Changes': [
@@ -597,7 +633,132 @@ def test_change_resource_record_sets_crud_valid():
     }
     conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload)
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    len(response['ResourceRecordSets']).should.equal(1)
+
+    # Delete record.
+    delete_payload = {
+        'Comment': 'delete prod.redis.db',
+        'Changes': [
+            {
+                'Action': 'DELETE',
+                'ResourceRecordSet': {
+                    'Name': 'prod.redis.db',
+                    'Type': 'A',
+                }
+            }
+        ]
+    }
+    conn.change_resource_record_sets(HostedZoneId=hosted_zone_id, ChangeBatch=delete_payload)
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
     len(response['ResourceRecordSets']).should.equal(0)
+
+@mock_route53
+def test_change_weighted_resource_record_sets():
+    conn = boto3.client('route53', region_name='us-east-2')
+    conn.create_hosted_zone(
+        Name='test.vpc.internal.',
+        CallerReference=str(hash('test'))
+    )
+
+    zones = conn.list_hosted_zones_by_name(
+        DNSName='test.vpc.internal.'
+    )
+
+    hosted_zone_id = zones['HostedZones'][0]['Id']
+
+    #Create 2 weighted records
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            'Changes': [
+                {
+                    'Action': 'CREATE',
+                    'ResourceRecordSet': {
+                        'Name': 'test.vpc.internal',
+                        'Type': 'A',
+                        'SetIdentifier': 'test1',
+                        'Weight': 50,
+                        'AliasTarget': {
+                            'HostedZoneId': 'Z3AADJGX6KTTL2',
+                            'DNSName': 'internal-test1lb-447688172.us-east-2.elb.amazonaws.com.',
+                            'EvaluateTargetHealth': True
+                        }
+                    }
+                },
+
+                {
+                    'Action': 'CREATE',
+                    'ResourceRecordSet': {
+                        'Name': 'test.vpc.internal',
+                        'Type': 'A',
+                        'SetIdentifier': 'test2',
+                        'Weight': 50,
+                        'AliasTarget': {
+                            'HostedZoneId': 'Z3AADJGX6KTTL2',
+                            'DNSName': 'internal-testlb2-1116641781.us-east-2.elb.amazonaws.com.',
+                            'EvaluateTargetHealth': True
+                        }
+                    }
+                }
+            ]
+        }
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    record = response['ResourceRecordSets'][0]
+    #Update the first record to have a weight of 90
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            'Changes' : [
+                {
+                    'Action' : 'UPSERT',
+                    'ResourceRecordSet' : {
+                        'Name' : record['Name'],
+                        'Type' : record['Type'],
+                        'SetIdentifier' : record['SetIdentifier'],
+                        'Weight' : 90,
+                        'AliasTarget' : {
+                            'HostedZoneId' : record['AliasTarget']['HostedZoneId'],
+                            'DNSName' : record['AliasTarget']['DNSName'],
+                            'EvaluateTargetHealth' : record['AliasTarget']['EvaluateTargetHealth']
+                        }
+                    }
+                },
+            ]
+        }
+    )
+
+    record = response['ResourceRecordSets'][1]
+    #Update the second record to have a weight of 10
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            'Changes' : [
+                {
+                    'Action' : 'UPSERT',
+                    'ResourceRecordSet' : {
+                        'Name' : record['Name'],
+                        'Type' : record['Type'],
+                        'SetIdentifier' : record['SetIdentifier'],
+                        'Weight' : 10,
+                        'AliasTarget' : {
+                            'HostedZoneId' : record['AliasTarget']['HostedZoneId'],
+                            'DNSName' : record['AliasTarget']['DNSName'],
+                            'EvaluateTargetHealth' : record['AliasTarget']['EvaluateTargetHealth']
+                        }
+                    }
+                },
+            ]
+        }
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    for record in response['ResourceRecordSets']:
+        if record['SetIdentifier'] == 'test1':
+            record['Weight'].should.equal(90)
+        if record['SetIdentifier'] == 'test2':
+            record['Weight'].should.equal(10)
 
 
 @mock_route53

@@ -2,36 +2,56 @@ dist: xenial
 language: python
 sudo: false
 services:
-  - docker
+- docker
 python:
-  - 2.7
-  - 3.6
-  - 3.7
+- 2.7
+- 3.6
+- 3.7
 env:
-    - TEST_SERVER_MODE=false
-    - TEST_SERVER_MODE=true
+- TEST_SERVER_MODE=false
+- TEST_SERVER_MODE=true
 before_install:
-  - export BOTO_CONFIG=/dev/null
+- export BOTO_CONFIG=/dev/null
 install:
-  # We build moto first so the docker container doesn't try to compile it as well, also note we don't use
-  # -d for docker run so the logs show up in travis
-  # Python images come from here: https://hub.docker.com/_/python/
-  - |
-    python setup.py sdist
+- |
+  python setup.py sdist
 
-    if [ "$TEST_SERVER_MODE" = "true" ]; then
-      docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${TRAVIS_PYTHON_VERSION}-stretch /moto/travis_moto_server.sh &
-    fi
-    travis_retry pip install boto==2.45.0
-    travis_retry pip install boto3
-    travis_retry pip install dist/moto*.gz
-    travis_retry pip install coveralls==1.1
-    travis_retry pip install -r requirements-dev.txt
+  if [ "$TEST_SERVER_MODE" = "true" ]; then
+    docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${TRAVIS_PYTHON_VERSION}-stretch /moto/travis_moto_server.sh &
+  fi
+  travis_retry pip install boto==2.45.0
+  travis_retry pip install boto3
+  travis_retry pip install dist/moto*.gz
+  travis_retry pip install coveralls==1.1
+  travis_retry pip install -r requirements-dev.txt
 
-    if [ "$TEST_SERVER_MODE" = "true" ]; then
-      python wait_for.py
-    fi
+  if [ "$TEST_SERVER_MODE" = "true" ]; then
+    python wait_for.py
+  fi
 script:
-  - make test
+- make test
 after_success:
-  - coveralls
+- coveralls
+before_deploy:
+- git checkout $TRAVIS_BRANCH
+- git fetch --unshallow
+- python update_version_from_git.py
+deploy:
+  - provider: pypi
+    distributions: sdist bdist_wheel
+    user: spulec
+    password:
+      secure: NxnPylnTfekJmGyoufCw0lMoYRskSMJzvAIyAlJJVYKwEhmiCPOrdy5qV8i8mRZ1AkUsqU3jBZ/PD56n96clHW0E3d080UleRDj6JpyALVdeLfMqZl9kLmZ8bqakWzYq3VSJKw2zGP/L4tPGf8wTK1SUv9yl/YNDsBdCkjDverw=
+    on:
+      branch:
+      - master
+    skip_cleanup: true
+    skip_existing: true
+  # - provider: pypi
+  #   distributions: sdist bdist_wheel
+  #   user: spulec
+  #   password:
+  #     secure: NxnPylnTfekJmGyoufCw0lMoYRskSMJzvAIyAlJJVYKwEhmiCPOrdy5qV8i8mRZ1AkUsqU3jBZ/PD56n96clHW0E3d080UleRDj6JpyALVdeLfMqZl9kLmZ8bqakWzYq3VSJKw2zGP/L4tPGf8wTK1SUv9yl/YNDsBdCkjDverw=
+  #   on:
+  #     tags: true
+  #   skip_existing: true

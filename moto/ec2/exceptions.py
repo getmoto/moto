@@ -332,6 +332,15 @@ class InvalidParameterValueErrorTagNull(EC2ClientError):
             "Tag value cannot be null. Use empty string instead.")
 
 
+class InvalidParameterValueErrorUnknownAttribute(EC2ClientError):
+
+    def __init__(self, parameter_value):
+        super(InvalidParameterValueErrorUnknownAttribute, self).__init__(
+            "InvalidParameterValue",
+            "Value ({0}) for parameter attribute is invalid. Unknown attribute."
+            .format(parameter_value))
+
+
 class InvalidInternetGatewayIdError(EC2ClientError):
 
     def __init__(self, internet_gateway_id):
@@ -430,6 +439,16 @@ class OperationNotPermitted(EC2ClientError):
         )
 
 
+class InvalidAvailabilityZoneError(EC2ClientError):
+
+    def __init__(self, availability_zone_value, valid_availability_zones):
+        super(InvalidAvailabilityZoneError, self).__init__(
+            "InvalidParameterValue",
+            "Value ({0}) for parameter availabilityZone is invalid. "
+            "Subnets can currently only be created in the following availability zones: {1}.".format(availability_zone_value, valid_availability_zones)
+        )
+
+
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
 
     def __init__(self, rule_number):
@@ -503,4 +522,12 @@ class OperationNotPermitted3(EC2ClientError):
             "VPC peering connection {1} must be accepted or rejected in region {2}".format(client_region,
                                                                                            pcx_id,
                                                                                            acceptor_region)
+        )
+
+
+class InvalidLaunchTemplateNameError(EC2ClientError):
+    def __init__(self):
+        super(InvalidLaunchTemplateNameError, self).__init__(
+            "InvalidLaunchTemplateName.AlreadyExistsException",
+            "Launch template name already in use."
         )

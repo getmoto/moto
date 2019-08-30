@@ -639,7 +639,7 @@ def test_delete_keys():
 
 
 @mock_s3_deprecated
-def test_delete_keys_with_invalid():
+def test_delete_keys_invalid():
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket('foobar')
 
@@ -648,6 +648,7 @@ def test_delete_keys_with_invalid():
     Key(bucket=bucket, name='file3').set_contents_from_string('abc')
     Key(bucket=bucket, name='file4').set_contents_from_string('abc')
 
+    # non-existing key case
     result = bucket.delete_keys(['abc', 'file3'])
 
     result.deleted.should.have.length_of(1)
@@ -655,6 +656,18 @@ def test_delete_keys_with_invalid():
     keys = bucket.get_all_keys()
     keys.should.have.length_of(3)
     keys[0].name.should.equal('file1')
+
+    # empty keys
+    result = bucket.delete_keys([])
+
+    result.deleted.should.have.length_of(0)
+    result.errors.should.have.length_of(0)
+
+@mock_s3
+def test_boto3_delete_empty_keys_list():
+    with assert_raises(ClientError) as err:
+        boto3.client('s3').delete_objects(Bucket='foobar', Delete={'Objects': []})
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3_deprecated
@@ -1596,6 +1609,28 @@ def test_boto3_delete_versioned_bucket():
 
     client.delete_bucket(Bucket='blah')
 
+@mock_s3
+def test_boto3_get_object_if_modified_since():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = 'hello.txt'
+
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body='test'
+    )
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        )
+    e = err.exception
+    e.response['Error'].should.equal({'Code': '304', 'Message': 'Not Modified'})
 
 @mock_s3
 def test_boto3_head_object_if_modified_since():
@@ -1647,6 +1682,42 @@ def test_boto3_multipart_etag():
     # we should get both parts as the key contents
     resp = s3.get_object(Bucket='mybucket', Key='the-key')
     resp['ETag'].should.equal(EXPECTED_ETAG)
+
+
+@mock_s3
+@reduced_min_part_size
+def test_boto3_multipart_part_size():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+
+    mpu = s3.create_multipart_upload(Bucket='mybucket', Key='the-key')
+    mpu_id = mpu["UploadId"]
+
+    parts = []
+    n_parts = 10
+    for i in range(1, n_parts + 1):
+        part_size = REDUCED_PART_SIZE + i
+        body = b'1' * part_size
+        part = s3.upload_part(
+            Bucket='mybucket',
+            Key='the-key',
+            PartNumber=i,
+            UploadId=mpu_id,
+            Body=body,
+            ContentLength=len(body),
+        )
+        parts.append({"PartNumber": i, "ETag": part["ETag"]})
+
+    s3.complete_multipart_upload(
+        Bucket='mybucket',
+        Key='the-key',
+        UploadId=mpu_id,
+        MultipartUpload={"Parts": parts},
+    )
+
+    for i in range(1, n_parts + 1):
+        obj = s3.head_object(Bucket='mybucket', Key='the-key', PartNumber=i)
+        assert obj["ContentLength"] == REDUCED_PART_SIZE + i
 
 
 @mock_s3

@@ -10,6 +10,7 @@ from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.kinesis import kinesis_backends
+from moto.kms import kms_backends
 from moto.rds2 import rds2_backends
 from moto.glacier import glacier_backends
 from moto.redshift import redshift_backends
@@ -70,6 +71,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         :rtype: moto.kinesis.models.KinesisBackend
         """
         return kinesis_backends[self.region_name]
+
+    @property
+    def kms_backend(self):
+        """
+        :rtype: moto.kms.models.KmsBackend
+        """
+        return kms_backends[self.region_name]
 
     @property
     def rds_backend(self):
@@ -221,9 +229,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if not resource_type_filters or 'elasticloadbalancer' in resource_type_filters or 'elasticloadbalancer:loadbalancer' in resource_type_filters:
             for elb in self.elbv2_backend.load_balancers.values():
                 tags = get_elbv2_tags(elb.arn)
-                # if 'elasticloadbalancer:loadbalancer' in resource_type_filters:
-                #     from IPython import embed
-                #     embed()
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
@@ -234,6 +239,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Glacier Vault
 
         # Kinesis
+
+        # KMS
+        def get_kms_tags(kms_key_id):
+            result = []
+            for tag in self.kms_backend.list_resource_tags(kms_key_id):
+                    result.append({'Key': tag['TagKey'], 'Value': tag['TagValue']})
+            return result
+
+        if not resource_type_filters or 'kms' in resource_type_filters:
+            for kms_key in self.kms_backend.list_keys():
+                tags = get_kms_tags(kms_key.id)
+                if not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {'ResourceARN': '{0}'.format(kms_key.arn), 'Tags': tags}
 
         # RDS Instance
         # RDS Reserved Database Instance
@@ -370,7 +390,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def get_resources(self, pagination_token=None,
                       resources_per_page=50, tags_per_page=100,
                       tag_filters=None, resource_type_filters=None):
-        # Simple range checning
+        # Simple range checking
         if 100 >= tags_per_page >= 500:
             raise RESTError('InvalidParameterException', 'TagsPerPage must be between 100 and 500')
         if 1 >= resources_per_page >= 50:

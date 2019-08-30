@@ -38,12 +38,6 @@ def test_domain_dispatched():
     keys[0].should.equal('EmailResponse.dispatch')
 
 
-def test_domain_without_matches():
-    dispatcher = DomainDispatcherApplication(create_backend_app)
-    dispatcher.get_application.when.called_with(
-        {"HTTP_HOST": "not-matching-anything.com"}).should.throw(RuntimeError)
-
-
 def test_domain_dispatched_with_service():
     # If we pass a particular service, always return that.
     dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")

@@ -84,9 +84,12 @@ class ECRResponse(BaseResponse):
                 'ECR.batch_check_layer_availability is not yet implemented')
 
     def batch_delete_image(self):
-        if self.is_not_dryrun('BatchDeleteImage'):
-            raise NotImplementedError(
-                'ECR.batch_delete_image is not yet implemented')
+        repository_str = self._get_param('repositoryName')
+        registry_id = self._get_param('registryId')
+        image_ids = self._get_param('imageIds')
+
+        response = self.ecr_backend.batch_delete_image(repository_str, registry_id, image_ids)
+        return json.dumps(response)
 
     def batch_get_image(self):
         repository_str = self._get_param('repositoryName')

@@ -189,6 +189,8 @@ class Queue(BaseModel):
                                                                    self.name)
         self.dead_letter_queue = None
 
+        self.lambda_event_source_mappings = {}
+
         # default settings for a non fifo queue
         defaults = {
             'ContentBasedDeduplication': 'false',
@@ -360,6 +362,33 @@ class Queue(BaseModel):
 
     def add_message(self, message):
         self._messages.append(message)
+        from moto.awslambda import lambda_backends
+        for arn, esm in self.lambda_event_source_mappings.items():
+            backend = sqs_backends[self.region]
+
+            """
+            Lambda polls the queue and invokes your function synchronously with an event
+            that contains queue messages. Lambda reads messages in batches and invokes
+            your function once for each batch. When your function successfully processes
+            a batch, Lambda deletes its messages from the queue.
+            """
+            messages = backend.receive_messages(
+                self.name,
+                esm.batch_size,
+                self.receive_message_wait_time_seconds,
+                self.visibility_timeout,
+            )
+
+            result = lambda_backends[self.region].send_sqs_batch(
+                arn,
+                messages,
+                self.queue_arn,
+            )
+
+            if result:
+                [backend.delete_message(self.name, m.receipt_handle) for m in messages]
+            else:
+                [backend.change_message_visibility(self.name, m.receipt_handle, 0) for m in messages]
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -379,6 +408,7 @@ class SQSBackend(BaseBackend):
 
     def reset(self):
         region_name = self.region_name
+        self._reset_model_refs()
         self.__dict__ = {}
         self.__init__(region_name)
 

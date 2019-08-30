@@ -75,6 +75,31 @@ def test_list_certificates():
 
 
 @mock_acm
+def test_list_certificates_by_status():
+    client = boto3.client('acm', region_name='eu-central-1')
+    issued_arn = _import_cert(client)
+    pending_arn = client.request_certificate(DomainName='google.com')['CertificateArn']
+
+    resp = client.list_certificates()
+    len(resp['CertificateSummaryList']).should.equal(2)
+    resp = client.list_certificates(CertificateStatuses=['EXPIRED', 'INACTIVE'])
+    len(resp['CertificateSummaryList']).should.equal(0)
+    resp = client.list_certificates(CertificateStatuses=['PENDING_VALIDATION'])
+    len(resp['CertificateSummaryList']).should.equal(1)
+    resp['CertificateSummaryList'][0]['CertificateArn'].should.equal(pending_arn)
+
+    resp = client.list_certificates(CertificateStatuses=['ISSUED'])
+    len(resp['CertificateSummaryList']).should.equal(1)
+    resp['CertificateSummaryList'][0]['CertificateArn'].should.equal(issued_arn)
+    resp = client.list_certificates(CertificateStatuses=['ISSUED', 'PENDING_VALIDATION'])
+    len(resp['CertificateSummaryList']).should.equal(2)
+    arns = {cert['CertificateArn'] for cert in resp['CertificateSummaryList']}
+    arns.should.contain(issued_arn)
+    arns.should.contain(pending_arn)
+
+
+
+@mock_acm
 def test_get_invalid_certificate():
     client = boto3.client('acm', region_name='eu-central-1')
 
@@ -291,6 +316,7 @@ def test_request_certificate():
     )
     resp.should.contain('CertificateArn')
     arn = resp['CertificateArn']
+    arn.should.match(r"arn:aws:acm:eu-central-1:\d{12}:certificate/")
 
     resp = client.request_certificate(
         DomainName='google.com',

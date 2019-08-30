@@ -31,9 +31,10 @@ class KmsResponse(BaseResponse):
         policy = self.parameters.get('Policy')
         key_usage = self.parameters.get('KeyUsage')
         description = self.parameters.get('Description')
+        tags = self.parameters.get('Tags')
 
         key = self.kms_backend.create_key(
-            policy, key_usage, description, self.region)
+            policy, key_usage, description, tags, self.region)
         return json.dumps(key.to_dict())
 
     def update_key_description(self):
@@ -237,7 +238,7 @@ class KmsResponse(BaseResponse):
 
         value = self.parameters.get("CiphertextBlob")
         try:
-            return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8")})
+            return json.dumps({"Plaintext": base64.b64decode(value).decode("utf-8"), 'KeyId': 'key_id'})
         except UnicodeDecodeError:
             # Generate data key will produce random bytes which when decrypted is still returned as base64
             return json.dumps({"Plaintext": value})

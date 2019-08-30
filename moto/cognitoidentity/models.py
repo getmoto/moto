@@ -95,6 +95,15 @@ class CognitoIdentityBackend(BaseBackend):
             })
         return response
 
+    def get_open_id_token(self, identity_id):
+        response = json.dumps(
+            {
+                "IdentityId": identity_id,
+                "Token": get_random_identity_id(self.region)
+            }
+        )
+        return response
+
 
 cognitoidentity_backends = {}
 for region in boto.cognito.identity.regions():

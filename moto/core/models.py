@@ -12,6 +12,7 @@ from collections import defaultdict
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 
+import mock
 from moto import settings
 import responses
 from moto.packages.httpretty import HTTPretty
@@ -20,11 +21,6 @@ from .utils import (
     convert_regex_to_flask_path,
     convert_flask_to_responses_response,
 )
-
-
-# "Mock" the AWS credentials as they can't be mocked in Botocore currently
-os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
-os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
 
 class BaseMockAWS(object):
@@ -42,6 +38,10 @@ class BaseMockAWS(object):
         self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
 
+        # "Mock" the AWS credentials as they can't be mocked in Botocore currently
+        FAKE_KEYS = {"AWS_ACCESS_KEY_ID": "foobar_key", "AWS_SECRET_ACCESS_KEY": "foobar_secret"}
+        self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
+
         if self.__class__.nested_count == 0:
             self.reset()
 
@@ -52,11 +52,14 @@ class BaseMockAWS(object):
 
     def __enter__(self):
         self.start()
+        return self
 
     def __exit__(self, *args):
         self.stop()
 
     def start(self, reset=True):
+        self.env_variables_mocks.start()
+
         self.__class__.nested_count += 1
         if reset:
             for backend in self.backends.values():
@@ -65,6 +68,7 @@ class BaseMockAWS(object):
         self.enable_patching()
 
     def stop(self):
+        self.env_variables_mocks.stop()
         self.__class__.nested_count -= 1
 
         if self.__class__.nested_count < 0:
@@ -465,10 +469,14 @@ class BaseModel(object):
 
 class BaseBackend(object):
 
-    def reset(self):
+    def _reset_model_refs(self):
+        # Remove all references to the models stored
         for service, models in model_data.items():
             for model_name, model in models.items():
                 model.instances = []
+
+    def reset(self):
+        self._reset_model_refs()
         self.__dict__ = {}
         self.__init__()
 

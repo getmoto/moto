@@ -60,6 +60,17 @@ class MissingKey(S3ClientError):
         )
 
 
+class ObjectNotInActiveTierError(S3ClientError):
+    code = 403
+
+    def __init__(self, key_name):
+        super(ObjectNotInActiveTierError, self).__init__(
+            "ObjectNotInActiveTierError",
+            "The source object of the COPY operation is not in the active tier and is only stored in Amazon Glacier.",
+            Key=key_name,
+        )
+
+
 class InvalidPartOrder(S3ClientError):
     code = 400
 
@@ -199,3 +210,67 @@ class DuplicateTagKeys(S3ClientError):
             "InvalidTag",
             "Cannot provide multiple Tags with the same key",
             *args, **kwargs)
+
+
+class S3AccessDeniedError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(S3AccessDeniedError, self).__init__('AccessDenied', 'Access Denied', *args, **kwargs)
+
+
+class BucketAccessDeniedError(BucketError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(BucketAccessDeniedError, self).__init__('AccessDenied', 'Access Denied', *args, **kwargs)
+
+
+class S3InvalidTokenError(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(S3InvalidTokenError, self).__init__('InvalidToken', 'The provided token is malformed or otherwise invalid.', *args, **kwargs)
+
+
+class BucketInvalidTokenError(BucketError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(BucketInvalidTokenError, self).__init__('InvalidToken', 'The provided token is malformed or otherwise invalid.', *args, **kwargs)
+
+
+class S3InvalidAccessKeyIdError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(S3InvalidAccessKeyIdError, self).__init__(
+            'InvalidAccessKeyId',
+            "The AWS Access Key Id you provided does not exist in our records.", *args, **kwargs)
+
+
+class BucketInvalidAccessKeyIdError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(BucketInvalidAccessKeyIdError, self).__init__(
+            'InvalidAccessKeyId',
+            "The AWS Access Key Id you provided does not exist in our records.", *args, **kwargs)
+
+
+class S3SignatureDoesNotMatchError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(S3SignatureDoesNotMatchError, self).__init__(
+            'SignatureDoesNotMatch',
+            "The request signature we calculated does not match the signature you provided. Check your key and signing method.", *args, **kwargs)
+
+
+class BucketSignatureDoesNotMatchError(S3ClientError):
+    code = 403
+
+    def __init__(self, *args, **kwargs):
+        super(BucketSignatureDoesNotMatchError, self).__init__(
+            'SignatureDoesNotMatch',
+            "The request signature we calculated does not match the signature you provided. Check your key and signing method.", *args, **kwargs)

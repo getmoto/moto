@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import boto3
 import json
 import six
-import sure   # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
@@ -26,6 +25,25 @@ def test_create_organization():
     response = client.create_organization(FeatureSet='ALL')
     validate_organization(response)
     response['Organization']['FeatureSet'].should.equal('ALL')
+
+    response = client.list_accounts()
+    len(response['Accounts']).should.equal(1)
+    response['Accounts'][0]['Name'].should.equal('master')
+    response['Accounts'][0]['Id'].should.equal(utils.MASTER_ACCOUNT_ID)
+    response['Accounts'][0]['Email'].should.equal(utils.MASTER_ACCOUNT_EMAIL)
+
+    response = client.list_policies(Filter='SERVICE_CONTROL_POLICY')
+    len(response['Policies']).should.equal(1)
+    response['Policies'][0]['Name'].should.equal('FullAWSAccess')
+    response['Policies'][0]['Id'].should.equal(utils.DEFAULT_POLICY_ID)
+    response['Policies'][0]['AwsManaged'].should.equal(True)
+
+    response = client.list_targets_for_policy(PolicyId=utils.DEFAULT_POLICY_ID)
+    len(response['Targets']).should.equal(2)
+    root_ou = [t for t in response['Targets'] if t['Type'] == 'ROOT'][0]
+    root_ou['Name'].should.equal('Root')
+    master_account = [t for t in response['Targets'] if t['Type'] == 'ACCOUNT'][0]
+    master_account['Name'].should.equal('master')
 
 
 @mock_organizations
@@ -177,11 +195,11 @@ def test_list_accounts():
     response = client.list_accounts()
     response.should.have.key('Accounts')
     accounts = response['Accounts']
-    len(accounts).should.equal(5)
+    len(accounts).should.equal(6)
     for account in accounts:
         validate_account(org, account)
-    accounts[3]['Name'].should.equal(mockname + '3')
-    accounts[2]['Email'].should.equal(mockname + '2' + '@' + mockdomain)
+    accounts[4]['Name'].should.equal(mockname + '3')
+    accounts[3]['Email'].should.equal(mockname + '2' + '@' + mockdomain)
 
 
 @mock_organizations
@@ -291,8 +309,10 @@ def test_list_children():
     response02 = client.list_children(ParentId=root_id, ChildType='ORGANIZATIONAL_UNIT')
     response03 = client.list_children(ParentId=ou01_id, ChildType='ACCOUNT')
     response04 = client.list_children(ParentId=ou01_id, ChildType='ORGANIZATIONAL_UNIT')
-    response01['Children'][0]['Id'].should.equal(account01_id)
+    response01['Children'][0]['Id'].should.equal(utils.MASTER_ACCOUNT_ID)
     response01['Children'][0]['Type'].should.equal('ACCOUNT')
+    response01['Children'][1]['Id'].should.equal(account01_id)
+    response01['Children'][1]['Type'].should.equal('ACCOUNT')
     response02['Children'][0]['Id'].should.equal(ou01_id)
     response02['Children'][0]['Type'].should.equal('ORGANIZATIONAL_UNIT')
     response03['Children'][0]['Id'].should.equal(account02_id)
@@ -591,4 +611,3 @@ def test_list_targets_for_policy_exception():
     ex.operation_name.should.equal('ListTargetsForPolicy')
     ex.response['Error']['Code'].should.equal('400')
     ex.response['Error']['Message'].should.contain('InvalidInputException')
- 

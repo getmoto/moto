@@ -18,7 +18,8 @@ def test_create_database():
                                        MasterUsername='root',
                                        MasterUserPassword='hunter2',
                                        Port=1234,
-                                       DBSecurityGroups=["my_sg"])
+                                       DBSecurityGroups=["my_sg"],
+                                       VpcSecurityGroupIds=['sg-123456'])
     db_instance = database['DBInstance']
     db_instance['AllocatedStorage'].should.equal(10)
     db_instance['DBInstanceClass'].should.equal("db.m1.small")
@@ -34,6 +35,40 @@ def test_create_database():
     db_instance['IAMDatabaseAuthenticationEnabled'].should.equal(False)
     db_instance['DbiResourceId'].should.contain("db-")
     db_instance['CopyTagsToSnapshot'].should.equal(False)
+    db_instance['InstanceCreateTime'].should.be.a("datetime.datetime")
+    db_instance['VpcSecurityGroups'][0]['VpcSecurityGroupId'].should.equal('sg-123456')
+
+
+@mock_rds2
+def test_create_database_non_existing_option_group():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance.when.called_with(
+        DBInstanceIdentifier='db-master-1',
+        AllocatedStorage=10,
+        Engine='postgres',
+        DBName='staging-postgres',
+        DBInstanceClass='db.m1.small',
+        OptionGroupName='non-existing').should.throw(ClientError)
+
+
+@mock_rds2
+def test_create_database_with_option_group():
+    conn = boto3.client('rds', region_name='us-west-2')
+    conn.create_option_group(OptionGroupName='my-og',
+                             EngineName='mysql',
+                             MajorEngineVersion='5.6',
+                             OptionGroupDescription='test option group')
+    database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
+                                       AllocatedStorage=10,
+                                       Engine='postgres',
+                                       DBName='staging-postgres',
+                                       DBInstanceClass='db.m1.small',
+                                       OptionGroupName='my-og')
+    db_instance = database['DBInstance']
+    db_instance['AllocatedStorage'].should.equal(10)
+    db_instance['DBInstanceClass'].should.equal('db.m1.small')
+    db_instance['DBName'].should.equal('staging-postgres')
+    db_instance['OptionGroupMemberships'][0]['OptionGroupName'].should.equal('my-og')
 
 
 @mock_rds2
@@ -204,6 +239,7 @@ def test_get_databases_paginated():
     resp3 = conn.describe_db_instances(MaxRecords=100)
     resp3["DBInstances"].should.have.length_of(51)
 
+
 @mock_rds2
 def test_describe_non_existant_database():
     conn = boto3.client('rds', region_name='us-west-2')
@@ -226,9 +262,11 @@ def test_modify_db_instance():
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(10)
     conn.modify_db_instance(DBInstanceIdentifier='db-master-1',
                             AllocatedStorage=20,
-                            ApplyImmediately=True)
+                            ApplyImmediately=True,
+                            VpcSecurityGroupIds=['sg-123456'])
     instances = conn.describe_db_instances(DBInstanceIdentifier='db-master-1')
     instances['DBInstances'][0]['AllocatedStorage'].should.equal(20)
+    instances['DBInstances'][0]['VpcSecurityGroups'][0]['VpcSecurityGroupId'].should.equal('sg-123456')
 
 
 @mock_rds2
