@@ -110,6 +110,11 @@ class FakeTargetGroup(BaseModel):
             if not t:
                 raise InvalidTargetError()
 
+    def deregister_terminated_instances(self, instance_ids):
+        for target_id in list(self.targets.keys()):
+            if target_id in instance_ids:
+                del self.targets[target_id]
+
     def add_tag(self, key, value):
         if len(self.tags) >= 10 and key not in self.tags:
             raise TooManyTagsError()
@@ -935,6 +940,10 @@ class ELBv2Backend(BaseBackend):
                         if action.data.get('target_group_arn') == target_group_arn:
                             return True
         return False
+
+    def notify_terminate_instances(self, instance_ids):
+        for target_group in self.target_groups.values():
+            target_group.deregister_terminated_instances(instance_ids)
 
 
 elbv2_backends = {}
