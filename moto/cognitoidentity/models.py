@@ -63,12 +63,12 @@ class CognitoIdentityBackend(BaseBackend):
                              supported_login_providers, developer_provider_name, open_id_connect_provider_arns,
                              cognito_identity_providers, saml_provider_arns):
         new_identity = CognitoIdentity(self.region, identity_pool_name,
-                                       allow_unauthenticated_identities=allow_unauthenticated_identities,
-                                       supported_login_providers=supported_login_providers,
-                                       developer_provider_name=developer_provider_name,
-                                       open_id_connect_provider_arns=open_id_connect_provider_arns,
-                                       cognito_identity_providers=cognito_identity_providers,
-                                       saml_provider_arns=saml_provider_arns)
+            allow_unauthenticated_identities=allow_unauthenticated_identities,
+            supported_login_providers=supported_login_providers,
+            developer_provider_name=developer_provider_name,
+            open_id_connect_provider_arns=open_id_connect_provider_arns,
+            cognito_identity_providers=cognito_identity_providers,
+            saml_provider_arns=saml_provider_arns)
         self.identity_pools[new_identity.identity_pool_id] = new_identity
 
         response = json.dumps({

@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
 
 import boto3
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 
 from moto import mock_cognitoidentity
-import sure  # noqa
-
 from moto.cognitoidentity.utils import get_random_identity_id
 
 
@@ -28,6 +28,47 @@ def test_create_identity_pool():
     assert result['IdentityPoolId'] != ''
 
 
+@mock_cognitoidentity
+def test_describe_identity_pool():
+    conn = boto3.client('cognito-identity', 'us-west-2')
+
+    res = conn.create_identity_pool(IdentityPoolName='TestPool',
+        AllowUnauthenticatedIdentities=False,
+        SupportedLoginProviders={'graph.facebook.com': '123456789012345'},
+        DeveloperProviderName='devname',
+        OpenIdConnectProviderARNs=['arn:aws:rds:eu-west-2:123456789012:db:mysql-db'],
+        CognitoIdentityProviders=[
+            {
+                'ProviderName': 'testprovider',
+                'ClientId': 'CLIENT12345',
+                'ServerSideTokenCheck': True
+            },
+        ],
+        SamlProviderARNs=['arn:aws:rds:eu-west-2:123456789012:db:mysql-db'])
+
+    result = conn.describe_identity_pool(IdentityPoolId=res['IdentityPoolId'])
+
+    assert result['IdentityPoolId'] == res['IdentityPoolId']
+    assert result['AllowUnauthenticatedIdentities'] == res['AllowUnauthenticatedIdentities']
+    assert result['SupportedLoginProviders'] == res['SupportedLoginProviders']
+    assert result['DeveloperProviderName'] == res['DeveloperProviderName']
+    assert result['OpenIdConnectProviderARNs'] == res['OpenIdConnectProviderARNs']
+    assert result['CognitoIdentityProviders'] == res['CognitoIdentityProviders']
+    assert result['SamlProviderARNs'] == res['SamlProviderARNs']
+
+
+@mock_cognitoidentity
+def test_describe_identity_pool_with_invalid_id_raises_error():
+    conn = boto3.client('cognito-identity', 'us-west-2')
+
+    with assert_raises(ClientError) as cm:
+        conn.describe_identity_pool(IdentityPoolId='us-west-2_non-existent')
+
+        cm.exception.operation_name.should.equal('DescribeIdentityPool')
+        cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+        cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+
 # testing a helper function
 def test_get_random_identity_id():
     assert len(get_random_identity_id('us-west-2')) > 0
@@ -44,7 +85,8 @@ def test_get_id():
             'someurl': '12345'
         })
     print(result)
-    assert result.get('IdentityId', "").startswith('us-west-2') or result.get('ResponseMetadata').get('HTTPStatusCode') == 200
+    assert result.get('IdentityId', "").startswith('us-west-2') or result.get('ResponseMetadata').get(
+        'HTTPStatusCode') == 200
 
 
 @mock_cognitoidentity
@@ -71,6 +113,7 @@ def test_get_open_id_token_for_developer_identity():
     assert len(result['Token']) > 0
     assert result['IdentityId'] == '12345'
 
+
 @mock_cognitoidentity
 def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id():
     conn = boto3.client('cognito-identity', 'us-west-2')
@@ -83,6 +126,7 @@ def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id()
     )
     assert len(result['Token']) > 0
     assert len(result['IdentityId']) > 0
+
 
 @mock_cognitoidentity
 def test_get_open_id_token():
