@@ -2173,7 +2173,7 @@
 - [X] describe_volumes
 - [ ] describe_volumes_modifications
 - [X] describe_vpc_attribute
-- [ ] describe_vpc_classic_link
+- [X] describe_vpc_classic_link
 - [ ] describe_vpc_classic_link_dns_support
 - [ ] describe_vpc_endpoint_connection_notifications
 - [ ] describe_vpc_endpoint_connections
@@ -2193,7 +2193,7 @@
 - [ ] disable_ebs_encryption_by_default
 - [ ] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
-- [ ] disable_vpc_classic_link
+- [X] disable_vpc_classic_link
 - [ ] disable_vpc_classic_link_dns_support
 - [X] disassociate_address
 - [ ] disassociate_client_vpn_target_network
@@ -2206,7 +2206,7 @@
 - [ ] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
 - [ ] enable_volume_io
-- [ ] enable_vpc_classic_link
+- [X] enable_vpc_classic_link
 - [ ] enable_vpc_classic_link_dns_support
 - [ ] export_client_vpn_client_certificate_revocation_list
 - [ ] export_client_vpn_client_configuration

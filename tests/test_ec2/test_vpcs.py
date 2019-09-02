@@ -563,3 +563,72 @@ def test_create_vpc_with_invalid_cidr_range():
     str(ex.exception).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
         "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block))
+
+@mock_ec2
+def test_enable_vpc_classic_link():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create VPC
+    vpc = ec2.create_vpc(CidrBlock='10.1.0.0/16')
+
+    response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
+    assert response.get('Return').should.be.true
+
+@mock_ec2
+def test_enable_vpc_classic_link_failure():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create VPC
+    vpc = ec2.create_vpc(CidrBlock='10.90.0.0/16')
+
+    response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
+    assert response.get('Return').should.be.false
+
+
+@mock_ec2
+def test_disable_vpc_classic_link():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create VPC
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
+    response = ec2.meta.client.disable_vpc_classic_link(VpcId=vpc.id)
+    assert response.get('Return').should.be.false
+
+
+@mock_ec2
+def test_describe_classic_link_enabled():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create VPC
+    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
+    response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc.id])
+    assert response.get('Vpcs')[0].get('ClassicLinkEnabled').should.be.true
+
+
+@mock_ec2
+def test_describe_classic_link_disabled():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create VPC
+    vpc = ec2.create_vpc(CidrBlock='10.90.0.0/16')
+
+    response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc.id])
+    assert response.get('Vpcs')[0].get('ClassicLinkEnabled').should.be.false
+
+
+@mock_ec2
+def test_describe_classic_link_multiple():
+    ec2 = boto3.resource('ec2', region_name='us-west-1')
+
+    # Create VPC
+    vpc1 = ec2.create_vpc(CidrBlock='10.90.0.0/16')
+    vpc2 = ec2.create_vpc(CidrBlock='10.0.0.0/16')
+
+    ec2.meta.client.enable_vpc_classic_link(VpcId=vpc2.id)
+    response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc1.id, vpc2.id])
+    assert response.get('Vpcs')[0].get('ClassicLinkEnabled').should.be.false
+    assert response.get('Vpcs')[1].get('ClassicLinkEnabled').should.be.true
