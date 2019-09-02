@@ -6050,19 +6050,19 @@
 ## stepfunctions
 0% implemented
 - [ ] create_activity
-- [ ] create_state_machine
+- [X] create_state_machine
 - [ ] delete_activity
-- [ ] delete_state_machine
+- [X] delete_state_machine
 - [ ] describe_activity
 - [ ] describe_execution
-- [ ] describe_state_machine
+- [X] describe_state_machine
 - [ ] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [ ] get_execution_history
 - [ ] list_activities
 - [ ] list_executions
-- [ ] list_state_machines
-- [ ] list_tags_for_resource
+- [X] list_state_machines
+- [X] list_tags_for_resource
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
