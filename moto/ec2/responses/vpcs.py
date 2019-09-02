@@ -38,6 +38,28 @@ class VPCs(BaseResponse):
         template = self.response_template(DESCRIBE_VPC_ATTRIBUTE_RESPONSE)
         return template.render(vpc_id=vpc_id, attribute=attribute, value=value)
 
+    def describe_vpc_classic_link_dns_support(self):
+        vpc_ids = self._get_multi_param('VpcIds')
+        filters = filters_from_querystring(self.querystring)
+        vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
+        doc_date = '2013-10-15' if 'Boto/' in self.headers.get('user-agent', '') else '2016-11-15'
+        template = self.response_template(DESCRIBE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
+        return template.render(vpcs=vpcs, doc_date=doc_date)
+
+    def enable_vpc_classic_link_dns_support(self):
+        vpc_id = self._get_param('VpcId')
+        classic_link_dns_supported = self.ec2_backend.enable_vpc_classic_link_dns_support(vpc_id=vpc_id)
+        doc_date = '2013-10-15' if 'Boto/' in self.headers.get('user-agent', '') else '2016-11-15'
+        template = self.response_template(ENABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
+        return template.render(classic_link_dns_supported=classic_link_dns_supported, doc_date=doc_date)
+
+    def disable_vpc_classic_link_dns_support(self):
+        vpc_id = self._get_param('VpcId')
+        classic_link_dns_supported = self.ec2_backend.disable_vpc_classic_link_dns_support(vpc_id=vpc_id)
+        doc_date = '2013-10-15' if 'Boto/' in self.headers.get('user-agent', '') else '2016-11-15'
+        template = self.response_template(DISABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
+        return template.render(classic_link_dns_supported=classic_link_dns_supported, doc_date=doc_date)
+
     def describe_vpc_classic_link(self):
         vpc_ids = self._get_multi_param('VpcId')
         filters = filters_from_querystring(self.querystring)
@@ -142,6 +164,31 @@ CREATE_VPC_RESPONSE = """
       </tagSet>
    </vpc>
 </CreateVpcResponse>"""
+
+DESCRIBE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE = """
+<DescribeVpcClassicLinkDnsSupportResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
+  <requestId>7a62c442-3484-4f42-9342-6942EXAMPLE</requestId>
+  <vpcs>
+    {% for vpc in vpcs %}
+      <item>
+        <vpcId>{{ vpc.id }}</vpcId>
+        <classicLinkDnsSupported>{{ vpc.classic_link_dns_supported }}</classicLinkDnsSupported>
+      </item>
+    {% endfor %}
+  </vpcs>
+</DescribeVpcClassicLinkDnsSupportResponse>"""
+
+ENABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE = """
+<EnableVpcClassicLinkDnsSupportResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
+  <requestId>7a62c442-3484-4f42-9342-6942EXAMPLE</requestId>
+  <return>{{ classic_link_dns_supported }}</return>
+</EnableVpcClassicLinkDnsSupportResponse>"""
+
+DISABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE = """
+<DisableVpcClassicLinkDnsSupportResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
+  <requestId>7a62c442-3484-4f42-9342-6942EXAMPLE</requestId>
+  <return>{{ classic_link_dns_supported }}</return>
+</DisableVpcClassicLinkDnsSupportResponse>"""
 
 DESCRIBE_VPC_CLASSIC_LINK_RESPONSE = """
 <DescribeVpcClassicLinkResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
