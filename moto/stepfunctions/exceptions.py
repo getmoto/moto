@@ -20,6 +20,11 @@ class AccessDeniedException(AWSError):
     STATUS = 400
 
 
+class ExecutionDoesNotExist(AWSError):
+    CODE = 'ExecutionDoesNotExist'
+    STATUS = 400
+
+
 class InvalidArn(AWSError):
     CODE = 'InvalidArn'
     STATUS = 400

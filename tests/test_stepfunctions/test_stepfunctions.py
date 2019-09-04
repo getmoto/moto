@@ -157,7 +157,7 @@ def test_state_machine_creation_is_idempotent_by_name():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_creation_can_be_described_by_name():
+def test_state_machine_creation_can_be_described():
     client = boto3.client('stepfunctions', region_name=region)
     #
     sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
@@ -274,3 +274,139 @@ def test_state_machine_list_tags_for_nonexisting_machine():
     response = client.list_tags_for_resource(resourceArn=non_existing_state_machine)
     tags = response['tags']
     tags.should.have.length_of(0)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_start_execution():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    execution = client.start_execution(stateMachineArn=sm['stateMachineArn'])
+    #
+    execution['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    expected_exec_name = 'arn:aws:states:' + region + ':' + str(DEFAULT_ACCOUNT_ID) + ':execution:name:[a-zA-Z0-9-]+'
+    execution['executionArn'].should.match(expected_exec_name)
+    execution['startDate'].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_list_executions():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    execution = client.start_execution(stateMachineArn=sm['stateMachineArn'])
+    execution_arn = execution['executionArn']
+    execution_name = execution_arn[execution_arn.rindex(':')+1:]
+    executions = client.list_executions(stateMachineArn=sm['stateMachineArn'])
+    #
+    executions['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    executions['executions'].should.have.length_of(1)
+    executions['executions'][0]['executionArn'].should.equal(execution_arn)
+    executions['executions'][0]['name'].should.equal(execution_name)
+    executions['executions'][0]['startDate'].should.equal(execution['startDate'])
+    executions['executions'][0]['stateMachineArn'].should.equal(sm['stateMachineArn'])
+    executions['executions'][0]['status'].should.equal('RUNNING')
+    executions['executions'][0].shouldnt.have('stopDate')
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_list_executions_when_none_exist():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    executions = client.list_executions(stateMachineArn=sm['stateMachineArn'])
+    #
+    executions['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    executions['executions'].should.have.length_of(0)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_describe_execution():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    execution = client.start_execution(stateMachineArn=sm['stateMachineArn'])
+    description = client.describe_execution(executionArn=execution['executionArn'])
+    #
+    description['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    description['executionArn'].should.equal(execution['executionArn'])
+    description['input'].should.equal("{}")
+    description['name'].shouldnt.be.empty
+    description['startDate'].should.equal(execution['startDate'])
+    description['stateMachineArn'].should.equal(sm['stateMachineArn'])
+    description['status'].should.equal('RUNNING')
+    description.shouldnt.have('stopDate')
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_throws_error_when_describing_unknown_machine():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    with assert_raises(ClientError) as exc:
+        unknown_execution = 'arn:aws:states:' + region + ':' + str(DEFAULT_ACCOUNT_ID) + ':execution:unknown'
+        client.describe_execution(executionArn=unknown_execution)
+    exc.exception.response['Error']['Code'].should.equal('ExecutionDoesNotExist')
+    exc.exception.response['Error']['Message'].should.equal("Execution Does Not Exist: '" + unknown_execution + "'")
+    exc.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_can_be_described_by_execution():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    execution = client.start_execution(stateMachineArn=sm['stateMachineArn'])
+    desc = client.describe_state_machine_for_execution(executionArn=execution['executionArn'])
+    desc['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    desc['definition'].should.equal(str(simple_definition))
+    desc['name'].should.equal('name')
+    desc['roleArn'].should.equal(default_stepfunction_role)
+    desc['stateMachineArn'].should.equal(sm['stateMachineArn'])
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_throws_error_when_describing_unknown_execution():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    with assert_raises(ClientError) as exc:
+        unknown_execution = 'arn:aws:states:' + region + ':' + str(DEFAULT_ACCOUNT_ID) + ':execution:unknown'
+        client.describe_state_machine_for_execution(executionArn=unknown_execution)
+    exc.exception.response['Error']['Code'].should.equal('ExecutionDoesNotExist')
+    exc.exception.response['Error']['Message'].should.equal("Execution Does Not Exist: '" + unknown_execution + "'")
+    exc.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_stop_execution():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    start = client.start_execution(stateMachineArn=sm['stateMachineArn'])
+    stop = client.stop_execution(executionArn=start['executionArn'])
+    print(stop)
+    #
+    stop['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    stop['stopDate'].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_describe_execution_after_stoppage():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=default_stepfunction_role)
+    execution = client.start_execution(stateMachineArn=sm['stateMachineArn'])
+    client.stop_execution(executionArn=execution['executionArn'])
+    description = client.describe_execution(executionArn=execution['executionArn'])
+    #
+    description['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    description['status'].should.equal('SUCCEEDED')
+    description['stopDate'].should.be.a(datetime)

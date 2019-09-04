@@ -4,7 +4,8 @@ import re
 from datetime import datetime
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from .exceptions import AccessDeniedException, InvalidArn, InvalidName, StateMachineDoesNotExist
+from uuid import uuid4
+from .exceptions import AccessDeniedException, ExecutionDoesNotExist, InvalidArn, InvalidName, StateMachineDoesNotExist
 
 
 class StateMachine():
@@ -15,6 +16,22 @@ class StateMachine():
         self.definition = definition
         self.roleArn = roleArn
         self.tags = tags
+
+
+class Execution():
+    def __init__(self, region_name, account_id, state_machine_name, execution_name, state_machine_arn):
+        execution_arn = 'arn:aws:states:{}:{}:execution:{}:{}'
+        execution_arn = execution_arn.format(region_name, account_id, state_machine_name, execution_name)
+        self.execution_arn = execution_arn
+        self.name = execution_name
+        self.start_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.state_machine_arn = state_machine_arn
+        self.status = 'RUNNING'
+        self.stop_date = None
+
+    def stop(self):
+        self.status = 'SUCCEEDED'
+        self.stop_date = iso_8601_datetime_without_milliseconds(datetime.now())
 
 
 class StepFunctionBackend(BaseBackend):
@@ -44,9 +61,11 @@ class StepFunctionBackend(BaseBackend):
                                  u'\u009A', u'\u009B', u'\u009C', u'\u009D', u'\u009E', u'\u009F']
     accepted_role_arn_format = re.compile('arn:aws:iam:(?P<account_id>[0-9]{12}):role/.+')
     accepted_mchn_arn_format = re.compile('arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+')
+    accepted_exec_arn_format = re.compile('arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+')
 
     def __init__(self, region_name):
         self.state_machines = []
+        self.executions = []
         self.region_name = region_name
         self._account_id = None
 
@@ -77,6 +96,29 @@ class StepFunctionBackend(BaseBackend):
         if sm:
             self.state_machines.remove(sm)
 
+    def start_execution(self, state_machine_arn):
+        state_machine_name = self.describe_state_machine(state_machine_arn).name
+        execution = Execution(region_name=self.region_name, account_id=self._get_account_id(), state_machine_name=state_machine_name, execution_name=str(uuid4()), state_machine_arn=state_machine_arn)
+        self.executions.append(execution)
+        return execution
+
+    def stop_execution(self, execution_arn):
+        execution = next((x for x in self.executions if x.execution_arn == execution_arn), None)
+        if not execution:
+            raise ExecutionDoesNotExist("Execution Does Not Exist: '" + execution_arn + "'")
+        execution.stop()
+        return execution
+
+    def list_executions(self, state_machine_arn):
+        return [execution for execution in self.executions if execution.state_machine_arn == state_machine_arn]
+
+    def describe_execution(self, arn):
+        self._validate_execution_arn(arn)
+        exctn = next((x for x in self.executions if x.execution_arn == arn), None)
+        if not exctn:
+            raise ExecutionDoesNotExist("Execution Does Not Exist: '" + arn + "'")
+        return exctn
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
@@ -99,6 +141,12 @@ class StepFunctionBackend(BaseBackend):
         self._validate_arn(arn=machine_arn,
                            regex=self.accepted_mchn_arn_format,
                            invalid_msg="Invalid Role Arn: '" + machine_arn + "'",
+                           access_denied_msg='User moto is not authorized to access this resource')
+
+    def _validate_execution_arn(self, execution_arn):
+        self._validate_arn(arn=execution_arn,
+                           regex=self.accepted_exec_arn_format,
+                           invalid_msg="Execution Does Not Exist: '" + execution_arn + "'",
                            access_denied_msg='User moto is not authorized to access this resource')
 
     def _validate_arn(self, arn, regex, invalid_msg, access_denied_msg):

@@ -6054,20 +6054,20 @@
 - [ ] delete_activity
 - [X] delete_state_machine
 - [ ] describe_activity
-- [ ] describe_execution
+- [X] describe_execution
 - [X] describe_state_machine
-- [ ] describe_state_machine_for_execution
+- [x] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [ ] get_execution_history
 - [ ] list_activities
-- [ ] list_executions
+- [X] list_executions
 - [X] list_state_machines
 - [X] list_tags_for_resource
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
-- [ ] start_execution
-- [ ] stop_execution
+- [X] start_execution
+- [X] stop_execution
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_state_machine

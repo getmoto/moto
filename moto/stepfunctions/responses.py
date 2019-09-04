@@ -45,8 +45,12 @@ class StepFunctionResponse(BaseResponse):
     @amzn_request_id
     def describe_state_machine(self):
         arn = self._get_param('stateMachineArn')
+        return self._describe_state_machine(arn)
+
+    @amzn_request_id
+    def _describe_state_machine(self, state_machine_arn):
         try:
-            state_machine = self.stepfunction_backend.describe_state_machine(arn)
+            state_machine = self.stepfunction_backend.describe_state_machine(state_machine_arn)
             response = {
                 'creationDate': state_machine.creation_date,
                 'stateMachineArn': state_machine.arn,
@@ -77,4 +81,58 @@ class StepFunctionResponse(BaseResponse):
         except AWSError:
             tags = []
         response = {'tags': tags}
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def start_execution(self):
+        arn = self._get_param('stateMachineArn')
+        execution = self.stepfunction_backend.start_execution(arn)
+        response = {'executionArn': execution.execution_arn,
+                    'startDate': execution.start_date}
+        return 200, {}, json.dumps(response)
+
+    @amzn_request_id
+    def list_executions(self):
+        arn = self._get_param('stateMachineArn')
+        state_machine = self.stepfunction_backend.describe_state_machine(arn)
+        executions = self.stepfunction_backend.list_executions(arn)
+        executions = [{'executionArn': execution.execution_arn,
+                       'name': execution.name,
+                       'startDate': execution.start_date,
+                       'stateMachineArn': state_machine.arn,
+                       'status': execution.status} for execution in executions]
+        return 200, {}, json.dumps({'executions': executions})
+
+    @amzn_request_id
+    def describe_execution(self):
+        arn = self._get_param('executionArn')
+        try:
+            execution = self.stepfunction_backend.describe_execution(arn)
+            response = {
+                'executionArn': arn,
+                'input': '{}',
+                'name': execution.name,
+                'startDate': execution.start_date,
+                'stateMachineArn': execution.state_machine_arn,
+                'status': execution.status,
+                'stopDate': execution.stop_date
+            }
+            return 200, {}, json.dumps(response)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def describe_state_machine_for_execution(self):
+        arn = self._get_param('executionArn')
+        try:
+            execution = self.stepfunction_backend.describe_execution(arn)
+            return self._describe_state_machine(execution.state_machine_arn)
+        except AWSError as err:
+            return err.response()
+
+    @amzn_request_id
+    def stop_execution(self):
+        arn = self._get_param('executionArn')
+        execution = self.stepfunction_backend.stop_execution(arn)
+        response = {'stopDate': execution.stop_date}
         return 200, {}, json.dumps(response)
