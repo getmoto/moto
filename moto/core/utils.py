@@ -297,3 +297,20 @@ def path_url(url):
     if parsed_url.query:
         path = path + '?' + parsed_url.query
     return path
+
+
+def tags_from_query_string(querystring_dict):
+    prefix = 'Tag'
+    suffix = 'Key'
+    response_values = {}
+    for key, value in querystring_dict.items():
+        if key.startswith(prefix) and key.endswith(suffix):
+            tag_index = key.replace(prefix + ".", "").replace("." + suffix, "")
+            tag_key = querystring_dict.get("Tag.{0}.Key".format(tag_index))[0]
+            tag_value_key = "Tag.{0}.Value".format(tag_index)
+            if tag_value_key in querystring_dict:
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[
+                    0]
+            else:
+                response_values[tag_key] = None
+    return response_values
