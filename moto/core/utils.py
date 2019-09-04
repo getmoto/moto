@@ -299,15 +299,27 @@ def path_url(url):
     return path
 
 
-def tags_from_query_string(querystring_dict):
-    prefix = 'Tag'
-    suffix = 'Key'
+def tags_from_query_string(
+        querystring_dict,
+        prefix="Tag",
+        key_suffix="Key",
+        value_suffix="Value"
+):
     response_values = {}
     for key, value in querystring_dict.items():
-        if key.startswith(prefix) and key.endswith(suffix):
-            tag_index = key.replace(prefix + ".", "").replace("." + suffix, "")
-            tag_key = querystring_dict.get("Tag.{0}.Key".format(tag_index))[0]
-            tag_value_key = "Tag.{0}.Value".format(tag_index)
+        if key.startswith(prefix) and key.endswith(key_suffix):
+            tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
+            tag_key = querystring_dict.get(
+                "{prefix}.{index}.{key_suffix}".format(
+                    prefix=prefix,
+                    index=tag_index,
+                    key_suffix=key_suffix,
+                ))[0]
+            tag_value_key = "{prefix}.{index}.{value_suffix}".format(
+                prefix=prefix,
+                index=tag_index,
+                value_suffix=value_suffix,
+            )
             if tag_value_key in querystring_dict:
                 response_values[tag_key] = querystring_dict.get(tag_value_key)[
                     0]
