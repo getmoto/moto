@@ -1,6 +1,7 @@
 from moto.core.responses import BaseResponse
+from moto.core.utils import tags_from_query_string
 from .models import eb_backends, EBBackend
-from .exceptions import InvalidParameterValueError
+from .exceptions import InvalidParameterValueError, ResourceNotFoundException
 
 
 class EBResponse(BaseResponse):
@@ -38,7 +39,11 @@ class EBResponse(BaseResponse):
                 "No Application named \'{}\' found.".format(application_name)
             )
 
-        env = app.create_environment(environment_name=environment_name)
+        tags = tags_from_query_string(self.querystring, prefix="Tags.member")
+        env = app.create_environment(
+            environment_name=environment_name,
+            tags=tags,
+        )
 
         template = self.response_template(EB_CREATE_ENVIRONMENT)
         return template.render(
@@ -61,6 +66,48 @@ class EBResponse(BaseResponse):
     @staticmethod
     def list_available_solution_stacks():
         return EB_LIST_AVAILABLE_SOLUTION_STACKS
+
+    def _find_environment_by_arn(self, arn):
+        for app in self.backend.applications.keys():
+            for env in self.backend.applications[app].environments.values():
+                if env.environment_arn == arn:
+                    return env
+        raise KeyError()
+
+    def update_tags_for_resource(self):
+        resource_arn = self._get_param('ResourceArn')
+        try:
+            res = self._find_environment_by_arn(resource_arn)
+        except KeyError:
+            raise ResourceNotFoundException(
+                "Resource not found for ARN \'{}\'.".format(resource_arn)
+            )
+
+        tags_to_add = tags_from_query_string(self.querystring, prefix="TagsToAdd.member")
+        for key, value in tags_to_add.items():
+            res.tags[key] = value
+
+        tags_to_remove = self._get_multi_param('TagsToRemove.member')
+        for key in tags_to_remove:
+            del res.tags[key]
+
+        return EB_UPDATE_TAGS_FOR_RESOURCE
+
+    def list_tags_for_resource(self):
+        resource_arn = self._get_param('ResourceArn')
+        try:
+            res = self._find_environment_by_arn(resource_arn)
+        except KeyError:
+            raise ResourceNotFoundException(
+                "Resource not found for ARN \'{}\'.".format(resource_arn)
+            )
+        tags = res.tags
+
+        template = self.response_template(EB_LIST_TAGS_FOR_RESOURCE)
+        return template.render(
+            tags=tags,
+            arn=resource_arn,
+        )
 
 
 EB_CREATE_APPLICATION = """
@@ -136,11 +183,11 @@ EB_CREATE_ENVIRONMENT = """
   <CreateEnvironmentResult>
     <SolutionStackName>{{ environment.solution_stack_name }}</SolutionStackName>
     <Health>Grey</Health>
-    <EnvironmentArn>arn:aws:elasticbeanstalk:{{ region }}:111122223333:environment/{{ environment.application_name }}/{{ environment.environment_name }}</EnvironmentArn>
+    <EnvironmentArn>{{ environment.environment_arn }}</EnvironmentArn>
     <DateUpdated>2019-09-04T09:41:24.222Z</DateUpdated>
     <DateCreated>2019-09-04T09:41:24.222Z</DateCreated>
     <EnvironmentId>{{ environment_id }}</EnvironmentId>
-    <PlatformArn>arn:aws:elasticbeanstalk:{{ region }}::platform/{{ environment.platform_arn }}</PlatformArn>
+    <PlatformArn>{{ environment.platform_arn }}</PlatformArn>
     <Tier>
       <Name>WebServer</Name>
       <Type>Standard</Type>
@@ -165,7 +212,7 @@ EB_DESCRIBE_ENVIRONMENTS = """
       <member>
         <SolutionStackName>{{ env.solution_stack_name }}</SolutionStackName>
         <Health>Grey</Health>
-        <EnvironmentArn>arn:aws:elasticbeanstalk:{{ region }}:123456789012:environment/{{ env.application_name }}/{{ env.environment_name }}</EnvironmentArn>
+        <EnvironmentArn>{{ env.environment_arn }}</EnvironmentArn>
         <MinCapacityEnabled>false</MinCapacityEnabled>
         <DateUpdated>2019-08-30T09:35:10.913Z</DateUpdated>
         <AbortableOperationInProgress>false</AbortableOperationInProgress>
@@ -173,7 +220,7 @@ EB_DESCRIBE_ENVIRONMENTS = """
         <DateCreated>2019-08-22T07:02:47.332Z</DateCreated>
         <EnvironmentId>{{ env.environment_id }}</EnvironmentId>
         <VersionLabel>1</VersionLabel>
-        <PlatformArn>arn:aws:elasticbeanstalk:{{ region }}::platform/{{ env.platform_arn }}</PlatformArn>
+        <PlatformArn>{{ env.platform_arn }}</PlatformArn>
         <Tier>
           <Name>WebServer</Name>
           <Type>Standard</Type>
@@ -1346,4 +1393,33 @@ EB_LIST_AVAILABLE_SOLUTION_STACKS = """
     <RequestId>bd6bd2b2-9983-4845-b53b-fe53e8a5e1e7</RequestId>
   </ResponseMetadata>
 </ListAvailableSolutionStacksResponse>
+"""
+
+
+EB_UPDATE_TAGS_FOR_RESOURCE = """
+<UpdateTagsForResourceResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
+  <ResponseMetadata>
+    <RequestId>f355d788-e67e-440f-b915-99e35254ffee</RequestId>
+  </ResponseMetadata>
+</UpdateTagsForResourceResponse>
+"""
+
+
+EB_LIST_TAGS_FOR_RESOURCE = """
+<ListTagsForResourceResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
+  <ListTagsForResourceResult>
+    <ResourceTags>
+      {% for key, value in tags.items() %}
+      <member>
+        <Key>{{ key }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </ResourceTags>
+    <ResourceArn>{{ arn }}</ResourceArn>
+  </ListTagsForResourceResult>
+  <ResponseMetadata>
+    <RequestId>178e410f-3b57-456f-a64c-a3b6a16da9ab</RequestId>
+  </ResponseMetadata>
+</ListTagsForResourceResponse>
 """

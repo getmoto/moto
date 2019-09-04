@@ -72,6 +72,78 @@ def test_describe_environments():
     envs[0]['EnvironmentName'].should.equal('myenv')
 
 
+def tags_dict_to_list(tag_dict):
+    tag_list = []
+    for key, value in tag_dict.items():
+        tag_list.append({'Key': key, 'Value': value})
+    return tag_list
+
+
+def tags_list_to_dict(tag_list):
+    tag_dict = {}
+    for tag in tag_list:
+        tag_dict[tag['Key']] = tag['Value']
+    return tag_dict
+
+
+@mock_eb
+def test_create_environment_tags():
+    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
+    conn.create_application(
+        ApplicationName="myapp",
+    )
+    env_tags = {'initial key': 'initial value'}
+    env = conn.create_environment(
+        ApplicationName="myapp",
+        EnvironmentName="myenv",
+        Tags=tags_dict_to_list(env_tags),
+    )
+
+    tags = conn.list_tags_for_resource(
+        ResourceArn=env['EnvironmentArn'],
+    )
+    tags['ResourceArn'].should.equal(env['EnvironmentArn'])
+    tags_list_to_dict(tags['ResourceTags']).should.equal(env_tags)
+
+
+@mock_eb
+def test_update_tags():
+    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
+    conn.create_application(
+        ApplicationName="myapp",
+    )
+    env_tags = {
+        'initial key': 'initial value',
+        'to remove': 'delete me',
+        'to update': 'original',
+    }
+    env = conn.create_environment(
+        ApplicationName="myapp",
+        EnvironmentName="myenv",
+        Tags=tags_dict_to_list(env_tags),
+    )
+
+    extra_env_tags = {
+        'to update': 'new',
+        'extra key': 'extra value',
+    }
+    conn.update_tags_for_resource(
+        ResourceArn=env['EnvironmentArn'],
+        TagsToAdd=tags_dict_to_list(extra_env_tags),
+        TagsToRemove=['to remove'],
+    )
+
+    total_env_tags = env_tags.copy()
+    total_env_tags.update(extra_env_tags)
+    del total_env_tags['to remove']
+
+    tags = conn.list_tags_for_resource(
+        ResourceArn=env['EnvironmentArn'],
+    )
+    tags['ResourceArn'].should.equal(env['EnvironmentArn'])
+    tags_list_to_dict(tags['ResourceTags']).should.equal(total_env_tags)
+
+
 @mock_eb
 def test_list_available_solution_stacks():
     conn = boto3.client('elasticbeanstalk', region_name='us-east-1')

@@ -7,31 +7,69 @@ from .exceptions import InvalidParameterValueError
 
 
 class FakeEnvironment(BaseModel):
-    def __init__(self, application, environment_name):
-        self.environment_name = environment_name
+    def __init__(
+            self,
+            application,
+            environment_name,
+            tags,
+    ):
         self.application = weakref.proxy(application)  # weakref to break circular dependencies
+        self.environment_name = environment_name
+        self.tags = tags
 
     @property
     def application_name(self):
         return self.application.application_name
 
+    @property
+    def environment_arn(self):
+        return 'arn:aws:elasticbeanstalk:{region}:{account_id}:' \
+               'environment/{application_name}/{environment_name}'.format(
+                    region=self.region,
+                    account_id='123456789012',
+                    application_name=self.application_name,
+                    environment_name=self.environment_name,
+                )
+
+    @property
+    def platform_arn(self):
+        return 'TODO'  # TODO
+
+    @property
+    def solution_stack_name(self):
+        return 'TODO'  # TODO
+
+    @property
+    def region(self):
+        return self.application.region
+
 
 class FakeApplication(BaseModel):
-    def __init__(self, application_name):
+    def __init__(self, backend, application_name):
+        self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
         self.environments = dict()
 
-    def create_environment(self, environment_name):
+    def create_environment(
+            self,
+            environment_name,
+            tags,
+    ):
         if environment_name in self.environments:
             raise InvalidParameterValueError
 
         env = FakeEnvironment(
             application=self,
             environment_name=environment_name,
+            tags=tags,
         )
         self.environments[environment_name] = env
 
         return env
+
+    @property
+    def region(self):
+        return self.backend.region
 
 
 class EBBackend(BaseBackend):
@@ -52,6 +90,7 @@ class EBBackend(BaseBackend):
                 "Application {} already exists.".format(application_name)
             )
         new_app = FakeApplication(
+            backend=self,
             application_name=application_name,
         )
         self.applications[application_name] = new_app
