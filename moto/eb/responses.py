@@ -1,5 +1,67 @@
 from moto.core.responses import BaseResponse
-from .models import eb_backends
+from .models import eb_backends, EBBackend
+from .exceptions import InvalidParameterValueError
+
+
+class EBResponse(BaseResponse):
+    @property
+    def backend(self):
+        """
+        :rtype: EBBackend
+        """
+        return eb_backends[self.region]
+
+    def create_application(self):
+        app = self.backend.create_application(
+            application_name=self._get_param('ApplicationName'),
+        )
+
+        template = self.response_template(EB_CREATE_APPLICATION)
+        return template.render(
+            region_name=self.backend.region,
+            application=app,
+        )
+
+    def describe_applications(self):
+        template = self.response_template(EB_DESCRIBE_APPLICATIONS)
+        return template.render(
+            applications=self.backend.applications.values(),
+        )
+
+    def create_environment(self):
+        application_name = self._get_param('ApplicationName')
+        environment_name = self._get_param('EnvironmentName')
+        try:
+            app = self.backend.applications[application_name]
+        except KeyError:
+            raise InvalidParameterValueError(
+                "No Application named \'{}\' found.".format(application_name)
+            )
+
+        env = app.create_environment(environment_name=environment_name)
+
+        template = self.response_template(EB_CREATE_ENVIRONMENT)
+        return template.render(
+            environment=env,
+            region=self.backend.region,
+        )
+
+    def describe_environments(self):
+        envs = []
+
+        for app in self.backend.applications.values():
+            for env in app.environments.values():
+                envs.append(env)
+
+        template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
+        return template.render(
+            environments=envs,
+        )
+
+    @staticmethod
+    def list_available_solution_stacks():
+        return EB_LIST_AVAILABLE_SOLUTION_STACKS
+
 
 EB_CREATE_APPLICATION = """
 <CreateApplicationResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
@@ -55,7 +117,7 @@ EB_DESCRIBE_APPLICATIONS = """
             </MaxCountRule>
           </VersionLifecycleConfig>
         </ResourceLifecycleConfig>
-        <ApplicationArn>arn:aws:elasticbeanstalk:{{ region_name }}:387323646340:application/{{ application.name }}</ApplicationArn>
+        <ApplicationArn>arn:aws:elasticbeanstalk:{{ region_name }}:111122223333:application/{{ application.name }}</ApplicationArn>
         <ApplicationName>{{ application.application_name }}</ApplicationName>
         <DateUpdated>2019-09-03T13:08:29.049Z</DateUpdated>
       </member>
@@ -69,24 +131,1219 @@ EB_DESCRIBE_APPLICATIONS = """
 """
 
 
-class EBResponse(BaseResponse):
-    @property
-    def backend(self):
-        return eb_backends[self.region]
+EB_CREATE_ENVIRONMENT = """
+<CreateEnvironmentResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
+  <CreateEnvironmentResult>
+    <SolutionStackName>{{ environment.solution_stack_name }}</SolutionStackName>
+    <Health>Grey</Health>
+    <EnvironmentArn>arn:aws:elasticbeanstalk:{{ region }}:111122223333:environment/{{ environment.application_name }}/{{ environment.environment_name }}</EnvironmentArn>
+    <DateUpdated>2019-09-04T09:41:24.222Z</DateUpdated>
+    <DateCreated>2019-09-04T09:41:24.222Z</DateCreated>
+    <EnvironmentId>{{ environment_id }}</EnvironmentId>
+    <PlatformArn>arn:aws:elasticbeanstalk:{{ region }}::platform/{{ environment.platform_arn }}</PlatformArn>
+    <Tier>
+      <Name>WebServer</Name>
+      <Type>Standard</Type>
+      <Version>1.0</Version>
+    </Tier>
+    <EnvironmentName>{{ environment.environment_name }}</EnvironmentName>
+    <ApplicationName>{{ environment.application_name }}</ApplicationName>
+    <Status>Launching</Status>
+  </CreateEnvironmentResult>
+  <ResponseMetadata>
+    <RequestId>18dc8158-f5d7-4d5a-82ef-07fcaadf81c6</RequestId>
+  </ResponseMetadata>
+</CreateEnvironmentResponse>
+"""
 
-    def create_application(self):
-        app = self.backend.create_application(
-            application_name=self._get_param('ApplicationName'),
-        )
 
-        template = self.response_template(EB_CREATE_APPLICATION)
-        return template.render(
-            region_name=self.backend.region,
-            application=app,
-        )
+EB_DESCRIBE_ENVIRONMENTS = """
+<DescribeEnvironmentsResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
+  <DescribeEnvironmentsResult>
+    <Environments>
+      {% for env in environments %}
+      <member>
+        <SolutionStackName>{{ env.solution_stack_name }}</SolutionStackName>
+        <Health>Grey</Health>
+        <EnvironmentArn>arn:aws:elasticbeanstalk:{{ region }}:123456789012:environment/{{ env.application_name }}/{{ env.environment_name }}</EnvironmentArn>
+        <MinCapacityEnabled>false</MinCapacityEnabled>
+        <DateUpdated>2019-08-30T09:35:10.913Z</DateUpdated>
+        <AbortableOperationInProgress>false</AbortableOperationInProgress>
+        <Alerts/>
+        <DateCreated>2019-08-22T07:02:47.332Z</DateCreated>
+        <EnvironmentId>{{ env.environment_id }}</EnvironmentId>
+        <VersionLabel>1</VersionLabel>
+        <PlatformArn>arn:aws:elasticbeanstalk:{{ region }}::platform/{{ env.platform_arn }}</PlatformArn>
+        <Tier>
+          <Name>WebServer</Name>
+          <Type>Standard</Type>
+          <Version>1.0</Version>
+        </Tier>
+        <HealthStatus>No Data</HealthStatus>
+        <EnvironmentName>{{ env.environment_name }}</EnvironmentName>
+        <EndpointURL></EndpointURL>
+        <CNAME></CNAME>
+        <EnvironmentLinks/>
+        <ApplicationName>{{ env.application_name }}</ApplicationName>
+        <Status>Ready</Status>
+      </member>
+      {% endfor %}
+    </Environments>
+  </DescribeEnvironmentsResult>
+  <ResponseMetadata>
+    <RequestId>dd56b215-01a0-40b2-bd1e-57589c39424f</RequestId>
+  </ResponseMetadata>
+</DescribeEnvironmentsResponse>
+"""
 
-    def describe_applications(self):
-        template = self.response_template(EB_DESCRIBE_APPLICATIONS)
-        return template.render(
-            applications=self.backend.applications.values(),
-        )
+
+# Current list as of 2019-09-04
+EB_LIST_AVAILABLE_SOLUTION_STACKS = """
+<ListAvailableSolutionStacksResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
+  <ListAvailableSolutionStacksResult>
+    <SolutionStacks>
+      <member>64bit Amazon Linux 2018.03 v4.10.1 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v4.9.2 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v4.8.0 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v4.6.0 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v4.5.3 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v4.5.1 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v4.5.0 running Node.js</member>
+      <member>64bit Amazon Linux 2017.09 v4.4.6 running Node.js</member>
+      <member>64bit Amazon Linux 2017.09 v4.4.5 running Node.js</member>
+      <member>64bit Amazon Linux 2017.09 v4.4.4 running Node.js</member>
+      <member>64bit Amazon Linux 2017.09 v4.4.2 running Node.js</member>
+      <member>64bit Amazon Linux 2017.09 v4.4.0 running Node.js</member>
+      <member>64bit Amazon Linux 2017.03 v4.3.0 running Node.js</member>
+      <member>64bit Amazon Linux 2017.03 v4.2.2 running Node.js</member>
+      <member>64bit Amazon Linux 2017.03 v4.2.1 running Node.js</member>
+      <member>64bit Amazon Linux 2017.03 v4.2.0 running Node.js</member>
+      <member>64bit Amazon Linux 2017.03 v4.1.1 running Node.js</member>
+      <member>64bit Amazon Linux 2017.03 v4.1.0 running Node.js</member>
+      <member>64bit Amazon Linux 2016.09 v4.0.1 running Node.js</member>
+      <member>64bit Amazon Linux 2016.09 v4.0.0 running Node.js</member>
+      <member>64bit Amazon Linux 2016.09 v3.3.1 running Node.js</member>
+      <member>64bit Amazon Linux 2016.09 v3.1.0 running Node.js</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.14 running PHP 5.4</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.14 running PHP 5.5</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.14 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.14 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.14 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.14 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.12 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.7 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.6 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.6 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.5 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.4 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.3 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.2 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.1 running PHP 7.2</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.0 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.1 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.1 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.1 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.0 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.0 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.6 running PHP 5.4</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.6 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.6 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.5 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running PHP 5.4</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running PHP 5.5</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.3 running PHP 5.4</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.3 running PHP 5.5</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.3 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.3 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.3 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.2 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.2 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.1 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.0 running PHP 5.4</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.0 running PHP 5.5</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.0 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.0 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.0 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2017.03 v2.5.0 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.03 v2.5.0 running PHP 7.1</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.4 running PHP 5.5</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.4 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.4 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.3 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.2 running PHP 5.4</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.2 running PHP 5.5</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.2 running PHP 5.6</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.2 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.1 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.0 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2016.09 v2.3.2 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2016.09 v2.3.1 running PHP 7.0</member>
+      <member>64bit Amazon Linux 2018.03 v2.9.1 running Python 3.6</member>
+      <member>64bit Amazon Linux 2018.03 v2.9.1 running Python 3.4</member>
+      <member>64bit Amazon Linux 2018.03 v2.9.1 running Python</member>
+      <member>64bit Amazon Linux 2018.03 v2.9.1 running Python 2.7</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.5 running Python 3.6</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.1 running Python 3.6</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.0 running Python 3.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running Python 3.6</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.1 running Python 3.6</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.0 running Python 3.4</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.6 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.5 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.4 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.3 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.2 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.1 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.0 (Puma)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.6 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.5 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.4 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.3 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.2 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.1 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.0 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 1.9.3</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.0 running Ruby 2.5 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.4 running Ruby 2.3 (Puma)</member>
+      <member>64bit Amazon Linux 2017.03 v2.4.4 running Ruby 2.3 (Passenger Standalone)</member>
+      <member>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 8.5 Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 8 Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 7 Java 7</member>
+      <member>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 7 Java 6</member>
+      <member>64bit Amazon Linux 2018.03 v3.1.1 running Tomcat 8.5 Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.6.5 running Tomcat 8 Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.6.2 running Tomcat 8 Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.6.1 running Tomcat 8 Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.6.0 running Tomcat 8 Java 8</member>
+      <member>64bit Amazon Linux 2016.09 v2.5.4 running Tomcat 8 Java 8</member>
+      <member>64bit Amazon Linux 2016.03 v2.1.0 running Tomcat 8 Java 8</member>
+      <member>64bit Windows Server Core 2016 v2.2.1 running IIS 10.0</member>
+      <member>64bit Windows Server 2016 v2.2.1 running IIS 10.0</member>
+      <member>64bit Windows Server Core 2012 R2 v2.2.1 running IIS 8.5</member>
+      <member>64bit Windows Server 2012 R2 v2.2.1 running IIS 8.5</member>
+      <member>64bit Windows Server Core 2016 v1.2.0 running IIS 10.0</member>
+      <member>64bit Windows Server 2016 v1.2.0 running IIS 10.0</member>
+      <member>64bit Windows Server Core 2012 R2 v1.2.0 running IIS 8.5</member>
+      <member>64bit Windows Server 2012 R2 v1.2.0 running IIS 8.5</member>
+      <member>64bit Windows Server 2012 v1.2.0 running IIS 8</member>
+      <member>64bit Windows Server 2008 R2 v1.2.0 running IIS 7.5</member>
+      <member>64bit Windows Server Core 2012 R2 running IIS 8.5</member>
+      <member>64bit Windows Server 2012 R2 running IIS 8.5</member>
+      <member>64bit Windows Server 2012 running IIS 8</member>
+      <member>64bit Windows Server 2008 R2 running IIS 7.5</member>
+      <member>64bit Amazon Linux 2018.03 v2.12.16 running Docker 18.06.1-ce</member>
+      <member>64bit Amazon Linux 2016.09 v2.5.2 running Docker 1.12.6</member>
+      <member>64bit Amazon Linux 2018.03 v2.15.2 running Multi-container Docker 18.06.1-ce (Generic)</member>
+      <member>64bit Debian jessie v2.12.16 running Go 1.4 (Preconfigured - Docker)</member>
+      <member>64bit Debian jessie v2.12.16 running Go 1.3 (Preconfigured - Docker)</member>
+      <member>64bit Debian jessie v2.12.16 running Python 3.4 (Preconfigured - Docker)</member>
+      <member>64bit Debian jessie v2.10.0 running Python 3.4 (Preconfigured - Docker)</member>
+      <member>64bit Amazon Linux 2018.03 v2.9.1 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.9.1 running Java 7</member>
+      <member>64bit Amazon Linux 2018.03 v2.8.0 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.6 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.5 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.4 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.2 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.7.1 running Java 8</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.8 running Java 8</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.5 running Java 8</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.4 running Java 8</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.3 running Java 8</member>
+      <member>64bit Amazon Linux 2017.09 v2.6.0 running Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.5.4 running Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.5.3 running Java 8</member>
+      <member>64bit Amazon Linux 2017.03 v2.5.2 running Java 8</member>
+      <member>64bit Amazon Linux 2016.09 v2.4.4 running Java 8</member>
+      <member>64bit Amazon Linux 2018.03 v2.12.1 running Go 1.12.7</member>
+      <member>64bit Amazon Linux 2018.03 v2.6.14 running Packer 1.0.3</member>
+      <member>64bit Amazon Linux 2018.03 v2.12.16 running GlassFish 5.0 Java 8 (Preconfigured - Docker)</member>
+    </SolutionStacks>
+    <SolutionStackDetails>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.10.1 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.9.2 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.8.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.6.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.5.3 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.5.1 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v4.5.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v4.4.6 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v4.4.5 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v4.4.4 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v4.4.2 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v4.4.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v4.3.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v4.2.2 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v4.2.1 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v4.2.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v4.1.1 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v4.1.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v4.0.1 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v4.0.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v3.3.1 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v3.1.0 running Node.js</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.14 running PHP 5.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.14 running PHP 5.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.14 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.14 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.14 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.14 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.12 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.7 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.6 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.6 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.5 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.4 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.3 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.2 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.1 running PHP 7.2</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.0 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.1 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.1 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.1 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.0 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.0 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.6 running PHP 5.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.6 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.6 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.5 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running PHP 5.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running PHP 5.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.3 running PHP 5.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.3 running PHP 5.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.3 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.3 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.3 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.2 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.2 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.1 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.0 running PHP 5.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.0 running PHP 5.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.0 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.0 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.0 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.5.0 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.5.0 running PHP 7.1</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.4 running PHP 5.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.4 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.4 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.3 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.2 running PHP 5.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.2 running PHP 5.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.2 running PHP 5.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.2 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.1 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.0 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v2.3.2 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v2.3.1 running PHP 7.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.9.1 running Python 3.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.9.1 running Python 3.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.9.1 running Python</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.9.1 running Python 2.7</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.5 running Python 3.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.1 running Python 3.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.0 running Python 3.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running Python 3.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.1 running Python 3.6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.0 running Python 3.4</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.6 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.5 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.4 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.3 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.2 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.1 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.0 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.6 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.5 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.4 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.3 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.2 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.1 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 2.0 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.10.1 running Ruby 1.9.3</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.0 running Ruby 2.5 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.4 running Ruby 2.3 (Puma)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.4.4 running Ruby 2.3 (Passenger Standalone)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 8.5 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 7 Java 7</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v3.2.1 running Tomcat 7 Java 6</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v3.1.1 running Tomcat 8.5 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.6.5 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.6.2 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.6.1 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.6.0 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v2.5.4 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.03 v2.1.0 running Tomcat 8 Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>war</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server Core 2016 v2.2.1 running IIS 10.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2016 v2.2.1 running IIS 10.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server Core 2012 R2 v2.2.1 running IIS 8.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2012 R2 v2.2.1 running IIS 8.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server Core 2016 v1.2.0 running IIS 10.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2016 v1.2.0 running IIS 10.0</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server Core 2012 R2 v1.2.0 running IIS 8.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2012 R2 v1.2.0 running IIS 8.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2012 v1.2.0 running IIS 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2008 R2 v1.2.0 running IIS 7.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server Core 2012 R2 running IIS 8.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2012 R2 running IIS 8.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2012 running IIS 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Windows Server 2008 R2 running IIS 7.5</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.12.16 running Docker 18.06.1-ce</SolutionStackName>
+        <PermittedFileTypes/>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v2.5.2 running Docker 1.12.6</SolutionStackName>
+        <PermittedFileTypes/>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.15.2 running Multi-container Docker 18.06.1-ce (Generic)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+          <member>json</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Debian jessie v2.12.16 running Go 1.4 (Preconfigured - Docker)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Debian jessie v2.12.16 running Go 1.3 (Preconfigured - Docker)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Debian jessie v2.12.16 running Python 3.4 (Preconfigured - Docker)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Debian jessie v2.10.0 running Python 3.4 (Preconfigured - Docker)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.9.1 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.9.1 running Java 7</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.8.0 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.6 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.5 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.4 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.2 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.7.1 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.8 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.5 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.4 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.3 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.09 v2.6.0 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.5.4 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.5.3 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2017.03 v2.5.2 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2016.09 v2.4.4 running Java 8</SolutionStackName>
+        <PermittedFileTypes>
+          <member>jar</member>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.12.1 running Go 1.12.7</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.6.14 running Packer 1.0.3</SolutionStackName>
+        <PermittedFileTypes/>
+      </member>
+      <member>
+        <SolutionStackName>64bit Amazon Linux 2018.03 v2.12.16 running GlassFish 5.0 Java 8 (Preconfigured - Docker)</SolutionStackName>
+        <PermittedFileTypes>
+          <member>zip</member>
+        </PermittedFileTypes>
+      </member>
+    </SolutionStackDetails>
+  </ListAvailableSolutionStacksResult>
+  <ResponseMetadata>
+    <RequestId>bd6bd2b2-9983-4845-b53b-fe53e8a5e1e7</RequestId>
+  </ResponseMetadata>
+</ListAvailableSolutionStacksResponse>
+"""

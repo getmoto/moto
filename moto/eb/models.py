@@ -1,12 +1,37 @@
+import weakref
+
 import boto.beanstalk
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import InvalidParameterValueError
 
 
+class FakeEnvironment(BaseModel):
+    def __init__(self, application, environment_name):
+        self.environment_name = environment_name
+        self.application = weakref.proxy(application)  # weakref to break circular dependencies
+
+    @property
+    def application_name(self):
+        return self.application.application_name
+
+
 class FakeApplication(BaseModel):
     def __init__(self, application_name):
         self.application_name = application_name
+        self.environments = dict()
+
+    def create_environment(self, environment_name):
+        if environment_name in self.environments:
+            raise InvalidParameterValueError
+
+        env = FakeEnvironment(
+            application=self,
+            environment_name=environment_name,
+        )
+        self.environments[environment_name] = env
+
+        return env
 
 
 class EBBackend(BaseBackend):
