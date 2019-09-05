@@ -31,7 +31,6 @@ class EBResponse(BaseResponse):
 
     def create_environment(self):
         application_name = self._get_param('ApplicationName')
-        environment_name = self._get_param('EnvironmentName')
         try:
             app = self.backend.applications[application_name]
         except KeyError:
@@ -41,7 +40,8 @@ class EBResponse(BaseResponse):
 
         tags = tags_from_query_string(self.querystring, prefix="Tags.member")
         env = app.create_environment(
-            environment_name=environment_name,
+            environment_name=self._get_param('EnvironmentName'),
+            solution_stack_name=self._get_param('SolutionStackName'),
             tags=tags,
         )
 

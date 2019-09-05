@@ -11,10 +11,12 @@ class FakeEnvironment(BaseModel):
             self,
             application,
             environment_name,
+            solution_stack_name,
             tags,
     ):
         self.application = weakref.proxy(application)  # weakref to break circular dependencies
         self.environment_name = environment_name
+        self.solution_stack_name = solution_stack_name
         self.tags = tags
 
     @property
@@ -36,10 +38,6 @@ class FakeEnvironment(BaseModel):
         return 'TODO'  # TODO
 
     @property
-    def solution_stack_name(self):
-        return 'TODO'  # TODO
-
-    @property
     def region(self):
         return self.application.region
 
@@ -53,6 +51,7 @@ class FakeApplication(BaseModel):
     def create_environment(
             self,
             environment_name,
+            solution_stack_name,
             tags,
     ):
         if environment_name in self.environments:
@@ -61,6 +60,7 @@ class FakeApplication(BaseModel):
         env = FakeEnvironment(
             application=self,
             environment_name=environment_name,
+            solution_stack_name=solution_stack_name,
             tags=tags,
         )
         self.environments[environment_name] = env
