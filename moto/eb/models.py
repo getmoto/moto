@@ -26,12 +26,12 @@ class FakeEnvironment(BaseModel):
     @property
     def environment_arn(self):
         return 'arn:aws:elasticbeanstalk:{region}:{account_id}:' \
-               'environment/{application_name}/{environment_name}'.format(
-                    region=self.region,
-                    account_id='123456789012',
-                    application_name=self.application_name,
-                    environment_name=self.environment_name,
-                )
+            'environment/{application_name}/{environment_name}'.format(
+                region=self.region,
+                account_id='123456789012',
+                application_name=self.application_name,
+                environment_name=self.environment_name,
+            )
 
     @property
     def platform_arn(self):

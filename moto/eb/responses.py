@@ -1,6 +1,6 @@
 from moto.core.responses import BaseResponse
 from moto.core.utils import tags_from_query_string
-from .models import eb_backends, EBBackend
+from .models import eb_backends
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
 
 
