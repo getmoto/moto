@@ -226,9 +226,16 @@ class CloudFormationResponse(BaseResponse):
         stack_name_or_id = self._get_param('StackName')
         resources = self.cloudformation_backend.list_stack_resources(
             stack_name_or_id)
+        request_url = urlparse(self.uri)
+        resources_with_request_url = []
+        for resource in resources:
+            if hasattr(resource, 'with_request_url'):
+                resources_with_request_url.append(resource.with_request_url(request_url))
+            else:
+                resources_with_request_url.append(resource)
 
         template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
-        return template.render(resources=resources)
+        return template.render(resources=resources_with_request_url)
 
     def get_template(self):
         name_or_stack_id = self.querystring.get('StackName')[0]

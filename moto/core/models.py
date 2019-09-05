@@ -7,6 +7,7 @@ import inspect
 import os
 import re
 import six
+from copy import copy 
 from io import BytesIO
 from collections import defaultdict
 from botocore.handlers import BUILTIN_HANDLERS
@@ -465,6 +466,22 @@ class BaseModel(object):
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
         return instance
+
+    @property
+    def request_url(self):
+        if hasattr(self, '_request_url'):
+            return self._request_url
+        else:
+            return None
+
+    @request_url.setter
+    def request_url(self, request_url):
+        self._request_url = request_url
+
+    def with_request_url(self, request_url):
+        new_model = copy(self)
+        new_model.request_url = request_url
+        return new_model
 
 
 class BaseBackend(object):
