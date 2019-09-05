@@ -117,7 +117,7 @@ def test_stack_list_resources():
     queue = resources[0]
     queue.resource_type.should.equal('AWS::SQS::Queue')
     queue.logical_resource_id.should.equal("QueueGroup")
-    queue.physical_resource_id.should.equal("my-queue")
+    queue.physical_resource_id.should.equal("https://cloudformation.us-west-1.amazonaws.com/123456789012/my-queue")
 
 
 @mock_cloudformation_deprecated()

@@ -321,7 +321,7 @@ class Queue(BaseModel):
 
     @property
     def physical_resource_id(self):
-        if self.request_url != None:
+        if self.request_url is not None:
             return self.url(self.request_url)
         else:
             return self.name

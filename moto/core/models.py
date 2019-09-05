@@ -7,7 +7,7 @@ import inspect
 import os
 import re
 import six
-from copy import copy 
+from copy import copy
 from io import BytesIO
 from collections import defaultdict
 from botocore.handlers import BUILTIN_HANDLERS
