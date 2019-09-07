@@ -5,7 +5,7 @@ from datetime import datetime
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from uuid import uuid4
-from .exceptions import AccessDeniedException, ExecutionDoesNotExist, InvalidArn, InvalidName, StateMachineDoesNotExist
+from .exceptions import ExecutionDoesNotExist, InvalidArn, InvalidName, StateMachineDoesNotExist
 
 
 class StateMachine():
@@ -98,7 +98,11 @@ class StepFunctionBackend(BaseBackend):
 
     def start_execution(self, state_machine_arn):
         state_machine_name = self.describe_state_machine(state_machine_arn).name
-        execution = Execution(region_name=self.region_name, account_id=self._get_account_id(), state_machine_name=state_machine_name, execution_name=str(uuid4()), state_machine_arn=state_machine_arn)
+        execution = Execution(region_name=self.region_name,
+                              account_id=self._get_account_id(),
+                              state_machine_name=state_machine_name,
+                              execution_name=str(uuid4()),
+                              state_machine_arn=state_machine_arn)
         self.executions.append(execution)
         return execution
 
@@ -134,28 +138,22 @@ class StepFunctionBackend(BaseBackend):
     def _validate_role_arn(self, role_arn):
         self._validate_arn(arn=role_arn,
                            regex=self.accepted_role_arn_format,
-                           invalid_msg="Invalid Role Arn: '" + role_arn + "'",
-                           access_denied_msg='Cross-account pass role is not allowed.')
+                           invalid_msg="Invalid Role Arn: '" + role_arn + "'")
 
     def _validate_machine_arn(self, machine_arn):
         self._validate_arn(arn=machine_arn,
                            regex=self.accepted_mchn_arn_format,
-                           invalid_msg="Invalid Role Arn: '" + machine_arn + "'",
-                           access_denied_msg='User moto is not authorized to access this resource')
+                           invalid_msg="Invalid Role Arn: '" + machine_arn + "'")
 
     def _validate_execution_arn(self, execution_arn):
         self._validate_arn(arn=execution_arn,
                            regex=self.accepted_exec_arn_format,
-                           invalid_msg="Execution Does Not Exist: '" + execution_arn + "'",
-                           access_denied_msg='User moto is not authorized to access this resource')
+                           invalid_msg="Execution Does Not Exist: '" + execution_arn + "'")
 
-    def _validate_arn(self, arn, regex, invalid_msg, access_denied_msg):
+    def _validate_arn(self, arn, regex, invalid_msg):
         match = regex.match(arn)
         if not arn or not match:
             raise InvalidArn(invalid_msg)
-
-        if self._get_account_id() != match.group('account_id'):
-            raise AccessDeniedException(access_denied_msg)
 
     def _get_account_id(self):
         if self._account_id:

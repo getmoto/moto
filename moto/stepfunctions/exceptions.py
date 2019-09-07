@@ -3,38 +3,33 @@ import json
 
 
 class AWSError(Exception):
-    CODE = None
+    TYPE = None
     STATUS = 400
 
-    def __init__(self, message, code=None, status=None):
+    def __init__(self, message, type=None, status=None):
         self.message = message
-        self.code = code if code is not None else self.CODE
+        self.type = type if type is not None else self.TYPE
         self.status = status if status is not None else self.STATUS
 
     def response(self):
-        return json.dumps({'__type': self.code, 'message': self.message}), dict(status=self.status)
-
-
-class AccessDeniedException(AWSError):
-    CODE = 'AccessDeniedException'
-    STATUS = 400
+        return json.dumps({'__type': self.type, 'message': self.message}), dict(status=self.status)
 
 
 class ExecutionDoesNotExist(AWSError):
-    CODE = 'ExecutionDoesNotExist'
+    TYPE = 'ExecutionDoesNotExist'
     STATUS = 400
 
 
 class InvalidArn(AWSError):
-    CODE = 'InvalidArn'
+    TYPE = 'InvalidArn'
     STATUS = 400
 
 
 class InvalidName(AWSError):
-    CODE = 'InvalidName'
+    TYPE = 'InvalidName'
     STATUS = 400
 
 
 class StateMachineDoesNotExist(AWSError):
-    CODE = 'StateMachineDoesNotExist'
+    TYPE = 'StateMachineDoesNotExist'
     STATUS = 400
