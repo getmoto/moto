@@ -1827,6 +1827,23 @@ valid_policy_documents = [
                 "Resource": ["*"]
             }
         ]
+    },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "",
+                "Effect": "Allow",
+                "Action": "rds:*",
+                "Resource": ["arn:aws:rds:region:*:*"]
+            },
+            {
+                "Sid": "",
+                "Effect": "Allow",
+                "Action": ["rds:Describe*"],
+                "Resource": ["*"]
+            }
+        ]
     }
 ]
 
