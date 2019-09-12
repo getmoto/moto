@@ -198,6 +198,7 @@ class CallbackResponse(responses.CallbackResponse):
 botocore_mock = responses.RequestsMock(assert_all_requests_are_fired=False, target='botocore.vendored.requests.adapters.HTTPAdapter.send')
 responses_mock = responses._default_mock
 # Add passthrough to allow any other requests to work
+# Since this uses .startswith, it applies to http and https requests.
 responses_mock.add_passthru("http")
 
 
