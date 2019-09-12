@@ -458,10 +458,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else:
                 result_folders = self._get_results_from_token(result_folders, limit)
 
-        if not delimiter:
-            result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
-        else:
-            result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
+        tagged_keys = [(key, True) for key in result_keys]
+        tagged_folders = [(folder, False) for folder in result_folders]
+        all_keys =  tagged_keys + tagged_folders
+        all_keys.sort()
+        result_keys, result_folders, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
 
         key_count = len(result_keys) + len(result_folders)
 
@@ -487,16 +488,19 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             continuation_index += 1
         return result_keys[continuation_index:]
 
-    def _truncate_result(self, result_keys, max_keys):
-        if len(result_keys) > max_keys:
+    def _truncate_result(self, all_keys, max_keys):
+        if len(all_keys) > max_keys:
             is_truncated = 'true'
-            result_keys = result_keys[:max_keys]
-            item = result_keys[-1]
+            all_keys = all_keys[:max_keys]
+            item = all_keys[-1][0]
             next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
             next_continuation_token = None
-        return result_keys, is_truncated, next_continuation_token
+        result_keys, result_folders = [], []
+        for (key, is_key) in all_keys:
+            (result_keys if is_key else result_folders).append(key)
+        return result_keys, result_folders, is_truncated, next_continuation_token
 
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring):
         if not request.headers.get('Content-Length'):
