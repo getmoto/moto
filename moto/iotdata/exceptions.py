@@ -21,3 +21,11 @@ class InvalidRequestException(IoTDataPlaneClientError):
         super(InvalidRequestException, self).__init__(
             "InvalidRequestException", message
         )
+
+
+class ConflictException(IoTDataPlaneClientError):
+    def __init__(self, message):
+        self.code = 409
+        super(ConflictException, self).__init__(
+            "ConflictException", message
+        )
