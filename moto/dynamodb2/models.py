@@ -363,7 +363,7 @@ class StreamRecord(BaseModel):
             'dynamodb': {
                 'StreamViewType': stream_type,
                 'ApproximateCreationDateTime': datetime.datetime.utcnow().isoformat(),
-                'SequenceNumber': seq,
+                'SequenceNumber': str(seq),
                 'SizeBytes': 1,
                 'Keys': keys
             }

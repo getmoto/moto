@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 
 from .models import dynamodbstreams_backends
+from six import string_types
 
 
 class DynamoDBStreamsHandler(BaseResponse):
@@ -23,8 +24,13 @@ class DynamoDBStreamsHandler(BaseResponse):
         arn = self._get_param('StreamArn')
         shard_id = self._get_param('ShardId')
         shard_iterator_type = self._get_param('ShardIteratorType')
+        sequence_number = self._get_param('SequenceNumber')
+        # according to documentation sequence_number param should be string
+        if isinstance(sequence_number, string_types):
+            sequence_number = int(sequence_number)
+
         return self.backend.get_shard_iterator(arn, shard_id,
-                                               shard_iterator_type)
+                                               shard_iterator_type, sequence_number)
 
     def get_records(self):
         arn = self._get_param('ShardIterator')
