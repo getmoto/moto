@@ -6,7 +6,7 @@ from jinja2 import Template
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
 from .utils import make_arn_for_target_group
@@ -220,9 +220,9 @@ class FakeListener(BaseModel):
                 action_type = action['Type']
                 if action_type == 'forward':
                     default_actions.append({'type': action_type, 'target_group_arn': action['TargetGroupArn']})
-                elif action_type in ['redirect', 'authenticate-cognito']:
+                elif action_type in ['redirect', 'authenticate-cognito', 'fixed-response']:
                     redirect_action = {'type': action_type}
-                    key = 'RedirectConfig' if action_type == 'redirect' else 'AuthenticateCognitoConfig'
+                    key = underscores_to_camelcase(action_type.capitalize().replace('-', '_')) + 'Config'
                     for redirect_config_key, redirect_config_value in action[key].items():
                         # need to match the output of _get_list_prefix
                         redirect_action[camelcase_to_underscores(key) + '._' + camelcase_to_underscores(redirect_config_key)] = redirect_config_value
@@ -258,6 +258,12 @@ class FakeAction(BaseModel):
                 <UserPoolClientId>{{ action.data["authenticate_cognito_config._user_pool_client_id"] }}</UserPoolClientId>
                 <UserPoolDomain>{{ action.data["authenticate_cognito_config._user_pool_domain"] }}</UserPoolDomain>
             </AuthenticateCognitoConfig>
+            {% elif action.type == "fixed-response" %}
+             <FixedResponseConfig>
+                <ContentType>{{ action.data["fixed_response_config._content_type"] }}</ContentType>
+                <MessageBody>{{ action.data["fixed_response_config._message_body"] }}</MessageBody>
+                <StatusCode>{{ action.data["fixed_response_config._status_code"] }}</StatusCode>
+            </FixedResponseConfig>
             {% endif %}
             """)
         return template.render(action=self)
@@ -482,7 +488,7 @@ class ELBv2Backend(BaseBackend):
                 action_target_group_arn = action.data['target_group_arn']
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
-            elif action_type in ['redirect', 'authenticate-cognito']:
+            elif action_type in ['redirect', 'authenticate-cognito', 'fixed-response']:
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
