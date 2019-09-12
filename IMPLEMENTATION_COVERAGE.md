@@ -3801,14 +3801,14 @@
 - [ ] update_stream
 
 ## kms
-41% implemented
+54% implemented
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
 - [ ] create_alias
 - [ ] create_custom_key_store
 - [ ] create_grant
 - [X] create_key
-- [ ] decrypt
+- [X] decrypt
 - [X] delete_alias
 - [ ] delete_custom_key_store
 - [ ] delete_imported_key_material
@@ -3819,10 +3819,10 @@
 - [ ] disconnect_custom_key_store
 - [X] enable_key
 - [X] enable_key_rotation
-- [ ] encrypt
+- [X] encrypt
 - [X] generate_data_key
-- [ ] generate_data_key_without_plaintext
-- [ ] generate_random
+- [X] generate_data_key_without_plaintext
+- [X] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
 - [ ] get_parameters_for_import
@@ -3834,7 +3834,7 @@
 - [X] list_resource_tags
 - [ ] list_retirable_grants
 - [X] put_key_policy
-- [ ] re_encrypt
+- [X] re_encrypt
 - [ ] retire_grant
 - [ ] revoke_grant
 - [X] schedule_key_deletion
