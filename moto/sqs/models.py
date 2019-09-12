@@ -265,6 +265,9 @@ class Queue(BaseModel):
         if 'maxReceiveCount' not in self.redrive_policy:
             raise RESTError('InvalidParameterValue', 'Redrive policy does not contain maxReceiveCount')
 
+        # 'maxReceiveCount' is stored as int
+        self.redrive_policy['maxReceiveCount'] = int(self.redrive_policy['maxReceiveCount'])
+
         for queue in sqs_backends[self.region].queues.values():
             if queue.queue_arn == self.redrive_policy['deadLetterTargetArn']:
                 self.dead_letter_queue = queue
