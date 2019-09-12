@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import datetime
 import re
 from jinja2 import Template
+from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
@@ -31,8 +32,8 @@ from .exceptions import (
     RuleNotFoundError,
     DuplicatePriorityError,
     InvalidTargetGroupNameError,
-    InvalidModifyRuleArgumentsError
-)
+    InvalidModifyRuleArgumentsError,
+    InvalidStatusCodeActionTypeError, InvalidLoadBalancerActionException)
 
 
 class FakeHealthStatus(BaseModel):
@@ -488,10 +489,29 @@ class ELBv2Backend(BaseBackend):
                 action_target_group_arn = action.data['target_group_arn']
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
-            elif action_type in ['redirect', 'authenticate-cognito', 'fixed-response']:
+            elif action_type == 'fixed-response':
+                self._validate_fixed_response_action(action, i, index)
+            elif action_type in ['redirect', 'authenticate-cognito']:
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
+
+    def _validate_fixed_response_action(self, action, i, index):
+        status_code = action.data.get('fixed_response_config._status_code')
+        if status_code is None:
+            raise ParamValidationError(
+                report='Missing required parameter in Actions[%s].FixedResponseConfig: "StatusCode"' % i)
+        if not re.match(r'^(2|4|5)\d\d$', status_code):
+            raise InvalidStatusCodeActionTypeError(
+                "1 validation error detected: Value '%s' at 'actions.%s.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
+Member must satisfy regular expression pattern: ^(2|4|5)\d\d$" % (status_code, index)
+            )
+        content_type = action.data['fixed_response_config._content_type']
+        if content_type and content_type not in ['text/plain', 'text/css', 'text/html', 'application/javascript',
+                                                 'application/json']:
+            raise InvalidLoadBalancerActionException(
+                "The ContentType must be one of:'text/html', 'application/json', 'application/javascript', 'text/css', 'text/plain'"
+            )
 
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:

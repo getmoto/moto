@@ -190,3 +190,18 @@ class InvalidModifyRuleArgumentsError(ELBClientError):
             "ValidationError",
             "Either conditions or actions must be specified"
         )
+
+
+class InvalidStatusCodeActionTypeError(ELBClientError):
+    def __init__(self, msg):
+        super(InvalidStatusCodeActionTypeError, self).__init__(
+            "ValidationError", msg
+        )
+
+
+class InvalidLoadBalancerActionException(ELBClientError):
+
+    def __init__(self, msg):
+        super(InvalidLoadBalancerActionException, self).__init__(
+            "InvalidLoadBalancerAction", msg
+        )
