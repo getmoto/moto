@@ -4,7 +4,7 @@ import json
 import os
 import boto3
 import botocore
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from nose.tools import assert_raises
 import sure  # noqa
 
@@ -2017,3 +2017,279 @@ def test_cognito_action_listener_rule_cloudformation():
             'UserPoolDomain': 'testpool',
         }
     },])
+
+
+@mock_elbv2
+@mock_ec2
+def test_fixed_response_action_listener_rule():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.128/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    action = {
+        'Type': 'fixed-response',
+        'FixedResponseConfig': {
+             'ContentType': 'text/plain',
+             'MessageBody': 'This page does not exist',
+             'StatusCode': '404',
+         }
+    }
+    response = conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                    Protocol='HTTP',
+                                    Port=80,
+                                    DefaultActions=[action])
+
+    listener = response.get('Listeners')[0]
+    listener.get('DefaultActions')[0].should.equal(action)
+    listener_arn = listener.get('ListenerArn')
+
+    describe_rules_response = conn.describe_rules(ListenerArn=listener_arn)
+    describe_rules_response['Rules'][0]['Actions'][0].should.equal(action)
+
+    describe_listener_response = conn.describe_listeners(ListenerArns=[listener_arn, ])
+    describe_listener_actions = describe_listener_response['Listeners'][0]['DefaultActions'][0]
+    describe_listener_actions.should.equal(action)
+
+
+@mock_elbv2
+@mock_cloudformation
+def test_fixed_response_action_listener_rule_cloudformation():
+    cnf_conn = boto3.client('cloudformation', region_name='us-east-1')
+    elbv2_client = boto3.client('elbv2', region_name='us-east-1')
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/16",
+                },
+            },
+            "subnet1": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "subnet2": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.1.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "testLb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "my-lb",
+                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
+                    "Type": "application",
+                    "SecurityGroups": [],
+                }
+            },
+            "testListener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "LoadBalancerArn": {"Ref": "testLb"},
+                    "Port": 80,
+                    "Protocol": "HTTP",
+                    "DefaultActions": [{
+                        "Type": "fixed-response",
+                        "FixedResponseConfig": {
+                            'ContentType': 'text/plain',
+                            'MessageBody': 'This page does not exist',
+                            'StatusCode': '404',
+                        }
+                    }]
+                }
+
+            }
+        }
+    }
+    template_json = json.dumps(template)
+    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
+
+    describe_load_balancers_response = elbv2_client.describe_load_balancers(Names=['my-lb',])
+    load_balancer_arn = describe_load_balancers_response['LoadBalancers'][0]['LoadBalancerArn']
+    describe_listeners_response = elbv2_client.describe_listeners(LoadBalancerArn=load_balancer_arn)
+
+    describe_listeners_response['Listeners'].should.have.length_of(1)
+    describe_listeners_response['Listeners'][0]['DefaultActions'].should.equal([{
+        'Type': 'fixed-response',
+        "FixedResponseConfig": {
+            'ContentType': 'text/plain',
+            'MessageBody': 'This page does not exist',
+            'StatusCode': '404',
+        }
+    },])
+
+
+@mock_elbv2
+@mock_ec2
+def test_fixed_response_action_listener_rule_validates_status_code():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.128/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    missing_status_code_action = {
+        'Type': 'fixed-response',
+        'FixedResponseConfig': {
+             'ContentType': 'text/plain',
+             'MessageBody': 'This page does not exist',
+         }
+    }
+    with assert_raises(ParamValidationError):
+        conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                    Protocol='HTTP',
+                                    Port=80,
+                                    DefaultActions=[missing_status_code_action])
+
+    invalid_status_code_action = {
+        'Type': 'fixed-response',
+        'FixedResponseConfig': {
+            'ContentType': 'text/plain',
+            'MessageBody': 'This page does not exist',
+            'StatusCode': '100'
+        }
+    }
+
+    @mock_elbv2
+    @mock_ec2
+    def test_fixed_response_action_listener_rule_validates_status_code():
+        conn = boto3.client('elbv2', region_name='us-east-1')
+        ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+        security_group = ec2.create_security_group(
+            GroupName='a-security-group', Description='First One')
+        vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+        subnet1 = ec2.create_subnet(
+            VpcId=vpc.id,
+            CidrBlock='172.28.7.192/26',
+            AvailabilityZone='us-east-1a')
+        subnet2 = ec2.create_subnet(
+            VpcId=vpc.id,
+            CidrBlock='172.28.7.128/26',
+            AvailabilityZone='us-east-1b')
+
+        response = conn.create_load_balancer(
+            Name='my-lb',
+            Subnets=[subnet1.id, subnet2.id],
+            SecurityGroups=[security_group.id],
+            Scheme='internal',
+            Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+        load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+        missing_status_code_action = {
+            'Type': 'fixed-response',
+            'FixedResponseConfig': {
+                'ContentType': 'text/plain',
+                'MessageBody': 'This page does not exist',
+            }
+        }
+        with assert_raises(ParamValidationError):
+            conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                 Protocol='HTTP',
+                                 Port=80,
+                                 DefaultActions=[missing_status_code_action])
+
+        invalid_status_code_action = {
+            'Type': 'fixed-response',
+            'FixedResponseConfig': {
+                'ContentType': 'text/plain',
+                'MessageBody': 'This page does not exist',
+                'StatusCode': '100'
+            }
+        }
+
+        with assert_raises(ClientError) as invalid_status_code_exception:
+            conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                                 Protocol='HTTP',
+                                 Port=80,
+                                 DefaultActions=[invalid_status_code_action])
+
+        invalid_status_code_exception.exception.response['Error']['Code'].should.equal('ValidationError')
+
+
+@mock_elbv2
+@mock_ec2
+def test_fixed_response_action_listener_rule_validates_content_type():
+    conn = boto3.client('elbv2', region_name='us-east-1')
+    ec2 = boto3.resource('ec2', region_name='us-east-1')
+
+    security_group = ec2.create_security_group(
+        GroupName='a-security-group', Description='First One')
+    vpc = ec2.create_vpc(CidrBlock='172.28.7.0/24', InstanceTenancy='default')
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.192/26',
+        AvailabilityZone='us-east-1a')
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock='172.28.7.128/26',
+        AvailabilityZone='us-east-1b')
+
+    response = conn.create_load_balancer(
+        Name='my-lb',
+        Subnets=[subnet1.id, subnet2.id],
+        SecurityGroups=[security_group.id],
+        Scheme='internal',
+        Tags=[{'Key': 'key_name', 'Value': 'a_value'}])
+    load_balancer_arn = response.get('LoadBalancers')[0].get('LoadBalancerArn')
+
+    invalid_content_type_action = {
+        'Type': 'fixed-response',
+        'FixedResponseConfig': {
+            'ContentType': 'Fake content type',
+            'MessageBody': 'This page does not exist',
+            'StatusCode': '200'
+        }
+    }
+    with assert_raises(ClientError) as invalid_content_type_exception:
+        conn.create_listener(LoadBalancerArn=load_balancer_arn,
+                             Protocol='HTTP',
+                             Port=80,
+                             DefaultActions=[invalid_content_type_action])
+    invalid_content_type_exception.exception.response['Error']['Code'].should.equal('InvalidLoadBalancerAction')
