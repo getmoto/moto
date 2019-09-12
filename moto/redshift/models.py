@@ -74,7 +74,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
                  automated_snapshot_retention_period, port, cluster_version,
                  allow_version_upgrade, number_of_nodes, publicly_accessible,
                  encrypted, region_name, tags=None, iam_roles_arn=None,
-                 restored_from_snapshot=False):
+                 enhanced_vpc_routing=None, restored_from_snapshot=False):
         super(Cluster, self).__init__(region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
@@ -85,6 +85,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
         self.master_user_password = master_user_password
         self.db_name = db_name if db_name else "dev"
         self.vpc_security_group_ids = vpc_security_group_ids
+        self.enhanced_vpc_routing = enhanced_vpc_routing if enhanced_vpc_routing is not None else False
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.publicly_accessible = publicly_accessible
         self.encrypted = encrypted
@@ -154,6 +155,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             port=properties.get('Port'),
             cluster_version=properties.get('ClusterVersion'),
             allow_version_upgrade=properties.get('AllowVersionUpgrade'),
+            enhanced_vpc_routing=properties.get('EnhancedVpcRouting'),
             number_of_nodes=properties.get('NumberOfNodes'),
             publicly_accessible=properties.get("PubliclyAccessible"),
             encrypted=properties.get("Encrypted"),
@@ -241,6 +243,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             'ClusterCreateTime': self.create_time,
             "PendingModifiedValues": [],
             "Tags": self.tags,
+            "EnhancedVpcRouting": self.enhanced_vpc_routing,
             "IamRoles": [{
                 "ApplyStatus": "in-sync",
                 "IamRoleArn": iam_role_arn
@@ -427,6 +430,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
             'NumberOfNodes': self.cluster.number_of_nodes,
             'DBName': self.cluster.db_name,
             'Tags': self.tags,
+            'EnhancedVpcRouting': self.cluster.enhanced_vpc_routing,
             "IamRoles": [{
                 "ApplyStatus": "in-sync",
                 "IamRoleArn": iam_role_arn
@@ -678,7 +682,8 @@ class RedshiftBackend(BaseBackend):
             "number_of_nodes": snapshot.cluster.number_of_nodes,
             "encrypted": snapshot.cluster.encrypted,
             "tags": snapshot.cluster.tags,
-            "restored_from_snapshot": True
+            "restored_from_snapshot": True,
+            "enhanced_vpc_routing": snapshot.cluster.enhanced_vpc_routing
         }
         create_kwargs.update(kwargs)
         return self.create_cluster(**create_kwargs)

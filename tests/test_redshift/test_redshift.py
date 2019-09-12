@@ -37,6 +37,25 @@ def test_create_cluster_boto3():
     create_time = response['Cluster']['ClusterCreateTime']
     create_time.should.be.lower_than(datetime.datetime.now(create_time.tzinfo))
     create_time.should.be.greater_than(datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1))
+    response['Cluster']['EnhancedVpcRouting'].should.equal(False)
+
+@mock_redshift
+def test_create_cluster_boto3():
+    client = boto3.client('redshift', region_name='us-east-1')
+    response = client.create_cluster(
+        DBName='test',
+        ClusterIdentifier='test',
+        ClusterType='single-node',
+        NodeType='ds2.xlarge',
+        MasterUsername='user',
+        MasterUserPassword='password',
+        EnhancedVpcRouting=True
+    )
+    response['Cluster']['NodeType'].should.equal('ds2.xlarge')
+    create_time = response['Cluster']['ClusterCreateTime']
+    create_time.should.be.lower_than(datetime.datetime.now(create_time.tzinfo))
+    create_time.should.be.greater_than(datetime.datetime.now(create_time.tzinfo) - datetime.timedelta(minutes=1))
+    response['Cluster']['EnhancedVpcRouting'].should.equal(True)
 
 
 @mock_redshift
@@ -425,6 +444,58 @@ def test_delete_cluster():
         "not-a-cluster").should.throw(ClusterNotFound)
 
 
+@mock_redshift
+def test_modify_cluster_vpc_routing():
+    iam_roles_arn = ['arn:aws:iam:::role/my-iam-role', ]
+    client = boto3.client('redshift', region_name='us-east-1')
+    cluster_identifier = 'my_cluster'
+
+    client.create_cluster(
+        ClusterIdentifier=cluster_identifier,
+        NodeType="single-node",
+        MasterUsername="username",
+        MasterUserPassword="password",
+        IamRoles=iam_roles_arn
+    )
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = cluster_response['Clusters'][0]
+    cluster['EnhancedVpcRouting'].should.equal(False)
+
+    client.create_cluster_security_group(ClusterSecurityGroupName='security_group',
+                                         Description='security_group')
+
+    client.create_cluster_parameter_group(ParameterGroupName='my_parameter_group',
+                                          ParameterGroupFamily='redshift-1.0',
+                                          Description='my_parameter_group')
+
+    client.modify_cluster(
+        ClusterIdentifier=cluster_identifier,
+        ClusterType='multi-node',
+        NodeType="ds2.8xlarge",
+        NumberOfNodes=3,
+        ClusterSecurityGroups=["security_group"],
+        MasterUserPassword="new_password",
+        ClusterParameterGroupName="my_parameter_group",
+        AutomatedSnapshotRetentionPeriod=7,
+        PreferredMaintenanceWindow="Tue:03:00-Tue:11:00",
+        AllowVersionUpgrade=False,
+        NewClusterIdentifier=cluster_identifier,
+        EnhancedVpcRouting=True
+    )
+
+    cluster_response = client.describe_clusters(ClusterIdentifier=cluster_identifier)
+    cluster = cluster_response['Clusters'][0]
+    cluster['ClusterIdentifier'].should.equal(cluster_identifier)
+    cluster['NodeType'].should.equal("ds2.8xlarge")
+    cluster['PreferredMaintenanceWindow'].should.equal("Tue:03:00-Tue:11:00")
+    cluster['AutomatedSnapshotRetentionPeriod'].should.equal(7)
+    cluster['AllowVersionUpgrade'].should.equal(False)
+    # This one should remain unmodified.
+    cluster['NumberOfNodes'].should.equal(3)
+    cluster['EnhancedVpcRouting'].should.equal(True)
+
+
 @mock_redshift_deprecated
 def test_modify_cluster():
     conn = boto.connect_redshift()
@@ -446,6 +517,10 @@ def test_modify_cluster():
         master_user_password="password",
     )
 
+    cluster_response = conn.describe_clusters(cluster_identifier)
+    cluster = cluster_response['DescribeClustersResponse']['DescribeClustersResult']['Clusters'][0]
+    cluster['EnhancedVpcRouting'].should.equal(False)
+
     conn.modify_cluster(
         cluster_identifier,
         cluster_type="multi-node",
@@ -456,14 +531,13 @@ def test_modify_cluster():
         automated_snapshot_retention_period=7,
         preferred_maintenance_window="Tue:03:00-Tue:11:00",
         allow_version_upgrade=False,
-        new_cluster_identifier="new_identifier",
+        new_cluster_identifier=cluster_identifier,
     )
 
-    cluster_response = conn.describe_clusters("new_identifier")
+    cluster_response = conn.describe_clusters(cluster_identifier)
     cluster = cluster_response['DescribeClustersResponse'][
         'DescribeClustersResult']['Clusters'][0]
-
-    cluster['ClusterIdentifier'].should.equal("new_identifier")
+    cluster['ClusterIdentifier'].should.equal(cluster_identifier)
     cluster['NodeType'].should.equal("dw.hs1.xlarge")
     cluster['ClusterSecurityGroups'][0][
         'ClusterSecurityGroupName'].should.equal("security_group")
@@ -674,6 +748,7 @@ def test_create_cluster_snapshot():
         NodeType='ds2.xlarge',
         MasterUsername='username',
         MasterUserPassword='password',
+        EnhancedVpcRouting=True
     )
     cluster_response['Cluster']['NodeType'].should.equal('ds2.xlarge')
 
@@ -823,11 +898,14 @@ def test_create_cluster_from_snapshot():
         NodeType='ds2.xlarge',
         MasterUsername='username',
         MasterUserPassword='password',
+        EnhancedVpcRouting=True,
     )
+
     client.create_cluster_snapshot(
         SnapshotIdentifier=original_snapshot_identifier,
         ClusterIdentifier=original_cluster_identifier
     )
+
     response = client.restore_from_cluster_snapshot(
         ClusterIdentifier=new_cluster_identifier,
         SnapshotIdentifier=original_snapshot_identifier,
@@ -842,7 +920,7 @@ def test_create_cluster_from_snapshot():
     new_cluster['NodeType'].should.equal('ds2.xlarge')
     new_cluster['MasterUsername'].should.equal('username')
     new_cluster['Endpoint']['Port'].should.equal(1234)
-
+    new_cluster['EnhancedVpcRouting'].should.equal(True)
 
 @mock_redshift
 def test_create_cluster_from_snapshot_with_waiter():
@@ -857,6 +935,7 @@ def test_create_cluster_from_snapshot_with_waiter():
         NodeType='ds2.xlarge',
         MasterUsername='username',
         MasterUserPassword='password',
+        EnhancedVpcRouting=True
     )
     client.create_cluster_snapshot(
         SnapshotIdentifier=original_snapshot_identifier,
@@ -883,6 +962,7 @@ def test_create_cluster_from_snapshot_with_waiter():
     new_cluster = response['Clusters'][0]
     new_cluster['NodeType'].should.equal('ds2.xlarge')
     new_cluster['MasterUsername'].should.equal('username')
+    new_cluster['EnhancedVpcRouting'].should.equal(True)
     new_cluster['Endpoint']['Port'].should.equal(1234)
 
 
