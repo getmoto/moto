@@ -356,9 +356,18 @@ class DynamoHandler(BaseResponse):
 
         if projection_expression and expression_attribute_names:
             expressions = [x.strip() for x in projection_expression.split(',')]
+            projection_expression = None
             for expression in expressions:
+                if projection_expression is not None:
+                    projection_expression = projection_expression + ", "
+                else:
+                    projection_expression = ""
+
                 if expression in expression_attribute_names:
-                    projection_expression = projection_expression.replace(expression, expression_attribute_names[expression])
+                    projection_expression = projection_expression + \
+                        expression_attribute_names[expression]
+                else:
+                    projection_expression = projection_expression + expression
 
         filter_kwargs = {}
 
