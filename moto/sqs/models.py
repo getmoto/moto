@@ -424,13 +424,26 @@ class SQSBackend(BaseBackend):
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
+            static_attributes = (
+                'DelaySeconds',
+                'MaximumMessageSize',
+                'MessageRetentionPeriod',
+                'Policy',
+                'QueueArn',
+                'ReceiveMessageWaitTimeSeconds',
+                'RedrivePolicy',
+                'VisibilityTimeout',
+                'KmsMasterKeyId',
+                'KmsDataKeyReusePeriodSeconds',
+                'FifoQueue',
+                'ContentBasedDeduplication',
+            )
 
-            for key in ['CreatedTimestamp', 'LastModifiedTimestamp']:
-                queue_attributes.pop(key)
-                new_queue_attributes.pop(key)
-
-            if queue_attributes != new_queue_attributes:
-                raise QueueAlreadyExists("The specified queue already exists.")
+            for key in static_attributes:
+                if queue_attributes.get(key) != new_queue_attributes.get(key):
+                    raise QueueAlreadyExists(
+                        "The specified queue already exists.",
+                    )
         else:
             try:
                 kwargs.pop('region')
