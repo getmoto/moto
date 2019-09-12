@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-
 from .models import cognitoidentity_backends
 from .utils import get_random_identity_id
 
@@ -16,6 +15,7 @@ class CognitoIdentityResponse(BaseResponse):
         open_id_connect_provider_arns = self._get_param('OpenIdConnectProviderARNs')
         cognito_identity_providers = self._get_param('CognitoIdentityProviders')
         saml_provider_arns = self._get_param('SamlProviderARNs')
+
         return cognitoidentity_backends[self.region].create_identity_pool(
             identity_pool_name=identity_pool_name,
             allow_unauthenticated_identities=allow_unauthenticated_identities,
@@ -27,6 +27,9 @@ class CognitoIdentityResponse(BaseResponse):
 
     def get_id(self):
         return cognitoidentity_backends[self.region].get_id()
+
+    def describe_identity_pool(self):
+        return cognitoidentity_backends[self.region].describe_identity_pool(self._get_param('IdentityPoolId'))
 
     def get_credentials_for_identity(self):
         return cognitoidentity_backends[self.region].get_credentials_for_identity(self._get_param('IdentityId'))
