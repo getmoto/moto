@@ -152,8 +152,10 @@ class IAMPolicyDocumentValidator:
         sids = []
         for statement in self._statements:
             if "Sid" in statement:
-                assert statement["Sid"] not in sids
-                sids.append(statement["Sid"])
+                statementId = statement["Sid"]
+                if statementId:
+                    assert statementId not in sids
+                    sids.append(statementId)
 
     def _validate_statements_syntax(self):
         assert "Statement" in self._policy_json
