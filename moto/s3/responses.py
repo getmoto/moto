@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import re
 
+from itertools import chain
+
 import six
 
 from moto.core.utils import str_to_rfc_1123_datetime
@@ -458,11 +460,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else:
                 result_folders = self._get_results_from_token(result_folders, limit)
 
-        tagged_keys = [(key, True) for key in result_keys]
-        tagged_folders = [(folder, False) for folder in result_folders]
-        all_keys =  tagged_keys + tagged_folders
-        all_keys.sort()
-        result_keys, result_folders, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
+        tagged_keys = ((key, True) for key in result_keys)
+        tagged_folders = ((folder, False) for folder in result_folders)
+        sorted_keys = sorted(chain(tagged_keys, tagged_folders))
+        result_keys, result_folders, is_truncated, next_continuation_token = self._truncate_result(sorted_keys, max_keys)
 
         key_count = len(result_keys) + len(result_folders)
 
@@ -488,17 +489,17 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             continuation_index += 1
         return result_keys[continuation_index:]
 
-    def _truncate_result(self, all_keys, max_keys):
-        if len(all_keys) > max_keys:
+    def _truncate_result(self, sorted_keys, max_keys):
+        if len(sorted_keys) > max_keys:
             is_truncated = 'true'
-            all_keys = all_keys[:max_keys]
-            item = all_keys[-1][0]
+            sorted_keys = sorted_keys[:max_keys]
+            item = sorted_keys[-1][0]
             next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
             next_continuation_token = None
         result_keys, result_folders = [], []
-        for (key, is_key) in all_keys:
+        for (key, is_key) in sorted_keys:
             (result_keys if is_key else result_folders).append(key)
         return result_keys, result_folders, is_truncated, next_continuation_token
 
