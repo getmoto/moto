@@ -152,13 +152,10 @@ class KmsResponse(BaseResponse):
 
         self._validate_key_id(key_id)
 
-        try:
-            key = self.kms_backend.describe_key(
-                self.kms_backend.get_key_id(key_id))
-        except KeyError:
-            headers = dict(self.headers)
-            headers['status'] = 404
-            return "{}", headers
+        key = self.kms_backend.describe_key(
+            self.kms_backend.get_key_id(key_id)
+        )
+
         return json.dumps(key.to_dict())
 
     def list_keys(self):
