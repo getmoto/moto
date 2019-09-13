@@ -475,11 +475,10 @@ class KmsResponse(BaseResponse):
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
             raise ValidationException((
-                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                    "to satisfy constraint: Member must have value less than or "
-                    "equal to 1024"
-                ).format(number_of_bytes=number_of_bytes)
-            )
+                "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                "to satisfy constraint: Member must have value less than or "
+                "equal to 1024"
+            ).format(number_of_bytes=number_of_bytes))
 
         entropy = os.urandom(number_of_bytes)
 
