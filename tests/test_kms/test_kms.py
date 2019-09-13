@@ -75,6 +75,20 @@ def test_describe_key_via_alias_not_found():
     conn.describe_key.when.called_with("alias/not-found-alias").should.throw(NotFoundException)
 
 
+@parameterized((
+        ("alias/does-not-exist",),
+        ("arn:aws:kms:us-east-1:012345678912:alias/does-not-exist",),
+        ("invalid",),
+))
+@mock_kms
+def test_describe_key_via_alias_invalid_alias(key_id):
+    client = boto3.client("kms", region_name="us-east-1")
+    client.create_key(Description="key")
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.describe_key(KeyId=key_id)
+
+
 @mock_kms_deprecated
 def test_describe_key_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
