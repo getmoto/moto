@@ -971,6 +971,21 @@ def test_generate_random(number_of_bytes):
     len(response["Plaintext"]).should.equal(number_of_bytes)
 
 
+@parameterized((
+        (2048, botocore.exceptions.ClientError),
+        (1025, botocore.exceptions.ClientError),
+        (0, botocore.exceptions.ParamValidationError),
+        (-1, botocore.exceptions.ParamValidationError),
+        (-1024, botocore.exceptions.ParamValidationError)
+))
+@mock_kms
+def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    with assert_raises(error_type):
+        client.generate_random(NumberOfBytes=number_of_bytes)
+
+
 @mock_kms
 def test_enable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
