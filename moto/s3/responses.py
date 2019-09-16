@@ -2,8 +2,6 @@ from __future__ import unicode_literals
 
 import re
 
-from collections import namedtuple
-
 import six
 
 from moto.core.utils import str_to_rfc_1123_datetime
@@ -94,7 +92,6 @@ ACTION_MAP = {
 
 }
 
-TaggedKey = namedtuple("TaggedKey", ("entity", "is_key"))
 
 def parse_key_name(pth):
     return pth.lstrip("/")
@@ -462,7 +459,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 result_folders = self._get_results_from_token(result_folders, limit)
 
         all_keys = result_keys + result_folders
-        all_keys.sort(key=self._get_key_name) # sort by name, lexicographical order
+        all_keys.sort(key=self._get_key_name)
         truncated_keys, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
         result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
