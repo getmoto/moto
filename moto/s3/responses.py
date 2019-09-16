@@ -2,8 +2,6 @@ from __future__ import unicode_literals
 
 import re
 
-from itertools import chain
-
 import six
 
 from moto.core.utils import str_to_rfc_1123_datetime
@@ -460,10 +458,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else:
                 result_folders = self._get_results_from_token(result_folders, limit)
 
-        tagged_keys = ((key, True) for key in result_keys)
-        tagged_folders = ((folder, False) for folder in result_folders)
-        sorted_keys = sorted(chain(tagged_keys, tagged_folders))
-        result_keys, result_folders, is_truncated, next_continuation_token = self._truncate_result(sorted_keys, max_keys)
+        all_keys = [(key, True) for key in result_keys] + [(folder, False) for folder in result_folders]
+        all_keys.sort(key=lambda tagged_key: tagged_key if isinstance(tagged_key[0], str) else tagged_key[0].name)
+        truncated_keys, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
+        result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
         key_count = len(result_keys) + len(result_folders)
 
@@ -481,6 +479,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             start_after=None if continuation_token else start_after
         )
 
+    def _split_truncated_keys(self, truncated_keys):
+        result_keys = []
+        result_folders = []
+        for key in truncated_keys:
+            if key[1]:
+                result_keys.append(key[0])
+            else:
+                result_folders.append(key[0])
+        return result_keys, result_folders
+
     def _get_results_from_token(self, result_keys, token):
         continuation_index = 0
         for key in result_keys:
@@ -489,19 +497,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             continuation_index += 1
         return result_keys[continuation_index:]
 
-    def _truncate_result(self, sorted_keys, max_keys):
-        if len(sorted_keys) > max_keys:
+    def _truncate_result(self, result_keys, max_keys):
+        if len(result_keys) > max_keys:
             is_truncated = 'true'
-            sorted_keys = sorted_keys[:max_keys]
-            item = sorted_keys[-1][0]
+            result_keys = result_keys[:max_keys]
+            item = (result_keys[-1][0] if isinstance(result_keys[-1], tuple) else result_keys[-1])
             next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
             next_continuation_token = None
-        result_keys, result_folders = [], []
-        for (key, is_key) in sorted_keys:
-            (result_keys if is_key else result_folders).append(key)
-        return result_keys, result_folders, is_truncated, next_continuation_token
+        return result_keys, is_truncated, next_continuation_token
 
     def _bucket_response_put(self, request, body, region_name, bucket_name, querystring):
         if not request.headers.get('Content-Length'):
