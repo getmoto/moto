@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import re
 
+from collections import namedtuple
+
 import six
 
 from moto.core.utils import str_to_rfc_1123_datetime
@@ -92,6 +94,7 @@ ACTION_MAP = {
 
 }
 
+TaggedKey = namedtuple("TaggedKey", ("entity", "is_key"))
 
 def parse_key_name(pth):
     return pth.lstrip("/")
@@ -458,8 +461,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else:
                 result_folders = self._get_results_from_token(result_folders, limit)
 
-        all_keys = [(key, True) for key in result_keys] + [(folder, False) for folder in result_folders]
-        all_keys.sort(key=lambda tagged_key: tagged_key[0].name if isinstance(tagged_key[0], FakeKey) else tagged_key[0])
+        all_keys = result_keys + result_folders
+        all_keys.sort(key=self._get_key_name) # sort by name, lexicographical order
         truncated_keys, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
         result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
@@ -479,14 +482,22 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             start_after=None if continuation_token else start_after
         )
 
-    def _split_truncated_keys(self, truncated_keys):
+    @staticmethod
+    def _get_key_name(key):
+        if isinstance(key, FakeKey):
+            return key.name
+        else:
+            return key
+
+    @staticmethod
+    def _split_truncated_keys(truncated_keys):
         result_keys = []
         result_folders = []
         for key in truncated_keys:
-            if key[1]:
-                result_keys.append(key[0])
+            if isinstance(key, FakeKey):
+                result_keys.append(key)
             else:
-                result_folders.append(key[0])
+                result_folders.append(key)
         return result_keys, result_folders
 
     def _get_results_from_token(self, result_keys, token):
@@ -501,7 +512,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if len(result_keys) > max_keys:
             is_truncated = 'true'
             result_keys = result_keys[:max_keys]
-            item = (result_keys[-1][0] if isinstance(result_keys[-1], tuple) else result_keys[-1])
+            item = result_keys[-1]
             next_continuation_token = (item.name if isinstance(item, FakeKey) else item)
         else:
             is_truncated = 'false'
