@@ -1393,6 +1393,28 @@ def test_boto3_list_objects_v2_fetch_owner():
 
 
 @mock_s3
+def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key="A/a", Body="folder/a")
+    s3.put_object(Bucket='mybucket', Key="A/aa", Body="folder/aa")
+    s3.put_object(Bucket='mybucket', Key="A/B/a", Body="nested/folder/a")
+    s3.put_object(Bucket='mybucket', Key="c", Body="plain c")
+
+    resp = s3.list_objects_v2(Bucket='mybucket', Prefix="A", MaxKeys=2)
+
+    assert "Prefix" in resp
+    result_keys = [key["Key"] for key in resp["Contents"]]
+
+    # Test truncate combination of keys and folders
+    assert len(result_keys) == 2
+
+    # Test lexicographical order
+    assert "A/B/a" == result_keys[0]
+    assert "A/a" == result_keys[1]
+
+
+@mock_s3
 def test_boto3_bucket_create():
     s3 = boto3.resource('s3', region_name='us-east-1')
     s3.create_bucket(Bucket="blah")
