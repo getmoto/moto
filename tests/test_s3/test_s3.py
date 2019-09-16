@@ -1401,17 +1401,11 @@ def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
     s3.put_object(Bucket='mybucket', Key="A/B/a", Body="nested/folder/a")
     s3.put_object(Bucket='mybucket', Key="c", Body="plain c")
 
-    resp = s3.list_objects_v2(Bucket='mybucket', Prefix="A", MaxKeys=2)
-
+    resp = s3.list_objects_v2(Bucket='mybucket', Prefix="A/", MaxKeys=1, Delimiter="/")
     assert "Prefix" in resp
-    result_keys = [key["Key"] for key in resp["Contents"]]
-
-    # Test truncate combination of keys and folders
-    assert len(result_keys) == 2
-
-    # Test lexicographical order
-    assert "A/B/a" == result_keys[0]
-    assert "A/a" == result_keys[1]
+    assert "Delimiter" in resp
+    assert resp["IsTruncated"] is True
+    assert resp["KeyCount"] != 0
 
 
 @mock_s3
