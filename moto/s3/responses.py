@@ -459,7 +459,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 result_folders = self._get_results_from_token(result_folders, limit)
 
         all_keys = [(key, True) for key in result_keys] + [(folder, False) for folder in result_folders]
-        all_keys.sort(key=lambda tagged_key: tagged_key if isinstance(tagged_key[0], str) else tagged_key[0].name)
+        all_keys.sort(key=lambda tagged_key: tagged_key[0].name if isinstance(tagged_key[0], FakeKey) else tagged_key[0])
         truncated_keys, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
         result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
