@@ -1401,7 +1401,7 @@ def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
     s3.put_object(Bucket='mybucket', Key='3/4', Body='')
     s3.put_object(Bucket='mybucket', Key='4', Body='')
 
-    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Delimiter='/')
+    resp = s3.list_objects_v2(Bucket='mybucket', Prefix='', MaxKeys=2, Delimiter='/')
     assert 'Delimiter' in resp
     assert resp['IsTruncated'] is True
     assert resp['KeyCount'] == 2
@@ -1411,7 +1411,7 @@ def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
     assert resp['CommonPrefixes'][0]['Prefix'] == '1/'
 
     last_tail = resp['NextContinuationToken']
-    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Delimiter='/', StartAfter=last_tail)
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Prefix='', Delimiter='/', StartAfter=last_tail)
     assert resp['KeyCount'] == 2
     assert resp['IsTruncated'] is False
     assert len(resp['Contents']) == 1
