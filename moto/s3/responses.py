@@ -451,15 +451,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         continuation_token = querystring.get('continuation-token', [None])[0]
         start_after = querystring.get('start-after', [None])[0]
 
+        # sort the combination of folders and keys into lexicographical order
+        all_keys = result_keys + result_folders
+        all_keys.sort(key=self._get_name)
+
         if continuation_token or start_after:
             limit = continuation_token or start_after
-            if not delimiter:
-                result_keys = self._get_results_from_token(result_keys, limit)
-            else:
-                result_folders = self._get_results_from_token(result_folders, limit)
+            all_keys = self._get_results_from_token(all_keys, limit)
 
-        all_keys = result_keys + result_folders
-        all_keys.sort(key=self._get_key_name)
         truncated_keys, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
         result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
@@ -480,7 +479,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )
 
     @staticmethod
-    def _get_key_name(key):
+    def _get_name(key):
         if isinstance(key, FakeKey):
             return key.name
         else:

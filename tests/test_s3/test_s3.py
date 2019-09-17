@@ -1396,16 +1396,20 @@ def test_boto3_list_objects_v2_fetch_owner():
 def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
     s3 = boto3.client('s3', region_name='us-east-1')
     s3.create_bucket(Bucket='mybucket')
-    s3.put_object(Bucket='mybucket', Key="A/a", Body="folder/a")
-    s3.put_object(Bucket='mybucket', Key="A/aa", Body="folder/aa")
-    s3.put_object(Bucket='mybucket', Key="A/B/a", Body="nested/folder/a")
-    s3.put_object(Bucket='mybucket', Key="c", Body="plain c")
+    s3.put_object(Bucket='mybucket', Key='1/2', Body='')
+    s3.put_object(Bucket='mybucket', Key='2', Body='')
+    s3.put_object(Bucket='mybucket', Key='3/4', Body='')
+    s3.put_object(Bucket='mybucket', Key='4', Body='')
 
-    resp = s3.list_objects_v2(Bucket='mybucket', Prefix="A/", MaxKeys=1, Delimiter="/")
-    assert "Prefix" in resp
-    assert "Delimiter" in resp
-    assert resp["IsTruncated"] is True
-    assert resp["KeyCount"] != 0
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Delimiter='/')
+    assert 'Delimiter' in resp
+    assert resp['IsTruncated'] is True
+    assert resp['KeyCount'] == 2
+
+    last_tail = resp['NextContinuationToken']
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Delimiter='/', StartAfter=last_tail)
+    assert resp['KeyCount'] == 2
+    assert resp['IsTruncated'] is False
 
 
 @mock_s3
