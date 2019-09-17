@@ -1405,11 +1405,19 @@ def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
     assert 'Delimiter' in resp
     assert resp['IsTruncated'] is True
     assert resp['KeyCount'] == 2
+    assert len(resp['Contents']) == 1
+    assert resp['Contents'][0]['Key'] == '2'
+    assert len(resp['CommonPrefixes']) == 1
+    assert resp['CommonPrefixes'][0]['Prefix'] == '1/'
 
     last_tail = resp['NextContinuationToken']
     resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Delimiter='/', StartAfter=last_tail)
     assert resp['KeyCount'] == 2
     assert resp['IsTruncated'] is False
+    assert len(resp['Contents']) == 1
+    assert resp['Contents'][0]['Key'] == '4'
+    assert len(resp['CommonPrefixes']) == 1
+    assert resp['CommonPrefixes'][0]['Prefix'] == '3/'
 
 
 @mock_s3
