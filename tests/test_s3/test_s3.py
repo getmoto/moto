@@ -421,18 +421,22 @@ def test_copy_key():
         "new-key").get_contents_as_string().should.equal(b"some value")
 
 
+@parameterized([
+    ("the-unicode-💩-key",),
+    ("key-with?question-mark",),
+])
 @mock_s3_deprecated
-def test_copy_key_with_unicode():
+def test_copy_key_with_special_chars(key_name):
     conn = boto.connect_s3('the_key', 'the_secret')
     bucket = conn.create_bucket("foobar")
     key = Key(bucket)
-    key.key = "the-unicode-💩-key"
+    key.key = key_name
     key.set_contents_from_string("some value")
 
-    bucket.copy_key('new-key', 'foobar', 'the-unicode-💩-key')
+    bucket.copy_key('new-key', 'foobar', key_name)
 
     bucket.get_key(
-        "the-unicode-💩-key").get_contents_as_string().should.equal(b"some value")
+        key_name).get_contents_as_string().should.equal(b"some value")
     bucket.get_key(
         "new-key").get_contents_as_string().should.equal(b"some value")
 
