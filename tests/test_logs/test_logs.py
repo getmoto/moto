@@ -190,6 +190,8 @@ def test_get_log_events():
     resp['events'].should.have.length_of(10)
     resp.should.have.key('nextForwardToken')
     resp.should.have.key('nextBackwardToken')
+    resp['nextForwardToken'].should.equal('f/00000000000000000000000000000000000000000000000000000010')
+    resp['nextBackwardToken'].should.equal('b/00000000000000000000000000000000000000000000000000000000')
     for i in range(10):
         resp['events'][i]['timestamp'].should.equal(i)
         resp['events'][i]['message'].should.equal(str(i))
@@ -205,7 +207,8 @@ def test_get_log_events():
     resp['events'].should.have.length_of(10)
     resp.should.have.key('nextForwardToken')
     resp.should.have.key('nextBackwardToken')
-    resp['nextForwardToken'].should.equal(next_token)
+    resp['nextForwardToken'].should.equal('f/00000000000000000000000000000000000000000000000000000020')
+    resp['nextBackwardToken'].should.equal('b/00000000000000000000000000000000000000000000000000000000')
     for i in range(10):
         resp['events'][i]['timestamp'].should.equal(i+10)
         resp['events'][i]['message'].should.equal(str(i+10))
