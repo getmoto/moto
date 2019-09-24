@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 import os
 from sure import expect
-from moto.s3.utils import bucket_name_from_url, _VersionedKeyStore, parse_region_from_url
+from moto.s3.utils import bucket_name_from_url, _VersionedKeyStore, parse_region_from_url, clean_key_name
+from parameterized import parameterized
 
 
 def test_base_url():
@@ -78,3 +79,15 @@ def test_parse_region_from_url():
                 'https://s3.amazonaws.com/bucket',
                 'https://bucket.s3.amazonaws.com']:
         parse_region_from_url(url).should.equal(expected)
+
+
+@parameterized([
+    ('foo/bar/baz',
+     'foo/bar/baz'),
+    ('foo',
+     'foo'),
+    ('foo/run_dt%3D2019-01-01%252012%253A30%253A00',
+     'foo/run_dt=2019-01-01 12:30:00'),
+])
+def test_clean_key_name(key, expected):
+    clean_key_name(key).should.equal(expected) 
