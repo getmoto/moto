@@ -5,7 +5,7 @@ import os
 from boto.s3.key import Key
 import re
 import six
-from six.moves.urllib.parse import urlparse, unquote
+from six.moves.urllib.parse import urlparse, unquote, quote
 import sys
 
 
@@ -68,22 +68,16 @@ def metadata_from_headers(headers):
     return metadata
 
 
-def clean_key_name(key_name, attempts=4):
+def clean_key_name(key_name):
     if six.PY2:
-        def uq(k):
-            return unquote(k.encode('utf-8')).decode('utf-8')
-    else:
-        uq = unquote
+        return unquote(key_name.encode('utf-8')).decode('utf-8')
+    return unquote(key_name)
 
-    original = cleaned = key_name
-    last_attempt = attempts - 1
-    for attempt in range(attempts):
-        cleaned = uq(key_name)
-        if cleaned == key_name:
-            return cleaned
-        if attempt != last_attempt:
-            key_name = cleaned
-    raise Exception('unable to fully clean name: original %s, last clean %s prior clean %s' % (original, cleaned, key_name))
+
+def undo_clean_key_name(key_name):
+    if six.PY2:
+        return quote(key_name.encode('utf-8')).decode('utf-8')
+    return quote(key_name)
 
 
 class _VersionedKeyStore(dict):
