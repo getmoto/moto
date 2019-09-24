@@ -451,17 +451,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         continuation_token = querystring.get('continuation-token', [None])[0]
         start_after = querystring.get('start-after', [None])[0]
 
+        # sort the combination of folders and keys into lexicographical order
+        all_keys = result_keys + result_folders
+        all_keys.sort(key=self._get_name)
+
         if continuation_token or start_after:
             limit = continuation_token or start_after
-            if not delimiter:
-                result_keys = self._get_results_from_token(result_keys, limit)
-            else:
-                result_folders = self._get_results_from_token(result_folders, limit)
+            all_keys = self._get_results_from_token(all_keys, limit)
 
-        if not delimiter:
-            result_keys, is_truncated, next_continuation_token = self._truncate_result(result_keys, max_keys)
-        else:
-            result_folders, is_truncated, next_continuation_token = self._truncate_result(result_folders, max_keys)
+        truncated_keys, is_truncated, next_continuation_token = self._truncate_result(all_keys, max_keys)
+        result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
         key_count = len(result_keys) + len(result_folders)
 
@@ -478,6 +477,24 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             next_continuation_token=next_continuation_token,
             start_after=None if continuation_token else start_after
         )
+
+    @staticmethod
+    def _get_name(key):
+        if isinstance(key, FakeKey):
+            return key.name
+        else:
+            return key
+
+    @staticmethod
+    def _split_truncated_keys(truncated_keys):
+        result_keys = []
+        result_folders = []
+        for key in truncated_keys:
+            if isinstance(key, FakeKey):
+                result_keys.append(key)
+            else:
+                result_folders.append(key)
+        return result_keys, result_folders
 
     def _get_results_from_token(self, result_keys, token):
         continuation_index = 0

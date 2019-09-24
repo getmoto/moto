@@ -1393,6 +1393,34 @@ def test_boto3_list_objects_v2_fetch_owner():
 
 
 @mock_s3
+def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='1/2', Body='')
+    s3.put_object(Bucket='mybucket', Key='2', Body='')
+    s3.put_object(Bucket='mybucket', Key='3/4', Body='')
+    s3.put_object(Bucket='mybucket', Key='4', Body='')
+
+    resp = s3.list_objects_v2(Bucket='mybucket', Prefix='', MaxKeys=2, Delimiter='/')
+    assert 'Delimiter' in resp
+    assert resp['IsTruncated'] is True
+    assert resp['KeyCount'] == 2
+    assert len(resp['Contents']) == 1
+    assert resp['Contents'][0]['Key'] == '2'
+    assert len(resp['CommonPrefixes']) == 1
+    assert resp['CommonPrefixes'][0]['Prefix'] == '1/'
+
+    last_tail = resp['NextContinuationToken']
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Prefix='', Delimiter='/', StartAfter=last_tail)
+    assert resp['KeyCount'] == 2
+    assert resp['IsTruncated'] is False
+    assert len(resp['Contents']) == 1
+    assert resp['Contents'][0]['Key'] == '4'
+    assert len(resp['CommonPrefixes']) == 1
+    assert resp['CommonPrefixes'][0]['Prefix'] == '3/'
+
+
+@mock_s3
 def test_boto3_bucket_create():
     s3 = boto3.resource('s3', region_name='us-east-1')
     s3.create_bucket(Bucket="blah")
