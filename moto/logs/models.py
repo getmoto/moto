@@ -115,6 +115,8 @@ class LogStream:
         events_page = [event.to_response_dict() for event in events[next_index: next_index + limit]]
         if next_index + limit < len(self.events):
             next_index += limit
+        else:
+            next_index = len(self.events)
 
         back_index -= limit
         if back_index <= 0:
