@@ -1,9 +1,9 @@
 import boto
-import boto3
 import re
 from datetime import datetime
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.sts.models import ACCOUNT_ID
 from uuid import uuid4
 from .exceptions import ExecutionDoesNotExist, InvalidArn, InvalidName, StateMachineDoesNotExist
 
@@ -156,12 +156,7 @@ class StepFunctionBackend(BaseBackend):
             raise InvalidArn(invalid_msg)
 
     def _get_account_id(self):
-        if self._account_id:
-            return self._account_id
-        sts = boto3.client("sts")
-        identity = sts.get_caller_identity()
-        self._account_id = identity['Account']
-        return self._account_id
+        return ACCOUNT_ID
 
 
 stepfunction_backends = {_region.name: StepFunctionBackend(_region.name) for _region in boto.awslambda.regions()}
