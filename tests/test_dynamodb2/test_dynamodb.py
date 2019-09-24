@@ -2082,6 +2082,36 @@ def test_condition_expression__or_order():
 
 
 @mock_dynamodb2
+def test_condition_expression__and_order():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    client.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'forum_name', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'forum_name', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+    )
+    
+    # ensure that the RHS of the AND expression is not evaluated if the LHS
+    # returns true (as it would result an error)
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.update_item(
+            TableName='test',
+            Key={
+                'forum_name': {'S': 'the-key'},
+            },
+            UpdateExpression='set #ttl=:ttl',
+            ConditionExpression='attribute_exists(#ttl) AND #ttl <= :old_ttl',
+            ExpressionAttributeNames={'#ttl': 'ttl'},
+            ExpressionAttributeValues={
+                ':ttl': {'N': '6'},
+                ':old_ttl': {'N': '5'},
+            }
+        )
+
+@mock_dynamodb2
 def test_query_gsi_with_range_key():
     dynamodb = boto3.client('dynamodb', region_name='us-east-1')
     dynamodb.create_table(
