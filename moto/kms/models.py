@@ -1,12 +1,15 @@
 from __future__ import unicode_literals
 
 import os
-import boto.kms
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
-from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 from collections import defaultdict
 from datetime import datetime, timedelta
+
+import boto.kms
+
+from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
+
+from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 
 class Key(BaseModel):
@@ -18,7 +21,7 @@ class Key(BaseModel):
         self.description = description
         self.enabled = True
         self.region = region
-        self.account_id = "0123456789012"
+        self.account_id = "012345678912"
         self.key_rotation_status = False
         self.deletion_date = None
         self.tags = tags or {}
@@ -116,13 +119,21 @@ class KmsBackend(BaseBackend):
     def list_keys(self):
         return self.keys.values()
 
-    def get_key_id(self, key_id):
+    @staticmethod
+    def get_key_id(key_id):
         # Allow use of ARN as well as pure KeyId
-        return str(key_id).split(r":key/")[1] if r":key/" in str(key_id).lower() else key_id
+        if key_id.startswith("arn:") and ":key/" in key_id:
+            return key_id.split(":key/")[1]
 
-    def get_alias_name(self, alias_name):
+        return key_id
+
+    @staticmethod
+    def get_alias_name(alias_name):
         # Allow use of ARN as well as alias name
-        return str(alias_name).split(r":alias/")[1] if r":alias/" in str(alias_name).lower() else alias_name
+        if alias_name.startswith("arn:") and ":alias/" in alias_name:
+            return alias_name.split(":alias/")[1]
+
+        return alias_name
 
     def any_id_to_key_id(self, key_id):
         """Go from any valid key ID to the raw key ID.

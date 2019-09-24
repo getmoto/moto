@@ -1,15 +1,16 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from datetime import date
 from datetime import datetime
 from dateutil.tz import tzutc
 import base64
-import binascii
 import os
 import re
 
 import boto3
 import boto.kms
 import botocore.exceptions
+import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
@@ -23,7 +24,15 @@ from moto import mock_kms, mock_kms_deprecated
 PLAINTEXT_VECTORS = (
     (b"some encodeable plaintext",),
     (b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",),
+    (u"some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",),
 )
+
+
+def _get_encoded_value(plaintext):
+    if isinstance(plaintext, six.binary_type):
+        return plaintext
+
+    return plaintext.encode("utf-8")
 
 
 @mock_kms
@@ -72,7 +81,21 @@ def test_describe_key_via_alias_not_found():
     key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
     conn.create_alias(alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"])
 
-    conn.describe_key.when.called_with("alias/not-found-alias").should.throw(JSONResponseError)
+    conn.describe_key.when.called_with("alias/not-found-alias").should.throw(NotFoundException)
+
+
+@parameterized((
+        ("alias/does-not-exist",),
+        ("arn:aws:kms:us-east-1:012345678912:alias/does-not-exist",),
+        ("invalid",),
+))
+@mock_kms
+def test_describe_key_via_alias_invalid_alias(key_id):
+    client = boto3.client("kms", region_name="us-east-1")
+    client.create_key(Description="key")
+
+    with assert_raises(client.exceptions.NotFoundException):
+        client.describe_key(KeyId=key_id)
 
 
 @mock_kms_deprecated
@@ -90,7 +113,7 @@ def test_describe_key_via_arn():
 @mock_kms_deprecated
 def test_describe_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.describe_key.when.called_with("not-a-key").should.throw(JSONResponseError)
+    conn.describe_key.when.called_with("not-a-key").should.throw(NotFoundException)
 
 
 @mock_kms_deprecated
@@ -201,15 +224,15 @@ def test_boto3_generate_data_key():
 
 
 @parameterized(PLAINTEXT_VECTORS)
-@mock_kms_deprecated
+@mock_kms
 def test_encrypt(plaintext):
-    conn = boto.kms.connect_to_region("us-west-2")
+    client = boto3.client("kms", region_name="us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = client.create_key(Description="key")
     key_id = key["KeyMetadata"]["KeyId"]
     key_arn = key["KeyMetadata"]["Arn"]
 
-    response = conn.encrypt(key_id, plaintext)
+    response = client.encrypt(KeyId=key_id, Plaintext=plaintext)
     response["CiphertextBlob"].should_not.equal(plaintext)
 
     # CiphertextBlob must NOT be base64-encoded
@@ -220,27 +243,28 @@ def test_encrypt(plaintext):
 
 
 @parameterized(PLAINTEXT_VECTORS)
-@mock_kms_deprecated
+@mock_kms
 def test_decrypt(plaintext):
-    conn = boto.kms.connect_to_region("us-west-2")
+    client = boto3.client("kms", region_name="us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = client.create_key(Description="key")
     key_id = key["KeyMetadata"]["KeyId"]
     key_arn = key["KeyMetadata"]["Arn"]
 
-    encrypt_response = conn.encrypt(key_id, plaintext)
+    encrypt_response = client.encrypt(KeyId=key_id, Plaintext=plaintext)
 
+    client.create_key(Description="key")
     # CiphertextBlob must NOT be base64-encoded
     with assert_raises(Exception):
         base64.b64decode(encrypt_response["CiphertextBlob"], validate=True)
 
-    decrypt_response = conn.decrypt(encrypt_response["CiphertextBlob"])
+    decrypt_response = client.decrypt(CiphertextBlob=encrypt_response["CiphertextBlob"])
 
     # Plaintext must NOT be base64-encoded
     with assert_raises(Exception):
         base64.b64decode(decrypt_response["Plaintext"], validate=True)
 
-    decrypt_response["Plaintext"].should.equal(plaintext)
+    decrypt_response["Plaintext"].should.equal(_get_encoded_value(plaintext))
     decrypt_response["KeyId"].should.equal(key_arn)
 
 
@@ -493,16 +517,17 @@ def test__create_alias__raises_if_alias_has_colon_character():
         ex.status.should.equal(400)
 
 
+@parameterized((
+        ("alias/my-alias_/",),
+        ("alias/my_alias-/",),
+))
 @mock_kms_deprecated
-def test__create_alias__accepted_characters():
+def test__create_alias__accepted_characters(alias_name):
     kms = boto.connect_kms()
     create_resp = kms.create_key()
     key_id = create_resp["KeyMetadata"]["KeyId"]
 
-    alias_names_with_accepted_characters = ["alias/my-alias_/", "alias/my_alias-/"]
-
-    for alias_name in alias_names_with_accepted_characters:
-        kms.create_alias(alias_name, key_id)
+    kms.create_alias(alias_name, key_id)
 
 
 @mock_kms_deprecated
@@ -575,14 +600,16 @@ def test__delete_alias__raises_if_alias_is_not_found():
     with assert_raises(NotFoundException) as err:
         kms.delete_alias(alias_name)
 
+    expected_message_match = r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
+        region=region,
+        alias_name=alias_name
+    )
     ex = err.exception
     ex.body["__type"].should.equal("NotFoundException")
-    ex.body["message"].should.match(
-        r"Alias arn:aws:kms:{region}:\d{{12}}:{alias_name} is not found.".format(**locals())
-    )
+    ex.body["message"].should.match(expected_message_match)
     ex.box_usage.should.be.none
     ex.error_code.should.be.none
-    ex.message.should.match(r"Alias arn:aws:kms:{region}:\d{{12}}:{alias_name} is not found.".format(**locals()))
+    ex.message.should.match(expected_message_match)
     ex.reason.should.equal("Bad Request")
     ex.request_id.should.be.none
     ex.status.should.equal(400)
@@ -635,13 +662,19 @@ def test__list_aliases():
     len(aliases).should.equal(7)
 
 
-@mock_kms_deprecated
-def test__assert_valid_key_id():
-    from moto.kms.responses import _assert_valid_key_id
-    import uuid
+@parameterized((
+        ("not-a-uuid",),
+        ("alias/DoesNotExist",),
+        ("arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist",),
+        ("d25652e4-d2d2-49f7-929a-671ccda580c6",),
+        ("arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",),
+))
+@mock_kms
+def test_invalid_key_ids(key_id):
+    client = boto3.client("kms", region_name="us-east-1")
 
-    _assert_valid_key_id.when.called_with("not-a-key").should.throw(MotoNotFoundException)
-    _assert_valid_key_id.when.called_with(str(uuid.uuid4())).should_not.throw(MotoNotFoundException)
+    with assert_raises(client.exceptions.NotFoundException):
+        client.generate_data_key(KeyId=key_id, NumberOfBytes=5)
 
 
 @mock_kms_deprecated
@@ -660,7 +693,7 @@ def test_kms_encrypt_boto3(plaintext):
     response = client.encrypt(KeyId=key["KeyMetadata"]["KeyId"], Plaintext=plaintext)
 
     response = client.decrypt(CiphertextBlob=response["CiphertextBlob"])
-    response["Plaintext"].should.equal(plaintext)
+    response["Plaintext"].should.equal(_get_encoded_value(plaintext))
 
 
 @mock_kms
@@ -781,6 +814,8 @@ def test_list_resource_tags():
         (dict(KeySpec="AES_256"), 32),
         (dict(KeySpec="AES_128"), 16),
         (dict(NumberOfBytes=64), 64),
+        (dict(NumberOfBytes=1), 1),
+        (dict(NumberOfBytes=1024), 1024),
 ))
 @mock_kms
 def test_generate_data_key_sizes(kwargs, expected_key_length):
@@ -807,6 +842,7 @@ def test_generate_data_key_decrypt():
         (dict(KeySpec="AES_257"),),
         (dict(KeySpec="AES_128", NumberOfBytes=16),),
         (dict(NumberOfBytes=2048),),
+        (dict(NumberOfBytes=0),),
         (dict(),),
 ))
 @mock_kms
@@ -814,20 +850,42 @@ def test_generate_data_key_invalid_size_params(kwargs):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
 
-    with assert_raises(botocore.exceptions.ClientError) as err:
+    with assert_raises((botocore.exceptions.ClientError, botocore.exceptions.ParamValidationError)) as err:
         client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
 
 
+@parameterized((
+        ("alias/DoesNotExist",),
+        ("arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist",),
+        ("d25652e4-d2d2-49f7-929a-671ccda580c6",),
+        ("arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",),
+))
 @mock_kms
-def test_generate_data_key_invalid_key():
+def test_generate_data_key_invalid_key(key_id):
     client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="generate-data-key-size")
 
     with assert_raises(client.exceptions.NotFoundException):
-        client.generate_data_key(KeyId="alias/randomnonexistantkey", KeySpec="AES_256")
+        client.generate_data_key(KeyId=key_id, KeySpec="AES_256")
 
-    with assert_raises(client.exceptions.NotFoundException):
-        client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"] + "4", KeySpec="AES_256")
+
+@parameterized((
+        ("alias/DoesExist", False),
+        ("arn:aws:kms:us-east-1:012345678912:alias/DoesExist", False),
+        ("", True),
+        ("arn:aws:kms:us-east-1:012345678912:key/", True),
+))
+@mock_kms
+def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key()
+    key_id = key["KeyMetadata"]["KeyId"]
+    client.create_alias(AliasName="alias/DoesExist", TargetKeyId=key_id)
+
+    target_id = prefix
+    if append_key_id:
+        target_id += key_id
+
+    client.generate_data_key(KeyId=key_id, NumberOfBytes=32)
 
 
 @mock_kms
@@ -876,14 +934,14 @@ def test_re_encrypt_decrypt(plaintext):
         CiphertextBlob=encrypt_response["CiphertextBlob"],
         EncryptionContext={"encryption": "context"},
     )
-    decrypt_response_1["Plaintext"].should.equal(plaintext)
+    decrypt_response_1["Plaintext"].should.equal(_get_encoded_value(plaintext))
     decrypt_response_1["KeyId"].should.equal(key_1_arn)
 
     decrypt_response_2 = client.decrypt(
         CiphertextBlob=re_encrypt_response["CiphertextBlob"],
         EncryptionContext={"another": "context"},
     )
-    decrypt_response_2["Plaintext"].should.equal(plaintext)
+    decrypt_response_2["Plaintext"].should.equal(_get_encoded_value(plaintext))
     decrypt_response_2["KeyId"].should.equal(key_2_arn)
 
     decrypt_response_1["Plaintext"].should.equal(decrypt_response_2["Plaintext"])
@@ -904,11 +962,11 @@ def test_re_encrypt_to_invalid_destination():
     with assert_raises(client.exceptions.NotFoundException):
         client.re_encrypt(
             CiphertextBlob=encrypt_response["CiphertextBlob"],
-            DestinationKeyId="8327948729348",
+            DestinationKeyId="alias/DoesNotExist",
         )
 
 
-@parameterized(((12,), (44,), (91,)))
+@parameterized(((12,), (44,), (91,), (1,), (1024,)))
 @mock_kms
 def test_generate_random(number_of_bytes):
     client = boto3.client("kms", region_name="us-west-2")
@@ -921,6 +979,21 @@ def test_generate_random(number_of_bytes):
 
     response["Plaintext"].should.be.a(bytes)
     len(response["Plaintext"]).should.equal(number_of_bytes)
+
+
+@parameterized((
+        (2048, botocore.exceptions.ClientError),
+        (1025, botocore.exceptions.ClientError),
+        (0, botocore.exceptions.ParamValidationError),
+        (-1, botocore.exceptions.ParamValidationError),
+        (-1024, botocore.exceptions.ParamValidationError)
+))
+@mock_kms
+def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    with assert_raises(error_type):
+        client.generate_random(NumberOfBytes=number_of_bytes)
 
 
 @mock_kms
