@@ -32,6 +32,7 @@ import sure  # noqa
 
 from moto import settings, mock_s3, mock_s3_deprecated
 import moto.s3.models as s3model
+from moto.core.exceptions import InvalidNextTokenException
 
 if settings.TEST_SERVER_MODE:
     REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
@@ -273,6 +274,7 @@ def test_multipart_invalid_order():
     bucket.complete_multipart_upload.when.called_with(
         multipart.key_name, multipart.id, xml).should.throw(S3ResponseError)
 
+
 @mock_s3_deprecated
 @reduced_min_part_size
 def test_multipart_etag_quotes_stripped():
@@ -296,6 +298,7 @@ def test_multipart_etag_quotes_stripped():
         multipart.key_name, multipart.id, xml).should_not.throw(S3ResponseError)
     # we should get both parts as the key contents
     bucket.get_key("the-key").etag.should.equal(EXPECTED_ETAG)
+
 
 @mock_s3_deprecated
 @reduced_min_part_size
@@ -665,6 +668,7 @@ def test_delete_keys_invalid():
 
     result.deleted.should.have.length_of(0)
     result.errors.should.have.length_of(0)
+
 
 @mock_s3
 def test_boto3_delete_empty_keys_list():
@@ -1640,6 +1644,7 @@ def test_boto3_delete_versioned_bucket():
 
     client.delete_bucket(Bucket='blah')
 
+
 @mock_s3
 def test_boto3_get_object_if_modified_since():
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -1662,6 +1667,7 @@ def test_boto3_get_object_if_modified_since():
         )
     e = err.exception
     e.response['Error'].should.equal({'Code': '304', 'Message': 'Not Modified'})
+
 
 @mock_s3
 def test_boto3_head_object_if_modified_since():
@@ -1829,6 +1835,7 @@ def test_boto3_put_bucket_tagging():
     e = err.exception
     e.response["Error"]["Code"].should.equal("InvalidTag")
     e.response["Error"]["Message"].should.equal("Cannot provide multiple Tags with the same key")
+
 
 @mock_s3
 def test_boto3_get_bucket_tagging():
@@ -2730,6 +2737,7 @@ def test_boto3_list_object_versions_with_versioning_enabled_late():
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response['Body'].read().should.equal(items[-1])
 
+
 @mock_s3
 def test_boto3_bad_prefix_list_object_versions():
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -2932,12 +2940,14 @@ TEST_XML = """\
 </ns0:WebsiteConfiguration>
 """
 
+
 @mock_s3
 def test_boto3_bucket_name_too_long():
     s3 = boto3.client('s3', region_name='us-east-1')
     with assert_raises(ClientError) as exc:
         s3.create_bucket(Bucket='x'*64)
     exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
+
 
 @mock_s3
 def test_boto3_bucket_name_too_short():
@@ -2946,6 +2956,7 @@ def test_boto3_bucket_name_too_short():
         s3.create_bucket(Bucket='x'*2)
     exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
 
+
 @mock_s3
 def test_accelerated_none_when_unspecified():
     bucket_name = 'some_bucket'
@@ -2953,6 +2964,7 @@ def test_accelerated_none_when_unspecified():
     s3.create_bucket(Bucket=bucket_name)
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.shouldnt.have.key('Status')
+
 
 @mock_s3
 def test_can_enable_bucket_acceleration():
@@ -2967,6 +2979,7 @@ def test_can_enable_bucket_acceleration():
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.should.have.key('Status')
     resp['Status'].should.equal('Enabled')
+
 
 @mock_s3
 def test_can_suspend_bucket_acceleration():
@@ -2986,6 +2999,7 @@ def test_can_suspend_bucket_acceleration():
     resp.should.have.key('Status')
     resp['Status'].should.equal('Suspended')
 
+
 @mock_s3
 def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     bucket_name = 'some_bucket'
@@ -2999,6 +3013,7 @@ def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.shouldnt.have.key('Status')
 
+
 @mock_s3
 def test_accelerate_configuration_status_validation():
     bucket_name = 'some_bucket'
@@ -3011,6 +3026,7 @@ def test_accelerate_configuration_status_validation():
         )
     exc.exception.response['Error']['Code'].should.equal('MalformedXML')
 
+
 @mock_s3
 def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
     bucket_name = 'some.bucket.with.dots'
@@ -3022,6 +3038,7 @@ def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
             AccelerateConfiguration={'Status': 'Enabled'},
         )
     exc.exception.response['Error']['Code'].should.equal('InvalidRequest')
+
 
 def store_and_read_back_a_key(key):
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -3038,9 +3055,11 @@ def store_and_read_back_a_key(key):
     response = s3.get_object(Bucket=bucket_name, Key=key)
     response['Body'].read().should.equal(body)
 
+
 @mock_s3
 def test_paths_with_leading_slashes_work():
     store_and_read_back_a_key('/a-key')
+
 
 @mock_s3
 def test_root_dir_with_empty_name_works():
@@ -3083,3 +3102,70 @@ def test_delete_objects_with_url_encoded_key(key):
     s3.delete_objects(Bucket=bucket_name, Delete={'Objects': [{'Key': key}]})
     assert_deleted()
 
+
+@mock_s3
+def test_list_config_discovered_resources():
+    from moto.s3.config import s3_config_query
+
+    # Without any buckets:
+    assert s3_config_query.list_config_service_resources("global", "global", None, None, 100, None) == ([], None)
+
+    # With 10 buckets in us-west-2:
+    for x in range(0, 10):
+        s3_config_query.backends['global'].create_bucket('bucket{}'.format(x), 'us-west-2')
+
+    # With 2 buckets in eu-west-1:
+    for x in range(10, 12):
+        s3_config_query.backends['global'].create_bucket('eu-bucket{}'.format(x), 'eu-west-1')
+
+    result, next_token = s3_config_query.list_config_service_resources(None, None, 100, None)
+    assert not next_token
+    assert len(result) == 12
+    for x in range(0, 10):
+        assert result[x] == {
+            'type': 'AWS::S3::Bucket',
+            'id': 'bucket{}'.format(x),
+            'name': 'bucket{}'.format(x),
+            'region': 'us-west-2'
+        }
+    for x in range(10, 12):
+        assert result[x] == {
+            'type': 'AWS::S3::Bucket',
+            'id': 'eu-bucket{}'.format(x),
+            'name': 'eu-bucket{}'.format(x),
+            'region': 'eu-west-1'
+        }
+
+    # With a name:
+    result, next_token = s3_config_query.list_config_service_resources(None, 'bucket0', 100, None)
+    assert len(result) == 1 and result[0]['name'] == 'bucket0' and not next_token
+
+    # With a region:
+    result, next_token = s3_config_query.list_config_service_resources(None, None, 100, None, resource_region='eu-west-1')
+    assert len(result) == 2 and not next_token and result[1]['name'] == 'eu-bucket11'
+
+    # With resource ids:
+    result, next_token = s3_config_query.list_config_service_resources(['bucket0', 'bucket1'], None, 100, None)
+    assert len(result) == 2 and result[0]['name'] == 'bucket0' and result[1]['name'] == 'bucket1' and not next_token
+
+    # With duplicated resource ids:
+    result, next_token = s3_config_query.list_config_service_resources(['bucket0', 'bucket0'], None, 100, None)
+    assert len(result) == 1 and result[0]['name'] == 'bucket0' and not next_token
+
+    # Pagination:
+    result, next_token = s3_config_query.list_config_service_resources(None, None, 1, None)
+    assert len(result) == 1 and result[0]['name'] == 'bucket0' and next_token == 'bucket1'
+
+    # Last Page:
+    result, next_token = s3_config_query.list_config_service_resources(None, None, 1, 'eu-bucket11', resource_region='eu-west-1')
+    assert len(result) == 1 and result[0]['name'] == 'eu-bucket11' and not next_token
+
+    # With a list of buckets:
+    result, next_token = s3_config_query.list_config_service_resources(['bucket0', 'bucket1'], None, 1, None)
+    assert len(result) == 1 and result[0]['name'] == 'bucket0' and next_token == 'bucket1'
+
+    # With an invalid page:
+    with assert_raises(InvalidNextTokenException) as inte:
+        s3_config_query.list_config_service_resources(None, None, 1, 'notabucket')
+
+    assert 'The nextToken provided is invalid' in inte.exception.message

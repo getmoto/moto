@@ -84,3 +84,34 @@ class ConfigResponse(BaseResponse):
     def stop_configuration_recorder(self):
         self.config_backend.stop_configuration_recorder(self._get_param('ConfigurationRecorderName'))
         return ""
+
+    def list_discovered_resources(self):
+        schema = self.config_backend.list_discovered_resources(self._get_param('resourceType'),
+                                                               self.region,
+                                                               self._get_param('resourceIds'),
+                                                               self._get_param('resourceName'),
+                                                               self._get_param('limit'),
+                                                               self._get_param('nextToken'))
+        return json.dumps(schema)
+
+    def list_aggregate_discovered_resources(self):
+        schema = self.config_backend.list_aggregate_discovered_resources(self._get_param('ConfigurationAggregatorName'),
+                                                                         self._get_param('ResourceType'),
+                                                                         self._get_param('Filters'),
+                                                                         self._get_param('Limit'),
+                                                                         self._get_param('NextToken'))
+        return json.dumps(schema)
+
+    """
+    def batch_get_resource_config(self):
+        # TODO implement me!
+        return ""
+
+    def batch_get_aggregate_resource_config(self):
+        # TODO implement me!
+        return ""
+
+    def get_resource_config_history(self):
+        # TODO implement me!
+        return ""
+    """

@@ -4,6 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
+from moto import mock_s3
 from moto.config import mock_config
 
 
@@ -1009,3 +1010,177 @@ def test_delete_delivery_channel():
     with assert_raises(ClientError) as ce:
         client.delete_delivery_channel(DeliveryChannelName='testchannel')
     assert ce.exception.response['Error']['Code'] == 'NoSuchDeliveryChannelException'
+
+
+@mock_config
+@mock_s3
+def test_list_discovered_resource():
+    """NOTE: We are only really testing the Config part. For each individual service, please add tests
+             for that individual service's "list_config_service_resources" function.
+    """
+    client = boto3.client('config', region_name='us-west-2')
+
+    # With nothing created yet:
+    assert not client.list_discovered_resources(resourceType='AWS::S3::Bucket')['resourceIdentifiers']
+
+    # Create some S3 buckets:
+    s3_client = boto3.client('s3', region_name='us-west-2')
+    for x in range(0, 10):
+        s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+
+    # Now try:
+    result = client.list_discovered_resources(resourceType='AWS::S3::Bucket')
+    assert len(result['resourceIdentifiers']) == 10
+    for x in range(0, 10):
+        assert result['resourceIdentifiers'][x] == {
+            'resourceType': 'AWS::S3::Bucket',
+            'resourceId': 'bucket{}'.format(x),
+            'resourceName': 'bucket{}'.format(x)
+        }
+    assert not result.get('nextToken')
+
+    # Test that pagination places a proper nextToken in the response and also that the limit works:
+    result = client.list_discovered_resources(resourceType='AWS::S3::Bucket', limit=1, nextToken='bucket1')
+    assert len(result['resourceIdentifiers']) == 1
+    assert result['nextToken'] == 'bucket2'
+
+    # Try with a resource name:
+    result = client.list_discovered_resources(resourceType='AWS::S3::Bucket', limit=1, resourceName='bucket1')
+    assert len(result['resourceIdentifiers']) == 1
+    assert not result.get('nextToken')
+
+    # Try with a resource ID:
+    result = client.list_discovered_resources(resourceType='AWS::S3::Bucket', limit=1, resourceIds=['bucket1'])
+    assert len(result['resourceIdentifiers']) == 1
+    assert not result.get('nextToken')
+
+    # Try with duplicated resource IDs:
+    result = client.list_discovered_resources(resourceType='AWS::S3::Bucket', limit=1, resourceIds=['bucket1', 'bucket1'])
+    assert len(result['resourceIdentifiers']) == 1
+    assert not result.get('nextToken')
+
+    # Test with an invalid resource type:
+    assert not client.list_discovered_resources(resourceType='LOL::NOT::A::RESOURCE::TYPE')['resourceIdentifiers']
+
+    # Test with an invalid page num > 100:
+    with assert_raises(ClientError) as ce:
+        client.list_discovered_resources(resourceType='AWS::S3::Bucket', limit=101)
+    assert '101' in ce.exception.response['Error']['Message']
+
+    # Test by supplying both resourceName and also resourceIds:
+    with assert_raises(ClientError) as ce:
+        client.list_discovered_resources(resourceType='AWS::S3::Bucket', resourceName='whats', resourceIds=['up', 'doc'])
+    assert 'Both Resource ID and Resource Name cannot be specified in the request' in ce.exception.response['Error']['Message']
+
+    # More than 20 resourceIds:
+    resource_ids = ['{}'.format(x) for x in range(0, 21)]
+    with assert_raises(ClientError) as ce:
+        client.list_discovered_resources(resourceType='AWS::S3::Bucket', resourceIds=resource_ids)
+    assert 'The specified list had more than 20 resource ID\'s.' in ce.exception.response['Error']['Message']
+
+
+@mock_config
+@mock_s3
+def test_list_aggregate_discovered_resource():
+    """NOTE: We are only really testing the Config part. For each individual service, please add tests
+             for that individual service's "list_config_service_resources" function.
+    """
+    client = boto3.client('config', region_name='us-west-2')
+
+    # Without an aggregator:
+    with assert_raises(ClientError) as ce:
+        client.list_aggregate_discovered_resources(ConfigurationAggregatorName='lolno', ResourceType='AWS::S3::Bucket')
+    assert 'The configuration aggregator does not exist' in ce.exception.response['Error']['Message']
+
+    # Create the aggregator:
+    account_aggregation_source = {
+        'AccountIds': [
+            '012345678910',
+            '111111111111',
+            '222222222222'
+        ],
+        'AllAwsRegions': True
+    }
+    client.put_configuration_aggregator(
+        ConfigurationAggregatorName='testing',
+        AccountAggregationSources=[account_aggregation_source]
+    )
+
+    # With nothing created yet:
+    assert not client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing',
+                                                          ResourceType='AWS::S3::Bucket')['ResourceIdentifiers']
+
+    # Create some S3 buckets:
+    s3_client = boto3.client('s3', region_name='us-west-2')
+    for x in range(0, 10):
+        s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+
+    s3_client_eu = boto3.client('s3', region_name='eu-west-1')
+    for x in range(10, 12):
+        s3_client_eu.create_bucket(Bucket='eu-bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+
+    # Now try:
+    result = client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket')
+    assert len(result['ResourceIdentifiers']) == 12
+    for x in range(0, 10):
+        assert result['ResourceIdentifiers'][x] == {
+            'SourceAccountId': '123456789012',
+            'ResourceType': 'AWS::S3::Bucket',
+            'ResourceId': 'bucket{}'.format(x),
+            'ResourceName': 'bucket{}'.format(x),
+            'SourceRegion': 'us-west-2'
+        }
+    for x in range(11, 12):
+        assert result['ResourceIdentifiers'][x] == {
+            'SourceAccountId': '123456789012',
+            'ResourceType': 'AWS::S3::Bucket',
+            'ResourceId': 'eu-bucket{}'.format(x),
+            'ResourceName': 'eu-bucket{}'.format(x),
+            'SourceRegion': 'eu-west-1'
+        }
+
+    assert not result.get('NextToken')
+
+    # Test that pagination places a proper nextToken in the response and also that the limit works:
+    result = client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket',
+                                                        Limit=1, NextToken='bucket1')
+    assert len(result['ResourceIdentifiers']) == 1
+    assert result['NextToken'] == 'bucket2'
+
+    # Try with a resource name:
+    result = client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket',
+                                                        Limit=1, NextToken='bucket1', Filters={'ResourceName': 'bucket1'})
+    assert len(result['ResourceIdentifiers']) == 1
+    assert not result.get('NextToken')
+
+    # Try with a resource ID:
+    result = client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket',
+                                                        Limit=1, NextToken='bucket1', Filters={'ResourceId': 'bucket1'})
+    assert len(result['ResourceIdentifiers']) == 1
+    assert not result.get('NextToken')
+
+    # Try with a region specified:
+    result = client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket',
+                                                        Filters={'Region': 'eu-west-1'})
+    assert len(result['ResourceIdentifiers']) == 2
+    assert result['ResourceIdentifiers'][0]['SourceRegion'] == 'eu-west-1'
+    assert not result.get('NextToken')
+
+    # Try with both name and id set to the incorrect values:
+    assert not client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket',
+                                                          Filters={'ResourceId': 'bucket1',
+                                                                   'ResourceName': 'bucket2'})['ResourceIdentifiers']
+
+    # Test with an invalid resource type:
+    assert not client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing',
+                                                          ResourceType='LOL::NOT::A::RESOURCE::TYPE')['ResourceIdentifiers']
+
+    # Try with correct name but incorrect region:
+    assert not client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket',
+                                                          Filters={'ResourceId': 'bucket1',
+                                                                   'Region': 'us-west-1'})['ResourceIdentifiers']
+
+    # Test with an invalid page num > 100:
+    with assert_raises(ClientError) as ce:
+        client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket', Limit=101)
+    assert '101' in ce.exception.response['Error']['Message']

@@ -297,6 +297,9 @@ def test_describe_instances_allowed():
 
 See [the related test suite](https://github.com/spulec/moto/blob/master/tests/test_core/test_auth.py) for more examples.
 
+## Experimental: AWS Config Querying
+For details about the experimental AWS Config support please see the [AWS Config readme here](CONFIG_README.md).
+
 ## Very Important -- Recommended Usage
 There are some important caveats to be aware of when using moto:
 
