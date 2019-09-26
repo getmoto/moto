@@ -21,6 +21,7 @@ from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
+from parameterized import parameterized
 import six
 import requests
 import tests.backport_assert_raises  # noqa
@@ -3046,3 +3047,39 @@ def test_root_dir_with_empty_name_works():
     if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
         raise SkipTest('Does not work in server mode due to error in Workzeug')
     store_and_read_back_a_key('/')
+
+
+@parameterized([
+    ('foo/bar/baz',),
+    ('foo',),
+    ('foo/run_dt%3D2019-01-01%252012%253A30%253A00',),
+])
+@mock_s3
+def test_delete_objects_with_url_encoded_key(key):
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    body = b'Some body'
+
+    s3.create_bucket(Bucket=bucket_name)
+
+    def put_object():
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+
+    def assert_deleted():
+        with assert_raises(ClientError) as e:
+            s3.get_object(Bucket=bucket_name, Key=key)
+
+        e.exception.response['Error']['Code'].should.equal('NoSuchKey')
+
+    put_object()
+    s3.delete_object(Bucket=bucket_name, Key=key)
+    assert_deleted()
+
+    put_object()
+    s3.delete_objects(Bucket=bucket_name, Delete={'Objects': [{'Key': key}]})
+    assert_deleted()
+

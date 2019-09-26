@@ -20,7 +20,7 @@ from .exceptions import BucketAlreadyExists, S3ClientError, MissingBucket, Missi
     MalformedACLError, InvalidNotificationARN, InvalidNotificationEvent, ObjectNotInActiveTierError
 from .models import s3_backend, get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeTagging, FakeTagSet, \
     FakeTag
-from .utils import bucket_name_from_url, clean_key_name, metadata_from_headers, parse_region_from_url
+from .utils import bucket_name_from_url, clean_key_name, undo_clean_key_name, metadata_from_headers, parse_region_from_url
 from xml.dom import minidom
 
 
@@ -711,7 +711,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         for k in keys:
             key_name = k.firstChild.nodeValue
-            success = self.backend.delete_key(bucket_name, key_name)
+            success = self.backend.delete_key(bucket_name, undo_clean_key_name(key_name))
             if success:
                 deleted_names.append(key_name)
             else:
