@@ -4092,7 +4092,7 @@
 - [ ] stop_query
 - [X] tag_log_group
 - [ ] test_metric_filter
-- [ ] untag_log_group
+- [X] untag_log_group
 
 ## machinelearning
 0% implemented

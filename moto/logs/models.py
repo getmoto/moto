@@ -240,6 +240,10 @@ class LogGroup:
         else:
             self.tags = tags
 
+    def untag(self, tags_to_remove):
+        if self.tags:
+            self.tags = {k: v for (k, v) in self.tags.items() if k not in tags_to_remove}
+
 
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
@@ -342,6 +346,12 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         log_group.tag(tags)
+
+    def untag_log_group(self, log_group_name, tags):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        log_group.untag(tags)
 
 
 logs_backends = {region.name: LogsBackend(region.name) for region in boto.logs.regions()}
