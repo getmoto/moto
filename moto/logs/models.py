@@ -234,6 +234,12 @@ class LogGroup:
     def list_tags(self):
         return self.tags if self.tags else {}
 
+    def tag(self, tags):
+        if self.tags:
+            self.tags.update(tags)
+        else:
+            self.tags = tags
+
 
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
@@ -330,6 +336,12 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.list_tags()
+
+    def tag_log_group(self, log_group_name, tags):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        log_group.tag(tags)
 
 
 logs_backends = {region.name: LogsBackend(region.name) for region in boto.logs.regions()}

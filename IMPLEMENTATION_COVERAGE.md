@@ -4090,7 +4090,7 @@
 - [ ] put_subscription_filter
 - [ ] start_query
 - [ ] stop_query
-- [ ] tag_log_group
+- [X] tag_log_group
 - [ ] test_metric_filter
 - [ ] untag_log_group
 

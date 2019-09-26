@@ -142,3 +142,8 @@ class LogsResponse(BaseResponse):
             'tags': tags
         })
 
+    def tag_log_group(self):
+        log_group_name = self._get_param('logGroupName')
+        tags = self._get_param('tags')
+        self.logs_backend.tag_log_group(log_group_name, tags)
+        return ''
