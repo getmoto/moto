@@ -4080,7 +4080,7 @@
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [ ] get_query_results
-- [ ] list_tags_log_group
+- [X] list_tags_log_group
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events

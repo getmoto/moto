@@ -231,6 +231,9 @@ class LogGroup:
     def set_retention_policy(self, retention_in_days):
         self.retentionInDays = retention_in_days
 
+    def list_tags(self):
+        return self.tags if self.tags else {}
+
 
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
@@ -321,6 +324,12 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         return log_group.set_retention_policy(None)
+
+    def list_tags_log_group(self, log_group_name):
+        if log_group_name not in self.groups:
+            raise ResourceNotFoundException()
+        log_group = self.groups[log_group_name]
+        return log_group.list_tags()
 
 
 logs_backends = {region.name: LogsBackend(region.name) for region in boto.logs.regions()}

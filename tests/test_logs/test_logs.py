@@ -225,3 +225,21 @@ def test_get_log_events():
     for i in range(10):
         resp['events'][i]['timestamp'].should.equal(i)
         resp['events'][i]['message'].should.equal(str(i))
+
+
+@mock_logs
+def test_list_tags_log_group():
+    conn = boto3.client('logs', 'us-west-2')
+    log_group_name = 'dummy'
+    tags = {'tag_key_1': 'tag_value_1', 'tag_key_2': 'tag_value_2'}
+
+    response = conn.create_log_group(logGroupName=log_group_name)
+    response = conn.list_tags_log_group(logGroupName=log_group_name)
+    assert response['tags'] == {}
+
+    response = conn.delete_log_group(logGroupName=log_group_name)
+    response = conn.create_log_group(logGroupName=log_group_name, tags=tags)
+    response = conn.list_tags_log_group(logGroupName=log_group_name)
+    assert response['tags'] == tags
+
+    response = conn.delete_log_group(logGroupName=log_group_name)
