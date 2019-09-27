@@ -14,7 +14,7 @@ SINGLE_ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
 """
 
 ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
-  <Response>
+  <ErrorResponse>
     <Errors>
       <Error>
         <Code>{{error_type}}</Code>
@@ -23,7 +23,7 @@ ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
       </Error>
     </Errors>
   <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
-</Response>
+</ErrorResponse>
 """
 
 ERROR_JSON_RESPONSE = u"""{
