@@ -339,6 +339,14 @@ class SNSBackend(BaseBackend):
             return old_subscription
         topic = self.get_topic(topic_arn)
         subscription = Subscription(topic, endpoint, protocol)
+        attributes = {
+            'PendingConfirmation' : 'false',
+            'Endpoint' : endpoint,
+            'TopicArn' : topic_arn,
+            'Protocol': protocol,
+            'SubscriptionArn': subscription.arn
+        }
+        subscription.attributes = attributes
         self.subscriptions[subscription.arn] = subscription
         return subscription
 
