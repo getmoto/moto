@@ -104,3 +104,11 @@ class AuthFailureError(RESTError):
         super(AuthFailureError, self).__init__(
             'AuthFailure',
             "AWS was not able to validate the provided access credentials")
+
+
+class InvalidNextTokenException(JsonRESTError):
+    """For AWS Config resource listing. This will be used by many different resource types, and so it is in moto.core."""
+    code = 400
+
+    def __init__(self):
+        super(InvalidNextTokenException, self).__init__('InvalidNextTokenException', 'The nextToken provided is invalid')

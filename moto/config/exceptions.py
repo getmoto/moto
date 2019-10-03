@@ -230,3 +230,27 @@ class TooManyTags(JsonRESTError):
         super(TooManyTags, self).__init__(
             'ValidationException', "1 validation error detected: Value '{}' at '{}' failed to satisfy "
                                    "constraint: Member must have length less than or equal to 50.".format(tags, param))
+
+
+class InvalidResourceParameters(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(InvalidResourceParameters, self).__init__('ValidationException', 'Both Resource ID and Resource Name '
+                                                                               'cannot be specified in the request')
+
+
+class InvalidLimit(JsonRESTError):
+    code = 400
+
+    def __init__(self, value):
+        super(InvalidLimit, self).__init__('ValidationException', 'Value \'{value}\' at \'limit\' failed to satisify constraint: Member'
+                                                                  ' must have value less than or equal to 100'.format(value=value))
+
+
+class TooManyResourceIds(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(TooManyResourceIds, self).__init__('ValidationException', "The specified list had more than 20 resource ID's. "
+                                                                        "It must have '20' or less items")

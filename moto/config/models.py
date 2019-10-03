@@ -17,11 +17,12 @@ from moto.config.exceptions import InvalidResourceTypeException, InvalidDelivery
     InvalidSNSTopicARNException, MaxNumberOfDeliveryChannelsExceededException, NoAvailableDeliveryChannelException, \
     NoSuchDeliveryChannelException, LastDeliveryChannelDeleteFailedException, TagKeyTooBig, \
     TooManyTags, TagValueTooBig, TooManyAccountSources, InvalidParameterValueException, InvalidNextTokenException, \
-    NoSuchConfigurationAggregatorException, InvalidTagCharacters, DuplicateTags
+    NoSuchConfigurationAggregatorException, InvalidTagCharacters, DuplicateTags, InvalidLimit, InvalidResourceParameters, TooManyResourceIds
 
 from moto.core import BaseBackend, BaseModel
+from moto.s3.config import s3_config_query
 
-DEFAULT_ACCOUNT_ID = 123456789012
+DEFAULT_ACCOUNT_ID = '123456789012'
 POP_STRINGS = [
     'capitalizeStart',
     'CapitalizeStart',
@@ -31,6 +32,11 @@ POP_STRINGS = [
     'CapitalizeARN'
 ]
 DEFAULT_PAGE_SIZE = 100
+
+# Map the Config resource type to a backend:
+RESOURCE_MAP = {
+    'AWS::S3::Bucket': s3_config_query
+}
 
 
 def datetime2int(date):
@@ -679,6 +685,110 @@ class ConfigBackend(BaseBackend):
                 raise LastDeliveryChannelDeleteFailedException(channel_name)
 
         del self.delivery_channels[channel_name]
+
+    def list_discovered_resources(self, resource_type, backend_region, resource_ids, resource_name, limit, next_token):
+        """This will query against the mocked AWS Config listing function that must exist for the resource backend.
+
+        :param resource_type:
+        :param backend_region:
+        :param ids:
+        :param name:
+        :param limit:
+        :param next_token:
+        :return:
+        """
+        identifiers = []
+        new_token = None
+
+        limit = limit or DEFAULT_PAGE_SIZE
+        if limit > DEFAULT_PAGE_SIZE:
+            raise InvalidLimit(limit)
+
+        if resource_ids and resource_name:
+            raise InvalidResourceParameters()
+
+        # Only 20 maximum Resource IDs:
+        if resource_ids and len(resource_ids) > 20:
+            raise TooManyResourceIds()
+
+        # If the resource type exists and the backend region is implemented in moto, then
+        # call upon the resource type's Config Query class to retrieve the list of resources that match the criteria:
+        if RESOURCE_MAP.get(resource_type, {}):
+            # Is this a global resource type? -- if so, re-write the region to 'global':
+            if RESOURCE_MAP[resource_type].backends.get('global'):
+                backend_region = 'global'
+
+            # For non-aggregated queries, the we only care about the backend_region. Need to verify that moto has implemented
+            # the region for the given backend:
+            if RESOURCE_MAP[resource_type].backends.get(backend_region):
+                # Fetch the resources for the backend's region:
+                identifiers, new_token = \
+                    RESOURCE_MAP[resource_type].list_config_service_resources(resource_ids, resource_name, limit, next_token)
+
+        result = {'resourceIdentifiers': [
+            {
+                'resourceType': identifier['type'],
+                'resourceId': identifier['id'],
+                'resourceName': identifier['name']
+            }
+            for identifier in identifiers]
+        }
+
+        if new_token:
+            result['nextToken'] = new_token
+
+        return result
+
+    def list_aggregate_discovered_resources(self, aggregator_name, resource_type, filters, limit, next_token):
+        """This will query against the mocked AWS Config listing function that must exist for the resource backend.
+        As far a moto goes -- the only real difference between this function and the `list_discovered_resources` function is that
+        this will require a Config Aggregator be set up a priori and can search based on resource regions.
+
+        :param aggregator_name:
+        :param resource_type:
+        :param filters:
+        :param limit:
+        :param next_token:
+        :return:
+        """
+        if not self.config_aggregators.get(aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+
+        identifiers = []
+        new_token = None
+        filters = filters or {}
+
+        limit = limit or DEFAULT_PAGE_SIZE
+        if limit > DEFAULT_PAGE_SIZE:
+            raise InvalidLimit(limit)
+
+        # If the resource type exists and the backend region is implemented in moto, then
+        # call upon the resource type's Config Query class to retrieve the list of resources that match the criteria:
+        if RESOURCE_MAP.get(resource_type, {}):
+            # We only care about a filter's Region, Resource Name, and Resource ID:
+            resource_region = filters.get('Region')
+            resource_id = [filters['ResourceId']] if filters.get('ResourceId') else None
+            resource_name = filters.get('ResourceName')
+
+            identifiers, new_token = \
+                RESOURCE_MAP[resource_type].list_config_service_resources(resource_id, resource_name, limit, next_token,
+                                                                          resource_region=resource_region)
+
+        result = {'ResourceIdentifiers': [
+            {
+                'SourceAccountId': DEFAULT_ACCOUNT_ID,
+                'SourceRegion': identifier['region'],
+                'ResourceType': identifier['type'],
+                'ResourceId': identifier['id'],
+                'ResourceName': identifier['name']
+            }
+            for identifier in identifiers]
+        }
+
+        if new_token:
+            result['NextToken'] = new_token
+
+        return result
 
 
 config_backends = {}

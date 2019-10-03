@@ -538,6 +538,65 @@ class BaseBackend(object):
         else:
             return HttprettyMockAWS({'global': self})
 
+    # def list_config_service_resources(self, resource_ids, resource_name, limit, next_token):
+    #     """For AWS Config. This will list all of the resources of the given type and optional resource name and region"""
+    #     raise NotImplementedError()
+
+
+class ConfigQueryModel(object):
+
+    def __init__(self, backends):
+        """Inits based on the resource type's backends (1 for each region if applicable)"""
+        self.backends = backends
+
+    def list_config_service_resources(self, resource_ids, resource_name, limit, next_token, backend_region=None, resource_region=None):
+        """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
+
+        This supports both aggregated and non-aggregated listing. The following notes the difference:
+
+        - Non Aggregated Listing -
+        This only lists resources within a region. The way that this is implemented in moto is based on the region
+        for the resource backend.
+
+        You must set the `backend_region` to the region that the API request arrived from. resource_region can be set to `None`.
+
+        - Aggregated Listing -
+        This lists resources from all potential regional backends. For non-global resource types, this should collect a full
+        list of resources from all the backends, and then be able to filter from the resource region. This is because an
+        aggregator can aggregate resources from multiple regions. In moto, aggregated regions will *assume full aggregation
+        from all resources in all regions for a given resource type*.
+
+        The `backend_region` should be set to `None` for these queries, and the `resource_region` should optionally be set to
+        the `Filters` region parameter to filter out resources that reside in a specific region.
+
+        For aggregated listings, pagination logic should be set such that the next page can properly span all the region backends.
+        As such, the proper way to implement is to first obtain a full list of results from all the region backends, and then filter
+        from there. It may be valuable to make this a concatenation of the region and resource name.
+
+        :param resource_region:
+        :param resource_ids:
+        :param resource_name:
+        :param limit:
+        :param next_token:
+        :param backend_region: The region for the backend to pull results from. Set to `None` if this is an aggregated query.
+        :return: This should return a list of Dicts that have the following fields:
+            [
+                {
+                    'type': 'AWS::The AWS Config data type',
+                    'name': 'The name of the resource',
+                    'id': 'The ID of the resource',
+                    'region': 'The region of the resource -- if global, then you may want to have the calling logic pass in the
+                               aggregator region in for the resource region -- or just us-east-1 :P'
+                }
+                , ...
+            ]
+        """
+        raise NotImplementedError()
+
+    def get_config_resource(self):
+        """TODO implement me."""
+        raise NotImplementedError()
+
 
 class base_decorator(object):
     mock_backend = MockAWS
