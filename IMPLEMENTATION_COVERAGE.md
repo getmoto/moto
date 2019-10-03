@@ -5696,7 +5696,7 @@
 - [ ] update_service
 
 ## ses
-12% implemented
+14% implemented
 - [ ] clone_receipt_rule_set
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
@@ -5747,7 +5747,7 @@
 - [ ] send_custom_verification_email
 - [X] send_email
 - [X] send_raw_email
-- [ ] send_templated_email
+- [X] send_templated_email
 - [ ] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
 - [ ] set_identity_feedback_forwarding_enabled
