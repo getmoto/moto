@@ -9,15 +9,16 @@ from moto.core import BaseBackend, BaseModel
 
 class Rule(BaseModel):
 
-    def _generate_arn(self, name, region_name):
+    def _generate_arn(self, name):
         return 'arn:aws:events:{region_name}:111111111111:rule/{name}'.format(
-            region_name=region_name,
+            region_name=self.region_name,
             name=name
         )
 
     def __init__(self, name, region_name, **kwargs):
         self.name = name
-        self.arn = kwargs.get('Arn') or self._generate_arn(name, region_name)
+        self.region_name = region_name
+        self.arn = kwargs.get('Arn') or self._generate_arn(name)
         self.event_pattern = kwargs.get('EventPattern')
         self.schedule_exp = kwargs.get('ScheduleExpression')
         self.state = kwargs.get('State') or 'ENABLED'
