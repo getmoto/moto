@@ -2343,7 +2343,7 @@
 - [ ] upload_layer_part
 
 ## ecs
-63% implemented
+49% implemented
 - [X] create_cluster
 - [X] create_service
 - [ ] create_task_set
@@ -2381,8 +2381,8 @@
 - [ ] submit_attachment_state_changes
 - [ ] submit_container_state_change
 - [ ] submit_task_state_change
-- [ ] tag_resource
-- [ ] untag_resource
+- [x] tag_resource
+- [x] untag_resource
 - [ ] update_container_agent
 - [X] update_container_instances_state
 - [X] update_service
