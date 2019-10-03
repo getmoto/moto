@@ -2360,3 +2360,229 @@ def test_list_tags_for_resource_unknown():
         client.list_tags_for_resource(resourceArn=task_definition_arn)
     except ClientError as err:
         err.response['Error']['Code'].should.equal('ClientException')
+
+
+@mock_ecs
+def test_list_tags_for_resource_ecs_service():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        tags=[
+            {'key': 'createdBy', 'value': 'moto-unittest'},
+            {'key': 'foo', 'value': 'bar'},
+        ]
+    )
+    response = client.list_tags_for_resource(resourceArn=response['service']['serviceArn'])
+    type(response['tags']).should.be(list)
+    response['tags'].should.equal([
+        {'key': 'createdBy', 'value': 'moto-unittest'},
+        {'key': 'foo', 'value': 'bar'},
+    ])
+
+
+@mock_ecs
+def test_list_tags_for_resource_unknown_service():
+    client = boto3.client('ecs', region_name='us-east-1')
+    service_arn = 'arn:aws:ecs:us-east-1:012345678910:service/unknown:1'
+    try:
+        client.list_tags_for_resource(resourceArn=service_arn)
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('ServiceNotFoundException')
+
+
+@mock_ecs
+def test_ecs_service_tag_resource():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2
+    )
+    client.tag_resource(
+        resourceArn=response['service']['serviceArn'],
+        tags=[
+            {'key': 'createdBy', 'value': 'moto-unittest'},
+            {'key': 'foo', 'value': 'bar'},
+        ]
+    )
+    response = client.list_tags_for_resource(resourceArn=response['service']['serviceArn'])
+    type(response['tags']).should.be(list)
+    response['tags'].should.equal([
+        {'key': 'createdBy', 'value': 'moto-unittest'},
+        {'key': 'foo', 'value': 'bar'},
+    ])
+
+
+@mock_ecs
+def test_ecs_service_tag_resource_overwrites_tag():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        tags=[
+            {'key': 'foo', 'value': 'bar'},
+        ]
+    )
+    client.tag_resource(
+        resourceArn=response['service']['serviceArn'],
+        tags=[
+            {'key': 'createdBy', 'value': 'moto-unittest'},
+            {'key': 'foo', 'value': 'hello world'},
+        ]
+    )
+    response = client.list_tags_for_resource(resourceArn=response['service']['serviceArn'])
+    type(response['tags']).should.be(list)
+    response['tags'].should.equal([
+        {'key': 'createdBy', 'value': 'moto-unittest'},
+        {'key': 'foo', 'value': 'hello world'},
+    ])
+
+
+@mock_ecs
+def test_ecs_service_untag_resource():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        tags=[
+            {'key': 'foo', 'value': 'bar'},
+        ]
+    )
+    client.untag_resource(
+        resourceArn=response['service']['serviceArn'],
+        tagKeys=['foo']
+    )
+    response = client.list_tags_for_resource(resourceArn=response['service']['serviceArn'])
+    response['tags'].should.equal([])
+
+
+@mock_ecs
+def test_ecs_service_untag_resource_multiple_tags():
+    client = boto3.client('ecs', region_name='us-east-1')
+    _ = client.create_cluster(
+        clusterName='test_ecs_cluster'
+    )
+    _ = client.register_task_definition(
+        family='test_ecs_task',
+        containerDefinitions=[
+            {
+                'name': 'hello_world',
+                'image': 'docker/hello-world:latest',
+                'cpu': 1024,
+                'memory': 400,
+                'essential': True,
+                'environment': [{
+                    'name': 'AWS_ACCESS_KEY_ID',
+                    'value': 'SOME_ACCESS_KEY'
+                }],
+                'logConfiguration': {'logDriver': 'json-file'}
+            }
+        ]
+    )
+    response = client.create_service(
+        cluster='test_ecs_cluster',
+        serviceName='test_ecs_service',
+        taskDefinition='test_ecs_task',
+        desiredCount=2,
+        tags=[
+            {'key': 'foo', 'value': 'bar'},
+            {'key': 'createdBy', 'value': 'moto-unittest'},
+            {'key': 'hello', 'value': 'world'},
+        ]
+    )
+    client.untag_resource(
+        resourceArn=response['service']['serviceArn'],
+        tagKeys=['foo', 'createdBy']
+    )
+    response = client.list_tags_for_resource(resourceArn=response['service']['serviceArn'])
+    response['tags'].should.equal([
+        {'key': 'hello', 'value': 'world'},
+    ])

@@ -192,7 +192,7 @@ class Task(BaseObject):
 
 class Service(BaseObject):
 
-    def __init__(self, cluster, service_name, task_definition, desired_count, load_balancers=None, scheduling_strategy=None):
+    def __init__(self, cluster, service_name, task_definition, desired_count, load_balancers=None, scheduling_strategy=None, tags=None):
         self.cluster_arn = cluster.arn
         self.arn = 'arn:aws:ecs:us-east-1:012345678910:service/{0}'.format(
             service_name)
@@ -216,6 +216,7 @@ class Service(BaseObject):
         ]
         self.load_balancers = load_balancers if load_balancers is not None else []
         self.scheduling_strategy = scheduling_strategy if scheduling_strategy is not None else 'REPLICA'
+        self.tags = tags if tags is not None else []
         self.pending_count = 0
 
     @property
@@ -225,7 +226,7 @@ class Service(BaseObject):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        del response_object['name'], response_object['arn']
+        del response_object['name'], response_object['arn'], response_object['tags']
         response_object['serviceName'] = self.name
         response_object['serviceArn'] = self.arn
         response_object['schedulingStrategy'] = self.scheduling_strategy
@@ -691,7 +692,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         raise Exception("Could not find task {} on cluster {}".format(
             task_str, cluster_name))
 
-    def create_service(self, cluster_str, service_name, task_definition_str, desired_count, load_balancers=None, scheduling_strategy=None):
+    def create_service(self, cluster_str, service_name, task_definition_str, desired_count, load_balancers=None, scheduling_strategy=None, tags=None):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
@@ -701,7 +702,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         desired_count = desired_count if desired_count is not None else 0
 
         service = Service(cluster, service_name,
-                          task_definition, desired_count, load_balancers, scheduling_strategy)
+                          task_definition, desired_count, load_balancers, scheduling_strategy, tags)
         cluster_service_pair = '{0}:{1}'.format(cluster_name, service_name)
         self.services[cluster_service_pair] = service
 
@@ -958,28 +959,73 @@ class EC2ContainerServiceBackend(BaseBackend):
 
             yield task_fam
 
-    def list_tags_for_resource(self, resource_arn):
-        """Currently only implemented for task definitions"""
+    @staticmethod
+    def _parse_resource_arn(resource_arn):
         match = re.match(
             "^arn:aws:ecs:(?P<region>[^:]+):(?P<account_id>[^:]+):(?P<service>[^:]+)/(?P<id>.*)$",
             resource_arn)
         if not match:
             raise JsonRESTError('InvalidParameterException', 'The ARN provided is invalid.')
+        return match.groupdict()
 
-        service = match.group("service")
-        if service == "task-definition":
+    def list_tags_for_resource(self, resource_arn):
+        """Currently implemented only for task definitions and services"""
+        parsed_arn = self._parse_resource_arn(resource_arn)
+        if parsed_arn["service"] == "task-definition":
             for task_definition in self.task_definitions.values():
                 for revision in task_definition.values():
                     if revision.arn == resource_arn:
                         return revision.tags
             else:
                 raise TaskDefinitionNotFoundException()
+        elif parsed_arn["service"] == "service":
+            for service in self.services.values():
+                if service.arn == resource_arn:
+                    return service.tags
+            else:
+                raise ServiceNotFoundException(service_name=parsed_arn["id"])
         raise NotImplementedError()
 
     def _get_last_task_definition_revision_id(self, family):
         definitions = self.task_definitions.get(family, {})
         if definitions:
             return max(definitions.keys())
+
+    def tag_resource(self, resource_arn, tags):
+        """Currently implemented only for services"""
+        parsed_arn = self._parse_resource_arn(resource_arn)
+        if parsed_arn["service"] == "service":
+            for service in self.services.values():
+                if service.arn == resource_arn:
+                    service.tags = self._merge_tags(service.tags, tags)
+                return {}
+            else:
+                raise ServiceNotFoundException(service_name=parsed_arn["id"])
+        raise NotImplementedError()
+
+    def _merge_tags(self, existing_tags, new_tags):
+        merged_tags = new_tags
+        new_keys = self._get_keys(new_tags)
+        for existing_tag in existing_tags:
+            if existing_tag["key"] not in new_keys:
+                merged_tags.append(existing_tag)
+        return merged_tags
+
+    @staticmethod
+    def _get_keys(tags):
+        return [tag['key'] for tag in tags]
+
+    def untag_resource(self, resource_arn, tag_keys):
+        """Currently implemented only for services"""
+        parsed_arn = self._parse_resource_arn(resource_arn)
+        if parsed_arn["service"] == "service":
+            for service in self.services.values():
+                if service.arn == resource_arn:
+                    service.tags = [tag for tag in service.tags if tag["key"] not in tag_keys]
+                return {}
+            else:
+                raise ServiceNotFoundException(service_name=parsed_arn["id"])
+        raise NotImplementedError()
 
 
 available_regions = boto3.session.Session().get_available_regions("ecs")
