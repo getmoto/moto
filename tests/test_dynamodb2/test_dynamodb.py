@@ -1629,15 +1629,7 @@ def test_query_global_secondary_index_when_created_via_update_table_resource():
             {
                 'AttributeName': 'user_id',
                 'AttributeType': 'N',
-            },
-            {
-                'AttributeName': 'forum_name',
-                'AttributeType': 'S'
-            },
-            {
-                'AttributeName': 'subject',
-                'AttributeType': 'S'
-            },
+            }
         ],
         ProvisionedThroughput={
             'ReadCapacityUnits': 5,
@@ -2179,6 +2171,34 @@ def test_batch_items_should_throw_exception_for_duplicate_request():
             }})
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['Error']['Message'].should.equal('Provided list of item keys contains duplicates')
+
+
+@mock_dynamodb2
+def test_index_with_unknown_attributes_should_fail():
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+
+    expected_exception = 'Some index key attributes are not defined in AttributeDefinitions.'
+
+    with assert_raises(ClientError) as ex:
+        dynamodb.create_table(
+            AttributeDefinitions=[
+                {'AttributeName': 'customer_nr', 'AttributeType': 'S'},
+                {'AttributeName': 'last_name', 'AttributeType': 'S'}],
+            TableName='table_with_missing_attribute_definitions',
+            KeySchema=[
+                {'AttributeName': 'customer_nr', 'KeyType': 'HASH'},
+                {'AttributeName': 'last_name', 'KeyType': 'RANGE'}],
+            LocalSecondaryIndexes=[{
+                'IndexName': 'indexthataddsanadditionalattribute',
+                'KeySchema': [
+                    {'AttributeName': 'customer_nr', 'KeyType': 'HASH'},
+                    {'AttributeName': 'postcode', 'KeyType': 'RANGE'}],
+                'Projection': { 'ProjectionType': 'ALL' }
+            }],
+            BillingMode='PAY_PER_REQUEST')
+
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.contain(expected_exception)
 
 
 def _create_user_table():
