@@ -340,9 +340,9 @@ class SNSBackend(BaseBackend):
         topic = self.get_topic(topic_arn)
         subscription = Subscription(topic, endpoint, protocol)
         attributes = {
-            'PendingConfirmation' : 'false',
-            'Endpoint' : endpoint,
-            'TopicArn' : topic_arn,
+            'PendingConfirmation': 'false',
+            'Endpoint': endpoint,
+            'TopicArn': topic_arn,
             'Protocol': protocol,
             'SubscriptionArn': subscription.arn
         }
