@@ -320,3 +320,15 @@ class EC2ContainerServiceResponse(BaseResponse):
         resource_arn = self._get_param('resourceArn')
         tags = self.ecs_backend.list_tags_for_resource(resource_arn)
         return json.dumps({'tags': tags})
+
+    def tag_resource(self):
+        resource_arn = self._get_param('resourceArn')
+        tags = self._get_param('tags')
+        results = self.ecs_backend.tag_resource(resource_arn, tags)
+        return json.dumps(results)
+
+    def untag_resource(self):
+        resource_arn = self._get_param('resourceArn')
+        tag_keys = self._get_param('tagKeys')
+        results = self.ecs_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps(results)
