@@ -78,7 +78,7 @@ def test_state_machine_creation_requires_valid_role_arn():
     with assert_raises(ClientError) as exc:
         client.create_state_machine(name=name,
                                     definition=str(simple_definition),
-                                    roleArn='arn:aws:iam:1234:role/unknown_role')
+                                    roleArn='arn:aws:iam::1234:role/unknown_role')
 
 
 @mock_stepfunctions
@@ -375,4 +375,4 @@ def _get_account_id():
 
 
 def _get_default_role():
-    return 'arn:aws:iam:' + _get_account_id() + ':role/unknown_sf_role'
+    return 'arn:aws:iam::' + _get_account_id() + ':role/unknown_sf_role'

@@ -59,7 +59,7 @@ class StepFunctionBackend(BaseBackend):
                                  u'\u0090', u'\u0091', u'\u0092', u'\u0093', u'\u0094', u'\u0095',
                                  u'\u0096', u'\u0097', u'\u0098', u'\u0099',
                                  u'\u009A', u'\u009B', u'\u009C', u'\u009D', u'\u009E', u'\u009F']
-    accepted_role_arn_format = re.compile('arn:aws:iam:(?P<account_id>[0-9]{12}):role/.+')
+    accepted_role_arn_format = re.compile('arn:aws:iam::(?P<account_id>[0-9]{12}):role/.+')
     accepted_mchn_arn_format = re.compile('arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+')
     accepted_exec_arn_format = re.compile('arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+')
 
