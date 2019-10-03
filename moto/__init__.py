@@ -42,6 +42,7 @@ from .ses import mock_ses, mock_ses_deprecated  # flake8: noqa
 from .secretsmanager import mock_secretsmanager  # flake8: noqa
 from .sns import mock_sns, mock_sns_deprecated  # flake8: noqa
 from .sqs import mock_sqs, mock_sqs_deprecated  # flake8: noqa
+from .stepfunctions import mock_stepfunctions # flake8: noqa
 from .sts import mock_sts, mock_sts_deprecated  # flake8: noqa
 from .ssm import mock_ssm  # flake8: noqa
 from .route53 import mock_route53, mock_route53_deprecated  # flake8: noqa

@@ -41,7 +41,7 @@ class LogStream:
         self.region = region
         self.arn = "arn:aws:logs:{region}:{id}:log-group:{log_group}:log-stream:{log_stream}".format(
             region=region, id=self.__class__._log_ids, log_group=log_group, log_stream=name)
-        self.creationTime = unix_time_millis()
+        self.creationTime = int(unix_time_millis())
         self.firstEventTimestamp = None
         self.lastEventTimestamp = None
         self.lastIngestionTime = None
@@ -80,7 +80,7 @@ class LogStream:
     def put_log_events(self, log_group_name, log_stream_name, log_events, sequence_token):
         # TODO: ensure sequence_token
         # TODO: to be thread safe this would need a lock
-        self.lastIngestionTime = unix_time_millis()
+        self.lastIngestionTime = int(unix_time_millis())
         # TODO: make this match AWS if possible
         self.storedBytes += sum([len(log_event["message"]) for log_event in log_events])
         self.events += [LogEvent(self.lastIngestionTime, log_event) for log_event in log_events]
@@ -115,6 +115,8 @@ class LogStream:
         events_page = [event.to_response_dict() for event in events[next_index: next_index + limit]]
         if next_index + limit < len(self.events):
             next_index += limit
+        else:
+            next_index = len(self.events)
 
         back_index -= limit
         if back_index <= 0:
@@ -146,7 +148,7 @@ class LogGroup:
         self.region = region
         self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
             region=region, log_group=name)
-        self.creationTime = unix_time_millis()
+        self.creationTime = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
         self.retentionInDays = None  # AWS defaults to Never Expire for log group retention

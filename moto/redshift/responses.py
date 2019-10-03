@@ -135,6 +135,7 @@ class RedshiftResponse(BaseResponse):
             "region_name": self.region,
             "tags": self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value')),
             "iam_roles_arn": self._get_iam_roles(),
+            "enhanced_vpc_routing": self._get_param('EnhancedVpcRouting'),
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster['ClusterStatus'] = 'creating'
@@ -150,6 +151,7 @@ class RedshiftResponse(BaseResponse):
         })
 
     def restore_from_cluster_snapshot(self):
+        enhanced_vpc_routing = self._get_bool_param('EnhancedVpcRouting')
         restore_kwargs = {
             "snapshot_identifier": self._get_param('SnapshotIdentifier'),
             "cluster_identifier": self._get_param('ClusterIdentifier'),
@@ -171,6 +173,8 @@ class RedshiftResponse(BaseResponse):
             "region_name": self.region,
             "iam_roles_arn": self._get_iam_roles(),
         }
+        if enhanced_vpc_routing is not None:
+            restore_kwargs['enhanced_vpc_routing'] = enhanced_vpc_routing
         cluster = self.redshift_backend.restore_from_cluster_snapshot(**restore_kwargs).to_json()
         cluster['ClusterStatus'] = 'creating'
         return self.get_response({
@@ -218,6 +222,7 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
             "iam_roles_arn": self._get_iam_roles(),
+            "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting")
         }
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise

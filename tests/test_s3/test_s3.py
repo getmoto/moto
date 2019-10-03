@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import os
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
@@ -20,9 +21,11 @@ from botocore.handlers import disable_signing
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from freezegun import freeze_time
+from parameterized import parameterized
 import six
 import requests
 import tests.backport_assert_raises  # noqa
+from nose import SkipTest
 from nose.tools import assert_raises
 
 import sure  # noqa
@@ -1388,6 +1391,34 @@ def test_boto3_list_objects_v2_fetch_owner():
     assert 'ID' in owner
     assert 'DisplayName' in owner
     assert len(owner.keys()) == 2
+
+
+@mock_s3
+def test_boto3_list_objects_v2_truncate_combined_keys_and_folders():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='1/2', Body='')
+    s3.put_object(Bucket='mybucket', Key='2', Body='')
+    s3.put_object(Bucket='mybucket', Key='3/4', Body='')
+    s3.put_object(Bucket='mybucket', Key='4', Body='')
+
+    resp = s3.list_objects_v2(Bucket='mybucket', Prefix='', MaxKeys=2, Delimiter='/')
+    assert 'Delimiter' in resp
+    assert resp['IsTruncated'] is True
+    assert resp['KeyCount'] == 2
+    assert len(resp['Contents']) == 1
+    assert resp['Contents'][0]['Key'] == '2'
+    assert len(resp['CommonPrefixes']) == 1
+    assert resp['CommonPrefixes'][0]['Prefix'] == '1/'
+
+    last_tail = resp['NextContinuationToken']
+    resp = s3.list_objects_v2(Bucket='mybucket', MaxKeys=2, Prefix='', Delimiter='/', StartAfter=last_tail)
+    assert resp['KeyCount'] == 2
+    assert resp['IsTruncated'] is False
+    assert len(resp['Contents']) == 1
+    assert resp['Contents'][0]['Key'] == '4'
+    assert len(resp['CommonPrefixes']) == 1
+    assert resp['CommonPrefixes'][0]['Prefix'] == '3/'
 
 
 @mock_s3
@@ -2991,3 +3022,64 @@ def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
             AccelerateConfiguration={'Status': 'Enabled'},
         )
     exc.exception.response['Error']['Code'].should.equal('InvalidRequest')
+
+def store_and_read_back_a_key(key):
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    body = b'Some body'
+
+    s3.create_bucket(Bucket=bucket_name)
+    s3.put_object(
+        Bucket=bucket_name,
+        Key=key,
+        Body=body
+    )
+
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    response['Body'].read().should.equal(body)
+
+@mock_s3
+def test_paths_with_leading_slashes_work():
+    store_and_read_back_a_key('/a-key')
+
+@mock_s3
+def test_root_dir_with_empty_name_works():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Does not work in server mode due to error in Workzeug')
+    store_and_read_back_a_key('/')
+
+
+@parameterized([
+    ('foo/bar/baz',),
+    ('foo',),
+    ('foo/run_dt%3D2019-01-01%252012%253A30%253A00',),
+])
+@mock_s3
+def test_delete_objects_with_url_encoded_key(key):
+    s3 = boto3.client('s3', region_name='us-east-1')
+    bucket_name = 'mybucket'
+    body = b'Some body'
+
+    s3.create_bucket(Bucket=bucket_name)
+
+    def put_object():
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=body
+        )
+
+    def assert_deleted():
+        with assert_raises(ClientError) as e:
+            s3.get_object(Bucket=bucket_name, Key=key)
+
+        e.exception.response['Error']['Code'].should.equal('NoSuchKey')
+
+    put_object()
+    s3.delete_object(Bucket=bucket_name, Key=key)
+    assert_deleted()
+
+    put_object()
+    s3.delete_objects(Bucket=bucket_name, Delete={'Objects': [{'Key': key}]})
+    assert_deleted()
+

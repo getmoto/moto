@@ -981,11 +981,13 @@ def test_api_keys():
     apikey['value'].should.equal(apikey_value)
 
     apikey_name = 'TESTKEY2'
-    payload = {'name': apikey_name }
+    payload = {'name': apikey_name, 'tags': {'tag1': 'test_tag1', 'tag2': '1'}}
     response = client.create_api_key(**payload)
     apikey_id = response['id']
     apikey = client.get_api_key(apiKey=apikey_id)
     apikey['name'].should.equal(apikey_name)
+    apikey['tags']['tag1'].should.equal('test_tag1')
+    apikey['tags']['tag2'].should.equal('1')
     len(apikey['value']).should.equal(40)
 
     apikey_name = 'TESTKEY3'

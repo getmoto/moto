@@ -8,7 +8,7 @@ import boto.cognito.identity
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-
+from .exceptions import ResourceNotFoundError
 from .utils import get_random_identity_id
 
 
@@ -39,10 +39,29 @@ class CognitoIdentityBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region)
 
-    def create_identity_pool(self, identity_pool_name, allow_unauthenticated_identities,
-        supported_login_providers, developer_provider_name, open_id_connect_provider_arns,
-            cognito_identity_providers, saml_provider_arns):
+    def describe_identity_pool(self, identity_pool_id):
+        identity_pool = self.identity_pools.get(identity_pool_id, None)
 
+        if not identity_pool:
+            raise ResourceNotFoundError(identity_pool)
+
+        response = json.dumps({
+            'AllowUnauthenticatedIdentities': identity_pool.allow_unauthenticated_identities,
+            'CognitoIdentityProviders': identity_pool.cognito_identity_providers,
+            'DeveloperProviderName': identity_pool.developer_provider_name,
+            'IdentityPoolId': identity_pool.identity_pool_id,
+            'IdentityPoolName': identity_pool.identity_pool_name,
+            'IdentityPoolTags': {},
+            'OpenIdConnectProviderARNs': identity_pool.open_id_connect_provider_arns,
+            'SamlProviderARNs': identity_pool.saml_provider_arns,
+            'SupportedLoginProviders': identity_pool.supported_login_providers
+        })
+
+        return response
+
+    def create_identity_pool(self, identity_pool_name, allow_unauthenticated_identities,
+                             supported_login_providers, developer_provider_name, open_id_connect_provider_arns,
+                             cognito_identity_providers, saml_provider_arns):
         new_identity = CognitoIdentity(self.region, identity_pool_name,
             allow_unauthenticated_identities=allow_unauthenticated_identities,
             supported_login_providers=supported_login_providers,
@@ -77,12 +96,12 @@ class CognitoIdentityBackend(BaseBackend):
         response = json.dumps(
             {
                 "Credentials":
-                {
-                    "AccessKeyId": "TESTACCESSKEY12345",
-                    "Expiration": expiration_str,
-                    "SecretKey": "ABCSECRETKEY",
-                    "SessionToken": "ABC12345"
-                },
+                    {
+                        "AccessKeyId": "TESTACCESSKEY12345",
+                        "Expiration": expiration_str,
+                        "SecretKey": "ABCSECRETKEY",
+                        "SessionToken": "ABC12345"
+                    },
                 "IdentityId": identity_id
             })
         return response

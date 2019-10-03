@@ -5,7 +5,7 @@ import os
 from boto.s3.key import Key
 import re
 import six
-from six.moves.urllib.parse import urlparse, unquote
+from six.moves.urllib.parse import urlparse, unquote, quote
 import sys
 
 
@@ -71,8 +71,13 @@ def metadata_from_headers(headers):
 def clean_key_name(key_name):
     if six.PY2:
         return unquote(key_name.encode('utf-8')).decode('utf-8')
-
     return unquote(key_name)
+
+
+def undo_clean_key_name(key_name):
+    if six.PY2:
+        return quote(key_name.encode('utf-8')).decode('utf-8')
+    return quote(key_name)
 
 
 class _VersionedKeyStore(dict):

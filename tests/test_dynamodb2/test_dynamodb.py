@@ -974,6 +974,53 @@ def test_query_filter():
 
 
 @mock_dynamodb2
+def test_query_filter_overlapping_expression_prefixes():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName='test1',
+        AttributeDefinitions=[{'AttributeName': 'client', 'AttributeType': 'S'}, {'AttributeName': 'app', 'AttributeType': 'S'}],
+        KeySchema=[{'AttributeName': 'client', 'KeyType': 'HASH'}, {'AttributeName': 'app', 'KeyType': 'RANGE'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 123, 'WriteCapacityUnits': 123}
+    )
+
+    client.put_item(
+        TableName='test1',
+        Item={
+            'client': {'S': 'client1'},
+            'app': {'S': 'app1'},
+            'nested': {'M': {
+                'version': {'S': 'version1'},
+                'contents': {'L': [
+                    {'S': 'value1'}, {'S': 'value2'},
+                ]},
+            }},
+    })
+
+    table = dynamodb.Table('test1')
+    response = table.query(
+        KeyConditionExpression=Key('client').eq('client1') & Key('app').eq('app1'),
+        ProjectionExpression='#1, #10, nested',
+        ExpressionAttributeNames={
+            '#1': 'client',
+            '#10': 'app',
+        }
+    )
+
+    assert response['Count'] == 1
+    assert response['Items'][0] == {
+        'client': 'client1',
+        'app': 'app1',
+        'nested': {
+            'version': 'version1',
+            'contents': ['value1', 'value2']
+        }
+    }
+
+
+@mock_dynamodb2
 def test_scan_filter():
     client = boto3.client('dynamodb', region_name='us-east-1')
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -2033,6 +2080,36 @@ def test_condition_expression__or_order():
         }
     )
 
+
+@mock_dynamodb2
+def test_condition_expression__and_order():
+    client = boto3.client('dynamodb', region_name='us-east-1')
+
+    client.create_table(
+        TableName='test',
+        KeySchema=[{'AttributeName': 'forum_name', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[
+            {'AttributeName': 'forum_name', 'AttributeType': 'S'},
+        ],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+    )
+    
+    # ensure that the RHS of the AND expression is not evaluated if the LHS
+    # returns true (as it would result an error)
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.update_item(
+            TableName='test',
+            Key={
+                'forum_name': {'S': 'the-key'},
+            },
+            UpdateExpression='set #ttl=:ttl',
+            ConditionExpression='attribute_exists(#ttl) AND #ttl <= :old_ttl',
+            ExpressionAttributeNames={'#ttl': 'ttl'},
+            ExpressionAttributeValues={
+                ':ttl': {'N': '6'},
+                ':old_ttl': {'N': '5'},
+            }
+        )
 
 @mock_dynamodb2
 def test_query_gsi_with_range_key():

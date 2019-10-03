@@ -201,7 +201,9 @@ def test_creating_subscription_with_attributes():
         "store": ["example_corp"],
         "event": ["order_cancelled"],
         "encrypted": [False],
-        "customer_interests": ["basketball", "baseball"]
+        "customer_interests": ["basketball", "baseball"],
+        "price": [100, 100.12],
+        "error": [None]
     })
 
     conn.subscribe(TopicArn=topic_arn,
@@ -294,7 +296,9 @@ def test_set_subscription_attributes():
         "store": ["example_corp"],
         "event": ["order_cancelled"],
         "encrypted": [False],
-        "customer_interests": ["basketball", "baseball"]
+        "customer_interests": ["basketball", "baseball"],
+        "price": [100, 100.12],
+        "error": [None]
     })
     conn.set_subscription_attributes(
         SubscriptionArn=subscription_arn,
@@ -331,6 +335,77 @@ def test_set_subscription_attributes():
             AttributeValue='true'
         )
 
+
+@mock_sns
+def test_subscribe_invalid_filter_policy():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    conn.create_topic(Name = 'some-topic')
+    response = conn.list_topics()
+    topic_arn = response['Topics'][0]['TopicArn']
+
+    try:
+        conn.subscribe(TopicArn = topic_arn,
+                       Protocol = 'http',
+                       Endpoint = 'http://example.com/',
+                       Attributes = {
+                           'FilterPolicy': json.dumps({
+                               'store': [str(i) for i in range(151)]
+                           })
+                       })
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+        err.response['Error']['Message'].should.equal('Invalid parameter: FilterPolicy: Filter policy is too complex')
+
+    try:
+        conn.subscribe(TopicArn = topic_arn,
+                       Protocol = 'http',
+                       Endpoint = 'http://example.com/',
+                       Attributes = {
+                           'FilterPolicy': json.dumps({
+                               'store': [['example_corp']]
+                           })
+                       })
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+        err.response['Error']['Message'].should.equal('Invalid parameter: FilterPolicy: Match value must be String, number, true, false, or null')
+
+    try:
+        conn.subscribe(TopicArn = topic_arn,
+                       Protocol = 'http',
+                       Endpoint = 'http://example.com/',
+                       Attributes = {
+                           'FilterPolicy': json.dumps({
+                               'store': [{'exists': None}]
+                           })
+                       })
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+        err.response['Error']['Message'].should.equal('Invalid parameter: FilterPolicy: exists match pattern must be either true or false.')
+
+    try:
+        conn.subscribe(TopicArn = topic_arn,
+                       Protocol = 'http',
+                       Endpoint = 'http://example.com/',
+                       Attributes = {
+                           'FilterPolicy': json.dumps({
+                                'store': [{'error': True}]
+                            })
+                       })
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InvalidParameter')
+        err.response['Error']['Message'].should.equal('Invalid parameter: FilterPolicy: Unrecognized match type error')
+
+    try:
+        conn.subscribe(TopicArn = topic_arn,
+                       Protocol = 'http',
+                       Endpoint = 'http://example.com/',
+                       Attributes = {
+                           'FilterPolicy': json.dumps({
+                               'store': [1000000001]
+                           })
+                       })
+    except ClientError as err:
+        err.response['Error']['Code'].should.equal('InternalFailure')
 
 @mock_sns
 def test_check_not_opted_out():

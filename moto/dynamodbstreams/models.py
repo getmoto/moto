@@ -39,7 +39,7 @@ class ShardIterator(BaseModel):
     def get(self, limit=1000):
         items = self.stream_shard.get(self.sequence_number, limit)
         try:
-            last_sequence_number = max(i['dynamodb']['SequenceNumber'] for i in items)
+            last_sequence_number = max(int(i['dynamodb']['SequenceNumber']) for i in items)
             new_shard_iterator = ShardIterator(self.streams_backend,
                                                self.stream_shard,
                                                'AFTER_SEQUENCE_NUMBER',

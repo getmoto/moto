@@ -174,10 +174,11 @@ def create_backend_app(service):
     backend_app.url_map.converters['regex'] = RegexConverter
     backend = list(BACKENDS[service].values())[0]
     for url_path, handler in backend.flask_paths.items():
+        view_func = convert_flask_to_httpretty_response(handler)
         if handler.__name__ == 'dispatch':
             endpoint = '{0}.dispatch'.format(handler.__self__.__name__)
         else:
-            endpoint = None
+            endpoint = view_func.__name__
 
         original_endpoint = endpoint
         index = 2
@@ -191,7 +192,7 @@ def create_backend_app(service):
             url_path,
             endpoint=endpoint,
             methods=HTTP_METHODS,
-            view_func=convert_flask_to_httpretty_response(handler),
+            view_func=view_func,
             strict_slashes=False,
         )
 

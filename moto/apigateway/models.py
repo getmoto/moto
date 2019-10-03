@@ -298,7 +298,7 @@ class Stage(BaseModel, dict):
 class ApiKey(BaseModel, dict):
 
     def __init__(self, name=None, description=None, enabled=True,
-                 generateDistinctId=False, value=None, stageKeys=None, customerId=None):
+                 generateDistinctId=False, value=None, stageKeys=None, tags=None, customerId=None):
         super(ApiKey, self).__init__()
         self['id'] = create_id()
         self['value'] = value if value else ''.join(random.sample(string.ascii_letters + string.digits, 40))
@@ -308,6 +308,7 @@ class ApiKey(BaseModel, dict):
         self['enabled'] = enabled
         self['createdDate'] = self['lastUpdatedDate'] = int(time.time())
         self['stageKeys'] = stageKeys
+        self['tags'] = tags
 
     def update_operations(self, patch_operations):
         for op in patch_operations:
@@ -407,10 +408,16 @@ class RestAPI(BaseModel):
         stage_url_upper = STAGE_URL.format(api_id=self.id.upper(),
             region_name=self.region_name, stage_name=stage_name)
 
-        responses.add_callback(responses.GET, stage_url_lower,
-                               callback=self.resource_callback)
-        responses.add_callback(responses.GET, stage_url_upper,
-                               callback=self.resource_callback)
+        for url in [stage_url_lower, stage_url_upper]:
+            responses._default_mock._matches.insert(0,
+                responses.CallbackResponse(
+                    url=url,
+                    method=responses.GET,
+                    callback=self.resource_callback,
+                    content_type="text/plain",
+                    match_querystring=False,
+                )
+            )
 
     def create_stage(self, name, deployment_id, variables=None, description='', cacheClusterEnabled=None, cacheClusterSize=None):
         if variables is None:

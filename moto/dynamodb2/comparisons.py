@@ -941,8 +941,7 @@ class OpAnd(Op):
 
     def expr(self, item):
         lhs = self.lhs.expr(item)
-        rhs = self.rhs.expr(item)
-        return lhs and rhs
+        return lhs and self.rhs.expr(item)
 
 
 class OpLessThan(Op):

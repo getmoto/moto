@@ -57,7 +57,16 @@ class SNSResponse(BaseResponse):
 
             transform_value = None
             if 'StringValue' in value:
-                transform_value = value['StringValue']
+                if data_type == 'Number':
+                    try:
+                        transform_value = float(value['StringValue'])
+                    except ValueError:
+                        raise InvalidParameterValue(
+                            "An error occurred (ParameterValueInvalid) "
+                            "when calling the Publish operation: "
+                            "Could not cast message attribute '{0}' value to number.".format(name))
+                else:
+                    transform_value = value['StringValue']
             elif 'BinaryValue' in value:
                 transform_value = value['BinaryValue']
             if not transform_value:

@@ -1118,6 +1118,28 @@ def test_redrive_policy_set_attributes():
 
 
 @mock_sqs
+def test_redrive_policy_set_attributes_with_string_value():
+    sqs = boto3.resource('sqs', region_name='us-east-1')
+
+    queue = sqs.create_queue(QueueName='test-queue')
+    deadletter_queue = sqs.create_queue(QueueName='test-deadletter')
+
+    queue.set_attributes(Attributes={
+        'RedrivePolicy': json.dumps({
+            'deadLetterTargetArn': deadletter_queue.attributes['QueueArn'],
+            'maxReceiveCount': '1',
+        })})
+
+    copy = sqs.get_queue_by_name(QueueName='test-queue')
+    assert 'RedrivePolicy' in copy.attributes
+    copy_policy = json.loads(copy.attributes['RedrivePolicy'])
+    assert copy_policy == {
+        'deadLetterTargetArn': deadletter_queue.attributes['QueueArn'],
+        'maxReceiveCount': 1,
+    }
+
+
+@mock_sqs
 def test_receive_messages_with_message_group_id():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     queue = sqs.create_queue(QueueName="test-queue.fifo",

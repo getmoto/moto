@@ -563,6 +563,38 @@ def test_reregister_task_definition():
 
     resp2['jobDefinitionArn'].should_not.equal(resp1['jobDefinitionArn'])
 
+    resp3 = batch_client.register_job_definition(
+        jobDefinitionName='sleep10',
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 42,
+            'command': ['sleep', '10']
+        }
+    )
+    resp3['revision'].should.equal(3)
+
+    resp3['jobDefinitionArn'].should_not.equal(resp1['jobDefinitionArn'])
+    resp3['jobDefinitionArn'].should_not.equal(resp2['jobDefinitionArn'])
+
+    resp4 = batch_client.register_job_definition(
+        jobDefinitionName='sleep10',
+        type='container',
+        containerProperties={
+            'image': 'busybox',
+            'vcpus': 1,
+            'memory': 41,
+            'command': ['sleep', '10']
+        }
+    )
+    resp4['revision'].should.equal(4)
+
+    resp4['jobDefinitionArn'].should_not.equal(resp1['jobDefinitionArn'])
+    resp4['jobDefinitionArn'].should_not.equal(resp2['jobDefinitionArn'])
+    resp4['jobDefinitionArn'].should_not.equal(resp3['jobDefinitionArn'])
+    
+
 
 @mock_ec2
 @mock_ecs

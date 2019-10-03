@@ -40,3 +40,11 @@ class InvalidParameterValue(RESTError):
     def __init__(self, message):
         super(InvalidParameterValue, self).__init__(
             "InvalidParameterValue", message)
+
+
+class InternalError(RESTError):
+    code = 500
+
+    def __init__(self, message):
+        super(InternalError, self).__init__(
+            "InternalFailure", message)

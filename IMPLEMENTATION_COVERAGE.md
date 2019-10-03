@@ -1237,7 +1237,7 @@
 - [ ] delete_identities
 - [ ] delete_identity_pool
 - [ ] describe_identity
-- [ ] describe_identity_pool
+- [X] describe_identity_pool
 - [X] get_credentials_for_identity
 - [X] get_id
 - [ ] get_identity_pool_roles
@@ -3801,14 +3801,14 @@
 - [ ] update_stream
 
 ## kms
-41% implemented
+54% implemented
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
 - [ ] create_alias
 - [ ] create_custom_key_store
 - [ ] create_grant
 - [X] create_key
-- [ ] decrypt
+- [X] decrypt
 - [X] delete_alias
 - [ ] delete_custom_key_store
 - [ ] delete_imported_key_material
@@ -3819,10 +3819,10 @@
 - [ ] disconnect_custom_key_store
 - [X] enable_key
 - [X] enable_key_rotation
-- [ ] encrypt
+- [X] encrypt
 - [X] generate_data_key
-- [ ] generate_data_key_without_plaintext
-- [ ] generate_random
+- [X] generate_data_key_without_plaintext
+- [X] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
 - [ ] get_parameters_for_import
@@ -3834,7 +3834,7 @@
 - [X] list_resource_tags
 - [ ] list_retirable_grants
 - [X] put_key_policy
-- [ ] re_encrypt
+- [X] re_encrypt
 - [ ] retire_grant
 - [ ] revoke_grant
 - [X] schedule_key_deletion
@@ -6050,24 +6050,24 @@
 ## stepfunctions
 0% implemented
 - [ ] create_activity
-- [ ] create_state_machine
+- [X] create_state_machine
 - [ ] delete_activity
-- [ ] delete_state_machine
+- [X] delete_state_machine
 - [ ] describe_activity
-- [ ] describe_execution
-- [ ] describe_state_machine
-- [ ] describe_state_machine_for_execution
+- [X] describe_execution
+- [X] describe_state_machine
+- [x] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [ ] get_execution_history
 - [ ] list_activities
-- [ ] list_executions
-- [ ] list_state_machines
-- [ ] list_tags_for_resource
+- [X] list_executions
+- [X] list_state_machines
+- [X] list_tags_for_resource
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
-- [ ] start_execution
-- [ ] stop_execution
+- [X] start_execution
+- [X] stop_execution
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_state_machine

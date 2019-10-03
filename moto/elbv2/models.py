@@ -3,10 +3,11 @@ from __future__ import unicode_literals
 import datetime
 import re
 from jinja2 import Template
+from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
 from .utils import make_arn_for_target_group
@@ -31,8 +32,8 @@ from .exceptions import (
     RuleNotFoundError,
     DuplicatePriorityError,
     InvalidTargetGroupNameError,
-    InvalidModifyRuleArgumentsError
-)
+    InvalidModifyRuleArgumentsError,
+    InvalidStatusCodeActionTypeError, InvalidLoadBalancerActionException)
 
 
 class FakeHealthStatus(BaseModel):
@@ -109,6 +110,11 @@ class FakeTargetGroup(BaseModel):
             t = self.targets.pop(target['id'], None)
             if not t:
                 raise InvalidTargetError()
+
+    def deregister_terminated_instances(self, instance_ids):
+        for target_id in list(self.targets.keys()):
+            if target_id in instance_ids:
+                del self.targets[target_id]
 
     def add_tag(self, key, value):
         if len(self.tags) >= 10 and key not in self.tags:
@@ -215,9 +221,9 @@ class FakeListener(BaseModel):
                 action_type = action['Type']
                 if action_type == 'forward':
                     default_actions.append({'type': action_type, 'target_group_arn': action['TargetGroupArn']})
-                elif action_type in ['redirect', 'authenticate-cognito']:
+                elif action_type in ['redirect', 'authenticate-cognito', 'fixed-response']:
                     redirect_action = {'type': action_type}
-                    key = 'RedirectConfig' if action_type == 'redirect' else 'AuthenticateCognitoConfig'
+                    key = underscores_to_camelcase(action_type.capitalize().replace('-', '_')) + 'Config'
                     for redirect_config_key, redirect_config_value in action[key].items():
                         # need to match the output of _get_list_prefix
                         redirect_action[camelcase_to_underscores(key) + '._' + camelcase_to_underscores(redirect_config_key)] = redirect_config_value
@@ -253,6 +259,12 @@ class FakeAction(BaseModel):
                 <UserPoolClientId>{{ action.data["authenticate_cognito_config._user_pool_client_id"] }}</UserPoolClientId>
                 <UserPoolDomain>{{ action.data["authenticate_cognito_config._user_pool_domain"] }}</UserPoolDomain>
             </AuthenticateCognitoConfig>
+            {% elif action.type == "fixed-response" %}
+             <FixedResponseConfig>
+                <ContentType>{{ action.data["fixed_response_config._content_type"] }}</ContentType>
+                <MessageBody>{{ action.data["fixed_response_config._message_body"] }}</MessageBody>
+                <StatusCode>{{ action.data["fixed_response_config._status_code"] }}</StatusCode>
+            </FixedResponseConfig>
             {% endif %}
             """)
         return template.render(action=self)
@@ -477,10 +489,29 @@ class ELBv2Backend(BaseBackend):
                 action_target_group_arn = action.data['target_group_arn']
                 if action_target_group_arn not in target_group_arns:
                     raise ActionTargetGroupNotFoundError(action_target_group_arn)
+            elif action_type == 'fixed-response':
+                self._validate_fixed_response_action(action, i, index)
             elif action_type in ['redirect', 'authenticate-cognito']:
                 pass
             else:
                 raise InvalidActionTypeError(action_type, index)
+
+    def _validate_fixed_response_action(self, action, i, index):
+        status_code = action.data.get('fixed_response_config._status_code')
+        if status_code is None:
+            raise ParamValidationError(
+                report='Missing required parameter in Actions[%s].FixedResponseConfig: "StatusCode"' % i)
+        if not re.match(r'^(2|4|5)\d\d$', status_code):
+            raise InvalidStatusCodeActionTypeError(
+                "1 validation error detected: Value '%s' at 'actions.%s.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
+Member must satisfy regular expression pattern: ^(2|4|5)\d\d$" % (status_code, index)
+            )
+        content_type = action.data['fixed_response_config._content_type']
+        if content_type and content_type not in ['text/plain', 'text/css', 'text/html', 'application/javascript',
+                                                 'application/json']:
+            raise InvalidLoadBalancerActionException(
+                "The ContentType must be one of:'text/html', 'application/json', 'application/javascript', 'text/css', 'text/plain'"
+            )
 
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
@@ -935,6 +966,10 @@ class ELBv2Backend(BaseBackend):
                         if action.data.get('target_group_arn') == target_group_arn:
                             return True
         return False
+
+    def notify_terminate_instances(self, instance_ids):
+        for target_group in self.target_groups.values():
+            target_group.deregister_terminated_instances(instance_ids)
 
 
 elbv2_backends = {}
