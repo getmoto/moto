@@ -1765,6 +1765,14 @@ def test_boto3_update_table_gsi_throughput():
                 'AttributeName': 'subject',
                 'AttributeType': 'S'
             },
+            {
+                'AttributeName': 'username',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'created',
+                'AttributeType': 'S'
+            }
         ],
         ProvisionedThroughput={
             'ReadCapacityUnits': 5,
@@ -1939,6 +1947,14 @@ def test_update_table_gsi_throughput():
                 'AttributeName': 'subject',
                 'AttributeType': 'S'
             },
+            {
+                'AttributeName': 'username',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'created',
+                'AttributeType': 'S'
+            }
         ],
         ProvisionedThroughput={
             'ReadCapacityUnits': 5,

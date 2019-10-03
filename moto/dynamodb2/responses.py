@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import itertools
 import json
 import six
 import re
@@ -113,6 +114,21 @@ class DynamoHandler(BaseResponse):
         # getting the indexes
         global_indexes = body.get("GlobalSecondaryIndexes", [])
         local_secondary_indexes = body.get("LocalSecondaryIndexes", [])
+        # Verify AttributeDefinitions list all
+        expected_attrs = []
+        expected_attrs.extend([key['AttributeName'] for key in key_schema])
+        expected_attrs.extend(schema['AttributeName'] for schema in itertools.chain(*list(idx['KeySchema'] for idx in local_secondary_indexes)))
+        expected_attrs.extend(schema['AttributeName'] for schema in itertools.chain(*list(idx['KeySchema'] for idx in global_indexes)))
+        expected_attrs = list(set(expected_attrs))
+        expected_attrs.sort()
+        actual_attrs = [item['AttributeName'] for item in attr]
+        actual_attrs.sort()
+        if actual_attrs != expected_attrs:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er,
+                              'One or more parameter values were invalid: '
+                              'Some index key attributes are not defined in AttributeDefinitions. '
+                              'Keys: ' + str(expected_attrs) + ', AttributeDefinitions: ' + str(actual_attrs))
         # get the stream specification
         streams = body.get("StreamSpecification")
 
