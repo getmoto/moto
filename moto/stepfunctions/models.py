@@ -143,7 +143,7 @@ class StepFunctionBackend(BaseBackend):
     def _validate_machine_arn(self, machine_arn):
         self._validate_arn(arn=machine_arn,
                            regex=self.accepted_mchn_arn_format,
-                           invalid_msg="Invalid Role Arn: '" + machine_arn + "'")
+                           invalid_msg="Invalid State Machine Arn: '" + machine_arn + "'")
 
     def _validate_execution_arn(self, execution_arn):
         self._validate_arn(arn=execution_arn,
