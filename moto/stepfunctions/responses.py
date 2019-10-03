@@ -86,7 +86,8 @@ class StepFunctionResponse(BaseResponse):
     @amzn_request_id
     def start_execution(self):
         arn = self._get_param('stateMachineArn')
-        execution = self.stepfunction_backend.start_execution(arn)
+        name = self._get_param('name')
+        execution = self.stepfunction_backend.start_execution(arn, name)
         response = {'executionArn': execution.execution_arn,
                     'startDate': execution.start_date}
         return 200, {}, json.dumps(response)
