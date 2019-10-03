@@ -34,7 +34,7 @@ def test_create_cluster():
 
 @mock_ecs
 def test_list_clusters():
-    client = boto3.client('ecs', region_name='us-east-1')
+    client = boto3.client('ecs', region_name='us-east-2')
     _ = client.create_cluster(
         clusterName='test_cluster0'
     )
@@ -43,9 +43,9 @@ def test_list_clusters():
     )
     response = client.list_clusters()
     response['clusterArns'].should.contain(
-        'arn:aws:ecs:us-east-1:012345678910:cluster/test_cluster0')
+        'arn:aws:ecs:us-east-2:012345678910:cluster/test_cluster0')
     response['clusterArns'].should.contain(
-        'arn:aws:ecs:us-east-1:012345678910:cluster/test_cluster1')
+        'arn:aws:ecs:us-east-2:012345678910:cluster/test_cluster1')
 
 
 @mock_ecs
