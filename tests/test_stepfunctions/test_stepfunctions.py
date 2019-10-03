@@ -243,8 +243,23 @@ def test_state_machine_start_execution():
     execution = client.start_execution(stateMachineArn=sm['stateMachineArn'])
     #
     execution['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
-    expected_exec_name = 'arn:aws:states:' + region + ':' + _get_account_id() + ':execution:name:[a-zA-Z0-9-]+'
+    uuid_regex = '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
+    expected_exec_name = 'arn:aws:states:' + region + ':' + _get_account_id() + ':execution:name:' + uuid_regex
     execution['executionArn'].should.match(expected_exec_name)
+    execution['startDate'].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_start_execution_with_custom_name():
+    client = boto3.client('stepfunctions', region_name=region)
+    #
+    sm = client.create_state_machine(name='name', definition=str(simple_definition), roleArn=_get_default_role())
+    execution = client.start_execution(stateMachineArn=sm['stateMachineArn'], name='execution_name')
+    #
+    execution['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    expected_exec_name = 'arn:aws:states:' + region + ':' + _get_account_id() + ':execution:name:execution_name'
+    execution['executionArn'].should.equal(expected_exec_name)
     execution['startDate'].should.be.a(datetime)
 
 

@@ -96,12 +96,12 @@ class StepFunctionBackend(BaseBackend):
         if sm:
             self.state_machines.remove(sm)
 
-    def start_execution(self, state_machine_arn):
+    def start_execution(self, state_machine_arn, name=None):
         state_machine_name = self.describe_state_machine(state_machine_arn).name
         execution = Execution(region_name=self.region_name,
                               account_id=self._get_account_id(),
                               state_machine_name=state_machine_name,
-                              execution_name=str(uuid4()),
+                              execution_name=name or str(uuid4()),
                               state_machine_arn=state_machine_arn)
         self.executions.append(execution)
         return execution
