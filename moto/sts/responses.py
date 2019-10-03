@@ -128,8 +128,7 @@ GET_FEDERATION_TOKEN_RESPONSE = """<GetFederationTokenResponse xmlns="https://st
 </GetFederationTokenResponse>"""
 
 
-ASSUME_ROLE_RESPONSE = """<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/
-2011-06-15/">
+ASSUME_ROLE_RESPONSE = """<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <AssumeRoleResult>
     <Credentials>
       <SessionToken>{{ role.session_token }}</SessionToken>
