@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import boto3
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
@@ -9,10 +10,14 @@ from moto.core import BaseBackend, BaseModel
 class Rule(BaseModel):
 
     def _generate_arn(self, name):
-        return 'arn:aws:events:us-west-2:111111111111:rule/' + name
+        return 'arn:aws:events:{region_name}:111111111111:rule/{name}'.format(
+            region_name=self.region_name,
+            name=name
+        )
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, region_name, **kwargs):
         self.name = name
+        self.region_name = region_name
         self.arn = kwargs.get('Arn') or self._generate_arn(name)
         self.event_pattern = kwargs.get('EventPattern')
         self.schedule_exp = kwargs.get('ScheduleExpression')
@@ -55,14 +60,19 @@ class EventsBackend(BaseBackend):
     ACCOUNT_ID = re.compile(r'^(\d{1,12}|\*)$')
     STATEMENT_ID = re.compile(r'^[a-zA-Z0-9-_]{1,64}$')
 
-    def __init__(self):
+    def __init__(self, region_name):
         self.rules = {}
         # This array tracks the order in which the rules have been added, since
         # 2.6 doesn't have OrderedDicts.
         self.rules_order = []
         self.next_tokens = {}
-
+        self.region_name = region_name
         self.permissions = {}
+
+    def reset(self):
+        region_name = self.region_name
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def _get_rule_by_index(self, i):
         return self.rules.get(self.rules_order[i])
@@ -173,7 +183,7 @@ class EventsBackend(BaseBackend):
         return return_obj
 
     def put_rule(self, name, **kwargs):
-        rule = Rule(name, **kwargs)
+        rule = Rule(name, self.region_name, **kwargs)
         self.rules[rule.name] = rule
         self.rules_order.append(rule.name)
         return rule.arn
@@ -229,7 +239,7 @@ class EventsBackend(BaseBackend):
             raise JsonRESTError('ResourceNotFoundException', 'StatementId not found')
 
     def describe_event_bus(self):
-        arn = "arn:aws:events:us-east-1:000000000000:event-bus/default"
+        arn = "arn:aws:events:{0}:000000000000:event-bus/default".format(self.region_name)
         statements = []
         for statement_id, data in self.permissions.items():
             statements.append({
@@ -248,4 +258,5 @@ class EventsBackend(BaseBackend):
         }
 
 
-events_backend = EventsBackend()
+available_regions = boto3.session.Session().get_available_regions("events")
+events_backends = {region: EventsBackend(region) for region in available_regions}

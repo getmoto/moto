@@ -2,10 +2,20 @@ import json
 import re
 
 from moto.core.responses import BaseResponse
-from moto.events import events_backend
+from moto.events import events_backends
 
 
 class EventsHandler(BaseResponse):
+
+    @property
+    def events_backend(self):
+        """
+        Events Backend
+
+        :return: Events Backend object
+        :rtype: moto.events.models.EventsBackend
+        """
+        return events_backends[self.region]
 
     def _generate_rule_dict(self, rule):
         return {
@@ -40,7 +50,7 @@ class EventsHandler(BaseResponse):
 
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
-        events_backend.delete_rule(name)
+        self.events_backend.delete_rule(name)
 
         return '', self.response_headers
 
@@ -50,7 +60,7 @@ class EventsHandler(BaseResponse):
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
 
-        rule = events_backend.describe_rule(name)
+        rule = self.events_backend.describe_rule(name)
 
         if not rule:
             return self.error('ResourceNotFoundException', 'Rule test does not exist.')
@@ -64,7 +74,7 @@ class EventsHandler(BaseResponse):
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
 
-        if not events_backend.disable_rule(name):
+        if not self.events_backend.disable_rule(name):
             return self.error('ResourceNotFoundException', 'Rule ' + name + ' does not exist.')
 
         return '', self.response_headers
@@ -75,7 +85,7 @@ class EventsHandler(BaseResponse):
         if not name:
             return self.error('ValidationException', 'Parameter Name is required.')
 
-        if not events_backend.enable_rule(name):
+        if not self.events_backend.enable_rule(name):
             return self.error('ResourceNotFoundException', 'Rule ' + name + ' does not exist.')
 
         return '', self.response_headers
@@ -91,7 +101,7 @@ class EventsHandler(BaseResponse):
         if not target_arn:
             return self.error('ValidationException', 'Parameter TargetArn is required.')
 
-        rule_names = events_backend.list_rule_names_by_target(
+        rule_names = self.events_backend.list_rule_names_by_target(
             target_arn, next_token, limit)
 
         return json.dumps(rule_names), self.response_headers
@@ -101,7 +111,7 @@ class EventsHandler(BaseResponse):
         next_token = self._get_param('NextToken')
         limit = self._get_param('Limit')
 
-        rules = events_backend.list_rules(prefix, next_token, limit)
+        rules = self.events_backend.list_rules(prefix, next_token, limit)
         rules_obj = {'Rules': []}
 
         for rule in rules['Rules']:
@@ -121,7 +131,7 @@ class EventsHandler(BaseResponse):
             return self.error('ValidationException', 'Parameter Rule is required.')
 
         try:
-            targets = events_backend.list_targets_by_rule(
+            targets = self.events_backend.list_targets_by_rule(
                 rule_name, next_token, limit)
         except KeyError:
             return self.error('ResourceNotFoundException', 'Rule ' + rule_name + ' does not exist.')
@@ -131,7 +141,7 @@ class EventsHandler(BaseResponse):
     def put_events(self):
         events = self._get_param('Entries')
 
-        failed_entries = events_backend.put_events(events)
+        failed_entries = self.events_backend.put_events(events)
 
         if failed_entries:
             return json.dumps({
@@ -165,7 +175,7 @@ class EventsHandler(BaseResponse):
                     re.match('^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)', sched_exp)):
                 return self.error('ValidationException', 'Parameter ScheduleExpression is not valid.')
 
-        rule_arn = events_backend.put_rule(
+        rule_arn = self.events_backend.put_rule(
             name,
             ScheduleExpression=sched_exp,
             EventPattern=event_pattern,
@@ -186,7 +196,7 @@ class EventsHandler(BaseResponse):
         if not targets:
             return self.error('ValidationException', 'Parameter Targets is required.')
 
-        if not events_backend.put_targets(rule_name, targets):
+        if not self.events_backend.put_targets(rule_name, targets):
             return self.error('ResourceNotFoundException', 'Rule ' + rule_name + ' does not exist.')
 
         return '', self.response_headers
@@ -201,7 +211,7 @@ class EventsHandler(BaseResponse):
         if not ids:
             return self.error('ValidationException', 'Parameter Ids is required.')
 
-        if not events_backend.remove_targets(rule_name, ids):
+        if not self.events_backend.remove_targets(rule_name, ids):
             return self.error('ResourceNotFoundException', 'Rule ' + rule_name + ' does not exist.')
 
         return '', self.response_headers
@@ -214,16 +224,16 @@ class EventsHandler(BaseResponse):
         principal = self._get_param('Principal')
         statement_id = self._get_param('StatementId')
 
-        events_backend.put_permission(action, principal, statement_id)
+        self.events_backend.put_permission(action, principal, statement_id)
 
         return ''
 
     def remove_permission(self):
         statement_id = self._get_param('StatementId')
 
-        events_backend.remove_permission(statement_id)
+        self.events_backend.remove_permission(statement_id)
 
         return ''
 
     def describe_event_bus(self):
-        return json.dumps(events_backend.describe_event_bus())
+        return json.dumps(self.events_backend.describe_event_bus())

@@ -44,15 +44,17 @@ class BaseObject(BaseModel):
 
 class Cluster(BaseObject):
 
-    def __init__(self, cluster_name):
+    def __init__(self, cluster_name, region_name):
         self.active_services_count = 0
-        self.arn = 'arn:aws:ecs:us-east-1:012345678910:cluster/{0}'.format(
+        self.arn = 'arn:aws:ecs:{0}:012345678910:cluster/{1}'.format(
+            region_name,
             cluster_name)
         self.name = cluster_name
         self.pending_tasks_count = 0
         self.registered_container_instances_count = 0
         self.running_tasks_count = 0
         self.status = 'ACTIVE'
+        self.region_name = region_name
 
     @property
     def physical_resource_id(self):
@@ -108,11 +110,11 @@ class Cluster(BaseObject):
 
 class TaskDefinition(BaseObject):
 
-    def __init__(self, family, revision, container_definitions, volumes=None, tags=None):
+    def __init__(self, family, revision, container_definitions, region_name, volumes=None, tags=None):
         self.family = family
         self.revision = revision
-        self.arn = 'arn:aws:ecs:us-east-1:012345678910:task-definition/{0}:{1}'.format(
-            family, revision)
+        self.arn = 'arn:aws:ecs:{0}:012345678910:task-definition/{1}:{2}'.format(
+            region_name, family, revision)
         self.container_definitions = container_definitions
         self.tags = tags if tags is not None else []
         if volumes is None:
@@ -172,7 +174,8 @@ class Task(BaseObject):
     def __init__(self, cluster, task_definition, container_instance_arn,
                  resource_requirements, overrides={}, started_by=''):
         self.cluster_arn = cluster.arn
-        self.task_arn = 'arn:aws:ecs:us-east-1:012345678910:task/{0}'.format(
+        self.task_arn = 'arn:aws:ecs:{0}:012345678910:task/{1}'.format(
+            cluster.region_name,
             str(uuid.uuid4()))
         self.container_instance_arn = container_instance_arn
         self.last_status = 'RUNNING'
@@ -194,7 +197,8 @@ class Service(BaseObject):
 
     def __init__(self, cluster, service_name, task_definition, desired_count, load_balancers=None, scheduling_strategy=None, tags=None):
         self.cluster_arn = cluster.arn
-        self.arn = 'arn:aws:ecs:us-east-1:012345678910:service/{0}'.format(
+        self.arn = 'arn:aws:ecs:{0}:012345678910:service/{1}'.format(
+            cluster.region_name,
             service_name)
         self.name = service_name
         self.status = 'ACTIVE'
@@ -274,7 +278,7 @@ class Service(BaseObject):
 
         ecs_backend = ecs_backends[region_name]
         service_name = original_resource.name
-        if original_resource.cluster_arn != Cluster(cluster_name).arn:
+        if original_resource.cluster_arn != Cluster(cluster_name, region_name).arn:
             # TODO: LoadBalancers
             # TODO: Role
             ecs_backend.delete_service(cluster_name, service_name)
@@ -321,7 +325,8 @@ class ContainerInstance(BaseObject):
              'name': 'PORTS_UDP',
              'stringSetValue': [],
              'type': 'STRINGSET'}]
-        self.container_instance_arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
+        self.container_instance_arn = "arn:aws:ecs:{0}:012345678910:container-instance/{1}".format(
+            region_name,
             str(uuid.uuid4()))
         self.pending_tasks_count = 0
         self.remaining_resources = [
@@ -379,9 +384,10 @@ class ContainerInstance(BaseObject):
 
 
 class ClusterFailure(BaseObject):
-    def __init__(self, reason, cluster_name):
+    def __init__(self, reason, cluster_name, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:us-east-1:012345678910:cluster/{0}".format(
+        self.arn = "arn:aws:ecs:{0}:012345678910:cluster/{1}".format(
+            region_name,
             cluster_name)
 
     @property
@@ -394,9 +400,10 @@ class ClusterFailure(BaseObject):
 
 class ContainerInstanceFailure(BaseObject):
 
-    def __init__(self, reason, container_instance_id):
+    def __init__(self, reason, container_instance_id, region_name):
         self.reason = reason
-        self.arn = "arn:aws:ecs:us-east-1:012345678910:container-instance/{0}".format(
+        self.arn = "arn:aws:ecs:{0}:012345678910:container-instance/{1}".format(
+            region_name,
             container_instance_id)
 
     @property
@@ -439,7 +446,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 "{0} is not a task_definition".format(task_definition_name))
 
     def create_cluster(self, cluster_name):
-        cluster = Cluster(cluster_name)
+        cluster = Cluster(cluster_name, self.region_name)
         self.clusters[cluster_name] = cluster
         return cluster
 
@@ -462,7 +469,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     list_clusters.append(
                         self.clusters[cluster_name].response_object)
                 else:
-                    failures.append(ClusterFailure('MISSING', cluster_name))
+                    failures.append(ClusterFailure('MISSING', cluster_name, self.region_name))
         return list_clusters, failures
 
     def delete_cluster(self, cluster_str):
@@ -480,7 +487,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.task_definitions[family] = {}
             revision = 1
         task_definition = TaskDefinition(
-            family, revision, container_definitions, volumes, tags)
+            family, revision, container_definitions, self.region_name, volumes, tags)
         self.task_definitions[family][revision] = task_definition
 
         return task_definition
@@ -793,7 +800,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 container_instance_objects.append(container_instance)
             else:
                 failures.append(ContainerInstanceFailure(
-                    'MISSING', container_instance_id))
+                    'MISSING', container_instance_id, self.region_name))
 
         return container_instance_objects, failures
 
@@ -815,7 +822,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 container_instance.status = status
                 container_instance_objects.append(container_instance)
             else:
-                failures.append(ContainerInstanceFailure('MISSING', container_instance_id))
+                failures.append(ContainerInstanceFailure('MISSING', container_instance_id, self.region_name))
 
         return container_instance_objects, failures
 
