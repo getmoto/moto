@@ -4080,7 +4080,7 @@
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [ ] get_query_results
-- [ ] list_tags_log_group
+- [X] list_tags_log_group
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events
@@ -4090,9 +4090,9 @@
 - [ ] put_subscription_filter
 - [ ] start_query
 - [ ] stop_query
-- [ ] tag_log_group
+- [X] tag_log_group
 - [ ] test_metric_filter
-- [ ] untag_log_group
+- [X] untag_log_group
 
 ## machinelearning
 0% implemented

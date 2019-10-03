@@ -134,3 +134,22 @@ class LogsResponse(BaseResponse):
         log_group_name = self._get_param('logGroupName')
         self.logs_backend.delete_retention_policy(log_group_name)
         return ''
+
+    def list_tags_log_group(self):
+        log_group_name = self._get_param('logGroupName')
+        tags = self.logs_backend.list_tags_log_group(log_group_name)
+        return json.dumps({
+            'tags': tags
+        })
+
+    def tag_log_group(self):
+        log_group_name = self._get_param('logGroupName')
+        tags = self._get_param('tags')
+        self.logs_backend.tag_log_group(log_group_name, tags)
+        return ''
+
+    def untag_log_group(self):
+        log_group_name = self._get_param('logGroupName')
+        tags = self._get_param('tags')
+        self.logs_backend.untag_log_group(log_group_name, tags)
+        return ''
