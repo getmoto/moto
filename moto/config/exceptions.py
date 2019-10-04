@@ -254,3 +254,25 @@ class TooManyResourceIds(JsonRESTError):
     def __init__(self):
         super(TooManyResourceIds, self).__init__('ValidationException', "The specified list had more than 20 resource ID's. "
                                                                         "It must have '20' or less items")
+
+
+class ResourceNotDiscoveredException(JsonRESTError):
+    code = 400
+
+    def __init__(self, type, resource):
+        super(ResourceNotDiscoveredException, self).__init__('ResourceNotDiscoveredException',
+                                                             'Resource {resource} of resourceType:{type} is unknown or has not been '
+                                                             'discovered'.format(resource=resource, type=type))
+
+
+class TooManyResourceKeys(JsonRESTError):
+    code = 400
+
+    def __init__(self, bad_list):
+        message = '1 validation error detected: Value \'{bad_list}\' at ' \
+                  '\'resourceKeys\' failed to satisfy constraint: ' \
+                  'Member must have length less than or equal to 100'.format(bad_list=bad_list)
+        # For PY2:
+        message = str(message)
+
+        super(TooManyResourceKeys, self).__init__("ValidationException", message)

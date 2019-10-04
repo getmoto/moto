@@ -17,7 +17,8 @@ from moto.config.exceptions import InvalidResourceTypeException, InvalidDelivery
     InvalidSNSTopicARNException, MaxNumberOfDeliveryChannelsExceededException, NoAvailableDeliveryChannelException, \
     NoSuchDeliveryChannelException, LastDeliveryChannelDeleteFailedException, TagKeyTooBig, \
     TooManyTags, TagValueTooBig, TooManyAccountSources, InvalidParameterValueException, InvalidNextTokenException, \
-    NoSuchConfigurationAggregatorException, InvalidTagCharacters, DuplicateTags, InvalidLimit, InvalidResourceParameters, TooManyResourceIds
+    NoSuchConfigurationAggregatorException, InvalidTagCharacters, DuplicateTags, InvalidLimit, InvalidResourceParameters, \
+    TooManyResourceIds, ResourceNotDiscoveredException
 
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_config_query
@@ -789,6 +790,39 @@ class ConfigBackend(BaseBackend):
             result['NextToken'] = new_token
 
         return result
+
+    def get_resource_config_history(self, type, id, backend_region):
+        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
+
+        NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
+              As such, the later_time, earlier_time, limit, and next_token are ignored as this will only
+              return 1 item. (If no items, it raises an exception)
+        """
+        # If the type isn't implemented then we won't find the item:
+        if type not in RESOURCE_MAP:
+            raise ResourceNotDiscoveredException(type, id)
+
+        # Is the resource type global?
+        if RESOURCE_MAP[type].backends.get('global'):
+            backend_region = 'global'
+
+        # If the backend region isn't implemented then we won't find the item:
+        if not RESOURCE_MAP[type].backends.get(backend_region):
+            raise ResourceNotDiscoveredException(type, id)
+
+        # Get the item:
+        item = RESOURCE_MAP[type].get_config_resource(id, backend_region=backend_region)
+        if not item:
+            raise ResourceNotDiscoveredException(type, id)
+
+        item['accountId'] = DEFAULT_ACCOUNT_ID
+
+        return {'configurationItems': [item]}
+
+    def batch_get_resource_config(self, resource_keys, backend_region):
+        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend."""
+        # Can't have more than 100 items
+        pass
 
 
 config_backends = {}

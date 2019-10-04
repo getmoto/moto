@@ -1184,3 +1184,35 @@ def test_list_aggregate_discovered_resource():
     with assert_raises(ClientError) as ce:
         client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket', Limit=101)
     assert '101' in ce.exception.response['Error']['Message']
+
+
+@mock_config
+@mock_s3
+def test_get_resource_config_history():
+    """NOTE: We are only really testing the Config part. For each individual service, please add tests
+             for that individual service's "get_config_resource" function.
+    """
+    client = boto3.client('config', region_name='us-west-2')
+
+    # With an invalid resource type:
+    with assert_raises(ClientError) as ce:
+        client.get_resource_config_history(resourceType='NOT::A::RESOURCE', resourceId='notcreatedyet')
+    assert ce.exception.response['Error'] == {'Message': 'Resource notcreatedyet of resourceType:NOT::A::RESOURCE is unknown or has '
+                                                         'not been discovered', 'Code': 'ResourceNotDiscoveredException'}
+
+    # With nothing created yet:
+    with assert_raises(ClientError) as ce:
+        client.get_resource_config_history(resourceType='AWS::S3::Bucket', resourceId='notcreatedyet')
+    assert ce.exception.response['Error'] == {'Message': 'Resource notcreatedyet of resourceType:AWS::S3::Bucket is unknown or has '
+                                                         'not been discovered', 'Code': 'ResourceNotDiscoveredException'}
+
+    # Create an S3 bucket:
+    s3_client = boto3.client('s3', region_name='us-west-2')
+    for x in range(0, 10):
+        s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+
+    # Now try:
+    result = client.get_resource_config_history(resourceType='AWS::S3::Bucket', resourceId='bucket1')['configurationItems']
+    assert len(result) == 1
+    assert result[0]['resourceName'] == result[0]['resourceId'] == 'bucket1'
+    assert result[0]['arn'] == 'arn:aws:s3:::bucket1'

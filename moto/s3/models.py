@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
 import os
 import base64
 import datetime
@@ -10,6 +12,7 @@ import random
 import string
 import tempfile
 import sys
+import time
 import uuid
 
 import six
@@ -32,6 +35,7 @@ STORAGE_CLASS = ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA", "ONEZONE_IA",
                  "INTELLIGENT_TIERING", "GLACIER", "DEEP_ARCHIVE"]
 DEFAULT_KEY_BUFFER_SIZE = 16 * 1024 * 1024
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
+OWNER = '75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a'
 
 
 class FakeDeleteMarker(BaseModel):
@@ -316,6 +320,14 @@ PERMISSION_READ = 'READ'
 PERMISSION_WRITE_ACP = 'WRITE_ACP'
 PERMISSION_READ_ACP = 'READ_ACP'
 
+CAMEL_CASED_PERMISSIONS = {
+    'FULL_CONTROL': 'FullControl',
+    'WRITE': 'Write',
+    'READ': 'Read',
+    'WRITE_ACP': 'WriteAcp',
+    'READ_ACP': 'ReadAcp'
+}
+
 
 class FakeGrant(BaseModel):
 
@@ -346,10 +358,43 @@ class FakeAcl(BaseModel):
     def __repr__(self):
         return "FakeAcl(grants: {})".format(self.grants)
 
+    def to_config_dict(self):
+        """Returns the object into the format expected by AWS Config"""
+        data = {
+            'grantSet': None,  # Always setting this to None. Feel free to change.
+            'owner': {'displayName': None, 'id': OWNER}
+        }
+
+        # Add details for each Grant:
+        grant_list = []
+        for grant in self.grants:
+            permissions = grant.permissions if isinstance(grant.permissions, list) else [grant.permissions]
+            for permission in permissions:
+                for grantee in grant.grantees:
+                    # Config does not add the owner if its permissions are FULL_CONTROL:
+                    if permission == 'FULL_CONTROL' and grantee.id == OWNER:
+                        continue
+
+                    if grantee.uri:
+                        grant_list.append({'grantee': grantee.uri.split('http://acs.amazonaws.com/groups/s3/')[1],
+                                           'permission': CAMEL_CASED_PERMISSIONS[permission]})
+                    else:
+                        grant_list.append({
+                            'grantee': {
+                                'id': grantee.id,
+                                'displayName': None if not grantee.display_name else grantee.display_name
+                            },
+                            'permission': CAMEL_CASED_PERMISSIONS[permission]
+                        })
+
+        if grant_list:
+            data['grantList'] = grant_list
+
+        return data
+
 
 def get_canned_acl(acl):
-    owner_grantee = FakeGrantee(
-        id='75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a')
+    owner_grantee = FakeGrantee(id=OWNER)
     grants = [FakeGrant([owner_grantee], [PERMISSION_FULL_CONTROL])]
     if acl == 'private':
         pass  # no other permissions
@@ -401,12 +446,51 @@ class LifecycleFilter(BaseModel):
         self.tag = tag
         self.and_filter = and_filter
 
+    def to_config_dict(self):
+        if self.prefix is not None:
+            return {
+                'predicate': {
+                    'type': 'LifecyclePrefixPredicate',
+                    'prefix': self.prefix
+                }
+            }
+
+        elif self.tag:
+            return {
+                'predicate': {
+                    'type': 'LifecycleTagPredicate',
+                    'tag': {
+                        'key': self.tag.key,
+                        'value': self.tag.value
+                    }
+                }
+            }
+
+        else:
+            return {
+                'predicate': {
+                    'type': 'LifecycleAndOperator',
+                    'operands': self.and_filter.to_config_dict()
+                }
+            }
+
 
 class LifecycleAndFilter(BaseModel):
 
     def __init__(self, prefix=None, tags=None):
         self.prefix = prefix
         self.tags = tags
+
+    def to_config_dict(self):
+        data = []
+
+        if self.prefix is not None:
+            data.append({'type': 'LifecyclePrefixPredicate', 'prefix': self.prefix})
+
+        for tag in self.tags:
+            data.append({'type': 'LifecycleTagPredicate', 'tag': {'key': tag.key, 'value': tag.value}})
+
+        return data
 
 
 class LifecycleRule(BaseModel):
@@ -430,6 +514,46 @@ class LifecycleRule(BaseModel):
         self.nvt_storage_class = nvt_storage_class
         self.aimu_days = aimu_days
 
+    def to_config_dict(self):
+        """Converts the object to the AWS Config data dict.
+
+        Note: The following are missing that should be added in the future:
+            - transitions (returns None for now)
+            - noncurrentVersionTransitions (returns None for now)
+            - LifeCycle Filters that are NOT prefix
+
+        :param kwargs:
+        :return:
+        """
+
+        lifecycle_dict = {
+            'id': self.id,
+            'prefix': self.prefix,
+            'status': self.status,
+            'expirationInDays': self.expiration_days,
+            'expiredObjectDeleteMarker': self.expired_object_delete_marker,
+            'noncurrentVersionExpirationInDays': -1 or self.nve_noncurrent_days,
+            'expirationDate': self.expiration_date,
+            'transitions': None,    # Replace me with logic to fill in
+            'noncurrentVersionTransitions': None,   # Replace me with logic to fill in
+        }
+
+        if self.aimu_days:
+            lifecycle_dict['abortIncompleteMultipartUpload'] = {'daysAfterInitiation': self.aimu_days}
+        else:
+            lifecycle_dict['abortIncompleteMultipartUpload'] = None
+
+        # Format the filter:
+        if self.prefix is None and self.filter is None:
+            lifecycle_dict['filter'] = {'predicate': None}
+
+        elif self.prefix:
+            lifecycle_dict['filter'] = None
+        else:
+            lifecycle_dict['filter'] = self.filter.to_config_dict()
+
+        return lifecycle_dict
+
 
 class CorsRule(BaseModel):
 
@@ -450,6 +574,23 @@ class Notification(BaseModel):
         self.events = events
         self.filters = filters if filters else {}
 
+    def to_config_dict(self):
+        data = {}
+
+        # Type and ARN will be filled in by NotificationConfiguration's to_config_dict:
+        data['events'] = [event for event in self.events]
+
+        if self.filters:
+            data['filter'] = {'s3KeyFilter': {'filterRules': [
+                {'name': fr['Name'], 'value': fr['Value']} for fr in self.filters['S3Key']['FilterRule']
+            ]}}
+        else:
+            data['filter'] = None
+
+        data['objectPrefixes'] = []  # Not sure why this is a thing since AWS just seems to return this as filters ¯\_(ツ)_/¯
+
+        return data
+
 
 class NotificationConfiguration(BaseModel):
 
@@ -460,6 +601,29 @@ class NotificationConfiguration(BaseModel):
             if queue else []
         self.cloud_function = [Notification(c["CloudFunction"], c["Event"], filters=c.get("Filter"), id=c.get("Id"))
                                for c in cloud_function] if cloud_function else []
+
+    def to_config_dict(self):
+        data = {'configurations': {}}
+
+        for topic in self.topic:
+            topic_config = topic.to_config_dict()
+            topic_config['topicARN'] = topic.arn
+            topic_config['type'] = 'TopicConfiguration'
+            data['configurations'][topic.id] = topic_config
+
+        for queue in self.queue:
+            queue_config = queue.to_config_dict()
+            queue_config['queueARN'] = queue.arn
+            queue_config['type'] = 'QueueConfiguration'
+            data['configurations'][queue.id] = queue_config
+
+        for cloud_function in self.cloud_function:
+            cf_config = cloud_function.to_config_dict()
+            cf_config['queueARN'] = cloud_function.arn
+            cf_config['type'] = 'LambdaConfiguration'
+            data['configurations'][cloud_function.id] = cf_config
+
+        return data
 
 
 class FakeBucket(BaseModel):
@@ -734,6 +898,67 @@ class FakeBucket(BaseModel):
             cls, resource_name, cloudformation_json, region_name):
         bucket = s3_backend.create_bucket(resource_name, region_name)
         return bucket
+
+    def to_config_dict(self):
+        """Return the AWS Config JSON format of this S3 bucket.
+
+        Note: The following features are not implemented and will need to be if you care about them:
+        - Bucket Accelerate Configuration
+        """
+        config_dict = {
+            'version': '1.3',
+            'configurationItemCaptureTime': str(self.creation_date),
+            'configurationItemStatus': 'ResourceDiscovered',
+            'configurationStateId': str(int(time.mktime(self.creation_date.timetuple()))),  # PY2 and 3 compatible
+            'configurationItemMD5Hash': '',
+            'arn': "arn:aws:s3:::{}".format(self.name),
+            'resourceType': 'AWS::S3::Bucket',
+            'resourceId': self.name,
+            'resourceName': self.name,
+            'awsRegion': self.region_name,
+            'availabilityZone': 'Regional',
+            'resourceCreationTime': str(self.creation_date),
+            'relatedEvents': [],
+            'relationships': [],
+            'tags': {tag.key: tag.value for tag in self.tagging.tag_set.tags},
+            'configuration': {
+                'name': self.name,
+                'owner': {'id': OWNER},
+                'creationDate': self.creation_date.isoformat()
+            }
+        }
+
+        # Make the supplementary configuration:
+        # TODO: Implement Public Access Block Support
+        s_config = {'AccessControlList': self.acl.to_config_dict()}
+
+        # TODO implement Accelerate Configuration:
+        s_config['BucketAccelerateConfiguration'] = {'status': None}
+
+        if self.rules:
+            s_config['BucketLifecycleConfiguration'] = {
+                "rules": [rule.to_config_dict() for rule in self.rules]
+            }
+
+        s_config['BucketLoggingConfiguration'] = {
+            'destinationBucketName': self.logging.get('TargetBucket', None),
+            'logFilePrefix': self.logging.get('TargetPrefix', None)
+        }
+
+        s_config['BucketPolicy'] = {
+            'policyText': self.policy if self.policy else None
+        }
+
+        s_config['IsRequesterPaysEnabled'] = 'false' if self.payer == 'BucketOwner' else 'true'
+
+        if self.notification_configuration:
+            s_config['BucketNotificationConfiguration'] = self.notification_configuration.to_config_dict()
+        else:
+            s_config['BucketNotificationConfiguration'] = {'configurations': {}}
+
+        config_dict['supplementaryConfiguration'] = s_config
+
+        return config_dict
 
 
 class S3Backend(BaseBackend):
