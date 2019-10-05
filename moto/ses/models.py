@@ -49,6 +49,21 @@ class Message(BaseModel):
         self.destinations = destinations
 
 
+class TemplateMessage(BaseModel):
+
+    def __init__(self,
+                 message_id,
+                 source,
+                 template,
+                 template_data,
+                 destinations):
+        self.id = message_id
+        self.source = source
+        self.template = template
+        self.template_data = template_data
+        self.destinations = destinations
+
+
 class RawMessage(BaseModel):
 
     def __init__(self, message_id, source, destinations, raw_data):
@@ -123,10 +138,34 @@ class SESBackend(BaseBackend):
         self.sent_message_count += recipient_count
         return message
 
+    def send_templated_email(self, source, template, template_data, destinations, region):
+        recipient_count = sum(map(len, destinations.values()))
+        if recipient_count > RECIPIENT_LIMIT:
+            raise MessageRejectedError('Too many recipients.')
+        if not self._is_verified_address(source):
+            raise MessageRejectedError(
+                "Email address not verified %s" % source
+            )
+
+        self.__process_sns_feedback__(source, destinations, region)
+
+        message_id = get_random_message_id()
+        message = TemplateMessage(message_id,
+                                  source,
+                                  template,
+                                  template_data,
+                                  destinations)
+        self.sent_messages.append(message)
+        self.sent_message_count += recipient_count
+        return message
+
     def __type_of_message__(self, destinations):
-        """Checks the destination for any special address that could indicate delivery, complaint or bounce
-        like in SES simualtor"""
-        alladdress = destinations.get("ToAddresses", []) + destinations.get("CcAddresses", []) + destinations.get("BccAddresses", [])
+        """Checks the destination for any special address that could indicate delivery,
+        complaint or bounce like in SES simualtor"""
+        alladdress = destinations.get(
+            "ToAddresses", []) + destinations.get(
+                "CcAddresses", []) + destinations.get(
+                    "BccAddresses", [])
         for addr in alladdress:
             if SESFeedback.SUCCESS_ADDR in addr:
                 return SESFeedback.DELIVERY

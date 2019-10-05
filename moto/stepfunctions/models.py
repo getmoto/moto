@@ -59,7 +59,7 @@ class StepFunctionBackend(BaseBackend):
                                  u'\u0090', u'\u0091', u'\u0092', u'\u0093', u'\u0094', u'\u0095',
                                  u'\u0096', u'\u0097', u'\u0098', u'\u0099',
                                  u'\u009A', u'\u009B', u'\u009C', u'\u009D', u'\u009E', u'\u009F']
-    accepted_role_arn_format = re.compile('arn:aws:iam:(?P<account_id>[0-9]{12}):role/.+')
+    accepted_role_arn_format = re.compile('arn:aws:iam::(?P<account_id>[0-9]{12}):role/.+')
     accepted_mchn_arn_format = re.compile('arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+')
     accepted_exec_arn_format = re.compile('arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+')
 
@@ -96,12 +96,12 @@ class StepFunctionBackend(BaseBackend):
         if sm:
             self.state_machines.remove(sm)
 
-    def start_execution(self, state_machine_arn):
+    def start_execution(self, state_machine_arn, name=None):
         state_machine_name = self.describe_state_machine(state_machine_arn).name
         execution = Execution(region_name=self.region_name,
                               account_id=self._get_account_id(),
                               state_machine_name=state_machine_name,
-                              execution_name=str(uuid4()),
+                              execution_name=name or str(uuid4()),
                               state_machine_arn=state_machine_arn)
         self.executions.append(execution)
         return execution
@@ -143,7 +143,7 @@ class StepFunctionBackend(BaseBackend):
     def _validate_machine_arn(self, machine_arn):
         self._validate_arn(arn=machine_arn,
                            regex=self.accepted_mchn_arn_format,
-                           invalid_msg="Invalid Role Arn: '" + machine_arn + "'")
+                           invalid_msg="Invalid State Machine Arn: '" + machine_arn + "'")
 
     def _validate_execution_arn(self, execution_arn):
         self._validate_arn(arn=execution_arn,

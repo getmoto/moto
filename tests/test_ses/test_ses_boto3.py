@@ -81,6 +81,37 @@ def test_send_email():
 
 
 @mock_ses
+def test_send_templated_email():
+    conn = boto3.client('ses', region_name='us-east-1')
+
+    kwargs = dict(
+        Source="test@example.com",
+        Destination={
+            "ToAddresses": ["test_to@example.com"],
+            "CcAddresses": ["test_cc@example.com"],
+            "BccAddresses": ["test_bcc@example.com"],
+        },
+        Template="test_template",
+        TemplateData='{\"name\": \"test\"}'
+    )
+
+    conn.send_templated_email.when.called_with(
+        **kwargs).should.throw(ClientError)
+
+    conn.verify_domain_identity(Domain='example.com')
+    conn.send_templated_email(**kwargs)
+
+    too_many_addresses = list('to%s@example.com' % i for i in range(51))
+    conn.send_templated_email.when.called_with(
+        **dict(kwargs, Destination={'ToAddresses': too_many_addresses})
+    ).should.throw(ClientError)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota['SentLast24Hours'])
+    sent_count.should.equal(3)
+
+
+@mock_ses
 def test_send_html_email():
     conn = boto3.client('ses', region_name='us-east-1')
 

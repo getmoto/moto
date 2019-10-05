@@ -87,7 +87,7 @@ def test_describe_rule():
 
     assert(response is not None)
     assert(response.get('Name') == rule_name)
-    assert(response.get('Arn') is not None)
+    assert(response.get('Arn') == 'arn:aws:events:us-west-2:111111111111:rule/{0}'.format(rule_name))
 
 
 @mock_events

@@ -74,6 +74,33 @@ class EmailResponse(BaseResponse):
         template = self.response_template(SEND_EMAIL_RESPONSE)
         return template.render(message=message)
 
+    def send_templated_email(self):
+        source = self.querystring.get('Source')[0]
+        template = self.querystring.get('Template')
+        template_data = self.querystring.get('TemplateData')
+
+        destinations = {
+            'ToAddresses': [],
+            'CcAddresses': [],
+            'BccAddresses': [],
+        }
+        for dest_type in destinations:
+            # consume up to 51 to allow exception
+            for i in six.moves.range(1, 52):
+                field = 'Destination.%s.member.%s' % (dest_type, i)
+                address = self.querystring.get(field)
+                if address is None:
+                    break
+                destinations[dest_type].append(address[0])
+
+        message = ses_backend.send_templated_email(source,
+                                                   template,
+                                                   template_data,
+                                                   destinations,
+                                                   self.region)
+        template = self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE)
+        return template.render(message=message)
+
     def send_raw_email(self):
         source = self.querystring.get('Source')
         if source is not None:
@@ -192,6 +219,15 @@ SEND_EMAIL_RESPONSE = """<SendEmailResponse xmlns="http://ses.amazonaws.com/doc/
     <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
   </ResponseMetadata>
 </SendEmailResponse>"""
+
+SEND_TEMPLATED_EMAIL_RESPONSE = """<SendTemplatedEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <SendTemplatedEmailResult>
+    <MessageId>{{ message.id }}</MessageId>
+  </SendTemplatedEmailResult>
+  <ResponseMetadata>
+    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
+  </ResponseMetadata>
+</SendTemplatedEmailResponse>"""
 
 SEND_RAW_EMAIL_RESPONSE = """<SendRawEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <SendRawEmailResult>

@@ -2343,7 +2343,7 @@
 - [ ] upload_layer_part
 
 ## ecs
-63% implemented
+49% implemented
 - [X] create_cluster
 - [X] create_service
 - [ ] create_task_set
@@ -2381,8 +2381,8 @@
 - [ ] submit_attachment_state_changes
 - [ ] submit_container_state_change
 - [ ] submit_task_state_change
-- [ ] tag_resource
-- [ ] untag_resource
+- [x] tag_resource
+- [x] untag_resource
 - [ ] update_container_agent
 - [X] update_container_instances_state
 - [X] update_service
@@ -4080,7 +4080,7 @@
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [ ] get_query_results
-- [ ] list_tags_log_group
+- [X] list_tags_log_group
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events
@@ -4090,9 +4090,9 @@
 - [ ] put_subscription_filter
 - [ ] start_query
 - [ ] stop_query
-- [ ] tag_log_group
+- [X] tag_log_group
 - [ ] test_metric_filter
-- [ ] untag_log_group
+- [X] untag_log_group
 
 ## machinelearning
 0% implemented
@@ -5696,7 +5696,7 @@
 - [ ] update_service
 
 ## ses
-12% implemented
+14% implemented
 - [ ] clone_receipt_rule_set
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
@@ -5747,7 +5747,7 @@
 - [ ] send_custom_verification_email
 - [X] send_email
 - [X] send_raw_email
-- [ ] send_templated_email
+- [X] send_templated_email
 - [ ] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
 - [ ] set_identity_feedback_forwarding_enabled
