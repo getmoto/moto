@@ -182,6 +182,29 @@ class Item(BaseModel):
                     value = re.sub(r'{0}\b'.format(k), v, value)
 
                 if action == "REMOVE":
+                    key = value
+                    if '.' not in key:
+                        self.attrs.pop(value, None)
+                    else:
+                        # Handle nested dict updates
+                        key_parts = key.split('.')
+                        attr = key_parts.pop(0)
+                        if attr not in self.attrs:
+                            raise ValueError
+
+                        last_val = self.attrs[attr].value
+                        for key_part in key_parts[:-1]:
+                            # Hack but it'll do, traverses into a dict
+                            last_val_type = list(last_val.keys())
+                            if last_val_type and last_val_type[0] == 'M':
+                                    last_val = last_val['M']
+
+                            if key_part not in last_val:
+                                last_val[key_part] = {'M': {}}
+
+                            last_val = last_val[key_part]
+
+                        last_val.pop(key_parts[-1], None)
                     self.attrs.pop(value, None)
                 elif action == 'SET':
                     key, value = value.split("=", 1)
