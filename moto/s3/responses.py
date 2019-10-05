@@ -1310,7 +1310,7 @@ S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2
     {% for bucket in buckets %}
       <Bucket>
         <Name>{{ bucket.name }}</Name>
-        <CreationDate>2006-02-03T16:45:09.000Z</CreationDate>
+        <CreationDate>{{ bucket.creation_date }}</CreationDate>
       </Bucket>
     {% endfor %}
  </Buckets>
@@ -1416,7 +1416,9 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
         <ID>{{ rule.id }}</ID>
         {% if rule.filter %}
         <Filter>
+            {% if rule.filter.prefix != None %}
             <Prefix>{{ rule.filter.prefix }}</Prefix>
+            {% endif %}
             {% if rule.filter.tag %}
             <Tag>
                 <Key>{{ rule.filter.tag.key }}</Key>
@@ -1425,7 +1427,9 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% endif %}
             {% if rule.filter.and_filter %}
             <And>
+                {% if rule.filter.and_filter.prefix != None %}
                 <Prefix>{{ rule.filter.and_filter.prefix }}</Prefix>
+                {% endif %}
                 {% for tag in rule.filter.and_filter.tags %}
                 <Tag>
                     <Key>{{ tag.key }}</Key>
@@ -1436,7 +1440,9 @@ S3_BUCKET_LIFECYCLE_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
             {% endif %}
         </Filter>
         {% else %}
-        <Prefix>{{ rule.prefix if rule.prefix != None }}</Prefix>
+            {% if rule.prefix != None %}
+            <Prefix>{{ rule.prefix }}</Prefix>
+            {% endif %}
         {% endif %}
         <Status>{{ rule.status }}</Status>
         {% if rule.storage_class %}
