@@ -225,6 +225,10 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
             return self.error(er, 'Return values set to invalid value')
 
+        if len(str(item).encode('utf-8')) > 405000:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'Item size has exceeded the maximum allowed size')
+
         if has_empty_keys_or_values(item):
             return get_empty_str_error()
 
