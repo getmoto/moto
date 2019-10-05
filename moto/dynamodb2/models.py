@@ -197,15 +197,18 @@ class Item(BaseModel):
                             # Hack but it'll do, traverses into a dict
                             last_val_type = list(last_val.keys())
                             if last_val_type and last_val_type[0] == 'M':
-                                    last_val = last_val['M']
+                                last_val = last_val['M']
 
                             if key_part not in last_val:
                                 last_val[key_part] = {'M': {}}
 
                             last_val = last_val[key_part]
 
-                        last_val.pop(key_parts[-1], None)
-                    self.attrs.pop(value, None)
+                        last_val_type = list(last_val.keys())
+                        if last_val_type and last_val_type[0] == 'M':
+                            last_val['M'].pop(key_parts[-1], None)
+                        else:
+                            last_val.pop(key_parts[-1], None)
                 elif action == 'SET':
                     key, value = value.split("=", 1)
                     key = key.strip()
