@@ -2282,6 +2282,7 @@ def test_index_with_unknown_attributes_should_fail():
 @mock_dynamodb2
 def test_item_size_is_under_400KB():
     dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+    res = boto3.resource('dynamodb')
 
     dynamodb.create_table(
         TableName='moto-test',
@@ -2289,12 +2290,18 @@ def test_item_size_is_under_400KB():
         AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
         ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
     )
+    table = res.Table('moto-test')
 
+    large_item = 'x' * 410 * 1000
     with assert_raises(ClientError) as ex:
-        large_item = 'x' * 410 * 1000
-        dynamodb.put_item(
-            TableName='moto-test',
-            Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
+        dynamodb.put_item(TableName='moto-test', Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
+    with assert_raises(ClientError) as ex:
+        table.put_item(Item={'id': 'bar', 'item': large_item})
+    with assert_raises(ClientError) as ex:
+        dynamodb.update_item(TableName='moto-test',
+                             Key={'id': {'S': 'foo2'}},
+                             UpdateExpression='set item=:Item',
+                             ExpressionAttributeValues={':Item': {'S': large_item}})
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['Error']['Message'].should.equal('Item size has exceeded the maximum allowed size')
 

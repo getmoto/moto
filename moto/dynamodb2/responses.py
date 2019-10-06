@@ -6,7 +6,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError
+from .exceptions import InvalidIndexNameError, ItemSizeTooLarge
 from .models import dynamodb_backends, dynamo_json_dump
 
 
@@ -225,10 +225,6 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
             return self.error(er, 'Return values set to invalid value')
 
-        if len(str(item).encode('utf-8')) > 405000:
-            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
-            return self.error(er, 'Item size has exceeded the maximum allowed size')
-
         if has_empty_keys_or_values(item):
             return get_empty_str_error()
 
@@ -259,6 +255,9 @@ class DynamoHandler(BaseResponse):
                 name, item, expected, condition_expression,
                 expression_attribute_names, expression_attribute_values,
                 overwrite)
+        except ItemSizeTooLarge:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, ItemSizeTooLarge.message)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
@@ -648,6 +647,9 @@ class DynamoHandler(BaseResponse):
                 name, key, update_expression, attribute_updates, expression_attribute_names,
                 expression_attribute_values, expected, condition_expression
             )
+        except ItemSizeTooLarge:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, ItemSizeTooLarge.message)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
