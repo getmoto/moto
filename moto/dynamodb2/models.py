@@ -1092,12 +1092,23 @@ class DynamoDBBackend(BaseBackend):
             item.update_with_attribute_updates(attribute_updates)
         return item
 
-    def delete_item(self, table_name, keys):
+    def delete_item(self, table_name, key, expression_attribute_names=None, expression_attribute_values=None,
+                    condition_expression=None):
         table = self.get_table(table_name)
         if not table:
             return None
-        hash_key, range_key = self.get_keys_value(table, keys)
-        return table.delete_item(hash_key, range_key)
+
+        hash_value, range_value = self.get_keys_value(table, key)
+        item = table.get_item(hash_value, range_value)
+
+        condition_op = get_filter_expression(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values)
+        if not condition_op.expr(item):
+            raise ValueError('The conditional request failed')
+
+        return table.delete_item(hash_value, range_value)
 
     def update_ttl(self, table_name, ttl_spec):
         table = self.tables.get(table_name)

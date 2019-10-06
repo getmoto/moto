@@ -1995,6 +1995,23 @@ def test_condition_expressions():
             },
         )
 
+    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+        client.delete_item(
+            TableName = 'test1',
+            Key = {
+                'client': {'S': 'client1'},
+                'app': {'S': 'app1'},
+            },
+            ConditionExpression = 'attribute_not_exists(#existing)',
+            ExpressionAttributeValues = {
+                ':match': {'S': 'match'}
+            },
+            ExpressionAttributeNames = {
+                '#existing': 'existing',
+                '#match': 'match',
+            },
+        )
+
 
 @mock_dynamodb2
 def test_condition_expression__attr_doesnt_exist():
