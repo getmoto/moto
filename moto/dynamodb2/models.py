@@ -153,7 +153,7 @@ class LimitedSizeDict(dict):
         self.update(*args, **kwargs)
 
     def __setitem__(self, key, value):
-        current_item_size = sum([item.size() if type(item) == DynamoType else bytesize(str(item)) for item in (self.keys() + self.values())])
+        current_item_size = sum([item.size() if type(item) == DynamoType else bytesize(str(item)) for item in (list(self.keys()) + list(self.values()))])
         new_item_size = bytesize(key) + (value.size() if type(value) == DynamoType else bytesize(str(value)))
         # Official limit is set to 400000 (400KB)
         # Manual testing confirms that the actual limit is between 409 and 410KB
