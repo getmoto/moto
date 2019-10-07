@@ -33,6 +33,8 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .utils import make_function_arn, make_function_ver_arn
 from moto.sqs import sqs_backends
+from moto.dynamodb2 import dynamodb_backends2
+from moto.dynamodbstreams import dynamodbstreams_backends
 
 logger = logging.getLogger(__name__)
 
@@ -692,6 +694,18 @@ class LambdaBackend(BaseBackend):
                     queue.lambda_event_source_mappings[esm.function_arn] = esm
 
                     return esm
+        try:
+            stream = json.loads(dynamodbstreams_backends[self.region_name].describe_stream(spec['EventSourceArn']))
+            spec.update({'FunctionArn': func.function_arn})
+            esm = EventSourceMapping(spec)
+            self._event_source_mappings[esm.uuid] = esm
+            table_name = stream['StreamDescription']['TableName']
+            table = dynamodb_backends2[self.region_name].get_table(table_name)
+            table.lambda_event_source_mappings[esm.function_arn] = esm
+
+            return esm
+        except Exception:
+            pass  # No DynamoDB stream exists
         raise RESTError('ResourceNotFoundException', 'Invalid EventSourceArn')
 
     def publish_function(self, function_name):
@@ -809,6 +823,19 @@ class LambdaBackend(BaseBackend):
 
         }
         func = self._lambdas.get_function(function_name, qualifier)
+        func.invoke(json.dumps(event), {}, {})
+
+    def send_dynamodb_items(self, function_arn, items, source):
+        event = {'Records': [
+            {
+                'eventID': item.to_json()['eventID'],
+                'eventName': 'INSERT',
+                'eventVersion': item.to_json()['eventVersion'],
+                'eventSource': item.to_json()['eventSource'],
+                'awsRegion': 'us-east-1',
+                'dynamodb': item.to_json()['dynamodb'],
+                'eventSourceARN': source} for item in items]}
+        func = self._lambdas.get_arn(function_arn)
         func.invoke(json.dumps(event), {}, {})
 
     def list_tags(self, resource):
