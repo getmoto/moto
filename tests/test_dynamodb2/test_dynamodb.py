@@ -2293,15 +2293,27 @@ def test_item_size_is_under_400KB():
     table = res.Table('moto-test')
 
     large_item = 'x' * 410 * 1000
+    assert_failure_due_to_item_size(func=dynamodb.put_item,
+                                    TableName='moto-test',
+                                    Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
+    assert_failure_due_to_item_size(func=table.put_item,
+                                    Item={'id': 'bar', 'item': large_item})
+    assert_failure_due_to_item_size(func=dynamodb.update_item,
+                                    TableName='moto-test',
+                                    Key={'id': {'S': 'foo2'}},
+                                    UpdateExpression='set item=:Item',
+                                    ExpressionAttributeValues={':Item': {'S': large_item}})
+    # Assert op fails when updating a nested item
+    assert_failure_due_to_item_size(func=table.put_item,
+                                    Item={'id': 'bar', 'itemlist': [{'item': large_item}]})
+    assert_failure_due_to_item_size(func=dynamodb.put_item,
+                                    TableName='moto-test',
+                                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'M': {'item1': {'S': large_item}}}]}})
+
+
+def assert_failure_due_to_item_size(func, **kwargs):
     with assert_raises(ClientError) as ex:
-        dynamodb.put_item(TableName='moto-test', Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
-    with assert_raises(ClientError) as ex:
-        table.put_item(Item={'id': 'bar', 'item': large_item})
-    with assert_raises(ClientError) as ex:
-        dynamodb.update_item(TableName='moto-test',
-                             Key={'id': {'S': 'foo2'}},
-                             UpdateExpression='set item=:Item',
-                             ExpressionAttributeValues={':Item': {'S': large_item}})
+        func(**kwargs)
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['Error']['Message'].should.equal('Item size has exceeded the maximum allowed size')
 
