@@ -333,7 +333,7 @@ class ApiKey(BaseModel, dict):
 class UsagePlan(BaseModel, dict):
 
     def __init__(self, name=None, description=None, apiStages=None,
-                 throttle=None, quota=None):
+                 throttle=None, quota=None, tags=None):
         super(UsagePlan, self).__init__()
         self['id'] = create_id()
         self['name'] = name
@@ -341,7 +341,7 @@ class UsagePlan(BaseModel, dict):
         self['apiStages'] = apiStages if apiStages else []
         self['throttle'] = throttle
         self['quota'] = quota
-
+        self['tags'] = tags
 
 class UsagePlanKey(BaseModel, dict):
 
