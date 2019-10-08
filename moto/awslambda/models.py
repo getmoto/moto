@@ -694,18 +694,15 @@ class LambdaBackend(BaseBackend):
                     queue.lambda_event_source_mappings[esm.function_arn] = esm
 
                     return esm
-        try:
-            stream = json.loads(dynamodbstreams_backends[self.region_name].describe_stream(spec['EventSourceArn']))
-            spec.update({'FunctionArn': func.function_arn})
-            esm = EventSourceMapping(spec)
-            self._event_source_mappings[esm.uuid] = esm
-            table_name = stream['StreamDescription']['TableName']
-            table = dynamodb_backends2[self.region_name].get_table(table_name)
-            table.lambda_event_source_mappings[esm.function_arn] = esm
-
-            return esm
-        except Exception:
-            pass  # No DynamoDB stream exists
+        for stream in json.loads(dynamodbstreams_backends[self.region_name].list_streams())['Streams']:
+            if stream['StreamArn'] == spec['EventSourceArn']:
+                spec.update({'FunctionArn': func.function_arn})
+                esm = EventSourceMapping(spec)
+                self._event_source_mappings[esm.uuid] = esm
+                table_name = stream['TableName']
+                table = dynamodb_backends2[self.region_name].get_table(table_name)
+                table.lambda_event_source_mappings[esm.function_arn] = esm
+                return esm
         raise RESTError('ResourceNotFoundException', 'Invalid EventSourceArn')
 
     def publish_function(self, function_name):
@@ -832,7 +829,7 @@ class LambdaBackend(BaseBackend):
                 'eventName': 'INSERT',
                 'eventVersion': item.to_json()['eventVersion'],
                 'eventSource': item.to_json()['eventSource'],
-                'awsRegion': 'us-east-1',
+                'awsRegion': self.region_name,
                 'dynamodb': item.to_json()['dynamodb'],
                 'eventSourceARN': source} for item in items]}
         func = self._lambdas.get_arn(function_arn)
