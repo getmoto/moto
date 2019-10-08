@@ -343,6 +343,7 @@ class UsagePlan(BaseModel, dict):
         self['quota'] = quota
         self['tags'] = tags
 
+
 class UsagePlanKey(BaseModel, dict):
 
     def __init__(self, id, type, name, value):
