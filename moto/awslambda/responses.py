@@ -122,6 +122,18 @@ class LambdaResponse(BaseResponse):
         if request.method == 'POST':
             return self._add_policy(request, full_url, headers)
 
+    def configuration(self, request, full_url, headers):
+        if request.method == 'PUT':
+            return self._put_configuration(request, full_url)
+        else:
+            raise ValueError("Cannot handle request")
+
+    def code(self, request, full_url, headers):
+        if request.method == 'PUT':
+            return self._put_code(request, full_url, headers)
+        else:
+            raise ValueError("Cannot handle request")
+
     def _add_policy(self, request, full_url, headers):
         path = request.path if hasattr(request, 'path') else path_url(request.url)
         function_name = path.split('/')[-2]
@@ -306,5 +318,29 @@ class LambdaResponse(BaseResponse):
 
         if self.lambda_backend.untag_resource(function_arn, tag_keys):
             return 204, {}, "{}"
+        else:
+            return 404, {}, "{}"
+
+    def _put_configuration(self, request, full_url):
+        function_name = self._get_param('FunctionName', None)
+        qualifier = self._get_param('Qualifier', None)
+
+        fn = self.lambda_backend.get_function(function_name, qualifier)
+
+        if fn:
+            config = fn.update_configuration(json.loads(request.body))
+            return 200, {}, json.dumps(config)
+        else:
+            return 404, {}, "{}"
+
+    def _put_code(self, request, full_url, headers):
+        function_name = self._get_param('FunctionName', None)
+        qualifier = self._get_param('Qualifier', None)
+
+        fn = self.lambda_backend.get_function(function_name, qualifier)
+
+        if fn:
+            config = fn.update_function_code(json.loads(request.body))
+            return 200, {}, json.dumps(config)
         else:
             return 404, {}, "{}"

@@ -1245,3 +1245,109 @@ def test_delete_event_source_mapping():
     assert response['State'] == 'Deleting'
     conn.get_event_source_mapping.when.called_with(UUID=response['UUID'])\
         .should.throw(botocore.client.ClientError)
+
+
+@mock_lambda
+@mock_s3
+def test_update_configuration():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-west-2')
+
+    fxn = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    assert fxn['Description'] == 'test lambda function'
+    assert fxn['Handler'] == 'lambda_function.lambda_handler'
+    assert fxn['MemorySize'] == 128
+    assert fxn['Runtime'] == 'python2.7'
+    assert fxn['Timeout'] == 3
+
+    updated_config = conn.update_function_configuration(
+        FunctionName='testFunction',
+        Description='updated test lambda function',
+        Handler='lambda_function.new_lambda_handler',
+        Runtime='python3.6',
+        Timeout=7
+    )
+
+    assert updated_config['ResponseMetadata']['HTTPStatusCode'] == 200
+    assert updated_config['Description'] == 'updated test lambda function'
+    assert updated_config['Handler'] == 'lambda_function.new_lambda_handler'
+    assert updated_config['MemorySize'] == 128
+    assert updated_config['Runtime'] == 'python3.6'
+    assert updated_config['Timeout'] == 7
+
+
+@mock_lambda
+@freeze_time('2015-01-01 00:00:00')
+def test_update_function():
+    conn = boto3.client('lambda', 'us-west-2')
+
+    zip_content_one = get_test_zip_file1()
+
+    fxn = conn.create_function(
+        FunctionName='testFunction',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'ZipFile': zip_content_one,
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    zip_content_two = get_test_zip_file2()
+
+    conn.update_function_code(
+        FunctionName='testFunction',
+        ZipFile=zip_content_two,
+        Publish=True
+    )
+
+    response = conn.get_function(
+        FunctionName='testFunction'
+    )
+    response['Configuration'].pop('LastModified')
+
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    assert len(response['Code']) == 2
+    assert response['Code']['RepositoryType'] == 'S3'
+    assert response['Code']['Location'].startswith('s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com'.format(_lambda_region))
+    response['Configuration'].should.equal(
+        {
+            "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
+            "CodeSize": len(zip_content_two),
+            "Description": "test lambda function",
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:2'.format(_lambda_region),
+            "FunctionName": "testFunction",
+            "Handler": "lambda_function.lambda_handler",
+            "MemorySize": 128,
+            "Role": "test-iam-role",
+            "Runtime": "python2.7",
+            "Timeout": 3,
+            "Version": '$LATEST',
+            "VpcConfig": {
+                "SecurityGroupIds": [],
+                "SubnetIds": [],
+            }
+        },
+    )
