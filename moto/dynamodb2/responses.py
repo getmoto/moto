@@ -305,8 +305,26 @@ class DynamoHandler(BaseResponse):
     def get_item(self):
         name = self.body['TableName']
         key = self.body['Key']
+        projection_expression = self.body.get('ProjectionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+
+        if projection_expression and expression_attribute_names:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            projection_expression = None
+            for expression in expressions:
+                if projection_expression is not None:
+                    projection_expression = projection_expression + ", "
+                else:
+                    projection_expression = ""
+
+                if expression in expression_attribute_names:
+                    projection_expression = projection_expression + \
+                        expression_attribute_names[expression]
+                else:
+                    projection_expression = projection_expression + expression
+
         try:
-            item = self.dynamodb_backend.get_item(name, key)
+            item = self.dynamodb_backend.get_item(name, key, projection_expression)
         except ValueError:
             er = 'com.amazon.coral.validate#ValidationException'
             return self.error(er, 'Validation Exception')
@@ -338,9 +356,27 @@ class DynamoHandler(BaseResponse):
                 er = 'com.amazon.coral.validate#ValidationException'
                 return self.error(er, 'Provided list of item keys contains duplicates')
             attributes_to_get = table_request.get('AttributesToGet')
+            projection_expression = table_request.get('ProjectionExpression')
+            expression_attribute_names = table_request.get('ExpressionAttributeNames', {})
+
+            if projection_expression and expression_attribute_names:
+                expressions = [x.strip() for x in projection_expression.split(',')]
+                projection_expression = None
+                for expression in expressions:
+                    if projection_expression is not None:
+                        projection_expression = projection_expression + ", "
+                    else:
+                        projection_expression = ""
+
+                    if expression in expression_attribute_names:
+                        projection_expression = projection_expression + \
+                            expression_attribute_names[expression]
+                    else:
+                        projection_expression = projection_expression + expression
+
             results["Responses"][table_name] = []
             for key in keys:
-                item = self.dynamodb_backend.get_item(table_name, key)
+                item = self.dynamodb_backend.get_item(table_name, key, projection_expression)
                 if item:
                     item_describe = item.describe_attrs(attributes_to_get)
                     results["Responses"][table_name].append(
