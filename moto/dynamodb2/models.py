@@ -16,7 +16,7 @@ from moto.core.exceptions import JsonRESTError
 from .comparisons import get_comparison_func
 from .comparisons import get_filter_expression
 from .comparisons import get_expected
-from .exceptions import InvalidIndexNameError
+from .exceptions import InvalidIndexNameError, InvalidUpdateExpression
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -184,7 +184,16 @@ class Item(BaseModel):
                 if action == "REMOVE":
                     key = value
                     if '.' not in key:
-                        self.attrs.pop(value, None)
+                        list_index_update = re.match('(.+)\\[([0-9]+)\\]', key)
+                        if list_index_update:
+                            # We need to remove an item from a list (REMOVE listattr[0])
+                            key_attr = self.attrs[list_index_update.group(1)]
+                            list_index = int(list_index_update.group(2))
+                            if key_attr.is_list():
+                                if len(key_attr.value) > list_index:
+                                    del key_attr.value[list_index]
+                        else:
+                            self.attrs.pop(value, None)
                     else:
                         # Handle nested dict updates
                         key_parts = key.split('.')
@@ -205,10 +214,19 @@ class Item(BaseModel):
                             last_val = last_val[key_part]
 
                         last_val_type = list(last_val.keys())
-                        if last_val_type and last_val_type[0] == 'M':
-                            last_val['M'].pop(key_parts[-1], None)
+                        list_index_update = re.match('(.+)\\[([0-9]+)\\]', key_parts[-1])
+                        if list_index_update:
+                            # We need to remove an item from a list (REMOVE attr.listattr[0])
+                            key_part = list_index_update.group(1)  # listattr[1] ==> listattr
+                            list_to_update = last_val[key_part]['L']
+                            index_to_remove = int(list_index_update.group(2))
+                            if index_to_remove < len(list_to_update):
+                                del list_to_update[index_to_remove]
                         else:
-                            last_val.pop(key_parts[-1], None)
+                            if last_val_type and last_val_type[0] == 'M':
+                                last_val['M'].pop(key_parts[-1], None)
+                            else:
+                                last_val.pop(key_parts[-1], None)
                 elif action == 'SET':
                     key, value = value.split("=", 1)
                     key = key.strip()
@@ -229,38 +247,61 @@ class Item(BaseModel):
 
                     if type(value) != DynamoType:
                         if value in expression_attribute_values:
-                            value = DynamoType(expression_attribute_values[value])
+                            dyn_value = DynamoType(expression_attribute_values[value])
                         else:
-                            value = DynamoType({"S": value})
+                            dyn_value = DynamoType({"S": value})
+                    else:
+                        dyn_value = value
 
                     if '.' not in key:
-                        self.attrs[key] = value
+                        list_index_update = re.match('(.+)\\[([0-9]+)\\]', key)
+                        if list_index_update:
+                            key_attr = self.attrs[list_index_update.group(1)]
+                            list_index = int(list_index_update.group(2))
+                            if key_attr.is_list():
+                                if len(key_attr.value) > list_index:
+                                    key_attr.value[list_index] = expression_attribute_values[value]
+                                else:
+                                    key_attr.value.append(expression_attribute_values[value])
+                            else:
+                                raise InvalidUpdateExpression
+                        else:
+                            self.attrs[key] = dyn_value
                     else:
                         # Handle nested dict updates
                         key_parts = key.split('.')
                         attr = key_parts.pop(0)
                         if attr not in self.attrs:
                             raise ValueError
-
                         last_val = self.attrs[attr].value
                         for key_part in key_parts:
+                            list_index_update = re.match('(.+)\\[([0-9]+)\\]', key_part)
+                            if list_index_update:
+                                key_part = list_index_update.group(1)  # listattr[1] ==> listattr
                             # Hack but it'll do, traverses into a dict
                             last_val_type = list(last_val.keys())
                             if last_val_type and last_val_type[0] == 'M':
-                                    last_val = last_val['M']
+                                last_val = last_val['M']
 
                             if key_part not in last_val:
                                 last_val[key_part] = {'M': {}}
-
                             last_val = last_val[key_part]
 
-                        # We have reference to a nested object but we cant just assign to it
                         current_type = list(last_val.keys())[0]
-                        if current_type == value.type:
-                            last_val[current_type] = value.value
+                        if list_index_update:
+                            # We need to add an item to a list
+                            list_index = int(list_index_update.group(2))
+                            if len(last_val['L']) > list_index:
+                                last_val['L'][list_index] = expression_attribute_values[value]
+                            else:
+                                last_val['L'].append(expression_attribute_values[value])
                         else:
-                            last_val[value.type] = value.value
-                            del last_val[current_type]
+                            # We have reference to a nested object but we cant just assign to it
+                            if current_type == dyn_value.type:
+                                last_val[current_type] = dyn_value.value
+                            else:
+                                last_val[dyn_value.type] = dyn_value.value
+                                del last_val[current_type]
 
                 elif action == 'ADD':
                     key, value = value.split(" ", 1)

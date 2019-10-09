@@ -6,7 +6,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError
+from .exceptions import InvalidIndexNameError, InvalidUpdateExpression
 from .models import dynamodb_backends, dynamo_json_dump
 
 
@@ -658,6 +658,9 @@ class DynamoHandler(BaseResponse):
                 name, key, update_expression, attribute_updates, expression_attribute_names,
                 expression_attribute_values, expected, condition_expression
             )
+        except InvalidUpdateExpression:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'The document path provided in the update expression is invalid for update')
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
