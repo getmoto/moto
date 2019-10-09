@@ -2298,8 +2298,8 @@ def test_index_with_unknown_attributes_should_fail():
 # https://github.com/spulec/moto/issues/1874
 @mock_dynamodb2
 def test_item_size_is_under_400KB():
-    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
-    res = boto3.resource('dynamodb')
+    dynamodb = boto3.resource('dynamodb')
+    client = boto3.client('dynamodb')
 
     dynamodb.create_table(
         TableName='moto-test',
@@ -2307,15 +2307,14 @@ def test_item_size_is_under_400KB():
         AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
         ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
     )
-    table = res.Table('moto-test')
+    table = dynamodb.Table('moto-test')
 
     large_item = 'x' * 410 * 1000
-    assert_failure_due_to_item_size(func=dynamodb.put_item,
+    assert_failure_due_to_item_size(func=client.put_item,
                                     TableName='moto-test',
                                     Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
-    assert_failure_due_to_item_size(func=table.put_item,
-                                    Item={'id': 'bar', 'item': large_item})
-    assert_failure_due_to_item_size(func=dynamodb.update_item,
+    assert_failure_due_to_item_size(func=table.put_item, Item = {'id': 'bar', 'item': large_item})
+    assert_failure_due_to_item_size(func=client.update_item,
                                     TableName='moto-test',
                                     Key={'id': {'S': 'foo2'}},
                                     UpdateExpression='set item=:Item',
@@ -2323,7 +2322,7 @@ def test_item_size_is_under_400KB():
     # Assert op fails when updating a nested item
     assert_failure_due_to_item_size(func=table.put_item,
                                     Item={'id': 'bar', 'itemlist': [{'item': large_item}]})
-    assert_failure_due_to_item_size(func=dynamodb.put_item,
+    assert_failure_due_to_item_size(func=client.put_item,
                                     TableName='moto-test',
                                     Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'M': {'item1': {'S': large_item}}}]}})
 
