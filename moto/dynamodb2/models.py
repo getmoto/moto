@@ -235,7 +235,33 @@ class Item(BaseModel):
                     value = re.sub(r'{0}\b'.format(k), v, value)
 
                 if action == "REMOVE":
-                    self.attrs.pop(value, None)
+                    key = value
+                    if '.' not in key:
+                        self.attrs.pop(value, None)
+                    else:
+                        # Handle nested dict updates
+                        key_parts = key.split('.')
+                        attr = key_parts.pop(0)
+                        if attr not in self.attrs:
+                            raise ValueError
+
+                        last_val = self.attrs[attr].value
+                        for key_part in key_parts[:-1]:
+                            # Hack but it'll do, traverses into a dict
+                            last_val_type = list(last_val.keys())
+                            if last_val_type and last_val_type[0] == 'M':
+                                last_val = last_val['M']
+
+                            if key_part not in last_val:
+                                last_val[key_part] = {'M': {}}
+
+                            last_val = last_val[key_part]
+
+                        last_val_type = list(last_val.keys())
+                        if last_val_type and last_val_type[0] == 'M':
+                            last_val['M'].pop(key_parts[-1], None)
+                        else:
+                            last_val.pop(key_parts[-1], None)
                 elif action == 'SET':
                     key, value = value.split("=", 1)
                     key = key.strip()
@@ -1119,12 +1145,23 @@ class DynamoDBBackend(BaseBackend):
             item.update_with_attribute_updates(attribute_updates)
         return item
 
-    def delete_item(self, table_name, keys):
+    def delete_item(self, table_name, key, expression_attribute_names=None, expression_attribute_values=None,
+                    condition_expression=None):
         table = self.get_table(table_name)
         if not table:
             return None
-        hash_key, range_key = self.get_keys_value(table, keys)
-        return table.delete_item(hash_key, range_key)
+
+        hash_value, range_value = self.get_keys_value(table, key)
+        item = table.get_item(hash_value, range_value)
+
+        condition_op = get_filter_expression(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values)
+        if not condition_op.expr(item):
+            raise ValueError('The conditional request failed')
+
+        return table.delete_item(hash_value, range_value)
 
     def update_ttl(self, table_name, ttl_spec):
         table = self.tables.get(table_name)

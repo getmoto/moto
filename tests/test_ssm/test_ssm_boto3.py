@@ -7,7 +7,7 @@ import datetime
 import uuid
 import json
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from nose.tools import assert_raises
 
 from moto import mock_ssm, mock_cloudformation
@@ -336,10 +336,11 @@ def test_describe_parameters():
 
     response = client.describe_parameters()
 
-    len(response['Parameters']).should.equal(1)
-    response['Parameters'][0]['Name'].should.equal('test')
-    response['Parameters'][0]['Type'].should.equal('String')
-    response['Parameters'][0]['AllowedPattern'].should.equal(r'.*')
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('test')
+    parameters[0]['Type'].should.equal('String')
+    parameters[0]['AllowedPattern'].should.equal(r'.*')
 
 
 @mock_ssm
@@ -354,28 +355,28 @@ def test_describe_parameters_paging():
         )
 
     response = client.describe_parameters()
-    len(response['Parameters']).should.equal(10)
+    response['Parameters'].should.have.length_of(10)
     response['NextToken'].should.equal('10')
 
     response = client.describe_parameters(NextToken=response['NextToken'])
-    len(response['Parameters']).should.equal(10)
+    response['Parameters'].should.have.length_of(10)
     response['NextToken'].should.equal('20')
 
     response = client.describe_parameters(NextToken=response['NextToken'])
-    len(response['Parameters']).should.equal(10)
+    response['Parameters'].should.have.length_of(10)
     response['NextToken'].should.equal('30')
 
     response = client.describe_parameters(NextToken=response['NextToken'])
-    len(response['Parameters']).should.equal(10)
+    response['Parameters'].should.have.length_of(10)
     response['NextToken'].should.equal('40')
 
     response = client.describe_parameters(NextToken=response['NextToken'])
-    len(response['Parameters']).should.equal(10)
+    response['Parameters'].should.have.length_of(10)
     response['NextToken'].should.equal('50')
 
     response = client.describe_parameters(NextToken=response['NextToken'])
-    len(response['Parameters']).should.equal(0)
-    ''.should.equal(response.get('NextToken', ''))
+    response['Parameters'].should.have.length_of(0)
+    response.should_not.have.key('NextToken')
 
 
 @mock_ssm
@@ -399,10 +400,12 @@ def test_describe_parameters_filter_names():
             'Values': ['param-22']
         },
     ])
-    len(response['Parameters']).should.equal(1)
-    response['Parameters'][0]['Name'].should.equal('param-22')
-    response['Parameters'][0]['Type'].should.equal('String')
-    ''.should.equal(response.get('NextToken', ''))
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('param-22')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
 
 
 @mock_ssm
@@ -426,9 +429,11 @@ def test_describe_parameters_filter_type():
             'Values': ['SecureString']
         },
     ])
-    len(response['Parameters']).should.equal(10)
-    response['Parameters'][0]['Type'].should.equal('SecureString')
-    '10'.should.equal(response.get('NextToken', ''))
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(10)
+    parameters[0]['Type'].should.equal('SecureString')
+    response.should.have.key('NextToken').which.should.equal('10')
 
 
 @mock_ssm
@@ -452,10 +457,508 @@ def test_describe_parameters_filter_keyid():
             'Values': ['key:10']
         },
     ])
-    len(response['Parameters']).should.equal(1)
-    response['Parameters'][0]['Name'].should.equal('param-10')
-    response['Parameters'][0]['Type'].should.equal('SecureString')
-    ''.should.equal(response.get('NextToken', ''))
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('param-10')
+    parameters[0]['Type'].should.equal('SecureString')
+    response.should_not.have.key('NextToken')
+
+
+@mock_ssm
+def test_describe_parameters_with_parameter_filters_keyid():
+    client = boto3.client('ssm', region_name='us-east-1')
+    client.put_parameter(
+        Name='secure-param',
+        Value='secure-value',
+        Type='SecureString'
+    )
+    client.put_parameter(
+        Name='custom-secure-param',
+        Value='custom-secure-value',
+        Type='SecureString',
+        KeyId='alias/custom'
+    )
+    client.put_parameter(
+        Name = 'param',
+        Value = 'value',
+        Type = 'String'
+    )
+
+    response = client.describe_parameters(
+        ParameterFilters=[{
+            'Key': 'KeyId',
+            'Values': ['alias/aws/ssm']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('secure-param')
+    parameters[0]['Type'].should.equal('SecureString')
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'KeyId',
+            'Values': ['alias/custom']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('custom-secure-param')
+    parameters[0]['Type'].should.equal('SecureString')
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'KeyId',
+            'Option': 'BeginsWith',
+            'Values': ['alias']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(2)
+    response.should_not.have.key('NextToken')
+
+
+@mock_ssm
+def test_describe_parameters_with_parameter_filters_name():
+    client = boto3.client('ssm', region_name='us-east-1')
+    client.put_parameter(
+        Name='param',
+        Value='value',
+        Type='String'
+    )
+    client.put_parameter(
+        Name = '/param-2',
+        Value = 'value-2',
+        Type = 'String'
+    )
+
+    response = client.describe_parameters(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': ['param']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('param')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': ['/param']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('param')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': ['param-2']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('/param-2')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Name',
+            'Option': 'BeginsWith',
+            'Values': ['param']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(2)
+    response.should_not.have.key('NextToken')
+
+
+@mock_ssm
+def test_describe_parameters_with_parameter_filters_path():
+    client = boto3.client('ssm', region_name='us-east-1')
+    client.put_parameter(
+        Name='/foo/name1',
+        Value='value1',
+        Type='String')
+
+    client.put_parameter(
+        Name='/foo/name2',
+        Value='value2',
+        Type='String')
+
+    client.put_parameter(
+        Name='/bar/name3',
+        Value='value3',
+        Type='String')
+
+    client.put_parameter(
+        Name='/bar/name3/name4',
+        Value='value4',
+        Type='String')
+
+    client.put_parameter(
+        Name='foo',
+        Value='bar',
+        Type='String')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Values': ['/fo']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(0)
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Values': ['/']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('foo')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Values': ['/', '/foo']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(3)
+    {parameter['Name'] for parameter in response['Parameters']}.should.equal(
+        {'/foo/name1', '/foo/name2', 'foo'}
+    )
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Values': ['/foo/']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(2)
+    {parameter['Name'] for parameter in response['Parameters']}.should.equal(
+        {'/foo/name1', '/foo/name2'}
+    )
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Option': 'OneLevel',
+            'Values': ['/bar/name3']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('/bar/name3/name4')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
+
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Option': 'Recursive',
+            'Values': ['/fo']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(0)
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Option': 'Recursive',
+            'Values': ['/']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(5)
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Option': 'Recursive',
+            'Values': ['/foo', '/bar']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(4)
+    {parameter['Name'] for parameter in response['Parameters']}.should.equal(
+        {'/foo/name1', '/foo/name2', '/bar/name3', '/bar/name3/name4'}
+    )
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Option': 'Recursive',
+            'Values': ['/foo/']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(2)
+    {parameter['Name'] for parameter in response['Parameters']}.should.equal(
+        {'/foo/name1', '/foo/name2'}
+    )
+    response.should_not.have.key('NextToken')
+
+    response = client.describe_parameters(
+        ParameterFilters = [{
+            'Key': 'Path',
+            'Option': 'Recursive',
+            'Values': ['/bar/name3']
+        }]
+    )
+
+    parameters = response['Parameters']
+    parameters.should.have.length_of(1)
+    parameters[0]['Name'].should.equal('/bar/name3/name4')
+    parameters[0]['Type'].should.equal('String')
+    response.should_not.have.key('NextToken')
+
+
+@mock_ssm
+def test_describe_parameters_invalid_parameter_filters():
+    client = boto3.client('ssm', region_name='us-east-1')
+
+    client.describe_parameters.when.called_with(
+        Filters=[{
+            'Key': 'Name',
+            'Values': ['test']
+        }],
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': ['test']
+        }]
+    ).should.throw(
+        ClientError,
+        'You can use either Filters or ParameterFilters in a single request.'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{}]
+    ).should.throw(
+        ParamValidationError,
+        'Parameter validation failed:\nMissing required parameter in ParameterFilters[0]: "Key"'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'key',
+        }]
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: Value "key" at "parameterFilters.1.member.key" failed to satisfy constraint: '
+        'Member must satisfy regular expression pattern: tag:.+|Name|Type|KeyId|Path|Label|Tier'
+    )
+
+    long_key = 'tag:' + 't' * 129
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': long_key,
+        }]
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: Value "{value}" at "parameterFilters.1.member.key" failed to satisfy constraint: '
+        'Member must have length less than or equal to 132'.format(value=long_key)
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Option': 'over 10 chars'
+        }]
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: Value "over 10 chars" at "parameterFilters.1.member.option" failed to satisfy constraint: '
+        'Member must have length less than or equal to 10'
+    )
+
+    many_values = ['test'] * 51
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': many_values
+        }]
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: Value "{value}" at "parameterFilters.1.member.values" failed to satisfy constraint: '
+        'Member must have length less than or equal to 50'.format(value=many_values)
+    )
+
+    long_value = ['t' * 1025]
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': long_value
+        }]
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: Value "{value}" at "parameterFilters.1.member.values" failed to satisfy constraint: '
+        '[Member must have length less than or equal to 1024, Member must have length greater than or equal to 1]'.format(value=long_value)
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Option': 'over 10 chars'
+        },{
+            'Key': 'key',
+        }]
+    ).should.throw(
+        ClientError,
+        '2 validation errors detected: '
+        'Value "over 10 chars" at "parameterFilters.1.member.option" failed to satisfy constraint: '
+        'Member must have length less than or equal to 10; '
+        'Value "key" at "parameterFilters.2.member.key" failed to satisfy constraint: '
+        'Member must satisfy regular expression pattern: tag:.+|Name|Type|KeyId|Path|Label|Tier'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Label',
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter key is not valid: Label. Valid filter keys include: [Path, Name, Type, KeyId, Tier].'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter values are missing : null for filter key Name.'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': []
+        }]
+    ).should.throw(
+        ParamValidationError,
+        'Invalid length for parameter ParameterFilters[0].Values, value: 0, valid range: 1-inf'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Values': ['test']
+        },{
+            'Key': 'Name',
+            'Values': ['test test']
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter is duplicated in the request: Name. A request can contain only one occurrence of a specific filter.'
+    )
+
+    for value in ['/###', '//', 'test']:
+        client.describe_parameters.when.called_with(
+            ParameterFilters=[{
+                'Key': 'Path',
+                'Values': [value]
+            }]
+        ).should.throw(
+            ClientError,
+            'The parameter doesn\'t meet the parameter name requirements. The parameter name must begin with a forward slash "/". '
+            'It can\'t be prefixed with \"aws\" or \"ssm\" (case-insensitive). '
+            'It must use only letters, numbers, or the following symbols: . (period), - (hyphen), _ (underscore). '
+            'Special characters are not allowed. All sub-paths, if specified, must use the forward slash symbol "/". '
+            'Valid example: /get/parameters2-/by1./path0_.'
+        )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Path',
+            'Values': ['/aws', '/ssm']
+        }]
+    ).should.throw(
+        ClientError,
+        'Filters for common parameters can\'t be prefixed with "aws" or "ssm" (case-insensitive). '
+        'When using global parameters, please specify within a global namespace.'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Path',
+            'Option': 'Equals',
+            'Values': ['test']
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter option is not valid: Equals. Valid options include: [Recursive, OneLevel].'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Tier',
+            'Values': ['test']
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter value is not valid: test. Valid values include: [Standard, Advanced, Intelligent-Tiering]'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Type',
+            'Values': ['test']
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter value is not valid: test. Valid values include: [String, StringList, SecureString]'
+    )
+
+    client.describe_parameters.when.called_with(
+        ParameterFilters=[{
+            'Key': 'Name',
+            'Option': 'option',
+            'Values': ['test']
+        }]
+    ).should.throw(
+        ClientError,
+        'The following filter option is not valid: option. Valid options include: [BeginsWith, Equals].'
+    )
 
 
 @mock_ssm
@@ -476,15 +979,17 @@ def test_describe_parameters_attributes():
     )
 
     response = client.describe_parameters()
-    len(response['Parameters']).should.equal(2)
 
-    response['Parameters'][0]['Description'].should.equal('my description')
-    response['Parameters'][0]['Version'].should.equal(1)
-    response['Parameters'][0]['LastModifiedDate'].should.be.a(datetime.date)
-    response['Parameters'][0]['LastModifiedUser'].should.equal('N/A')
+    parameters = response['Parameters']
+    parameters.should.have.length_of(2)
 
-    response['Parameters'][1].get('Description').should.be.none
-    response['Parameters'][1]['Version'].should.equal(1)
+    parameters[0]['Description'].should.equal('my description')
+    parameters[0]['Version'].should.equal(1)
+    parameters[0]['LastModifiedDate'].should.be.a(datetime.date)
+    parameters[0]['LastModifiedUser'].should.equal('N/A')
+
+    parameters[1].should_not.have.key('Description')
+    parameters[1]['Version'].should.equal(1)
 
 
 @mock_ssm
@@ -519,7 +1024,7 @@ def test_put_parameter_secure_default_kms():
 
     len(response['Parameters']).should.equal(1)
     response['Parameters'][0]['Name'].should.equal('test')
-    response['Parameters'][0]['Value'].should.equal('kms:default:value')
+    response['Parameters'][0]['Value'].should.equal('kms:alias/aws/ssm:value')
     response['Parameters'][0]['Type'].should.equal('SecureString')
 
     response = client.get_parameters(

@@ -329,7 +329,8 @@ class FakeGrant(BaseModel):
 
 class FakeAcl(BaseModel):
 
-    def __init__(self, grants=[]):
+    def __init__(self, grants=None):
+        grants = grants or []
         self.grants = grants
 
     @property
@@ -396,7 +397,7 @@ class FakeTag(BaseModel):
 class LifecycleFilter(BaseModel):
 
     def __init__(self, prefix=None, tag=None, and_filter=None):
-        self.prefix = prefix or ''
+        self.prefix = prefix
         self.tag = tag
         self.and_filter = and_filter
 
@@ -404,7 +405,7 @@ class LifecycleFilter(BaseModel):
 class LifecycleAndFilter(BaseModel):
 
     def __init__(self, prefix=None, tags=None):
-        self.prefix = prefix or ''
+        self.prefix = prefix
         self.tags = tags
 
 
@@ -478,6 +479,8 @@ class FakeBucket(BaseModel):
         self.logging = {}
         self.notification_configuration = None
         self.accelerate_configuration = None
+        self.payer = 'BucketOwner'
+        self.creation_date = datetime.datetime.utcnow()
 
     @property
     def location(self):
@@ -493,6 +496,11 @@ class FakeBucket(BaseModel):
             # Extract and validate actions from Lifecycle rule
             expiration = rule.get('Expiration')
             transition = rule.get('Transition')
+
+            try:
+                top_level_prefix = rule['Prefix'] or ''  # If it's `None` the set to the empty string
+            except KeyError:
+                top_level_prefix = None
 
             nve_noncurrent_days = None
             if rule.get('NoncurrentVersionExpiration') is not None:
@@ -528,13 +536,22 @@ class FakeBucket(BaseModel):
             if rule.get("Filter"):
                 # Can't have both `Filter` and `Prefix` (need to check for the presence of the key):
                 try:
+                    # 'Prefix' cannot be outside of a Filter:
                     if rule["Prefix"] or not rule["Prefix"]:
                         raise MalformedXML()
                 except KeyError:
                     pass
 
+                filters = 0
+                try:
+                    prefix_filter = rule['Filter']['Prefix'] or ''  # If it's `None` the set to the empty string
+                    filters += 1
+                except KeyError:
+                    prefix_filter = None
+
                 and_filter = None
                 if rule["Filter"].get("And"):
+                    filters += 1
                     and_tags = []
                     if rule["Filter"]["And"].get("Tag"):
                         if not isinstance(rule["Filter"]["And"]["Tag"], list):
@@ -543,17 +560,34 @@ class FakeBucket(BaseModel):
                         for t in rule["Filter"]["And"]["Tag"]:
                             and_tags.append(FakeTag(t["Key"], t.get("Value", '')))
 
-                    and_filter = LifecycleAndFilter(prefix=rule["Filter"]["And"]["Prefix"], tags=and_tags)
+                    try:
+                        and_prefix = rule["Filter"]["And"]["Prefix"] or ''  # If it's `None` then set to the empty string
+                    except KeyError:
+                        and_prefix = None
+
+                    and_filter = LifecycleAndFilter(prefix=and_prefix, tags=and_tags)
 
                 filter_tag = None
                 if rule["Filter"].get("Tag"):
+                    filters += 1
                     filter_tag = FakeTag(rule["Filter"]["Tag"]["Key"], rule["Filter"]["Tag"].get("Value", ''))
 
-                lc_filter = LifecycleFilter(prefix=rule["Filter"]["Prefix"], tag=filter_tag, and_filter=and_filter)
+                # Can't have more than 1 filter:
+                if filters > 1:
+                    raise MalformedXML()
+
+                lc_filter = LifecycleFilter(prefix=prefix_filter, tag=filter_tag, and_filter=and_filter)
+
+            # If no top level prefix and no filter is present, then this is invalid:
+            if top_level_prefix is None:
+                try:
+                    rule['Filter']
+                except KeyError:
+                    raise MalformedXML()
 
             self.rules.append(LifecycleRule(
                 id=rule.get('ID'),
-                prefix=rule.get('Prefix'),
+                prefix=top_level_prefix,
                 lc_filter=lc_filter,
                 status=rule['Status'],
                 expiration_days=expiration.get('Days') if expiration else None,

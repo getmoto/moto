@@ -582,7 +582,7 @@ class DynamoHandler(BaseResponse):
 
     def delete_item(self):
         name = self.body['TableName']
-        keys = self.body['Key']
+        key = self.body['Key']
         return_values = self.body.get('ReturnValues', 'NONE')
         if return_values not in ('ALL_OLD', 'NONE'):
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
@@ -593,7 +593,21 @@ class DynamoHandler(BaseResponse):
             er = 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
 
-        item = self.dynamodb_backend.delete_item(name, keys)
+        # Attempt to parse simple ConditionExpressions into an Expected
+        # expression
+        condition_expression = self.body.get('ConditionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+        expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
+
+        try:
+            item = self.dynamodb_backend.delete_item(
+                name, key, expression_attribute_names, expression_attribute_values,
+                condition_expression
+            )
+        except ValueError:
+            er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
+            return self.error(er, 'A condition specified in the operation could not be evaluated.')
+
         if item and return_values == 'ALL_OLD':
             item_dict = item.to_json()
         else:
