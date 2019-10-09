@@ -292,22 +292,24 @@ class LambdaFunction(BaseModel):
 
         return self.get_configuration()
 
-    def update_function_code(self, spec):
-        if 'DryRun' in spec and spec['DryRun']:
+    def update_function_code(self, updated_spec):
+        if 'DryRun' in updated_spec and updated_spec['DryRun']:
             return self.get_configuration()
 
-        if 'Publish' in spec and spec['Publish']:
+        if 'Publish' in updated_spec and updated_spec['Publish']:
             self.set_version(self.version + 1)
 
-        if 'ZipFile' in spec:
-            # using the "hackery" from __init__" because it seems to work
+        if 'ZipFile' in updated_spec:
+            self.code['ZipFile'] = updated_spec['ZipFile']
+
+            # using the "hackery" from __init__ because it seems to work
             # TODOs and FIXMEs included, because they'll need to be fixed
             # in both places now
             try:
                 to_unzip_code = base64.b64decode(
-                    bytes(spec['ZipFile'], 'utf-8'))
+                    bytes(updated_spec['ZipFile'], 'utf-8'))
             except Exception:
-                to_unzip_code = base64.b64decode(spec['ZipFile'])
+                to_unzip_code = base64.b64decode(updated_spec['ZipFile'])
 
             self.code_bytes = to_unzip_code
             self.code_size = len(to_unzip_code)
@@ -316,11 +318,11 @@ class LambdaFunction(BaseModel):
             # TODO: we should be putting this in a lambda bucket
             self.code['UUID'] = str(uuid.uuid4())
             self.code['S3Key'] = '{}-{}'.format(self.function_name, self.code['UUID'])
-        else:
+        elif 'S3Bucket' in updated_spec and 'S3Key' in updated_spec:
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(spec['S3Bucket'], spec['S3Key'])
+                key = s3_backend.get_key(updated_spec['S3Bucket'], updated_spec['S3Key'])
             except MissingBucket:
                 if do_validate_s3():
                     raise ValueError(

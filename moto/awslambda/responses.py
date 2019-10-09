@@ -123,14 +123,16 @@ class LambdaResponse(BaseResponse):
             return self._add_policy(request, full_url, headers)
 
     def configuration(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         if request.method == 'PUT':
-            return self._put_configuration(request, full_url)
+            return self._put_configuration(request)
         else:
             raise ValueError("Cannot handle request")
 
     def code(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         if request.method == 'PUT':
-            return self._put_code(request, full_url, headers)
+            return self._put_code()
         else:
             raise ValueError("Cannot handle request")
 
@@ -321,26 +323,26 @@ class LambdaResponse(BaseResponse):
         else:
             return 404, {}, "{}"
 
-    def _put_configuration(self, request, full_url):
-        function_name = self._get_param('FunctionName', None)
+    def _put_configuration(self, request):
+        function_name = self.path.rsplit('/', 2)[-2]
         qualifier = self._get_param('Qualifier', None)
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
         if fn:
-            config = fn.update_configuration(json.loads(request.body))
+            config = fn.update_configuration(self.json_body)
             return 200, {}, json.dumps(config)
         else:
             return 404, {}, "{}"
 
-    def _put_code(self, request, full_url, headers):
-        function_name = self._get_param('FunctionName', None)
+    def _put_code(self):
+        function_name = self.path.rsplit('/', 2)[-2]
         qualifier = self._get_param('Qualifier', None)
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
         if fn:
-            config = fn.update_function_code(json.loads(request.body))
+            config = fn.update_function_code(self.json_body)
             return 200, {}, json.dumps(config)
         else:
             return 404, {}, "{}"

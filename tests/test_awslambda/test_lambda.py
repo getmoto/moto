@@ -1295,7 +1295,6 @@ def test_update_configuration():
 
 
 @mock_lambda
-@freeze_time('2015-01-01 00:00:00')
 def test_update_function():
     conn = boto3.client('lambda', 'us-west-2')
 
@@ -1317,7 +1316,7 @@ def test_update_function():
 
     zip_content_two = get_test_zip_file2()
 
-    conn.update_function_code(
+    fxn_updated = conn.update_function_code(
         FunctionName='testFunction',
         ZipFile=zip_content_two,
         Publish=True
