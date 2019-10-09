@@ -342,6 +342,9 @@ class LambdaResponse(BaseResponse):
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
         if fn:
+            if self.json_body.get('Publish', False):
+                fn = self.lambda_backend.publish_function(function_name)
+
             config = fn.update_function_code(self.json_body)
             return 200, {}, json.dumps(config)
         else:

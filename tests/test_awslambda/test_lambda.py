@@ -1295,13 +1295,13 @@ def test_update_configuration():
 
 
 @mock_lambda
-def test_update_function():
+def test_update_function_zip():
     conn = boto3.client('lambda', 'us-west-2')
 
     zip_content_one = get_test_zip_file1()
 
     fxn = conn.create_function(
-        FunctionName='testFunction',
+        FunctionName='testFunctionZip',
         Runtime='python2.7',
         Role='test-iam-role',
         Handler='lambda_function.lambda_handler',
@@ -1317,13 +1317,14 @@ def test_update_function():
     zip_content_two = get_test_zip_file2()
 
     fxn_updated = conn.update_function_code(
-        FunctionName='testFunction',
+        FunctionName='testFunctionZip',
         ZipFile=zip_content_two,
         Publish=True
     )
 
     response = conn.get_function(
-        FunctionName='testFunction'
+        FunctionName='testFunctionZip',
+        Qualifier='2'
     )
     response['Configuration'].pop('LastModified')
 
@@ -1336,14 +1337,80 @@ def test_update_function():
             "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
             "CodeSize": len(zip_content_two),
             "Description": "test lambda function",
-            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunction:2'.format(_lambda_region),
-            "FunctionName": "testFunction",
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunctionZip:2'.format(_lambda_region),
+            "FunctionName": "testFunctionZip",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
             "Role": "test-iam-role",
             "Runtime": "python2.7",
             "Timeout": 3,
-            "Version": '$LATEST',
+            "Version": '2',
+            "VpcConfig": {
+                "SecurityGroupIds": [],
+                "SubnetIds": [],
+            }
+        },
+    )
+
+@mock_lambda
+@mock_s3
+def test_update_function_s3():
+    s3_conn = boto3.client('s3', 'us-west-2')
+    s3_conn.create_bucket(Bucket='test-bucket')
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket='test-bucket', Key='test.zip', Body=zip_content)
+
+    conn = boto3.client('lambda', 'us-west-2')
+
+    fxn = conn.create_function(
+        FunctionName='testFunctionS3',
+        Runtime='python2.7',
+        Role='test-iam-role',
+        Handler='lambda_function.lambda_handler',
+        Code={
+            'S3Bucket': 'test-bucket',
+            'S3Key': 'test.zip',
+        },
+        Description='test lambda function',
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    zip_content_two = get_test_zip_file2()
+    s3_conn.put_object(Bucket='test-bucket', Key='test2.zip', Body=zip_content_two)
+
+    fxn_updated = conn.update_function_code(
+        FunctionName='testFunctionS3',
+        S3Bucket='test-bucket',
+        S3Key='test2.zip',
+        Publish=True
+    )
+
+    response = conn.get_function(
+        FunctionName='testFunctionS3',
+        Qualifier='2'
+    )
+    response['Configuration'].pop('LastModified')
+
+    response['ResponseMetadata']['HTTPStatusCode'].should.equal(200)
+    assert len(response['Code']) == 2
+    assert response['Code']['RepositoryType'] == 'S3'
+    assert response['Code']['Location'].startswith('s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com'.format(_lambda_region))
+    response['Configuration'].should.equal(
+        {
+            "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
+            "CodeSize": len(zip_content_two),
+            "Description": "test lambda function",
+            "FunctionArn": 'arn:aws:lambda:{}:123456789012:function:testFunctionS3:2'.format(_lambda_region),
+            "FunctionName": "testFunctionS3",
+            "Handler": "lambda_function.lambda_handler",
+            "MemorySize": 128,
+            "Role": "test-iam-role",
+            "Runtime": "python2.7",
+            "Timeout": 3,
+            "Version": '2',
             "VpcConfig": {
                 "SecurityGroupIds": [],
                 "SubnetIds": [],

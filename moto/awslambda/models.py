@@ -296,9 +296,6 @@ class LambdaFunction(BaseModel):
         if 'DryRun' in updated_spec and updated_spec['DryRun']:
             return self.get_configuration()
 
-        if 'Publish' in updated_spec and updated_spec['Publish']:
-            self.set_version(self.version + 1)
-
         if 'ZipFile' in updated_spec:
             self.code['ZipFile'] = updated_spec['ZipFile']
 
