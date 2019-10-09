@@ -104,6 +104,7 @@ class SimpleSystemManagerResponse(BaseResponse):
     def describe_parameters(self):
         page_size = 10
         filters = self._get_param('Filters')
+        parameter_filters = self._get_param('ParameterFilters')
         token = self._get_param('NextToken')
         if hasattr(token, 'strip'):
             token = token.strip()
@@ -111,42 +112,17 @@ class SimpleSystemManagerResponse(BaseResponse):
             token = '0'
         token = int(token)
 
-        result = self.ssm_backend.get_all_parameters()
+        result = self.ssm_backend.describe_parameters(
+            filters, parameter_filters
+        )
+
         response = {
             'Parameters': [],
         }
 
         end = token + page_size
         for parameter in result[token:]:
-            param_data = parameter.describe_response_object(False)
-            add = False
-
-            if filters:
-                for filter in filters:
-                    if filter['Key'] == 'Name':
-                        k = param_data['Name']
-                        for v in filter['Values']:
-                            if k.startswith(v):
-                                add = True
-                                break
-                    elif filter['Key'] == 'Type':
-                        k = param_data['Type']
-                        for v in filter['Values']:
-                            if k == v:
-                                add = True
-                                break
-                    elif filter['Key'] == 'KeyId':
-                        k = param_data.get('KeyId')
-                        if k:
-                            for v in filter['Values']:
-                                if k == v:
-                                    add = True
-                                    break
-            else:
-                add = True
-
-            if add:
-                response['Parameters'].append(param_data)
+            response['Parameters'].append(parameter.describe_response_object(False))
 
             token = token + 1
             if len(response['Parameters']) == page_size:

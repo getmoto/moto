@@ -59,15 +59,43 @@ def test_lifecycle_with_filters():
     with assert_raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
-    # With a tag:
-    lfc["Rules"][0]["Filter"]["Tag"] = {
-        "Key": "mytag",
-        "Value": "mytagvalue"
+    # Without any prefixes and an empty filter (this is by default a prefix for the whole bucket):
+    lfc = {
+        "Rules": [
+            {
+                "Expiration": {
+                    "Days": 7
+                },
+                "ID": "wholebucket",
+                "Filter": {},
+                "Status": "Enabled"
+            }
+        ]
     }
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["Filter"]["Prefix"] == ''
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Prefix"]
+
+    # If we remove the filter -- and don't specify a Prefix, then this is bad:
+    lfc['Rules'][0].pop('Filter')
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+    # With a tag:
+    lfc["Rules"][0]["Filter"] = {
+        'Tag': {
+            "Key": "mytag",
+            "Value": "mytagvalue"
+        }
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Filter"]['Prefix']
     assert not result["Rules"][0]["Filter"].get("And")
     assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
@@ -75,25 +103,25 @@ def test_lifecycle_with_filters():
         assert result["Rules"][0]["Prefix"]
 
     # With And (single tag):
-    lfc["Rules"][0]["Filter"]["And"] = {
-        "Prefix": "some/prefix",
-        "Tags": [
-            {
-                "Key": "mytag",
-                "Value": "mytagvalue"
-            }
-        ]
+    lfc["Rules"][0]["Filter"] = {
+        "And": {
+            "Prefix": "some/prefix",
+            "Tags": [
+                {
+                    "Key": "mytag",
+                    "Value": "mytagvalue"
+                }
+            ]
+        }
     }
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["Filter"]["Prefix"] == ""
+    assert not result["Rules"][0]["Filter"].get("Prefix")
     assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
     assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 1
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
-    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
-    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
     with assert_raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
@@ -114,17 +142,39 @@ def test_lifecycle_with_filters():
     client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    assert result["Rules"][0]["Filter"]["Prefix"] == ""
+    assert not result["Rules"][0]["Filter"].get("Prefix")
     assert result["Rules"][0]["Filter"]["And"]["Prefix"] == "some/prefix"
     assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 2
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
-    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
-    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Key"] == "mytag2"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
-    assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
-    assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Prefix"]
+
+    # And filter without Prefix but multiple Tags:
+    lfc["Rules"][0]["Filter"]["And"] = {
+        "Tags": [
+            {
+                "Key": "mytag",
+                "Value": "mytagvalue"
+            },
+            {
+                "Key": "mytag2",
+                "Value": "mytagvalue2"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
+    assert len(result["Rules"]) == 1
+    with assert_raises(KeyError):
+        assert result["Rules"][0]["Filter"]["And"]["Prefix"]
+    assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 2
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Key"] == "mytag2"
+    assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
     with assert_raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
@@ -145,6 +195,73 @@ def test_lifecycle_with_filters():
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert not result["Rules"][0].get("Filter")
     assert result["Rules"][0]["Prefix"] == "some/path"
+
+    # Can't have Tag, Prefix, and And in a filter:
+    del lfc['Rules'][0]['Prefix']
+    lfc["Rules"][0]["Filter"] = {
+        "Prefix": "some/prefix",
+        "Tag": {
+                "Key": "mytag",
+                "Value": "mytagvalue"
+        }
+    }
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+    lfc["Rules"][0]["Filter"] = {
+        "Tag": {
+            "Key": "mytag",
+            "Value": "mytagvalue"
+        },
+        "And": {
+            "Prefix": "some/prefix",
+            "Tags": [
+                {
+                    "Key": "mytag",
+                    "Value": "mytagvalue"
+                },
+                {
+                    "Key": "mytag2",
+                    "Value": "mytagvalue2"
+                }
+            ]
+        }
+    }
+    with assert_raises(ClientError) as err:
+        client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+
+    # Make sure multiple rules work:
+    lfc = {
+        "Rules": [
+            {
+                "Expiration": {
+                    "Days": 7
+                },
+                "ID": "wholebucket",
+                "Filter": {
+                    "Prefix": ""
+                },
+                "Status": "Enabled"
+            },
+            {
+                "Expiration": {
+                    "Days": 10
+                },
+                "ID": "Tags",
+                "Filter": {
+                    "Tag": {'Key': 'somekey', 'Value': 'somevalue'}
+                },
+                "Status": "Enabled"
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(Bucket="bucket", LifecycleConfiguration=lfc)
+    result = client.get_bucket_lifecycle_configuration(Bucket="bucket")['Rules']
+    assert len(result) == 2
+    assert result[0]['ID'] == 'wholebucket'
+    assert result[1]['ID'] == 'Tags'
 
 
 @mock_s3

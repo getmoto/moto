@@ -1029,20 +1029,27 @@ def test_usage_plans():
     usage_plan['name'].should.equal(usage_plan_name)
     usage_plan['apiStages'].should.equal([])
 
-    usage_plan_name = 'TEST-PLAN-2'
-    usage_plan_description = 'Description'
-    usage_plan_quota = {'limit': 10, 'period': 'DAY', 'offset': 0}
-    usage_plan_throttle = {'rateLimit': 2, 'burstLimit': 1}
-    usage_plan_api_stages = [{'apiId': 'foo', 'stage': 'bar'}]
-    payload = {'name': usage_plan_name, 'description': usage_plan_description, 'quota': usage_plan_quota, 'throttle': usage_plan_throttle, 'apiStages': usage_plan_api_stages}
+    payload = {
+        'name': 'TEST-PLAN-2',
+        'description': 'Description',
+        'quota': {'limit': 10, 'period': 'DAY', 'offset': 0},
+        'throttle': {'rateLimit': 2, 'burstLimit': 1},
+        'apiStages': [{'apiId': 'foo', 'stage': 'bar'}],
+        'tags': {'tag_key': 'tag_value'},
+    }
     response = client.create_usage_plan(**payload)
     usage_plan_id = response['id']
     usage_plan = client.get_usage_plan(usagePlanId=usage_plan_id)
-    usage_plan['name'].should.equal(usage_plan_name)
-    usage_plan['description'].should.equal(usage_plan_description)
-    usage_plan['apiStages'].should.equal(usage_plan_api_stages)
-    usage_plan['throttle'].should.equal(usage_plan_throttle)
-    usage_plan['quota'].should.equal(usage_plan_quota)
+
+    # The payload should remain unchanged
+    for key, value in payload.items():
+        usage_plan.should.have.key(key).which.should.equal(value)
+
+    # Status code should be 200
+    usage_plan['ResponseMetadata'].should.have.key('HTTPStatusCode').which.should.equal(200)
+
+    # An Id should've been generated
+    usage_plan.should.have.key('id').which.should_not.be.none
 
     response = client.get_usage_plans()
     len(response['items']).should.equal(2)
