@@ -488,6 +488,15 @@ class StreamShard(BaseModel):
         seq = len(self.items) + self.starting_sequence_number
         self.items.append(
             StreamRecord(self.table, t, event_name, old, new, seq))
+        result = None
+        from moto.awslambda import lambda_backends
+        for arn, esm in self.table.lambda_event_source_mappings.items():
+            region = arn[len('arn:aws:lambda:'):arn.index(':', len('arn:aws:lambda:'))]
+
+            result = lambda_backends[region].send_dynamodb_items(arn, self.items, esm.event_source_arn)
+
+        if result:
+            self.items = []
 
     def get(self, start, quantity):
         start -= self.starting_sequence_number
@@ -530,6 +539,7 @@ class Table(BaseModel):
             # 'AttributeName': 'string'  # Can contain this
         }
         self.set_stream_specification(streams)
+        self.lambda_event_source_mappings = {}
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
