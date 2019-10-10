@@ -2324,6 +2324,45 @@ def test_sorted_query_with_numerical_sort_key():
     assert expected_prices == response_prices, "result items are not sorted by numerical value"
 
 
+# https://github.com/spulec/moto/issues/1874
+@mock_dynamodb2
+def test_item_size_is_under_400KB():
+    dynamodb = boto3.resource('dynamodb')
+    client = boto3.client('dynamodb')
+
+    dynamodb.create_table(
+        TableName='moto-test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+    )
+    table = dynamodb.Table('moto-test')
+
+    large_item = 'x' * 410 * 1000
+    assert_failure_due_to_item_size(func=client.put_item,
+                                    TableName='moto-test',
+                                    Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
+    assert_failure_due_to_item_size(func=table.put_item, Item = {'id': 'bar', 'item': large_item})
+    assert_failure_due_to_item_size(func=client.update_item,
+                                    TableName='moto-test',
+                                    Key={'id': {'S': 'foo2'}},
+                                    UpdateExpression='set item=:Item',
+                                    ExpressionAttributeValues={':Item': {'S': large_item}})
+    # Assert op fails when updating a nested item
+    assert_failure_due_to_item_size(func=table.put_item,
+                                    Item={'id': 'bar', 'itemlist': [{'item': large_item}]})
+    assert_failure_due_to_item_size(func=client.put_item,
+                                    TableName='moto-test',
+                                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'M': {'item1': {'S': large_item}}}]}})
+
+
+def assert_failure_due_to_item_size(func, **kwargs):
+    with assert_raises(ClientError) as ex:
+        func(**kwargs)
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal('Item size has exceeded the maximum allowed size')
+
+
 def _create_user_table():
     client = boto3.client('dynamodb', region_name='us-east-1')
     client.create_table(

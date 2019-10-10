@@ -799,21 +799,6 @@ class ConditionExpressionParser:
         else: # pragma: no cover
             raise ValueError("Unknown expression node kind %r" % node.kind)
 
-    def _print_debug(self, nodes): # pragma: no cover
-        print('ROOT')
-        for node in nodes:
-            self._print_node_recursive(node, depth=1)
-
-    def _print_node_recursive(self, node, depth=0): # pragma: no cover
-        if len(node.children) > 0:
-            print('  ' * depth, node.nonterminal, node.kind)
-            for child in node.children:
-                self._print_node_recursive(child, depth=depth + 1)
-        else:
-            print('  ' * depth, node.nonterminal, node.kind, node.value)
-
-
-
     def _assert(self, condition, message, nodes):
         if not condition:
             raise ValueError(message + " " + " ".join([t.text for t in nodes]))

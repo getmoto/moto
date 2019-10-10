@@ -273,20 +273,76 @@ class LambdaFunction(BaseModel):
             "Configuration": self.get_configuration(),
         }
 
+    def update_configuration(self, config_updates):
+        for key, value in config_updates.items():
+            if key == "Description":
+                self.description = value
+            elif key == "Handler":
+                self.handler = value
+            elif key == "MemorySize":
+                self.memory_size = value
+            elif key == "Role":
+                self.role = value
+            elif key == "Runtime":
+                self.run_time = value
+            elif key == "Timeout":
+                self.timeout = value
+            elif key == "VpcConfig":
+                self.vpc_config = value
+
+        return self.get_configuration()
+
+    def update_function_code(self, updated_spec):
+        if 'DryRun' in updated_spec and updated_spec['DryRun']:
+            return self.get_configuration()
+
+        if 'ZipFile' in updated_spec:
+            self.code['ZipFile'] = updated_spec['ZipFile']
+
+            # using the "hackery" from __init__ because it seems to work
+            # TODOs and FIXMEs included, because they'll need to be fixed
+            # in both places now
+            try:
+                to_unzip_code = base64.b64decode(
+                    bytes(updated_spec['ZipFile'], 'utf-8'))
+            except Exception:
+                to_unzip_code = base64.b64decode(updated_spec['ZipFile'])
+
+            self.code_bytes = to_unzip_code
+            self.code_size = len(to_unzip_code)
+            self.code_sha_256 = hashlib.sha256(to_unzip_code).hexdigest()
+
+            # TODO: we should be putting this in a lambda bucket
+            self.code['UUID'] = str(uuid.uuid4())
+            self.code['S3Key'] = '{}-{}'.format(self.function_name, self.code['UUID'])
+        elif 'S3Bucket' in updated_spec and 'S3Key' in updated_spec:
+            key = None
+            try:
+                # FIXME: does not validate bucket region
+                key = s3_backend.get_key(updated_spec['S3Bucket'], updated_spec['S3Key'])
+            except MissingBucket:
+                if do_validate_s3():
+                    raise ValueError(
+                        "InvalidParameterValueException",
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist")
+            except MissingKey:
+                if do_validate_s3():
+                    raise ValueError(
+                        "InvalidParameterValueException",
+                        "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.")
+            if key:
+                self.code_bytes = key.value
+                self.code_size = key.size
+                self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+
+        return self.get_configuration()
+
     @staticmethod
     def convert(s):
         try:
             return str(s, encoding='utf-8')
         except Exception:
             return s
-
-    @staticmethod
-    def is_json(test_str):
-        try:
-            response = json.loads(test_str)
-        except Exception:
-            response = test_str
-        return response
 
     def _invoke_lambda(self, code, event=None, context=None):
         # TODO: context not yet implemented

@@ -16,7 +16,7 @@ from moto.core.exceptions import JsonRESTError
 from .comparisons import get_comparison_func
 from .comparisons import get_filter_expression
 from .comparisons import get_expected
-from .exceptions import InvalidIndexNameError
+from .exceptions import InvalidIndexNameError, ItemSizeTooLarge
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -28,6 +28,10 @@ class DynamoJsonEncoder(json.JSONEncoder):
 
 def dynamo_json_dump(dynamo_object):
     return json.dumps(dynamo_object, cls=DynamoJsonEncoder)
+
+
+def bytesize(val):
+    return len(str(val).encode('utf-8'))
 
 
 class DynamoType(object):
@@ -99,6 +103,22 @@ class DynamoType(object):
 
         return None
 
+    def size(self):
+        if self.is_number():
+            value_size = len(str(self.value))
+        elif self.is_set():
+            sub_type = self.type[0]
+            value_size = sum([DynamoType({sub_type: v}).size() for v in self.value])
+        elif self.is_list():
+            value_size = sum([DynamoType(v).size() for v in self.value])
+        elif self.is_map():
+            value_size = sum([bytesize(k) + DynamoType(v).size() for k, v in self.value.items()])
+        elif type(self.value) == bool:
+            value_size = 1
+        else:
+            value_size = bytesize(self.value)
+        return value_size
+
     def to_json(self):
         return {self.type: self.value}
 
@@ -126,6 +146,39 @@ class DynamoType(object):
         return self.type == other.type
 
 
+# https://github.com/spulec/moto/issues/1874
+# Ensure that the total size of an item does not exceed 400kb
+class LimitedSizeDict(dict):
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        current_item_size = sum([item.size() if type(item) == DynamoType else bytesize(str(item)) for item in (list(self.keys()) + list(self.values()))])
+        new_item_size = bytesize(key) + (value.size() if type(value) == DynamoType else bytesize(str(value)))
+        # Official limit is set to 400000 (400KB)
+        # Manual testing confirms that the actual limit is between 409 and 410KB
+        # We'll set the limit to something in between to be safe
+        if (current_item_size + new_item_size) > 405000:
+            raise ItemSizeTooLarge
+        super(LimitedSizeDict, self).__setitem__(key, value)
+
+    def update(self, *args, **kwargs):
+        if args:
+            if len(args) > 1:
+                raise TypeError("update expected at most 1 arguments, "
+                                "got %d" % len(args))
+            other = dict(args[0])
+            for key in other:
+                self[key] = other[key]
+        for key in kwargs:
+            self[key] = kwargs[key]
+
+    def setdefault(self, key, value=None):
+        if key not in self:
+            self[key] = value
+        return self[key]
+
+
 class Item(BaseModel):
 
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
@@ -134,7 +187,7 @@ class Item(BaseModel):
         self.range_key = range_key
         self.range_key_type = range_key_type
 
-        self.attrs = {}
+        self.attrs = LimitedSizeDict()
         for key, value in attrs.items():
             self.attrs[key] = DynamoType(value)
 
@@ -824,7 +877,7 @@ class Table(BaseModel):
                                                          exclusive_start_key, index_name)
         return results, scanned_count, last_evaluated_key
 
-    def _trim_results(self, results, limit, exclusive_start_key, scaned_index=None):
+    def _trim_results(self, results, limit, exclusive_start_key, scanned_index=None):
         if exclusive_start_key is not None:
             hash_key = DynamoType(exclusive_start_key.get(self.hash_key_attr))
             range_key = exclusive_start_key.get(self.range_key_attr)
@@ -844,10 +897,10 @@ class Table(BaseModel):
             if results[-1].range_key is not None:
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
 
-            if scaned_index:
+            if scanned_index:
                 all_indexes = self.all_indexes()
                 indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
-                idx = indexes_by_name[scaned_index]
+                idx = indexes_by_name[scanned_index]
                 idx_col_list = [i['AttributeName'] for i in idx['KeySchema']]
                 for col in idx_col_list:
                     last_evaluated_key[col] = results[-1].attrs[col]
