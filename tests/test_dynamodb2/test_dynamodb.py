@@ -2295,6 +2295,35 @@ def test_index_with_unknown_attributes_should_fail():
     ex.exception.response['Error']['Message'].should.contain(expected_exception)
 
 
+@mock_dynamodb2
+def test_sorted_query_with_numerical_sort_key():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    dynamodb.create_table(TableName="CarCollection",
+                          KeySchema=[{ 'AttributeName': "CarModel", 'KeyType': 'HASH'},
+                                     {'AttributeName': "CarPrice", 'KeyType': 'RANGE'}],
+                          AttributeDefinitions=[{'AttributeName': "CarModel", 'AttributeType': "S"},
+                                                {'AttributeName': "CarPrice", 'AttributeType': "N"}],
+                          ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1})
+
+    def create_item(price):
+        return {"CarModel": "M", "CarPrice": price}
+
+    table = dynamodb.Table('CarCollection')
+    items = list(map(create_item, [2, 1, 10, 3]))
+    for item in items:
+        table.put_item(Item=item)
+
+    response = table.query(KeyConditionExpression=Key('CarModel').eq("M"))
+
+    response_items = response['Items']
+    assert len(items) == len(response_items)
+    assert all(isinstance(item["CarPrice"], Decimal) for item in response_items)
+    response_prices = [item["CarPrice"] for item in response_items]
+    expected_prices = [Decimal(item["CarPrice"]) for item in items]
+    expected_prices.sort()
+    assert expected_prices == response_prices, "result items are not sorted by numerical value"
+
+
 def _create_user_table():
     client = boto3.client('dynamodb', region_name='us-east-1')
     client.create_table(
