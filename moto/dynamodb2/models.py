@@ -877,7 +877,7 @@ class Table(BaseModel):
                                                          exclusive_start_key, index_name)
         return results, scanned_count, last_evaluated_key
 
-    def _trim_results(self, results, limit, exclusive_start_key, scaned_index=None):
+    def _trim_results(self, results, limit, exclusive_start_key, scanned_index=None):
         if exclusive_start_key is not None:
             hash_key = DynamoType(exclusive_start_key.get(self.hash_key_attr))
             range_key = exclusive_start_key.get(self.range_key_attr)
@@ -897,10 +897,10 @@ class Table(BaseModel):
             if results[-1].range_key is not None:
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
 
-            if scaned_index:
+            if scanned_index:
                 all_indexes = self.all_indexes()
                 indexes_by_name = dict((i['IndexName'], i) for i in all_indexes)
-                idx = indexes_by_name[scaned_index]
+                idx = indexes_by_name[scanned_index]
                 idx_col_list = [i['AttributeName'] for i in idx['KeySchema']]
                 for col in idx_col_list:
                     last_evaluated_key[col] = results[-1].attrs[col]
