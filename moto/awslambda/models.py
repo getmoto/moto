@@ -280,14 +280,6 @@ class LambdaFunction(BaseModel):
         except Exception:
             return s
 
-    @staticmethod
-    def is_json(test_str):
-        try:
-            response = json.loads(test_str)
-        except Exception:
-            response = test_str
-        return response
-
     def _invoke_lambda(self, code, event=None, context=None):
         # TODO: context not yet implemented
         if event is None:
