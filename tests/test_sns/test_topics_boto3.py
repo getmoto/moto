@@ -45,6 +45,37 @@ def test_create_topic_with_attributes():
 
 
 @mock_sns
+def test_create_topic_with_tags():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(
+        Name='some-topic-with-attribute',
+        Tags=[
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_1'
+            },
+            {
+                'Key': 'tag_key_2',
+                'Value': 'tag_value_2'
+            }
+        ]
+    )
+    topics_json = conn.list_topics()
+    topic_arn = topics_json["Topics"][0]['TopicArn']
+
+    conn.list_tags_for_resource(ResourceArn=topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_1',
+            'Value': 'tag_value_1'
+        },
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+
+@mock_sns
 def test_create_topic_should_be_indempodent():
     conn = boto3.client("sns", region_name="us-east-1")
     topic_arn = conn.create_topic(Name="some-topic")['TopicArn']

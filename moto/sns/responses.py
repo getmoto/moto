@@ -30,6 +30,10 @@ class SNSResponse(BaseResponse):
             in attributes
         )
 
+    def _get_tags(self):
+        tags = self._get_list_prefix('Tags.member')
+        return {tag['key']: tag['value'] for tag in tags}
+
     def _parse_message_attributes(self, prefix='', value_namespace='Value.'):
         message_attributes = self._get_object_map(
             'MessageAttributes.entry',
@@ -85,7 +89,8 @@ class SNSResponse(BaseResponse):
     def create_topic(self):
         name = self._get_param('Name')
         attributes = self._get_attributes()
-        topic = self.backend.create_topic(name, attributes)
+        tags = self._get_tags()
+        topic = self.backend.create_topic(name, attributes, tags)
 
         if self.request_json:
             return json.dumps({
@@ -691,6 +696,18 @@ class SNSResponse(BaseResponse):
         template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
         return template.render(sub_arn='{0}:68762e72-e9b1-410a-8b3b-903da69ee1d5'.format(arn))
 
+    def list_tags_for_resource(self):
+        arn = self._get_param('ResourceArn')
+
+        if arn not in self.backend.topics:
+            error_response = self._error('ResourceNotFound', 'Resource does not exist')
+            return error_response, dict(status=404)
+
+        result = self.backend.list_tags_for_resource(arn)
+
+        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
+        return template.render(tags=result)
+
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
      <CreateTopicResult>
@@ -1072,3 +1089,19 @@ CONFIRM_SUBSCRIPTION_TEMPLATE = """<ConfirmSubscriptionResponse xmlns="http://sn
     <RequestId>16eb4dde-7b3c-5b3e-a22a-1fe2a92d3293</RequestId>
   </ResponseMetadata>
 </ConfirmSubscriptionResponse>"""
+
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+  <ListTagsForResourceResult>
+    <Tags>
+      {% for name, value in tags.items() %}
+      <member>
+        <Key>{{ name }}</Key>
+        <Value>{{ value }}</Value>
+      </member>
+      {% endfor %}
+    </Tags>
+  </ListTagsForResourceResult>
+  <ResponseMetadata>
+    <RequestId>97fa763f-861b-5223-a946-20251f2a42e2</RequestId>
+  </ResponseMetadata>
+</ListTagsForResourceResponse>"""
