@@ -308,20 +308,9 @@ class DynamoHandler(BaseResponse):
         projection_expression = self.body.get('ProjectionExpression')
         expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
 
-        if projection_expression and expression_attribute_names:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            projection_expression = None
-            for expression in expressions:
-                if projection_expression is not None:
-                    projection_expression = projection_expression + ", "
-                else:
-                    projection_expression = ""
-
-                if expression in expression_attribute_names:
-                    projection_expression = projection_expression + \
-                        expression_attribute_names[expression]
-                else:
-                    projection_expression = projection_expression + expression
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         try:
             item = self.dynamodb_backend.get_item(name, key, projection_expression)
@@ -359,20 +348,9 @@ class DynamoHandler(BaseResponse):
             projection_expression = table_request.get('ProjectionExpression')
             expression_attribute_names = table_request.get('ExpressionAttributeNames', {})
 
-            if projection_expression and expression_attribute_names:
-                expressions = [x.strip() for x in projection_expression.split(',')]
-                projection_expression = None
-                for expression in expressions:
-                    if projection_expression is not None:
-                        projection_expression = projection_expression + ", "
-                    else:
-                        projection_expression = ""
-
-                    if expression in expression_attribute_names:
-                        projection_expression = projection_expression + \
-                            expression_attribute_names[expression]
-                    else:
-                        projection_expression = projection_expression + expression
+            projection_expression = self._adjust_projection_expression(
+                projection_expression, expression_attribute_names
+            )
 
             results["Responses"][table_name] = []
             for key in keys:
@@ -406,20 +384,9 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get('FilterExpression')
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
-        if projection_expression and expression_attribute_names:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            projection_expression = None
-            for expression in expressions:
-                if projection_expression is not None:
-                    projection_expression = projection_expression + ", "
-                else:
-                    projection_expression = ""
-
-                if expression in expression_attribute_names:
-                    projection_expression = projection_expression + \
-                        expression_attribute_names[expression]
-                else:
-                    projection_expression = projection_expression + expression
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         filter_kwargs = {}
 
@@ -554,6 +521,25 @@ class DynamoHandler(BaseResponse):
             result["LastEvaluatedKey"] = last_evaluated_key
 
         return dynamo_json_dump(result)
+
+    def _adjust_projection_expression(self, projection_expression, expression_attribute_names):
+        if projection_expression and expression_attribute_names:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            projection_expr = None
+            for expression in expressions:
+                if projection_expr is not None:
+                    projection_expr = projection_expr + ", "
+                else:
+                    projection_expr = ""
+
+                if expression in expression_attribute_names:
+                    projection_expr = projection_expr + \
+                        expression_attribute_names[expression]
+                else:
+                    projection_expr = projection_expr + expression
+            return projection_expr
+
+        return projection_expression
 
     def scan(self):
         name = self.body['TableName']

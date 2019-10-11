@@ -421,10 +421,10 @@ def test_basic_projection_expression_using_get_item():
         ProjectionExpression='body, subject'
     )
 
-    assert result['Item'] == {
+    result['Item'].should.be.equal({
         'subject': '123',
         'body': 'some test message'
-    }
+    })
 
     # The projection expression should not remove data from storage
     result = table.get_item(
@@ -434,11 +434,11 @@ def test_basic_projection_expression_using_get_item():
         }
     )
 
-    assert result['Item'] == {
+    result['Item'].should.be.equal({
         'forum_name': 'the-key',
         'subject': '123',
         'body': 'some test message'
-    }
+    })
 
 
 @mock_dynamodb2
@@ -670,11 +670,11 @@ def test_basic_projection_expression_using_get_item_with_attr_expression_names()
             },
     )
 
-    assert result['Item'] == {
+    result['Item'].should.be.equal({
         'subject': '123',
         'body': 'some test message',
         'attachment': 'something'
-    }
+    })
 
 
 @mock_dynamodb2
@@ -2392,9 +2392,10 @@ def test_batch_items_with_basic_projection_expression():
             'ProjectionExpression': 'username'
         }
     })['Responses']['users']
-    assert len(returned_items) == 3
-    assert [item['username']['S'] for item in returned_items] == ['user1', 'user2', 'user3']
-    assert [item.get('foo') for item in returned_items] == [None, None, None]
+
+    returned_items.should.have.length_of(3)
+    [item['username']['S'] for item in returned_items].should.be.equal(['user1', 'user2', 'user3'])
+    [item.get('foo') for item in returned_items].should.be.equal([None, None, None])
 
     # The projection expression should not remove data from storage
     returned_items = dynamodb.batch_get_item(RequestItems = {
@@ -2411,8 +2412,9 @@ def test_batch_items_with_basic_projection_expression():
             'ConsistentRead': True
         }
     })['Responses']['users']
-    assert [item['username']['S'] for item in returned_items] == ['user1', 'user2', 'user3']
-    assert [item['foo']['S'] for item in returned_items] == ['bar', 'bar', 'bar']
+
+    [item['username']['S'] for item in returned_items].should.be.equal(['user1', 'user2', 'user3'])
+    [item['foo']['S'] for item in returned_items].should.be.equal(['bar', 'bar', 'bar'])
 
 
 @mock_dynamodb2
@@ -2436,9 +2438,10 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
             },
         }
     })['Responses']['users']
-    assert len(returned_items) == 3
-    assert [item['username']['S'] for item in returned_items] == ['user1', 'user2', 'user3']
-    assert [item.get('foo') for item in returned_items] == [None, None, None]
+
+    returned_items.should.have.length_of(3)
+    [item['username']['S'] for item in returned_items].should.be.equal(['user1', 'user2', 'user3'])
+    [item.get('foo') for item in returned_items].should.be.equal([None, None, None])
 
 
 @mock_dynamodb2
