@@ -712,6 +712,14 @@ class SNSResponse(BaseResponse):
 
         return self.response_template(TAG_RESOURCE_TEMPLATE).render()
 
+    def untag_resource(self):
+        arn = self._get_param('ResourceArn')
+        tag_keys = self._get_multi_param('TagKeys.member')
+
+        self.backend.untag_resource(arn, tag_keys)
+
+        return self.response_template(UNTAG_RESOURCE_TEMPLATE).render()
+
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
      <CreateTopicResult>
@@ -1116,3 +1124,10 @@ TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://sns.amazonaws.com/
         <RequestId>fd4ab1da-692f-50a7-95ad-e7c665877d98</RequestId>
     </ResponseMetadata>
 </TagResourceResponse>"""
+
+UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+    <UntagResourceResult/>
+    <ResponseMetadata>
+        <RequestId>14eb7b1a-4cbd-5a56-80db-2d06412df769</RequestId>
+    </ResponseMetadata>
+</UntagResourceResponse>"""

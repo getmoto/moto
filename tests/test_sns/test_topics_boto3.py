@@ -298,6 +298,52 @@ def test_tag_topic():
 
 
 @mock_sns
+def test_untag_topic():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    response = conn.create_topic(
+        Name = 'some-topic-with-tags',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_1'
+            },
+            {
+                'Key': 'tag_key_2',
+                'Value': 'tag_value_2'
+            }
+        ]
+    )
+    topic_arn = response['TopicArn']
+
+    conn.untag_resource(
+        ResourceArn = topic_arn,
+        TagKeys = [
+            'tag_key_1'
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+    # removing a non existing tag should not raise any error
+    conn.untag_resource(
+        ResourceArn = topic_arn,
+        TagKeys = [
+            'not-existing-tag'
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+
+@mock_sns
 def test_list_tags_for_resource_error():
     conn = boto3.client('sns', region_name = 'us-east-1')
     conn.create_topic(
@@ -361,3 +407,27 @@ def test_tag_resource_errors():
             'Value': 'tag_value_X'
         }
     ])
+
+
+@mock_sns
+def test_untag_resource_error():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    conn.create_topic(
+        Name = 'some-topic-with-tags',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_X'
+            }
+        ]
+    )
+
+    conn.untag_resource.when.called_with(
+        ResourceArn = 'not-existing-topic',
+        TagKeys = [
+            'tag_key_1'
+        ]
+    ).should.throw(
+        ClientError,
+        'Resource does not exist'
+    )

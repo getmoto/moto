@@ -521,6 +521,13 @@ class SNSBackend(BaseBackend):
 
         self.topics[resource_arn]._tags = updated_tags
 
+    def untag_resource(self, resource_arn, tag_keys):
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        for key in tag_keys:
+            self.topics[resource_arn]._tags.pop(key, None)
+
 
 sns_backends = {}
 for region in Session().get_available_regions('sns'):
