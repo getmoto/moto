@@ -5866,7 +5866,7 @@
 - [ ] update_job
 
 ## sns
-48% implemented
+58% implemented
 - [ ] add_permission
 - [ ] check_if_phone_number_is_opted_out
 - [ ] confirm_subscription
@@ -5886,7 +5886,7 @@
 - [X] list_platform_applications
 - [X] list_subscriptions
 - [ ] list_subscriptions_by_topic
-- [ ] list_tags_for_resource
+- [x] list_tags_for_resource
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
@@ -5897,9 +5897,9 @@
 - [X] set_subscription_attributes
 - [ ] set_topic_attributes
 - [X] subscribe
-- [ ] tag_resource
+- [x] tag_resource
 - [X] unsubscribe
-- [ ] untag_resource
+- [x] untag_resource
 
 ## sqs
 65% implemented

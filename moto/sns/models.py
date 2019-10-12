@@ -18,7 +18,7 @@ from moto.awslambda import lambda_backends
 
 from .exceptions import (
     SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter,
-    InvalidParameterValue, InternalError
+    InvalidParameterValue, InternalError, ResourceNotFoundError, TagLimitExceededError
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -43,6 +43,8 @@ class Topic(BaseModel):
         self.subscriptions_pending = 0
         self.subscriptions_confimed = 0
         self.subscriptions_deleted = 0
+
+        self._tags = {}
 
     def publish(self, message, subject=None, message_attributes=None):
         message_id = six.text_type(uuid.uuid4())
@@ -277,7 +279,7 @@ class SNSBackend(BaseBackend):
     def update_sms_attributes(self, attrs):
         self.sms_attributes.update(attrs)
 
-    def create_topic(self, name, attributes=None):
+    def create_topic(self, name, attributes=None, tags=None):
         fails_constraints = not re.match(r'^[a-zA-Z0-9_-]{1,256}$', name)
         if fails_constraints:
             raise InvalidParameterValue("Topic names must be made up of only uppercase and lowercase ASCII letters, numbers, underscores, and hyphens, and must be between 1 and 256 characters long.")
@@ -285,6 +287,8 @@ class SNSBackend(BaseBackend):
         if attributes:
             for attribute in attributes:
                 setattr(candidate_topic, camelcase_to_underscores(attribute), attributes[attribute])
+        if tags:
+            candidate_topic._tags = tags
         if candidate_topic.arn in self.topics:
             return self.topics[candidate_topic.arn]
         else:
@@ -498,6 +502,31 @@ class SNSBackend(BaseBackend):
                         raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Unrecognized match type {type}".format(type=keyword))
 
                 raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Match value must be String, number, true, false, or null")
+
+    def list_tags_for_resource(self, resource_arn):
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        return self.topics[resource_arn]._tags
+
+    def tag_resource(self, resource_arn, tags):
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        updated_tags = self.topics[resource_arn]._tags.copy()
+        updated_tags.update(tags)
+
+        if len(updated_tags) > 50:
+            raise TagLimitExceededError
+
+        self.topics[resource_arn]._tags = updated_tags
+
+    def untag_resource(self, resource_arn, tag_keys):
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        for key in tag_keys:
+            self.topics[resource_arn]._tags.pop(key, None)
 
 
 sns_backends = {}
