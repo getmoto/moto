@@ -9,7 +9,41 @@ import sure  # noqa
 from moto import mock_kinesis
 
 
-def create_stream(client, stream_name):
+def create_s3_delivery_stream(client, stream_name):
+    return client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        DeliveryStreamType="DirectPut",
+        ExtendedS3DestinationConfiguration={
+            'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+            'BucketARN': 'arn:aws:s3:::kinesis-test',
+            'Prefix': 'myFolder/',
+            'CompressionFormat': 'UNCOMPRESSED',
+            'DataFormatConversionConfiguration': {
+                'Enabled': True,
+                'InputFormatConfiguration': {
+                    'Deserializer': {
+                        'HiveJsonSerDe': {
+                        },
+                    },
+                },
+                'OutputFormatConfiguration': {
+                    'Serializer': {
+                        'ParquetSerDe': {
+                            'Compression': 'SNAPPY',
+                        },
+                    },
+                },
+                'SchemaConfiguration': {
+                    'DatabaseName': stream_name,
+                    'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+                    'TableName': 'outputTable',
+                },
+            },
+        })
+
+
+
+def create_redshift_delivery_stream(client, stream_name):
     return client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         RedshiftDestinationConfiguration={
@@ -36,10 +70,10 @@ def create_stream(client, stream_name):
 
 
 @mock_kinesis
-def test_create_stream():
+def test_create_redshift_delivery_stream():
     client = boto3.client('firehose', region_name='us-east-1')
 
-    response = create_stream(client, 'stream1')
+    response = create_redshift_delivery_stream(client, 'stream1')
     stream_arn = response['DeliveryStreamARN']
 
     response = client.describe_delivery_stream(DeliveryStreamName='stream1')
@@ -81,6 +115,60 @@ def test_create_stream():
         "HasMoreDestinations": False,
     })
 
+
+@mock_kinesis
+def test_create_s3_delivery_stream():
+    client = boto3.client('firehose', region_name='us-east-1')
+
+    response = create_s3_delivery_stream(client, 'stream1')
+    stream_arn = response['DeliveryStreamARN']
+
+    response = client.describe_delivery_stream(DeliveryStreamName='stream1')
+    stream_description = response['DeliveryStreamDescription']
+
+    # Sure and Freezegun don't play nicely together
+    _ = stream_description.pop('CreateTimestamp')
+    _ = stream_description.pop('LastUpdateTimestamp')
+
+    stream_description.should.equal({
+        'DeliveryStreamName': 'stream1',
+        'DeliveryStreamARN': stream_arn,
+        'DeliveryStreamStatus': 'ACTIVE',
+        'VersionId': 'string',
+        'Destinations': [
+            {
+                'DestinationId': 'string',
+                'ExtendedS3DestinationDescription': {
+                    'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+                    'BucketARN': 'arn:aws:s3:::kinesis-test',
+                    'Prefix': 'myFolder/',
+                    'CompressionFormat': 'UNCOMPRESSED',
+                    'DataFormatConversionConfiguration': {
+                        'Enabled': True,
+                        'InputFormatConfiguration': {
+                            'Deserializer': {
+                                'HiveJsonSerDe': {
+                                },
+                            },
+                        },
+                        'OutputFormatConfiguration': {
+                            'Serializer': {
+                                'ParquetSerDe': {
+                                    'Compression': 'SNAPPY',
+                                },
+                            },
+                        },
+                        'SchemaConfiguration': {
+                            'DatabaseName': 'stream1',
+                            'RoleARN': 'arn:aws:iam::123456789012:role/firehose_delivery_role',
+                            'TableName': 'outputTable',
+                        },
+                    },
+                },
+            },
+        ],
+        "HasMoreDestinations": False,
+    })
 
 @mock_kinesis
 def test_create_stream_without_redshift():
@@ -145,8 +233,8 @@ def test_deescribe_non_existant_stream():
 def test_list_and_delete_stream():
     client = boto3.client('firehose', region_name='us-east-1')
 
-    create_stream(client, 'stream1')
-    create_stream(client, 'stream2')
+    create_redshift_delivery_stream(client, 'stream1')
+    create_redshift_delivery_stream(client, 'stream2')
 
     set(client.list_delivery_streams()['DeliveryStreamNames']).should.equal(
         set(['stream1', 'stream2']))
@@ -161,7 +249,7 @@ def test_list_and_delete_stream():
 def test_put_record():
     client = boto3.client('firehose', region_name='us-east-1')
 
-    create_stream(client, 'stream1')
+    create_redshift_delivery_stream(client, 'stream1')
     client.put_record(
         DeliveryStreamName='stream1',
         Record={
@@ -174,7 +262,7 @@ def test_put_record():
 def test_put_record_batch():
     client = boto3.client('firehose', region_name='us-east-1')
 
-    create_stream(client, 'stream1')
+    create_redshift_delivery_stream(client, 'stream1')
     client.put_record_batch(
         DeliveryStreamName='stream1',
         Records=[

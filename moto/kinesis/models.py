@@ -222,12 +222,8 @@ class DeliveryStream(BaseModel):
         self.redshift_role_arn = stream_kwargs.get('redshift_role_arn')
         self.redshift_copy_command = stream_kwargs.get('redshift_copy_command')
 
-        self.s3_role_arn = stream_kwargs.get('s3_role_arn')
-        self.s3_bucket_arn = stream_kwargs.get('s3_bucket_arn')
-        self.s3_prefix = stream_kwargs.get('s3_prefix')
-        self.s3_compression_format = stream_kwargs.get(
-            's3_compression_format', 'UNCOMPRESSED')
-        self.s3_buffering_hings = stream_kwargs.get('s3_buffering_hings')
+        self.s3_config = stream_kwargs.get('s3_config')
+        self.extended_s3_config = stream_kwargs.get('extended_s3_config')
 
         self.redshift_s3_role_arn = stream_kwargs.get('redshift_s3_role_arn')
         self.redshift_s3_bucket_arn = stream_kwargs.get(
@@ -235,8 +231,8 @@ class DeliveryStream(BaseModel):
         self.redshift_s3_prefix = stream_kwargs.get('redshift_s3_prefix')
         self.redshift_s3_compression_format = stream_kwargs.get(
             'redshift_s3_compression_format', 'UNCOMPRESSED')
-        self.redshift_s3_buffering_hings = stream_kwargs.get(
-            'redshift_s3_buffering_hings')
+        self.redshift_s3_buffering_hints = stream_kwargs.get(
+            'redshift_s3_buffering_hints')
 
         self.records = []
         self.status = 'ACTIVE'
@@ -248,16 +244,15 @@ class DeliveryStream(BaseModel):
         return 'arn:aws:firehose:us-east-1:123456789012:deliverystream/{0}'.format(self.name)
 
     def destinations_to_dict(self):
-        if self.s3_role_arn:
+        if self.s3_config:
             return [{
                 'DestinationId': 'string',
-                'S3DestinationDescription': {
-                    'RoleARN': self.s3_role_arn,
-                    'BucketARN': self.s3_bucket_arn,
-                    'Prefix': self.s3_prefix,
-                    'BufferingHints': self.s3_buffering_hings,
-                    'CompressionFormat': self.s3_compression_format,
-                }
+                'S3DestinationDescription': self.s3_config,
+            }]
+        elif self.extended_s3_config:
+            return [{
+                'DestinationId': 'string',
+                'ExtendedS3DestinationDescription': self.extended_s3_config,
             }]
         else:
             return [{
@@ -268,7 +263,7 @@ class DeliveryStream(BaseModel):
                         "RoleARN": self.redshift_role_arn,
                         "S3DestinationDescription": {
                             "BucketARN": self.redshift_s3_bucket_arn,
-                            "BufferingHints": self.redshift_s3_buffering_hings,
+                            "BufferingHints": self.redshift_s3_buffering_hints,
                             "CompressionFormat": self.redshift_s3_compression_format,
                             "Prefix": self.redshift_s3_prefix,
                             "RoleARN": self.redshift_s3_role_arn
