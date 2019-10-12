@@ -790,6 +790,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_name = cluster_str.split('/')[-1]
         if cluster_name not in self.clusters:
             raise Exception("{0} is not a cluster".format(cluster_name))
+        if not list_container_instance_ids:
+            raise JsonRESTError('InvalidParameterException', 'Container instance cannot be empty')
         failures = []
         container_instance_objects = []
         for container_instance_id in list_container_instance_ids:
