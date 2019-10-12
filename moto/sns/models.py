@@ -18,7 +18,7 @@ from moto.awslambda import lambda_backends
 
 from .exceptions import (
     SNSNotFoundError, DuplicateSnsEndpointError, SnsEndpointDisabled, SNSInvalidParameter,
-    InvalidParameterValue, InternalError
+    InvalidParameterValue, InternalError, ResourceNotFoundError, TagLimitExceededError
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription
 
@@ -504,7 +504,22 @@ class SNSBackend(BaseBackend):
                 raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Match value must be String, number, true, false, or null")
 
     def list_tags_for_resource(self, resource_arn):
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
         return self.topics[resource_arn]._tags
+
+    def tag_resource(self, resource_arn, tags):
+        if resource_arn not in self.topics:
+            raise ResourceNotFoundError
+
+        updated_tags = self.topics[resource_arn]._tags.copy()
+        updated_tags.update(tags)
+
+        if len(updated_tags) > 50:
+            raise TagLimitExceededError
+
+        self.topics[resource_arn]._tags = updated_tags
 
 
 sns_backends = {}

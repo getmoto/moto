@@ -699,14 +699,18 @@ class SNSResponse(BaseResponse):
     def list_tags_for_resource(self):
         arn = self._get_param('ResourceArn')
 
-        if arn not in self.backend.topics:
-            error_response = self._error('ResourceNotFound', 'Resource does not exist')
-            return error_response, dict(status=404)
-
         result = self.backend.list_tags_for_resource(arn)
 
         template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
         return template.render(tags=result)
+
+    def tag_resource(self):
+        arn = self._get_param('ResourceArn')
+        tags = self._get_tags()
+
+        self.backend.tag_resource(arn, tags)
+
+        return self.response_template(TAG_RESOURCE_TEMPLATE).render()
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -1105,3 +1109,10 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://
     <RequestId>97fa763f-861b-5223-a946-20251f2a42e2</RequestId>
   </ResponseMetadata>
 </ListTagsForResourceResponse>"""
+
+TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
+    <TagResourceResult/>
+    <ResponseMetadata>
+        <RequestId>fd4ab1da-692f-50a7-95ad-e7c665877d98</RequestId>
+    </ResponseMetadata>
+</TagResourceResponse>"""
