@@ -415,7 +415,7 @@ class SQSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_queue(self, name, tags, **kwargs):
+    def create_queue(self, name, tags=None, **kwargs):
         queue = self.queues.get(name)
         if queue:
             try:
@@ -455,7 +455,9 @@ class SQSBackend(BaseBackend):
             queue = Queue(name, region=self.region_name, **kwargs)
             self.queues[name] = queue
 
-        queue.tags = tags
+        if tags:
+            queue.tags = tags
+
         return queue
 
     def list_queues(self, queue_name_prefix):
