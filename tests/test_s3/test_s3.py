@@ -289,8 +289,8 @@ def test_multipart_etag_quotes_stripped():
     part2 = b'1'
     etag2 = multipart.upload_part_from_file(BytesIO(part2), 2).etag
     # Strip quotes from etags
-    etag1 = etag1.replace('"','')
-    etag2 = etag2.replace('"','')
+    etag1 = etag1.replace('"', '')
+    etag2 = etag2.replace('"', '')
     xml = "<Part><PartNumber>{0}</PartNumber><ETag>{1}</ETag></Part>"
     xml = xml.format(1, etag1) + xml.format(2, etag2)
     xml = "<CompleteMultipartUpload>{0}</CompleteMultipartUpload>".format(xml)
@@ -1592,7 +1592,8 @@ def test_boto3_copy_object_with_versioning():
 
     response = client.create_multipart_upload(Bucket='blah', Key='test4')
     upload_id = response['UploadId']
-    response = client.upload_part_copy(Bucket='blah', Key='test4', CopySource={'Bucket': 'blah', 'Key': 'test3', 'VersionId': obj3_version_new},
+    response = client.upload_part_copy(Bucket='blah', Key='test4',
+                                       CopySource={'Bucket': 'blah', 'Key': 'test3', 'VersionId': obj3_version_new},
                                        UploadId=upload_id, PartNumber=1)
     etag = response["CopyPartResult"]["ETag"]
     client.complete_multipart_upload(
@@ -2284,7 +2285,7 @@ def test_put_bucket_notification():
     assert not result.get("QueueConfigurations")
     assert result["LambdaFunctionConfigurations"][0]["Id"]
     assert result["LambdaFunctionConfigurations"][0]["LambdaFunctionArn"] == \
-        "arn:aws:lambda:us-east-1:012345678910:function:lambda"
+           "arn:aws:lambda:us-east-1:012345678910:function:lambda"
     assert result["LambdaFunctionConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
     assert len(result["LambdaFunctionConfigurations"][0]["Events"]) == 1
     assert len(result["LambdaFunctionConfigurations"][0]["Filter"]["Key"]["FilterRules"]) == 1
@@ -2367,7 +2368,7 @@ def test_put_bucket_notification_errors():
 
     assert err.exception.response["Error"]["Code"] == "InvalidArgument"
     assert err.exception.response["Error"]["Message"] == \
-        "The notification destination service region is not valid for the bucket location constraint"
+           "The notification destination service region is not valid for the bucket location constraint"
 
     # Invalid event name:
     with assert_raises(ClientError) as err:
@@ -2949,7 +2950,7 @@ TEST_XML = """\
 def test_boto3_bucket_name_too_long():
     s3 = boto3.client('s3', region_name='us-east-1')
     with assert_raises(ClientError) as exc:
-        s3.create_bucket(Bucket='x'*64)
+        s3.create_bucket(Bucket='x' * 64)
     exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
 
 
@@ -2957,7 +2958,7 @@ def test_boto3_bucket_name_too_long():
 def test_boto3_bucket_name_too_short():
     s3 = boto3.client('s3', region_name='us-east-1')
     with assert_raises(ClientError) as exc:
-        s3.create_bucket(Bucket='x'*2)
+        s3.create_bucket(Bucket='x' * 2)
     exc.exception.response['Error']['Code'].should.equal('InvalidBucketName')
 
 
@@ -2979,7 +2980,7 @@ def test_can_enable_bucket_acceleration():
         Bucket=bucket_name,
         AccelerateConfiguration={'Status': 'Enabled'},
     )
-    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp.keys().should.have.length_of(1)  # Response contains nothing (only HTTP headers)
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.should.have.key('Status')
     resp['Status'].should.equal('Enabled')
@@ -2998,7 +2999,7 @@ def test_can_suspend_bucket_acceleration():
         Bucket=bucket_name,
         AccelerateConfiguration={'Status': 'Suspended'},
     )
-    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp.keys().should.have.length_of(1)  # Response contains nothing (only HTTP headers)
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.should.have.key('Status')
     resp['Status'].should.equal('Suspended')
@@ -3013,7 +3014,7 @@ def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
         Bucket=bucket_name,
         AccelerateConfiguration={'Status': 'Suspended'},
     )
-    resp.keys().should.have.length_of(1)    # Response contains nothing (only HTTP headers)
+    resp.keys().should.have.length_of(1)  # Response contains nothing (only HTTP headers)
     resp = s3.get_bucket_accelerate_configuration(Bucket=bucket_name)
     resp.shouldnt.have.key('Status')
 
@@ -3173,3 +3174,342 @@ def test_list_config_discovered_resources():
         s3_config_query.list_config_service_resources(None, None, 1, 'notabucket')
 
     assert 'The nextToken provided is invalid' in inte.exception.message
+
+
+@mock_s3
+def test_s3_lifecycle_config_dict():
+    from moto.s3.config import s3_config_query
+
+    # With 1 bucket in us-west-2:
+    s3_config_query.backends['global'].create_bucket('bucket1', 'us-west-2')
+
+    # And a lifecycle policy
+    lifecycle = [
+        {
+            'ID': 'rule1',
+            'Status': 'Enabled',
+            'Filter': {'Prefix': ''},
+            'Expiration': {'Days': 1}
+        },
+        {
+            'ID': 'rule2',
+            'Status': 'Enabled',
+            'Filter': {
+                'And': {
+                    'Prefix': 'some/path',
+                    'Tag': [
+                        {'Key': 'TheKey', 'Value': 'TheValue'}
+                    ]
+                }
+            },
+            'Expiration': {'Days': 1}
+        },
+        {
+            'ID': 'rule3',
+            'Status': 'Enabled',
+            'Filter': {},
+            'Expiration': {'Days': 1}
+        },
+        {
+            'ID': 'rule4',
+            'Status': 'Enabled',
+            'Filter': {'Prefix': ''},
+            'AbortIncompleteMultipartUpload': {'DaysAfterInitiation': 1}
+        }
+    ]
+    s3_config_query.backends['global'].set_bucket_lifecycle('bucket1', lifecycle)
+
+    # Get the rules for this:
+    lifecycles = [rule.to_config_dict() for rule in s3_config_query.backends['global'].buckets['bucket1'].rules]
+
+    # Verify the first:
+    assert lifecycles[0] == {
+        'id': 'rule1',
+        'prefix': None,
+        'status': 'Enabled',
+        'expirationInDays': 1,
+        'expiredObjectDeleteMarker': None,
+        'noncurrentVersionExpirationInDays': -1,
+        'expirationDate': None,
+        'transitions': None,
+        'noncurrentVersionTransitions': None,
+        'abortIncompleteMultipartUpload': None,
+        'filter': {
+            'predicate': {
+                'type': 'LifecyclePrefixPredicate',
+                'prefix': ''
+            }
+        }
+    }
+
+    # Verify the second:
+    assert lifecycles[1] == {
+        'id': 'rule2',
+        'prefix': None,
+        'status': 'Enabled',
+        'expirationInDays': 1,
+        'expiredObjectDeleteMarker': None,
+        'noncurrentVersionExpirationInDays': -1,
+        'expirationDate': None,
+        'transitions': None,
+        'noncurrentVersionTransitions': None,
+        'abortIncompleteMultipartUpload': None,
+        'filter': {
+            'predicate': {
+                'type': 'LifecycleAndOperator',
+                'operands': [
+                    {
+                        'type': 'LifecyclePrefixPredicate',
+                        'prefix': 'some/path'
+                    },
+                    {
+                        'type': 'LifecycleTagPredicate',
+                        'tag': {
+                            'key': 'TheKey',
+                            'value': 'TheValue'
+                        }
+                    },
+                ]
+            }
+        }
+    }
+
+    # And the third:
+    assert lifecycles[2] == {
+        'id': 'rule3',
+        'prefix': None,
+        'status': 'Enabled',
+        'expirationInDays': 1,
+        'expiredObjectDeleteMarker': None,
+        'noncurrentVersionExpirationInDays': -1,
+        'expirationDate': None,
+        'transitions': None,
+        'noncurrentVersionTransitions': None,
+        'abortIncompleteMultipartUpload': None,
+        'filter': {'predicate': None}
+    }
+
+    # And the last:
+    assert lifecycles[3] == {
+        'id': 'rule4',
+        'prefix': None,
+        'status': 'Enabled',
+        'expirationInDays': None,
+        'expiredObjectDeleteMarker': None,
+        'noncurrentVersionExpirationInDays': -1,
+        'expirationDate': None,
+        'transitions': None,
+        'noncurrentVersionTransitions': None,
+        'abortIncompleteMultipartUpload': {'daysAfterInitiation': 1},
+        'filter': {
+            'predicate': {
+                'type': 'LifecyclePrefixPredicate',
+                'prefix': ''
+            }
+        }
+    }
+
+
+@mock_s3
+def test_s3_notification_config_dict():
+    from moto.s3.config import s3_config_query
+
+    # With 1 bucket in us-west-2:
+    s3_config_query.backends['global'].create_bucket('bucket1', 'us-west-2')
+
+    # And some notifications:
+    notifications = {
+        'TopicConfiguration': [{
+            'Id': 'Topic',
+            "Topic": 'arn:aws:sns:us-west-2:012345678910:mytopic',
+            "Event": [
+                "s3:ReducedRedundancyLostObject",
+                "s3:ObjectRestore:Completed"
+            ]
+        }],
+        'QueueConfiguration': [{
+            'Id': 'Queue',
+            'Queue': 'arn:aws:sqs:us-west-2:012345678910:myqueue',
+            'Event': [
+                "s3:ObjectRemoved:Delete"
+            ],
+            'Filter': {
+                'S3Key': {
+                    'FilterRule': [
+                        {
+                            'Name': 'prefix',
+                            'Value': 'stuff/here/'
+                        }
+                    ]
+                }
+            }
+        }],
+        'CloudFunctionConfiguration': [{
+            'Id': 'Lambda',
+            'CloudFunction': 'arn:aws:lambda:us-west-2:012345678910:function:mylambda',
+            'Event': [
+                "s3:ObjectCreated:Post",
+                "s3:ObjectCreated:Copy",
+                "s3:ObjectCreated:Put"
+            ],
+            'Filter': {
+                'S3Key': {
+                    'FilterRule': [
+                        {
+                            'Name': 'suffix',
+                            'Value': '.png'
+                        }
+                    ]
+                }
+            }
+        }]
+    }
+
+    s3_config_query.backends['global'].put_bucket_notification_configuration('bucket1', notifications)
+
+    # Get the notifications for this:
+    notifications = s3_config_query.backends['global'].buckets['bucket1'].notification_configuration.to_config_dict()
+
+    # Verify it all:
+    assert notifications == {
+        'configurations': {
+            'Topic': {
+                'events': ['s3:ReducedRedundancyLostObject', 's3:ObjectRestore:Completed'],
+                'filter': None,
+                'objectPrefixes': [],
+                'topicARN': 'arn:aws:sns:us-west-2:012345678910:mytopic',
+                'type': 'TopicConfiguration'
+            },
+            'Queue': {
+                'events': ['s3:ObjectRemoved:Delete'],
+                'filter': {
+                    's3KeyFilter': {
+                        'filterRules': [{
+                            'name': 'prefix',
+                            'value': 'stuff/here/'
+                        }]
+                    }
+                },
+                'objectPrefixes': [],
+                'queueARN': 'arn:aws:sqs:us-west-2:012345678910:myqueue',
+                'type': 'QueueConfiguration'
+            },
+            'Lambda': {
+                'events': ['s3:ObjectCreated:Post', 's3:ObjectCreated:Copy', 's3:ObjectCreated:Put'],
+                'filter': {
+                    's3KeyFilter': {
+                        'filterRules': [{
+                            'name': 'suffix',
+                            'value': '.png'
+                        }]
+                    }
+                },
+                'objectPrefixes': [],
+                'queueARN': 'arn:aws:lambda:us-west-2:012345678910:function:mylambda',
+                'type': 'LambdaConfiguration'
+            }
+        }
+    }
+
+
+@mock_s3
+def test_s3_acl_to_config_dict():
+    from moto.s3.config import s3_config_query
+    from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
+
+    # With 1 bucket in us-west-2:
+    s3_config_query.backends['global'].create_bucket('logbucket', 'us-west-2')
+
+    # Get the config dict with nothing other than the owner details:
+    acls = s3_config_query.backends['global'].buckets['logbucket'].acl.to_config_dict()
+    assert acls == {
+        'grantSet': None,
+        'owner': {'displayName': None, 'id': OWNER}
+    }
+
+    # Add some Log Bucket ACLs:
+    log_acls = FakeAcl([
+        FakeGrant([FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")], "WRITE"),
+        FakeGrant([FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")], "READ_ACP"),
+        FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL")
+    ])
+    s3_config_query.backends['global'].set_bucket_acl('logbucket', log_acls)
+
+    acls = s3_config_query.backends['global'].buckets['logbucket'].acl.to_config_dict()
+    assert acls == {
+        'grantSet': None,
+        'grantList': [{'grantee': 'LogDelivery', 'permission': 'Write'}, {'grantee': 'LogDelivery', 'permission': 'ReadAcp'}],
+        'owner': {'displayName': None, 'id': OWNER}
+    }
+
+    # Give the owner less than full_control permissions:
+    log_acls = FakeAcl([FakeGrant([FakeGrantee(id=OWNER)], "READ_ACP"), FakeGrant([FakeGrantee(id=OWNER)], "WRITE_ACP")])
+    s3_config_query.backends['global'].set_bucket_acl('logbucket', log_acls)
+    acls = s3_config_query.backends['global'].buckets['logbucket'].acl.to_config_dict()
+    assert acls == {
+        'grantSet': None,
+        'grantList': [
+            {'grantee': {'id': OWNER, 'displayName': None}, 'permission': 'ReadAcp'},
+            {'grantee': {'id': OWNER, 'displayName': None}, 'permission': 'WriteAcp'}
+        ],
+        'owner': {'displayName': None, 'id': OWNER}
+    }
+
+
+@mock_s3
+def test_s3_config_dict():
+    from moto.s3.config import s3_config_query
+    from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, FakeTag, FakeTagging, FakeTagSet, OWNER
+
+    # Without any buckets:
+    assert not s3_config_query.get_config_resource('some_bucket')
+
+    tags = FakeTagging(FakeTagSet([FakeTag('someTag', 'someValue'), FakeTag('someOtherTag', 'someOtherValue')]))
+
+    # With 1 bucket in us-west-2:
+    s3_config_query.backends['global'].create_bucket('bucket1', 'us-west-2')
+    s3_config_query.backends['global'].put_bucket_tagging('bucket1', tags)
+
+    # With a log bucket:
+    s3_config_query.backends['global'].create_bucket('logbucket', 'us-west-2')
+    log_acls = FakeAcl([
+        FakeGrant([FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")], "WRITE"),
+        FakeGrant([FakeGrantee(uri="http://acs.amazonaws.com/groups/s3/LogDelivery")], "READ_ACP"),
+        FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL")
+    ])
+
+    s3_config_query.backends['global'].set_bucket_acl('logbucket', log_acls)
+    s3_config_query.backends['global'].put_bucket_logging('bucket1', {'TargetBucket': 'logbucket', 'TargetPrefix': ''})
+
+    # Get the us-west-2 bucket and verify that it works properly:
+    bucket1_result = s3_config_query.get_config_resource('bucket1')
+
+    # Just verify a few things:
+    assert bucket1_result['arn'] == 'arn:aws:s3:::bucket1'
+    assert bucket1_result['awsRegion'] == 'us-west-2'
+    assert bucket1_result['resourceName'] == bucket1_result['resourceId'] == 'bucket1'
+    assert bucket1_result['tags'] == {'someTag': 'someValue', 'someOtherTag': 'someOtherValue'}
+    assert isinstance(bucket1_result['configuration'], str)
+    exist_list = ['AccessControlList', 'BucketAccelerateConfiguration', 'BucketLoggingConfiguration', 'BucketPolicy',
+                  'IsRequesterPaysEnabled', 'BucketNotificationConfiguration']
+    for exist in exist_list:
+        assert isinstance(bucket1_result['supplementaryConfiguration'][exist], str)
+
+    # Verify the logging config:
+    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketLoggingConfiguration']) == \
+        {'destinationBucketName': 'logbucket', 'logFilePrefix': ''}
+
+    # Verify the policy:
+    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketPolicy']) == {'policyText': None}
+
+    # Filter by correct region:
+    assert bucket1_result == s3_config_query.get_config_resource('bucket1', resource_region='us-west-2')
+
+    # By incorrect region:
+    assert not s3_config_query.get_config_resource('bucket1', resource_region='eu-west-1')
+
+    # With correct resource ID and name:
+    assert bucket1_result == s3_config_query.get_config_resource('bucket1', resource_name='bucket1')
+
+    # With an incorrect resource name:
+    assert not s3_config_query.get_config_resource('bucket1', resource_name='eu-bucket-1')

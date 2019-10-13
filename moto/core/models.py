@@ -554,7 +554,7 @@ class ConfigQueryModel(object):
 
         This supports both aggregated and non-aggregated listing. The following notes the difference:
 
-        - Non Aggregated Listing -
+        - Non-Aggregated Listing -
         This only lists resources within a region. The way that this is implemented in moto is based on the region
         for the resource backend.
 
@@ -593,8 +593,31 @@ class ConfigQueryModel(object):
         """
         raise NotImplementedError()
 
-    def get_config_resource(self):
-        """TODO implement me."""
+    def get_config_resource(self, resource_id, resource_name=None, backend_region=None, resource_region=None):
+        """For AWS Config. This will query the backend for the specific resource type configuration.
+
+        This supports both aggregated, and non-aggregated fetching -- for batched fetching -- the Config batching requests
+        will call this function N times to fetch the N objects needing to be fetched.
+
+        - Non-Aggregated Fetching -
+        This only fetches a resource config within a region. The way that this is implemented in moto is based on the region
+        for the resource backend.
+
+        You must set the `backend_region` to the region that the API request arrived from. `resource_region` should be set to `None`.
+
+        - Aggregated Fetching -
+        This fetches resources from all potential regional backends. For non-global resource types, this should collect a full
+        list of resources from all the backends, and then be able to filter from the resource region. This is because an
+        aggregator can aggregate resources from multiple regions. In moto, aggregated regions will *assume full aggregation
+        from all resources in all regions for a given resource type*.
+
+        ...
+        :param resource_id:
+        :param resource_name:
+        :param backend_region:
+        :param resource_region:
+        :return:
+        """
         raise NotImplementedError()
 
 

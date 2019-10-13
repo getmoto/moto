@@ -87,7 +87,7 @@ that look like this:
 ]
 ```
 
-It's recommended to read the comment for the `ConfigQueryModel` [base class here](moto/core/models.py).
+It's recommended to read the comment for the `ConfigQueryModel`'s `list_config_service_resources` function in [base class here](moto/core/models.py).
 
 ^^ The AWS Config code will see this and format it correct for both aggregated and non-aggregated calls.
 
@@ -102,6 +102,19 @@ An example of a working implementation of this is [S3](moto/s3/config.py).
 Pagination should generally be able to pull out the resource across any region so should be sharded by `region-item-name` -- not done for S3
 because S3 has a globally unique name space.
 
-
 ### Describing Resources
-TODO: Need to fill this in when it's implemented
+Fetching a resource's configuration has some similarities to listing resources, but it requires more work (to implement). Due to the
+various ways that a resource can be configured, some work will need to be done to ensure that the Config dict returned is correct.
+
+For most resource types the following is true:
+
+1. There are regional backends with their own sets of data
+1. Config aggregation can pull data from any backend region -- we assume that everything lives in the same account
+
+The current implementation is for S3. S3 is very complex and depending on how the bucket is configured will depend on what Config will
+return for it.
+
+When implementing resource config fetching, you will need to return at a minimum `None` if the resource is not found, or a `dict` that looks
+like what AWS Config would return.
+
+It's recommended to read the comment for the `ConfigQueryModel` 's `get_config_resource` function in [base class here](moto/core/models.py).
