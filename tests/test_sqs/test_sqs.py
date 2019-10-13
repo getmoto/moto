@@ -17,6 +17,7 @@ import time
 import uuid
 
 from moto import settings, mock_sqs, mock_sqs_deprecated
+from moto.sqs.exceptions import QueueDoesNotExist
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
@@ -138,6 +139,22 @@ def test_create_queue_kms():
 
     queue.attributes.get('KmsMasterKeyId').should.equal('master-key-id')
     queue.attributes.get('KmsDataKeyReusePeriodSeconds').should.equal('600')
+
+
+@mock_sqs
+def test_create_queue_with_tags():
+    client = boto3.client('sqs', region_name='us-east-1')
+    response = client.create_queue(
+        QueueName = 'test-queue-with-tags',
+        tags = {
+            'tag_key_1': 'tag_value_1'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.list_queue_tags(QueueUrl = queue_url)['Tags'].should.equal({
+        'tag_key_1': 'tag_value_1'
+    })
 
 
 @mock_sqs
@@ -958,6 +975,47 @@ def test_tags():
     resp = client.list_queue_tags(QueueUrl=queue_url)
     resp['Tags'].should.contain('test1')
     resp['Tags'].should_not.contain('test2')
+
+    # removing a non existing tag should not raise any error
+    client.untag_queue(
+        QueueUrl=queue_url,
+        TagKeys=[
+            'not-existing-tag'
+        ]
+    )
+    client.list_queue_tags(QueueUrl=queue_url)['Tags'].should.equal({
+        'test1': 'value1'
+    })
+
+
+@mock_sqs
+def test_untag_queue_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(
+        QueueName='test-queue-with-tags',
+        tags={
+            'tag_key_1': 'tag_value_1'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.untag_queue.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+        TagKeys=[
+            'tag_key_1'
+        ]
+    ).should.throw(
+        QueueDoesNotExist
+    )
+
+    client.untag_queue.when.called_with(
+        QueueUrl=queue_url,
+        TagKeys=[]
+    ).should.throw(
+        ClientError,
+        'Tag keys must be between 1 and 128 characters in length.'
+    )
 
 
 @mock_sqs
