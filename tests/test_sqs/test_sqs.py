@@ -17,7 +17,6 @@ import time
 import uuid
 
 from moto import settings, mock_sqs, mock_sqs_deprecated
-from moto.sqs.exceptions import QueueDoesNotExist
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
@@ -1006,7 +1005,8 @@ def test_untag_queue_errors():
             'tag_key_1'
         ]
     ).should.throw(
-        QueueDoesNotExist
+        ClientError,
+        "The specified queue does not exist for this wsdl version."
     )
 
     client.untag_queue.when.called_with(

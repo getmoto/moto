@@ -406,7 +406,11 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tag_keys = self._get_multi_param('TagKey')
 
-        self.sqs_backend.untag_queue(queue_name, tag_keys)
+        try:
+            self.sqs_backend.untag_queue(queue_name, tag_keys)
+        except QueueDoesNotExist as e:
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
