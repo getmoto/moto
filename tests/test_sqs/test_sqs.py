@@ -141,6 +141,22 @@ def test_create_queue_kms():
 
 
 @mock_sqs
+def test_create_queue_with_tags():
+    client = boto3.client('sqs', region_name='us-east-1')
+    response = client.create_queue(
+        QueueName = 'test-queue-with-tags',
+        tags = {
+            'tag_key_1': 'tag_value_1'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.list_queue_tags(QueueUrl = queue_url)['Tags'].should.equal({
+        'tag_key_1': 'tag_value_1'
+    })
+
+
+@mock_sqs
 def test_get_nonexistent_queue():
     sqs = boto3.resource('sqs', region_name='us-east-1')
     with assert_raises(ClientError) as err:
@@ -958,6 +974,48 @@ def test_tags():
     resp = client.list_queue_tags(QueueUrl=queue_url)
     resp['Tags'].should.contain('test1')
     resp['Tags'].should_not.contain('test2')
+
+    # removing a non existing tag should not raise any error
+    client.untag_queue(
+        QueueUrl=queue_url,
+        TagKeys=[
+            'not-existing-tag'
+        ]
+    )
+    client.list_queue_tags(QueueUrl=queue_url)['Tags'].should.equal({
+        'test1': 'value1'
+    })
+
+
+@mock_sqs
+def test_untag_queue_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(
+        QueueName='test-queue-with-tags',
+        tags={
+            'tag_key_1': 'tag_value_1'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.untag_queue.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+        TagKeys=[
+            'tag_key_1'
+        ]
+    ).should.throw(
+        ClientError,
+        "The specified queue does not exist for this wsdl version."
+    )
+
+    client.untag_queue.when.called_with(
+        QueueUrl=queue_url,
+        TagKeys=[]
+    ).should.throw(
+        ClientError,
+        'Tag keys must be between 1 and 128 characters in length.'
+    )
 
 
 @mock_sqs

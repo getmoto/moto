@@ -415,7 +415,7 @@ class SQSBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_queue(self, name, **kwargs):
+    def create_queue(self, name, tags=None, **kwargs):
         queue = self.queues.get(name)
         if queue:
             try:
@@ -454,6 +454,10 @@ class SQSBackend(BaseBackend):
                 pass
             queue = Queue(name, region=self.region_name, **kwargs)
             self.queues[name] = queue
+
+        if tags:
+            queue.tags = tags
+
         return queue
 
     def list_queues(self, queue_name_prefix):
@@ -654,6 +658,10 @@ class SQSBackend(BaseBackend):
 
     def untag_queue(self, queue_name, tag_keys):
         queue = self.get_queue(queue_name)
+
+        if len(tag_keys) == 0:
+            raise RESTError('InvalidParameterValue', 'Tag keys must be between 1 and 128 characters in length.')
+
         for key in tag_keys:
             try:
                 del queue.tags[key]
