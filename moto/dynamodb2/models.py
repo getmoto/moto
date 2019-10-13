@@ -682,18 +682,29 @@ class Table(BaseModel):
     def has_range_key(self):
         return self.range_key_attr is not None
 
-    def get_item(self, hash_key, range_key=None):
+    def get_item(self, hash_key, range_key=None, projection_expression=None):
         if self.has_range_key and not range_key:
             raise ValueError(
                 "Table has a range key, but no range key was passed into get_item")
         try:
+            result = None
+
             if range_key:
-                return self.items[hash_key][range_key]
+                result = self.items[hash_key][range_key]
+            elif hash_key in self.items:
+                result = self.items[hash_key]
 
-            if hash_key in self.items:
-                return self.items[hash_key]
+            if projection_expression and result:
+                expressions = [x.strip() for x in projection_expression.split(',')]
+                result = copy.deepcopy(result)
+                for attr in list(result.attrs):
+                    if attr not in expressions:
+                        result.attrs.pop(attr)
 
-            raise KeyError
+            if not result:
+                raise KeyError
+
+            return result
         except KeyError:
             return None
 
@@ -1059,12 +1070,12 @@ class DynamoDBBackend(BaseBackend):
     def get_table(self, table_name):
         return self.tables.get(table_name)
 
-    def get_item(self, table_name, keys):
+    def get_item(self, table_name, keys, projection_expression=None):
         table = self.get_table(table_name)
         if not table:
             raise ValueError("No table found")
         hash_key, range_key = self.get_keys_value(table, keys)
-        return table.get_item(hash_key, range_key)
+        return table.get_item(hash_key, range_key, projection_expression)
 
     def query(self, table_name, hash_key_dict, range_comparison, range_value_dicts,
               limit, exclusive_start_key, scan_index_forward, projection_expression, index_name=None,
