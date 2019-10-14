@@ -2361,7 +2361,6 @@ def test_update_list_index__set_index_of_a_string():
                            UpdateExpression='set itemstr[1]=:Item',
                            ExpressionAttributeValues={':Item': {'S': 'string_update'}})
         result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo2'}})['Item']
-        print(result)
 
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['Error']['Message'].should.equal(
@@ -2390,6 +2389,26 @@ def test_remove_list_index__remove_existing_nested_index():
     result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo2'}})['Item']
     assert result['id'] == {'S': 'foo2'}
     assert result['itemmap']['M']['itemlist']['L'] == [{'S': 'bar1'}]
+
+
+@mock_dynamodb2
+def test_remove_list_index__remove_existing_double_nested_index():
+    table_name = 'test_list_index_access'
+    client = create_table_with_list(table_name)
+    client.put_item(TableName=table_name,
+                    Item={'id': {'S': 'foo2'},
+                          'itemmap': {'M': {'itemlist': {'L': [{'M': {'foo00': {'S': 'bar1'},
+                                                                      'foo01': {'S': 'bar2'}}},
+                                                               {'M': {'foo10': {'S': 'bar1'},
+                                                                      'foo11': {'S': 'bar2'}}}]}}}})
+    client.update_item(TableName=table_name, Key={'id': {'S': 'foo2'}},
+                       UpdateExpression='REMOVE itemmap.itemlist[1].foo10')
+    #
+    result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo2'}})['Item']
+    assert result['id'] == {'S': 'foo2'}
+    assert result['itemmap']['M']['itemlist']['L'][0]['M'].should.equal({'foo00': {'S': 'bar1'},
+                                                                         'foo01': {'S': 'bar2'}})  # untouched
+    assert result['itemmap']['M']['itemlist']['L'][1]['M'].should.equal({'foo11': {'S': 'bar2'}})  # changed
 
 
 @mock_dynamodb2

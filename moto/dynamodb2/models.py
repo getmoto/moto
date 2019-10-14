@@ -203,6 +203,9 @@ class Item(BaseModel):
 
                         last_val = self.attrs[attr].value
                         for key_part in key_parts[:-1]:
+                            list_index_update = re.match('(.+)\\[([0-9]+)\\]', key_part)
+                            if list_index_update:
+                                key_part = list_index_update.group(1)  # listattr[1] ==> listattr
                             # Hack but it'll do, traverses into a dict
                             last_val_type = list(last_val.keys())
                             if last_val_type and last_val_type[0] == 'M':
@@ -212,6 +215,8 @@ class Item(BaseModel):
                                 last_val[key_part] = {'M': {}}
 
                             last_val = last_val[key_part]
+                            if list_index_update:
+                                last_val = last_val['L'][int(list_index_update.group(2))]
 
                         last_val_type = list(last_val.keys())
                         list_index_update = re.match('(.+)\\[([0-9]+)\\]', key_parts[-1])
