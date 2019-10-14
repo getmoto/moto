@@ -507,7 +507,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         }]
         """
         results = []
-        param_index = 1
+        param_index = 0
         while True:
             index_prefix = "{0}.{1}.".format(param_prefix, param_index)
             new_items = {}
@@ -523,7 +523,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _get_map_prefix(self, param_prefix, key_end='.key', value_end='.value'):
         results = {}
-        param_index = 1
+        param_index = 0
         while 1:
             index_prefix = '{0}.{1}.'.format(param_prefix, param_index)
 
@@ -550,7 +550,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         for tag in tags:
             resource_type = tag.pop("resource_type")
 
-            param_index = 1
+            param_index = 0
             while True:
                 key_name = 'tag.{0}._key'.format(param_index)
                 value_name = 'tag.{0}._value'.format(param_index)
