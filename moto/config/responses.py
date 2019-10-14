@@ -102,16 +102,18 @@ class ConfigResponse(BaseResponse):
                                                                          self._get_param('NextToken'))
         return json.dumps(schema)
 
-    """
+    def get_resource_config_history(self):
+        schema = self.config_backend.get_resource_config_history(self._get_param('resourceType'),
+                                                                 self._get_param('resourceId'),
+                                                                 self.region)
+        return json.dumps(schema)
+
     def batch_get_resource_config(self):
-        # TODO implement me!
-        return ""
+        schema = self.config_backend.batch_get_resource_config(self._get_param('resourceKeys'),
+                                                               self.region)
+        return json.dumps(schema)
 
     def batch_get_aggregate_resource_config(self):
-        # TODO implement me!
-        return ""
-
-    def get_resource_config_history(self):
-        # TODO implement me!
-        return ""
-    """
+        schema = self.config_backend.batch_get_aggregate_resource_config(self._get_param('ConfigurationAggregatorName'),
+                                                                         self._get_param('ResourceIdentifiers'))
+        return json.dumps(schema)

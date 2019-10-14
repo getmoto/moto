@@ -1184,3 +1184,159 @@ def test_list_aggregate_discovered_resource():
     with assert_raises(ClientError) as ce:
         client.list_aggregate_discovered_resources(ConfigurationAggregatorName='testing', ResourceType='AWS::S3::Bucket', Limit=101)
     assert '101' in ce.exception.response['Error']['Message']
+
+
+@mock_config
+@mock_s3
+def test_get_resource_config_history():
+    """NOTE: We are only really testing the Config part. For each individual service, please add tests
+             for that individual service's "get_config_resource" function.
+    """
+    client = boto3.client('config', region_name='us-west-2')
+
+    # With an invalid resource type:
+    with assert_raises(ClientError) as ce:
+        client.get_resource_config_history(resourceType='NOT::A::RESOURCE', resourceId='notcreatedyet')
+    assert ce.exception.response['Error'] == {'Message': 'Resource notcreatedyet of resourceType:NOT::A::RESOURCE is unknown or has '
+                                                         'not been discovered', 'Code': 'ResourceNotDiscoveredException'}
+
+    # With nothing created yet:
+    with assert_raises(ClientError) as ce:
+        client.get_resource_config_history(resourceType='AWS::S3::Bucket', resourceId='notcreatedyet')
+    assert ce.exception.response['Error'] == {'Message': 'Resource notcreatedyet of resourceType:AWS::S3::Bucket is unknown or has '
+                                                         'not been discovered', 'Code': 'ResourceNotDiscoveredException'}
+
+    # Create an S3 bucket:
+    s3_client = boto3.client('s3', region_name='us-west-2')
+    for x in range(0, 10):
+        s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+
+    # Now try:
+    result = client.get_resource_config_history(resourceType='AWS::S3::Bucket', resourceId='bucket1')['configurationItems']
+    assert len(result) == 1
+    assert result[0]['resourceName'] == result[0]['resourceId'] == 'bucket1'
+    assert result[0]['arn'] == 'arn:aws:s3:::bucket1'
+
+
+@mock_config
+@mock_s3
+def test_batch_get_resource_config():
+    """NOTE: We are only really testing the Config part. For each individual service, please add tests
+             for that individual service's "get_config_resource" function.
+    """
+    client = boto3.client('config', region_name='us-west-2')
+
+    # With more than 100 resourceKeys:
+    with assert_raises(ClientError) as ce:
+        client.batch_get_resource_config(resourceKeys=[{'resourceType': 'AWS::S3::Bucket', 'resourceId': 'someBucket'}] * 101)
+    assert 'Member must have length less than or equal to 100' in ce.exception.response['Error']['Message']
+
+    # With invalid resource types and resources that don't exist:
+    result = client.batch_get_resource_config(resourceKeys=[
+        {'resourceType': 'NOT::A::RESOURCE', 'resourceId': 'NotAThing'}, {'resourceType': 'AWS::S3::Bucket', 'resourceId': 'NotAThing'},
+    ])
+
+    assert not result['baseConfigurationItems']
+    assert not result['unprocessedResourceKeys']
+
+    # Create some S3 buckets:
+    s3_client = boto3.client('s3', region_name='us-west-2')
+    for x in range(0, 10):
+        s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+
+    # Get them all:
+    keys = [{'resourceType': 'AWS::S3::Bucket', 'resourceId': 'bucket{}'.format(x)} for x in range(0, 10)]
+    result = client.batch_get_resource_config(resourceKeys=keys)
+    assert len(result['baseConfigurationItems']) == 10
+    buckets_missing = ['bucket{}'.format(x) for x in range(0, 10)]
+    for r in result['baseConfigurationItems']:
+        buckets_missing.remove(r['resourceName'])
+
+    assert not buckets_missing
+
+
+@mock_config
+@mock_s3
+def test_batch_get_aggregate_resource_config():
+    """NOTE: We are only really testing the Config part. For each individual service, please add tests
+             for that individual service's "get_config_resource" function.
+    """
+    from moto.config.models import DEFAULT_ACCOUNT_ID
+    client = boto3.client('config', region_name='us-west-2')
+
+    # Without an aggregator:
+    bad_ri = {'SourceAccountId': '000000000000', 'SourceRegion': 'not-a-region', 'ResourceType': 'NOT::A::RESOURCE', 'ResourceId': 'nope'}
+    with assert_raises(ClientError) as ce:
+        client.batch_get_aggregate_resource_config(ConfigurationAggregatorName='lolno', ResourceIdentifiers=[bad_ri])
+    assert 'The configuration aggregator does not exist' in ce.exception.response['Error']['Message']
+
+    # Create the aggregator:
+    account_aggregation_source = {
+        'AccountIds': [
+            '012345678910',
+            '111111111111',
+            '222222222222'
+        ],
+        'AllAwsRegions': True
+    }
+    client.put_configuration_aggregator(
+        ConfigurationAggregatorName='testing',
+        AccountAggregationSources=[account_aggregation_source]
+    )
+
+    # With more than 100 items:
+    with assert_raises(ClientError) as ce:
+        client.batch_get_aggregate_resource_config(ConfigurationAggregatorName='testing', ResourceIdentifiers=[bad_ri] * 101)
+    assert 'Member must have length less than or equal to 100' in ce.exception.response['Error']['Message']
+
+    # Create some S3 buckets:
+    s3_client = boto3.client('s3', region_name='us-west-2')
+    for x in range(0, 10):
+        s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+
+    s3_client_eu = boto3.client('s3', region_name='eu-west-1')
+    for x in range(10, 12):
+        s3_client_eu.create_bucket(Bucket='eu-bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+
+    # Now try with resources that exist and ones that don't:
+    identifiers = [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'us-west-2', 'ResourceType': 'AWS::S3::Bucket',
+                    'ResourceId': 'bucket{}'.format(x)} for x in range(0, 10)]
+    identifiers += [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'eu-west-1', 'ResourceType': 'AWS::S3::Bucket',
+                    'ResourceId': 'eu-bucket{}'.format(x)} for x in range(10, 12)]
+    identifiers += [bad_ri]
+
+    result = client.batch_get_aggregate_resource_config(ConfigurationAggregatorName='testing', ResourceIdentifiers=identifiers)
+    assert len(result['UnprocessedResourceIdentifiers']) == 1
+    assert result['UnprocessedResourceIdentifiers'][0] == bad_ri
+
+    # Verify all the buckets are there:
+    assert len(result['BaseConfigurationItems']) == 12
+    missing_buckets = ['bucket{}'.format(x) for x in range(0, 10)] + ['eu-bucket{}'.format(x) for x in range(10, 12)]
+
+    for r in result['BaseConfigurationItems']:
+        missing_buckets.remove(r['resourceName'])
+
+    assert not missing_buckets
+
+    # Verify that if the resource name and ID are correct that things are good:
+    identifiers = [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'us-west-2', 'ResourceType': 'AWS::S3::Bucket',
+                    'ResourceId': 'bucket1', 'ResourceName': 'bucket1'}]
+    result = client.batch_get_aggregate_resource_config(ConfigurationAggregatorName='testing', ResourceIdentifiers=identifiers)
+    assert not result['UnprocessedResourceIdentifiers']
+    assert len(result['BaseConfigurationItems']) == 1 and result['BaseConfigurationItems'][0]['resourceName'] == 'bucket1'
+
+    # Verify that if the resource name and ID mismatch that we don't get a result:
+    identifiers = [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'us-west-2', 'ResourceType': 'AWS::S3::Bucket',
+                    'ResourceId': 'bucket1', 'ResourceName': 'bucket2'}]
+    result = client.batch_get_aggregate_resource_config(ConfigurationAggregatorName='testing', ResourceIdentifiers=identifiers)
+    assert not result['BaseConfigurationItems']
+    assert len(result['UnprocessedResourceIdentifiers']) == 1
+    assert len(result['UnprocessedResourceIdentifiers']) == 1 and result['UnprocessedResourceIdentifiers'][0]['ResourceName'] == 'bucket2'
+
+    # Verify that if the region is incorrect that we don't get a result:
+    identifiers = [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'eu-west-1', 'ResourceType': 'AWS::S3::Bucket',
+                    'ResourceId': 'bucket1'}]
+    result = client.batch_get_aggregate_resource_config(ConfigurationAggregatorName='testing', ResourceIdentifiers=identifiers)
+    assert not result['BaseConfigurationItems']
+    assert len(result['UnprocessedResourceIdentifiers']) == 1
+    assert len(result['UnprocessedResourceIdentifiers']) == 1 and result['UnprocessedResourceIdentifiers'][0]['SourceRegion'] == 'eu-west-1'

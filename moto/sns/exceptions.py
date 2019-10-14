@@ -10,6 +10,14 @@ class SNSNotFoundError(RESTError):
             "NotFound", message)
 
 
+class ResourceNotFoundError(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(ResourceNotFoundError, self).__init__(
+            'ResourceNotFound', 'Resource does not exist')
+
+
 class DuplicateSnsEndpointError(RESTError):
     code = 400
 
@@ -40,6 +48,14 @@ class InvalidParameterValue(RESTError):
     def __init__(self, message):
         super(InvalidParameterValue, self).__init__(
             "InvalidParameterValue", message)
+
+
+class TagLimitExceededError(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(TagLimitExceededError, self).__init__(
+            'TagLimitExceeded', 'Could not complete request: tag quota of per resource exceeded')
 
 
 class InternalError(RESTError):

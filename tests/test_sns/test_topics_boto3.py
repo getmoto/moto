@@ -45,6 +45,36 @@ def test_create_topic_with_attributes():
 
 
 @mock_sns
+def test_create_topic_with_tags():
+    conn = boto3.client("sns", region_name="us-east-1")
+    response = conn.create_topic(
+        Name='some-topic-with-tags',
+        Tags=[
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_1'
+            },
+            {
+                'Key': 'tag_key_2',
+                'Value': 'tag_value_2'
+            }
+        ]
+    )
+    topic_arn = response['TopicArn']
+
+    conn.list_tags_for_resource(ResourceArn=topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_1',
+            'Value': 'tag_value_1'
+        },
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+
+@mock_sns
 def test_create_topic_should_be_indempodent():
     conn = boto3.client("sns", region_name="us-east-1")
     topic_arn = conn.create_topic(Name="some-topic")['TopicArn']
@@ -199,4 +229,205 @@ def test_add_remove_permissions():
     conn.remove_permission(
         TopicArn=response['TopicArn'],
         Label='Test1234'
+    )
+
+
+@mock_sns
+def test_tag_topic():
+    conn = boto3.client('sns', region_name='us-east-1')
+    response = conn.create_topic(
+        Name = 'some-topic-with-tags'
+    )
+    topic_arn = response['TopicArn']
+
+    conn.tag_resource(
+        ResourceArn=topic_arn,
+        Tags=[
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_1'
+            }
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_1',
+            'Value': 'tag_value_1'
+        }
+    ])
+
+    conn.tag_resource(
+        ResourceArn=topic_arn,
+        Tags=[
+            {
+                'Key': 'tag_key_2',
+                'Value': 'tag_value_2'
+            }
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_1',
+            'Value': 'tag_value_1'
+        },
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+    conn.tag_resource(
+        ResourceArn = topic_arn,
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_X'
+            }
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_1',
+            'Value': 'tag_value_X'
+        },
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+
+@mock_sns
+def test_untag_topic():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    response = conn.create_topic(
+        Name = 'some-topic-with-tags',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_1'
+            },
+            {
+                'Key': 'tag_key_2',
+                'Value': 'tag_value_2'
+            }
+        ]
+    )
+    topic_arn = response['TopicArn']
+
+    conn.untag_resource(
+        ResourceArn = topic_arn,
+        TagKeys = [
+            'tag_key_1'
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+    # removing a non existing tag should not raise any error
+    conn.untag_resource(
+        ResourceArn = topic_arn,
+        TagKeys = [
+            'not-existing-tag'
+        ]
+    )
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_2',
+            'Value': 'tag_value_2'
+        }
+    ])
+
+
+@mock_sns
+def test_list_tags_for_resource_error():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    conn.create_topic(
+        Name = 'some-topic-with-tags',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_X'
+            }
+        ]
+    )
+
+    conn.list_tags_for_resource.when.called_with(
+        ResourceArn = 'not-existing-topic'
+    ).should.throw(
+        ClientError,
+        'Resource does not exist'
+    )
+
+
+@mock_sns
+def test_tag_resource_errors():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    response = conn.create_topic(
+        Name = 'some-topic-with-tags',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_X'
+            }
+        ]
+    )
+    topic_arn = response['TopicArn']
+
+    conn.tag_resource.when.called_with(
+        ResourceArn = 'not-existing-topic',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_1'
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'Resource does not exist'
+    )
+
+    too_many_tags = [{'Key': 'tag_key_{}'.format(i), 'Value': 'tag_value_{}'.format(i)} for i in range(51)]
+    conn.tag_resource.when.called_with(
+        ResourceArn = topic_arn,
+        Tags = too_many_tags
+    ).should.throw(
+        ClientError,
+        'Could not complete request: tag quota of per resource exceeded'
+    )
+
+    # when the request fails, the tags should not be updated
+    conn.list_tags_for_resource(ResourceArn = topic_arn)['Tags'].should.equal([
+        {
+            'Key': 'tag_key_1',
+            'Value': 'tag_value_X'
+        }
+    ])
+
+
+@mock_sns
+def test_untag_resource_error():
+    conn = boto3.client('sns', region_name = 'us-east-1')
+    conn.create_topic(
+        Name = 'some-topic-with-tags',
+        Tags = [
+            {
+                'Key': 'tag_key_1',
+                'Value': 'tag_value_X'
+            }
+        ]
+    )
+
+    conn.untag_resource.when.called_with(
+        ResourceArn = 'not-existing-topic',
+        TagKeys = [
+            'tag_key_1'
+        ]
+    ).should.throw(
+        ClientError,
+        'Resource does not exist'
     )

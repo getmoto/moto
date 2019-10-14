@@ -1,3 +1,5 @@
+import json
+
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.models import ConfigQueryModel
 from moto.s3 import s3_backends
@@ -65,6 +67,36 @@ class S3ConfigQuery(ConfigQueryModel):
 
         return [{'type': 'AWS::S3::Bucket', 'id': bucket, 'name': bucket, 'region': self.backends['global'].buckets[bucket].region_name}
                 for bucket in bucket_list], new_token
+
+    def get_config_resource(self, resource_id, resource_name=None, backend_region=None, resource_region=None):
+        # backend_region is ignored for S3 as the backend is 'global'
+
+        # Get the bucket:
+        bucket = self.backends['global'].buckets.get(resource_id, {})
+
+        if not bucket:
+            return
+
+        # Are we filtering based on region?
+        if resource_region and bucket.region_name != resource_region:
+            return
+
+        # Are we also filtering on bucket name?
+        if resource_name and bucket.name != resource_name:
+            return
+
+        # Format the bucket to the AWS Config format:
+        config_data = bucket.to_config_dict()
+
+        # The 'configuration' field is also a JSON string:
+        config_data['configuration'] = json.dumps(config_data['configuration'])
+
+        # Supplementary config need all values converted to JSON strings if they are not strings already:
+        for field, value in config_data['supplementaryConfiguration'].items():
+            if not isinstance(value, str):
+                config_data['supplementaryConfiguration'][field] = json.dumps(value)
+
+        return config_data
 
 
 s3_config_query = S3ConfigQuery(s3_backends)

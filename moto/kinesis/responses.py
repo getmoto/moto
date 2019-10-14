@@ -149,6 +149,10 @@ class KinesisResponse(BaseResponse):
         stream_name = self.parameters['DeliveryStreamName']
         redshift_config = self.parameters.get(
             'RedshiftDestinationConfiguration')
+        s3_config = self.parameters.get(
+            'S3DestinationConfiguration')
+        extended_s3_config = self.parameters.get(
+            'ExtendedS3DestinationConfiguration')
 
         if redshift_config:
             redshift_s3_config = redshift_config['S3Configuration']
@@ -163,18 +167,13 @@ class KinesisResponse(BaseResponse):
                 'redshift_s3_bucket_arn': redshift_s3_config['BucketARN'],
                 'redshift_s3_prefix': redshift_s3_config['Prefix'],
                 'redshift_s3_compression_format': redshift_s3_config.get('CompressionFormat'),
-                'redshift_s3_buffering_hings': redshift_s3_config['BufferingHints'],
+                'redshift_s3_buffering_hints': redshift_s3_config['BufferingHints'],
             }
-        else:
-            # S3 Config
-            s3_config = self.parameters['S3DestinationConfiguration']
-            stream_kwargs = {
-                's3_role_arn': s3_config['RoleARN'],
-                's3_bucket_arn': s3_config['BucketARN'],
-                's3_prefix': s3_config['Prefix'],
-                's3_compression_format': s3_config.get('CompressionFormat'),
-                's3_buffering_hings': s3_config['BufferingHints'],
-            }
+        elif s3_config:
+            stream_kwargs = {'s3_config': s3_config}
+        elif extended_s3_config:
+            stream_kwargs = {'extended_s3_config': extended_s3_config}
+
         stream = self.kinesis_backend.create_delivery_stream(
             stream_name, **stream_kwargs)
         return json.dumps({
