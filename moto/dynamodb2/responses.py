@@ -6,7 +6,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError, ItemSizeTooLarge
+from .exceptions import InvalidIndexNameError, InvalidUpdateExpression, ItemSizeTooLarge
 from .models import dynamodb_backends, dynamo_json_dump
 
 
@@ -683,6 +683,9 @@ class DynamoHandler(BaseResponse):
                 name, key, update_expression, attribute_updates, expression_attribute_names,
                 expression_attribute_values, expected, condition_expression
             )
+        except InvalidUpdateExpression:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, 'The document path provided in the update expression is invalid for update')
         except ItemSizeTooLarge:
             er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
             return self.error(er, ItemSizeTooLarge.message)
