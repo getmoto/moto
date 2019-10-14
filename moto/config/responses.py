@@ -108,12 +108,12 @@ class ConfigResponse(BaseResponse):
                                                                  self.region)
         return json.dumps(schema)
 
-    """
     def batch_get_resource_config(self):
-        # TODO implement me!
-        return ""
+        schema = self.config_backend.batch_get_resource_config(self._get_param('resourceKeys'),
+                                                               self.region)
+        return json.dumps(schema)
 
     def batch_get_aggregate_resource_config(self):
-        # TODO implement me!
-        return ""
-    """
+        schema = self.config_backend.batch_get_aggregate_resource_config(self._get_param('ConfigurationAggregatorName'),
+                                                                         self._get_param('ResourceIdentifiers'))
+        return json.dumps(schema)

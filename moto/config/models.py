@@ -18,7 +18,7 @@ from moto.config.exceptions import InvalidResourceTypeException, InvalidDelivery
     NoSuchDeliveryChannelException, LastDeliveryChannelDeleteFailedException, TagKeyTooBig, \
     TooManyTags, TagValueTooBig, TooManyAccountSources, InvalidParameterValueException, InvalidNextTokenException, \
     NoSuchConfigurationAggregatorException, InvalidTagCharacters, DuplicateTags, InvalidLimit, InvalidResourceParameters, \
-    TooManyResourceIds, ResourceNotDiscoveredException
+    TooManyResourceIds, ResourceNotDiscoveredException, TooManyResourceKeys
 
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_config_query
@@ -791,7 +791,7 @@ class ConfigBackend(BaseBackend):
 
         return result
 
-    def get_resource_config_history(self, type, id, backend_region):
+    def get_resource_config_history(self, resource_type, id, backend_region):
         """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
 
         NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
@@ -799,30 +799,102 @@ class ConfigBackend(BaseBackend):
               return 1 item. (If no items, it raises an exception)
         """
         # If the type isn't implemented then we won't find the item:
-        if type not in RESOURCE_MAP:
-            raise ResourceNotDiscoveredException(type, id)
+        if resource_type not in RESOURCE_MAP:
+            raise ResourceNotDiscoveredException(resource_type, id)
 
         # Is the resource type global?
-        if RESOURCE_MAP[type].backends.get('global'):
+        if RESOURCE_MAP[resource_type].backends.get('global'):
             backend_region = 'global'
 
         # If the backend region isn't implemented then we won't find the item:
-        if not RESOURCE_MAP[type].backends.get(backend_region):
-            raise ResourceNotDiscoveredException(type, id)
+        if not RESOURCE_MAP[resource_type].backends.get(backend_region):
+            raise ResourceNotDiscoveredException(resource_type, id)
 
         # Get the item:
-        item = RESOURCE_MAP[type].get_config_resource(id, backend_region=backend_region)
+        item = RESOURCE_MAP[resource_type].get_config_resource(id, backend_region=backend_region)
         if not item:
-            raise ResourceNotDiscoveredException(type, id)
+            raise ResourceNotDiscoveredException(resource_type, id)
 
         item['accountId'] = DEFAULT_ACCOUNT_ID
 
         return {'configurationItems': [item]}
 
     def batch_get_resource_config(self, resource_keys, backend_region):
-        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend."""
+        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
+
+        :param resource_keys:
+        :param backend_region:
+        """
         # Can't have more than 100 items
-        pass
+        if len(resource_keys) > 100:
+            raise TooManyResourceKeys(['com.amazonaws.starling.dove.ResourceKey@12345'] * len(resource_keys))
+
+        results = []
+        for resource in resource_keys:
+            # Does the resource type exist?
+            if not RESOURCE_MAP.get(resource['resourceType']):
+                # Not found so skip.
+                continue
+
+            # Is the resource type global?
+            if RESOURCE_MAP[resource['resourceType']].backends.get('global'):
+                backend_region = 'global'
+
+            # If the backend region isn't implemented then we won't find the item:
+            if not RESOURCE_MAP[resource['resourceType']].backends.get(backend_region):
+                continue
+
+            # Get the item:
+            item = RESOURCE_MAP[resource['resourceType']].get_config_resource(resource['resourceId'], backend_region=backend_region)
+            if not item:
+                continue
+
+            item['accountId'] = DEFAULT_ACCOUNT_ID
+
+            results.append(item)
+
+        return {'baseConfigurationItems': results, 'unprocessedResourceKeys': []}   # At this time, moto is not adding unprocessed items.
+
+    def batch_get_aggregate_resource_config(self, aggregator_name, resource_identifiers):
+        """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
+
+            As far a moto goes -- the only real difference between this function and the `batch_get_resource_config` function is that
+            this will require a Config Aggregator be set up a priori and can search based on resource regions.
+
+            Note: moto will IGNORE the resource account ID in the search query.
+        """
+        if not self.config_aggregators.get(aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+
+        # Can't have more than 100 items
+        if len(resource_identifiers) > 100:
+            raise TooManyResourceKeys(['com.amazonaws.starling.dove.AggregateResourceIdentifier@12345'] * len(resource_identifiers))
+
+        found = []
+        not_found = []
+        for identifier in resource_identifiers:
+            resource_type = identifier['ResourceType']
+            resource_region = identifier['SourceRegion']
+            resource_id = identifier['ResourceId']
+            resource_name = identifier.get('ResourceName', None)
+
+            # Does the resource type exist?
+            if not RESOURCE_MAP.get(resource_type):
+                not_found.append(identifier)
+                continue
+
+            # Get the item:
+            item = RESOURCE_MAP[resource_type].get_config_resource(resource_id, resource_name=resource_name,
+                                                                   resource_region=resource_region)
+            if not item:
+                not_found.append(identifier)
+                continue
+
+            item['accountId'] = DEFAULT_ACCOUNT_ID
+
+            found.append(item)
+
+        return {'BaseConfigurationItems': found, 'UnprocessedResourceIdentifiers': not_found}
 
 
 config_backends = {}
