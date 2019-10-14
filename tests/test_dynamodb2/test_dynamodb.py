@@ -369,7 +369,80 @@ def test_query_returns_consumed_capacity():
 
 
 @mock_dynamodb2
-def test_basic_projection_expressions():
+def test_basic_projection_expression_using_get_item():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message'
+    })
+
+    table.put_item(Item={
+        'forum_name': 'not-the-key',
+        'subject': '123',
+        'body': 'some other test message'
+    })
+    result = table.get_item(
+        Key = {
+            'forum_name': 'the-key',
+            'subject': '123'
+        },
+        ProjectionExpression='body, subject'
+    )
+
+    result['Item'].should.be.equal({
+        'subject': '123',
+        'body': 'some test message'
+    })
+
+    # The projection expression should not remove data from storage
+    result = table.get_item(
+        Key = {
+            'forum_name': 'the-key',
+            'subject': '123'
+        }
+    )
+
+    result['Item'].should.be.equal({
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message'
+    })
+
+
+@mock_dynamodb2
+def test_basic_projection_expressions_using_query():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
@@ -451,6 +524,7 @@ def test_basic_projection_expressions():
     assert 'subject' in results['Items'][0]
     assert 'body' in results['Items'][1]
     assert 'forum_name' in results['Items'][1]
+
 
 @mock_dynamodb2
 def test_basic_projection_expressions_using_scan():
@@ -538,7 +612,73 @@ def test_basic_projection_expressions_using_scan():
 
 
 @mock_dynamodb2
-def test_basic_projection_expressions_with_attr_expression_names():
+def test_basic_projection_expression_using_get_item_with_attr_expression_names():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName='users',
+        KeySchema=[
+            {
+                'AttributeName': 'forum_name',
+                'KeyType': 'HASH'
+            },
+            {
+                'AttributeName': 'subject',
+                'KeyType': 'RANGE'
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'forum_name',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'subject',
+                'AttributeType': 'S'
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+    table = dynamodb.Table('users')
+
+    table.put_item(Item={
+        'forum_name': 'the-key',
+        'subject': '123',
+        'body': 'some test message',
+        'attachment': 'something'
+    })
+
+    table.put_item(Item={
+        'forum_name': 'not-the-key',
+        'subject': '123',
+        'body': 'some other test message',
+        'attachment': 'something'
+    })
+    result = table.get_item(
+        Key={
+            'forum_name': 'the-key',
+            'subject': '123'
+        },
+        ProjectionExpression='#rl, #rt, subject',
+        ExpressionAttributeNames={
+            '#rl': 'body',
+            '#rt': 'attachment'
+            },
+    )
+
+    result['Item'].should.be.equal({
+        'subject': '123',
+        'body': 'some test message',
+        'attachment': 'something'
+    })
+
+
+@mock_dynamodb2
+def test_basic_projection_expressions_using_query_with_attr_expression_names():
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
     # Create the DynamoDB table.
@@ -602,6 +742,7 @@ def test_basic_projection_expressions_with_attr_expression_names():
     assert results['Items'][0]['subject'] == '123'
     assert 'attachment' in results['Items'][0]
     assert results['Items'][0]['attachment'] == 'something'
+
 
 @mock_dynamodb2
 def test_basic_projection_expressions_using_scan_with_attr_expression_names():
@@ -2251,6 +2392,76 @@ def test_batch_items_returns_all():
 
 
 @mock_dynamodb2
+def test_batch_items_with_basic_projection_expression():
+    dynamodb = _create_user_table()
+    returned_items = dynamodb.batch_get_item(RequestItems={
+        'users': {
+            'Keys': [{
+                'username': {'S': 'user0'}
+            }, {
+                'username': {'S': 'user1'}
+            }, {
+                'username': {'S': 'user2'}
+            }, {
+                'username': {'S': 'user3'}
+            }],
+            'ConsistentRead': True,
+            'ProjectionExpression': 'username'
+        }
+    })['Responses']['users']
+
+    returned_items.should.have.length_of(3)
+    [item['username']['S'] for item in returned_items].should.be.equal(['user1', 'user2', 'user3'])
+    [item.get('foo') for item in returned_items].should.be.equal([None, None, None])
+
+    # The projection expression should not remove data from storage
+    returned_items = dynamodb.batch_get_item(RequestItems = {
+        'users': {
+            'Keys': [{
+                'username': {'S': 'user0'}
+            }, {
+                'username': {'S': 'user1'}
+            }, {
+                'username': {'S': 'user2'}
+            }, {
+                'username': {'S': 'user3'}
+            }],
+            'ConsistentRead': True
+        }
+    })['Responses']['users']
+
+    [item['username']['S'] for item in returned_items].should.be.equal(['user1', 'user2', 'user3'])
+    [item['foo']['S'] for item in returned_items].should.be.equal(['bar', 'bar', 'bar'])
+
+
+@mock_dynamodb2
+def test_batch_items_with_basic_projection_expression_and_attr_expression_names():
+    dynamodb = _create_user_table()
+    returned_items = dynamodb.batch_get_item(RequestItems={
+        'users': {
+            'Keys': [{
+                'username': {'S': 'user0'}
+            }, {
+                'username': {'S': 'user1'}
+            }, {
+                'username': {'S': 'user2'}
+            }, {
+                'username': {'S': 'user3'}
+            }],
+            'ConsistentRead': True,
+            'ProjectionExpression': '#rl',
+            'ExpressionAttributeNames': {
+                '#rl': 'username'
+            },
+        }
+    })['Responses']['users']
+
+    returned_items.should.have.length_of(3)
+    [item['username']['S'] for item in returned_items].should.be.equal(['user1', 'user2', 'user3'])
+    [item.get('foo') for item in returned_items].should.be.equal([None, None, None])
+
+
+@mock_dynamodb2
 def test_batch_items_should_throw_exception_for_duplicate_request():
     client = _create_user_table()
     with assert_raises(ClientError) as ex:
@@ -2293,6 +2504,74 @@ def test_index_with_unknown_attributes_should_fail():
 
     ex.exception.response['Error']['Code'].should.equal('ValidationException')
     ex.exception.response['Error']['Message'].should.contain(expected_exception)
+
+
+@mock_dynamodb2
+def test_sorted_query_with_numerical_sort_key():
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    dynamodb.create_table(TableName="CarCollection",
+                          KeySchema=[{ 'AttributeName': "CarModel", 'KeyType': 'HASH'},
+                                     {'AttributeName': "CarPrice", 'KeyType': 'RANGE'}],
+                          AttributeDefinitions=[{'AttributeName': "CarModel", 'AttributeType': "S"},
+                                                {'AttributeName': "CarPrice", 'AttributeType': "N"}],
+                          ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1})
+
+    def create_item(price):
+        return {"CarModel": "M", "CarPrice": price}
+
+    table = dynamodb.Table('CarCollection')
+    items = list(map(create_item, [2, 1, 10, 3]))
+    for item in items:
+        table.put_item(Item=item)
+
+    response = table.query(KeyConditionExpression=Key('CarModel').eq("M"))
+
+    response_items = response['Items']
+    assert len(items) == len(response_items)
+    assert all(isinstance(item["CarPrice"], Decimal) for item in response_items)
+    response_prices = [item["CarPrice"] for item in response_items]
+    expected_prices = [Decimal(item["CarPrice"]) for item in items]
+    expected_prices.sort()
+    assert expected_prices == response_prices, "result items are not sorted by numerical value"
+
+
+# https://github.com/spulec/moto/issues/1874
+@mock_dynamodb2
+def test_item_size_is_under_400KB():
+    dynamodb = boto3.resource('dynamodb')
+    client = boto3.client('dynamodb')
+
+    dynamodb.create_table(
+        TableName='moto-test',
+        KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+    )
+    table = dynamodb.Table('moto-test')
+
+    large_item = 'x' * 410 * 1000
+    assert_failure_due_to_item_size(func=client.put_item,
+                                    TableName='moto-test',
+                                    Item={'id': {'S': 'foo'}, 'item': {'S': large_item}})
+    assert_failure_due_to_item_size(func=table.put_item, Item = {'id': 'bar', 'item': large_item})
+    assert_failure_due_to_item_size(func=client.update_item,
+                                    TableName='moto-test',
+                                    Key={'id': {'S': 'foo2'}},
+                                    UpdateExpression='set item=:Item',
+                                    ExpressionAttributeValues={':Item': {'S': large_item}})
+    # Assert op fails when updating a nested item
+    assert_failure_due_to_item_size(func=table.put_item,
+                                    Item={'id': 'bar', 'itemlist': [{'item': large_item}]})
+    assert_failure_due_to_item_size(func=client.put_item,
+                                    TableName='moto-test',
+                                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'M': {'item1': {'S': large_item}}}]}})
+
+
+def assert_failure_due_to_item_size(func, **kwargs):
+    with assert_raises(ClientError) as ex:
+        func(**kwargs)
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal('Item size has exceeded the maximum allowed size')
 
 
 def _create_user_table():

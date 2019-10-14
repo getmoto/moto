@@ -6,7 +6,7 @@ import re
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError
+from .exceptions import InvalidIndexNameError, ItemSizeTooLarge
 from .models import dynamodb_backends, dynamo_json_dump
 
 
@@ -255,6 +255,9 @@ class DynamoHandler(BaseResponse):
                 name, item, expected, condition_expression,
                 expression_attribute_names, expression_attribute_values,
                 overwrite)
+        except ItemSizeTooLarge:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, ItemSizeTooLarge.message)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')
@@ -305,8 +308,15 @@ class DynamoHandler(BaseResponse):
     def get_item(self):
         name = self.body['TableName']
         key = self.body['Key']
+        projection_expression = self.body.get('ProjectionExpression')
+        expression_attribute_names = self.body.get('ExpressionAttributeNames', {})
+
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
+
         try:
-            item = self.dynamodb_backend.get_item(name, key)
+            item = self.dynamodb_backend.get_item(name, key, projection_expression)
         except ValueError:
             er = 'com.amazon.coral.validate#ValidationException'
             return self.error(er, 'Validation Exception')
@@ -338,9 +348,16 @@ class DynamoHandler(BaseResponse):
                 er = 'com.amazon.coral.validate#ValidationException'
                 return self.error(er, 'Provided list of item keys contains duplicates')
             attributes_to_get = table_request.get('AttributesToGet')
+            projection_expression = table_request.get('ProjectionExpression')
+            expression_attribute_names = table_request.get('ExpressionAttributeNames', {})
+
+            projection_expression = self._adjust_projection_expression(
+                projection_expression, expression_attribute_names
+            )
+
             results["Responses"][table_name] = []
             for key in keys:
-                item = self.dynamodb_backend.get_item(table_name, key)
+                item = self.dynamodb_backend.get_item(table_name, key, projection_expression)
                 if item:
                     item_describe = item.describe_attrs(attributes_to_get)
                     results["Responses"][table_name].append(
@@ -370,20 +387,9 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get('FilterExpression')
         expression_attribute_values = self.body.get('ExpressionAttributeValues', {})
 
-        if projection_expression and expression_attribute_names:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            projection_expression = None
-            for expression in expressions:
-                if projection_expression is not None:
-                    projection_expression = projection_expression + ", "
-                else:
-                    projection_expression = ""
-
-                if expression in expression_attribute_names:
-                    projection_expression = projection_expression + \
-                        expression_attribute_names[expression]
-                else:
-                    projection_expression = projection_expression + expression
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         filter_kwargs = {}
 
@@ -518,6 +524,25 @@ class DynamoHandler(BaseResponse):
             result["LastEvaluatedKey"] = last_evaluated_key
 
         return dynamo_json_dump(result)
+
+    def _adjust_projection_expression(self, projection_expression, expression_attribute_names):
+        if projection_expression and expression_attribute_names:
+            expressions = [x.strip() for x in projection_expression.split(',')]
+            projection_expr = None
+            for expression in expressions:
+                if projection_expr is not None:
+                    projection_expr = projection_expr + ", "
+                else:
+                    projection_expr = ""
+
+                if expression in expression_attribute_names:
+                    projection_expr = projection_expr + \
+                        expression_attribute_names[expression]
+                else:
+                    projection_expr = projection_expr + expression
+            return projection_expr
+
+        return projection_expression
 
     def scan(self):
         name = self.body['TableName']
@@ -658,6 +683,9 @@ class DynamoHandler(BaseResponse):
                 name, key, update_expression, attribute_updates, expression_attribute_names,
                 expression_attribute_values, expected, condition_expression
             )
+        except ItemSizeTooLarge:
+            er = 'com.amazonaws.dynamodb.v20111205#ValidationException'
+            return self.error(er, ItemSizeTooLarge.message)
         except ValueError:
             er = 'com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException'
             return self.error(er, 'A condition specified in the operation could not be evaluated.')

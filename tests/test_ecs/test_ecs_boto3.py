@@ -889,6 +889,12 @@ def test_describe_container_instances():
         instance.keys().should.contain('runningTasksCount')
         instance.keys().should.contain('pendingTasksCount')
 
+    with assert_raises(ClientError) as e:
+        ecs_client.describe_container_instances(
+            cluster=test_cluster_name,
+            containerInstances=[]
+        )
+
 
 @mock_ec2
 @mock_ecs

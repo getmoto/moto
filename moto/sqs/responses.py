@@ -33,6 +33,12 @@ class SQSResponse(BaseResponse):
             self._attribute = self._get_map_prefix('Attribute', key_end='.Name', value_end='.Value')
         return self._attribute
 
+    @property
+    def tags(self):
+        if not hasattr(self, '_tags'):
+            self._tags = self._get_map_prefix('Tag', key_end='.Key', value_end='.Value')
+        return self._tags
+
     def _get_queue_name(self):
         try:
             queue_name = self.querystring.get('QueueUrl')[0].split("/")[-1]
@@ -73,12 +79,12 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_param("QueueName")
 
         try:
-            queue = self.sqs_backend.create_queue(queue_name, **self.attribute)
+            queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
         except MessageAttributesInvalid as e:
             return self._error('InvalidParameterValue', e.description)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
-        return template.render(queue=queue, request_url=request_url)
+        return template.render(queue_url=queue.url(request_url))
 
     def get_queue_url(self):
         request_url = urlparse(self.uri)
@@ -400,7 +406,11 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tag_keys = self._get_multi_param('TagKey')
 
-        self.sqs_backend.untag_queue(queue_name, tag_keys)
+        try:
+            self.sqs_backend.untag_queue(queue_name, tag_keys)
+        except QueueDoesNotExist as e:
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
@@ -416,8 +426,7 @@ class SQSResponse(BaseResponse):
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
     <CreateQueueResult>
-        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
-        <VisibilityTimeout>{{ queue.visibility_timeout }}</VisibilityTimeout>
+        <QueueUrl>{{ queue_url }}</QueueUrl>
     </CreateQueueResult>
     <ResponseMetadata>
         <RequestId></RequestId>
