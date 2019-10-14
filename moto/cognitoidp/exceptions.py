@@ -24,6 +24,16 @@ class UserNotFoundError(BadRequest):
         })
 
 
+class UsernameExistsException(BadRequest):
+
+    def __init__(self, message):
+        super(UsernameExistsException, self).__init__()
+        self.description = json.dumps({
+            "message": message,
+            '__type': 'UsernameExistsException',
+        })
+
+
 class GroupExistsException(BadRequest):
 
     def __init__(self, message):
