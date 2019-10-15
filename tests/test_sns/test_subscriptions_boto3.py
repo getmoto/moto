@@ -181,6 +181,35 @@ def test_subscription_paging():
         int(DEFAULT_PAGE_SIZE / 3))
     topic1_subscriptions.shouldnt.have("NextToken")
 
+@mock_sns
+def test_subscribe_attributes():
+    client = boto3.client('sns', region_name='us-east-1')
+    client.create_topic(Name="some-topic")
+    resp = client.create_topic(Name="some-topic")
+    arn = resp['TopicArn']
+
+    resp = client.subscribe(
+        TopicArn=arn,
+        Protocol='http',
+        Endpoint='http://test.com'
+    )
+
+    attributes = client.get_subscription_attributes(
+        SubscriptionArn=resp['SubscriptionArn']
+    )
+
+    attributes.should.contain('Attributes')
+    attributes['Attributes'].should.contain('PendingConfirmation')
+    attributes['Attributes']['PendingConfirmation'].should.equal('false')
+    attributes['Attributes'].should.contain('Endpoint')
+    attributes['Attributes']['Endpoint'].should.equal('http://test.com')
+    attributes['Attributes'].should.contain('TopicArn')
+    attributes['Attributes']['TopicArn'].should.equal(arn)
+    attributes['Attributes'].should.contain('Protocol')
+    attributes['Attributes']['Protocol'].should.equal('http')
+    attributes['Attributes'].should.contain('SubscriptionArn')
+    attributes['Attributes']['SubscriptionArn'].should.equal(resp['SubscriptionArn'])
+
 
 @mock_sns
 def test_creating_subscription_with_attributes():
