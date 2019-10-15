@@ -74,6 +74,26 @@ def test_get_secret_that_does_not_match():
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
+def test_get_secret_that_has_no_value():
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    create_secret = test_client.post('/',
+                           data={"Name": DEFAULT_SECRET_NAME},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.CreateSecret"},
+                           )
+    get_secret = test_client.post('/',
+                           data={"SecretId": DEFAULT_SECRET_NAME},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.GetSecretValue"},
+                           )
+
+    json_data = json.loads(get_secret.data.decode("utf-8"))
+    assert json_data['message'] == "Secrets Manager can’t find the specified secret value for staging label: AWSCURRENT"
+    assert json_data['__type'] == 'ResourceNotFoundException'
+
+@mock_secretsmanager
 def test_create_secret():
 
     backend = server.create_backend_app("secretsmanager")

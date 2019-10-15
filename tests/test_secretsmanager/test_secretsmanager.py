@@ -8,7 +8,7 @@ import string
 import pytz
 from datetime import datetime
 import sure  # noqa
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_raises_regexp
 from six import b
 
 DEFAULT_SECRET_NAME = 'test-secret'
@@ -63,6 +63,21 @@ def test_get_secret_value_that_is_marked_deleted():
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='test-secret')
+
+
+@mock_secretsmanager
+def test_get_secret_that_has_no_value():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    create_secret = conn.create_secret(Name="java-util-test-password")
+
+    with assert_raises_regexp(
+            ClientError,
+            r"An error occurred \(ResourceNotFoundException\) when calling the GetSecretValue "
+            r"operation: Secrets Manager can’t find the specified secret value for staging label: "
+            r"AWSCURRENT"
+    ):
+        result = conn.get_secret_value(SecretId='java-util-test-password')
 
 
 @mock_secretsmanager

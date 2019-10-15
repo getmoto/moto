@@ -7,11 +7,11 @@ class SecretsManagerClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(SecretsManagerClientError):
-    def __init__(self):
+    def __init__(self, message):
         self.code = 404
         super(ResourceNotFoundException, self).__init__(
             "ResourceNotFoundException",
-            "Secrets Manager can't find the specified secret"
+            message,
         )
 
 
