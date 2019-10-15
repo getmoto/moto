@@ -200,10 +200,15 @@ def test_subscribe_attributes():
 
     attributes.should.contain('Attributes')
     attributes['Attributes'].should.contain('PendingConfirmation')
+    attributes['Attributes']['PendingConfirmation'].should.equal('false')
     attributes['Attributes'].should.contain('Endpoint')
+    attributes['Attributes']['Endpoint'].should.equal('http://test.com')
     attributes['Attributes'].should.contain('TopicArn')
+    attributes['Attributes']['TopicArn'].should.equal(arn)
     attributes['Attributes'].should.contain('Protocol')
+    attributes['Attributes']['Protocol'].should.equal('http')
     attributes['Attributes'].should.contain('SubscriptionArn')
+    attributes['Attributes']['SubscriptionArn'].should.equal(resp['SubscriptionArn'])
 
 
 @mock_sns
