@@ -46,7 +46,7 @@ class SecretsManagerBackend(BaseBackend):
     def get_secret_value(self, secret_id, version_id, version_stage):
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+            raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         if not version_id and version_stage:
             # set version_id to match version_stage
@@ -56,7 +56,7 @@ class SecretsManagerBackend(BaseBackend):
                     version_id = ver_id
                     break
             if not version_id:
-                raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+                raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         # TODO check this part
         if 'deleted_date' in self.secrets[secret_id]:
@@ -175,7 +175,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def describe_secret(self, secret_id):
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+            raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         secret = self.secrets[secret_id]
 
@@ -204,7 +204,7 @@ class SecretsManagerBackend(BaseBackend):
         rotation_days = 'AutomaticallyAfterDays'
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+            raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         if 'deleted_date' in self.secrets[secret_id]:
             raise InvalidRequestException(
@@ -346,7 +346,7 @@ class SecretsManagerBackend(BaseBackend):
     def delete_secret(self, secret_id, recovery_window_in_days, force_delete_without_recovery):
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+            raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         if 'deleted_date' in self.secrets[secret_id]:
             raise InvalidRequestException(
@@ -376,7 +376,7 @@ class SecretsManagerBackend(BaseBackend):
             secret = self.secrets.get(secret_id, None)
 
         if not secret:
-            raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+            raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         arn = secret_arn(self.region, secret['secret_id'])
         name = secret['name']
@@ -386,7 +386,7 @@ class SecretsManagerBackend(BaseBackend):
     def restore_secret(self, secret_id):
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException("Secrets Manager can't find the specified secret")
+            raise ResourceNotFoundException("Secrets Manager can’t find the specified secret.")
 
         self.secrets[secret_id].pop('deleted_date', None)
 

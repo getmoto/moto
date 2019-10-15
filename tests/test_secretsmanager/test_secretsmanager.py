@@ -38,7 +38,11 @@ def test_get_secret_value_binary():
 def test_get_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
-    with assert_raises(ClientError):
+    with assert_raises_regexp(
+            ClientError,
+            r"An error occurred \(ResourceNotFoundException\) when calling the GetSecretValue "
+            r"operation: Secrets Manager can’t find the specified secret."
+    ):
         result = conn.get_secret_value(SecretId='i-dont-exist')
 
 
@@ -48,7 +52,11 @@ def test_get_secret_that_does_not_match():
     create_secret = conn.create_secret(Name='java-util-test-password',
                                        SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with assert_raises_regexp(
+            ClientError,
+            r"An error occurred \(ResourceNotFoundException\) when calling the GetSecretValue "
+            r"operation: Secrets Manager can’t find the specified secret."
+    ):
         result = conn.get_secret_value(SecretId='i-dont-match')
 
 
