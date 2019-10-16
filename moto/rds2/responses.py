@@ -42,7 +42,7 @@ class RDS2Response(BaseResponse):
             "region": self.region,
             "security_groups": self._get_multi_param('DBSecurityGroups.DBSecurityGroupName'),
             "storage_encrypted": self._get_param("StorageEncrypted"),
-            "storage_type": self._get_param("StorageType", 'standard'),
+            "storage_type": self._get_param("StorageType", None),
             "vpc_security_group_ids": self._get_multi_param("VpcSecurityGroupIds.VpcSecurityGroupId"),
             "tags": list(),
         }
