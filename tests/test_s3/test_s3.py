@@ -1535,6 +1535,18 @@ def test_boto3_get_object():
 
 
 @mock_s3
+def test_boto3_get_missing_object_with_part_number():
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket="blah")
+
+    with assert_raises(ClientError) as e:
+        s3.Object('blah', 'hello.txt').meta.client.head_object(
+            Bucket='blah', Key='hello.txt', PartNumber=123)
+
+    e.exception.response['Error']['Code'].should.equal('404')
+
+
+@mock_s3
 def test_boto3_head_object_with_versioning():
     s3 = boto3.resource('s3', region_name='us-east-1')
     bucket = s3.create_bucket(Bucket='blah')
