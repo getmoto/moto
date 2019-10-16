@@ -9,7 +9,7 @@ import string
 import pytz
 from datetime import datetime
 import sure  # noqa
-from nose.tools import assert_raises, assert_raises_regexp
+from nose.tools import assert_raises, assert_equal
 from six import b
 
 DEFAULT_SECRET_NAME = 'test-secret'
@@ -39,12 +39,13 @@ def test_get_secret_value_binary():
 def test_get_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
-    with assert_raises_regexp(
-            ClientError,
-            r"An error occurred \(ResourceNotFoundException\) when calling the GetSecretValue "
-            r"operation: Secrets Manager can’t find the specified secret."
-    ):
+    with assert_raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId='i-dont-exist')
+
+    assert_equal(
+        u"Secrets Manager can’t find the specified secret.",
+        cm.exception.response['Error']['Message']
+    )
 
 
 @mock_secretsmanager
@@ -53,13 +54,13 @@ def test_get_secret_that_does_not_match():
     create_secret = conn.create_secret(Name='java-util-test-password',
                                        SecretString="foosecret")
 
-    with assert_raises_regexp(
-            ClientError,
-            r"An error occurred \(ResourceNotFoundException\) when calling the GetSecretValue "
-            r"operation: Secrets Manager can’t find the specified secret."
-    ):
+    with assert_raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId='i-dont-match')
 
+    assert_equal(
+        u"Secrets Manager can’t find the specified secret.",
+        cm.exception.response['Error']['Message']
+    )
 
 @mock_secretsmanager
 def test_get_secret_value_that_is_marked_deleted():
@@ -80,13 +81,13 @@ def test_get_secret_that_has_no_value():
 
     create_secret = conn.create_secret(Name="java-util-test-password")
 
-    with assert_raises_regexp(
-            ClientError,
-            r"An error occurred \(ResourceNotFoundException\) when calling the GetSecretValue "
-            r"operation: Secrets Manager can’t find the specified secret value for staging label: "
-            r"AWSCURRENT"
-    ):
+    with assert_raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId='java-util-test-password')
+
+    assert_equal(
+        u"Secrets Manager can’t find the specified secret value for staging label: AWSCURRENT",
+        cm.exception.response['Error']['Message']
+    )
 
 
 @mock_secretsmanager
