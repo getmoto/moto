@@ -1107,7 +1107,7 @@ class S3Backend(BaseBackend):
                         key = key_version
                         break
 
-            if part_number and key.multipart:
+            if part_number and key and key.multipart:
                 key = key.multipart.parts[part_number]
 
         if isinstance(key, FakeKey):
