@@ -66,7 +66,7 @@ class Database(BaseModel):
             self.auto_minor_version_upgrade = True
         self.allocated_storage = kwargs.get('allocated_storage')
         if self.allocated_storage is None:
-            self.allocated_storage = Database.default_allocated_storage(engine=self.engine,storage_type=self.storage_type)
+            self.allocated_storage = Database.default_allocated_storage(engine=self.engine, storage_type=self.storage_type)
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
@@ -303,9 +303,8 @@ class Database(BaseModel):
         else:
             return 'io1'
 
-
     @staticmethod
-    def default_allocated_storage(engine,storage_type):
+    def default_allocated_storage(engine, storage_type):
         return {
             'aurora': {
                 'gp2': 0,
