@@ -439,6 +439,20 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tags = self._get_map_prefix('Tag', key_end='.Key', value_end='.Value')
 
+        try:
+            self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
+
+        if len(tags) == 0:
+            return self._error('MissingParameter',
+                               'The request must contain the parameter Tags.')
+
+        if len(tags) > 50:
+            return self._error('InvalidParameterValue',
+                               'Too many tags added for queue {}.'.format(queue_name))
+
         self.sqs_backend.tag_queue(queue_name, tags)
 
         template = self.response_template(TAG_QUEUE_RESPONSE)

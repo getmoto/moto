@@ -1109,6 +1109,53 @@ def test_tags():
 
 
 @mock_sqs
+def test_tag_queue_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(
+        QueueName='test-queue-with-tags',
+        tags={
+            'tag_key_1': 'tag_value_X'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.tag_queue.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+        Tags={
+            'tag_key_1': 'tag_value_1'
+        }
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+    client.tag_queue.when.called_with(
+        QueueUrl=queue_url,
+        Tags={}
+    ).should.throw(
+        ClientError,
+        'The request must contain the parameter Tags.'
+    )
+
+    too_many_tags = {'tag_key_{}'.format(i): 'tag_value_{}'.format(i) for i in range(51)}
+    client.tag_queue.when.called_with(
+        QueueUrl=queue_url,
+        Tags=too_many_tags
+    ).should.throw(
+        ClientError,
+        'Too many tags added for queue test-queue-with-tags.'
+    )
+
+    # when the request fails, the tags should not be updated
+    client.list_queue_tags(QueueUrl=queue_url)['Tags'].should.equal(
+        {
+            'tag_key_1': 'tag_value_X'
+        }
+    )
+
+
+@mock_sqs
 def test_untag_queue_errors():
     client = boto3.client('sqs', region_name='us-east-1')
 
@@ -1127,7 +1174,7 @@ def test_untag_queue_errors():
         ]
     ).should.throw(
         ClientError,
-        "The specified queue does not exist for this wsdl version."
+        'The specified queue does not exist for this wsdl version.'
     )
 
     client.untag_queue.when.called_with(
