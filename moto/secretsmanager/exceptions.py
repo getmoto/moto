@@ -15,6 +15,15 @@ class ResourceNotFoundException(SecretsManagerClientError):
         )
 
 
+class SecretNotFoundException(SecretsManagerClientError):
+    def __init__(self):
+        self.code = 404
+        super(SecretNotFoundException, self).__init__(
+            "ResourceNotFoundException",
+            message=u"Secrets Manager can\u2019t find the specified secret."
+        )
+
+
 class ClientError(SecretsManagerClientError):
     def __init__(self, message):
         super(ClientError, self).__init__(
