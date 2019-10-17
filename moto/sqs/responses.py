@@ -474,7 +474,11 @@ class SQSResponse(BaseResponse):
     def list_queue_tags(self):
         queue_name = self._get_queue_name()
 
-        queue = self.sqs_backend.get_queue(queue_name)
+        try:
+            queue = self.sqs_backend.get_queue(queue_name)
+        except QueueDoesNotExist as e:
+            return self._error('AWS.SimpleQueueService.NonExistentQueue',
+                               e.description)
 
         template = self.response_template(LIST_QUEUE_TAGS_RESPONSE)
         return template.render(tags=queue.tags)

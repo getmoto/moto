@@ -1109,6 +1109,26 @@ def test_tags():
 
 
 @mock_sqs
+def test_list_queue_tags_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(
+        QueueName='test-queue-with-tags',
+        tags={
+            'tag_key_1': 'tag_value_X'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.list_queue_tags.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+
+@mock_sqs
 def test_tag_queue_errors():
     client = boto3.client('sqs', region_name='us-east-1')
 
