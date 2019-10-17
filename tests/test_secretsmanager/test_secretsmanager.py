@@ -43,7 +43,7 @@ def test_get_secret_that_does_not_exist():
         result = conn.get_secret_value(SecretId='i-dont-exist')
 
     assert_equal(
-        u"Secrets Manager can’t find the specified secret.",
+        u"Secrets Manager can\u2019t find the specified secret.",
         cm.exception.response['Error']['Message']
     )
 
@@ -58,9 +58,10 @@ def test_get_secret_that_does_not_match():
         result = conn.get_secret_value(SecretId='i-dont-match')
 
     assert_equal(
-        u"Secrets Manager can’t find the specified secret.",
+        u"Secrets Manager can\u2019t find the specified secret.",
         cm.exception.response['Error']['Message']
     )
+
 
 @mock_secretsmanager
 def test_get_secret_value_that_is_marked_deleted():
@@ -85,7 +86,7 @@ def test_get_secret_that_has_no_value():
         result = conn.get_secret_value(SecretId='java-util-test-password')
 
     assert_equal(
-        u"Secrets Manager can’t find the specified secret value for staging label: AWSCURRENT",
+        u"Secrets Manager can\u2019t find the specified secret value for staging label: AWSCURRENT",
         cm.exception.response['Error']['Message']
     )
 

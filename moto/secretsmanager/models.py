@@ -88,7 +88,7 @@ class SecretsManagerBackend(BaseBackend):
 
         if 'secret_string' not in secret_version and 'secret_binary' not in secret_version:
             raise ResourceNotFoundException(
-                u"Secrets Manager can’t find the specified secret value for staging label: %s" %
+                u"Secrets Manager can\u2019t find the specified secret value for staging label: %s" %
                 (version_stage or u"AWSCURRENT")
             )
 
