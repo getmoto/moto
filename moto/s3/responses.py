@@ -905,8 +905,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 200, response_headers, ""
 
         if 'tagging' in query:
+            if 'versionId' in query:
+                version_id = query['versionId'][0]
+            else:
+                version_id = None
             tagging = self._tagging_from_xml(body)
-            self.backend.set_key_tagging(bucket_name, key_name, tagging)
+            self.backend.set_key_tagging(bucket_name, key_name, tagging, version_id)
             return 200, response_headers, ""
 
         if 'x-amz-copy-source' in request.headers:
