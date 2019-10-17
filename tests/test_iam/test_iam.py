@@ -339,6 +339,16 @@ def test_create_policy():
 
 
 @mock_iam
+def test_delete_policy():
+    conn = boto3.client('iam', region_name='us-east-1')
+    response = conn.create_policy(PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY)
+    [pol['PolicyName'] for pol in conn.list_policies(Scope='Local')['Policies']].should.equal(['TestCreatePolicy'])
+    #
+    conn.delete_policy(PolicyArn=response['Policy']['Arn'])
+    assert conn.list_policies(Scope='Local')['Policies'].should.be.empty
+
+
+@mock_iam
 def test_create_policy_versions():
     conn = boto3.client('iam', region_name='us-east-1')
     with assert_raises(ClientError):
@@ -713,12 +723,25 @@ def test_mfa_devices():
 
 
 @mock_iam_deprecated()
-def test_delete_user():
+def test_delete_user_deprecated():
     conn = boto.connect_iam()
     with assert_raises(BotoServerError):
         conn.delete_user('my-user')
     conn.create_user('my-user')
     conn.delete_user('my-user')
+
+
+@mock_iam()
+def test_delete_user():
+    conn = boto3.client('iam', region_name='us-east-1')
+    with assert_raises(ClientError):
+        conn.delete_user(UserName='my-user')
+    #
+    conn.create_user(UserName='my-user')
+    [user['UserName'] for user in conn.list_users()['Users']].should.equal(['my-user'])
+    #
+    conn.delete_user(UserName='my-user')
+    assert conn.list_users()['Users'].should.be.empty
 
 
 @mock_iam_deprecated()

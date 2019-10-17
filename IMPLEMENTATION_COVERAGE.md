@@ -3194,7 +3194,7 @@
 - [ ] delete_instance_profile
 - [X] delete_login_profile
 - [ ] delete_open_id_connect_provider
-- [ ] delete_policy
+- [X] delete_policy
 - [X] delete_policy_version
 - [X] delete_role
 - [ ] delete_role_permissions_boundary
