@@ -755,6 +755,15 @@ class IamResponse(BaseResponse):
         template = self.response_template(UNTAG_ROLE_TEMPLATE)
         return template.render()
 
+    def create_open_id_connect_provider(self):
+        open_id_provider_url = self._get_param('Url')
+        thumbprint_list = self._get_multi_param('ThumbprintList.member')
+        client_id_list = self._get_multi_param('ClientIDList.member')
+        open_id_provider = iam_backend.create_open_id_connect_provider(open_id_provider_url, thumbprint_list, client_id_list)
+
+        template = self.response_template(CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
+        return template.render(open_id_provider=open_id_provider)
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -1974,3 +1983,13 @@ UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc
     <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
   </ResponseMetadata>
 </UntagRoleResponse>"""
+
+
+CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateOpenIDConnectProviderResult>
+    <OpenIDConnectProviderArn>{{ open_id_provider.arn }}</OpenIDConnectProviderArn>
+  </CreateOpenIDConnectProviderResult>
+  <ResponseMetadata>
+    <RequestId>f248366a-4f64-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateOpenIDConnectProviderResponse>"""

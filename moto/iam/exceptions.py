@@ -93,3 +93,27 @@ class TooManyTags(RESTError):
         super(TooManyTags, self).__init__(
             'ValidationError', "1 validation error detected: Value '{}' at '{}' failed to satisfy "
                                "constraint: Member must have length less than or equal to 50.".format(tags, param))
+
+
+class EntityAlreadyExists(RESTError):
+    code = 409
+
+    def __init__(self):
+        super(EntityAlreadyExists, self).__init__(
+            'EntityAlreadyExists', "Unknown")
+
+
+class ValidationError(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ValidationError, self).__init__(
+            'ValidationError', message)
+
+
+class InvalidInput(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidInput, self).__init__(
+            'InvalidInput', message)
