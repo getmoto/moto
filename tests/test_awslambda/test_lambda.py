@@ -1134,7 +1134,7 @@ def test_invoke_function_from_sqs_exception():
             if 'I failed!' in event['message']:
                 messages = queue.receive_messages(MaxNumberOfMessages=10)
                 # Verify messages are still visible and unprocessed
-                assert len(messages) is 3
+                assert len(messages) == 3
                 return
         time.sleep(1)
 
