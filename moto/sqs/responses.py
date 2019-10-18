@@ -10,7 +10,6 @@ from .models import sqs_backends
 from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
-    QueueDoesNotExist,
     ReceiptHandleIsInvalid,
 )
 
@@ -90,11 +89,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+        queue = self.sqs_backend.get_queue(queue_name)
 
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
@@ -175,11 +170,8 @@ class SQSResponse(BaseResponse):
 
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+
+        queue = self.sqs_backend.get_queue(queue_name)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
@@ -242,25 +234,55 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        messages = []
-        for index in range(1, 11):
-            # Loop through looking for messages
-            message_key = 'SendMessageBatchRequestEntry.{0}.MessageBody'.format(
-                index)
-            message_body = self.querystring.get(message_key)
-            if not message_body:
-                # Found all messages
-                break
+        self.sqs_backend.get_queue(queue_name)
 
-            message_user_id_key = 'SendMessageBatchRequestEntry.{0}.Id'.format(
-                index)
-            message_user_id = self.querystring.get(message_user_id_key)[0]
+        if self.querystring.get('Entries'):
+            return self._error('AWS.SimpleQueueService.EmptyBatchRequest',
+                               'There should be at least one SendMessageBatchRequestEntry in the request.')
+
+        entries = {}
+        for key, value in self.querystring.items():
+            match = re.match(r'^SendMessageBatchRequestEntry\.(\d+)\.Id', key)
+            if match:
+                entries[match.group(1)] = {
+                    'Id': value[0],
+                    'MessageBody': self.querystring.get(
+                        'SendMessageBatchRequestEntry.{}.MessageBody'.format(match.group(1)))[0]
+                }
+
+        if any(not re.match(r'^[\w-]{1,80}$', entry['Id']) for entry in entries.values()):
+            return self._error('AWS.SimpleQueueService.InvalidBatchEntryId',
+                               'A batch entry id can only contain alphanumeric characters, '
+                               'hyphens and underscores. It can be at most 80 letters long.')
+
+        body_length = next(
+            (len(entry['MessageBody']) for entry in entries.values() if len(entry['MessageBody']) > MAXIMUM_MESSAGE_LENGTH),
+            False
+        )
+        if body_length:
+            return self._error('AWS.SimpleQueueService.BatchRequestTooLong',
+                               'Batch requests cannot be longer than 262144 bytes. '
+                               'You have sent {} bytes.'.format(body_length))
+
+        duplicate_id = self._get_first_duplicate_id([entry['Id'] for entry in entries.values()])
+        if duplicate_id:
+            return self._error('AWS.SimpleQueueService.BatchEntryIdsNotDistinct',
+                               'Id {} repeated.'.format(duplicate_id))
+
+        if len(entries) > 10:
+            return self._error('AWS.SimpleQueueService.TooManyEntriesInBatchRequest',
+                               'Maximum number of entries per request are 10. '
+                               'You have sent 11.')
+
+        messages = []
+        for index, entry in entries.items():
+            # Loop through looking for messages
             delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(
                 index)
             delay_seconds = self.querystring.get(delay_key, [None])[0]
             message = self.sqs_backend.send_message(
-                queue_name, message_body[0], delay_seconds=delay_seconds)
-            message.user_id = message_user_id
+                queue_name, entry['MessageBody'], delay_seconds=delay_seconds)
+            message.user_id = entry['Id']
 
             message_attributes = parse_message_attributes(
                 self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index))
@@ -272,6 +294,14 @@ class SQSResponse(BaseResponse):
 
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages)
+
+    def _get_first_duplicate_id(self, ids):
+        unique_ids = set()
+        for id in ids:
+            if id in unique_ids:
+                return id
+            unique_ids.add(id)
+        return None
 
     def delete_message(self):
         queue_name = self._get_queue_name()
@@ -321,10 +351,7 @@ class SQSResponse(BaseResponse):
     def receive_message(self):
         queue_name = self._get_queue_name()
 
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+        queue = self.sqs_backend.get_queue(queue_name)
 
         try:
             message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
@@ -406,11 +433,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tag_keys = self._get_multi_param('TagKey')
 
-        try:
-            self.sqs_backend.untag_queue(queue_name, tag_keys)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+        self.sqs_backend.untag_queue(queue_name, tag_keys)
 
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
