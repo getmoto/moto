@@ -10,7 +10,6 @@ from .models import sqs_backends
 from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
-    QueueDoesNotExist,
     ReceiptHandleIsInvalid,
 )
 
@@ -90,11 +89,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+        queue = self.sqs_backend.get_queue(queue_name)
 
         if queue:
             template = self.response_template(GET_QUEUE_URL_RESPONSE)
@@ -175,11 +170,8 @@ class SQSResponse(BaseResponse):
 
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+
+        queue = self.sqs_backend.get_queue(queue_name)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(queue=queue)
@@ -242,11 +234,7 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        try:
-            self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+        self.sqs_backend.get_queue(queue_name)
 
         if self.querystring.get('Entries'):
             return self._error('AWS.SimpleQueueService.EmptyBatchRequest',
@@ -268,7 +256,7 @@ class SQSResponse(BaseResponse):
                                'hyphens and underscores. It can be at most 80 letters long.')
 
         body_length = next(
-            (len(entry['MessageBody']) for entry in entries.values() if len(entry['MessageBody']) > 262144),
+            (len(entry['MessageBody']) for entry in entries.values() if len(entry['MessageBody']) > MAXIMUM_MESSAGE_LENGTH),
             False
         )
         if body_length:
@@ -363,10 +351,7 @@ class SQSResponse(BaseResponse):
     def receive_message(self):
         queue_name = self._get_queue_name()
 
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('QueueDoesNotExist', e.description)
+        queue = self.sqs_backend.get_queue(queue_name)
 
         try:
             message_count = int(self.querystring.get("MaxNumberOfMessages")[0])
@@ -439,20 +424,6 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tags = self._get_map_prefix('Tag', key_end='.Key', value_end='.Value')
 
-        try:
-            self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
-
-        if len(tags) == 0:
-            return self._error('MissingParameter',
-                               'The request must contain the parameter Tags.')
-
-        if len(tags) > 50:
-            return self._error('InvalidParameterValue',
-                               'Too many tags added for queue {}.'.format(queue_name))
-
         self.sqs_backend.tag_queue(queue_name, tags)
 
         template = self.response_template(TAG_QUEUE_RESPONSE)
@@ -462,11 +433,7 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         tag_keys = self._get_multi_param('TagKey')
 
-        try:
-            self.sqs_backend.untag_queue(queue_name, tag_keys)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+        self.sqs_backend.untag_queue(queue_name, tag_keys)
 
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
@@ -474,11 +441,7 @@ class SQSResponse(BaseResponse):
     def list_queue_tags(self):
         queue_name = self._get_queue_name()
 
-        try:
-            queue = self.sqs_backend.get_queue(queue_name)
-        except QueueDoesNotExist as e:
-            return self._error('AWS.SimpleQueueService.NonExistentQueue',
-                               e.description)
+        queue = self.sqs_backend.get_queue(queue_name)
 
         template = self.response_template(LIST_QUEUE_TAGS_RESPONSE)
         return template.render(tags=queue.tags)
