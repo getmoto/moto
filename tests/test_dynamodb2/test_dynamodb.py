@@ -2705,6 +2705,31 @@ def test_item_size_is_under_400KB():
                                     Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'M': {'item1': {'S': large_item}}}]}})
 
 
+@mock_dynamodb2
+# https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
+def test_hash_key_cannot_use_begins_with_operations():
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.create_table(
+        TableName='test-table',
+        KeySchema=[{'AttributeName': 'key', 'KeyType': 'HASH'}],
+        AttributeDefinitions=[{'AttributeName': 'key', 'AttributeType': 'S'}],
+        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1})
+
+    items = [{'key': 'prefix-$LATEST', 'value': '$LATEST'},
+             {'key': 'prefix-DEV', 'value': 'DEV'},
+             {'key': 'prefix-PROD', 'value': 'PROD'}]
+
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=item)
+
+    table = dynamodb.Table('test-table')
+    with assert_raises(ClientError) as ex:
+        table.query(KeyConditionExpression=Key('key').begins_with('prefix-'))
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal('Query key condition not supported')
+
+
 def assert_failure_due_to_item_size(func, **kwargs):
     with assert_raises(ClientError) as ex:
         func(**kwargs)
