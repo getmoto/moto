@@ -759,9 +759,18 @@ class IamResponse(BaseResponse):
         open_id_provider_url = self._get_param('Url')
         thumbprint_list = self._get_multi_param('ThumbprintList.member')
         client_id_list = self._get_multi_param('ClientIDList.member')
+
         open_id_provider = iam_backend.create_open_id_connect_provider(open_id_provider_url, thumbprint_list, client_id_list)
 
         template = self.response_template(CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
+        return template.render(open_id_provider=open_id_provider)
+
+    def get_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param('OpenIDConnectProviderArn')
+
+        open_id_provider = iam_backend.get_open_id_connect_provider(open_id_provider_arn)
+
+        template = self.response_template(GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
         return template.render(open_id_provider=open_id_provider)
 
 
@@ -1993,3 +2002,24 @@ CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderRespon
     <RequestId>f248366a-4f64-11e4-aefa-bfd6aEXAMPLE</RequestId>
   </ResponseMetadata>
 </CreateOpenIDConnectProviderResponse>"""
+
+
+GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<GetOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetOpenIDConnectProviderResult>
+    <ThumbprintList>
+      {% for thumbprint in open_id_provider.thumbprint_list %}
+      <member>{{ thumbprint }}</member>
+      {% endfor %}
+    </ThumbprintList>
+    <CreateDate>{{ open_id_provider.created_iso_8601 }}</CreateDate>
+    <ClientIDList>
+      {% for client_id in open_id_provider.client_id_list %}
+      <member>{{ client_id }}</member>
+      {% endfor %}
+    </ClientIDList>
+    <Url>{{ open_id_provider.url }}</Url>
+  </GetOpenIDConnectProviderResult>
+  <ResponseMetadata>
+    <RequestId>2c91531b-4f65-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetOpenIDConnectProviderResponse>"""

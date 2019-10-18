@@ -104,10 +104,15 @@ class OpenIDConnectProvider(BaseModel):
         self.url = parsed_url.netloc + parsed_url.path
         self.thumbprint_list = thumbprint_list
         self.client_id_list = client_id_list
+        self.create_date = datetime.utcnow()
 
     @property
     def arn(self):
         return 'arn:aws:iam::{0}:oidc-provider/{1}'.format(ACCOUNT_ID, self.url)
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
     def _validate(self, url, thumbprint_list, client_id_list):
         if any(len(client_id) > 255 for client_id in client_id_list):
@@ -1345,6 +1350,14 @@ class IAMBackend(BaseBackend):
             raise EntityAlreadyExists
 
         self.open_id_providers[open_id_provider.arn] = open_id_provider
+        return open_id_provider
+
+    def get_open_id_connect_provider(self, arn):
+        open_id_provider = self.open_id_providers.get(arn)
+
+        if not open_id_provider:
+            raise IAMNotFoundException('OpenIDConnect Provider not found for arn {}'.format(arn))
+
         return open_id_provider
 
 

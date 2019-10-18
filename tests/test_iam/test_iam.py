@@ -9,6 +9,9 @@ import sure  # noqa
 import sys
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
+from freezegun import freeze_time
+
 from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
 from nose.tools import assert_raises, assert_equals
@@ -1615,11 +1618,10 @@ def test_create_open_id_connect_provider():
 @mock_iam
 def test_create_open_id_connect_provider_errors():
     client = boto3.client('iam', region_name='us-east-1')
-    response = client.create_open_id_connect_provider(
+    client.create_open_id_connect_provider(
         Url='https://example.com',
         ThumbprintList=[]
     )
-    open_id_arn = response['OpenIDConnectProviderArn']
 
     client.create_open_id_connect_provider.when.called_with(
         Url='https://example.com',
@@ -1694,4 +1696,55 @@ def test_create_open_id_connect_provider_errors():
         'Member must have length greater than or equal to 40]; '
         'Value "{2}" at "url" failed to satisfy constraint: '
         'Member must have length less than or equal to 255'.format([too_long_client_id], [too_long_thumbprint], too_long_url)
+    )
+
+
+@freeze_time('2019-01-01 00:00:00')
+@mock_iam
+def test_get_open_id_connect_provider():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+    open_id_arn = response['OpenIDConnectProviderArn']
+
+    response = client.get_open_id_connect_provider(
+        OpenIDConnectProviderArn=open_id_arn
+    )
+
+    response['Url'].should.equal('example.com')
+    response['ThumbprintList'].should.equal([
+        'b' * 40
+    ])
+    response['ClientIDList'].should.equal([
+        'b'
+    ])
+    response['CreateDate'].should.equal(datetime.now(tzutc()))
+
+
+@mock_iam
+def test_get_open_id_connect_provider_errors():
+    client = boto3.client('iam', region_name = 'us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+    open_id_arn = response['OpenIDConnectProviderArn']
+
+    client.get_open_id_connect_provider.when.called_with(
+        OpenIDConnectProviderArn = open_id_arn + '-not-existing'
+    ).should.throw(
+        ClientError,
+        'OpenIDConnect Provider not found for arn {}'.format(open_id_arn + '-not-existing')
     )
