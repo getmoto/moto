@@ -3163,7 +3163,7 @@
 - [ ] describe_events
 
 ## iam
-56% implemented
+57% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -3253,7 +3253,7 @@
 - [ ] list_instance_profiles
 - [ ] list_instance_profiles_for_role
 - [X] list_mfa_devices
-- [ ] list_open_id_connect_providers
+- [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
 - [X] list_policy_versions

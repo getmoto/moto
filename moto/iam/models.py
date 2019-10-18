@@ -1363,5 +1363,8 @@ class IAMBackend(BaseBackend):
 
         return open_id_provider
 
+    def list_open_id_connect_providers(self):
+        return list(self.open_id_providers.keys())
+
 
 iam_backend = IAMBackend()

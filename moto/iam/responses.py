@@ -781,6 +781,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
         return template.render(open_id_provider=open_id_provider)
 
+    def list_open_id_connect_providers(self):
+        open_id_provider_arns = iam_backend.list_open_id_connect_providers()
+
+        template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE)
+        return template.render(open_id_provider_arns=open_id_provider_arns)
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -2038,3 +2044,19 @@ GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<GetOpenIDConnectProviderResponse xml
     <RequestId>2c91531b-4f65-11e4-aefa-bfd6aEXAMPLE</RequestId>
   </ResponseMetadata>
 </GetOpenIDConnectProviderResponse>"""
+
+
+LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE = """<ListOpenIDConnectProvidersResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListOpenIDConnectProvidersResult>
+    <OpenIDConnectProviderList>
+      {% for open_id_provider_arn in open_id_provider_arns %}
+      <member>
+        <Arn>{{ open_id_provider_arn }}</Arn>
+      </member>
+      {% endfor %}
+    </OpenIDConnectProviderList>
+  </ListOpenIDConnectProvidersResult>
+  <ResponseMetadata>
+    <RequestId>de2c0228-4f63-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListOpenIDConnectProvidersResponse>"""

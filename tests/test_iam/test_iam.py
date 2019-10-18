@@ -1774,3 +1774,44 @@ def test_get_open_id_connect_provider_errors():
         ClientError,
         'OpenIDConnect Provider not found for arn {}'.format(open_id_arn + '-not-existing')
     )
+
+
+@mock_iam
+def test_list_open_id_connect_providers():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[]
+    )
+    open_id_arn_1 = response['OpenIDConnectProviderArn']
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+    open_id_arn_2 = response['OpenIDConnectProviderArn']
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org/oidc',
+        ThumbprintList=[]
+    )
+    open_id_arn_3 = response['OpenIDConnectProviderArn']
+
+    response = client.list_open_id_connect_providers()
+
+    response['OpenIDConnectProviderList'].should.equal([
+        {
+            'Arn': open_id_arn_1
+        },
+        {
+            'Arn': open_id_arn_2
+        },
+        {
+            'Arn': open_id_arn_3
+        }
+    ])
