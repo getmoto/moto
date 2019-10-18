@@ -765,6 +765,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
         return template.render(open_id_provider=open_id_provider)
 
+    def delete_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param('OpenIDConnectProviderArn')
+
+        iam_backend.delete_open_id_connect_provider(open_id_provider_arn)
+
+        template = self.response_template(DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
+        return template.render()
+
     def get_open_id_connect_provider(self):
         open_id_provider_arn = self._get_param('OpenIDConnectProviderArn')
 
@@ -2002,6 +2010,13 @@ CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderRespon
     <RequestId>f248366a-4f64-11e4-aefa-bfd6aEXAMPLE</RequestId>
   </ResponseMetadata>
 </CreateOpenIDConnectProviderResponse>"""
+
+
+DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<DeleteOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>b5e49e29-4f64-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteOpenIDConnectProviderResponse>"""
 
 
 GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<GetOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

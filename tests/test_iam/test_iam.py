@@ -1699,6 +1699,32 @@ def test_create_open_id_connect_provider_errors():
     )
 
 
+@mock_iam
+def test_delete_open_id_connect_provider():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[]
+    )
+    open_id_arn = response['OpenIDConnectProviderArn']
+
+    client.delete_open_id_connect_provider(
+        OpenIDConnectProviderArn=open_id_arn
+    )
+
+    client.get_open_id_connect_provider.when.called_with(
+        OpenIDConnectProviderArn=open_id_arn
+    ).should.throw(
+        ClientError,
+        'OpenIDConnect Provider not found for arn {}'.format(open_id_arn)
+    )
+
+    # deleting a non existing provider should be successful
+    client.delete_open_id_connect_provider(
+        OpenIDConnectProviderArn=open_id_arn
+    )
+
+
 @freeze_time('2019-01-01 00:00:00')
 @mock_iam
 def test_get_open_id_connect_provider():
@@ -1730,7 +1756,7 @@ def test_get_open_id_connect_provider():
 
 @mock_iam
 def test_get_open_id_connect_provider_errors():
-    client = boto3.client('iam', region_name = 'us-east-1')
+    client = boto3.client('iam', region_name='us-east-1')
     response = client.create_open_id_connect_provider(
         Url='https://example.com',
         ThumbprintList=[
@@ -1743,7 +1769,7 @@ def test_get_open_id_connect_provider_errors():
     open_id_arn = response['OpenIDConnectProviderArn']
 
     client.get_open_id_connect_provider.when.called_with(
-        OpenIDConnectProviderArn = open_id_arn + '-not-existing'
+        OpenIDConnectProviderArn=open_id_arn + '-not-existing'
     ).should.throw(
         ClientError,
         'OpenIDConnect Provider not found for arn {}'.format(open_id_arn + '-not-existing')

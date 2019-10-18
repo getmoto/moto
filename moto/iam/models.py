@@ -1352,6 +1352,9 @@ class IAMBackend(BaseBackend):
         self.open_id_providers[open_id_provider.arn] = open_id_provider
         return open_id_provider
 
+    def delete_open_id_connect_provider(self, arn):
+        self.open_id_providers.pop(arn, None)
+
     def get_open_id_connect_provider(self, arn):
         open_id_provider = self.open_id_providers.get(arn)
 
