@@ -1099,6 +1099,9 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         user.delete_policy(policy_name)
 
+    def delete_policy(self, policy_arn):
+        del self.managed_policies[policy_arn]
+
     def create_access_key(self, user_name=None):
         user = self.get_user(user_name)
         key = user.create_access_key()

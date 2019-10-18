@@ -604,6 +604,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name='DeleteUser')
 
+    def delete_policy(self):
+        policy_arn = self._get_param('PolicyArn')
+        iam_backend.delete_policy(policy_arn)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name='DeletePolicy')
+
     def delete_login_profile(self):
         user_name = self._get_param('UserName')
         iam_backend.delete_login_profile(user_name)
