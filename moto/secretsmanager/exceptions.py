@@ -15,12 +15,24 @@ class ResourceNotFoundException(SecretsManagerClientError):
         )
 
 
+# Using specialised exception due to the use of a non-ASCII character
 class SecretNotFoundException(SecretsManagerClientError):
     def __init__(self):
         self.code = 404
         super(SecretNotFoundException, self).__init__(
             "ResourceNotFoundException",
             message=u"Secrets Manager can\u2019t find the specified secret."
+        )
+
+
+# Using specialised exception due to the use of a non-ASCII character
+class SecretHasNoValueException(SecretsManagerClientError):
+    def __init__(self, version_stage):
+        self.code = 404
+        super(SecretHasNoValueException, self).__init__(
+            "ResourceNotFoundException",
+            message=u"Secrets Manager can\u2019t find the specified secret "
+                    u"value for staging label: {}".format(version_stage)
         )
 
 

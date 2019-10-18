@@ -10,8 +10,8 @@ import boto3
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
-    ResourceNotFoundException,
     SecretNotFoundException,
+    SecretHasNoValueException,
     InvalidParameterException,
     ResourceExistsException,
     InvalidRequestException,
@@ -87,10 +87,7 @@ class SecretsManagerBackend(BaseBackend):
             response_data["SecretBinary"] = secret_version['secret_binary']
 
         if 'secret_string' not in secret_version and 'secret_binary' not in secret_version:
-            raise ResourceNotFoundException(
-                u"Secrets Manager can\u2019t find the specified secret value for staging label: %s" %
-                (version_stage or u"AWSCURRENT")
-            )
+            raise SecretHasNoValueException(version_stage or u"AWSCURRENT")
 
         response = json.dumps(response_data)
 
