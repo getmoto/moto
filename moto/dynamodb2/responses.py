@@ -457,6 +457,9 @@ class DynamoHandler(BaseResponse):
                 range_comparison = None
                 range_values = []
 
+            if '=' not in hash_key_expression:
+                return self.error('com.amazonaws.dynamodb.v20111205#ValidationException',
+                                  'Query key condition not supported')
             hash_key_value_alias = hash_key_expression.split("=")[1].strip()
             # Temporary fix until we get proper KeyConditionExpression function
             hash_key = value_alias_map.get(hash_key_value_alias, {'S': hash_key_value_alias})
