@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 import time
@@ -9,7 +10,8 @@ import boto3
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
-    ResourceNotFoundException,
+    SecretNotFoundException,
+    SecretHasNoValueException,
     InvalidParameterException,
     ResourceExistsException,
     InvalidRequestException,
@@ -46,7 +48,7 @@ class SecretsManagerBackend(BaseBackend):
     def get_secret_value(self, secret_id, version_id, version_stage):
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException()
+            raise SecretNotFoundException()
 
         if not version_id and version_stage:
             # set version_id to match version_stage
@@ -56,7 +58,7 @@ class SecretsManagerBackend(BaseBackend):
                     version_id = ver_id
                     break
             if not version_id:
-                raise ResourceNotFoundException()
+                raise SecretNotFoundException()
 
         # TODO check this part
         if 'deleted_date' in self.secrets[secret_id]:
@@ -83,6 +85,9 @@ class SecretsManagerBackend(BaseBackend):
 
         if 'secret_binary' in secret_version:
             response_data["SecretBinary"] = secret_version['secret_binary']
+
+        if 'secret_string' not in secret_version and 'secret_binary' not in secret_version:
+            raise SecretHasNoValueException(version_stage or u"AWSCURRENT")
 
         response = json.dumps(response_data)
 
@@ -169,7 +174,7 @@ class SecretsManagerBackend(BaseBackend):
 
     def describe_secret(self, secret_id):
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException
+            raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
 
@@ -198,7 +203,7 @@ class SecretsManagerBackend(BaseBackend):
         rotation_days = 'AutomaticallyAfterDays'
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException
+            raise SecretNotFoundException()
 
         if 'deleted_date' in self.secrets[secret_id]:
             raise InvalidRequestException(
@@ -340,7 +345,7 @@ class SecretsManagerBackend(BaseBackend):
     def delete_secret(self, secret_id, recovery_window_in_days, force_delete_without_recovery):
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException
+            raise SecretNotFoundException()
 
         if 'deleted_date' in self.secrets[secret_id]:
             raise InvalidRequestException(
@@ -370,7 +375,7 @@ class SecretsManagerBackend(BaseBackend):
             secret = self.secrets.get(secret_id, None)
 
         if not secret:
-            raise ResourceNotFoundException
+            raise SecretNotFoundException()
 
         arn = secret_arn(self.region, secret['secret_id'])
         name = secret['name']
@@ -380,7 +385,7 @@ class SecretsManagerBackend(BaseBackend):
     def restore_secret(self, secret_id):
 
         if not self._is_valid_identifier(secret_id):
-            raise ResourceNotFoundException
+            raise SecretNotFoundException()
 
         self.secrets[secret_id].pop('deleted_date', None)
 

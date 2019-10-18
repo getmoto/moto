@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 import boto3
@@ -8,7 +9,7 @@ import string
 import pytz
 from datetime import datetime
 import sure  # noqa
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 from six import b
 
 DEFAULT_SECRET_NAME = 'test-secret'
@@ -38,8 +39,13 @@ def test_get_secret_value_binary():
 def test_get_secret_that_does_not_exist():
     conn = boto3.client('secretsmanager', region_name='us-west-2')
 
-    with assert_raises(ClientError):
+    with assert_raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId='i-dont-exist')
+
+    assert_equal(
+        u"Secrets Manager can\u2019t find the specified secret.",
+        cm.exception.response['Error']['Message']
+    )
 
 
 @mock_secretsmanager
@@ -48,8 +54,13 @@ def test_get_secret_that_does_not_match():
     create_secret = conn.create_secret(Name='java-util-test-password',
                                        SecretString="foosecret")
 
-    with assert_raises(ClientError):
+    with assert_raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId='i-dont-match')
+
+    assert_equal(
+        u"Secrets Manager can\u2019t find the specified secret.",
+        cm.exception.response['Error']['Message']
+    )
 
 
 @mock_secretsmanager
@@ -63,6 +74,21 @@ def test_get_secret_value_that_is_marked_deleted():
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId='test-secret')
+
+
+@mock_secretsmanager
+def test_get_secret_that_has_no_value():
+    conn = boto3.client('secretsmanager', region_name='us-west-2')
+
+    create_secret = conn.create_secret(Name="java-util-test-password")
+
+    with assert_raises(ClientError) as cm:
+        result = conn.get_secret_value(SecretId='java-util-test-password')
+
+    assert_equal(
+        u"Secrets Manager can\u2019t find the specified secret value for staging label: AWSCURRENT",
+        cm.exception.response['Error']['Message']
+    )
 
 
 @mock_secretsmanager
