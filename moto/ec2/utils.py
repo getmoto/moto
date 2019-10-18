@@ -50,7 +50,7 @@ EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items(
 
 def random_resource_id(size=8):
     chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
-    resource_id = ''.join(six.text_type(random.choice(chars)) for x in range(size))
+    resource_id = ''.join(six.text_type(random.choice(chars)) for _ in range(size))
     return resource_id
 
 
@@ -460,8 +460,8 @@ def generic_filter(filters, objects):
 
 
 def simple_aws_filter_to_re(filter_string):
-    tmp_filter = filter_string.replace('\?', '[?]')
-    tmp_filter = tmp_filter.replace('\*', '[*]')
+    tmp_filter = filter_string.replace(r'\?', '[?]')
+    tmp_filter = tmp_filter.replace(r'\*', '[*]')
     tmp_filter = fnmatch.translate(tmp_filter)
     return tmp_filter
 
@@ -491,7 +491,7 @@ def get_prefix(resource_id):
                 'network-interface-attachment']
     if resource_id_prefix not in EC2_RESOURCE_TO_PREFIX.values():
         uuid4hex = re.compile(
-            '[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z', re.I)
+            r'[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}\Z', re.I)
         if uuid4hex.match(resource_id) is not None:
             resource_id_prefix = EC2_RESOURCE_TO_PREFIX['reserved-instance']
         else:
@@ -510,7 +510,7 @@ def is_valid_resource_id(resource_id):
 
 
 def is_valid_cidr(cird):
-    cidr_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$'
+    cidr_pattern = r'^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$'
     cidr_pattern_re = re.compile(cidr_pattern)
     return cidr_pattern_re.match(cird) is not None
 
