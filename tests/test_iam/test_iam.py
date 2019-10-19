@@ -10,7 +10,6 @@ import sys
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
-from freezegun import freeze_time
 
 from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
@@ -1725,7 +1724,6 @@ def test_delete_open_id_connect_provider():
     )
 
 
-@freeze_time('2019-01-01 00:00:00')
 @mock_iam
 def test_get_open_id_connect_provider():
     client = boto3.client('iam', region_name='us-east-1')
@@ -1751,7 +1749,7 @@ def test_get_open_id_connect_provider():
     response['ClientIDList'].should.equal([
         'b'
     ])
-    response['CreateDate'].should.equal(datetime.now(tzutc()))
+    response.should.have.key('CreateDate').should.be.a(datetime)
 
 
 @mock_iam
@@ -1804,14 +1802,16 @@ def test_list_open_id_connect_providers():
 
     response = client.list_open_id_connect_providers()
 
-    response['OpenIDConnectProviderList'].should.equal([
-        {
-            'Arn': open_id_arn_1
-        },
-        {
-            'Arn': open_id_arn_2
-        },
-        {
-            'Arn': open_id_arn_3
-        }
-    ])
+    sorted(response['OpenIDConnectProviderList'], key=lambda i: i['Arn']).should.equal(
+        [
+            {
+                'Arn': open_id_arn_1
+            },
+            {
+                'Arn': open_id_arn_2
+            },
+            {
+                'Arn': open_id_arn_3
+            }
+        ]
+    )
