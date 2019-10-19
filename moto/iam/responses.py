@@ -755,6 +755,38 @@ class IamResponse(BaseResponse):
         template = self.response_template(UNTAG_ROLE_TEMPLATE)
         return template.render()
 
+    def create_open_id_connect_provider(self):
+        open_id_provider_url = self._get_param('Url')
+        thumbprint_list = self._get_multi_param('ThumbprintList.member')
+        client_id_list = self._get_multi_param('ClientIDList.member')
+
+        open_id_provider = iam_backend.create_open_id_connect_provider(open_id_provider_url, thumbprint_list, client_id_list)
+
+        template = self.response_template(CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
+        return template.render(open_id_provider=open_id_provider)
+
+    def delete_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param('OpenIDConnectProviderArn')
+
+        iam_backend.delete_open_id_connect_provider(open_id_provider_arn)
+
+        template = self.response_template(DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
+        return template.render()
+
+    def get_open_id_connect_provider(self):
+        open_id_provider_arn = self._get_param('OpenIDConnectProviderArn')
+
+        open_id_provider = iam_backend.get_open_id_connect_provider(open_id_provider_arn)
+
+        template = self.response_template(GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE)
+        return template.render(open_id_provider=open_id_provider)
+
+    def list_open_id_connect_providers(self):
+        open_id_provider_arns = iam_backend.list_open_id_connect_providers()
+
+        template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE)
+        return template.render(open_id_provider_arns=open_id_provider_arns)
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -1974,3 +2006,57 @@ UNTAG_ROLE_TEMPLATE = """<UntagRoleResponse xmlns="https://iam.amazonaws.com/doc
     <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
   </ResponseMetadata>
 </UntagRoleResponse>"""
+
+
+CREATE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<CreateOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateOpenIDConnectProviderResult>
+    <OpenIDConnectProviderArn>{{ open_id_provider.arn }}</OpenIDConnectProviderArn>
+  </CreateOpenIDConnectProviderResult>
+  <ResponseMetadata>
+    <RequestId>f248366a-4f64-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateOpenIDConnectProviderResponse>"""
+
+
+DELETE_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<DeleteOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>b5e49e29-4f64-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteOpenIDConnectProviderResponse>"""
+
+
+GET_OPEN_ID_CONNECT_PROVIDER_TEMPLATE = """<GetOpenIDConnectProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetOpenIDConnectProviderResult>
+    <ThumbprintList>
+      {% for thumbprint in open_id_provider.thumbprint_list %}
+      <member>{{ thumbprint }}</member>
+      {% endfor %}
+    </ThumbprintList>
+    <CreateDate>{{ open_id_provider.created_iso_8601 }}</CreateDate>
+    <ClientIDList>
+      {% for client_id in open_id_provider.client_id_list %}
+      <member>{{ client_id }}</member>
+      {% endfor %}
+    </ClientIDList>
+    <Url>{{ open_id_provider.url }}</Url>
+  </GetOpenIDConnectProviderResult>
+  <ResponseMetadata>
+    <RequestId>2c91531b-4f65-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetOpenIDConnectProviderResponse>"""
+
+
+LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE = """<ListOpenIDConnectProvidersResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ListOpenIDConnectProvidersResult>
+    <OpenIDConnectProviderList>
+      {% for open_id_provider_arn in open_id_provider_arns %}
+      <member>
+        <Arn>{{ open_id_provider_arn }}</Arn>
+      </member>
+      {% endfor %}
+    </OpenIDConnectProviderList>
+  </ListOpenIDConnectProvidersResult>
+  <ResponseMetadata>
+    <RequestId>de2c0228-4f63-11e4-aefa-bfd6aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListOpenIDConnectProvidersResponse>"""

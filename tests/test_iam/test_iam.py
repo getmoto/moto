@@ -9,6 +9,8 @@ import sure  # noqa
 import sys
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
+
 from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
 from nose.tools import assert_raises, assert_equals
@@ -1565,3 +1567,251 @@ def test_create_role_with_permissions_boundary():
 
     # Ensure the PermissionsBoundary is included in role listing as well
     conn.list_roles().get('Roles')[0].get('PermissionsBoundary').should.equal(expected)
+
+
+@mock_iam
+def test_create_open_id_connect_provider():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[]  # even it is required to provide at least one thumbprint, AWS accepts an empty list
+    )
+
+    response['OpenIDConnectProviderArn'].should.equal(
+        'arn:aws:iam::123456789012:oidc-provider/example.com'
+    )
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+
+    response['OpenIDConnectProviderArn'].should.equal(
+        'arn:aws:iam::123456789012:oidc-provider/example.org'
+    )
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org/oidc',
+        ThumbprintList=[]
+    )
+
+    response['OpenIDConnectProviderArn'].should.equal(
+        'arn:aws:iam::123456789012:oidc-provider/example.org/oidc'
+    )
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org/oidc-query?test=true',
+        ThumbprintList=[]
+    )
+
+    response['OpenIDConnectProviderArn'].should.equal(
+        'arn:aws:iam::123456789012:oidc-provider/example.org/oidc-query'
+    )
+
+
+@mock_iam
+def test_create_open_id_connect_provider_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[]
+    )
+
+    client.create_open_id_connect_provider.when.called_with(
+        Url='https://example.com',
+        ThumbprintList=[]
+    ).should.throw(
+        ClientError,
+        'Unknown'
+    )
+
+    client.create_open_id_connect_provider.when.called_with(
+        Url='example.org',
+        ThumbprintList=[]
+    ).should.throw(
+        ClientError,
+        'Invalid Open ID Connect Provider URL'
+    )
+
+    client.create_open_id_connect_provider.when.called_with(
+        Url='example',
+        ThumbprintList=[]
+    ).should.throw(
+        ClientError,
+        'Invalid Open ID Connect Provider URL'
+    )
+
+    client.create_open_id_connect_provider.when.called_with(
+        Url='http://example.org',
+        ThumbprintList=[
+            'a' * 40,
+            'b' * 40,
+            'c' * 40,
+            'd' * 40,
+            'e' * 40,
+            'f' * 40,
+        ]
+    ).should.throw(
+        ClientError,
+        'Thumbprint list must contain fewer than 5 entries.'
+    )
+
+    too_many_client_ids = ['{}'.format(i) for i in range(101)]
+    client.create_open_id_connect_provider.when.called_with(
+        Url='http://example.org',
+        ThumbprintList=[],
+        ClientIDList=too_many_client_ids
+    ).should.throw(
+        ClientError,
+        'Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100'
+    )
+
+    too_long_url = 'b' * 256
+    too_long_thumbprint = 'b' * 41
+    too_long_client_id = 'b' * 256
+    client.create_open_id_connect_provider.when.called_with(
+        Url=too_long_url,
+        ThumbprintList=[
+            too_long_thumbprint
+        ],
+        ClientIDList=[
+            too_long_client_id
+        ]
+    ).should.throw(
+        ClientError,
+        '3 validation errors detected: '
+        'Value "{0}" at "clientIDList" failed to satisfy constraint: '
+        'Member must satisfy constraint: '
+        '[Member must have length less than or equal to 255, '
+        'Member must have length greater than or equal to 1]; '
+        'Value "{1}" at "thumbprintList" failed to satisfy constraint: '
+        'Member must satisfy constraint: '
+        '[Member must have length less than or equal to 40, '
+        'Member must have length greater than or equal to 40]; '
+        'Value "{2}" at "url" failed to satisfy constraint: '
+        'Member must have length less than or equal to 255'.format([too_long_client_id], [too_long_thumbprint], too_long_url)
+    )
+
+
+@mock_iam
+def test_delete_open_id_connect_provider():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[]
+    )
+    open_id_arn = response['OpenIDConnectProviderArn']
+
+    client.delete_open_id_connect_provider(
+        OpenIDConnectProviderArn=open_id_arn
+    )
+
+    client.get_open_id_connect_provider.when.called_with(
+        OpenIDConnectProviderArn=open_id_arn
+    ).should.throw(
+        ClientError,
+        'OpenIDConnect Provider not found for arn {}'.format(open_id_arn)
+    )
+
+    # deleting a non existing provider should be successful
+    client.delete_open_id_connect_provider(
+        OpenIDConnectProviderArn=open_id_arn
+    )
+
+
+@mock_iam
+def test_get_open_id_connect_provider():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+    open_id_arn = response['OpenIDConnectProviderArn']
+
+    response = client.get_open_id_connect_provider(
+        OpenIDConnectProviderArn=open_id_arn
+    )
+
+    response['Url'].should.equal('example.com')
+    response['ThumbprintList'].should.equal([
+        'b' * 40
+    ])
+    response['ClientIDList'].should.equal([
+        'b'
+    ])
+    response.should.have.key('CreateDate').should.be.a(datetime)
+
+
+@mock_iam
+def test_get_open_id_connect_provider_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+    open_id_arn = response['OpenIDConnectProviderArn']
+
+    client.get_open_id_connect_provider.when.called_with(
+        OpenIDConnectProviderArn=open_id_arn + '-not-existing'
+    ).should.throw(
+        ClientError,
+        'OpenIDConnect Provider not found for arn {}'.format(open_id_arn + '-not-existing')
+    )
+
+
+@mock_iam
+def test_list_open_id_connect_providers():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_open_id_connect_provider(
+        Url='https://example.com',
+        ThumbprintList=[]
+    )
+    open_id_arn_1 = response['OpenIDConnectProviderArn']
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org',
+        ThumbprintList=[
+            'b' * 40
+        ],
+        ClientIDList=[
+            'b'
+        ]
+    )
+    open_id_arn_2 = response['OpenIDConnectProviderArn']
+
+    response = client.create_open_id_connect_provider(
+        Url='http://example.org/oidc',
+        ThumbprintList=[]
+    )
+    open_id_arn_3 = response['OpenIDConnectProviderArn']
+
+    response = client.list_open_id_connect_providers()
+
+    sorted(response['OpenIDConnectProviderList'], key=lambda i: i['Arn']).should.equal(
+        [
+            {
+                'Arn': open_id_arn_1
+            },
+            {
+                'Arn': open_id_arn_2
+            },
+            {
+                'Arn': open_id_arn_3
+            }
+        ]
+    )
