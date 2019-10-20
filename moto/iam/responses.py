@@ -598,6 +598,15 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_MFA_DEVICES_TEMPLATE)
         return template.render(user_name=user_name, devices=devices)
 
+    def create_virtual_mfa_device(self):
+        path = self._get_param('Path')
+        virtual_mfa_device_name = self._get_param('VirtualMFADeviceName')
+
+        virtual_mfa_device = iam_backend.create_virtual_mfa_device(virtual_mfa_device_name, path)
+
+        template = self.response_template(CREATE_VIRTUAL_MFA_DEVICE_TEMPLATE)
+        return template.render(device=virtual_mfa_device)
+
     def delete_user(self):
         user_name = self._get_param('UserName')
         iam_backend.delete_user(user_name)
@@ -1600,6 +1609,7 @@ CREDENTIAL_REPORT_GENERATING = """
     </ResponseMetadata>
 </GenerateCredentialReportResponse>"""
 
+
 CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
         <State>COMPLETE</State>
@@ -1608,6 +1618,7 @@ CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
     </ResponseMetadata>
 </GenerateCredentialReportResponse>"""
+
 
 CREDENTIAL_REPORT = """<GetCredentialReportResponse>
     <GetCredentialReportResult>
@@ -1619,6 +1630,7 @@ CREDENTIAL_REPORT = """<GetCredentialReportResponse>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
     </ResponseMetadata>
 </GetCredentialReportResponse>"""
+
 
 LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleResponse>
 <ListInstanceProfilesForRoleResult>
@@ -1652,6 +1664,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
 </ResponseMetadata>
 </ListInstanceProfilesForRoleResponse>"""
 
+
 LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
    <ListMFADevicesResult>
       <MFADevices>
@@ -1668,6 +1681,20 @@ LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListMFADevicesResponse>"""
+
+
+CREATE_VIRTUAL_MFA_DEVICE_TEMPLATE = """<CreateVirtualMFADeviceResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateVirtualMFADeviceResult>
+    <VirtualMFADevice>
+      <SerialNumber>{{ device.serial_number }}</SerialNumber>
+      <Base32StringSeed>{{ device.base32_string_seed }}</Base32StringSeed>
+      <QRCodePNG>{{ device.qr_code_png }}</QRCodePNG>
+    </VirtualMFADevice>
+  </CreateVirtualMFADeviceResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateVirtualMFADeviceResponse>"""
 
 
 LIST_ACCOUNT_ALIASES_TEMPLATE = """<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

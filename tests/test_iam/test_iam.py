@@ -723,6 +723,83 @@ def test_mfa_devices():
     len(response['MFADevices']).should.equal(0)
 
 
+@mock_iam
+def test_create_virtual_mfa_device():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    device = response['VirtualMFADevice']
+
+    device['SerialNumber'].should.equal('arn:aws:iam::123456789012:mfa/test-device')
+    device['Base32StringSeed'].decode('ascii').should.match('[A-Z234567]')
+    device['QRCodePNG'].should_not.be.empty
+
+    response = client.create_virtual_mfa_device(
+        Path='/',
+        VirtualMFADeviceName='test-device-2'
+    )
+    device = response['VirtualMFADevice']
+
+    device['SerialNumber'].should.equal('arn:aws:iam::123456789012:mfa/test-device-2')
+    device['Base32StringSeed'].decode('ascii').should.match('[A-Z234567]')
+    device['QRCodePNG'].should_not.be.empty
+
+    response = client.create_virtual_mfa_device(
+        Path='/test/',
+        VirtualMFADeviceName='test-device'
+    )
+    device = response['VirtualMFADevice']
+
+    device['SerialNumber'].should.equal('arn:aws:iam::123456789012:mfa/test/test-device')
+    device['Base32StringSeed'].decode('ascii').should.match('[A-Z234567]')
+    device['QRCodePNG'].should_not.be.empty
+
+
+@mock_iam
+def test_create_virtual_mfa_device_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+
+    client.create_virtual_mfa_device.when.called_with(
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        'MFADevice entity at the same path and name already exists.'
+    )
+
+    client.create_virtual_mfa_device.when.called_with(
+        Path='test',
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        'The specified value for path is invalid. '
+        'It must begin and end with / and contain only alphanumeric characters and/or / characters.'
+    )
+
+    client.create_virtual_mfa_device.when.called_with(
+        Path='/test//test/',
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        'The specified value for path is invalid. '
+        'It must begin and end with / and contain only alphanumeric characters and/or / characters.'
+    )
+
+    too_long_path = '/{}/'.format('b' * 511)
+    client.create_virtual_mfa_device.when.called_with(
+        Path=too_long_path,
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: '
+        'Value "{}" at "path" failed to satisfy constraint: '
+        'Member must have length less than or equal to 512'
+    )
+
+
 @mock_iam_deprecated()
 def test_delete_user_deprecated():
     conn = boto.connect_iam()

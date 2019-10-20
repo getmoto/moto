@@ -3163,7 +3163,7 @@
 - [ ] describe_events
 
 ## iam
-57% implemented
+59% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -3184,7 +3184,7 @@
 - [ ] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
-- [ ] create_virtual_mfa_device
+- [X] create_virtual_mfa_device
 - [X] deactivate_mfa_device
 - [X] delete_access_key
 - [X] delete_account_alias
