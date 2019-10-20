@@ -2510,13 +2510,15 @@ def test_index_with_unknown_attributes_should_fail():
 def test_update_list_index__set_existing_index():
     table_name = 'test_list_index_access'
     client = create_table_with_list(table_name)
+    client.put_item(TableName=table_name,
+                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'S': 'bar1'}, {'S': 'bar2'}, {'S': 'bar3'}]}})
     client.update_item(TableName=table_name, Key={'id': {'S': 'foo'}},
                        UpdateExpression='set itemlist[1]=:Item',
                        ExpressionAttributeValues={':Item': {'S': 'bar2_update'}})
     #
     result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo'}})['Item']
-    assert result['id'] == {'S': 'foo'}
-    assert result['itemlist'] == {'L': [{'S': 'bar1'}, {'S': 'bar2_update'}, {'S': 'bar3'}]}
+    result['id'].should.equal({'S': 'foo'})
+    result['itemlist'].should.equal({'L': [{'S': 'bar1'}, {'S': 'bar2_update'}, {'S': 'bar3'}]})
 
 
 @mock_dynamodb2
@@ -2530,14 +2532,16 @@ def test_update_list_index__set_existing_nested_index():
                        ExpressionAttributeValues={':Item': {'S': 'bar2_update'}})
     #
     result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo2'}})['Item']
-    assert result['id'] == {'S': 'foo2'}
-    assert result['itemmap']['M']['itemlist']['L'] == [{'S': 'bar1'}, {'S': 'bar2_update'}, {'S': 'bar3'}]
+    result['id'].should.equal({'S': 'foo2'})
+    result['itemmap']['M']['itemlist']['L'].should.equal([{'S': 'bar1'}, {'S': 'bar2_update'}, {'S': 'bar3'}])
 
 
 @mock_dynamodb2
 def test_update_list_index__set_index_out_of_range():
     table_name = 'test_list_index_access'
     client = create_table_with_list(table_name)
+    client.put_item(TableName=table_name,
+                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'S': 'bar1'}, {'S': 'bar2'}, {'S': 'bar3'}]}})
     client.update_item(TableName=table_name, Key={'id': {'S': 'foo'}},
                        UpdateExpression='set itemlist[10]=:Item',
                        ExpressionAttributeValues={':Item': {'S': 'bar10'}})
@@ -2579,14 +2583,28 @@ def test_update_list_index__set_index_of_a_string():
 
 
 @mock_dynamodb2
+def test_remove_top_level_attribute():
+    table_name = 'test_remove'
+    client = create_table_with_list(table_name)
+    client.put_item(TableName=table_name,
+                    Item={'id': {'S': 'foo'}, 'item': {'S': 'bar'}})
+    client.update_item(TableName=table_name, Key={'id': {'S': 'foo'}}, UpdateExpression='REMOVE item')
+    #
+    result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo'}})['Item']
+    result.should.equal({'id': {'S': 'foo'}})
+
+
+@mock_dynamodb2
 def test_remove_list_index__remove_existing_index():
     table_name = 'test_list_index_access'
     client = create_table_with_list(table_name)
+    client.put_item(TableName=table_name,
+                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'S': 'bar1'}, {'S': 'bar2'}, {'S': 'bar3'}]}})
     client.update_item(TableName=table_name, Key={'id': {'S': 'foo'}}, UpdateExpression='REMOVE itemlist[1]')
     #
     result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo'}})['Item']
-    assert result['id'] == {'S': 'foo'}
-    assert result['itemlist'] == {'L': [{'S': 'bar1'}, {'S': 'bar3'}]}
+    result['id'].should.equal({'S': 'foo'})
+    result['itemlist'].should.equal({'L': [{'S': 'bar1'}, {'S': 'bar3'}]})
 
 
 @mock_dynamodb2
@@ -2598,8 +2616,8 @@ def test_remove_list_index__remove_existing_nested_index():
     client.update_item(TableName=table_name, Key={'id': {'S': 'foo2'}}, UpdateExpression='REMOVE itemmap.itemlist[1]')
     #
     result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo2'}})['Item']
-    assert result['id'] == {'S': 'foo2'}
-    assert result['itemmap']['M']['itemlist']['L'] == [{'S': 'bar1'}]
+    result['id'].should.equal({'S': 'foo2'})
+    result['itemmap']['M']['itemlist']['L'].should.equal([{'S': 'bar1'}])
 
 
 @mock_dynamodb2
@@ -2626,6 +2644,8 @@ def test_remove_list_index__remove_existing_double_nested_index():
 def test_remove_list_index__remove_index_out_of_range():
     table_name = 'test_list_index_access'
     client = create_table_with_list(table_name)
+    client.put_item(TableName=table_name,
+                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'S': 'bar1'}, {'S': 'bar2'}, {'S': 'bar3'}]}})
     client.update_item(TableName=table_name, Key={'id': {'S': 'foo'}}, UpdateExpression='REMOVE itemlist[10]')
     #
     result = client.get_item(TableName=table_name, Key={'id': {'S': 'foo'}})['Item']
@@ -2639,8 +2659,6 @@ def create_table_with_list(table_name):
                         KeySchema=[{'AttributeName': 'id', 'KeyType': 'HASH'}],
                         AttributeDefinitions=[{'AttributeName': 'id', 'AttributeType': 'S'}],
                         BillingMode='PAY_PER_REQUEST')
-    client.put_item(TableName=table_name,
-                    Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'S': 'bar1'}, {'S': 'bar2'}, {'S': 'bar3'}]}})
     return client
 
 
