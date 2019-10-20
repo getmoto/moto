@@ -607,6 +607,14 @@ class IamResponse(BaseResponse):
         template = self.response_template(CREATE_VIRTUAL_MFA_DEVICE_TEMPLATE)
         return template.render(device=virtual_mfa_device)
 
+    def delete_virtual_mfa_device(self):
+        serial_number = self._get_param('SerialNumber')
+
+        iam_backend.delete_virtual_mfa_device(serial_number)
+
+        template = self.response_template(DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE)
+        return template.render()
+
     def delete_user(self):
         user_name = self._get_param('UserName')
         iam_backend.delete_user(user_name)
@@ -1695,6 +1703,13 @@ CREATE_VIRTUAL_MFA_DEVICE_TEMPLATE = """<CreateVirtualMFADeviceResponse xmlns="h
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </CreateVirtualMFADeviceResponse>"""
+
+
+DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE = """<DeleteVirtualMFADeviceResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteVirtualMFADeviceResponse>"""
 
 
 LIST_ACCOUNT_ALIASES_TEMPLATE = """<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

@@ -800,6 +800,32 @@ def test_create_virtual_mfa_device_errors():
     )
 
 
+@mock_iam
+def test_delete_virtual_mfa_device():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number = response['VirtualMFADevice']['SerialNumber']
+
+    client.delete_virtual_mfa_device(
+        SerialNumber=serial_number
+    )
+
+
+@mock_iam
+def test_delete_virtual_mfa_device_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+
+    serial_number = 'arn:aws:iam::123456789012:mfa/not-existing'
+    client.delete_virtual_mfa_device.when.called_with(
+        SerialNumber=serial_number
+    ).should.throw(
+        ClientError,
+        'VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number)
+    )
+
+
 @mock_iam_deprecated()
 def test_delete_user_deprecated():
     conn = boto.connect_iam()

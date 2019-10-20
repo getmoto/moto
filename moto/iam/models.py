@@ -1295,6 +1295,12 @@ class IAMBackend(BaseBackend):
         self.virtual_mfa_devices[device.serial_number] = device
         return device
 
+    def delete_virtual_mfa_device(self, serial_number):
+        device = self.virtual_mfa_devices.pop(serial_number, None)
+
+        if not device:
+            raise IAMNotFoundException('VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number))
+
     def delete_user(self, user_name):
         try:
             del self.users[user_name]

@@ -3163,7 +3163,7 @@
 - [ ] describe_events
 
 ## iam
-59% implemented
+60% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -3208,7 +3208,7 @@
 - [X] delete_user
 - [ ] delete_user_permissions_boundary
 - [X] delete_user_policy
-- [ ] delete_virtual_mfa_device
+- [X] delete_virtual_mfa_device
 - [X] detach_group_policy
 - [X] detach_role_policy
 - [X] detach_user_policy
