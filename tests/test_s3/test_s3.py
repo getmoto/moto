@@ -1248,6 +1248,54 @@ def test_website_redirect_location():
 
 
 @mock_s3
+def test_boto3_list_objects_truncated_response():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'1')
+    s3.put_object(Bucket='mybucket', Key='two', Body=b'22')
+    s3.put_object(Bucket='mybucket', Key='three', Body=b'333')
+
+    # First list
+    resp = s3.list_objects(Bucket='mybucket', MaxKeys=1)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'one'
+    assert resp['MaxKeys'] == 1
+    assert resp['IsTruncated'] == True
+    assert resp['Prefix'] == 'None'
+    assert resp['Delimiter'] == 'None'
+    assert 'NextMarker' in resp
+
+    next_marker = resp["NextMarker"]
+
+    # Second list
+    resp = s3.list_objects(
+        Bucket='mybucket', MaxKeys=1, Marker=next_marker)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'three'
+    assert resp['MaxKeys'] == 1
+    assert resp['IsTruncated'] == True
+    assert resp['Prefix'] == 'None'
+    assert resp['Delimiter'] == 'None'
+    assert 'NextMarker' in resp
+
+    next_marker = resp["NextMarker"]
+
+    # Third list
+    resp = s3.list_objects(
+        Bucket='mybucket', MaxKeys=1, Marker=next_marker)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'two'
+    assert resp['MaxKeys'] == 1
+    assert resp['IsTruncated'] == False
+    assert resp['Prefix'] == 'None'
+    assert resp['Delimiter'] == 'None'
+    assert 'NextMarker' not in resp
+
+
+@mock_s3
 def test_boto3_list_keys_xml_escaped():
     s3 = boto3.client('s3', region_name='us-east-1')
     s3.create_bucket(Bucket='mybucket')
