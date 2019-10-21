@@ -1739,11 +1739,11 @@ LIST_VIRTUAL_MFA_DEVICES_TEMPLATE = """<ListVirtualMFADevicesResponse xmlns="htt
       {% endif %}
       {% if device.user %}
       <User>
-        <Path>{{ user.path }}</Path>
-        <UserName>{{ user.name }}</UserName>
-        <UserId>{{ user.id }}</UserId>
-        <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
-        <Arn>{{ user.arn }}</Arn>
+        <Path>{{ device.user.path }}</Path>
+        <UserName>{{ device.user.name }}</UserName>
+        <UserId>{{ device.user.id }}</UserId>
+        <CreateDate>{{ device.user.created_iso_8601 }}</CreateDate>
+        <Arn>{{ device.user.arn }}</Arn>
       </User>
       {% endif %}
     </member>

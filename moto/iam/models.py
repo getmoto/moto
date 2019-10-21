@@ -1251,6 +1251,21 @@ class IAMBackend(BaseBackend):
                 "Device {0} already exists".format(serial_number)
             )
 
+        device = self.virtual_mfa_devices.get(serial_number, None)
+        if device:
+            device.enable_date = datetime.utcnow()
+            device.user = user
+            device.user_attribute = {
+                'Path': user.path,
+                'UserName': user.name,
+                'UserId': user.id,
+                'Arn': user.arn,
+                'CreateDate': user.created_iso_8601,
+                'PasswordLastUsed': None,  # not supported
+                'PermissionsBoundary': {},  # ToDo: add put_user_permissions_boundary() functionality
+                'Tags': {}  # ToDo: add tag_user() functionality
+            }
+
         user.enable_mfa_device(
             serial_number,
             authentication_code_1,
@@ -1264,6 +1279,12 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException(
                 "Device {0} not found".format(serial_number)
             )
+
+        device = self.virtual_mfa_devices.get(serial_number, None)
+        if device:
+            device.enable_date = None
+            device.user = None
+            device.user_attribute = None
 
         user.deactivate_mfa_device(serial_number)
 

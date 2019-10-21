@@ -919,6 +919,67 @@ def test_list_virtual_mfa_devices_errors():
     )
 
 
+@mock_iam
+def test_enable_virtual_mfa_device():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number = response['VirtualMFADevice']['SerialNumber']
+
+    client.create_user(UserName='test-user')
+    client.enable_mfa_device(
+        UserName='test-user',
+        SerialNumber=serial_number,
+        AuthenticationCode1='234567',
+        AuthenticationCode2='987654'
+    )
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Unassigned'
+    )
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Assigned'
+    )
+
+    device = response['VirtualMFADevices'][0]
+    device['SerialNumber'].should.equal(serial_number)
+    device['User']['Path'].should.equal('/')
+    device['User']['UserName'].should.equal('test-user')
+    device['User']['UserId'].should_not.be.empty
+    device['User']['Arn'].should.equal('arn:aws:iam::123456789012:user/test-user')
+    device['User']['CreateDate'].should.be.a(datetime)
+    device['EnableDate'].should.be.a(datetime)
+    response['IsTruncated'].should_not.be.ok
+
+    client.deactivate_mfa_device(
+        UserName='test-user',
+        SerialNumber=serial_number
+    )
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Assigned'
+    )
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus = 'Unassigned'
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+
 @mock_iam_deprecated()
 def test_delete_user_deprecated():
     conn = boto.connect_iam()
