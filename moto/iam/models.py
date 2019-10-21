@@ -53,6 +53,7 @@ class VirtualMfaDevice(object):
 
         self.enable_date = None
         self.user_attribute = None
+        self.user = None
 
     @property
     def enabled_iso_8601(self):
@@ -1300,6 +1301,31 @@ class IAMBackend(BaseBackend):
 
         if not device:
             raise IAMNotFoundException('VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number))
+
+    def list_virtual_mfa_devices(self, assignment_status, marker, max_items):
+        devices = list(self.virtual_mfa_devices.values())
+
+        if assignment_status == 'Assigned':
+            devices = [device for device in devices if device.enable_date]
+
+        if assignment_status == 'Unassigned':
+            devices = [device for device in devices if not device.enable_date]
+
+        sorted(devices, key=lambda device: device.serial_number)
+        max_items = int(max_items)
+        start_idx = int(marker) if marker else 0
+
+        if start_idx > len(devices):
+            raise ValidationError('Invalid Marker.')
+
+        devices = devices[start_idx:start_idx + max_items]
+
+        if len(devices) < max_items:
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        return devices, marker
 
     def delete_user(self, user_name):
         try:

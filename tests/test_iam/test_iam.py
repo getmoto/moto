@@ -812,6 +812,11 @@ def test_delete_virtual_mfa_device():
         SerialNumber=serial_number
     )
 
+    response = client.list_virtual_mfa_devices()
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
 
 @mock_iam
 def test_delete_virtual_mfa_device_errors():
@@ -823,6 +828,94 @@ def test_delete_virtual_mfa_device_errors():
     ).should.throw(
         ClientError,
         'VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number)
+    )
+
+
+@mock_iam
+def test_list_virtual_mfa_devices():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number_1 = response['VirtualMFADevice']['SerialNumber']
+
+    response = client.create_virtual_mfa_device(
+        Path='/test/',
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number_2 = response['VirtualMFADevice']['SerialNumber']
+
+    response = client.list_virtual_mfa_devices()
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_1
+        },
+        {
+            'SerialNumber': serial_number_2
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Assigned'
+    )
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Unassigned'
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_1
+        },
+        {
+            'SerialNumber': serial_number_2
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Any',
+        MaxItems=1
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_1
+        }
+    ])
+    response['IsTruncated'].should.be.ok
+    response['Marker'].should.equal('1')
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Any',
+        Marker=response['Marker']
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_2
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+
+@mock_iam
+def test_list_virtual_mfa_devices_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+
+    client.list_virtual_mfa_devices.when.called_with(
+        Marker='100'
+    ).should.throw(
+        ClientError,
+        'Invalid Marker.'
     )
 
 

@@ -615,6 +615,16 @@ class IamResponse(BaseResponse):
         template = self.response_template(DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE)
         return template.render()
 
+    def list_virtual_mfa_devices(self):
+        assignment_status = self._get_param('AssignmentStatus', 'Any')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems', 100)
+
+        devices, marker = iam_backend.list_virtual_mfa_devices(assignment_status, marker, max_items)
+
+        template = self.response_template(LIST_VIRTUAL_MFA_DEVICES_TEMPLATE)
+        return template.render(devices=devices, marker=marker)
+
     def delete_user(self):
         user_name = self._get_param('UserName')
         iam_backend.delete_user(user_name)
@@ -1710,6 +1720,40 @@ DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE = """<DeleteVirtualMFADeviceResponse xmlns="h
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteVirtualMFADeviceResponse>"""
+
+
+LIST_VIRTUAL_MFA_DEVICES_TEMPLATE = """<ListVirtualMFADevicesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListVirtualMFADevicesResult>
+  {% if marker is none %}
+  <IsTruncated>false</IsTruncated>
+  {% else %}
+  <IsTruncated>true</IsTruncated>
+  <Marker>{{ marker }}</Marker>
+  {% endif %}
+  <VirtualMFADevices>
+    {% for device in devices %}
+    <member>
+      <SerialNumber>{{ device.serial_number }}</SerialNumber>
+      {% if device.enable_date %}
+      <EnableDate>{{ device.enabled_iso_8601 }}</EnableDate>
+      {% endif %}
+      {% if device.user %}
+      <User>
+        <Path>{{ user.path }}</Path>
+        <UserName>{{ user.name }}</UserName>
+        <UserId>{{ user.id }}</UserId>
+        <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+        <Arn>{{ user.arn }}</Arn>
+      </User>
+      {% endif %}
+    </member>
+    {% endfor %}
+  </VirtualMFADevices>
+</ListVirtualMFADevicesResult>
+<ResponseMetadata>
+  <RequestId>b61ce1b1-0401-11e1-b2f8-2dEXAMPLEbfc</RequestId>
+</ResponseMetadata>
+</ListVirtualMFADevicesResponse>"""
 
 
 LIST_ACCOUNT_ALIASES_TEMPLATE = """<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
