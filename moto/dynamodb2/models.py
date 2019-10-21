@@ -34,6 +34,18 @@ def bytesize(val):
     return len(str(val).encode('utf-8'))
 
 
+def attribute_is_list(attr):
+    """
+    Checks if attribute denotes a list, and returns the regular expression if so
+    :param attr: attr or attr[index]
+    :return: attr, re or None
+    """
+    list_index_update = re.match('(.+)\\[([0-9]+)\\]', attr)
+    if list_index_update:
+        attr = list_index_update.group(1)
+    return attr, list_index_update.group(2) if list_index_update else None
+
+
 class DynamoType(object):
     """
     http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModelDataTypes
@@ -51,51 +63,47 @@ class DynamoType(object):
         elif self.is_map():
             self.value = dict((k, DynamoType(v)) for k, v in self.value.items())
 
-    def set(self, key, new_value):
-        attr = key.split('.').pop(0)
-        list_index_update = re.match('(.+)\\[([0-9]+)\\]', attr)
-        if list_index_update:
-            attr = list_index_update.group(1)
-        if not key:
-            self.value = new_value.value
-        elif '.' in key:
-            if attr not in self.value:
-                self.value[attr] = DynamoType({'M': {}})
-            self.value[attr].set('.'.join(key.split('.')[1:]), new_value)
-        elif list_index_update:
-            self.value[attr].set_index(key, new_value, int(list_index_update.group(2)))
+    def set(self, key, new_value, index=None):
+        if index:
+            index = int(index)
+            if type(self.value) is not list:
+                raise InvalidUpdateExpression
+            if index >= len(self.value):
+                self.value.append(new_value)
+            # {'L': [DynamoType, ..]} ==> DynamoType.set()
+            self.value[min(index, len(self.value) - 1)].set(key, new_value)
         else:
-            if attr not in self.value:
-                self.value[attr] = DynamoType({new_value.type: {}})
-            self.value[attr].set('', new_value)
+            attr = (key or '').split('.').pop(0)
+            attr, list_index = attribute_is_list(attr)
+            if not key:
+                # {'S': value} ==> {'S': new_value}
+                self.value = new_value.value
+            else:
+                if attr not in self.value:  # nonexistingattribute
+                    type_of_new_attr = 'M' if '.' in key else new_value.type
+                    self.value[attr] = DynamoType({type_of_new_attr: {}})
+                # {'M': {'foo': DynamoType}} ==> DynamoType.set(new_value)
+                self.value[attr].set('.'.join(key.split('.')[1:]), new_value, list_index)
 
-    def set_index(self, key, value, index):
-        index = int(index)
-        if type(self.value) is not list:
-            raise InvalidUpdateExpression
-        if index >= len(self.value):
-            self.value.append(value)
-        self.value[min(index, len(self.value)-1)].set('.'.join(key.split('.')[1:]), value)
-
-    def delete(self, key):
-        list_index_update = re.match('(.+)\\[([0-9]+)\\]', key.split('.')[0])
-        attr = list_index_update.group(1) if list_index_update else key.split('.')[0]
-
-        if list_index_update:
-            self.value[attr].delete_index('.'.join(key.split('.')[1:]), list_index_update.group(2))
-        elif '.' in key:
-            self.value[attr].delete('.'.join(key.split('.')[1:]))
+    def delete(self, key, index=None):
+        if index:
+            if not key:
+                if int(index) < len(self.value):
+                    del self.value[int(index)]
+            elif '.' in key:
+                self.value[int(index)].delete('.'.join(key.split('.')[1:]))
+            else:
+                self.value[int(index)].delete(key)
         else:
-            self.value.pop(key)
+            attr = key.split('.')[0]
+            attr, list_index = attribute_is_list(attr)
 
-    def delete_index(self, key, index):
-        if not key:
-            if int(index) < len(self.value):
-                del self.value[int(index)]
-        elif '.' in key:
-            self.value[int(index)].delete('.'.join(key.split('.')[1:]))
-        else:
-            self.value[int(index)].delete(key)
+            if list_index:
+                self.value[attr].delete('.'.join(key.split('.')[1:]), list_index)
+            elif '.' in key:
+                self.value[attr].delete('.'.join(key.split('.')[1:]))
+            else:
+                self.value.pop(key)
 
     def __hash__(self):
         return hash((self.type, self.value))
@@ -152,7 +160,7 @@ class DynamoType(object):
 
         if isinstance(key, int) and self.is_list():
             idx = key
-            if idx >= 0 and idx < len(self.value):
+            if 0 <= idx < len(self.value):
                 return DynamoType(self.value[idx])
 
         return None
@@ -274,14 +282,11 @@ class Item(BaseModel):
 
                 if action == "REMOVE":
                     key = value
-                    attr = key.split('.')[0]
-                    list_index_update = re.match('(.+)\\[([0-9]+)\\]', attr)
-                    if list_index_update:
-                        attr = list_index_update.group(1)
+                    attr, list_index = attribute_is_list(key.split('.')[0])
                     if '.' not in key:
-                        if list_index_update:
+                        if list_index:
                             new_list = DynamoType(self.attrs[attr])
-                            new_list.delete_index(None, list_index_update.group(2))
+                            new_list.delete(None, list_index)
                             self.attrs[attr] = new_list
                         else:
                             self.attrs.pop(value, None)
@@ -293,18 +298,10 @@ class Item(BaseModel):
                     key = key.strip()
                     value = value.strip()
 
-                    # If not exists, changes value to a default if needed, else its the same as it was
-                    if value.startswith('if_not_exists'):
-                        # Function signature
-                        match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
-                        if not match:
-                            raise TypeError
-
-                        path, value = match.groups()
-
-                        # If it already exists, get its value so we dont overwrite it
-                        if path in self.attrs:
-                            value = self.attrs[path]
+                    # check whether key is a list
+                    attr, list_index = attribute_is_list(key.split('.')[0])
+                    # If value not exists, changes value to a default if needed, else its the same as it was
+                    value = self._get_default(value)
 
                     if type(value) != DynamoType:
                         if value in expression_attribute_values:
@@ -314,19 +311,12 @@ class Item(BaseModel):
                     else:
                         dyn_value = value
 
-                    attr = key.split('.')[0]
-                    list_index_update = re.match('(.+)\\[([0-9]+)\\]', attr)
-                    if list_index_update:
-                        attr = list_index_update.group(1)
-
                     if '.' in key and attr not in self.attrs:
                         raise ValueError  # Setting nested attr not allowed if first attr does not exist yet
                     elif attr not in self.attrs:
                         self.attrs[attr] = dyn_value  # set new top-level attribute
-                    elif list_index_update:
-                        self.attrs[attr].set_index('.'.join(key.split('.')[1:]), dyn_value, list_index_update.group(2))
                     else:
-                        self.attrs[attr].set('.'.join(key.split('.')[1:]), dyn_value)  # set value recursively
+                        self.attrs[attr].set('.'.join(key.split('.')[1:]), dyn_value, list_index)  # set value recursively
 
                 elif action == 'ADD':
                     key, value = value.split(" ", 1)
@@ -379,6 +369,20 @@ class Item(BaseModel):
                         self.attrs[key] = DynamoType({existing.type: list(new_set)})
                 else:
                     raise NotImplementedError('{} update action not yet supported'.format(action))
+
+    def _get_default(self, value):
+        if value.startswith('if_not_exists'):
+            # Function signature
+            match = re.match(r'.*if_not_exists\s*\((?P<path>.+),\s*(?P<default>.+)\).*', value)
+            if not match:
+                raise TypeError
+
+            path, value = match.groups()
+
+            # If it already exists, get its value so we dont overwrite it
+            if path in self.attrs:
+                value = self.attrs[path]
+        return value
 
     def update_with_attribute_updates(self, attribute_updates):
         for attribute_name, update_action in attribute_updates.items():
