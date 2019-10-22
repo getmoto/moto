@@ -769,10 +769,10 @@ def test_get_function_created_with_zipfile():
 
 
 @mock_lambda
-def add_function_permission():
+def test_add_function_permission():
     conn = boto3.client('lambda', 'us-west-2')
     zip_content = get_test_zip_file1()
-    result = conn.create_function(
+    conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
@@ -796,16 +796,16 @@ def add_function_permission():
         EventSourceToken='blah',
         Qualifier='2'
     )
-    assert 'Statement' in response
-    res = json.loads(response['Statement'])
-    assert res['Action'] == "lambda:InvokeFunction"
+    assert u'Statement' in response
+    res = json.loads(response[u'Statement'])
+    assert res[u'Action'] == u'lambda:InvokeFunction'
 
 
 @mock_lambda
-def get_function_policy():
+def test_get_function_policy():
     conn = boto3.client('lambda', 'us-west-2')
     zip_content = get_test_zip_file1()
-    result = conn.create_function(
+    conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
@@ -834,10 +834,9 @@ def get_function_policy():
         FunctionName='testFunction'
     )
 
-    assert 'Policy' in response
-    assert isinstance(response['Policy'], str)
-    res = json.loads(response['Policy'])
-    assert res['Statement'][0]['Action'] == 'lambda:InvokeFunction'
+    assert u'Policy' in response
+    res = json.loads(response[u'Policy'])
+    assert res[u'Statement'][0][u'Action'] == u'lambda:InvokeFunction'
 
 
 @mock_lambda
