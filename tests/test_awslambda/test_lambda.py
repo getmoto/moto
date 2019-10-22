@@ -415,7 +415,6 @@ def test_get_function():
         conn.get_function(FunctionName='junk', Qualifier='$LATEST')
 
 
-
 @mock_lambda
 @mock_s3
 def test_delete_function():
@@ -449,6 +448,36 @@ def test_delete_function():
 
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(0)
+
+
+@mock_lambda
+@mock_s3
+def test_delete_function_by_arn():
+    bucket_name = 'test-bucket'
+    s3_conn = boto3.client('s3', 'us-east-1')
+    s3_conn.create_bucket(Bucket=bucket_name)
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket=bucket_name, Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-east-1')
+
+    fnc = conn.create_function(FunctionName='testFunction',
+                               Runtime='python2.7', Role='test-iam-role',
+                               Handler='lambda_function.lambda_handler',
+                               Code={'S3Bucket': bucket_name, 'S3Key': 'test.zip'},
+                               Description='test lambda function',
+                               Timeout=3, MemorySize=128, Publish=True)
+
+    conn.delete_function(FunctionName=fnc['FunctionArn'])
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(0)
+
+
+@mock_lambda
+def test_delete_unknown_function():
+    conn = boto3.client('lambda', 'us-west-2')
     conn.delete_function.when.called_with(
         FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
 

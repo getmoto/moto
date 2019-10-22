@@ -9,7 +9,7 @@ response = LambdaResponse()
 
 url_paths = {
     '{0}/(?P<api_version>[^/]+)/functions/?$': response.root,
-    r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/?$': response.function,
+    r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/?$': response.function,
     r'{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_-]+)/versions/?$': response.versions,
     r'{0}/(?P<api_version>[^/]+)/event-source-mappings/?$': response.event_source_mappings,
     r'{0}/(?P<api_version>[^/]+)/event-source-mappings/(?P<UUID>[\w_-]+)/?$': response.event_source_mapping,
