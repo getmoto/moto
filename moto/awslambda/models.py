@@ -645,8 +645,10 @@ class LambdaStorage(object):
         self._arns[fn.function_arn] = fn
         return fn
 
-    def del_function(self, name, qualifier=None):
-        if name in self._functions:
+    def del_function(self, name_or_arn, qualifier=None):
+        function = self.get_function_by_name_or_arn(name_or_arn)
+        if function:
+            name = function.function_name
             if not qualifier:
                 # Something is still reffing this so delete all arns
                 latest = self._functions[name]['latest'].function_arn
