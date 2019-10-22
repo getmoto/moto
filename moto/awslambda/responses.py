@@ -117,6 +117,7 @@ class LambdaResponse(BaseResponse):
             raise ValueError("Cannot handle {0} request".format(request.method))
 
     def policy(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
         if request.method == 'GET':
             return self._get_policy(request, full_url, headers)
         if request.method == 'POST':
@@ -140,7 +141,7 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, 'path') else path_url(request.url)
         function_name = path.split('/')[-2]
         if self.lambda_backend.get_function(function_name):
-            policy = request.body.decode('utf8')
+            policy = self.body
             self.lambda_backend.add_policy(function_name, policy)
             return 200, {}, json.dumps(dict(Statement=policy))
         else:

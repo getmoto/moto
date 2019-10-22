@@ -763,11 +763,25 @@ class IAMBackend(BaseBackend):
         raise IAMNotFoundException("Role {0} not found".format(arn))
 
     def delete_role(self, role_name):
-        for role in self.get_roles():
-            if role.name == role_name:
-                del self.roles[role.id]
-                return
-        raise IAMNotFoundException("Role {0} not found".format(role_name))
+        role = self.get_role(role_name)
+        for instance_profile in self.get_instance_profiles():
+            for role in instance_profile.roles:
+                if role.name == role_name:
+                    raise IAMConflictException(
+                        code="DeleteConflict",
+                        message="Cannot delete entity, must remove roles from instance profile first."
+                    )
+        if role.managed_policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must detach all policies first."
+            )
+        if role.policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must delete policies first."
+            )
+        del self.roles[role.id]
 
     def get_roles(self):
         return self.roles.values()
@@ -1349,10 +1363,18 @@ class IAMBackend(BaseBackend):
         return devices, marker
 
     def delete_user(self, user_name):
-        try:
-            del self.users[user_name]
-        except KeyError:
-            raise IAMNotFoundException("User {0} not found".format(user_name))
+        user = self.get_user(user_name)
+        if user.managed_policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must detach all policies first."
+            )
+        if user.policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must delete policies first."
+            )
+        del self.users[user_name]
 
     def report_generated(self):
         return self.credential_report
