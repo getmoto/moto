@@ -3244,7 +3244,7 @@
 - [ ] describe_events
 
 ## iam
-58% implemented
+61% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -3265,7 +3265,7 @@
 - [ ] create_service_linked_role
 - [ ] create_service_specific_credential
 - [X] create_user
-- [ ] create_virtual_mfa_device
+- [X] create_virtual_mfa_device
 - [X] deactivate_mfa_device
 - [X] delete_access_key
 - [X] delete_account_alias
@@ -3289,7 +3289,7 @@
 - [X] delete_user
 - [ ] delete_user_permissions_boundary
 - [X] delete_user_policy
-- [ ] delete_virtual_mfa_device
+- [X] delete_virtual_mfa_device
 - [X] detach_group_policy
 - [X] detach_role_policy
 - [X] detach_user_policy
@@ -3349,7 +3349,7 @@
 - [X] list_user_policies
 - [ ] list_user_tags
 - [X] list_users
-- [ ] list_virtual_mfa_devices
+- [X] list_virtual_mfa_devices
 - [X] put_group_policy
 - [ ] put_role_permissions_boundary
 - [X] put_role_policy

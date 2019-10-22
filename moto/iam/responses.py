@@ -598,6 +598,33 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_MFA_DEVICES_TEMPLATE)
         return template.render(user_name=user_name, devices=devices)
 
+    def create_virtual_mfa_device(self):
+        path = self._get_param('Path')
+        virtual_mfa_device_name = self._get_param('VirtualMFADeviceName')
+
+        virtual_mfa_device = iam_backend.create_virtual_mfa_device(virtual_mfa_device_name, path)
+
+        template = self.response_template(CREATE_VIRTUAL_MFA_DEVICE_TEMPLATE)
+        return template.render(device=virtual_mfa_device)
+
+    def delete_virtual_mfa_device(self):
+        serial_number = self._get_param('SerialNumber')
+
+        iam_backend.delete_virtual_mfa_device(serial_number)
+
+        template = self.response_template(DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE)
+        return template.render()
+
+    def list_virtual_mfa_devices(self):
+        assignment_status = self._get_param('AssignmentStatus', 'Any')
+        marker = self._get_param('Marker')
+        max_items = self._get_param('MaxItems', 100)
+
+        devices, marker = iam_backend.list_virtual_mfa_devices(assignment_status, marker, max_items)
+
+        template = self.response_template(LIST_VIRTUAL_MFA_DEVICES_TEMPLATE)
+        return template.render(devices=devices, marker=marker)
+
     def delete_user(self):
         user_name = self._get_param('UserName')
         iam_backend.delete_user(user_name)
@@ -1600,6 +1627,7 @@ CREDENTIAL_REPORT_GENERATING = """
     </ResponseMetadata>
 </GenerateCredentialReportResponse>"""
 
+
 CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
         <State>COMPLETE</State>
@@ -1608,6 +1636,7 @@ CREDENTIAL_REPORT_GENERATED = """<GenerateCredentialReportResponse>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
     </ResponseMetadata>
 </GenerateCredentialReportResponse>"""
+
 
 CREDENTIAL_REPORT = """<GetCredentialReportResponse>
     <GetCredentialReportResult>
@@ -1619,6 +1648,7 @@ CREDENTIAL_REPORT = """<GetCredentialReportResponse>
         <RequestId>fa788a82-aa8a-11e4-a278-1786c418872b"</RequestId>
     </ResponseMetadata>
 </GetCredentialReportResponse>"""
+
 
 LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleResponse>
 <ListInstanceProfilesForRoleResult>
@@ -1652,6 +1682,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
 </ResponseMetadata>
 </ListInstanceProfilesForRoleResponse>"""
 
+
 LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
    <ListMFADevicesResult>
       <MFADevices>
@@ -1668,6 +1699,61 @@ LIST_MFA_DEVICES_TEMPLATE = """<ListMFADevicesResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListMFADevicesResponse>"""
+
+
+CREATE_VIRTUAL_MFA_DEVICE_TEMPLATE = """<CreateVirtualMFADeviceResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <CreateVirtualMFADeviceResult>
+    <VirtualMFADevice>
+      <SerialNumber>{{ device.serial_number }}</SerialNumber>
+      <Base32StringSeed>{{ device.base32_string_seed }}</Base32StringSeed>
+      <QRCodePNG>{{ device.qr_code_png }}</QRCodePNG>
+    </VirtualMFADevice>
+  </CreateVirtualMFADeviceResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateVirtualMFADeviceResponse>"""
+
+
+DELETE_VIRTUAL_MFA_DEVICE_TEMPLATE = """<DeleteVirtualMFADeviceResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteVirtualMFADeviceResponse>"""
+
+
+LIST_VIRTUAL_MFA_DEVICES_TEMPLATE = """<ListVirtualMFADevicesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListVirtualMFADevicesResult>
+  {% if marker is none %}
+  <IsTruncated>false</IsTruncated>
+  {% else %}
+  <IsTruncated>true</IsTruncated>
+  <Marker>{{ marker }}</Marker>
+  {% endif %}
+  <VirtualMFADevices>
+    {% for device in devices %}
+    <member>
+      <SerialNumber>{{ device.serial_number }}</SerialNumber>
+      {% if device.enable_date %}
+      <EnableDate>{{ device.enabled_iso_8601 }}</EnableDate>
+      {% endif %}
+      {% if device.user %}
+      <User>
+        <Path>{{ device.user.path }}</Path>
+        <UserName>{{ device.user.name }}</UserName>
+        <UserId>{{ device.user.id }}</UserId>
+        <CreateDate>{{ device.user.created_iso_8601 }}</CreateDate>
+        <Arn>{{ device.user.arn }}</Arn>
+      </User>
+      {% endif %}
+    </member>
+    {% endfor %}
+  </VirtualMFADevices>
+</ListVirtualMFADevicesResult>
+<ResponseMetadata>
+  <RequestId>b61ce1b1-0401-11e1-b2f8-2dEXAMPLEbfc</RequestId>
+</ResponseMetadata>
+</ListVirtualMFADevicesResponse>"""
 
 
 LIST_ACCOUNT_ALIASES_TEMPLATE = """<ListAccountAliasesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">

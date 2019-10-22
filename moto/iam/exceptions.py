@@ -98,9 +98,9 @@ class TooManyTags(RESTError):
 class EntityAlreadyExists(RESTError):
     code = 409
 
-    def __init__(self):
+    def __init__(self, message):
         super(EntityAlreadyExists, self).__init__(
-            'EntityAlreadyExists', "Unknown")
+            'EntityAlreadyExists', message)
 
 
 class ValidationError(RESTError):
