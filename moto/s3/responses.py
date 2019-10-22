@@ -413,7 +413,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if marker:
             result_keys = self._get_results_from_token(result_keys, marker)
 
-        result_keys, is_truncated, _ = self._truncate_result(result_keys, max_keys)
+        result_keys, is_truncated, next_marker = self._truncate_result(result_keys, max_keys)
 
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
         return 200, {}, template.render(
@@ -423,6 +423,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             result_keys=result_keys,
             result_folders=result_folders,
             is_truncated=is_truncated,
+            next_marker=next_marker,
             max_keys=max_keys
         )
 
@@ -1327,6 +1328,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <MaxKeys>{{ max_keys }}</MaxKeys>
   <Delimiter>{{ delimiter }}</Delimiter>
   <IsTruncated>{{ is_truncated }}</IsTruncated>
+  {% if next_marker %}
+    <NextMarker>{{ next_marker }}</NextMarker>
+  {% endif %}
   {% for key in result_keys %}
     <Contents>
       <Key>{{ key.name }}</Key>
