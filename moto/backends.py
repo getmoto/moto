@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from moto.acm import acm_backends
 from moto.apigateway import apigateway_backends
+from moto.athena import athena_backends
 from moto.autoscaling import autoscaling_backends
 from moto.awslambda import lambda_backends
 from moto.cloudformation import cloudformation_backends
@@ -35,8 +36,8 @@ from moto.redshift import redshift_backends
 from moto.resourcegroups import resourcegroups_backends
 from moto.route53 import route53_backends
 from moto.s3 import s3_backends
-from moto.ses import ses_backends
 from moto.secretsmanager import secretsmanager_backends
+from moto.ses import ses_backends
 from moto.sns import sns_backends
 from moto.sqs import sqs_backends
 from moto.ssm import ssm_backends
@@ -53,6 +54,7 @@ from moto.config import config_backends
 BACKENDS = {
     'acm': acm_backends,
     'apigateway': apigateway_backends,
+    'athena': athena_backends,
     'autoscaling': autoscaling_backends,
     'batch': batch_backends,
     'cloudformation': cloudformation_backends,
