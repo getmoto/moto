@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 import datetime
 import os
+import sys
+
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
@@ -1216,11 +1218,6 @@ def test_key_with_trailing_slash_in_ordinary_calling_format():
     key.set_contents_from_string('some value')
 
     [k.name for k in bucket.get_all_keys()].should.contain(key_name)
-
-
-"""
-boto3
-"""
 
 
 @mock_s3
@@ -3647,6 +3644,24 @@ def test_s3_config_dict():
     s3_config_query.backends['global'].set_bucket_acl('logbucket', log_acls)
     s3_config_query.backends['global'].put_bucket_logging('bucket1', {'TargetBucket': 'logbucket', 'TargetPrefix': ''})
 
+    policy = json.dumps({
+        'Statement': [
+            {
+                "Effect": "Deny",
+                "Action": "s3:DeleteObject",
+                "Principal": "*",
+                "Resource": "arn:aws:s3:::bucket1/*"
+            }
+        ]
+    })
+
+    # The policy is a byte array -- need to encode in Python 3 -- for Python 2 just pass the raw string in:
+    if sys.version_info[0] > 2:
+        pass_policy = bytes(policy, 'utf-8')
+    else:
+        pass_policy = policy
+    s3_config_query.backends['global'].set_bucket_policy('bucket1', pass_policy)
+
     # Get the us-west-2 bucket and verify that it works properly:
     bucket1_result = s3_config_query.get_config_resource('bucket1')
 
@@ -3666,7 +3681,7 @@ def test_s3_config_dict():
         {'destinationBucketName': 'logbucket', 'logFilePrefix': ''}
 
     # Verify the policy:
-    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketPolicy']) == {'policyText': None}
+    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketPolicy']) == {'policyText': policy}
 
     # Filter by correct region:
     assert bucket1_result == s3_config_query.get_config_resource('bucket1', resource_region='us-west-2')
@@ -3679,3 +3694,7 @@ def test_s3_config_dict():
 
     # With an incorrect resource name:
     assert not s3_config_query.get_config_resource('bucket1', resource_name='eu-bucket-1')
+
+    # Verify that no bucket policy returns the proper value:
+    assert json.loads(s3_config_query.get_config_resource('logbucket')['supplementaryConfiguration']['BucketPolicy']) == \
+        {'policyText': None}
