@@ -1107,7 +1107,7 @@ class S3Backend(BaseBackend):
                         key = key_version
                         break
 
-            if part_number and key.multipart:
+            if part_number and key and key.multipart:
                 key = key.multipart.parts[part_number]
 
         if isinstance(key, FakeKey):
@@ -1115,8 +1115,8 @@ class S3Backend(BaseBackend):
         else:
             return None
 
-    def set_key_tagging(self, bucket_name, key_name, tagging):
-        key = self.get_key(bucket_name, key_name)
+    def set_key_tagging(self, bucket_name, key_name, tagging, version_id=None):
+        key = self.get_key(bucket_name, key_name, version_id)
         if key is None:
             raise MissingKey(key_name)
         key.set_tagging(tagging)

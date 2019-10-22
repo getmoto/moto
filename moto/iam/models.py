@@ -7,6 +7,7 @@ import re
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+from six.moves.urllib.parse import urlparse
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
@@ -14,8 +15,9 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_dat
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, IAMLimitExceededException, \
-    MalformedCertificate, DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig
+from .exceptions import (IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, IAMLimitExceededException,
+                         MalformedCertificate, DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig,
+                         EntityAlreadyExists, ValidationError, InvalidInput)
 from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
 
 ACCOUNT_ID = 123456789012
@@ -91,6 +93,82 @@ class SAMLProvider(BaseModel):
     @property
     def arn(self):
         return "arn:aws:iam::{0}:saml-provider/{1}".format(ACCOUNT_ID, self.name)
+
+
+class OpenIDConnectProvider(BaseModel):
+    def __init__(self, url, thumbprint_list, client_id_list=None):
+        self._errors = []
+        self._validate(url, thumbprint_list, client_id_list)
+
+        parsed_url = urlparse(url)
+        self.url = parsed_url.netloc + parsed_url.path
+        self.thumbprint_list = thumbprint_list
+        self.client_id_list = client_id_list
+        self.create_date = datetime.utcnow()
+
+    @property
+    def arn(self):
+        return 'arn:aws:iam::{0}:oidc-provider/{1}'.format(ACCOUNT_ID, self.url)
+
+    @property
+    def created_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.create_date)
+
+    def _validate(self, url, thumbprint_list, client_id_list):
+        if any(len(client_id) > 255 for client_id in client_id_list):
+            self._errors.append(self._format_error(
+                key='clientIDList',
+                value=client_id_list,
+                constraint='Member must satisfy constraint: '
+                           '[Member must have length less than or equal to 255, '
+                           'Member must have length greater than or equal to 1]',
+            ))
+
+        if any(len(thumbprint) > 40 for thumbprint in thumbprint_list):
+            self._errors.append(self._format_error(
+                key='thumbprintList',
+                value=thumbprint_list,
+                constraint='Member must satisfy constraint: '
+                           '[Member must have length less than or equal to 40, '
+                           'Member must have length greater than or equal to 40]',
+            ))
+
+        if len(url) > 255:
+            self._errors.append(self._format_error(
+                key='url',
+                value=url,
+                constraint='Member must have length less than or equal to 255',
+            ))
+
+        self._raise_errors()
+
+        parsed_url = urlparse(url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            raise ValidationError('Invalid Open ID Connect Provider URL')
+
+        if len(thumbprint_list) > 5:
+            raise InvalidInput('Thumbprint list must contain fewer than 5 entries.')
+
+        if len(client_id_list) > 100:
+            raise IAMLimitExceededException('Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100')
+
+    def _format_error(self, key, value, constraint):
+        return 'Value "{value}" at "{key}" failed to satisfy constraint: {constraint}'.format(
+            constraint=constraint,
+            key=key,
+            value=value,
+        )
+
+    def _raise_errors(self):
+        if self._errors:
+            count = len(self._errors)
+            plural = "s" if len(self._errors) > 1 else ""
+            errors = "; ".join(self._errors)
+            self._errors = []  # reset collected errors
+
+            raise ValidationError('{count} validation error{plural} detected: {errors}'.format(
+                count=count, plural=plural, errors=errors,
+            ))
 
 
 class PolicyVersion(object):
@@ -515,6 +593,7 @@ class IAMBackend(BaseBackend):
         self.managed_policies = self._init_managed_policies()
         self.account_aliases = []
         self.saml_providers = {}
+        self.open_id_providers = {}
         self.policy_arn_regex = re.compile(
             r'^arn:aws:iam::[0-9]*:policy/.*$')
         super(IAMBackend, self).__init__()
@@ -1099,6 +1178,9 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         user.delete_policy(policy_name)
 
+    def delete_policy(self, policy_arn):
+        del self.managed_policies[policy_arn]
+
     def create_access_key(self, user_name=None):
         user = self.get_user(user_name)
         key = user.create_access_key()
@@ -1260,6 +1342,29 @@ class IAMBackend(BaseBackend):
                 if access_key.access_key_id == access_key_id:
                     return user
         return None
+
+    def create_open_id_connect_provider(self, url, thumbprint_list, client_id_list):
+        open_id_provider = OpenIDConnectProvider(url, thumbprint_list, client_id_list)
+
+        if open_id_provider.arn in self.open_id_providers:
+            raise EntityAlreadyExists
+
+        self.open_id_providers[open_id_provider.arn] = open_id_provider
+        return open_id_provider
+
+    def delete_open_id_connect_provider(self, arn):
+        self.open_id_providers.pop(arn, None)
+
+    def get_open_id_connect_provider(self, arn):
+        open_id_provider = self.open_id_providers.get(arn)
+
+        if not open_id_provider:
+            raise IAMNotFoundException('OpenIDConnect Provider not found for arn {}'.format(arn))
+
+        return open_id_provider
+
+    def list_open_id_connect_providers(self):
+        return list(self.open_id_providers.keys())
 
 
 iam_backend = IAMBackend()

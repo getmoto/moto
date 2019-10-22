@@ -883,6 +883,127 @@ def test_delete_message_after_visibility_timeout():
 
 
 @mock_sqs
+def test_send_message_batch_errors():
+    client = boto3.client('sqs', region_name = 'us-east-1')
+
+    response = client.create_queue(QueueName='test-queue-with-tags')
+    queue_url = response['QueueUrl']
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+        Entries=[
+            {
+                'Id': 'id_1',
+                'MessageBody': 'body_1'
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=[]
+    ).should.throw(
+        ClientError,
+        'There should be at least one SendMessageBatchRequestEntry in the request.'
+    )
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                'Id': '',
+                'MessageBody': 'body_1'
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'A batch entry id can only contain alphanumeric characters, '
+        'hyphens and underscores. It can be at most 80 letters long.'
+    )
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                'Id': '.!@#$%^&*()+=',
+                'MessageBody': 'body_1'
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'A batch entry id can only contain alphanumeric characters, '
+        'hyphens and underscores. It can be at most 80 letters long.'
+    )
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                'Id': 'i' * 81,
+                'MessageBody': 'body_1'
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'A batch entry id can only contain alphanumeric characters, '
+        'hyphens and underscores. It can be at most 80 letters long.'
+    )
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                'Id': 'id_1',
+                'MessageBody': 'b' * 262145
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'Batch requests cannot be longer than 262144 bytes. '
+        'You have sent 262145 bytes.'
+    )
+
+    # only the first duplicated Id is reported
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                'Id': 'id_1',
+                'MessageBody': 'body_1'
+            },
+            {
+                'Id': 'id_2',
+                'MessageBody': 'body_2'
+            },
+            {
+                'Id': 'id_2',
+                'MessageBody': 'body_2'
+            },
+            {
+                'Id': 'id_1',
+                'MessageBody': 'body_1'
+            }
+        ]
+    ).should.throw(
+        ClientError,
+        'Id id_2 repeated.'
+    )
+
+    entries = [{'Id': 'id_{}'.format(i), 'MessageBody': 'body_{}'.format(i)} for i in range(11)]
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url,
+        Entries=entries
+    ).should.throw(
+        ClientError,
+        'Maximum number of entries per request are 10. '
+        'You have sent 11.'
+    )
+
+
+@mock_sqs
 def test_batch_change_message_visibility():
     if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
         raise SkipTest('Cant manipulate time in server mode')
@@ -988,6 +1109,73 @@ def test_tags():
 
 
 @mock_sqs
+def test_list_queue_tags_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(
+        QueueName='test-queue-with-tags',
+        tags={
+            'tag_key_1': 'tag_value_X'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.list_queue_tags.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+
+@mock_sqs
+def test_tag_queue_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(
+        QueueName='test-queue-with-tags',
+        tags={
+            'tag_key_1': 'tag_value_X'
+        }
+    )
+    queue_url = response['QueueUrl']
+
+    client.tag_queue.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+        Tags={
+            'tag_key_1': 'tag_value_1'
+        }
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+    client.tag_queue.when.called_with(
+        QueueUrl=queue_url,
+        Tags={}
+    ).should.throw(
+        ClientError,
+        'The request must contain the parameter Tags.'
+    )
+
+    too_many_tags = {'tag_key_{}'.format(i): 'tag_value_{}'.format(i) for i in range(51)}
+    client.tag_queue.when.called_with(
+        QueueUrl=queue_url,
+        Tags=too_many_tags
+    ).should.throw(
+        ClientError,
+        'Too many tags added for queue test-queue-with-tags.'
+    )
+
+    # when the request fails, the tags should not be updated
+    client.list_queue_tags(QueueUrl=queue_url)['Tags'].should.equal(
+        {
+            'tag_key_1': 'tag_value_X'
+        }
+    )
+
+
+@mock_sqs
 def test_untag_queue_errors():
     client = boto3.client('sqs', region_name='us-east-1')
 
@@ -1006,7 +1194,7 @@ def test_untag_queue_errors():
         ]
     ).should.throw(
         ClientError,
-        "The specified queue does not exist for this wsdl version."
+        'The specified queue does not exist for this wsdl version.'
     )
 
     client.untag_queue.when.called_with(

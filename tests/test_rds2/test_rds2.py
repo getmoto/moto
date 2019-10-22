@@ -40,6 +40,20 @@ def test_create_database():
 
 
 @mock_rds2
+def test_create_database_no_allocated_storage():
+    conn = boto3.client('rds', region_name='us-west-2')
+    database = conn.create_db_instance(
+        DBInstanceIdentifier='db-master-1',
+        Engine='postgres',
+        DBName='staging-postgres',
+        DBInstanceClass='db.m1.small')
+    db_instance = database['DBInstance']
+    db_instance['Engine'].should.equal('postgres')
+    db_instance['StorageType'].should.equal('gp2')
+    db_instance['AllocatedStorage'].should.equal(20)
+
+
+@mock_rds2
 def test_create_database_non_existing_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     database = conn.create_db_instance.when.called_with(

@@ -3163,7 +3163,7 @@
 - [ ] describe_events
 
 ## iam
-55% implemented
+57% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -3176,7 +3176,7 @@
 - [X] create_group
 - [X] create_instance_profile
 - [X] create_login_profile
-- [ ] create_open_id_connect_provider
+- [X] create_open_id_connect_provider
 - [X] create_policy
 - [X] create_policy_version
 - [X] create_role
@@ -3193,8 +3193,8 @@
 - [ ] delete_group_policy
 - [ ] delete_instance_profile
 - [X] delete_login_profile
-- [ ] delete_open_id_connect_provider
-- [ ] delete_policy
+- [X] delete_open_id_connect_provider
+- [X] delete_policy
 - [X] delete_policy_version
 - [X] delete_role
 - [ ] delete_role_permissions_boundary
@@ -3227,7 +3227,7 @@
 - [X] get_group_policy
 - [X] get_instance_profile
 - [X] get_login_profile
-- [ ] get_open_id_connect_provider
+- [X] get_open_id_connect_provider
 - [ ] get_organizations_access_report
 - [X] get_policy
 - [X] get_policy_version
@@ -3253,7 +3253,7 @@
 - [ ] list_instance_profiles
 - [ ] list_instance_profiles_for_role
 - [X] list_mfa_devices
-- [ ] list_open_id_connect_providers
+- [X] list_open_id_connect_providers
 - [X] list_policies
 - [ ] list_policies_granting_service_access
 - [X] list_policy_versions
@@ -5902,7 +5902,7 @@
 - [x] untag_resource
 
 ## sqs
-65% implemented
+75% implemented
 - [X] add_permission
 - [X] change_message_visibility
 - [ ] change_message_visibility_batch
@@ -5913,13 +5913,13 @@
 - [ ] get_queue_attributes
 - [ ] get_queue_url
 - [X] list_dead_letter_source_queues
-- [ ] list_queue_tags
+- [x] list_queue_tags
 - [X] list_queues
 - [X] purge_queue
 - [ ] receive_message
 - [X] remove_permission
 - [X] send_message
-- [ ] send_message_batch
+- [x] send_message_batch
 - [X] set_queue_attributes
 - [X] tag_queue
 - [X] untag_queue

@@ -56,6 +56,8 @@ class Database(BaseModel):
         else:
             self.kms_key_id = kwargs.get("kms_key_id")
         self.storage_type = kwargs.get("storage_type")
+        if self.storage_type is None:
+            self.storage_type = Database.default_storage_type(iops=self.iops)
         self.master_username = kwargs.get('master_username')
         self.master_user_password = kwargs.get('master_user_password')
         self.auto_minor_version_upgrade = kwargs.get(
@@ -63,6 +65,8 @@ class Database(BaseModel):
         if self.auto_minor_version_upgrade is None:
             self.auto_minor_version_upgrade = True
         self.allocated_storage = kwargs.get('allocated_storage')
+        if self.allocated_storage is None:
+            self.allocated_storage = Database.default_allocated_storage(engine=self.engine, storage_type=self.storage_type)
         self.db_instance_identifier = kwargs.get('db_instance_identifier')
         self.source_db_identifier = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get('db_instance_class')
@@ -291,6 +295,78 @@ class Database(BaseModel):
             'sqlserver-se': 1433,
             'sqlserver-web': 1433,
         }[engine]
+
+    @staticmethod
+    def default_storage_type(iops):
+        if iops is None:
+            return 'gp2'
+        else:
+            return 'io1'
+
+    @staticmethod
+    def default_allocated_storage(engine, storage_type):
+        return {
+            'aurora': {
+                'gp2': 0,
+                'io1': 0,
+                'standard': 0,
+            },
+            'mysql': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 5,
+            },
+            'mariadb': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 5,
+            },
+            'postgres': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 5,
+            },
+            'oracle-ee': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 10,
+            },
+            'oracle-se2': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 10,
+            },
+            'oracle-se1': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 10,
+            },
+            'oracle-se': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 10,
+            },
+            'sqlserver-ee': {
+                'gp2': 200,
+                'io1': 200,
+                'standard': 200,
+            },
+            'sqlserver-ex': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 20,
+            },
+            'sqlserver-se': {
+                'gp2': 200,
+                'io1': 200,
+                'standard': 200,
+            },
+            'sqlserver-web': {
+                'gp2': 20,
+                'io1': 100,
+                'standard': 20,
+            },
+        }[engine][storage_type]
 
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):

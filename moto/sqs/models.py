@@ -654,12 +654,21 @@ class SQSBackend(BaseBackend):
 
     def tag_queue(self, queue_name, tags):
         queue = self.get_queue(queue_name)
+
+        if not len(tags):
+            raise RESTError('MissingParameter',
+                            'The request must contain the parameter Tags.')
+
+        if len(tags) > 50:
+            raise RESTError('InvalidParameterValue',
+                            'Too many tags added for queue {}.'.format(queue_name))
+
         queue.tags.update(tags)
 
     def untag_queue(self, queue_name, tag_keys):
         queue = self.get_queue(queue_name)
 
-        if len(tag_keys) == 0:
+        if not len(tag_keys):
             raise RESTError('InvalidParameterValue', 'Tag keys must be between 1 and 128 characters in length.')
 
         for key in tag_keys:

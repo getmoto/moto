@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 import json
@@ -49,7 +50,7 @@ def test_get_secret_that_does_not_exist():
                                "X-Amz-Target": "secretsmanager.GetSecretValue"},
                            )
     json_data = json.loads(get_secret.data.decode("utf-8"))
-    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret."
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
@@ -70,7 +71,27 @@ def test_get_secret_that_does_not_match():
                                "X-Amz-Target": "secretsmanager.GetSecretValue"},
                            )
     json_data = json.loads(get_secret.data.decode("utf-8"))
-    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret."
+    assert json_data['__type'] == 'ResourceNotFoundException'
+
+@mock_secretsmanager
+def test_get_secret_that_has_no_value():
+    backend = server.create_backend_app('secretsmanager')
+    test_client = backend.test_client()
+
+    create_secret = test_client.post('/',
+                           data={"Name": DEFAULT_SECRET_NAME},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.CreateSecret"},
+                           )
+    get_secret = test_client.post('/',
+                           data={"SecretId": DEFAULT_SECRET_NAME},
+                           headers={
+                               "X-Amz-Target": "secretsmanager.GetSecretValue"},
+                           )
+
+    json_data = json.loads(get_secret.data.decode("utf-8"))
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret value for staging label: AWSCURRENT"
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
@@ -158,7 +179,7 @@ def test_describe_secret_that_does_not_exist():
                     )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
-    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret."
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
@@ -182,7 +203,7 @@ def test_describe_secret_that_does_not_match():
                     )
 
     json_data = json.loads(describe_secret.data.decode("utf-8"))
-    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret."
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
@@ -283,7 +304,7 @@ def test_rotate_secret_that_does_not_exist():
                     )
 
     json_data = json.loads(rotate_secret.data.decode("utf-8"))
-    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret."
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
@@ -307,7 +328,7 @@ def test_rotate_secret_that_does_not_match():
                     )
 
     json_data = json.loads(rotate_secret.data.decode("utf-8"))
-    assert json_data['message'] == "Secrets Manager can't find the specified secret"
+    assert json_data['message'] == u"Secrets Manager can\u2019t find the specified secret."
     assert json_data['__type'] == 'ResourceNotFoundException'
 
 @mock_secretsmanager
