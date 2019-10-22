@@ -214,16 +214,39 @@ def test_update_login_profile():
 def test_delete_role():
     conn = boto3.client('iam', region_name='us-east-1')
 
-    with assert_raises(ClientError):
+    with assert_raises(conn.exceptions.NoSuchEntityException):
         conn.delete_role(RoleName="my-role")
 
+    # Test deletion failure with a managed policy
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
-    role = conn.get_role(RoleName="my-role")
-    role.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-path/my-role')
-
+    response = conn.create_policy(PolicyName="my-managed-policy", PolicyDocument=MOCK_POLICY)
+    conn.attach_role_policy(PolicyArn=response['Policy']['Arn'], RoleName="my-role")
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_role(RoleName="my-role")
+    conn.detach_role_policy(PolicyArn=response['Policy']['Arn'], RoleName="my-role")
+    conn.delete_policy(PolicyArn=response['Policy']['Arn'])
     conn.delete_role(RoleName="my-role")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_role(RoleName="my-role")
 
-    with assert_raises(ClientError):
+    # Test deletion failure with an inline policy
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.put_role_policy(RoleName="my-role", PolicyName="my-role-policy", PolicyDocument=MOCK_POLICY)
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_role(RoleName="my-role")
+    conn.delete_role_policy(RoleName="my-role", PolicyName="my-role-policy")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_role(RoleName="my-role")
+
+    # Test deletion failure with attachment to an instance profile
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.create_instance_profile("my-profile", path="my-path")
+    conn.add_role_to_instance_profile(InstanceProfileName="my-profile", RoleName="my-role")
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_role(RoleName="my-role")
+    conn.remove_role_from_instance_profile(InstanceProfileName="my-profile", RoleName="my-role")
+    conn.delete_role(RoleName="my-role")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
         conn.get_role(RoleName="my-role")
 
 
@@ -739,6 +762,12 @@ def test_delete_user():
         conn.delete_user(UserName='my-user')
     conn.create_user(UserName='my-user')
     [user['UserName'] for user in conn.list_users()['Users']].should.equal(['my-user'])
+
+    conn.put_user_policy(UserName='my-user', PolicyName='my-user-policy', PolicyDocument=MOCK_POLICY)
+    with assert_raises(ClientError):
+        conn.delete_user(UserName='my-user')
+    conn.delete_user_policy(UserName='my-user', PolicyName='my-user-policy')
+
     conn.delete_user(UserName='my-user')
     assert conn.list_users()['Users'].should.be.empty
 
