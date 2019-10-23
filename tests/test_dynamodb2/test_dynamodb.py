@@ -11,7 +11,7 @@ import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from moto.dynamodb2 import dynamodb_backend2
 from boto.exception import JSONResponseError
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises
 
@@ -2734,6 +2734,13 @@ def test_item_size_is_under_400KB():
                                     Item={'id': {'S': 'foo'}, 'itemlist': {'L': [{'M': {'item1': {'S': large_item}}}]}})
 
 
+def assert_failure_due_to_item_size(func, **kwargs):
+    with assert_raises(ClientError) as ex:
+        func(**kwargs)
+    ex.exception.response['Error']['Code'].should.equal('ValidationException')
+    ex.exception.response['Error']['Message'].should.equal('Item size has exceeded the maximum allowed size')
+
+
 @mock_dynamodb2
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
@@ -2759,11 +2766,75 @@ def test_hash_key_cannot_use_begins_with_operations():
     ex.exception.response['Error']['Message'].should.equal('Query key condition not supported')
 
 
-def assert_failure_due_to_item_size(func, **kwargs):
-    with assert_raises(ClientError) as ex:
-        func(**kwargs)
-    ex.exception.response['Error']['Code'].should.equal('ValidationException')
-    ex.exception.response['Error']['Message'].should.equal('Item size has exceeded the maximum allowed size')
+@mock_dynamodb2
+def test_update_supports_complex_expression_attribute_values():
+    client = boto3.client('dynamodb')
+
+    client.create_table(AttributeDefinitions=[{'AttributeName': 'SHA256', 'AttributeType': 'S'}],
+                        TableName='TestTable',
+                        KeySchema=[{'AttributeName': 'SHA256', 'KeyType': 'HASH'}],
+                        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+
+    client.update_item(TableName='TestTable',
+                       Key={'SHA256': {'S': 'sha-of-file'}},
+                       UpdateExpression=('SET MD5 = :md5,'
+                                         'MyStringSet = :string_set,'
+                                         'MyMap = :map' ),
+                       ExpressionAttributeValues={':md5': {'S': 'md5-of-file'},
+                                                  ':string_set': {'SS': ['string1', 'string2']},
+                                                  ':map': {'M': {'EntryKey': {'SS': ['thing1', 'thing2']}}}})
+    result = client.get_item(TableName='TestTable', Key={'SHA256': {'S': 'sha-of-file'}})['Item']
+    result.should.equal({u'MyStringSet': {u'SS': [u'string1', u'string2']},
+                         'MyMap': {u'M': {u'EntryKey': {u'SS': [u'thing1', u'thing2']}}},
+                         'SHA256': {u'S': u'sha-of-file'},
+                         'MD5': {u'S': u'md5-of-file'}})
+
+
+@mock_dynamodb2
+def test_update_supports_list_append():
+    client = boto3.client('dynamodb')
+
+    client.create_table(AttributeDefinitions=[{'AttributeName': 'SHA256', 'AttributeType': 'S'}],
+                        TableName='TestTable',
+                        KeySchema=[{'AttributeName': 'SHA256', 'KeyType': 'HASH'}],
+                        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+    client.put_item(TableName='TestTable',
+                    Item={'SHA256': {'S': 'sha-of-file'}, 'crontab': {'L': [{'S': 'bar1'}]}})
+
+    # Update item using list_append expression
+    client.update_item(TableName='TestTable',
+                       Key={'SHA256': {'S': 'sha-of-file'}},
+                       UpdateExpression="SET crontab = list_append(crontab, :i)",
+                       ExpressionAttributeValues={':i': {'L': [{'S': 'bar2'}]}})
+
+    # Verify item is appended to the existing list
+    result = client.get_item(TableName='TestTable', Key={'SHA256': {'S': 'sha-of-file'}})['Item']
+    result.should.equal({'SHA256': {'S': 'sha-of-file'},
+                         'crontab': {'L': [{'S': 'bar1'}, {'S': 'bar2'}]}})
+
+
+@mock_dynamodb2
+def test_update_catches_invalid_list_append_operation():
+    client = boto3.client('dynamodb')
+
+    client.create_table(AttributeDefinitions=[{'AttributeName': 'SHA256', 'AttributeType': 'S'}],
+                        TableName='TestTable',
+                        KeySchema=[{'AttributeName': 'SHA256', 'KeyType': 'HASH'}],
+                        ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+    client.put_item(TableName='TestTable',
+                    Item={'SHA256': {'S': 'sha-of-file'}, 'crontab': {'L': [{'S': 'bar1'}]}})
+
+    # Update item using invalid list_append expression
+    with assert_raises(ParamValidationError) as ex:
+        client.update_item(TableName='TestTable',
+                           Key={'SHA256': {'S': 'sha-of-file'}},
+                           UpdateExpression="SET crontab = list_append(crontab, :i)",
+                           ExpressionAttributeValues={':i': [{'S': 'bar2'}]})
+
+    # Verify correct error is returned
+    ex.exception.message.should.equal("Parameter validation failed:\n"
+                                      "Invalid type for parameter ExpressionAttributeValues."
+                                      ":i, value: [{u'S': u'bar2'}], type: <type 'list'>, valid types: <type 'dict'>")
 
 
 def _create_user_table():

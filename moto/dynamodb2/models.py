@@ -9,6 +9,7 @@ import uuid
 import six
 
 import boto3
+from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -302,6 +303,8 @@ class Item(BaseModel):
                     attr, list_index = attribute_is_list(key.split('.')[0])
                     # If value not exists, changes value to a default if needed, else its the same as it was
                     value = self._get_default(value)
+                    # If operation == list_append, get the original value and append it
+                    value = self._get_appended_list(value, expression_attribute_values)
 
                     if type(value) != DynamoType:
                         if value in expression_attribute_values:
@@ -369,6 +372,18 @@ class Item(BaseModel):
                         self.attrs[key] = DynamoType({existing.type: list(new_set)})
                 else:
                     raise NotImplementedError('{} update action not yet supported'.format(action))
+
+    def _get_appended_list(self, value, expression_attribute_values):
+        if type(value) != DynamoType:
+            list_append_re = re.match('list_append\\((.+),(.+)\\)', value)
+            if list_append_re:
+                new_value = expression_attribute_values[list_append_re.group(2).strip()]
+                old_list = self.attrs[list_append_re.group(1)]
+                if not old_list.is_list():
+                    raise ParamValidationError
+                old_list.value.extend(new_value['L'])
+                value = old_list
+        return value
 
     def _get_default(self, value):
         if value.startswith('if_not_exists'):
