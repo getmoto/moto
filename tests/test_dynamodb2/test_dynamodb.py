@@ -1323,7 +1323,7 @@ def test_bad_scan_filter():
     except ClientError as err:
         err.response['Error']['Code'].should.equal('ValidationError')
     else:
-        raise RuntimeError('Should of raised ResourceInUseException')
+        raise RuntimeError('Should have raised ResourceInUseException')
 
 
 @mock_dynamodb2
@@ -1375,7 +1375,7 @@ def test_duplicate_create():
     except ClientError as err:
         err.response['Error']['Code'].should.equal('ResourceInUseException')
     else:
-        raise RuntimeError('Should of raised ResourceInUseException')
+        raise RuntimeError('Should have raised ResourceInUseException')
 
 
 @mock_dynamodb2
@@ -1400,7 +1400,7 @@ def test_delete_table():
     except ClientError as err:
         err.response['Error']['Code'].should.equal('ResourceNotFoundException')
     else:
-        raise RuntimeError('Should of raised ResourceNotFoundException')
+        raise RuntimeError('Should have raised ResourceNotFoundException')
 
 
 @mock_dynamodb2
@@ -2832,9 +2832,8 @@ def test_update_catches_invalid_list_append_operation():
                            ExpressionAttributeValues={':i': [{'S': 'bar2'}]})
 
     # Verify correct error is returned
-    ex.exception.message.should.equal("Parameter validation failed:\n"
-                                      "Invalid type for parameter ExpressionAttributeValues."
-                                      ":i, value: [{u'S': u'bar2'}], type: <type 'list'>, valid types: <type 'dict'>")
+    str(ex.exception).should.match("Parameter validation failed:")
+    str(ex.exception).should.match("Invalid type for parameter ExpressionAttributeValues.")
 
 
 def _create_user_table():
