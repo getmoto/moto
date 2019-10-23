@@ -37,9 +37,9 @@ def bytesize(val):
 
 def attribute_is_list(attr):
     """
-    Checks if attribute denotes a list, and returns the regular expression if so
+    Checks if attribute denotes a list, and returns the name of the list and the given list index if so
     :param attr: attr or attr[index]
-    :return: attr, re or None
+    :return: attr, index or None
     """
     list_index_update = re.match('(.+)\\[([0-9]+)\\]', attr)
     if list_index_update:
