@@ -94,4 +94,7 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
+    project_urls={
+        "Documentation": "http://docs.getmoto.org/en/latest/",
+    },
 )

@@ -415,7 +415,6 @@ def test_get_function():
         conn.get_function(FunctionName='junk', Qualifier='$LATEST')
 
 
-
 @mock_lambda
 @mock_s3
 def test_delete_function():
@@ -449,6 +448,36 @@ def test_delete_function():
 
     success_result.should.equal({'ResponseMetadata': {'HTTPStatusCode': 204}})
 
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(0)
+
+
+@mock_lambda
+@mock_s3
+def test_delete_function_by_arn():
+    bucket_name = 'test-bucket'
+    s3_conn = boto3.client('s3', 'us-east-1')
+    s3_conn.create_bucket(Bucket=bucket_name)
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket=bucket_name, Key='test.zip', Body=zip_content)
+    conn = boto3.client('lambda', 'us-east-1')
+
+    fnc = conn.create_function(FunctionName='testFunction',
+                               Runtime='python2.7', Role='test-iam-role',
+                               Handler='lambda_function.lambda_handler',
+                               Code={'S3Bucket': bucket_name, 'S3Key': 'test.zip'},
+                               Description='test lambda function',
+                               Timeout=3, MemorySize=128, Publish=True)
+
+    conn.delete_function(FunctionName=fnc['FunctionArn'])
+    function_list = conn.list_functions()
+    function_list['Functions'].should.have.length_of(0)
+
+
+@mock_lambda
+def test_delete_unknown_function():
+    conn = boto3.client('lambda', 'us-west-2')
     conn.delete_function.when.called_with(
         FunctionName='testFunctionThatDoesntExist').should.throw(botocore.client.ClientError)
 
@@ -769,10 +798,10 @@ def test_get_function_created_with_zipfile():
 
 
 @mock_lambda
-def add_function_permission():
+def test_add_function_permission():
     conn = boto3.client('lambda', 'us-west-2')
     zip_content = get_test_zip_file1()
-    result = conn.create_function(
+    conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
@@ -796,16 +825,16 @@ def add_function_permission():
         EventSourceToken='blah',
         Qualifier='2'
     )
-    assert 'Statement' in response
-    res = json.loads(response['Statement'])
-    assert res['Action'] == "lambda:InvokeFunction"
+    assert u'Statement' in response
+    res = json.loads(response[u'Statement'])
+    assert res[u'Action'] == u'lambda:InvokeFunction'
 
 
 @mock_lambda
-def get_function_policy():
+def test_get_function_policy():
     conn = boto3.client('lambda', 'us-west-2')
     zip_content = get_test_zip_file1()
-    result = conn.create_function(
+    conn.create_function(
         FunctionName='testFunction',
         Runtime='python2.7',
         Role='test-iam-role',
@@ -834,10 +863,9 @@ def get_function_policy():
         FunctionName='testFunction'
     )
 
-    assert 'Policy' in response
-    assert isinstance(response['Policy'], str)
-    res = json.loads(response['Policy'])
-    assert res['Statement'][0]['Action'] == 'lambda:InvokeFunction'
+    assert u'Policy' in response
+    res = json.loads(response[u'Policy'])
+    assert res[u'Statement'][0][u'Action'] == u'lambda:InvokeFunction'
 
 
 @mock_lambda

@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 import datetime
 import os
+import sys
+
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
@@ -1218,11 +1220,6 @@ def test_key_with_trailing_slash_in_ordinary_calling_format():
     [k.name for k in bucket.get_all_keys()].should.contain(key_name)
 
 
-"""
-boto3
-"""
-
-
 @mock_s3
 def test_boto3_key_etag():
     s3 = boto3.client('s3', region_name='us-east-1')
@@ -1245,6 +1242,54 @@ def test_website_redirect_location():
     s3.put_object(Bucket='mybucket', Key='steve', Body=b'is awesome', WebsiteRedirectLocation=url)
     resp = s3.get_object(Bucket='mybucket', Key='steve')
     resp['WebsiteRedirectLocation'].should.equal(url)
+
+
+@mock_s3
+def test_boto3_list_objects_truncated_response():
+    s3 = boto3.client('s3', region_name='us-east-1')
+    s3.create_bucket(Bucket='mybucket')
+    s3.put_object(Bucket='mybucket', Key='one', Body=b'1')
+    s3.put_object(Bucket='mybucket', Key='two', Body=b'22')
+    s3.put_object(Bucket='mybucket', Key='three', Body=b'333')
+
+    # First list
+    resp = s3.list_objects(Bucket='mybucket', MaxKeys=1)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'one'
+    assert resp['MaxKeys'] == 1
+    assert resp['IsTruncated'] == True
+    assert resp['Prefix'] == 'None'
+    assert resp['Delimiter'] == 'None'
+    assert 'NextMarker' in resp
+
+    next_marker = resp["NextMarker"]
+
+    # Second list
+    resp = s3.list_objects(
+        Bucket='mybucket', MaxKeys=1, Marker=next_marker)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'three'
+    assert resp['MaxKeys'] == 1
+    assert resp['IsTruncated'] == True
+    assert resp['Prefix'] == 'None'
+    assert resp['Delimiter'] == 'None'
+    assert 'NextMarker' in resp
+
+    next_marker = resp["NextMarker"]
+
+    # Third list
+    resp = s3.list_objects(
+        Bucket='mybucket', MaxKeys=1, Marker=next_marker)
+    listed_object = resp['Contents'][0]
+
+    assert listed_object['Key'] == 'two'
+    assert resp['MaxKeys'] == 1
+    assert resp['IsTruncated'] == False
+    assert resp['Prefix'] == 'None'
+    assert resp['Delimiter'] == 'None'
+    assert 'NextMarker' not in resp
 
 
 @mock_s3
@@ -3647,6 +3692,24 @@ def test_s3_config_dict():
     s3_config_query.backends['global'].set_bucket_acl('logbucket', log_acls)
     s3_config_query.backends['global'].put_bucket_logging('bucket1', {'TargetBucket': 'logbucket', 'TargetPrefix': ''})
 
+    policy = json.dumps({
+        'Statement': [
+            {
+                "Effect": "Deny",
+                "Action": "s3:DeleteObject",
+                "Principal": "*",
+                "Resource": "arn:aws:s3:::bucket1/*"
+            }
+        ]
+    })
+
+    # The policy is a byte array -- need to encode in Python 3 -- for Python 2 just pass the raw string in:
+    if sys.version_info[0] > 2:
+        pass_policy = bytes(policy, 'utf-8')
+    else:
+        pass_policy = policy
+    s3_config_query.backends['global'].set_bucket_policy('bucket1', pass_policy)
+
     # Get the us-west-2 bucket and verify that it works properly:
     bucket1_result = s3_config_query.get_config_resource('bucket1')
 
@@ -3666,7 +3729,7 @@ def test_s3_config_dict():
         {'destinationBucketName': 'logbucket', 'logFilePrefix': ''}
 
     # Verify the policy:
-    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketPolicy']) == {'policyText': None}
+    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketPolicy']) == {'policyText': policy}
 
     # Filter by correct region:
     assert bucket1_result == s3_config_query.get_config_resource('bucket1', resource_region='us-west-2')
@@ -3679,3 +3742,7 @@ def test_s3_config_dict():
 
     # With an incorrect resource name:
     assert not s3_config_query.get_config_resource('bucket1', resource_name='eu-bucket-1')
+
+    # Verify that no bucket policy returns the proper value:
+    assert json.loads(s3_config_query.get_config_resource('logbucket')['supplementaryConfiguration']['BucketPolicy']) == \
+        {'policyText': None}

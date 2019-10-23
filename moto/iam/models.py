@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
 import base64
+import os
+import random
+import string
 import sys
 from datetime import datetime
 import json
@@ -34,6 +37,23 @@ class MFADevice(object):
         self.serial_number = serial_number
         self.authentication_code_1 = authentication_code_1
         self.authentication_code_2 = authentication_code_2
+
+    @property
+    def enabled_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.enable_date)
+
+
+class VirtualMfaDevice(object):
+    def __init__(self, device_name):
+        self.serial_number = 'arn:aws:iam::{0}:mfa{1}'.format(ACCOUNT_ID, device_name)
+
+        random_base32_string = ''.join(random.choice(string.ascii_uppercase + '234567') for _ in range(64))
+        self.base32_string_seed = base64.b64encode(random_base32_string.encode('ascii')).decode('ascii')
+        self.qr_code_png = base64.b64encode(os.urandom(64))  # this would be a generated PNG
+
+        self.enable_date = None
+        self.user_attribute = None
+        self.user = None
 
     @property
     def enabled_iso_8601(self):
@@ -596,6 +616,7 @@ class IAMBackend(BaseBackend):
         self.open_id_providers = {}
         self.policy_arn_regex = re.compile(
             r'^arn:aws:iam::[0-9]*:policy/.*$')
+        self.virtual_mfa_devices = {}
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -742,11 +763,25 @@ class IAMBackend(BaseBackend):
         raise IAMNotFoundException("Role {0} not found".format(arn))
 
     def delete_role(self, role_name):
-        for role in self.get_roles():
-            if role.name == role_name:
-                del self.roles[role.id]
-                return
-        raise IAMNotFoundException("Role {0} not found".format(role_name))
+        role = self.get_role(role_name)
+        for instance_profile in self.get_instance_profiles():
+            for role in instance_profile.roles:
+                if role.name == role_name:
+                    raise IAMConflictException(
+                        code="DeleteConflict",
+                        message="Cannot delete entity, must remove roles from instance profile first."
+                    )
+        if role.managed_policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must detach all policies first."
+            )
+        if role.policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must delete policies first."
+            )
+        del self.roles[role.id]
 
     def get_roles(self):
         return self.roles.values()
@@ -1230,6 +1265,21 @@ class IAMBackend(BaseBackend):
                 "Device {0} already exists".format(serial_number)
             )
 
+        device = self.virtual_mfa_devices.get(serial_number, None)
+        if device:
+            device.enable_date = datetime.utcnow()
+            device.user = user
+            device.user_attribute = {
+                'Path': user.path,
+                'UserName': user.name,
+                'UserId': user.id,
+                'Arn': user.arn,
+                'CreateDate': user.created_iso_8601,
+                'PasswordLastUsed': None,  # not supported
+                'PermissionsBoundary': {},  # ToDo: add put_user_permissions_boundary() functionality
+                'Tags': {}  # ToDo: add tag_user() functionality
+            }
+
         user.enable_mfa_device(
             serial_number,
             authentication_code_1,
@@ -1244,17 +1294,87 @@ class IAMBackend(BaseBackend):
                 "Device {0} not found".format(serial_number)
             )
 
+        device = self.virtual_mfa_devices.get(serial_number, None)
+        if device:
+            device.enable_date = None
+            device.user = None
+            device.user_attribute = None
+
         user.deactivate_mfa_device(serial_number)
 
     def list_mfa_devices(self, user_name):
         user = self.get_user(user_name)
         return user.mfa_devices.values()
 
+    def create_virtual_mfa_device(self, device_name, path):
+        if not path:
+            path = '/'
+
+        if not path.startswith('/') and not path.endswith('/'):
+            raise ValidationError('The specified value for path is invalid. '
+                                  'It must begin and end with / and contain only alphanumeric characters and/or / characters.')
+
+        if any(not len(part) for part in path.split('/')[1:-1]):
+            raise ValidationError('The specified value for path is invalid. '
+                                  'It must begin and end with / and contain only alphanumeric characters and/or / characters.')
+
+        if len(path) > 512:
+            raise ValidationError('1 validation error detected: '
+                                  'Value "{}" at "path" failed to satisfy constraint: '
+                                  'Member must have length less than or equal to 512')
+
+        device = VirtualMfaDevice(path + device_name)
+
+        if device.serial_number in self.virtual_mfa_devices:
+            raise EntityAlreadyExists('MFADevice entity at the same path and name already exists.')
+
+        self.virtual_mfa_devices[device.serial_number] = device
+        return device
+
+    def delete_virtual_mfa_device(self, serial_number):
+        device = self.virtual_mfa_devices.pop(serial_number, None)
+
+        if not device:
+            raise IAMNotFoundException('VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number))
+
+    def list_virtual_mfa_devices(self, assignment_status, marker, max_items):
+        devices = list(self.virtual_mfa_devices.values())
+
+        if assignment_status == 'Assigned':
+            devices = [device for device in devices if device.enable_date]
+
+        if assignment_status == 'Unassigned':
+            devices = [device for device in devices if not device.enable_date]
+
+        sorted(devices, key=lambda device: device.serial_number)
+        max_items = int(max_items)
+        start_idx = int(marker) if marker else 0
+
+        if start_idx > len(devices):
+            raise ValidationError('Invalid Marker.')
+
+        devices = devices[start_idx:start_idx + max_items]
+
+        if len(devices) < max_items:
+            marker = None
+        else:
+            marker = str(start_idx + max_items)
+
+        return devices, marker
+
     def delete_user(self, user_name):
-        try:
-            del self.users[user_name]
-        except KeyError:
-            raise IAMNotFoundException("User {0} not found".format(user_name))
+        user = self.get_user(user_name)
+        if user.managed_policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must detach all policies first."
+            )
+        if user.policies:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must delete policies first."
+            )
+        del self.users[user_name]
 
     def report_generated(self):
         return self.credential_report
@@ -1347,7 +1467,7 @@ class IAMBackend(BaseBackend):
         open_id_provider = OpenIDConnectProvider(url, thumbprint_list, client_id_list)
 
         if open_id_provider.arn in self.open_id_providers:
-            raise EntityAlreadyExists
+            raise EntityAlreadyExists('Unknown')
 
         self.open_id_providers[open_id_provider.arn] = open_id_provider
         return open_id_provider

@@ -214,16 +214,46 @@ def test_update_login_profile():
 def test_delete_role():
     conn = boto3.client('iam', region_name='us-east-1')
 
-    with assert_raises(ClientError):
+    with assert_raises(conn.exceptions.NoSuchEntityException):
         conn.delete_role(RoleName="my-role")
 
+    # Test deletion failure with a managed policy
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
-    role = conn.get_role(RoleName="my-role")
-    role.get('Role').get('Arn').should.equal('arn:aws:iam::123456789012:role/my-path/my-role')
-
+    response = conn.create_policy(PolicyName="my-managed-policy", PolicyDocument=MOCK_POLICY)
+    conn.attach_role_policy(PolicyArn=response['Policy']['Arn'], RoleName="my-role")
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_role(RoleName="my-role")
+    conn.detach_role_policy(PolicyArn=response['Policy']['Arn'], RoleName="my-role")
+    conn.delete_policy(PolicyArn=response['Policy']['Arn'])
     conn.delete_role(RoleName="my-role")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_role(RoleName="my-role")
 
-    with assert_raises(ClientError):
+    # Test deletion failure with an inline policy
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.put_role_policy(RoleName="my-role", PolicyName="my-role-policy", PolicyDocument=MOCK_POLICY)
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_role(RoleName="my-role")
+    conn.delete_role_policy(RoleName="my-role", PolicyName="my-role-policy")
+    conn.delete_role(RoleName="my-role")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_role(RoleName="my-role")
+
+    # Test deletion failure with attachment to an instance profile
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.create_instance_profile(InstanceProfileName="my-profile")
+    conn.add_role_to_instance_profile(InstanceProfileName="my-profile", RoleName="my-role")
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_role(RoleName="my-role")
+    conn.remove_role_from_instance_profile(InstanceProfileName="my-profile", RoleName="my-role")
+    conn.delete_role(RoleName="my-role")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_role(RoleName="my-role")
+
+    # Test deletion with no conflicts
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/")
+    conn.delete_role(RoleName="my-role")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
         conn.get_role(RoleName="my-role")
 
 
@@ -723,6 +753,263 @@ def test_mfa_devices():
     len(response['MFADevices']).should.equal(0)
 
 
+@mock_iam
+def test_create_virtual_mfa_device():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    device = response['VirtualMFADevice']
+
+    device['SerialNumber'].should.equal('arn:aws:iam::123456789012:mfa/test-device')
+    device['Base32StringSeed'].decode('ascii').should.match('[A-Z234567]')
+    device['QRCodePNG'].should_not.be.empty
+
+    response = client.create_virtual_mfa_device(
+        Path='/',
+        VirtualMFADeviceName='test-device-2'
+    )
+    device = response['VirtualMFADevice']
+
+    device['SerialNumber'].should.equal('arn:aws:iam::123456789012:mfa/test-device-2')
+    device['Base32StringSeed'].decode('ascii').should.match('[A-Z234567]')
+    device['QRCodePNG'].should_not.be.empty
+
+    response = client.create_virtual_mfa_device(
+        Path='/test/',
+        VirtualMFADeviceName='test-device'
+    )
+    device = response['VirtualMFADevice']
+
+    device['SerialNumber'].should.equal('arn:aws:iam::123456789012:mfa/test/test-device')
+    device['Base32StringSeed'].decode('ascii').should.match('[A-Z234567]')
+    device['QRCodePNG'].should_not.be.empty
+
+
+@mock_iam
+def test_create_virtual_mfa_device_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+
+    client.create_virtual_mfa_device.when.called_with(
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        'MFADevice entity at the same path and name already exists.'
+    )
+
+    client.create_virtual_mfa_device.when.called_with(
+        Path='test',
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        'The specified value for path is invalid. '
+        'It must begin and end with / and contain only alphanumeric characters and/or / characters.'
+    )
+
+    client.create_virtual_mfa_device.when.called_with(
+        Path='/test//test/',
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        'The specified value for path is invalid. '
+        'It must begin and end with / and contain only alphanumeric characters and/or / characters.'
+    )
+
+    too_long_path = '/{}/'.format('b' * 511)
+    client.create_virtual_mfa_device.when.called_with(
+        Path=too_long_path,
+        VirtualMFADeviceName='test-device'
+    ).should.throw(
+        ClientError,
+        '1 validation error detected: '
+        'Value "{}" at "path" failed to satisfy constraint: '
+        'Member must have length less than or equal to 512'
+    )
+
+
+@mock_iam
+def test_delete_virtual_mfa_device():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number = response['VirtualMFADevice']['SerialNumber']
+
+    client.delete_virtual_mfa_device(
+        SerialNumber=serial_number
+    )
+
+    response = client.list_virtual_mfa_devices()
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+
+@mock_iam
+def test_delete_virtual_mfa_device_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+
+    serial_number = 'arn:aws:iam::123456789012:mfa/not-existing'
+    client.delete_virtual_mfa_device.when.called_with(
+        SerialNumber=serial_number
+    ).should.throw(
+        ClientError,
+        'VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number)
+    )
+
+
+@mock_iam
+def test_list_virtual_mfa_devices():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number_1 = response['VirtualMFADevice']['SerialNumber']
+
+    response = client.create_virtual_mfa_device(
+        Path='/test/',
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number_2 = response['VirtualMFADevice']['SerialNumber']
+
+    response = client.list_virtual_mfa_devices()
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_1
+        },
+        {
+            'SerialNumber': serial_number_2
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Assigned'
+    )
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Unassigned'
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_1
+        },
+        {
+            'SerialNumber': serial_number_2
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Any',
+        MaxItems=1
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_1
+        }
+    ])
+    response['IsTruncated'].should.be.ok
+    response['Marker'].should.equal('1')
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Any',
+        Marker=response['Marker']
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number_2
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+
+@mock_iam
+def test_list_virtual_mfa_devices_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+
+    client.list_virtual_mfa_devices.when.called_with(
+        Marker='100'
+    ).should.throw(
+        ClientError,
+        'Invalid Marker.'
+    )
+
+
+@mock_iam
+def test_enable_virtual_mfa_device():
+    client = boto3.client('iam', region_name='us-east-1')
+    response = client.create_virtual_mfa_device(
+        VirtualMFADeviceName='test-device'
+    )
+    serial_number = response['VirtualMFADevice']['SerialNumber']
+
+    client.create_user(UserName='test-user')
+    client.enable_mfa_device(
+        UserName='test-user',
+        SerialNumber=serial_number,
+        AuthenticationCode1='234567',
+        AuthenticationCode2='987654'
+    )
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Unassigned'
+    )
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Assigned'
+    )
+
+    device = response['VirtualMFADevices'][0]
+    device['SerialNumber'].should.equal(serial_number)
+    device['User']['Path'].should.equal('/')
+    device['User']['UserName'].should.equal('test-user')
+    device['User']['UserId'].should_not.be.empty
+    device['User']['Arn'].should.equal('arn:aws:iam::123456789012:user/test-user')
+    device['User']['CreateDate'].should.be.a(datetime)
+    device['EnableDate'].should.be.a(datetime)
+    response['IsTruncated'].should_not.be.ok
+
+    client.deactivate_mfa_device(
+        UserName='test-user',
+        SerialNumber=serial_number
+    )
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus='Assigned'
+    )
+
+    response['VirtualMFADevices'].should.have.length_of(0)
+    response['IsTruncated'].should_not.be.ok
+
+    response = client.list_virtual_mfa_devices(
+        AssignmentStatus = 'Unassigned'
+    )
+
+    response['VirtualMFADevices'].should.equal([
+        {
+            'SerialNumber': serial_number
+        }
+    ])
+    response['IsTruncated'].should_not.be.ok
+
+
 @mock_iam_deprecated()
 def test_delete_user_deprecated():
     conn = boto.connect_iam()
@@ -735,12 +1022,40 @@ def test_delete_user_deprecated():
 @mock_iam()
 def test_delete_user():
     conn = boto3.client('iam', region_name='us-east-1')
-    with assert_raises(ClientError):
+    with assert_raises(conn.exceptions.NoSuchEntityException):
         conn.delete_user(UserName='my-user')
+
+    # Test deletion failure with a managed policy
     conn.create_user(UserName='my-user')
-    [user['UserName'] for user in conn.list_users()['Users']].should.equal(['my-user'])
+    response = conn.create_policy(PolicyName="my-managed-policy", PolicyDocument=MOCK_POLICY)
+    conn.attach_user_policy(PolicyArn=response['Policy']['Arn'], UserName="my-user")
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_user(UserName='my-user')
+    conn.detach_user_policy(PolicyArn=response['Policy']['Arn'], UserName="my-user")
+    conn.delete_policy(PolicyArn=response['Policy']['Arn'])
     conn.delete_user(UserName='my-user')
-    assert conn.list_users()['Users'].should.be.empty
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_user(UserName='my-user')
+
+    # Test deletion failure with an inline policy
+    conn.create_user(UserName='my-user')
+    conn.put_user_policy(
+        UserName='my-user',
+        PolicyName='my-user-policy',
+        PolicyDocument=MOCK_POLICY
+    )
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_user(UserName='my-user')
+    conn.delete_user_policy(UserName='my-user', PolicyName='my-user-policy')
+    conn.delete_user(UserName='my-user')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_user(UserName='my-user')
+
+    # Test deletion with no conflicts
+    conn.create_user(UserName='my-user')
+    conn.delete_user(UserName='my-user')
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        conn.get_user(UserName='my-user')
 
 
 @mock_iam_deprecated()
