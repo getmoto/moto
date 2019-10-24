@@ -1028,6 +1028,10 @@ def test_list_discovered_resource():
     for x in range(0, 10):
         s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
 
+    # And with an EU bucket -- this should not show up for the us-west-2 config backend:
+    eu_client = boto3.client('s3', region_name='eu-west-1')
+    eu_client.create_bucket(Bucket='eu-bucket', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+
     # Now try:
     result = client.list_discovered_resources(resourceType='AWS::S3::Bucket')
     assert len(result['resourceIdentifiers']) == 10
@@ -1038,6 +1042,9 @@ def test_list_discovered_resource():
             'resourceName': 'bucket{}'.format(x)
         }
     assert not result.get('nextToken')
+
+    result = client.list_discovered_resources(resourceType='AWS::S3::Bucket', resourceName='eu-bucket')
+    assert not result['resourceIdentifiers']
 
     # Test that pagination places a proper nextToken in the response and also that the limit works:
     result = client.list_discovered_resources(resourceType='AWS::S3::Bucket', limit=1, nextToken='bucket1')
@@ -1217,6 +1224,13 @@ def test_get_resource_config_history():
     assert result[0]['resourceName'] == result[0]['resourceId'] == 'bucket1'
     assert result[0]['arn'] == 'arn:aws:s3:::bucket1'
 
+    # Make a bucket in a different region and verify that it does not show up in the config backend:
+    s3_client = boto3.client('s3', region_name='eu-west-1')
+    s3_client.create_bucket(Bucket='eu-bucket', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+    with assert_raises(ClientError) as ce:
+        client.get_resource_config_history(resourceType='AWS::S3::Bucket', resourceId='eu-bucket')
+    assert ce.exception.response['Error']['Code'] == 'ResourceNotDiscoveredException'
+
 
 @mock_config
 @mock_s3
@@ -1253,6 +1267,13 @@ def test_batch_get_resource_config():
         buckets_missing.remove(r['resourceName'])
 
     assert not buckets_missing
+
+    # Make a bucket in a different region and verify that it does not show up in the config backend:
+    s3_client = boto3.client('s3', region_name='eu-west-1')
+    s3_client.create_bucket(Bucket='eu-bucket', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+    keys = [{'resourceType': 'AWS::S3::Bucket', 'resourceId': 'eu-bucket'}]
+    result = client.batch_get_resource_config(resourceKeys=keys)
+    assert not result['baseConfigurationItems']
 
 
 @mock_config

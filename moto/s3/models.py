@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import json
 import os
 import base64
 import datetime
@@ -520,7 +521,6 @@ class LifecycleRule(BaseModel):
         Note: The following are missing that should be added in the future:
             - transitions (returns None for now)
             - noncurrentVersionTransitions (returns None for now)
-            - LifeCycle Filters that are NOT prefix
 
         :param kwargs:
         :return:
@@ -530,9 +530,9 @@ class LifecycleRule(BaseModel):
             'id': self.id,
             'prefix': self.prefix,
             'status': self.status,
-            'expirationInDays': self.expiration_days,
+            'expirationInDays': int(self.expiration_days) if self.expiration_days else None,
             'expiredObjectDeleteMarker': self.expired_object_delete_marker,
-            'noncurrentVersionExpirationInDays': -1 or self.nve_noncurrent_days,
+            'noncurrentVersionExpirationInDays': -1 or int(self.nve_noncurrent_days),
             'expirationDate': self.expiration_date,
             'transitions': None,    # Replace me with logic to fill in
             'noncurrentVersionTransitions': None,   # Replace me with logic to fill in
@@ -930,7 +930,9 @@ class FakeBucket(BaseModel):
 
         # Make the supplementary configuration:
         # TODO: Implement Public Access Block Support
-        s_config = {'AccessControlList': self.acl.to_config_dict()}
+
+        # This is a dobule-wrapped JSON for some reason...
+        s_config = {'AccessControlList': json.dumps(json.dumps(self.acl.to_config_dict()))}
 
         # TODO implement Accelerate Configuration:
         s_config['BucketAccelerateConfiguration'] = {'status': None}

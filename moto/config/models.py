@@ -688,7 +688,7 @@ class ConfigBackend(BaseBackend):
         del self.delivery_channels[channel_name]
 
     def list_discovered_resources(self, resource_type, backend_region, resource_ids, resource_name, limit, next_token):
-        """This will query against the mocked AWS Config listing function that must exist for the resource backend.
+        """This will query against the mocked AWS Config (non-aggregated) listing function that must exist for the resource backend.
 
         :param resource_type:
         :param backend_region:
@@ -716,6 +716,7 @@ class ConfigBackend(BaseBackend):
         # call upon the resource type's Config Query class to retrieve the list of resources that match the criteria:
         if RESOURCE_MAP.get(resource_type, {}):
             # Is this a global resource type? -- if so, re-write the region to 'global':
+            backend_query_region = backend_region  # Always provide the backend this request arrived from.
             if RESOURCE_MAP[resource_type].backends.get('global'):
                 backend_region = 'global'
 
@@ -724,7 +725,8 @@ class ConfigBackend(BaseBackend):
             if RESOURCE_MAP[resource_type].backends.get(backend_region):
                 # Fetch the resources for the backend's region:
                 identifiers, new_token = \
-                    RESOURCE_MAP[resource_type].list_config_service_resources(resource_ids, resource_name, limit, next_token)
+                    RESOURCE_MAP[resource_type].list_config_service_resources(resource_ids, resource_name, limit, next_token,
+                                                                              backend_region=backend_query_region)
 
         result = {'resourceIdentifiers': [
             {
@@ -803,6 +805,7 @@ class ConfigBackend(BaseBackend):
             raise ResourceNotDiscoveredException(resource_type, id)
 
         # Is the resource type global?
+        backend_query_region = backend_region   # Always provide the backend this request arrived from.
         if RESOURCE_MAP[resource_type].backends.get('global'):
             backend_region = 'global'
 
@@ -811,7 +814,7 @@ class ConfigBackend(BaseBackend):
             raise ResourceNotDiscoveredException(resource_type, id)
 
         # Get the item:
-        item = RESOURCE_MAP[resource_type].get_config_resource(id, backend_region=backend_region)
+        item = RESOURCE_MAP[resource_type].get_config_resource(id, backend_region=backend_query_region)
         if not item:
             raise ResourceNotDiscoveredException(resource_type, id)
 
@@ -837,15 +840,17 @@ class ConfigBackend(BaseBackend):
                 continue
 
             # Is the resource type global?
+            config_backend_region = backend_region
+            backend_query_region = backend_region  # Always provide the backend this request arrived from.
             if RESOURCE_MAP[resource['resourceType']].backends.get('global'):
-                backend_region = 'global'
+                config_backend_region = 'global'
 
             # If the backend region isn't implemented then we won't find the item:
-            if not RESOURCE_MAP[resource['resourceType']].backends.get(backend_region):
+            if not RESOURCE_MAP[resource['resourceType']].backends.get(config_backend_region):
                 continue
 
             # Get the item:
-            item = RESOURCE_MAP[resource['resourceType']].get_config_resource(resource['resourceId'], backend_region=backend_region)
+            item = RESOURCE_MAP[resource['resourceType']].get_config_resource(resource['resourceId'], backend_region=backend_query_region)
             if not item:
                 continue
 
