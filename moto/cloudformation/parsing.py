@@ -323,6 +323,11 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
     )
     resource.type = resource_type
     resource.logical_resource_id = logical_id
+
+    # fix/extend resource attributes
+    if isinstance(resource, dynamodb2_models.Table):
+        resource.set_stream_specification(resource_json['Properties'].get('StreamSpecification') or {})
+
     return resource
 
 
