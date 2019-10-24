@@ -8,8 +8,8 @@ from moto.s3 import s3_backends
 class S3ConfigQuery(ConfigQueryModel):
 
     def list_config_service_resources(self, resource_ids, resource_name, limit, next_token, backend_region=None, resource_region=None):
-        # S3 need not care about "backend_region" as S3 is global. The resource_region only matters for aggregated queries as you can
-        # filter on bucket regions for them. For other resource types, you would need to iterate appropriately for the backend_region.
+        # The resource_region only matters for aggregated queries as you can filter on bucket regions for them.
+        # For other resource types, you would need to iterate appropriately for the backend_region.
 
         # Resource IDs are the same as S3 bucket names
         # For aggregation -- did we get both a resource ID and a resource name?
@@ -31,12 +31,13 @@ class S3ConfigQuery(ConfigQueryModel):
                 if bucket in filter_buckets:
                     bucket_list.append(bucket)
 
-        # If a resource_region was supplied (aggregated only), then filter on bucket region too:
-        if resource_region:
+        # Filter on the proper region if supplied:
+        region_filter = backend_region or resource_region
+        if region_filter:
             region_buckets = []
 
             for bucket in bucket_list:
-                if self.backends['global'].buckets[bucket].region_name == resource_region:
+                if self.backends['global'].buckets[bucket].region_name == region_filter:
                     region_buckets.append(bucket)
 
             bucket_list = region_buckets
@@ -69,8 +70,6 @@ class S3ConfigQuery(ConfigQueryModel):
                 for bucket in bucket_list], new_token
 
     def get_config_resource(self, resource_id, resource_name=None, backend_region=None, resource_region=None):
-        # backend_region is ignored for S3 as the backend is 'global'
-
         # Get the bucket:
         bucket = self.backends['global'].buckets.get(resource_id, {})
 
@@ -78,7 +77,8 @@ class S3ConfigQuery(ConfigQueryModel):
             return
 
         # Are we filtering based on region?
-        if resource_region and bucket.region_name != resource_region:
+        region_filter = backend_region or resource_region
+        if region_filter and bucket.region_name != region_filter:
             return
 
         # Are we also filtering on bucket name?
