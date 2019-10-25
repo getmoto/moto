@@ -520,6 +520,25 @@ def test_principal_thing():
 
 
 @mock_iot
+def test_delete_principal_thing():
+    client = boto3.client('iot', region_name='ap-northeast-1')
+    thing_name = 'my-thing'
+    thing = client.create_thing(thingName=thing_name)
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert['certificateArn']
+    cert_id = cert['certificateId']
+
+    client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
+
+    client.delete_thing(thingName=thing_name)
+    res = client.list_principal_things(principal=cert_arn)
+    res.should.have.key('things').which.should.have.length_of(0)
+
+    client.update_certificate(certificateId=cert_id, newStatus="INACTIVE")
+    client.delete_certificate(certificateId=cert_id)
+
+
+@mock_iot
 def test_thing_groups():
     client = boto3.client('iot', region_name='ap-northeast-1')
     group_name = 'my-group-name'

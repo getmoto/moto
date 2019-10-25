@@ -973,10 +973,6 @@ def test_generate_random(number_of_bytes):
 
     response = client.generate_random(NumberOfBytes=number_of_bytes)
 
-    # Plaintext must NOT be base64-encoded
-    with assert_raises(Exception):
-        base64.b64decode(response["Plaintext"], validate=True)
-
     response["Plaintext"].should.be.a(bytes)
     len(response["Plaintext"]).should.equal(number_of_bytes)
 

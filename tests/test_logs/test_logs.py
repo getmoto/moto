@@ -1,10 +1,12 @@
 import boto3
+import os
 import sure  # noqa
 import six
 from botocore.exceptions import ClientError
 
 from moto import mock_logs, settings
 from nose.tools import assert_raises
+from nose import SkipTest
 
 _logs_region = 'us-east-1' if settings.TEST_SERVER_MODE else 'us-west-2'
 
@@ -128,6 +130,36 @@ def test_filter_logs_interleaved():
         resulting_event['timestamp'].should.equal(original_message['timestamp'])
         resulting_event['message'].should.equal(original_message['message'])
 
+
+@mock_logs
+def test_filter_logs_raises_if_filter_pattern():
+    if os.environ.get('TEST_SERVER_MODE', 'false').lower() == 'true':
+        raise SkipTest('Does not work in server mode due to error in Workzeug')
+    conn = boto3.client('logs', 'us-west-2')
+    log_group_name = 'dummy'
+    log_stream_name = 'stream'
+    conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_stream(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name
+    )
+    messages = [
+        {'timestamp': 0, 'message': 'hello'},
+        {'timestamp': 0, 'message': 'world'}
+    ]
+    conn.put_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        logEvents=messages
+    )
+    with assert_raises(NotImplementedError):
+        conn.filter_log_events(
+            logGroupName=log_group_name,
+            logStreamNames=[log_stream_name],
+            filterPattern='{$.message = "hello"}',
+        )
+
+
 @mock_logs
 def test_put_retention_policy():
     conn = boto3.client('logs', 'us-west-2')
@@ -141,6 +173,7 @@ def test_put_retention_policy():
     assert response['logGroups'][0].get('retentionInDays') == 7
 
     response = conn.delete_log_group(logGroupName=log_group_name)
+
 
 @mock_logs
 def test_delete_retention_policy():

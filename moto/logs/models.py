@@ -125,6 +125,9 @@ class LogStream:
         return events_page, get_paging_token_from_index(back_index, True), get_paging_token_from_index(next_index)
 
     def filter_log_events(self, log_group_name, log_stream_names, start_time, end_time, limit, next_token, filter_pattern, interleaved):
+        if filter_pattern:
+            raise NotImplementedError('filter_pattern is not yet implemented')
+
         def filter_func(event):
             if start_time and event.timestamp < start_time:
                 return False

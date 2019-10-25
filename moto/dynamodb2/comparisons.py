@@ -935,7 +935,13 @@ class OpLessThan(Op):
     def expr(self, item):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
-        return lhs < rhs
+        # In python3 None is not a valid comparator when using < or > so must be handled specially
+        if lhs and rhs:
+            return lhs < rhs
+        elif lhs is None and rhs:
+            return True
+        else:
+            return False
 
 
 class OpGreaterThan(Op):
@@ -944,7 +950,13 @@ class OpGreaterThan(Op):
     def expr(self, item):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
-        return lhs > rhs
+        # In python3 None is not a valid comparator when using < or > so must be handled specially
+        if lhs and rhs:
+            return lhs > rhs
+        elif lhs and rhs is None:
+            return True
+        else:
+            return False
 
 
 class OpEqual(Op):
@@ -971,7 +983,13 @@ class OpLessThanOrEqual(Op):
     def expr(self, item):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
-        return lhs <= rhs
+        # In python3 None is not a valid comparator when using < or > so must be handled specially
+        if lhs and rhs:
+            return lhs <= rhs
+        elif lhs is None and rhs or lhs is None and rhs is None:
+            return True
+        else:
+            return False
 
 
 class OpGreaterThanOrEqual(Op):
@@ -980,7 +998,13 @@ class OpGreaterThanOrEqual(Op):
     def expr(self, item):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
-        return lhs >= rhs
+        # In python3 None is not a valid comparator when using < or > so must be handled specially
+        if lhs and rhs:
+            return lhs >= rhs
+        elif lhs and rhs is None or lhs is None and rhs is None:
+            return True
+        else:
+            return False
 
 
 class OpOr(Op):
@@ -1099,7 +1123,19 @@ class FuncBetween(Func):
         super(FuncBetween, self).__init__(attribute, start, end)
 
     def expr(self, item):
-        return self.start.expr(item) <= self.attr.expr(item) <= self.end.expr(item)
+        # In python3 None is not a valid comparator when using < or > so must be handled specially
+        start = self.start.expr(item)
+        attr = self.attr.expr(item)
+        end = self.end.expr(item)
+        if start and attr and end:
+            return start <= attr <= end
+        elif start is None and attr is None:
+            # None is between None and None as well as None is between None and any number
+            return True
+        elif start is None and attr and end:
+            return attr <= end
+        else:
+            return False
 
 
 class FuncIn(Func):
