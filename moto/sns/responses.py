@@ -639,34 +639,21 @@ class SNSResponse(BaseResponse):
         return template.render()
 
     def add_permission(self):
-        arn = self._get_param('TopicArn')
+        topic_arn = self._get_param('TopicArn')
         label = self._get_param('Label')
-        accounts = self._get_multi_param('AWSAccountId.member.')
-        action = self._get_multi_param('ActionName.member.')
+        aws_account_ids = self._get_multi_param('AWSAccountId.member.')
+        action_names = self._get_multi_param('ActionName.member.')
 
-        if arn not in self.backend.topics:
-            error_response = self._error('NotFound', 'Topic does not exist')
-            return error_response, dict(status=404)
-
-        key = (arn, label)
-        self.backend.permissions[key] = {'accounts': accounts, 'action': action}
+        self.backend.add_permission(topic_arn, label, aws_account_ids, action_names)
 
         template = self.response_template(ADD_PERMISSION_TEMPLATE)
         return template.render()
 
     def remove_permission(self):
-        arn = self._get_param('TopicArn')
+        topic_arn = self._get_param('TopicArn')
         label = self._get_param('Label')
 
-        if arn not in self.backend.topics:
-            error_response = self._error('NotFound', 'Topic does not exist')
-            return error_response, dict(status=404)
-
-        try:
-            key = (arn, label)
-            del self.backend.permissions[key]
-        except KeyError:
-            pass
+        self.backend.remove_permission(topic_arn, label)
 
         template = self.response_template(DEL_PERMISSION_TEMPLATE)
         return template.render()
