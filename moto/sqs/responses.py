@@ -90,13 +90,10 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        queue = self.sqs_backend.get_queue(queue_name)
+        queue = self.sqs_backend.get_queue_url(queue_name)
 
-        if queue:
-            template = self.response_template(GET_QUEUE_URL_RESPONSE)
-            return template.render(queue=queue, request_url=request_url)
-        else:
-            return "", dict(status=404)
+        template = self.response_template(GET_QUEUE_URL_RESPONSE)
+        return template.render(queue_url=queue.url(request_url))
 
     def list_queues(self):
         request_url = urlparse(self.uri)
@@ -420,7 +417,7 @@ CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>
 
 GET_QUEUE_URL_RESPONSE = """<GetQueueUrlResponse>
     <GetQueueUrlResult>
-        <QueueUrl>{{ queue.url(request_url) }}</QueueUrl>
+        <QueueUrl>{{ queue_url }}</QueueUrl>
     </GetQueueUrlResult>
     <ResponseMetadata>
         <RequestId></RequestId>

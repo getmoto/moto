@@ -144,16 +144,40 @@ def test_create_queue_kms():
 def test_create_queue_with_tags():
     client = boto3.client('sqs', region_name='us-east-1')
     response = client.create_queue(
-        QueueName = 'test-queue-with-tags',
-        tags = {
+        QueueName='test-queue-with-tags',
+        tags={
             'tag_key_1': 'tag_value_1'
         }
     )
     queue_url = response['QueueUrl']
 
-    client.list_queue_tags(QueueUrl = queue_url)['Tags'].should.equal({
+    client.list_queue_tags(QueueUrl=queue_url)['Tags'].should.equal({
         'tag_key_1': 'tag_value_1'
     })
+
+
+@mock_sqs
+def test_get_queue_url():
+    client = boto3.client('sqs', region_name='us-east-1')
+    client.create_queue(QueueName='test-queue')
+
+    response = client.get_queue_url(QueueName='test-queue')
+
+    response['QueueUrl'].should.equal(
+        'https://queue.amazonaws.com/123456789012/test-queue'
+    )
+
+
+@mock_sqs
+def test_get_queue_url_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    client.get_queue_url.when.called_with(
+        QueueName='non-existing-queue'
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
 
 
 @mock_sqs

@@ -466,6 +466,9 @@ class SQSBackend(BaseBackend):
 
         return queue
 
+    def get_queue_url(self, queue_name):
+        return self.get_queue(queue_name)
+
     def list_queues(self, queue_name_prefix):
         re_str = '.*'
         if queue_name_prefix:
