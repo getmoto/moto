@@ -20,10 +20,16 @@ from .exceptions import (
     QueueDoesNotExist,
     QueueAlreadyExists,
     ReceiptHandleIsInvalid,
+    InvalidBatchEntryId,
+    BatchRequestTooLong,
+    BatchEntryIdsNotDistinct,
+    TooManyEntriesInBatchRequest
 )
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
+
+MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
 TRANSPORT_TYPE_ENCODINGS = {'String': b'\x01', 'Binary': b'\x02', 'Number': b'\x01'}
 
@@ -516,6 +522,49 @@ class SQSBackend(BaseBackend):
 
         return message
 
+    def send_message_batch(self, queue_name, entries):
+        self.get_queue(queue_name)
+
+        if any(not re.match(r'^[\w-]{1,80}$', entry['Id']) for entry in entries.values()):
+            raise InvalidBatchEntryId()
+
+        body_length = next(
+            (len(entry['MessageBody']) for entry in entries.values() if len(entry['MessageBody']) > MAXIMUM_MESSAGE_LENGTH),
+            False
+        )
+        if body_length:
+            raise BatchRequestTooLong(body_length)
+
+        duplicate_id = self._get_first_duplicate_id([entry['Id'] for entry in entries.values()])
+        if duplicate_id:
+            raise BatchEntryIdsNotDistinct(duplicate_id)
+
+        if len(entries) > 10:
+            raise TooManyEntriesInBatchRequest(len(entries))
+
+        messages = []
+        for index, entry in entries.items():
+            # Loop through looking for messages
+            message = self.send_message(
+                queue_name,
+                entry['MessageBody'],
+                message_attributes=entry['MessageAttributes'],
+                delay_seconds=entry['DelaySeconds']
+            )
+            message.user_id = entry['Id']
+
+            messages.append(message)
+
+        return messages
+
+    def _get_first_duplicate_id(self, ids):
+        unique_ids = set()
+        for id in ids:
+            if id in unique_ids:
+                return id
+            unique_ids.add(id)
+        return None
+
     def receive_messages(self, queue_name, count, wait_seconds_timeout, visibility_timeout):
         """
         Attempt to retrieve visible messages from a queue.
@@ -676,6 +725,9 @@ class SQSBackend(BaseBackend):
                 del queue.tags[key]
             except KeyError:
                 pass
+
+    def list_queue_tags(self, queue_name):
+        return self.get_queue(queue_name)
 
 
 sqs_backends = {}

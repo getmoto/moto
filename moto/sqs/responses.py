@@ -11,6 +11,7 @@ from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
+    EmptyBatchRequest
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
@@ -237,71 +238,32 @@ class SQSResponse(BaseResponse):
         self.sqs_backend.get_queue(queue_name)
 
         if self.querystring.get('Entries'):
-            return self._error('AWS.SimpleQueueService.EmptyBatchRequest',
-                               'There should be at least one SendMessageBatchRequestEntry in the request.')
+            raise EmptyBatchRequest()
 
         entries = {}
         for key, value in self.querystring.items():
             match = re.match(r'^SendMessageBatchRequestEntry\.(\d+)\.Id', key)
             if match:
-                entries[match.group(1)] = {
+                index = match.group(1)
+
+                message_attributes = parse_message_attributes(
+                    self.querystring, base='SendMessageBatchRequestEntry.{}.'.format(index))
+                if type(message_attributes) == tuple:
+                    return message_attributes[0], message_attributes[1]
+
+                entries[index] = {
                     'Id': value[0],
                     'MessageBody': self.querystring.get(
-                        'SendMessageBatchRequestEntry.{}.MessageBody'.format(match.group(1)))[0]
+                        'SendMessageBatchRequestEntry.{}.MessageBody'.format(index))[0],
+                    'DelaySeconds': self.querystring.get(
+                        'SendMessageBatchRequestEntry.{}.DelaySeconds'.format(index), [None])[0],
+                    'MessageAttributes': message_attributes
                 }
 
-        if any(not re.match(r'^[\w-]{1,80}$', entry['Id']) for entry in entries.values()):
-            return self._error('AWS.SimpleQueueService.InvalidBatchEntryId',
-                               'A batch entry id can only contain alphanumeric characters, '
-                               'hyphens and underscores. It can be at most 80 letters long.')
-
-        body_length = next(
-            (len(entry['MessageBody']) for entry in entries.values() if len(entry['MessageBody']) > MAXIMUM_MESSAGE_LENGTH),
-            False
-        )
-        if body_length:
-            return self._error('AWS.SimpleQueueService.BatchRequestTooLong',
-                               'Batch requests cannot be longer than 262144 bytes. '
-                               'You have sent {} bytes.'.format(body_length))
-
-        duplicate_id = self._get_first_duplicate_id([entry['Id'] for entry in entries.values()])
-        if duplicate_id:
-            return self._error('AWS.SimpleQueueService.BatchEntryIdsNotDistinct',
-                               'Id {} repeated.'.format(duplicate_id))
-
-        if len(entries) > 10:
-            return self._error('AWS.SimpleQueueService.TooManyEntriesInBatchRequest',
-                               'Maximum number of entries per request are 10. '
-                               'You have sent 11.')
-
-        messages = []
-        for index, entry in entries.items():
-            # Loop through looking for messages
-            delay_key = 'SendMessageBatchRequestEntry.{0}.DelaySeconds'.format(
-                index)
-            delay_seconds = self.querystring.get(delay_key, [None])[0]
-            message = self.sqs_backend.send_message(
-                queue_name, entry['MessageBody'], delay_seconds=delay_seconds)
-            message.user_id = entry['Id']
-
-            message_attributes = parse_message_attributes(
-                self.querystring, base='SendMessageBatchRequestEntry.{0}.'.format(index))
-            if type(message_attributes) == tuple:
-                return message_attributes[0], message_attributes[1]
-            message.message_attributes = message_attributes
-
-            messages.append(message)
+        messages = self.sqs_backend.send_message_batch(queue_name, entries)
 
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages)
-
-    def _get_first_duplicate_id(self, ids):
-        unique_ids = set()
-        for id in ids:
-            if id in unique_ids:
-                return id
-            unique_ids.add(id)
-        return None
 
     def delete_message(self):
         queue_name = self._get_queue_name()
@@ -441,7 +403,7 @@ class SQSResponse(BaseResponse):
     def list_queue_tags(self):
         queue_name = self._get_queue_name()
 
-        queue = self.sqs_backend.get_queue(queue_name)
+        queue = self.sqs_backend.list_queue_tags(queue_name)
 
         template = self.response_template(LIST_QUEUE_TAGS_RESPONSE)
         return template.render(tags=queue.tags)

@@ -883,10 +883,70 @@ def test_delete_message_after_visibility_timeout():
 
 
 @mock_sqs
-def test_send_message_batch_errors():
-    client = boto3.client('sqs', region_name = 'us-east-1')
+def test_send_message_batch():
+    client = boto3.client('sqs', region_name='us-east-1')
+    response = client.create_queue(QueueName='test-queue')
+    queue_url = response['QueueUrl']
 
-    response = client.create_queue(QueueName='test-queue-with-tags')
+    response = client.send_message_batch(
+        QueueUrl=queue_url,
+        Entries=[
+            {
+                'Id': 'id_1',
+                'MessageBody': 'body_1',
+                'DelaySeconds': 0,
+                'MessageAttributes': {
+                    'attribute_name_1': {
+                        'StringValue': 'attribute_value_1',
+                        'DataType': 'String'
+                    }
+                }
+            },
+            {
+                'Id': 'id_2',
+                'MessageBody': 'body_2',
+                'DelaySeconds': 0,
+                'MessageAttributes': {
+                    'attribute_name_2': {
+                        'StringValue': '123',
+                        'DataType': 'Number'
+                    }
+                }
+            }
+        ]
+    )
+
+    sorted([entry['Id'] for entry in response['Successful']]).should.equal([
+        'id_1',
+        'id_2'
+    ])
+
+    response = client.receive_message(
+        QueueUrl=queue_url,
+        MaxNumberOfMessages=10
+    )
+
+    response['Messages'][0]['Body'].should.equal('body_1')
+    response['Messages'][0]['MessageAttributes'].should.equal({
+        'attribute_name_1': {
+            'StringValue': 'attribute_value_1',
+            'DataType': 'String'
+        }
+    })
+    response['Messages'][1]['Body'].should.equal('body_2')
+    response['Messages'][1]['MessageAttributes'].should.equal({
+        'attribute_name_2': {
+            'StringValue': '123',
+            'DataType': 'Number'
+        }
+    })
+
+
+@mock_sqs
+def test_send_message_batch_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+
+    response = client.create_queue(QueueName='test-queue')
     queue_url = response['QueueUrl']
 
     client.send_message_batch.when.called_with(
