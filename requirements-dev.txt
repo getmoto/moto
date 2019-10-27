@@ -1,6 +1,7 @@
 -r requirements.txt
 mock
 nose
+black; python_version >= '3.6'
 sure==1.4.11
 coverage
 flake8==3.7.8

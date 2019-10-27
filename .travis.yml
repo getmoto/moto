@@ -37,7 +37,8 @@ install:
     python wait_for.py
   fi
 script:
-- make test
+- make test-only
+- if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then make lint; fi
 after_success:
 - coveralls
 before_deploy:

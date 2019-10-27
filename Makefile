@@ -14,11 +14,15 @@ init:
 
 lint:
 	flake8 moto
+	black --check moto/ tests/
 
-test: lint
+test-only:
 	rm -f .coverage
 	rm -rf cover
 	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
+
+
+test: lint test-only
 
 test_server:
 	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
