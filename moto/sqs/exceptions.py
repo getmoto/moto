@@ -7,9 +7,14 @@ class MessageNotInflight(Exception):
     status_code = 400
 
 
-class ReceiptHandleIsInvalid(Exception):
-    description = "The receipt handle provided is not valid."
-    status_code = 400
+class ReceiptHandleIsInvalid(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(ReceiptHandleIsInvalid, self).__init__(
+            'ReceiptHandleIsInvalid',
+            'The input receipt handle is invalid.'
+        )
 
 
 class MessageAttributesInvalid(Exception):

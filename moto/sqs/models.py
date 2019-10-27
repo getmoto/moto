@@ -669,6 +669,10 @@ class SQSBackend(BaseBackend):
 
     def delete_message(self, queue_name, receipt_handle):
         queue = self.get_queue(queue_name)
+
+        if not any(message.receipt_handle == receipt_handle for message in queue._messages):
+            raise ReceiptHandleIsInvalid()
+
         new_messages = []
         for message in queue._messages:
             # Only delete message if it is not visible and the reciept_handle

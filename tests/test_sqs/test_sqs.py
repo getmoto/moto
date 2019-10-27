@@ -1000,6 +1000,36 @@ def test_delete_message_after_visibility_timeout():
 
 
 @mock_sqs
+def test_delete_message_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+    response = client.create_queue(QueueName='test-queue')
+    queue_url = response['QueueUrl']
+    client.send_message(
+        QueueUrl=queue_url,
+        MessageBody='body'
+    )
+    response = client.receive_message(
+        QueueUrl=queue_url
+    )
+    receipt_handle = response['Messages'][0]['ReceiptHandle']
+
+    client.delete_message.when.called_with(
+        QueueUrl=queue_url + '-not-existing',
+        ReceiptHandle=receipt_handle
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+    client.delete_message.when.called_with(
+        QueueUrl=queue_url,
+        ReceiptHandle='not-existing'
+    ).should.throw(
+        ClientError,
+        'The input receipt handle is invalid.'
+    )
+
+@mock_sqs
 def test_send_message_batch():
     client = boto3.client('sqs', region_name='us-east-1')
     response = client.create_queue(QueueName='test-queue')
