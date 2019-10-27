@@ -244,7 +244,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         def get_kms_tags(kms_key_id):
             result = []
             for tag in self.kms_backend.list_resource_tags(kms_key_id):
-                    result.append({'Key': tag['TagKey'], 'Value': tag['TagValue']})
+                result.append({'Key': tag['TagKey'], 'Value': tag['TagValue']})
             return result
 
         if not resource_type_filters or 'kms' in resource_type_filters:

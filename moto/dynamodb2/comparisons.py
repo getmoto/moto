@@ -1,7 +1,5 @@
 from __future__ import unicode_literals
 import re
-import six
-import re
 from collections import deque
 from collections import namedtuple
 
@@ -48,11 +46,11 @@ def get_expected(expected):
         path = AttributePath([key])
         if 'Exists' in cond:
             if cond['Exists']:
-               conditions.append(FuncAttrExists(path))
+                conditions.append(FuncAttrExists(path))
             else:
-               conditions.append(FuncAttrNotExists(path))
+                conditions.append(FuncAttrNotExists(path))
         elif 'Value' in cond:
-           conditions.append(OpEqual(path, AttributeValue(cond['Value'])))
+            conditions.append(OpEqual(path, AttributeValue(cond['Value'])))
         elif 'ComparisonOperator' in cond:
             operator_name = cond['ComparisonOperator']
             values = [
@@ -221,7 +219,6 @@ class ConditionExpressionParser:
         # --------------
         LITERAL = 'LITERAL'
 
-
     class Nonterminal:
         """Enum defining nonterminals for productions."""
 
@@ -239,7 +236,6 @@ class ConditionExpressionParser:
         LEFT_PAREN = 'LEFT_PAREN'
         RIGHT_PAREN = 'RIGHT_PAREN'
         WHITESPACE = 'WHITESPACE'
-
 
     Node = namedtuple('Node', ['nonterminal', 'kind', 'text', 'value', 'children'])
 
@@ -286,11 +282,10 @@ class ConditionExpressionParser:
             if match:
                 match_text = match.group()
                 break
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise ValueError("Cannot parse condition starting at: " +
-                                 remaining_expression)
+                             remaining_expression)
 
-        value = match_text
         node = self.Node(
             nonterminal=nonterminal,
             kind=self.Kind.LITERAL,
@@ -350,7 +345,6 @@ class ConditionExpressionParser:
             'contains',
             'size',
         }
-
 
         if name.lower() in reserved:
             # e.g. AND
@@ -748,13 +742,12 @@ class ConditionExpressionParser:
         elif node.kind == self.Kind.FUNCTION:
             # size()
             function_node = node.children[0]
-            arguments =  node.children[1:]
+            arguments = node.children[1:]
             function_name = function_node.value
             arguments = [self._make_operand(arg) for arg in arguments]
             return FUNC_CLASS[function_name](*arguments)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise ValueError("Unknown operand: %r" % node)
-
 
     def _make_op_condition(self, node):
         if node.kind == self.Kind.OR:
@@ -796,7 +789,7 @@ class ConditionExpressionParser:
             return COMPARATOR_CLASS[comparator.value](
                 self._make_operand(lhs),
                 self._make_operand(rhs))
-        else: # pragma: no cover
+        else:  # pragma: no cover
             raise ValueError("Unknown expression node kind %r" % node.kind)
 
     def _assert(self, condition, message, nodes):
