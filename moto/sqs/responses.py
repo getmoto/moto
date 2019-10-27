@@ -11,7 +11,8 @@ from .exceptions import (
     MessageAttributesInvalid,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
-    EmptyBatchRequest
+    EmptyBatchRequest,
+    InvalidAttributeName
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
@@ -169,10 +170,15 @@ class SQSResponse(BaseResponse):
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
 
-        queue = self.sqs_backend.get_queue(queue_name)
+        if self.querystring.get('AttributeNames'):
+            raise InvalidAttributeName('')
+
+        attribute_names = self._get_multi_param('AttributeName')
+
+        attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
-        return template.render(queue=queue)
+        return template.render(attributes=attributes)
 
     def set_queue_attributes(self):
         # TODO validate self.get_param('QueueUrl')
@@ -443,7 +449,7 @@ DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
 
 GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
   <GetQueueAttributesResult>
-    {% for key, value in queue.attributes.items() %}
+    {% for key, value in attributes.items() %}
         <Attribute>
           <Name>{{ key }}</Name>
           <Value>{{ value }}</Value>

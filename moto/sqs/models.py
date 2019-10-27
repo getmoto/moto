@@ -23,7 +23,8 @@ from .exceptions import (
     InvalidBatchEntryId,
     BatchRequestTooLong,
     BatchEntryIdsNotDistinct,
-    TooManyEntriesInBatchRequest
+    TooManyEntriesInBatchRequest,
+    InvalidAttributeName
 )
 
 DEFAULT_ACCOUNT_ID = 123456789012
@@ -161,7 +162,7 @@ class Message(BaseModel):
 
 
 class Queue(BaseModel):
-    base_attributes = ['ApproximateNumberOfMessages',
+    BASE_ATTRIBUTES = ['ApproximateNumberOfMessages',
                        'ApproximateNumberOfMessagesDelayed',
                        'ApproximateNumberOfMessagesNotVisible',
                        'CreatedTimestamp',
@@ -172,9 +173,9 @@ class Queue(BaseModel):
                        'QueueArn',
                        'ReceiveMessageWaitTimeSeconds',
                        'VisibilityTimeout']
-    fifo_attributes = ['FifoQueue',
+    FIFO_ATTRIBUTES = ['FifoQueue',
                        'ContentBasedDeduplication']
-    kms_attributes = ['KmsDataKeyReusePeriodSeconds',
+    KMS_ATTRIBUTES = ['KmsDataKeyReusePeriodSeconds',
                       'KmsMasterKeyId']
     ALLOWED_PERMISSIONS = ('*', 'ChangeMessageVisibility', 'DeleteMessage',
                            'GetQueueAttributes', 'GetQueueUrl',
@@ -191,8 +192,9 @@ class Queue(BaseModel):
 
         now = unix_time()
         self.created_timestamp = now
-        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region,
-                                                                   self.name)
+        self.queue_arn = 'arn:aws:sqs:{0}:{1}:{2}'.format(self.region,
+                                                          DEFAULT_ACCOUNT_ID,
+                                                          self.name)
         self.dead_letter_queue = None
 
         self.lambda_event_source_mappings = {}
@@ -336,17 +338,17 @@ class Queue(BaseModel):
     def attributes(self):
         result = {}
 
-        for attribute in self.base_attributes:
+        for attribute in self.BASE_ATTRIBUTES:
             attr = getattr(self, camelcase_to_underscores(attribute))
             result[attribute] = attr
 
         if self.fifo_queue:
-            for attribute in self.fifo_attributes:
+            for attribute in self.FIFO_ATTRIBUTES:
                 attr = getattr(self, camelcase_to_underscores(attribute))
                 result[attribute] = attr
 
         if self.kms_master_key_id:
-            for attribute in self.kms_attributes:
+            for attribute in self.KMS_ATTRIBUTES:
                 attr = getattr(self, camelcase_to_underscores(attribute))
                 result[attribute] = attr
 
@@ -490,6 +492,28 @@ class SQSBackend(BaseBackend):
         if queue_name in self.queues:
             return self.queues.pop(queue_name)
         return False
+
+    def get_queue_attributes(self, queue_name, attribute_names):
+        queue = self.get_queue(queue_name)
+
+        if not len(attribute_names):
+            attribute_names.append('All')
+
+        valid_names = ['All'] + queue.BASE_ATTRIBUTES + queue.FIFO_ATTRIBUTES + queue.KMS_ATTRIBUTES
+        invalid_name = next((name for name in attribute_names if name not in valid_names), None)
+
+        if invalid_name or invalid_name == '':
+            raise InvalidAttributeName(invalid_name)
+
+        attributes = {}
+
+        if 'All' in attribute_names:
+            attributes = queue.attributes
+        else:
+            for name in (name for name in attribute_names if name in queue.attributes):
+                attributes[name] = queue.attributes.get(name)
+
+        return attributes
 
     def set_queue_attributes(self, queue_name, attributes):
         queue = self.get_queue(queue_name)

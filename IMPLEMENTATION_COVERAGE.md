@@ -6065,7 +6065,7 @@
 - [X] untag_resource
 
 ## sqs
-80% implemented
+85% implemented
 - [X] add_permission
 - [X] change_message_visibility
 - [ ] change_message_visibility_batch
@@ -6073,7 +6073,7 @@
 - [X] delete_message
 - [ ] delete_message_batch
 - [X] delete_queue
-- [ ] get_queue_attributes
+- [X] get_queue_attributes
 - [X] get_queue_url
 - [X] list_dead_letter_source_queues
 - [X] list_queue_tags

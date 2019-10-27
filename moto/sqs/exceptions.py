@@ -86,3 +86,13 @@ class TooManyEntriesInBatchRequest(RESTError):
             'Maximum number of entries per request are 10. '
             'You have sent {}.'.format(number)
         )
+
+
+class InvalidAttributeName(RESTError):
+    code = 400
+
+    def __init__(self, attribute_name):
+        super(InvalidAttributeName, self).__init__(
+            'InvalidAttributeName',
+            'Unknown Attribute {}.'.format(attribute_name)
+        )

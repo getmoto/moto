@@ -5,6 +5,7 @@ import os
 import boto
 import boto3
 import botocore.exceptions
+import six
 from botocore.exceptions import ClientError
 from boto.exception import SQSError
 from boto.sqs.message import RawMessage, Message
@@ -363,6 +364,98 @@ def test_delete_queue():
 
     with assert_raises(botocore.exceptions.ClientError):
         queue.delete()
+
+
+@mock_sqs
+def test_get_queue_attributes():
+    client = boto3.client('sqs', region_name='us-east-1')
+    response = client.create_queue(QueueName='test-queue')
+    queue_url = response['QueueUrl']
+
+    response = client.get_queue_attributes(QueueUrl=queue_url)
+
+    response['Attributes']['ApproximateNumberOfMessages'].should.equal('0')
+    response['Attributes']['ApproximateNumberOfMessagesDelayed'].should.equal('0')
+    response['Attributes']['ApproximateNumberOfMessagesNotVisible'].should.equal('0')
+    response['Attributes']['CreatedTimestamp'].should.be.a(six.string_types)
+    response['Attributes']['DelaySeconds'].should.equal('0')
+    response['Attributes']['LastModifiedTimestamp'].should.be.a(six.string_types)
+    response['Attributes']['MaximumMessageSize'].should.equal('65536')
+    response['Attributes']['MessageRetentionPeriod'].should.equal('345600')
+    response['Attributes']['QueueArn'].should.equal('arn:aws:sqs:us-east-1:123456789012:test-queue')
+    response['Attributes']['ReceiveMessageWaitTimeSeconds'].should.equal('0')
+    response['Attributes']['VisibilityTimeout'].should.equal('30')
+
+    response = client.get_queue_attributes(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            'ApproximateNumberOfMessages',
+            'MaximumMessageSize',
+            'QueueArn',
+            'VisibilityTimeout'
+        ]
+    )
+
+    response['Attributes'].should.equal({
+        'ApproximateNumberOfMessages': '0',
+        'MaximumMessageSize': '65536',
+        'QueueArn': 'arn:aws:sqs:us-east-1:123456789012:test-queue',
+        'VisibilityTimeout': '30'
+    })
+
+    # should not return any attributes, if it was not set before
+    response = client.get_queue_attributes(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            'KmsMasterKeyId'
+        ]
+    )
+
+    response.should_not.have.key('Attributes')
+
+
+@mock_sqs
+def test_get_queue_attributes_errors():
+    client = boto3.client('sqs', region_name='us-east-1')
+    response = client.create_queue(QueueName='test-queue')
+    queue_url = response['QueueUrl']
+
+    client.get_queue_attributes.when.called_with(
+        QueueUrl=queue_url + '-non-existing'
+    ).should.throw(
+        ClientError,
+        'The specified queue does not exist for this wsdl version.'
+    )
+
+    client.get_queue_attributes.when.called_with(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            'QueueArn',
+            'not-existing',
+            'VisibilityTimeout'
+        ]
+    ).should.throw(
+        ClientError,
+        'Unknown Attribute not-existing.'
+    )
+
+    client.get_queue_attributes.when.called_with(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            ''
+        ]
+    ).should.throw(
+        ClientError,
+        'Unknown Attribute .'
+    )
+
+    client.get_queue_attributes.when.called_with(
+        QueueUrl = queue_url,
+        AttributeNames = []
+    ).should.throw(
+        ClientError,
+        'Unknown Attribute .'
+    )
 
 
 @mock_sqs
