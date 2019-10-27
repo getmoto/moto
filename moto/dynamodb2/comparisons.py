@@ -91,12 +91,12 @@ class Op(object):
 
 # TODO add tests for all of these
 
-EQ_FUNCTION = lambda item_value, test_value: item_value == test_value  # flake8: noqa
-NE_FUNCTION = lambda item_value, test_value: item_value != test_value  # flake8: noqa
-LE_FUNCTION = lambda item_value, test_value: item_value <= test_value  # flake8: noqa
-LT_FUNCTION = lambda item_value, test_value: item_value < test_value  # flake8: noqa
-GE_FUNCTION = lambda item_value, test_value: item_value >= test_value  # flake8: noqa
-GT_FUNCTION = lambda item_value, test_value: item_value > test_value  # flake8: noqa
+EQ_FUNCTION = lambda item_value, test_value: item_value == test_value  # noqa
+NE_FUNCTION = lambda item_value, test_value: item_value != test_value  # noqa
+LE_FUNCTION = lambda item_value, test_value: item_value <= test_value  # noqa
+LT_FUNCTION = lambda item_value, test_value: item_value < test_value  # noqa
+GE_FUNCTION = lambda item_value, test_value: item_value >= test_value  # noqa
+GT_FUNCTION = lambda item_value, test_value: item_value > test_value  # noqa
 
 COMPARISON_FUNCS = {
     'EQ': EQ_FUNCTION,
