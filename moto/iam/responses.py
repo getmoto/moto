@@ -838,6 +838,25 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE)
         return template.render(open_id_provider_arns=open_id_provider_arns)
 
+    def update_account_password_policy(self):
+        allow_change_password = self._get_bool_param('AllowUsersToChangePassword', False)
+        hard_expiry = self._get_bool_param('HardExpiry')
+        max_password_age = self._get_int_param('MaxPasswordAge')
+        minimum_password_length = self._get_int_param('MinimumPasswordLength', 6)
+        password_reuse_prevention = self._get_int_param('PasswordReusePrevention')
+        require_lowercase_characters = self._get_bool_param('RequireLowercaseCharacters', False)
+        require_numbers = self._get_bool_param('RequireNumbers', False)
+        require_symbols = self._get_bool_param('RequireSymbols', False)
+        require_uppercase_characters = self._get_bool_param('RequireUppercaseCharacters', False)
+
+        iam_backend.update_account_password_policy(
+            allow_change_password, hard_expiry, max_password_age, minimum_password_length,
+            password_reuse_prevention, require_lowercase_characters, require_numbers,
+            require_symbols, require_uppercase_characters)
+
+        template = self.response_template(UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
+        return template.render()
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -2170,3 +2189,10 @@ LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE = """<ListOpenIDConnectProvidersResponse
     <RequestId>de2c0228-4f63-11e4-aefa-bfd6aEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListOpenIDConnectProvidersResponse>"""
+
+
+UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<UpdateAccountPasswordPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</UpdateAccountPasswordPolicyResponse>"""

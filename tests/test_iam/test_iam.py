@@ -2195,3 +2195,29 @@ def test_list_open_id_connect_providers():
     sorted(response["OpenIDConnectProviderList"], key=lambda i: i["Arn"]).should.equal(
         [{"Arn": open_id_arn_1}, {"Arn": open_id_arn_2}, {"Arn": open_id_arn_3}]
     )
+
+
+@mock_iam
+def test_update_account_password_policy():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.update_account_password_policy()
+
+
+@mock_iam
+def test_update_account_password_policy_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+
+    client.update_account_password_policy.when.called_with(
+        MaxPasswordAge = 1096,
+        MinimumPasswordLength = 129,
+        PasswordReusePrevention = 25
+    ).should.throw(
+        ClientError,
+        '3 validation errors detected: '
+        'Value "129" at "minimumPasswordLength" failed to satisfy constraint: '
+        'Member must have value less than or equal to 128; '
+        'Value "25" at "passwordReusePrevention" failed to satisfy constraint: '
+        'Member must have value less than or equal to 24; '
+        'Value "1096" at "maxPasswordAge" failed to satisfy constraint: '
+        'Member must have value less than or equal to 1095'
+    )

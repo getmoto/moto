@@ -3387,7 +3387,7 @@
 - [X] untag_role
 - [ ] untag_user
 - [X] update_access_key
-- [ ] update_account_password_policy
+- [X] update_account_password_policy
 - [ ] update_assume_role_policy
 - [ ] update_group
 - [X] update_login_profile
