@@ -164,9 +164,7 @@ def test_get_queue_url():
 
     response = client.get_queue_url(QueueName='test-queue')
 
-    response['QueueUrl'].should.equal(
-        'https://queue.amazonaws.com/123456789012/test-queue'
-    )
+    response.should.have.key('QueueUrl').which.should.contain('test-queue')
 
 
 @mock_sqs
