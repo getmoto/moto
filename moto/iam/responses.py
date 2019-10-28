@@ -857,6 +857,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render()
 
+    def get_account_password_policy(self):
+        account_password_policy = iam_backend.get_account_password_policy()
+
+        template = self.response_template(GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
+        return template.render(password_policy=account_password_policy)
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -2196,3 +2202,30 @@ UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<UpdateAccountPasswordPolicyRespons
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
  </ResponseMetadata>
 </UpdateAccountPasswordPolicyResponse>"""
+
+
+GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<GetAccountPasswordPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountPasswordPolicyResult>
+    <PasswordPolicy>
+      <AllowUsersToChangePassword>{{ password_policy.allow_users_to_change_password | lower }}</AllowUsersToChangePassword>
+      <ExpirePasswords>{{ password_policy.expire_passwords | lower }}</ExpirePasswords>
+      {% if password_policy.hard_expiry %}
+      <HardExpiry>{{ password_policy.hard_expiry | lower }}</HardExpiry>
+      {% endif %}
+      {% if password_policy.max_password_age %}
+      <MaxPasswordAge>{{ password_policy.max_password_age }}</MaxPasswordAge>
+      {% endif %}
+      <MinimumPasswordLength>{{ password_policy.minimum_password_length }}</MinimumPasswordLength>
+      {% if password_policy.password_reuse_prevention %}
+      <PasswordReusePrevention>{{ password_policy.password_reuse_prevention }}</PasswordReusePrevention>
+      {% endif %}
+      <RequireLowercaseCharacters>{{ password_policy.require_lowercase_characters | lower }}</RequireLowercaseCharacters>
+      <RequireNumbers>{{ password_policy.require_numbers | lower }}</RequireNumbers>
+      <RequireSymbols>{{ password_policy.require_symbols | lower }}</RequireSymbols>
+      <RequireUppercaseCharacters>{{ password_policy.require_uppercase_characters | lower }}</RequireUppercaseCharacters>
+    </PasswordPolicy>
+  </GetAccountPasswordPolicyResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountPasswordPolicyResponse>"""

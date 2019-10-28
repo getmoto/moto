@@ -35,6 +35,7 @@ from .exceptions import (
     EntityAlreadyExists,
     ValidationError,
     InvalidInput,
+    NoSuchEntity,
 )
 from .utils import (
     random_access_key,
@@ -1670,6 +1671,12 @@ class IAMBackend(BaseBackend):
             require_symbols,
             require_uppercase_characters
         )
+
+    def get_account_password_policy(self):
+        if not self.account_password_policy:
+            raise NoSuchEntity('The Password Policy with domain name {} cannot be found.'.format(ACCOUNT_ID))
+
+        return self.account_password_policy
 
 
 iam_backend = IAMBackend()

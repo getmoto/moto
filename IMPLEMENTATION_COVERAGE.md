@@ -3262,8 +3262,7 @@
 - [ ] describe_events
 
 ## iam
-60% implemented
-- [ ] add_client_id_to_open_id_connect_provider
+61% implemented- [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
 - [X] attach_group_policy
@@ -3317,7 +3316,7 @@
 - [ ] generate_service_last_accessed_details
 - [X] get_access_key_last_used
 - [X] get_account_authorization_details
-- [ ] get_account_password_policy
+- [X] get_account_password_policy
 - [ ] get_account_summary
 - [ ] get_context_keys_for_custom_policy
 - [ ] get_context_keys_for_principal_policy

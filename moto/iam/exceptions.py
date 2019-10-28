@@ -127,4 +127,13 @@ class InvalidInput(RESTError):
     code = 400
 
     def __init__(self, message):
-        super(InvalidInput, self).__init__("InvalidInput", message)
+        super(InvalidInput, self).__init__(
+            'InvalidInput', message)
+
+
+class NoSuchEntity(RESTError):
+    code = 404
+
+    def __init__(self, message):
+        super(NoSuchEntity, self).__init__(
+            'NoSuchEntity', message)
