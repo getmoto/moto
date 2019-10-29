@@ -7,7 +7,7 @@ import sure  # noqa
 
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
-from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
+from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
 
 @mock_sns_deprecated
@@ -76,7 +76,34 @@ def test_topic_attributes():
         .format(conn.region.name)
     )
     attributes["Owner"].should.equal(123456789012)
-    json.loads(attributes["Policy"]).should.equal(DEFAULT_TOPIC_POLICY)
+    json.loads(attributes["Policy"]).should.equal({
+        "Version": "2008-10-17",
+        "Id": "__default_policy_ID",
+        "Statement": [{
+            "Effect": "Allow",
+            "Sid": "__default_statement_ID",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "SNS:GetTopicAttributes",
+                "SNS:SetTopicAttributes",
+                "SNS:AddPermission",
+                "SNS:RemovePermission",
+                "SNS:DeleteTopic",
+                "SNS:Subscribe",
+                "SNS:ListSubscriptionsByTopic",
+                "SNS:Publish",
+                "SNS:Receive",
+            ],
+            "Resource": "arn:aws:sns:us-east-1:123456789012:some-topic",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceOwner": "123456789012"
+                }
+            }
+        }]
+    })
     attributes["DisplayName"].should.equal("")
     attributes["SubscriptionsPending"].should.equal(0)
     attributes["SubscriptionsConfirmed"].should.equal(0)
@@ -89,11 +116,11 @@ def test_topic_attributes():
     # i.e. unicode on Python 2 -- u"foobar"
     # and bytes on Python 3 -- b"foobar"
     if six.PY2:
-        policy = {b"foo": b"bar"}
+        policy = json.dumps({b"foo": b"bar"})
         displayname = b"My display name"
         delivery = {b"http": {b"defaultHealthyRetryPolicy": {b"numRetries": 5}}}
     else:
-        policy = {u"foo": u"bar"}
+        policy = json.dumps({u"foo": u"bar"})
         displayname = u"My display name"
         delivery = {u"http": {u"defaultHealthyRetryPolicy": {u"numRetries": 5}}}
     conn.set_topic_attributes(topic_arn, "Policy", policy)
@@ -102,7 +129,7 @@ def test_topic_attributes():
 
     attributes = conn.get_topic_attributes(topic_arn)['GetTopicAttributesResponse'][
         'GetTopicAttributesResult']['Attributes']
-    attributes["Policy"].should.equal("{'foo': 'bar'}")
+    attributes["Policy"].should.equal('{"foo": "bar"}')
     attributes["DisplayName"].should.equal("My display name")
     attributes["DeliveryPolicy"].should.equal(
         "{'http': {'defaultHealthyRetryPolicy': {'numRetries': 5}}}")

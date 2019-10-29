@@ -34,7 +34,6 @@ class Topic(BaseModel):
         self.sns_backend = sns_backend
         self.account_id = DEFAULT_ACCOUNT_ID
         self.display_name = ""
-        self.policy = json.dumps(DEFAULT_TOPIC_POLICY)
         self.delivery_policy = ""
         self.effective_delivery_policy = json.dumps(DEFAULT_EFFECTIVE_DELIVERY_POLICY)
         self.arn = make_arn_for_topic(
@@ -44,6 +43,7 @@ class Topic(BaseModel):
         self.subscriptions_confimed = 0
         self.subscriptions_deleted = 0
 
+        self._policy_json = self._create_default_topic_policy(sns_backend.region_name, self.account_id, name)
         self._tags = {}
 
     def publish(self, message, subject=None, message_attributes=None):
@@ -64,6 +64,14 @@ class Topic(BaseModel):
     def physical_resource_id(self):
         return self.arn
 
+    @property
+    def policy(self):
+        return json.dumps(self._policy_json)
+
+    @policy.setter
+    def policy(self, policy):
+        self._policy_json = json.loads(policy)
+
     @classmethod
     def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
         sns_backend = sns_backends[region_name]
@@ -76,6 +84,37 @@ class Topic(BaseModel):
             sns_backend.subscribe(topic.arn, subscription[
                                   'Endpoint'], subscription['Protocol'])
         return topic
+
+    def _create_default_topic_policy(self, region_name, account_id, name):
+        return {
+            "Version": "2008-10-17",
+            "Id": "__default_policy_ID",
+            "Statement": [{
+                "Effect": "Allow",
+                "Sid": "__default_statement_ID",
+                "Principal": {
+                    "AWS": "*"
+                },
+                "Action": [
+                    "SNS:GetTopicAttributes",
+                    "SNS:SetTopicAttributes",
+                    "SNS:AddPermission",
+                    "SNS:RemovePermission",
+                    "SNS:DeleteTopic",
+                    "SNS:Subscribe",
+                    "SNS:ListSubscriptionsByTopic",
+                    "SNS:Publish",
+                    "SNS:Receive",
+                ],
+                "Resource": make_arn_for_topic(
+                    self.account_id, name, region_name),
+                "Condition": {
+                    "StringEquals": {
+                        "AWS:SourceOwner": str(account_id)
+                    }
+                }
+            }]
+        }
 
 
 class Subscription(BaseModel):
@@ -269,7 +308,6 @@ class SNSBackend(BaseBackend):
         self.region_name = region_name
         self.sms_attributes = {}
         self.opt_out_numbers = ['+447420500600', '+447420505401', '+447632960543', '+447632960028', '+447700900149', '+447700900550', '+447700900545', '+447700900907']
-        self.permissions = {}
 
     def reset(self):
         region_name = self.region_name
@@ -511,6 +549,43 @@ class SNSBackend(BaseBackend):
 
                 raise SNSInvalidParameter("Invalid parameter: FilterPolicy: Match value must be String, number, true, false, or null")
 
+    def add_permission(self, topic_arn, label, aws_account_ids, action_names):
+        if topic_arn not in self.topics:
+            raise SNSNotFoundError('Topic does not exist')
+
+        policy = self.topics[topic_arn]._policy_json
+        statement = next((statement for statement in policy['Statement'] if statement['Sid'] == label), None)
+
+        if statement:
+            raise SNSInvalidParameter('Statement already exists')
+
+        if any(action_name not in VALID_POLICY_ACTIONS for action_name in action_names):
+            raise SNSInvalidParameter('Policy statement action out of service scope!')
+
+        principals = ['arn:aws:iam::{}:root'.format(account_id) for account_id in aws_account_ids]
+        actions = ['SNS:{}'.format(action_name) for action_name in action_names]
+
+        statement = {
+            'Sid': label,
+            'Effect': 'Allow',
+            'Principal': {
+                'AWS': principals[0] if len(principals) == 1 else principals
+            },
+            'Action': actions[0] if len(actions) == 1 else actions,
+            'Resource': topic_arn
+        }
+
+        self.topics[topic_arn]._policy_json['Statement'].append(statement)
+
+    def remove_permission(self, topic_arn, label):
+        if topic_arn not in self.topics:
+            raise SNSNotFoundError('Topic does not exist')
+
+        statements = self.topics[topic_arn]._policy_json['Statement']
+        statements = [statement for statement in statements if statement['Sid'] != label]
+
+        self.topics[topic_arn]._policy_json['Statement'] = statements
+
     def list_tags_for_resource(self, resource_arn):
         if resource_arn not in self.topics:
             raise ResourceNotFoundError
@@ -542,35 +617,6 @@ for region in Session().get_available_regions('sns'):
     sns_backends[region] = SNSBackend(region)
 
 
-DEFAULT_TOPIC_POLICY = {
-    "Version": "2008-10-17",
-    "Id": "us-east-1/698519295917/test__default_policy_ID",
-    "Statement": [{
-        "Effect": "Allow",
-        "Sid": "us-east-1/698519295917/test__default_statement_ID",
-        "Principal": {
-            "AWS": "*"
-        },
-        "Action": [
-            "SNS:GetTopicAttributes",
-            "SNS:SetTopicAttributes",
-            "SNS:AddPermission",
-            "SNS:RemovePermission",
-            "SNS:DeleteTopic",
-            "SNS:Subscribe",
-            "SNS:ListSubscriptionsByTopic",
-            "SNS:Publish",
-            "SNS:Receive",
-        ],
-        "Resource": "arn:aws:sns:us-east-1:698519295917:test",
-        "Condition": {
-            "StringLike": {
-                "AWS:SourceArn": "arn:aws:*:*:698519295917:*"
-            }
-        }
-    }]
-}
-
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
     'http': {
         'disableSubscriptionOverrides': False,
@@ -585,3 +631,16 @@ DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
         }
     }
 }
+
+
+VALID_POLICY_ACTIONS = [
+    'GetTopicAttributes',
+    'SetTopicAttributes',
+    'AddPermission',
+    'RemovePermission',
+    'DeleteTopic',
+    'Subscribe',
+    'ListSubscriptionsByTopic',
+    'Publish',
+    'Receive'
+]

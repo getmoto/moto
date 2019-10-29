@@ -7,7 +7,7 @@ import sure  # noqa
 
 from botocore.exceptions import ClientError
 from moto import mock_sns
-from moto.sns.models import DEFAULT_TOPIC_POLICY, DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
+from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
 
 @mock_sns
@@ -156,7 +156,34 @@ def test_topic_attributes():
         .format(conn._client_config.region_name)
     )
     attributes["Owner"].should.equal('123456789012')
-    json.loads(attributes["Policy"]).should.equal(DEFAULT_TOPIC_POLICY)
+    json.loads(attributes["Policy"]).should.equal({
+        "Version": "2008-10-17",
+        "Id": "__default_policy_ID",
+        "Statement": [{
+            "Effect": "Allow",
+            "Sid": "__default_statement_ID",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "SNS:GetTopicAttributes",
+                "SNS:SetTopicAttributes",
+                "SNS:AddPermission",
+                "SNS:RemovePermission",
+                "SNS:DeleteTopic",
+                "SNS:Subscribe",
+                "SNS:ListSubscriptionsByTopic",
+                "SNS:Publish",
+                "SNS:Receive",
+            ],
+            "Resource": "arn:aws:sns:us-east-1:123456789012:some-topic",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceOwner": "123456789012"
+                }
+            }
+        }]
+    })
     attributes["DisplayName"].should.equal("")
     attributes["SubscriptionsPending"].should.equal('0')
     attributes["SubscriptionsConfirmed"].should.equal('0')
@@ -217,18 +244,190 @@ def test_topic_paging():
 
 @mock_sns
 def test_add_remove_permissions():
-    conn = boto3.client('sns', region_name='us-east-1')
-    response = conn.create_topic(Name='testpermissions')
+    client = boto3.client('sns', region_name='us-east-1')
+    topic_arn = client.create_topic(Name='test-permissions')['TopicArn']
 
-    conn.add_permission(
-        TopicArn=response['TopicArn'],
-        Label='Test1234',
+    client.add_permission(
+        TopicArn=topic_arn,
+        Label='test',
+        AWSAccountId=['999999999999'],
+        ActionName=['Publish']
+    )
+
+    response = client.get_topic_attributes(TopicArn=topic_arn)
+    json.loads(response['Attributes']['Policy']).should.equal({
+        'Version': '2008-10-17',
+        'Id': '__default_policy_ID',
+        'Statement': [
+            {
+                'Effect': 'Allow',
+                'Sid': '__default_statement_ID',
+                'Principal': {
+                    'AWS': '*'
+                },
+                'Action': [
+                    'SNS:GetTopicAttributes',
+                    'SNS:SetTopicAttributes',
+                    'SNS:AddPermission',
+                    'SNS:RemovePermission',
+                    'SNS:DeleteTopic',
+                    'SNS:Subscribe',
+                    'SNS:ListSubscriptionsByTopic',
+                    'SNS:Publish',
+                    'SNS:Receive',
+                ],
+                'Resource': 'arn:aws:sns:us-east-1:123456789012:test-permissions',
+                'Condition': {
+                    'StringEquals': {
+                        'AWS:SourceOwner': '123456789012'
+                    }
+                }
+            },
+            {
+                'Sid': 'test',
+                'Effect': 'Allow',
+                'Principal': {
+                    'AWS': 'arn:aws:iam::999999999999:root'
+                },
+                'Action': 'SNS:Publish',
+                'Resource': 'arn:aws:sns:us-east-1:123456789012:test-permissions'
+            }
+        ]
+    })
+
+    client.remove_permission(
+        TopicArn=topic_arn,
+        Label='test'
+    )
+
+    response = client.get_topic_attributes(TopicArn=topic_arn)
+    json.loads(response['Attributes']['Policy']).should.equal({
+        'Version': '2008-10-17',
+        'Id': '__default_policy_ID',
+        'Statement': [
+            {
+                'Effect': 'Allow',
+                'Sid': '__default_statement_ID',
+                'Principal': {
+                    'AWS': '*'
+                },
+                'Action': [
+                    'SNS:GetTopicAttributes',
+                    'SNS:SetTopicAttributes',
+                    'SNS:AddPermission',
+                    'SNS:RemovePermission',
+                    'SNS:DeleteTopic',
+                    'SNS:Subscribe',
+                    'SNS:ListSubscriptionsByTopic',
+                    'SNS:Publish',
+                    'SNS:Receive',
+                ],
+                'Resource': 'arn:aws:sns:us-east-1:123456789012:test-permissions',
+                'Condition': {
+                    'StringEquals': {
+                        'AWS:SourceOwner': '123456789012'
+                    }
+                }
+            }
+        ]
+    })
+
+    client.add_permission(
+        TopicArn=topic_arn,
+        Label='test',
+        AWSAccountId=[
+            '888888888888',
+            '999999999999'
+        ],
+        ActionName=[
+            'Publish',
+            'Subscribe'
+        ]
+    )
+
+    response = client.get_topic_attributes(TopicArn=topic_arn)
+    json.loads(response['Attributes']['Policy'])['Statement'][1].should.equal({
+        'Sid': 'test',
+        'Effect': 'Allow',
+        'Principal': {
+            'AWS': [
+                'arn:aws:iam::888888888888:root',
+                'arn:aws:iam::999999999999:root'
+            ]
+        },
+        'Action': [
+            'SNS:Publish',
+            'SNS:Subscribe'
+        ],
+        'Resource': 'arn:aws:sns:us-east-1:123456789012:test-permissions'
+    })
+
+    # deleting non existing permission should be successful
+    client.remove_permission(
+        TopicArn=topic_arn,
+        Label='non-existing'
+    )
+
+
+@mock_sns
+def test_add_permission_errors():
+    client = boto3.client('sns', region_name='us-east-1')
+    topic_arn = client.create_topic(Name='test-permissions')['TopicArn']
+    client.add_permission(
+        TopicArn=topic_arn,
+        Label='test',
+        AWSAccountId=['999999999999'],
+        ActionName=['Publish']
+    )
+
+    client.add_permission.when.called_with(
+        TopicArn=topic_arn,
+        Label='test',
         AWSAccountId=['999999999999'],
         ActionName=['AddPermission']
+    ).should.throw(
+        ClientError,
+        'Statement already exists'
     )
-    conn.remove_permission(
-        TopicArn=response['TopicArn'],
-        Label='Test1234'
+
+    client.add_permission.when.called_with(
+        TopicArn=topic_arn + '-not-existing',
+        Label='test-2',
+        AWSAccountId=['999999999999'],
+        ActionName=['AddPermission']
+    ).should.throw(
+        ClientError,
+        'Topic does not exist'
+    )
+
+    client.add_permission.when.called_with(
+        TopicArn=topic_arn,
+        Label='test-2',
+        AWSAccountId=['999999999999'],
+        ActionName=['NotExistingAction']
+    ).should.throw(
+        ClientError,
+        'Policy statement action out of service scope!'
+    )
+
+
+@mock_sns
+def test_remove_permission_errors():
+    client = boto3.client('sns', region_name='us-east-1')
+    topic_arn = client.create_topic(Name='test-permissions')['TopicArn']
+    client.add_permission(
+        TopicArn=topic_arn,
+        Label='test',
+        AWSAccountId=['999999999999'],
+        ActionName=['Publish']
+    )
+
+    client.remove_permission.when.called_with(
+        TopicArn=topic_arn + '-not-existing',
+        Label='test',
+    ).should.throw(
+        ClientError,
+        'Topic does not exist'
     )
 
 
