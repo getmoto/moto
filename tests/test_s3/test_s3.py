@@ -3718,6 +3718,8 @@ def test_s3_config_dict():
     assert bucket1_result['awsRegion'] == 'us-west-2'
     assert bucket1_result['resourceName'] == bucket1_result['resourceId'] == 'bucket1'
     assert bucket1_result['tags'] == {'someTag': 'someValue', 'someOtherTag': 'someOtherValue'}
+    assert json.loads(bucket1_result['supplementaryConfiguration']['BucketTaggingConfiguration']) == \
+        {'tagSets': [{'tags': bucket1_result['tags']}]}
     assert isinstance(bucket1_result['configuration'], str)
     exist_list = ['AccessControlList', 'BucketAccelerateConfiguration', 'BucketLoggingConfiguration', 'BucketPolicy',
                   'IsRequesterPaysEnabled', 'BucketNotificationConfiguration']
@@ -3748,5 +3750,8 @@ def test_s3_config_dict():
     assert not s3_config_query.get_config_resource('bucket1', resource_name='eu-bucket-1')
 
     # Verify that no bucket policy returns the proper value:
-    assert json.loads(s3_config_query.get_config_resource('logbucket')['supplementaryConfiguration']['BucketPolicy']) == \
+    logging_bucket = s3_config_query.get_config_resource('logbucket')
+    assert json.loads(logging_bucket['supplementaryConfiguration']['BucketPolicy']) == \
         {'policyText': None}
+    assert not logging_bucket['tags']
+    assert not logging_bucket['supplementaryConfiguration'].get('BucketTaggingConfiguration')

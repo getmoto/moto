@@ -744,8 +744,9 @@ class ConfigBackend(BaseBackend):
 
     def list_aggregate_discovered_resources(self, aggregator_name, resource_type, filters, limit, next_token):
         """This will query against the mocked AWS Config listing function that must exist for the resource backend.
-        As far a moto goes -- the only real difference between this function and the `list_discovered_resources` function is that
-        this will require a Config Aggregator be set up a priori and can search based on resource regions.
+
+            As far a moto goes -- the only real difference between this function and the `list_discovered_resources` function is that
+            this will require a Config Aggregator be set up a priori and can search based on resource regions.
 
         :param aggregator_name:
         :param resource_type:
@@ -796,9 +797,9 @@ class ConfigBackend(BaseBackend):
     def get_resource_config_history(self, resource_type, id, backend_region):
         """Returns the configuration of an item in the AWS Config format of the resource for the current regional backend.
 
-        NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
-              As such, the later_time, earlier_time, limit, and next_token are ignored as this will only
-              return 1 item. (If no items, it raises an exception)
+            NOTE: This is --NOT-- returning history as it is not supported in moto at this time. (PR's welcome!)
+                  As such, the later_time, earlier_time, limit, and next_token are ignored as this will only
+                  return 1 item. (If no items, it raises an exception)
         """
         # If the type isn't implemented then we won't find the item:
         if resource_type not in RESOURCE_MAP:
@@ -896,6 +897,9 @@ class ConfigBackend(BaseBackend):
                 continue
 
             item['accountId'] = DEFAULT_ACCOUNT_ID
+
+            # The 'tags' field is not included in aggregate results for some reason...
+            item.pop('tags', None)
 
             found.append(item)
 
