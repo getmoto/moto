@@ -934,6 +934,10 @@ class FakeBucket(BaseModel):
         # This is a dobule-wrapped JSON for some reason...
         s_config = {'AccessControlList': json.dumps(json.dumps(self.acl.to_config_dict()))}
 
+        # Tagging is special:
+        if config_dict['tags']:
+            s_config['BucketTaggingConfiguration'] = json.dumps({'tagSets': [{'tags': config_dict['tags']}]})
+
         # TODO implement Accelerate Configuration:
         s_config['BucketAccelerateConfiguration'] = {'status': None}
 

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 
 import boto3
@@ -1314,10 +1315,12 @@ def test_batch_get_aggregate_resource_config():
     s3_client = boto3.client('s3', region_name='us-west-2')
     for x in range(0, 10):
         s3_client.create_bucket(Bucket='bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'us-west-2'})
+        s3_client.put_bucket_tagging(Bucket='bucket{}'.format(x), Tagging={'TagSet': [{'Key': 'Some', 'Value': 'Tag'}]})
 
     s3_client_eu = boto3.client('s3', region_name='eu-west-1')
     for x in range(10, 12):
         s3_client_eu.create_bucket(Bucket='eu-bucket{}'.format(x), CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+        s3_client.put_bucket_tagging(Bucket='eu-bucket{}'.format(x), Tagging={'TagSet': [{'Key': 'Some', 'Value': 'Tag'}]})
 
     # Now try with resources that exist and ones that don't:
     identifiers = [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'us-west-2', 'ResourceType': 'AWS::S3::Bucket',
@@ -1338,6 +1341,11 @@ def test_batch_get_aggregate_resource_config():
         missing_buckets.remove(r['resourceName'])
 
     assert not missing_buckets
+
+    # Verify that 'tags' is not in the result set:
+    for b in result['BaseConfigurationItems']:
+        assert not b.get('tags')
+        assert json.loads(b['supplementaryConfiguration']['BucketTaggingConfiguration']) == {'tagSets': [{'tags': {'Some': 'Tag'}}]}
 
     # Verify that if the resource name and ID are correct that things are good:
     identifiers = [{'SourceAccountId': DEFAULT_ACCOUNT_ID, 'SourceRegion': 'us-west-2', 'ResourceType': 'AWS::S3::Bucket',
