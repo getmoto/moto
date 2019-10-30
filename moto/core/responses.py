@@ -454,7 +454,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         index = 1
         while True:
             value_dict = self._get_multi_param_helper(prefix + str(index))
-            if not value_dict:
+            if not value_dict and value_dict != '':
                 break
 
             values.append(value_dict)
