@@ -251,8 +251,6 @@ class SQSResponse(BaseResponse):
 
                 message_attributes = parse_message_attributes(
                     self.querystring, base='SendMessageBatchRequestEntry.{}.'.format(index))
-                if type(message_attributes) == tuple:
-                    return message_attributes[0], message_attributes[1]
 
                 entries[index] = {
                     'Id': value[0],
