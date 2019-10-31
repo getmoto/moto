@@ -12,7 +12,6 @@ from .autoscaling import mock_autoscaling, mock_autoscaling_deprecated  # noqa
 from .awslambda import mock_lambda, mock_lambda_deprecated  # noqa
 from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated  # noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # noqa
-from .cognitoidentity import mock_cognitoidentity, mock_cognitoidentity_deprecated  # noqa
 from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # noqa
 from .config import mock_config  # noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # noqa
