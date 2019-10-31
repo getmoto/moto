@@ -3,11 +3,15 @@ import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.iam.models import ACCOUNT_ID
-from moto.sts.utils import random_access_key_id, random_secret_access_key, random_session_token, random_assumed_role_id
+from moto.sts.utils import (
+    random_access_key_id,
+    random_secret_access_key,
+    random_session_token,
+    random_assumed_role_id,
+)
 
 
 class Token(BaseModel):
-
     def __init__(self, duration, name=None, policy=None):
         now = datetime.datetime.utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
@@ -20,7 +24,6 @@ class Token(BaseModel):
 
 
 class AssumedRole(BaseModel):
-
     def __init__(self, role_session_name, role_arn, policy, duration, external_id):
         self.session_name = role_session_name
         self.role_arn = role_arn
@@ -46,12 +49,11 @@ class AssumedRole(BaseModel):
         return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
             account_id=ACCOUNT_ID,
             role_name=self.role_arn.split("/")[-1],
-            session_name=self.session_name
+            session_name=self.session_name,
         )
 
 
 class STSBackend(BaseBackend):
-
     def __init__(self):
         self.assumed_roles = []
 

@@ -1,24 +1,28 @@
 from __future__ import unicode_literals
+
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
-__title__ = 'moto'
-__version__ = '1.3.14.dev'
+__title__ = "moto"
+__version__ = "1.3.14.dev"
 
 from .acm import mock_acm  # noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # noqa
-from .athena import mock_athena # noqa
+from .athena import mock_athena  # noqa
 from .autoscaling import mock_autoscaling, mock_autoscaling_deprecated  # noqa
 from .awslambda import mock_lambda, mock_lambda_deprecated  # noqa
 from .cloudformation import mock_cloudformation, mock_cloudformation_deprecated  # noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # noqa
-from .cognitoidentity import mock_cognitoidentity, mock_cognitoidentity_deprecated  # noqa
+from .cognitoidentity import (  # noqa
+    mock_cognitoidentity,
+    mock_cognitoidentity_deprecated,
+)
 from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # noqa
 from .config import mock_config  # noqa
 from .datapipeline import mock_datapipeline, mock_datapipeline_deprecated  # noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # noqa
-from .dynamodbstreams import mock_dynamodbstreams # noqa
+from .dynamodbstreams import mock_dynamodbstreams  # noqa
 from .ec2 import mock_ec2, mock_ec2_deprecated  # noqa
 from .ecr import mock_ecr, mock_ecr_deprecated  # noqa
 from .ecs import mock_ecs, mock_ecs_deprecated  # noqa
@@ -43,13 +47,13 @@ from .ses import mock_ses, mock_ses_deprecated  # noqa
 from .secretsmanager import mock_secretsmanager  # noqa
 from .sns import mock_sns, mock_sns_deprecated  # noqa
 from .sqs import mock_sqs, mock_sqs_deprecated  # noqa
-from .stepfunctions import mock_stepfunctions # noqa
+from .stepfunctions import mock_stepfunctions  # noqa
 from .sts import mock_sts, mock_sts_deprecated  # noqa
 from .ssm import mock_ssm  # noqa
 from .route53 import mock_route53, mock_route53_deprecated  # noqa
 from .swf import mock_swf, mock_swf_deprecated  # noqa
 from .xray import mock_xray, mock_xray_client, XRaySegment  # noqa
-from .logs import mock_logs, mock_logs_deprecated # noqa
+from .logs import mock_logs, mock_logs_deprecated  # noqa
 from .batch import mock_batch  # noqa
 from .resourcegroupstaggingapi import mock_resourcegroupstaggingapi  # noqa
 from .iot import mock_iot  # noqa
@@ -58,7 +62,12 @@ from .iotdata import mock_iotdata  # noqa
 
 try:
     # Need to monkey-patch botocore requests back to underlying urllib3 classes
-    from botocore.awsrequest import HTTPSConnectionPool, HTTPConnectionPool, HTTPConnection, VerifiedHTTPSConnection
+    from botocore.awsrequest import (
+        HTTPSConnectionPool,
+        HTTPConnectionPool,
+        HTTPConnection,
+        VerifiedHTTPSConnection,
+    )
 except ImportError:
     pass
 else:

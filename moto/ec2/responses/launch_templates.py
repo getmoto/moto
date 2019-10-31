@@ -10,9 +10,9 @@ from xml.dom import minidom
 
 
 def xml_root(name):
-    root = ElementTree.Element(name, {
-        "xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/"
-    })
+    root = ElementTree.Element(
+        name, {"xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/"}
+    )
     request_id = str(uuid.uuid4()) + "example"
     ElementTree.SubElement(root, "requestId").text = request_id
 
@@ -22,10 +22,10 @@ def xml_root(name):
 def xml_serialize(tree, key, value):
     name = key[0].lower() + key[1:]
     if isinstance(value, list):
-        if name[-1] == 's':
+        if name[-1] == "s":
             name = name[:-1]
 
-        name = name + 'Set'
+        name = name + "Set"
 
     node = ElementTree.SubElement(tree, name)
 
@@ -36,17 +36,19 @@ def xml_serialize(tree, key, value):
             xml_serialize(node, dictkey, dictvalue)
     elif isinstance(value, list):
         for item in value:
-            xml_serialize(node, 'item', item)
+            xml_serialize(node, "item", item)
     elif value is None:
         pass
     else:
-        raise NotImplementedError("Don't know how to serialize \"{}\" to xml".format(value.__class__))
+        raise NotImplementedError(
+            'Don\'t know how to serialize "{}" to xml'.format(value.__class__)
+        )
 
 
 def pretty_xml(tree):
-    rough = ElementTree.tostring(tree, 'utf-8')
+    rough = ElementTree.tostring(tree, "utf-8")
     parsed = minidom.parseString(rough)
-    return parsed.toprettyxml(indent='    ')
+    return parsed.toprettyxml(indent="    ")
 
 
 def parse_object(raw_data):
@@ -92,68 +94,87 @@ def parse_lists(data):
 
 class LaunchTemplates(BaseResponse):
     def create_launch_template(self):
-        name = self._get_param('LaunchTemplateName')
-        version_description = self._get_param('VersionDescription')
+        name = self._get_param("LaunchTemplateName")
+        version_description = self._get_param("VersionDescription")
         tag_spec = self._parse_tag_specification("TagSpecification")
 
-        raw_template_data = self._get_dict_param('LaunchTemplateData.')
+        raw_template_data = self._get_dict_param("LaunchTemplateData.")
         parsed_template_data = parse_object(raw_template_data)
 
-        if self.is_not_dryrun('CreateLaunchTemplate'):
+        if self.is_not_dryrun("CreateLaunchTemplate"):
             if tag_spec:
-                if 'TagSpecifications' not in parsed_template_data:
-                    parsed_template_data['TagSpecifications'] = []
+                if "TagSpecifications" not in parsed_template_data:
+                    parsed_template_data["TagSpecifications"] = []
                 converted_tag_spec = []
                 for resource_type, tags in six.iteritems(tag_spec):
-                    converted_tag_spec.append({
-                        "ResourceType": resource_type,
-                        "Tags": [{"Key": key, "Value": value} for key, value in six.iteritems(tags)],
-                    })
+                    converted_tag_spec.append(
+                        {
+                            "ResourceType": resource_type,
+                            "Tags": [
+                                {"Key": key, "Value": value}
+                                for key, value in six.iteritems(tags)
+                            ],
+                        }
+                    )
 
-                parsed_template_data['TagSpecifications'].extend(converted_tag_spec)
+                parsed_template_data["TagSpecifications"].extend(converted_tag_spec)
 
-            template = self.ec2_backend.create_launch_template(name, version_description, parsed_template_data)
+            template = self.ec2_backend.create_launch_template(
+                name, version_description, parsed_template_data
+            )
             version = template.default_version()
 
             tree = xml_root("CreateLaunchTemplateResponse")
-            xml_serialize(tree, "launchTemplate", {
-                "createTime": version.create_time,
-                "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(OWNER_ID=OWNER_ID),
-                "defaultVersionNumber": template.default_version_number,
-                "latestVersionNumber": version.number,
-                "launchTemplateId": template.id,
-                "launchTemplateName": template.name
-            })
+            xml_serialize(
+                tree,
+                "launchTemplate",
+                {
+                    "createTime": version.create_time,
+                    "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
+                        OWNER_ID=OWNER_ID
+                    ),
+                    "defaultVersionNumber": template.default_version_number,
+                    "latestVersionNumber": version.number,
+                    "launchTemplateId": template.id,
+                    "launchTemplateName": template.name,
+                },
+            )
 
             return pretty_xml(tree)
 
     def create_launch_template_version(self):
-        name = self._get_param('LaunchTemplateName')
-        tmpl_id = self._get_param('LaunchTemplateId')
+        name = self._get_param("LaunchTemplateName")
+        tmpl_id = self._get_param("LaunchTemplateId")
         if name:
             template = self.ec2_backend.get_launch_template_by_name(name)
         if tmpl_id:
             template = self.ec2_backend.get_launch_template(tmpl_id)
 
-        version_description = self._get_param('VersionDescription')
+        version_description = self._get_param("VersionDescription")
 
-        raw_template_data = self._get_dict_param('LaunchTemplateData.')
+        raw_template_data = self._get_dict_param("LaunchTemplateData.")
         template_data = parse_object(raw_template_data)
 
-        if self.is_not_dryrun('CreateLaunchTemplate'):
+        if self.is_not_dryrun("CreateLaunchTemplate"):
             version = template.create_version(template_data, version_description)
 
             tree = xml_root("CreateLaunchTemplateVersionResponse")
-            xml_serialize(tree, "launchTemplateVersion", {
-                "createTime": version.create_time,
-                "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(OWNER_ID=OWNER_ID),
-                "defaultVersion": template.is_default(version),
-                "launchTemplateData": version.data,
-                "launchTemplateId": template.id,
-                "launchTemplateName": template.name,
-                "versionDescription": version.description,
-                "versionNumber": version.number,
-            })
+            xml_serialize(
+                tree,
+                "launchTemplateVersion",
+                {
+                    "createTime": version.create_time,
+                    "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
+                        OWNER_ID=OWNER_ID
+                    ),
+                    "defaultVersion": template.is_default(version),
+                    "launchTemplateData": version.data,
+                    "launchTemplateId": template.id,
+                    "launchTemplateName": template.name,
+                    "versionDescription": version.description,
+                    "versionNumber": version.number,
+                },
+            )
             return pretty_xml(tree)
 
     # def delete_launch_template(self):
@@ -163,8 +184,8 @@ class LaunchTemplates(BaseResponse):
     #     pass
 
     def describe_launch_template_versions(self):
-        name = self._get_param('LaunchTemplateName')
-        template_id = self._get_param('LaunchTemplateId')
+        name = self._get_param("LaunchTemplateName")
+        template_id = self._get_param("LaunchTemplateId")
         if name:
             template = self.ec2_backend.get_launch_template_by_name(name)
         if template_id:
@@ -177,12 +198,15 @@ class LaunchTemplates(BaseResponse):
 
         filters = filters_from_querystring(self.querystring)
         if filters:
-            raise FilterNotImplementedError("all filters", "DescribeLaunchTemplateVersions")
+            raise FilterNotImplementedError(
+                "all filters", "DescribeLaunchTemplateVersions"
+            )
 
-        if self.is_not_dryrun('DescribeLaunchTemplateVersions'):
-            tree = ElementTree.Element("DescribeLaunchTemplateVersionsResponse", {
-                "xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/",
-            })
+        if self.is_not_dryrun("DescribeLaunchTemplateVersions"):
+            tree = ElementTree.Element(
+                "DescribeLaunchTemplateVersionsResponse",
+                {"xmlns": "http://ec2.amazonaws.com/doc/2016-11-15/"},
+            )
             request_id = ElementTree.SubElement(tree, "requestId")
             request_id.text = "65cadec1-b364-4354-8ca8-4176dexample"
 
@@ -209,16 +233,22 @@ class LaunchTemplates(BaseResponse):
             ret_versions = ret_versions[:max_results]
 
             for version in ret_versions:
-                xml_serialize(versions_node, "item", {
-                    "createTime": version.create_time,
-                    "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(OWNER_ID=OWNER_ID),
-                    "defaultVersion": True,
-                    "launchTemplateData": version.data,
-                    "launchTemplateId": template.id,
-                    "launchTemplateName": template.name,
-                    "versionDescription": version.description,
-                    "versionNumber": version.number,
-                })
+                xml_serialize(
+                    versions_node,
+                    "item",
+                    {
+                        "createTime": version.create_time,
+                        "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
+                            OWNER_ID=OWNER_ID
+                        ),
+                        "defaultVersion": True,
+                        "launchTemplateData": version.data,
+                        "launchTemplateId": template.id,
+                        "launchTemplateName": template.name,
+                        "versionDescription": version.description,
+                        "versionNumber": version.number,
+                    },
+                )
 
             return pretty_xml(tree)
 
@@ -232,19 +262,29 @@ class LaunchTemplates(BaseResponse):
             tree = ElementTree.Element("DescribeLaunchTemplatesResponse")
             templates_node = ElementTree.SubElement(tree, "launchTemplates")
 
-            templates = self.ec2_backend.get_launch_templates(template_names=template_names, template_ids=template_ids, filters=filters)
+            templates = self.ec2_backend.get_launch_templates(
+                template_names=template_names,
+                template_ids=template_ids,
+                filters=filters,
+            )
 
             templates = templates[:max_results]
 
             for template in templates:
-                xml_serialize(templates_node, "item", {
-                    "createTime": template.create_time,
-                    "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(OWNER_ID=OWNER_ID),
-                    "defaultVersionNumber": template.default_version_number,
-                    "latestVersionNumber": template.latest_version_number,
-                    "launchTemplateId": template.id,
-                    "launchTemplateName": template.name,
-                })
+                xml_serialize(
+                    templates_node,
+                    "item",
+                    {
+                        "createTime": template.create_time,
+                        "createdBy": "arn:aws:iam::{OWNER_ID}:root".format(
+                            OWNER_ID=OWNER_ID
+                        ),
+                        "defaultVersionNumber": template.default_version_number,
+                        "latestVersionNumber": template.latest_version_number,
+                        "launchTemplateId": template.id,
+                        "launchTemplateName": template.name,
+                    },
+                )
 
             return pretty_xml(tree)
 

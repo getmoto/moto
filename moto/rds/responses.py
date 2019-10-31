@@ -6,19 +6,18 @@ from .models import rds_backends
 
 
 class RDSResponse(BaseResponse):
-
     @property
     def backend(self):
         return rds_backends[self.region]
 
     def _get_db_kwargs(self):
         args = {
-            "auto_minor_version_upgrade": self._get_param('AutoMinorVersionUpgrade'),
-            "allocated_storage": self._get_int_param('AllocatedStorage'),
+            "auto_minor_version_upgrade": self._get_param("AutoMinorVersionUpgrade"),
+            "allocated_storage": self._get_int_param("AllocatedStorage"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
-            "db_instance_class": self._get_param('DBInstanceClass'),
-            "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
+            "db_instance_class": self._get_param("DBInstanceClass"),
+            "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
             "db_name": self._get_param("DBName"),
             # DBParameterGroupName
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
@@ -26,48 +25,48 @@ class RDSResponse(BaseResponse):
             "engine_version": self._get_param("EngineVersion"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
-            "master_password": self._get_param('MasterUserPassword'),
-            "master_username": self._get_param('MasterUsername'),
+            "master_password": self._get_param("MasterUserPassword"),
+            "master_username": self._get_param("MasterUsername"),
             "multi_az": self._get_bool_param("MultiAZ"),
             # OptionGroupName
-            "port": self._get_param('Port'),
+            "port": self._get_param("Port"),
             # PreferredBackupWindow
             # PreferredMaintenanceWindow
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "region": self.region,
-            "security_groups": self._get_multi_param('DBSecurityGroups.member'),
+            "security_groups": self._get_multi_param("DBSecurityGroups.member"),
             "storage_encrypted": self._get_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType"),
             # VpcSecurityGroupIds.member.N
             "tags": list(),
         }
-        args['tags'] = self.unpack_complex_list_params(
-            'Tags.Tag', ('Key', 'Value'))
+        args["tags"] = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         return args
 
     def _get_db_replica_kwargs(self):
         return {
-            "auto_minor_version_upgrade": self._get_param('AutoMinorVersionUpgrade'),
+            "auto_minor_version_upgrade": self._get_param("AutoMinorVersionUpgrade"),
             "availability_zone": self._get_param("AvailabilityZone"),
-            "db_instance_class": self._get_param('DBInstanceClass'),
-            "db_instance_identifier": self._get_param('DBInstanceIdentifier'),
+            "db_instance_class": self._get_param("DBInstanceClass"),
+            "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "iops": self._get_int_param("Iops"),
             # OptionGroupName
-            "port": self._get_param('Port'),
+            "port": self._get_param("Port"),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "source_db_identifier": self._get_param('SourceDBInstanceIdentifier'),
+            "source_db_identifier": self._get_param("SourceDBInstanceIdentifier"),
             "storage_type": self._get_param("StorageType"),
         }
 
     def unpack_complex_list_params(self, label, names):
         unpacked_list = list()
         count = 1
-        while self._get_param('{0}.{1}.{2}'.format(label, count, names[0])):
+        while self._get_param("{0}.{1}.{2}".format(label, count, names[0])):
             param = dict()
             for i in range(len(names)):
                 param[names[i]] = self._get_param(
-                    '{0}.{1}.{2}'.format(label, count, names[i]))
+                    "{0}.{1}.{2}".format(label, count, names[i])
+                )
             unpacked_list.append(param)
             count += 1
         return unpacked_list
@@ -87,16 +86,18 @@ class RDSResponse(BaseResponse):
         return template.render(database=database)
 
     def describe_db_instances(self):
-        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_instance_identifier = self._get_param("DBInstanceIdentifier")
         all_instances = list(self.backend.describe_databases(db_instance_identifier))
-        marker = self._get_param('Marker')
+        marker = self._get_param("Marker")
         all_ids = [instance.db_instance_identifier for instance in all_instances]
         if marker:
             start = all_ids.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_int_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
-        instances_resp = all_instances[start:start + page_size]
+        page_size = self._get_int_param(
+            "MaxRecords", 50
+        )  # the default is 100, but using 50 to make testing easier
+        instances_resp = all_instances[start : start + page_size]
         next_marker = None
         if len(all_instances) > start + page_size:
             next_marker = instances_resp[-1].db_instance_identifier
@@ -105,73 +106,74 @@ class RDSResponse(BaseResponse):
         return template.render(databases=instances_resp, marker=next_marker)
 
     def modify_db_instance(self):
-        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_kwargs = self._get_db_kwargs()
-        new_db_instance_identifier = self._get_param('NewDBInstanceIdentifier')
+        new_db_instance_identifier = self._get_param("NewDBInstanceIdentifier")
         if new_db_instance_identifier:
-            db_kwargs['new_db_instance_identifier'] = new_db_instance_identifier
-        database = self.backend.modify_database(
-            db_instance_identifier, db_kwargs)
+            db_kwargs["new_db_instance_identifier"] = new_db_instance_identifier
+        database = self.backend.modify_database(db_instance_identifier, db_kwargs)
         template = self.response_template(MODIFY_DATABASE_TEMPLATE)
         return template.render(database=database)
 
     def delete_db_instance(self):
-        db_instance_identifier = self._get_param('DBInstanceIdentifier')
+        db_instance_identifier = self._get_param("DBInstanceIdentifier")
         database = self.backend.delete_database(db_instance_identifier)
         template = self.response_template(DELETE_DATABASE_TEMPLATE)
         return template.render(database=database)
 
     def create_db_security_group(self):
-        group_name = self._get_param('DBSecurityGroupName')
-        description = self._get_param('DBSecurityGroupDescription')
-        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        group_name = self._get_param("DBSecurityGroupName")
+        description = self._get_param("DBSecurityGroupDescription")
+        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         security_group = self.backend.create_security_group(
-            group_name, description, tags)
+            group_name, description, tags
+        )
         template = self.response_template(CREATE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
     def describe_db_security_groups(self):
-        security_group_name = self._get_param('DBSecurityGroupName')
-        security_groups = self.backend.describe_security_groups(
-            security_group_name)
+        security_group_name = self._get_param("DBSecurityGroupName")
+        security_groups = self.backend.describe_security_groups(security_group_name)
         template = self.response_template(DESCRIBE_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_groups=security_groups)
 
     def delete_db_security_group(self):
-        security_group_name = self._get_param('DBSecurityGroupName')
-        security_group = self.backend.delete_security_group(
-            security_group_name)
+        security_group_name = self._get_param("DBSecurityGroupName")
+        security_group = self.backend.delete_security_group(security_group_name)
         template = self.response_template(DELETE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
     def authorize_db_security_group_ingress(self):
-        security_group_name = self._get_param('DBSecurityGroupName')
-        cidr_ip = self._get_param('CIDRIP')
+        security_group_name = self._get_param("DBSecurityGroupName")
+        cidr_ip = self._get_param("CIDRIP")
         security_group = self.backend.authorize_security_group(
-            security_group_name, cidr_ip)
+            security_group_name, cidr_ip
+        )
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_TEMPLATE)
         return template.render(security_group=security_group)
 
     def create_db_subnet_group(self):
-        subnet_name = self._get_param('DBSubnetGroupName')
-        description = self._get_param('DBSubnetGroupDescription')
-        subnet_ids = self._get_multi_param('SubnetIds.member')
-        subnets = [ec2_backends[self.region].get_subnet(
-            subnet_id) for subnet_id in subnet_ids]
-        tags = self.unpack_complex_list_params('Tags.Tag', ('Key', 'Value'))
+        subnet_name = self._get_param("DBSubnetGroupName")
+        description = self._get_param("DBSubnetGroupDescription")
+        subnet_ids = self._get_multi_param("SubnetIds.member")
+        subnets = [
+            ec2_backends[self.region].get_subnet(subnet_id) for subnet_id in subnet_ids
+        ]
+        tags = self.unpack_complex_list_params("Tags.Tag", ("Key", "Value"))
         subnet_group = self.backend.create_subnet_group(
-            subnet_name, description, subnets, tags)
+            subnet_name, description, subnets, tags
+        )
         template = self.response_template(CREATE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)
 
     def describe_db_subnet_groups(self):
-        subnet_name = self._get_param('DBSubnetGroupName')
+        subnet_name = self._get_param("DBSubnetGroupName")
         subnet_groups = self.backend.describe_subnet_groups(subnet_name)
         template = self.response_template(DESCRIBE_SUBNET_GROUPS_TEMPLATE)
         return template.render(subnet_groups=subnet_groups)
 
     def delete_db_subnet_group(self):
-        subnet_name = self._get_param('DBSubnetGroupName')
+        subnet_name = self._get_param("DBSubnetGroupName")
         subnet_group = self.backend.delete_subnet_group(subnet_name)
         template = self.response_template(DELETE_SUBNET_GROUP_TEMPLATE)
         return template.render(subnet_group=subnet_group)

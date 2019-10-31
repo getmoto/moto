@@ -8,42 +8,40 @@ from moto.core import BaseBackend, BaseModel
 
 
 class Rule(BaseModel):
-
     def _generate_arn(self, name):
-        return 'arn:aws:events:{region_name}:111111111111:rule/{name}'.format(
-            region_name=self.region_name,
-            name=name
+        return "arn:aws:events:{region_name}:111111111111:rule/{name}".format(
+            region_name=self.region_name, name=name
         )
 
     def __init__(self, name, region_name, **kwargs):
         self.name = name
         self.region_name = region_name
-        self.arn = kwargs.get('Arn') or self._generate_arn(name)
-        self.event_pattern = kwargs.get('EventPattern')
-        self.schedule_exp = kwargs.get('ScheduleExpression')
-        self.state = kwargs.get('State') or 'ENABLED'
-        self.description = kwargs.get('Description')
-        self.role_arn = kwargs.get('RoleArn')
+        self.arn = kwargs.get("Arn") or self._generate_arn(name)
+        self.event_pattern = kwargs.get("EventPattern")
+        self.schedule_exp = kwargs.get("ScheduleExpression")
+        self.state = kwargs.get("State") or "ENABLED"
+        self.description = kwargs.get("Description")
+        self.role_arn = kwargs.get("RoleArn")
         self.targets = []
 
     def enable(self):
-        self.state = 'ENABLED'
+        self.state = "ENABLED"
 
     def disable(self):
-        self.state = 'DISABLED'
+        self.state = "DISABLED"
 
     # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
     # with Python 2.6, so tracking it with an array it is.
     def _check_target_exists(self, target_id):
         for i in range(0, len(self.targets)):
-            if target_id == self.targets[i]['Id']:
+            if target_id == self.targets[i]["Id"]:
                 return i
         return None
 
     def put_targets(self, targets):
         # Not testing for valid ARNs.
         for target in targets:
-            index = self._check_target_exists(target['Id'])
+            index = self._check_target_exists(target["Id"])
             if index is not None:
                 self.targets[index] = target
             else:
@@ -57,8 +55,8 @@ class Rule(BaseModel):
 
 
 class EventsBackend(BaseBackend):
-    ACCOUNT_ID = re.compile(r'^(\d{1,12}|\*)$')
-    STATEMENT_ID = re.compile(r'^[a-zA-Z0-9-_]{1,64}$')
+    ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
+    STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
 
     def __init__(self, region_name):
         self.rules = {}
@@ -78,7 +76,7 @@ class EventsBackend(BaseBackend):
         return self.rules.get(self.rules_order[i])
 
     def _gen_next_token(self, index):
-        token = os.urandom(128).encode('base64')
+        token = os.urandom(128).encode("base64")
         self.next_tokens[token] = index
         return token
 
@@ -124,24 +122,25 @@ class EventsBackend(BaseBackend):
         return_obj = {}
 
         start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(self.rules), next_token, limit)
+            len(self.rules), next_token, limit
+        )
 
         for i in range(start_index, end_index):
             rule = self._get_rule_by_index(i)
             for target in rule.targets:
-                if target['Arn'] == target_arn:
+                if target["Arn"] == target_arn:
                     matching_rules.append(rule.name)
 
-        return_obj['RuleNames'] = matching_rules
+        return_obj["RuleNames"] = matching_rules
         if new_next_token is not None:
-            return_obj['NextToken'] = new_next_token
+            return_obj["NextToken"] = new_next_token
 
         return return_obj
 
     def list_rules(self, prefix=None, next_token=None, limit=None):
-        match_string = '.*'
+        match_string = ".*"
         if prefix is not None:
-            match_string = '^' + prefix + match_string
+            match_string = "^" + prefix + match_string
 
         match_regex = re.compile(match_string)
 
@@ -149,16 +148,17 @@ class EventsBackend(BaseBackend):
         return_obj = {}
 
         start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(self.rules), next_token, limit)
+            len(self.rules), next_token, limit
+        )
 
         for i in range(start_index, end_index):
             rule = self._get_rule_by_index(i)
             if match_regex.match(rule.name):
                 matching_rules.append(rule)
 
-        return_obj['Rules'] = matching_rules
+        return_obj["Rules"] = matching_rules
         if new_next_token is not None:
-            return_obj['NextToken'] = new_next_token
+            return_obj["NextToken"] = new_next_token
 
         return return_obj
 
@@ -168,7 +168,8 @@ class EventsBackend(BaseBackend):
         rule = self.rules[rule]
 
         start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(rule.targets), next_token, limit)
+            len(rule.targets), next_token, limit
+        )
 
         returned_targets = []
         return_obj = {}
@@ -176,9 +177,9 @@ class EventsBackend(BaseBackend):
         for i in range(start_index, end_index):
             returned_targets.append(rule.targets[i])
 
-        return_obj['Targets'] = returned_targets
+        return_obj["Targets"] = returned_targets
         if new_next_token is not None:
-            return_obj['NextToken'] = new_next_token
+            return_obj["NextToken"] = new_next_token
 
         return return_obj
 
@@ -201,9 +202,9 @@ class EventsBackend(BaseBackend):
         num_events = len(events)
 
         if num_events < 1:
-            raise JsonRESTError('ValidationError', 'Need at least 1 event')
+            raise JsonRESTError("ValidationError", "Need at least 1 event")
         elif num_events > 10:
-            raise JsonRESTError('ValidationError', 'Can only submit 10 events at once')
+            raise JsonRESTError("ValidationError", "Can only submit 10 events at once")
 
         # We dont really need to store the events yet
         return []
@@ -221,41 +222,47 @@ class EventsBackend(BaseBackend):
         raise NotImplementedError()
 
     def put_permission(self, action, principal, statement_id):
-        if action is None or action != 'events:PutEvents':
-            raise JsonRESTError('InvalidParameterValue', 'Action must be PutEvents')
+        if action is None or action != "events:PutEvents":
+            raise JsonRESTError("InvalidParameterValue", "Action must be PutEvents")
 
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
-            raise JsonRESTError('InvalidParameterValue', 'Principal must match ^(\d{1,12}|\*)$')
+            raise JsonRESTError(
+                "InvalidParameterValue", "Principal must match ^(\d{1,12}|\*)$"
+            )
 
         if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
-            raise JsonRESTError('InvalidParameterValue', 'StatementId must match ^[a-zA-Z0-9-_]{1,64}$')
+            raise JsonRESTError(
+                "InvalidParameterValue", "StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
+            )
 
-        self.permissions[statement_id] = {'action': action, 'principal': principal}
+        self.permissions[statement_id] = {"action": action, "principal": principal}
 
     def remove_permission(self, statement_id):
         try:
             del self.permissions[statement_id]
         except KeyError:
-            raise JsonRESTError('ResourceNotFoundException', 'StatementId not found')
+            raise JsonRESTError("ResourceNotFoundException", "StatementId not found")
 
     def describe_event_bus(self):
-        arn = "arn:aws:events:{0}:000000000000:event-bus/default".format(self.region_name)
+        arn = "arn:aws:events:{0}:000000000000:event-bus/default".format(
+            self.region_name
+        )
         statements = []
         for statement_id, data in self.permissions.items():
-            statements.append({
-                'Sid': statement_id,
-                'Effect': 'Allow',
-                'Principal': {'AWS': 'arn:aws:iam::{0}:root'.format(data['principal'])},
-                'Action': data['action'],
-                'Resource': arn
-            })
-        policy = {'Version': '2012-10-17', 'Statement': statements}
+            statements.append(
+                {
+                    "Sid": statement_id,
+                    "Effect": "Allow",
+                    "Principal": {
+                        "AWS": "arn:aws:iam::{0}:root".format(data["principal"])
+                    },
+                    "Action": data["action"],
+                    "Resource": arn,
+                }
+            )
+        policy = {"Version": "2012-10-17", "Statement": statements}
         policy_json = json.dumps(policy)
-        return {
-            'Policy': policy_json,
-            'Name': 'default',
-            'Arn': arn
-        }
+        return {"Policy": policy_json, "Name": "default", "Arn": arn}
 
 
 available_regions = boto3.session.Session().get_available_regions("events")

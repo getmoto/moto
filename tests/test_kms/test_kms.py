@@ -24,7 +24,7 @@ from moto import mock_kms, mock_kms_deprecated
 PLAINTEXT_VECTORS = (
     (b"some encodeable plaintext",),
     (b"some unencodeable plaintext \xec\x8a\xcf\xb6r\xe9\xb5\xeb\xff\xa23\x16",),
-    (u"some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",),
+    ("some unicode characters ø˚∆øˆˆ∆ßçøˆˆçßøˆ¨¥",),
 )
 
 
@@ -55,7 +55,9 @@ def test_create_key():
 @mock_kms_deprecated
 def test_describe_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     key = conn.describe_key(key_id)
@@ -66,8 +68,12 @@ def test_describe_key():
 @mock_kms_deprecated
 def test_describe_key_via_alias():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
-    conn.create_alias(alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"])
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
+    conn.create_alias(
+        alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"]
+    )
 
     alias_key = conn.describe_key("alias/my-key-alias")
     alias_key["KeyMetadata"]["Description"].should.equal("my key")
@@ -78,17 +84,25 @@ def test_describe_key_via_alias():
 @mock_kms_deprecated
 def test_describe_key_via_alias_not_found():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
-    conn.create_alias(alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"])
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
+    conn.create_alias(
+        alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"]
+    )
 
-    conn.describe_key.when.called_with("alias/not-found-alias").should.throw(NotFoundException)
+    conn.describe_key.when.called_with("alias/not-found-alias").should.throw(
+        NotFoundException
+    )
 
 
-@parameterized((
+@parameterized(
+    (
         ("alias/does-not-exist",),
         ("arn:aws:kms:us-east-1:012345678912:alias/does-not-exist",),
         ("invalid",),
-))
+    )
+)
 @mock_kms
 def test_describe_key_via_alias_invalid_alias(key_id):
     client = boto3.client("kms", region_name="us-east-1")
@@ -101,7 +115,9 @@ def test_describe_key_via_alias_invalid_alias(key_id):
 @mock_kms_deprecated
 def test_describe_key_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     arn = key["KeyMetadata"]["Arn"]
 
     the_key = conn.describe_key(arn)
@@ -120,8 +136,12 @@ def test_describe_missing_key():
 def test_list_keys():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
-    conn.create_key(policy="my policy", description="my key2", key_usage="ENCRYPT_DECRYPT")
+    conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
+    conn.create_key(
+        policy="my policy", description="my key2", key_usage="ENCRYPT_DECRYPT"
+    )
 
     keys = conn.list_keys()
     keys["Keys"].should.have.length_of(2)
@@ -131,7 +151,9 @@ def test_list_keys():
 def test_enable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     conn.enable_key_rotation(key_id)
@@ -143,7 +165,9 @@ def test_enable_key_rotation():
 def test_enable_key_rotation_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["Arn"]
 
     conn.enable_key_rotation(key_id)
@@ -154,26 +178,36 @@ def test_enable_key_rotation_via_arn():
 @mock_kms_deprecated
 def test_enable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.enable_key_rotation.when.called_with("not-a-key").should.throw(NotFoundException)
+    conn.enable_key_rotation.when.called_with("not-a-key").should.throw(
+        NotFoundException
+    )
 
 
 @mock_kms_deprecated
 def test_enable_key_rotation_with_alias_name_should_fail():
     conn = boto.kms.connect_to_region("us-west-2")
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
-    conn.create_alias(alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"])
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
+    conn.create_alias(
+        alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"]
+    )
 
     alias_key = conn.describe_key("alias/my-key-alias")
     alias_key["KeyMetadata"]["Arn"].should.equal(key["KeyMetadata"]["Arn"])
 
-    conn.enable_key_rotation.when.called_with("alias/my-alias").should.throw(NotFoundException)
+    conn.enable_key_rotation.when.called_with("alias/my-alias").should.throw(
+        NotFoundException
+    )
 
 
 @mock_kms_deprecated
 def test_disable_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     conn.enable_key_rotation(key_id)
@@ -187,7 +221,9 @@ def test_disable_key_rotation():
 def test_generate_data_key():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
     key_arn = key["KeyMetadata"]["Arn"]
 
@@ -271,20 +307,26 @@ def test_decrypt(plaintext):
 @mock_kms_deprecated
 def test_disable_key_rotation_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.disable_key_rotation.when.called_with("not-a-key").should.throw(NotFoundException)
+    conn.disable_key_rotation.when.called_with("not-a-key").should.throw(
+        NotFoundException
+    )
 
 
 @mock_kms_deprecated
 def test_get_key_rotation_status_with_missing_key():
     conn = boto.kms.connect_to_region("us-west-2")
-    conn.get_key_rotation_status.when.called_with("not-a-key").should.throw(NotFoundException)
+    conn.get_key_rotation_status.when.called_with("not-a-key").should.throw(
+        NotFoundException
+    )
 
 
 @mock_kms_deprecated
 def test_get_key_rotation_status():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(False)
@@ -294,7 +336,9 @@ def test_get_key_rotation_status():
 def test_create_key_defaults_key_rotation():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     conn.get_key_rotation_status(key_id)["KeyRotationEnabled"].should.equal(False)
@@ -304,7 +348,9 @@ def test_create_key_defaults_key_rotation():
 def test_get_key_policy():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     policy = conn.get_key_policy(key_id, "default")
@@ -315,7 +361,9 @@ def test_get_key_policy():
 def test_get_key_policy_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
     policy = conn.get_key_policy(key["KeyMetadata"]["Arn"], "default")
 
     policy["Policy"].should.equal("my policy")
@@ -325,7 +373,9 @@ def test_get_key_policy_via_arn():
 def test_put_key_policy():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     conn.put_key_policy(key_id, "default", "new policy")
@@ -337,7 +387,9 @@ def test_put_key_policy():
 def test_put_key_policy_via_arn():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["Arn"]
 
     conn.put_key_policy(key_id, "default", "new policy")
@@ -349,10 +401,16 @@ def test_put_key_policy_via_arn():
 def test_put_key_policy_via_alias_should_not_update():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
-    conn.create_alias(alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"])
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
+    conn.create_alias(
+        alias_name="alias/my-key-alias", target_key_id=key["KeyMetadata"]["KeyId"]
+    )
 
-    conn.put_key_policy.when.called_with("alias/my-key-alias", "default", "new policy").should.throw(NotFoundException)
+    conn.put_key_policy.when.called_with(
+        "alias/my-key-alias", "default", "new policy"
+    ).should.throw(NotFoundException)
 
     policy = conn.get_key_policy(key["KeyMetadata"]["KeyId"], "default")
     policy["Policy"].should.equal("my policy")
@@ -362,7 +420,9 @@ def test_put_key_policy_via_alias_should_not_update():
 def test_put_key_policy():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
     conn.put_key_policy(key["KeyMetadata"]["Arn"], "default", "new policy")
 
     policy = conn.get_key_policy(key["KeyMetadata"]["KeyId"], "default")
@@ -373,7 +433,9 @@ def test_put_key_policy():
 def test_list_key_policies():
     conn = boto.kms.connect_to_region("us-west-2")
 
-    key = conn.create_key(policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT")
+    key = conn.create_key(
+        policy="my policy", description="my key1", key_usage="ENCRYPT_DECRYPT"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     policies = conn.list_key_policies(key_id)
@@ -397,7 +459,12 @@ def test__create_alias__raises_if_reserved_alias():
     create_resp = kms.create_key()
     key_id = create_resp["KeyMetadata"]["KeyId"]
 
-    reserved_aliases = ["alias/aws/ebs", "alias/aws/s3", "alias/aws/redshift", "alias/aws/rds"]
+    reserved_aliases = [
+        "alias/aws/ebs",
+        "alias/aws/s3",
+        "alias/aws/redshift",
+        "alias/aws/rds",
+    ]
 
     for alias_name in reserved_aliases:
         with assert_raises(JSONResponseError) as err:
@@ -434,7 +501,9 @@ def test__create_alias__raises_if_wrong_prefix():
     ex = err.exception
     ex.error_message.should.equal("Invalid identifier")
     ex.error_code.should.equal("ValidationException")
-    ex.body.should.equal({"message": "Invalid identifier", "__type": "ValidationException"})
+    ex.body.should.equal(
+        {"message": "Invalid identifier", "__type": "ValidationException"}
+    )
     ex.reason.should.equal("Bad Request")
     ex.status.should.equal(400)
 
@@ -454,13 +523,17 @@ def test__create_alias__raises_if_duplicate():
 
     ex = err.exception
     ex.error_message.should.match(
-        r"An alias with the name arn:aws:kms:{region}:\d{{12}}:{alias} already exists".format(**locals())
+        r"An alias with the name arn:aws:kms:{region}:\d{{12}}:{alias} already exists".format(
+            **locals()
+        )
     )
     ex.error_code.should.be.none
     ex.box_usage.should.be.none
     ex.request_id.should.be.none
     ex.body["message"].should.match(
-        r"An alias with the name arn:aws:kms:{region}:\d{{12}}:{alias} already exists".format(**locals())
+        r"An alias with the name arn:aws:kms:{region}:\d{{12}}:{alias} already exists".format(
+            **locals()
+        )
     )
     ex.body["__type"].should.equal("AlreadyExistsException")
     ex.reason.should.equal("Bad Request")
@@ -473,7 +546,11 @@ def test__create_alias__raises_if_alias_has_restricted_characters():
     create_resp = kms.create_key()
     key_id = create_resp["KeyMetadata"]["KeyId"]
 
-    alias_names_with_restricted_characters = ["alias/my-alias!", "alias/my-alias$", "alias/my-alias@"]
+    alias_names_with_restricted_characters = [
+        "alias/my-alias!",
+        "alias/my-alias$",
+        "alias/my-alias@",
+    ]
 
     for alias_name in alias_names_with_restricted_characters:
         with assert_raises(JSONResponseError) as err:
@@ -510,17 +587,18 @@ def test__create_alias__raises_if_alias_has_colon_character():
             kms.create_alias(alias_name, key_id)
         ex = err.exception
         ex.body["__type"].should.equal("ValidationException")
-        ex.body["message"].should.equal("{alias_name} contains invalid characters for an alias".format(**locals()))
+        ex.body["message"].should.equal(
+            "{alias_name} contains invalid characters for an alias".format(**locals())
+        )
         ex.error_code.should.equal("ValidationException")
-        ex.message.should.equal("{alias_name} contains invalid characters for an alias".format(**locals()))
+        ex.message.should.equal(
+            "{alias_name} contains invalid characters for an alias".format(**locals())
+        )
         ex.reason.should.equal("Bad Request")
         ex.status.should.equal(400)
 
 
-@parameterized((
-        ("alias/my-alias_/",),
-        ("alias/my_alias-/",),
-))
+@parameterized((("alias/my-alias_/",), ("alias/my_alias-/",)))
 @mock_kms_deprecated
 def test__create_alias__accepted_characters(alias_name):
     kms = boto.connect_kms()
@@ -601,8 +679,7 @@ def test__delete_alias__raises_if_alias_is_not_found():
         kms.delete_alias(alias_name)
 
     expected_message_match = r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
-        region=region,
-        alias_name=alias_name
+        region=region, alias_name=alias_name
     )
     ex = err.exception
     ex.body["__type"].should.equal("NotFoundException")
@@ -636,39 +713,78 @@ def test__list_aliases():
         alias_name = alias_obj["AliasName"]
         alias_arn = alias_obj["AliasArn"]
         return re.match(
-            r"arn:aws:kms:{region}:\d{{12}}:{alias_name}".format(region=region, alias_name=alias_name), alias_arn
+            r"arn:aws:kms:{region}:\d{{12}}:{alias_name}".format(
+                region=region, alias_name=alias_name
+            ),
+            alias_arn,
         )
 
-    len([alias for alias in aliases if has_correct_arn(alias) and "alias/aws/ebs" == alias["AliasName"]]).should.equal(
-        1
-    )
-    len([alias for alias in aliases if has_correct_arn(alias) and "alias/aws/rds" == alias["AliasName"]]).should.equal(
-        1
-    )
     len(
-        [alias for alias in aliases if has_correct_arn(alias) and "alias/aws/redshift" == alias["AliasName"]]
+        [
+            alias
+            for alias in aliases
+            if has_correct_arn(alias) and "alias/aws/ebs" == alias["AliasName"]
+        ]
     ).should.equal(1)
-    len([alias for alias in aliases if has_correct_arn(alias) and "alias/aws/s3" == alias["AliasName"]]).should.equal(1)
+    len(
+        [
+            alias
+            for alias in aliases
+            if has_correct_arn(alias) and "alias/aws/rds" == alias["AliasName"]
+        ]
+    ).should.equal(1)
+    len(
+        [
+            alias
+            for alias in aliases
+            if has_correct_arn(alias) and "alias/aws/redshift" == alias["AliasName"]
+        ]
+    ).should.equal(1)
+    len(
+        [
+            alias
+            for alias in aliases
+            if has_correct_arn(alias) and "alias/aws/s3" == alias["AliasName"]
+        ]
+    ).should.equal(1)
 
     len(
-        [alias for alias in aliases if has_correct_arn(alias) and "alias/my-alias1" == alias["AliasName"]]
+        [
+            alias
+            for alias in aliases
+            if has_correct_arn(alias) and "alias/my-alias1" == alias["AliasName"]
+        ]
     ).should.equal(1)
     len(
-        [alias for alias in aliases if has_correct_arn(alias) and "alias/my-alias2" == alias["AliasName"]]
+        [
+            alias
+            for alias in aliases
+            if has_correct_arn(alias) and "alias/my-alias2" == alias["AliasName"]
+        ]
     ).should.equal(1)
 
-    len([alias for alias in aliases if "TargetKeyId" in alias and key_id == alias["TargetKeyId"]]).should.equal(3)
+    len(
+        [
+            alias
+            for alias in aliases
+            if "TargetKeyId" in alias and key_id == alias["TargetKeyId"]
+        ]
+    ).should.equal(3)
 
     len(aliases).should.equal(7)
 
 
-@parameterized((
+@parameterized(
+    (
         ("not-a-uuid",),
         ("alias/DoesNotExist",),
         ("arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist",),
         ("d25652e4-d2d2-49f7-929a-671ccda580c6",),
-        ("arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",),
-))
+        (
+            "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",
+        ),
+    )
+)
 @mock_kms
 def test_invalid_key_ids(key_id):
     client = boto3.client("kms", region_name="us-east-1")
@@ -681,8 +797,12 @@ def test_invalid_key_ids(key_id):
 def test__assert_default_policy():
     from moto.kms.responses import _assert_default_policy
 
-    _assert_default_policy.when.called_with("not-default").should.throw(MotoNotFoundException)
-    _assert_default_policy.when.called_with("default").should_not.throw(MotoNotFoundException)
+    _assert_default_policy.when.called_with("not-default").should.throw(
+        MotoNotFoundException
+    )
+    _assert_default_policy.when.called_with("default").should_not.throw(
+        MotoNotFoundException
+    )
 
 
 @parameterized(PLAINTEXT_VECTORS)
@@ -727,7 +847,9 @@ def test_schedule_key_deletion():
         with freeze_time("2015-01-01 12:00:00"):
             response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
             assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
-            assert response["DeletionDate"] == datetime(2015, 1, 31, 12, 0, tzinfo=tzutc())
+            assert response["DeletionDate"] == datetime(
+                2015, 1, 31, 12, 0, tzinfo=tzutc()
+            )
     else:
         # Can't manipulate time in server mode
         response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
@@ -745,12 +867,18 @@ def test_schedule_key_deletion_custom():
     key = client.create_key(Description="schedule-key-deletion")
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
         with freeze_time("2015-01-01 12:00:00"):
-            response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"], PendingWindowInDays=7)
+            response = client.schedule_key_deletion(
+                KeyId=key["KeyMetadata"]["KeyId"], PendingWindowInDays=7
+            )
             assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
-            assert response["DeletionDate"] == datetime(2015, 1, 8, 12, 0, tzinfo=tzutc())
+            assert response["DeletionDate"] == datetime(
+                2015, 1, 8, 12, 0, tzinfo=tzutc()
+            )
     else:
         # Can't manipulate time in server mode
-        response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"], PendingWindowInDays=7)
+        response = client.schedule_key_deletion(
+            KeyId=key["KeyMetadata"]["KeyId"], PendingWindowInDays=7
+        )
         assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
@@ -790,7 +918,9 @@ def test_tag_resource():
     response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
 
     keyid = response["KeyId"]
-    response = client.tag_resource(KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}])
+    response = client.tag_resource(
+        KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}]
+    )
 
     # Shouldn't have any data, just header
     assert len(response.keys()) == 1
@@ -803,20 +933,24 @@ def test_list_resource_tags():
     response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
 
     keyid = response["KeyId"]
-    response = client.tag_resource(KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}])
+    response = client.tag_resource(
+        KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}]
+    )
 
     response = client.list_resource_tags(KeyId=keyid)
     assert response["Tags"][0]["TagKey"] == "string"
     assert response["Tags"][0]["TagValue"] == "string"
 
 
-@parameterized((
+@parameterized(
+    (
         (dict(KeySpec="AES_256"), 32),
         (dict(KeySpec="AES_128"), 16),
         (dict(NumberOfBytes=64), 64),
         (dict(NumberOfBytes=1), 1),
         (dict(NumberOfBytes=1024), 1024),
-))
+    )
+)
 @mock_kms
 def test_generate_data_key_sizes(kwargs, expected_key_length):
     client = boto3.client("kms", region_name="us-east-1")
@@ -832,34 +966,44 @@ def test_generate_data_key_decrypt():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-decrypt")
 
-    resp1 = client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_256")
+    resp1 = client.generate_data_key(
+        KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_256"
+    )
     resp2 = client.decrypt(CiphertextBlob=resp1["CiphertextBlob"])
 
     assert resp1["Plaintext"] == resp2["Plaintext"]
 
 
-@parameterized((
+@parameterized(
+    (
         (dict(KeySpec="AES_257"),),
         (dict(KeySpec="AES_128", NumberOfBytes=16),),
         (dict(NumberOfBytes=2048),),
         (dict(NumberOfBytes=0),),
         (dict(),),
-))
+    )
+)
 @mock_kms
 def test_generate_data_key_invalid_size_params(kwargs):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
 
-    with assert_raises((botocore.exceptions.ClientError, botocore.exceptions.ParamValidationError)) as err:
+    with assert_raises(
+        (botocore.exceptions.ClientError, botocore.exceptions.ParamValidationError)
+    ) as err:
         client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
 
 
-@parameterized((
+@parameterized(
+    (
         ("alias/DoesNotExist",),
         ("arn:aws:kms:us-east-1:012345678912:alias/DoesNotExist",),
         ("d25652e4-d2d2-49f7-929a-671ccda580c6",),
-        ("arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",),
-))
+        (
+            "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",
+        ),
+    )
+)
 @mock_kms
 def test_generate_data_key_invalid_key(key_id):
     client = boto3.client("kms", region_name="us-east-1")
@@ -868,12 +1012,14 @@ def test_generate_data_key_invalid_key(key_id):
         client.generate_data_key(KeyId=key_id, KeySpec="AES_256")
 
 
-@parameterized((
+@parameterized(
+    (
         ("alias/DoesExist", False),
         ("arn:aws:kms:us-east-1:012345678912:alias/DoesExist", False),
         ("", True),
         ("arn:aws:kms:us-east-1:012345678912:key/", True),
-))
+    )
+)
 @mock_kms
 def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
     client = boto3.client("kms", region_name="us-east-1")
@@ -893,7 +1039,9 @@ def test_generate_data_key_without_plaintext_decrypt():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-decrypt")
 
-    resp1 = client.generate_data_key_without_plaintext(KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_256")
+    resp1 = client.generate_data_key_without_plaintext(
+        KeyId=key["KeyMetadata"]["KeyId"], KeySpec="AES_256"
+    )
 
     assert "Plaintext" not in resp1
 
@@ -911,9 +1059,7 @@ def test_re_encrypt_decrypt(plaintext):
     key_2_arn = key_2["KeyMetadata"]["Arn"]
 
     encrypt_response = client.encrypt(
-        KeyId=key_1_id,
-        Plaintext=plaintext,
-        EncryptionContext={"encryption": "context"},
+        KeyId=key_1_id, Plaintext=plaintext, EncryptionContext={"encryption": "context"}
     )
 
     re_encrypt_response = client.re_encrypt(
@@ -954,10 +1100,7 @@ def test_re_encrypt_to_invalid_destination():
     key = client.create_key(Description="key 1")
     key_id = key["KeyMetadata"]["KeyId"]
 
-    encrypt_response = client.encrypt(
-        KeyId=key_id,
-        Plaintext=b"some plaintext",
-    )
+    encrypt_response = client.encrypt(KeyId=key_id, Plaintext=b"some plaintext")
 
     with assert_raises(client.exceptions.NotFoundException):
         client.re_encrypt(
@@ -977,13 +1120,15 @@ def test_generate_random(number_of_bytes):
     len(response["Plaintext"]).should.equal(number_of_bytes)
 
 
-@parameterized((
+@parameterized(
+    (
         (2048, botocore.exceptions.ClientError),
         (1025, botocore.exceptions.ClientError),
         (0, botocore.exceptions.ParamValidationError),
         (-1, botocore.exceptions.ParamValidationError),
-        (-1024, botocore.exceptions.ParamValidationError)
-))
+        (-1024, botocore.exceptions.ParamValidationError),
+    )
+)
 @mock_kms
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
     client = boto3.client("kms", region_name="us-west-2")
@@ -1053,7 +1198,9 @@ def test_get_key_policy_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
     with assert_raises(client.exceptions.NotFoundException):
-        client.get_key_policy(KeyId="12366f9b-1230-123d-123e-123e6ae60c02", PolicyName="default")
+        client.get_key_policy(
+            KeyId="12366f9b-1230-123d-123e-123e6ae60c02", PolicyName="default"
+        )
 
 
 @mock_kms
@@ -1069,4 +1216,8 @@ def test_put_key_policy_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
     with assert_raises(client.exceptions.NotFoundException):
-        client.put_key_policy(KeyId="00000000-0000-0000-0000-000000000000", PolicyName="default", Policy="new policy")
+        client.put_key_policy(
+            KeyId="00000000-0000-0000-0000-000000000000",
+            PolicyName="default",
+            Policy="new policy",
+        )

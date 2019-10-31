@@ -10,38 +10,38 @@ MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 
 
 class TokenResponse(BaseResponse):
-
     def get_session_token(self):
-        duration = int(self.querystring.get('DurationSeconds', [43200])[0])
+        duration = int(self.querystring.get("DurationSeconds", [43200])[0])
         token = sts_backend.get_session_token(duration=duration)
         template = self.response_template(GET_SESSION_TOKEN_RESPONSE)
         return template.render(token=token)
 
     def get_federation_token(self):
-        duration = int(self.querystring.get('DurationSeconds', [43200])[0])
-        policy = self.querystring.get('Policy', [None])[0]
+        duration = int(self.querystring.get("DurationSeconds", [43200])[0])
+        policy = self.querystring.get("Policy", [None])[0]
 
         if policy is not None and len(policy) > MAX_FEDERATION_TOKEN_POLICY_LENGTH:
             raise STSValidationError(
                 "1 validation error detected: Value "
-                "'{\"Version\": \"2012-10-17\", \"Statement\": [...]}' "
+                '\'{"Version": "2012-10-17", "Statement": [...]}\' '
                 "at 'policy' failed to satisfy constraint: Member must have length less than or "
                 " equal to %s" % MAX_FEDERATION_TOKEN_POLICY_LENGTH
             )
 
-        name = self.querystring.get('Name')[0]
+        name = self.querystring.get("Name")[0]
         token = sts_backend.get_federation_token(
-            duration=duration, name=name, policy=policy)
+            duration=duration, name=name, policy=policy
+        )
         template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
         return template.render(token=token, account_id=ACCOUNT_ID)
 
     def assume_role(self):
-        role_session_name = self.querystring.get('RoleSessionName')[0]
-        role_arn = self.querystring.get('RoleArn')[0]
+        role_session_name = self.querystring.get("RoleSessionName")[0]
+        role_arn = self.querystring.get("RoleArn")[0]
 
-        policy = self.querystring.get('Policy', [None])[0]
-        duration = int(self.querystring.get('DurationSeconds', [3600])[0])
-        external_id = self.querystring.get('ExternalId', [None])[0]
+        policy = self.querystring.get("Policy", [None])[0]
+        duration = int(self.querystring.get("DurationSeconds", [3600])[0])
+        external_id = self.querystring.get("ExternalId", [None])[0]
 
         role = sts_backend.assume_role(
             role_session_name=role_session_name,
@@ -54,12 +54,12 @@ class TokenResponse(BaseResponse):
         return template.render(role=role)
 
     def assume_role_with_web_identity(self):
-        role_session_name = self.querystring.get('RoleSessionName')[0]
-        role_arn = self.querystring.get('RoleArn')[0]
+        role_session_name = self.querystring.get("RoleSessionName")[0]
+        role_arn = self.querystring.get("RoleArn")[0]
 
-        policy = self.querystring.get('Policy', [None])[0]
-        duration = int(self.querystring.get('DurationSeconds', [3600])[0])
-        external_id = self.querystring.get('ExternalId', [None])[0]
+        policy = self.querystring.get("Policy", [None])[0]
+        duration = int(self.querystring.get("DurationSeconds", [3600])[0])
+        external_id = self.querystring.get("ExternalId", [None])[0]
 
         role = sts_backend.assume_role_with_web_identity(
             role_session_name=role_session_name,

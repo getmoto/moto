@@ -10,9 +10,8 @@ from .comparisons import get_comparison_func
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
-
     def default(self, obj):
-        if hasattr(obj, 'to_json'):
+        if hasattr(obj, "to_json"):
             return obj.to_json()
 
 
@@ -33,10 +32,7 @@ class DynamoType(object):
         return hash((self.type, self.value))
 
     def __eq__(self, other):
-        return (
-            self.type == other.type and
-            self.value == other.value
-        )
+        return self.type == other.type and self.value == other.value
 
     def __repr__(self):
         return "DynamoType: {0}".format(self.to_json())
@@ -54,7 +50,6 @@ class DynamoType(object):
 
 
 class Item(BaseModel):
-
     def __init__(self, hash_key, hash_key_type, range_key, range_key_type, attrs):
         self.hash_key = hash_key
         self.hash_key_type = hash_key_type
@@ -73,9 +68,7 @@ class Item(BaseModel):
         for attribute_key, attribute in self.attrs.items():
             attributes[attribute_key] = attribute.value
 
-        return {
-            "Attributes": attributes
-        }
+        return {"Attributes": attributes}
 
     def describe_attrs(self, attributes):
         if attributes:
@@ -85,16 +78,20 @@ class Item(BaseModel):
                     included[key] = value
         else:
             included = self.attrs
-        return {
-            "Item": included
-        }
+        return {"Item": included}
 
 
 class Table(BaseModel):
-
-    def __init__(self, name, hash_key_attr, hash_key_type,
-                 range_key_attr=None, range_key_type=None, read_capacity=None,
-                 write_capacity=None):
+    def __init__(
+        self,
+        name,
+        hash_key_attr,
+        hash_key_type,
+        range_key_attr=None,
+        range_key_type=None,
+        read_capacity=None,
+        write_capacity=None,
+    ):
         self.name = name
         self.hash_key_attr = hash_key_attr
         self.hash_key_type = hash_key_type
@@ -117,12 +114,12 @@ class Table(BaseModel):
                 "KeySchema": {
                     "HashKeyElement": {
                         "AttributeName": self.hash_key_attr,
-                        "AttributeType": self.hash_key_type
-                    },
+                        "AttributeType": self.hash_key_type,
+                    }
                 },
                 "ProvisionedThroughput": {
                     "ReadCapacityUnits": self.read_capacity,
-                    "WriteCapacityUnits": self.write_capacity
+                    "WriteCapacityUnits": self.write_capacity,
                 },
                 "TableName": self.name,
                 "TableStatus": "ACTIVE",
@@ -133,19 +130,29 @@ class Table(BaseModel):
         if self.has_range_key:
             results["Table"]["KeySchema"]["RangeKeyElement"] = {
                 "AttributeName": self.range_key_attr,
-                "AttributeType": self.range_key_type
+                "AttributeType": self.range_key_type,
             }
         return results
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
-        key_attr = [i['AttributeName'] for i in properties['KeySchema'] if i['KeyType'] == 'HASH'][0]
-        key_type = [i['AttributeType'] for i in properties['AttributeDefinitions'] if i['AttributeName'] == key_attr][0]
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        key_attr = [
+            i["AttributeName"]
+            for i in properties["KeySchema"]
+            if i["KeyType"] == "HASH"
+        ][0]
+        key_type = [
+            i["AttributeType"]
+            for i in properties["AttributeDefinitions"]
+            if i["AttributeName"] == key_attr
+        ][0]
         spec = {
-            'name': properties['TableName'],
-            'hash_key_attr': key_attr,
-            'hash_key_type': key_type
+            "name": properties["TableName"],
+            "hash_key_attr": key_attr,
+            "hash_key_type": key_type,
         }
         # TODO: optional properties still missing:
         # range_key_attr, range_key_type, read_capacity, write_capacity
@@ -173,8 +180,9 @@ class Table(BaseModel):
         else:
             range_value = None
 
-        item = Item(hash_value, self.hash_key_type, range_value,
-                    self.range_key_type, item_attrs)
+        item = Item(
+            hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs
+        )
 
         if range_value:
             self.items[hash_value][range_value] = item
@@ -185,7 +193,8 @@ class Table(BaseModel):
     def get_item(self, hash_key, range_key):
         if self.has_range_key and not range_key:
             raise ValueError(
-                "Table has a range key, but no range key was passed into get_item")
+                "Table has a range key, but no range key was passed into get_item"
+            )
         try:
             if range_key:
                 return self.items[hash_key][range_key]
@@ -228,7 +237,10 @@ class Table(BaseModel):
         for result in self.all_items():
             scanned_count += 1
             passes_all_conditions = True
-            for attribute_name, (comparison_operator, comparison_objs) in filters.items():
+            for (
+                attribute_name,
+                (comparison_operator, comparison_objs),
+            ) in filters.items():
                 attribute = result.attrs.get(attribute_name)
 
                 if attribute:
@@ -236,7 +248,7 @@ class Table(BaseModel):
                     if not attribute.compare(comparison_operator, comparison_objs):
                         passes_all_conditions = False
                         break
-                elif comparison_operator == 'NULL':
+                elif comparison_operator == "NULL":
                     # Comparison is NULL and we don't have the attribute
                     continue
                 else:
@@ -261,15 +273,17 @@ class Table(BaseModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'StreamArn':
-            region = 'us-east-1'
-            time = '2000-01-01T00:00:00.000'
-            return 'arn:aws:dynamodb:{0}:123456789012:table/{1}/stream/{2}'.format(region, self.name, time)
+
+        if attribute_name == "StreamArn":
+            region = "us-east-1"
+            time = "2000-01-01T00:00:00.000"
+            return "arn:aws:dynamodb:{0}:123456789012:table/{1}/stream/{2}".format(
+                region, self.name, time
+            )
         raise UnformattedGetAttTemplateException()
 
 
 class DynamoDBBackend(BaseBackend):
-
     def __init__(self):
         self.tables = OrderedDict()
 
@@ -310,8 +324,7 @@ class DynamoDBBackend(BaseBackend):
             return None, None
 
         hash_key = DynamoType(hash_key_dict)
-        range_values = [DynamoType(range_value)
-                        for range_value in range_value_dicts]
+        range_values = [DynamoType(range_value) for range_value in range_value_dicts]
 
         return table.query(hash_key, range_comparison, range_values)
 
