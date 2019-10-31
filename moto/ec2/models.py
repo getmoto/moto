@@ -1229,7 +1229,7 @@ class AmiBackend(object):
 
             images = [ami for ami in images if ami.id in ami_ids]
             if len(images) == 0:
-                    raise InvalidAMIIdError(ami_ids)
+                raise InvalidAMIIdError(ami_ids)
         else:
             # Limit images by launch permissions
             if exec_users:
@@ -3720,8 +3720,8 @@ class VPNConnection(TaggedEC2Resource):
         self.static_routes = None
 
     def get_filter_value(self, filter_name):
-            return super(VPNConnection, self).get_filter_value(
-                filter_name, 'DescribeVpnConnections')
+        return super(VPNConnection, self).get_filter_value(
+            filter_name, 'DescribeVpnConnections')
 
 
 class VPNConnectionBackend(object):
@@ -3950,8 +3950,8 @@ class VpnGateway(TaggedEC2Resource):
         super(VpnGateway, self).__init__()
 
     def get_filter_value(self, filter_name):
-            return super(VpnGateway, self).get_filter_value(
-                filter_name, 'DescribeVpnGateways')
+        return super(VpnGateway, self).get_filter_value(
+            filter_name, 'DescribeVpnGateways')
 
 
 class VpnGatewayAttachment(object):
@@ -4015,8 +4015,8 @@ class CustomerGateway(TaggedEC2Resource):
         super(CustomerGateway, self).__init__()
 
     def get_filter_value(self, filter_name):
-            return super(CustomerGateway, self).get_filter_value(
-                filter_name, 'DescribeCustomerGateways')
+        return super(CustomerGateway, self).get_filter_value(
+            filter_name, 'DescribeCustomerGateways')
 
 
 class CustomerGatewayBackend(object):

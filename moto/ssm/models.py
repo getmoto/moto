@@ -210,9 +210,9 @@ class Command(BaseModel):
                 'An error occurred (InvocationDoesNotExist) when calling the GetCommandInvocation operation')
 
         if plugin_name is not None and invocation['PluginName'] != plugin_name:
-                raise RESTError(
-                    'InvocationDoesNotExist',
-                    'An error occurred (InvocationDoesNotExist) when calling the GetCommandInvocation operation')
+            raise RESTError(
+                'InvocationDoesNotExist',
+                'An error occurred (InvocationDoesNotExist) when calling the GetCommandInvocation operation')
 
         return invocation
 
