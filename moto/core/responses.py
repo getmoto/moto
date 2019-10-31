@@ -83,6 +83,8 @@ class DynamicDictLoader(DictLoader):
 
 
 class _TemplateEnvironmentMixin(object):
+    LEFT_PATTERN = re.compile(r"[\s\n]+<")
+    RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
     def __init__(self):
         super(_TemplateEnvironmentMixin, self).__init__()
@@ -101,7 +103,12 @@ class _TemplateEnvironmentMixin(object):
     def response_template(self, source):
         template_id = id(source)
         if not self.contains_template(template_id):
-            self.loader.update({template_id: source})
+            collapsed = re.sub(
+                self.RIGHT_PATTERN,
+                ">",
+                re.sub(self.LEFT_PATTERN, "<", source)
+            )
+            self.loader.update({template_id: collapsed})
             self.environment = Environment(loader=self.loader, autoescape=self.should_autoescape, trim_blocks=True,
                                            lstrip_blocks=True)
         return self.environment.get_template(template_id)
@@ -454,7 +461,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         index = 1
         while True:
             value_dict = self._get_multi_param_helper(prefix + str(index))
-            if not value_dict:
+            if not value_dict and value_dict != '':
                 break
 
             values.append(value_dict)

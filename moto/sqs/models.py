@@ -20,10 +20,17 @@ from .exceptions import (
     QueueDoesNotExist,
     QueueAlreadyExists,
     ReceiptHandleIsInvalid,
+    InvalidBatchEntryId,
+    BatchRequestTooLong,
+    BatchEntryIdsNotDistinct,
+    TooManyEntriesInBatchRequest,
+    InvalidAttributeName
 )
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
+
+MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
 TRANSPORT_TYPE_ENCODINGS = {'String': b'\x01', 'Binary': b'\x02', 'Number': b'\x01'}
 
@@ -155,7 +162,7 @@ class Message(BaseModel):
 
 
 class Queue(BaseModel):
-    base_attributes = ['ApproximateNumberOfMessages',
+    BASE_ATTRIBUTES = ['ApproximateNumberOfMessages',
                        'ApproximateNumberOfMessagesDelayed',
                        'ApproximateNumberOfMessagesNotVisible',
                        'CreatedTimestamp',
@@ -166,9 +173,9 @@ class Queue(BaseModel):
                        'QueueArn',
                        'ReceiveMessageWaitTimeSeconds',
                        'VisibilityTimeout']
-    fifo_attributes = ['FifoQueue',
+    FIFO_ATTRIBUTES = ['FifoQueue',
                        'ContentBasedDeduplication']
-    kms_attributes = ['KmsDataKeyReusePeriodSeconds',
+    KMS_ATTRIBUTES = ['KmsDataKeyReusePeriodSeconds',
                       'KmsMasterKeyId']
     ALLOWED_PERMISSIONS = ('*', 'ChangeMessageVisibility', 'DeleteMessage',
                            'GetQueueAttributes', 'GetQueueUrl',
@@ -185,8 +192,9 @@ class Queue(BaseModel):
 
         now = unix_time()
         self.created_timestamp = now
-        self.queue_arn = 'arn:aws:sqs:{0}:123456789012:{1}'.format(self.region,
-                                                                   self.name)
+        self.queue_arn = 'arn:aws:sqs:{0}:{1}:{2}'.format(self.region,
+                                                          DEFAULT_ACCOUNT_ID,
+                                                          self.name)
         self.dead_letter_queue = None
 
         self.lambda_event_source_mappings = {}
@@ -330,17 +338,17 @@ class Queue(BaseModel):
     def attributes(self):
         result = {}
 
-        for attribute in self.base_attributes:
+        for attribute in self.BASE_ATTRIBUTES:
             attr = getattr(self, camelcase_to_underscores(attribute))
             result[attribute] = attr
 
         if self.fifo_queue:
-            for attribute in self.fifo_attributes:
+            for attribute in self.FIFO_ATTRIBUTES:
                 attr = getattr(self, camelcase_to_underscores(attribute))
                 result[attribute] = attr
 
         if self.kms_master_key_id:
-            for attribute in self.kms_attributes:
+            for attribute in self.KMS_ATTRIBUTES:
                 attr = getattr(self, camelcase_to_underscores(attribute))
                 result[attribute] = attr
 
@@ -460,6 +468,9 @@ class SQSBackend(BaseBackend):
 
         return queue
 
+    def get_queue_url(self, queue_name):
+        return self.get_queue(queue_name)
+
     def list_queues(self, queue_name_prefix):
         re_str = '.*'
         if queue_name_prefix:
@@ -481,6 +492,28 @@ class SQSBackend(BaseBackend):
         if queue_name in self.queues:
             return self.queues.pop(queue_name)
         return False
+
+    def get_queue_attributes(self, queue_name, attribute_names):
+        queue = self.get_queue(queue_name)
+
+        if not len(attribute_names):
+            attribute_names.append('All')
+
+        valid_names = ['All'] + queue.BASE_ATTRIBUTES + queue.FIFO_ATTRIBUTES + queue.KMS_ATTRIBUTES
+        invalid_name = next((name for name in attribute_names if name not in valid_names), None)
+
+        if invalid_name or invalid_name == '':
+            raise InvalidAttributeName(invalid_name)
+
+        attributes = {}
+
+        if 'All' in attribute_names:
+            attributes = queue.attributes
+        else:
+            for name in (name for name in attribute_names if name in queue.attributes):
+                attributes[name] = queue.attributes.get(name)
+
+        return attributes
 
     def set_queue_attributes(self, queue_name, attributes):
         queue = self.get_queue(queue_name)
@@ -515,6 +548,49 @@ class SQSBackend(BaseBackend):
         queue.add_message(message)
 
         return message
+
+    def send_message_batch(self, queue_name, entries):
+        self.get_queue(queue_name)
+
+        if any(not re.match(r'^[\w-]{1,80}$', entry['Id']) for entry in entries.values()):
+            raise InvalidBatchEntryId()
+
+        body_length = next(
+            (len(entry['MessageBody']) for entry in entries.values() if len(entry['MessageBody']) > MAXIMUM_MESSAGE_LENGTH),
+            False
+        )
+        if body_length:
+            raise BatchRequestTooLong(body_length)
+
+        duplicate_id = self._get_first_duplicate_id([entry['Id'] for entry in entries.values()])
+        if duplicate_id:
+            raise BatchEntryIdsNotDistinct(duplicate_id)
+
+        if len(entries) > 10:
+            raise TooManyEntriesInBatchRequest(len(entries))
+
+        messages = []
+        for index, entry in entries.items():
+            # Loop through looking for messages
+            message = self.send_message(
+                queue_name,
+                entry['MessageBody'],
+                message_attributes=entry['MessageAttributes'],
+                delay_seconds=entry['DelaySeconds']
+            )
+            message.user_id = entry['Id']
+
+            messages.append(message)
+
+        return messages
+
+    def _get_first_duplicate_id(self, ids):
+        unique_ids = set()
+        for id in ids:
+            if id in unique_ids:
+                return id
+            unique_ids.add(id)
+        return None
 
     def receive_messages(self, queue_name, count, wait_seconds_timeout, visibility_timeout):
         """
@@ -593,6 +669,10 @@ class SQSBackend(BaseBackend):
 
     def delete_message(self, queue_name, receipt_handle):
         queue = self.get_queue(queue_name)
+
+        if not any(message.receipt_handle == receipt_handle for message in queue._messages):
+            raise ReceiptHandleIsInvalid()
+
         new_messages = []
         for message in queue._messages:
             # Only delete message if it is not visible and the reciept_handle
@@ -676,6 +756,9 @@ class SQSBackend(BaseBackend):
                 del queue.tags[key]
             except KeyError:
                 pass
+
+    def list_queue_tags(self, queue_name):
+        return self.get_queue(queue_name)
 
 
 sqs_backends = {}

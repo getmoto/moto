@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import hashlib
 import re
-from copy import copy
 from datetime import datetime
 from random import random
 
@@ -27,11 +26,12 @@ class BaseObject(BaseModel):
         return ''.join(words)
 
     def gen_response_object(self):
-        response_object = copy(self.__dict__)
-        for key, value in response_object.items():
+        response_object = dict()
+        for key, value in self.__dict__.items():
             if '_' in key:
                 response_object[self.camelCase(key)] = value
-                del response_object[key]
+            else:
+                response_object[key] = value
         return response_object
 
     @property

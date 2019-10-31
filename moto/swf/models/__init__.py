@@ -12,15 +12,15 @@ from ..exceptions import (
     SWFTypeDeprecatedFault,
     SWFValidationException,
 )
-from .activity_task import ActivityTask  # flake8: noqa
-from .activity_type import ActivityType  # flake8: noqa
-from .decision_task import DecisionTask  # flake8: noqa
-from .domain import Domain  # flake8: noqa
-from .generic_type import GenericType  # flake8: noqa
-from .history_event import HistoryEvent  # flake8: noqa
-from .timeout import Timeout  # flake8: noqa
-from .workflow_type import WorkflowType  # flake8: noqa
-from .workflow_execution import WorkflowExecution  # flake8: noqa
+from .activity_task import ActivityTask  # noqa
+from .activity_type import ActivityType  # noqa
+from .decision_task import DecisionTask  # noqa
+from .domain import Domain  # noqa
+from .generic_type import GenericType  # noqa
+from .history_event import HistoryEvent  # noqa
+from .timeout import Timeout  # noqa
+from .workflow_type import WorkflowType  # noqa
+from .workflow_execution import WorkflowExecution  # noqa
 from time import sleep
 
 KNOWN_SWF_TYPES = {

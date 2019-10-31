@@ -700,6 +700,7 @@
 0% implemented
 - [ ] associate_phone_number_with_user
 - [ ] associate_phone_numbers_with_voice_connector
+- [ ] associate_phone_numbers_with_voice_connector_group
 - [ ] batch_delete_phone_number
 - [ ] batch_suspend_user
 - [ ] batch_unsuspend_user
@@ -709,15 +710,19 @@
 - [ ] create_bot
 - [ ] create_phone_number_order
 - [ ] create_voice_connector
+- [ ] create_voice_connector_group
 - [ ] delete_account
 - [ ] delete_events_configuration
 - [ ] delete_phone_number
 - [ ] delete_voice_connector
+- [ ] delete_voice_connector_group
 - [ ] delete_voice_connector_origination
+- [ ] delete_voice_connector_streaming_configuration
 - [ ] delete_voice_connector_termination
 - [ ] delete_voice_connector_termination_credentials
 - [ ] disassociate_phone_number_from_user
 - [ ] disassociate_phone_numbers_from_voice_connector
+- [ ] disassociate_phone_numbers_from_voice_connector_group
 - [ ] get_account
 - [ ] get_account_settings
 - [ ] get_bot
@@ -725,10 +730,14 @@
 - [ ] get_global_settings
 - [ ] get_phone_number
 - [ ] get_phone_number_order
+- [ ] get_phone_number_settings
 - [ ] get_user
 - [ ] get_user_settings
 - [ ] get_voice_connector
+- [ ] get_voice_connector_group
+- [ ] get_voice_connector_logging_configuration
 - [ ] get_voice_connector_origination
+- [ ] get_voice_connector_streaming_configuration
 - [ ] get_voice_connector_termination
 - [ ] get_voice_connector_termination_health
 - [ ] invite_users
@@ -737,11 +746,14 @@
 - [ ] list_phone_number_orders
 - [ ] list_phone_numbers
 - [ ] list_users
+- [ ] list_voice_connector_groups
 - [ ] list_voice_connector_termination_credentials
 - [ ] list_voice_connectors
 - [ ] logout_user
 - [ ] put_events_configuration
+- [ ] put_voice_connector_logging_configuration
 - [ ] put_voice_connector_origination
+- [ ] put_voice_connector_streaming_configuration
 - [ ] put_voice_connector_termination
 - [ ] put_voice_connector_termination_credentials
 - [ ] regenerate_security_token
@@ -753,9 +765,11 @@
 - [ ] update_bot
 - [ ] update_global_settings
 - [ ] update_phone_number
+- [ ] update_phone_number_settings
 - [ ] update_user
 - [ ] update_user_settings
 - [ ] update_voice_connector
+- [ ] update_voice_connector_group
 
 ## cloud9
 0% implemented
@@ -1525,6 +1539,10 @@
 - [ ] get_current_metric_data
 - [ ] get_federation_token
 - [ ] get_metric_data
+- [ ] list_contact_flows
+- [ ] list_hours_of_operations
+- [ ] list_phone_numbers
+- [ ] list_queues
 - [ ] list_routing_profiles
 - [ ] list_security_profiles
 - [ ] list_user_hierarchy_groups
@@ -3244,7 +3262,7 @@
 - [ ] describe_events
 
 ## iam
-61% implemented
+60% implemented
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
@@ -6029,8 +6047,8 @@
 - [ ] update_job
 
 ## sns
-57% implemented
-- [ ] add_permission
+63% implemented
+- [X] add_permission
 - [ ] check_if_phone_number_is_opted_out
 - [ ] confirm_subscription
 - [X] create_platform_application
@@ -6053,7 +6071,7 @@
 - [X] list_topics
 - [ ] opt_in_phone_number
 - [X] publish
-- [ ] remove_permission
+- [X] remove_permission
 - [X] set_endpoint_attributes
 - [ ] set_platform_application_attributes
 - [ ] set_sms_attributes
@@ -6065,7 +6083,7 @@
 - [X] untag_resource
 
 ## sqs
-65% implemented
+85% implemented
 - [X] add_permission
 - [X] change_message_visibility
 - [ ] change_message_visibility_batch
@@ -6073,16 +6091,16 @@
 - [X] delete_message
 - [ ] delete_message_batch
 - [X] delete_queue
-- [ ] get_queue_attributes
-- [ ] get_queue_url
+- [X] get_queue_attributes
+- [X] get_queue_url
 - [X] list_dead_letter_source_queues
-- [ ] list_queue_tags
+- [X] list_queue_tags
 - [X] list_queues
 - [X] purge_queue
 - [ ] receive_message
 - [X] remove_permission
 - [X] send_message
-- [ ] send_message_batch
+- [X] send_message_batch
 - [X] set_queue_attributes
 - [X] tag_queue
 - [X] untag_queue
