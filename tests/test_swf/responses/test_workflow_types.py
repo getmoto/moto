@@ -49,10 +49,11 @@ def test_list_workflow_types():
     conn.register_workflow_type("test-domain", "c-test-workflow", "v1.0")
 
     all_workflow_types = conn.list_workflow_types("test-domain", "REGISTERED")
-    names = [activity_type["workflowType"]["name"]
-             for activity_type in all_workflow_types["typeInfos"]]
-    names.should.equal(
-        ["a-test-workflow", "b-test-workflow", "c-test-workflow"])
+    names = [
+        activity_type["workflowType"]["name"]
+        for activity_type in all_workflow_types["typeInfos"]
+    ]
+    names.should.equal(["a-test-workflow", "b-test-workflow", "c-test-workflow"])
 
 
 @mock_swf_deprecated
@@ -63,12 +64,14 @@ def test_list_workflow_types_reverse_order():
     conn.register_workflow_type("test-domain", "a-test-workflow", "v1.0")
     conn.register_workflow_type("test-domain", "c-test-workflow", "v1.0")
 
-    all_workflow_types = conn.list_workflow_types("test-domain", "REGISTERED",
-                                                  reverse_order=True)
-    names = [activity_type["workflowType"]["name"]
-             for activity_type in all_workflow_types["typeInfos"]]
-    names.should.equal(
-        ["c-test-workflow", "b-test-workflow", "a-test-workflow"])
+    all_workflow_types = conn.list_workflow_types(
+        "test-domain", "REGISTERED", reverse_order=True
+    )
+    names = [
+        activity_type["workflowType"]["name"]
+        for activity_type in all_workflow_types["typeInfos"]
+    ]
+    names.should.equal(["c-test-workflow", "b-test-workflow", "a-test-workflow"])
 
 
 # DeprecateWorkflowType endpoint
@@ -112,15 +115,18 @@ def test_deprecate_non_existent_workflow_type():
 def test_describe_workflow_type():
     conn = boto.connect_swf("the_key", "the_secret")
     conn.register_domain("test-domain", "60")
-    conn.register_workflow_type("test-domain", "test-workflow", "v1.0",
-                                task_list="foo", default_child_policy="TERMINATE")
+    conn.register_workflow_type(
+        "test-domain",
+        "test-workflow",
+        "v1.0",
+        task_list="foo",
+        default_child_policy="TERMINATE",
+    )
 
-    actype = conn.describe_workflow_type(
-        "test-domain", "test-workflow", "v1.0")
+    actype = conn.describe_workflow_type("test-domain", "test-workflow", "v1.0")
     actype["configuration"]["defaultTaskList"]["name"].should.equal("foo")
     actype["configuration"]["defaultChildPolicy"].should.equal("TERMINATE")
-    actype["configuration"].keys().should_not.contain(
-        "defaultTaskStartToCloseTimeout")
+    actype["configuration"].keys().should_not.contain("defaultTaskStartToCloseTimeout")
     infos = actype["typeInfo"]
     infos["workflowType"]["name"].should.equal("test-workflow")
     infos["workflowType"]["version"].should.equal("v1.0")

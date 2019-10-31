@@ -9,19 +9,23 @@ import six
 
 from moto.core.responses import BaseResponse
 from .models import kms_backends
-from .exceptions import NotFoundException, ValidationException, AlreadyExistsException, NotAuthorizedException
+from .exceptions import (
+    NotFoundException,
+    ValidationException,
+    AlreadyExistsException,
+    NotAuthorizedException,
+)
 
 ACCOUNT_ID = "012345678912"
 reserved_aliases = [
-    'alias/aws/ebs',
-    'alias/aws/s3',
-    'alias/aws/redshift',
-    'alias/aws/rds',
+    "alias/aws/ebs",
+    "alias/aws/s3",
+    "alias/aws/redshift",
+    "alias/aws/rds",
 ]
 
 
 class KmsResponse(BaseResponse):
-
     @property
     def parameters(self):
         params = json.loads(self.body)
@@ -56,7 +60,11 @@ class KmsResponse(BaseResponse):
         - key ARN
         """
         is_arn = key_id.startswith("arn:") and ":key/" in key_id
-        is_raw_key_id = re.match(r"^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$", key_id, re.IGNORECASE)
+        is_raw_key_id = re.match(
+            r"^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$",
+            key_id,
+            re.IGNORECASE,
+        )
 
         if not is_arn and not is_raw_key_id:
             raise NotFoundException("Invalid keyId {key_id}".format(key_id=key_id))
@@ -64,7 +72,9 @@ class KmsResponse(BaseResponse):
         cmk_id = self.kms_backend.get_key_id(key_id)
 
         if cmk_id not in self.kms_backend.keys:
-            raise NotFoundException("Key '{key_id}' does not exist".format(key_id=self._display_arn(key_id)))
+            raise NotFoundException(
+                "Key '{key_id}' does not exist".format(key_id=self._display_arn(key_id))
+            )
 
     def _validate_alias(self, key_id):
         """Determine whether an alias exists.
@@ -72,7 +82,9 @@ class KmsResponse(BaseResponse):
         - alias name
         - alias ARN
         """
-        error = NotFoundException("Alias {key_id} is not found.".format(key_id=self._display_arn(key_id)))
+        error = NotFoundException(
+            "Alias {key_id} is not found.".format(key_id=self._display_arn(key_id))
+        )
 
         is_arn = key_id.startswith("arn:") and ":alias/" in key_id
         is_name = key_id.startswith("alias/")
@@ -104,19 +116,20 @@ class KmsResponse(BaseResponse):
 
     def create_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
-        policy = self.parameters.get('Policy')
-        key_usage = self.parameters.get('KeyUsage')
-        description = self.parameters.get('Description')
-        tags = self.parameters.get('Tags')
+        policy = self.parameters.get("Policy")
+        key_usage = self.parameters.get("KeyUsage")
+        description = self.parameters.get("Description")
+        tags = self.parameters.get("Tags")
 
         key = self.kms_backend.create_key(
-            policy, key_usage, description, tags, self.region)
+            policy, key_usage, description, tags, self.region
+        )
         return json.dumps(key.to_dict())
 
     def update_key_description(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateKeyDescription.html"""
-        key_id = self.parameters.get('KeyId')
-        description = self.parameters.get('Description')
+        key_id = self.parameters.get("KeyId")
+        description = self.parameters.get("Description")
 
         self._validate_cmk_id(key_id)
 
@@ -125,8 +138,8 @@ class KmsResponse(BaseResponse):
 
     def tag_resource(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_TagResource.html"""
-        key_id = self.parameters.get('KeyId')
-        tags = self.parameters.get('Tags')
+        key_id = self.parameters.get("KeyId")
+        tags = self.parameters.get("Tags")
 
         self._validate_cmk_id(key_id)
 
@@ -135,26 +148,20 @@ class KmsResponse(BaseResponse):
 
     def list_resource_tags(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListResourceTags.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
         tags = self.kms_backend.list_resource_tags(key_id)
-        return json.dumps({
-            "Tags": tags,
-            "NextMarker": None,
-            "Truncated": False,
-        })
+        return json.dumps({"Tags": tags, "NextMarker": None, "Truncated": False})
 
     def describe_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_key_id(key_id)
 
-        key = self.kms_backend.describe_key(
-            self.kms_backend.get_key_id(key_id)
-        )
+        key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
 
         return json.dumps(key.to_dict())
 
@@ -162,43 +169,47 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeys.html"""
         keys = self.kms_backend.list_keys()
 
-        return json.dumps({
-            "Keys": [
-                {
-                    "KeyArn": key.arn,
-                    "KeyId": key.id,
-                } for key in keys
-            ],
-            "NextMarker": None,
-            "Truncated": False,
-        })
+        return json.dumps(
+            {
+                "Keys": [{"KeyArn": key.arn, "KeyId": key.id} for key in keys],
+                "NextMarker": None,
+                "Truncated": False,
+            }
+        )
 
     def create_alias(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateAlias.html"""
-        alias_name = self.parameters['AliasName']
-        target_key_id = self.parameters['TargetKeyId']
+        alias_name = self.parameters["AliasName"]
+        target_key_id = self.parameters["TargetKeyId"]
 
-        if not alias_name.startswith('alias/'):
-            raise ValidationException('Invalid identifier')
+        if not alias_name.startswith("alias/"):
+            raise ValidationException("Invalid identifier")
 
         if alias_name in reserved_aliases:
             raise NotAuthorizedException()
 
-        if ':' in alias_name:
-            raise ValidationException('{alias_name} contains invalid characters for an alias'.format(alias_name=alias_name))
+        if ":" in alias_name:
+            raise ValidationException(
+                "{alias_name} contains invalid characters for an alias".format(
+                    alias_name=alias_name
+                )
+            )
 
-        if not re.match(r'^[a-zA-Z0-9:/_-]+$', alias_name):
-            raise ValidationException("1 validation error detected: Value '{alias_name}' at 'aliasName' "
-                                  "failed to satisfy constraint: Member must satisfy regular "
-                                  "expression pattern: ^[a-zA-Z0-9:/_-]+$"
-                                      .format(alias_name=alias_name))
+        if not re.match(r"^[a-zA-Z0-9:/_-]+$", alias_name):
+            raise ValidationException(
+                "1 validation error detected: Value '{alias_name}' at 'aliasName' "
+                "failed to satisfy constraint: Member must satisfy regular "
+                "expression pattern: ^[a-zA-Z0-9:/_-]+$".format(alias_name=alias_name)
+            )
 
         if self.kms_backend.alias_exists(target_key_id):
-            raise ValidationException('Aliases must refer to keys. Not aliases')
+            raise ValidationException("Aliases must refer to keys. Not aliases")
 
         if self.kms_backend.alias_exists(alias_name):
-            raise AlreadyExistsException('An alias with the name arn:aws:kms:{region}:012345678912:{alias_name} '
-                                         'already exists'.format(region=self.region, alias_name=alias_name))
+            raise AlreadyExistsException(
+                "An alias with the name arn:aws:kms:{region}:012345678912:{alias_name} "
+                "already exists".format(region=self.region, alias_name=alias_name)
+            )
 
         self._validate_cmk_id(target_key_id)
 
@@ -208,10 +219,10 @@ class KmsResponse(BaseResponse):
 
     def delete_alias(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeleteAlias.html"""
-        alias_name = self.parameters['AliasName']
+        alias_name = self.parameters["AliasName"]
 
-        if not alias_name.startswith('alias/'):
-            raise ValidationException('Invalid identifier')
+        if not alias_name.startswith("alias/"):
+            raise ValidationException("Invalid identifier")
 
         self._validate_alias(alias_name)
 
@@ -227,30 +238,32 @@ class KmsResponse(BaseResponse):
 
         response_aliases = [
             {
-                'AliasArn': u'arn:aws:kms:{region}:012345678912:{reserved_alias}'.format(region=region,
-                                                                                         reserved_alias=reserved_alias),
-                'AliasName': reserved_alias
-            } for reserved_alias in reserved_aliases
+                "AliasArn": "arn:aws:kms:{region}:012345678912:{reserved_alias}".format(
+                    region=region, reserved_alias=reserved_alias
+                ),
+                "AliasName": reserved_alias,
+            }
+            for reserved_alias in reserved_aliases
         ]
 
         backend_aliases = self.kms_backend.get_all_aliases()
         for target_key_id, aliases in backend_aliases.items():
             for alias_name in aliases:
-                response_aliases.append({
-                    'AliasArn': u'arn:aws:kms:{region}:012345678912:{alias_name}'.format(region=region,
-                                                                                         alias_name=alias_name),
-                    'AliasName': alias_name,
-                    'TargetKeyId': target_key_id,
-                })
+                response_aliases.append(
+                    {
+                        "AliasArn": "arn:aws:kms:{region}:012345678912:{alias_name}".format(
+                            region=region, alias_name=alias_name
+                        ),
+                        "AliasName": alias_name,
+                        "TargetKeyId": target_key_id,
+                    }
+                )
 
-        return json.dumps({
-            'Truncated': False,
-            'Aliases': response_aliases,
-        })
+        return json.dumps({"Truncated": False, "Aliases": response_aliases})
 
     def enable_key_rotation(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
@@ -260,7 +273,7 @@ class KmsResponse(BaseResponse):
 
     def disable_key_rotation(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
@@ -270,19 +283,19 @@ class KmsResponse(BaseResponse):
 
     def get_key_rotation_status(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GetKeyRotationStatus.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
         rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
 
-        return json.dumps({'KeyRotationEnabled': rotation_enabled})
+        return json.dumps({"KeyRotationEnabled": rotation_enabled})
 
     def put_key_policy(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_PutKeyPolicy.html"""
-        key_id = self.parameters.get('KeyId')
-        policy_name = self.parameters.get('PolicyName')
-        policy = self.parameters.get('Policy')
+        key_id = self.parameters.get("KeyId")
+        policy_name = self.parameters.get("PolicyName")
+        policy = self.parameters.get("Policy")
         _assert_default_policy(policy_name)
 
         self._validate_cmk_id(key_id)
@@ -293,39 +306,37 @@ class KmsResponse(BaseResponse):
 
     def get_key_policy(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GetKeyPolicy.html"""
-        key_id = self.parameters.get('KeyId')
-        policy_name = self.parameters.get('PolicyName')
+        key_id = self.parameters.get("KeyId")
+        policy_name = self.parameters.get("PolicyName")
         _assert_default_policy(policy_name)
 
         self._validate_cmk_id(key_id)
 
-        return json.dumps({'Policy': self.kms_backend.get_key_policy(key_id)})
+        return json.dumps({"Policy": self.kms_backend.get_key_policy(key_id)})
 
     def list_key_policies(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeyPolicies.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
         self.kms_backend.describe_key(key_id)
 
-        return json.dumps({'Truncated': False, 'PolicyNames': ['default']})
+        return json.dumps({"Truncated": False, "PolicyNames": ["default"]})
 
     def encrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Encrypt.html"""
         key_id = self.parameters.get("KeyId")
-        encryption_context = self.parameters.get('EncryptionContext', {})
+        encryption_context = self.parameters.get("EncryptionContext", {})
         plaintext = self.parameters.get("Plaintext")
 
         self._validate_key_id(key_id)
 
         if isinstance(plaintext, six.text_type):
-            plaintext = plaintext.encode('utf-8')
+            plaintext = plaintext.encode("utf-8")
 
         ciphertext_blob, arn = self.kms_backend.encrypt(
-            key_id=key_id,
-            plaintext=plaintext,
-            encryption_context=encryption_context,
+            key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
         )
         ciphertext_blob_response = base64.b64encode(ciphertext_blob).decode("utf-8")
 
@@ -334,27 +345,32 @@ class KmsResponse(BaseResponse):
     def decrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html"""
         ciphertext_blob = self.parameters.get("CiphertextBlob")
-        encryption_context = self.parameters.get('EncryptionContext', {})
+        encryption_context = self.parameters.get("EncryptionContext", {})
 
         plaintext, arn = self.kms_backend.decrypt(
-            ciphertext_blob=ciphertext_blob,
-            encryption_context=encryption_context,
+            ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
         )
 
         plaintext_response = base64.b64encode(plaintext).decode("utf-8")
 
-        return json.dumps({"Plaintext": plaintext_response, 'KeyId': arn})
+        return json.dumps({"Plaintext": plaintext_response, "KeyId": arn})
 
     def re_encrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ReEncrypt.html"""
         ciphertext_blob = self.parameters.get("CiphertextBlob")
         source_encryption_context = self.parameters.get("SourceEncryptionContext", {})
         destination_key_id = self.parameters.get("DestinationKeyId")
-        destination_encryption_context = self.parameters.get("DestinationEncryptionContext", {})
+        destination_encryption_context = self.parameters.get(
+            "DestinationEncryptionContext", {}
+        )
 
         self._validate_cmk_id(destination_key_id)
 
-        new_ciphertext_blob, decrypting_arn, encrypting_arn = self.kms_backend.re_encrypt(
+        (
+            new_ciphertext_blob,
+            decrypting_arn,
+            encrypting_arn,
+        ) = self.kms_backend.re_encrypt(
             ciphertext_blob=ciphertext_blob,
             source_encryption_context=source_encryption_context,
             destination_key_id=destination_key_id,
@@ -364,12 +380,16 @@ class KmsResponse(BaseResponse):
         response_ciphertext_blob = base64.b64encode(new_ciphertext_blob).decode("utf-8")
 
         return json.dumps(
-            {"CiphertextBlob": response_ciphertext_blob, "KeyId": encrypting_arn, "SourceKeyId": decrypting_arn}
+            {
+                "CiphertextBlob": response_ciphertext_blob,
+                "KeyId": encrypting_arn,
+                "SourceKeyId": decrypting_arn,
+            }
         )
 
     def disable_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DisableKey.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
@@ -379,7 +399,7 @@ class KmsResponse(BaseResponse):
 
     def enable_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKey.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
@@ -389,80 +409,94 @@ class KmsResponse(BaseResponse):
 
     def cancel_key_deletion(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CancelKeyDeletion.html"""
-        key_id = self.parameters.get('KeyId')
+        key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
         self.kms_backend.cancel_key_deletion(key_id)
 
-        return json.dumps({'KeyId': key_id})
+        return json.dumps({"KeyId": key_id})
 
     def schedule_key_deletion(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html"""
-        key_id = self.parameters.get('KeyId')
-        if self.parameters.get('PendingWindowInDays') is None:
+        key_id = self.parameters.get("KeyId")
+        if self.parameters.get("PendingWindowInDays") is None:
             pending_window_in_days = 30
         else:
-            pending_window_in_days = self.parameters.get('PendingWindowInDays')
+            pending_window_in_days = self.parameters.get("PendingWindowInDays")
 
         self._validate_cmk_id(key_id)
 
-        return json.dumps({
-            'KeyId': key_id,
-            'DeletionDate': self.kms_backend.schedule_key_deletion(key_id, pending_window_in_days)
-        })
+        return json.dumps(
+            {
+                "KeyId": key_id,
+                "DeletionDate": self.kms_backend.schedule_key_deletion(
+                    key_id, pending_window_in_days
+                ),
+            }
+        )
 
     def generate_data_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html"""
-        key_id = self.parameters.get('KeyId')
-        encryption_context = self.parameters.get('EncryptionContext', {})
-        number_of_bytes = self.parameters.get('NumberOfBytes')
-        key_spec = self.parameters.get('KeySpec')
-        grant_tokens = self.parameters.get('GrantTokens')
+        key_id = self.parameters.get("KeyId")
+        encryption_context = self.parameters.get("EncryptionContext", {})
+        number_of_bytes = self.parameters.get("NumberOfBytes")
+        key_spec = self.parameters.get("KeySpec")
+        grant_tokens = self.parameters.get("GrantTokens")
 
         # Param validation
         self._validate_key_id(key_id)
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
-            raise ValidationException((
-                "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                "to satisfy constraint: Member must have value less than or "
-                "equal to 1024"
-            ).format(number_of_bytes=number_of_bytes))
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                    "to satisfy constraint: Member must have value less than or "
+                    "equal to 1024"
+                ).format(number_of_bytes=number_of_bytes)
+            )
 
-        if key_spec and key_spec not in ('AES_256', 'AES_128'):
-            raise ValidationException((
-                "1 validation error detected: Value '{key_spec}' at 'keySpec' failed "
-                "to satisfy constraint: Member must satisfy enum value set: "
-                "[AES_256, AES_128]"
-            ).format(key_spec=key_spec))
+        if key_spec and key_spec not in ("AES_256", "AES_128"):
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{key_spec}' at 'keySpec' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "[AES_256, AES_128]"
+                ).format(key_spec=key_spec)
+            )
         if not key_spec and not number_of_bytes:
-            raise ValidationException("Please specify either number of bytes or key spec.")
+            raise ValidationException(
+                "Please specify either number of bytes or key spec."
+            )
 
         if key_spec and number_of_bytes:
-            raise ValidationException("Please specify either number of bytes or key spec.")
+            raise ValidationException(
+                "Please specify either number of bytes or key spec."
+            )
 
         plaintext, ciphertext_blob, key_arn = self.kms_backend.generate_data_key(
             key_id=key_id,
             encryption_context=encryption_context,
             number_of_bytes=number_of_bytes,
             key_spec=key_spec,
-            grant_tokens=grant_tokens
+            grant_tokens=grant_tokens,
         )
 
         plaintext_response = base64.b64encode(plaintext).decode("utf-8")
         ciphertext_blob_response = base64.b64encode(ciphertext_blob).decode("utf-8")
 
-        return json.dumps({
-            'CiphertextBlob': ciphertext_blob_response,
-            'Plaintext': plaintext_response,
-            'KeyId': key_arn  # not alias
-        })
+        return json.dumps(
+            {
+                "CiphertextBlob": ciphertext_blob_response,
+                "Plaintext": plaintext_response,
+                "KeyId": key_arn,  # not alias
+            }
+        )
 
     def generate_data_key_without_plaintext(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKeyWithoutPlaintext.html"""
         result = json.loads(self.generate_data_key())
-        del result['Plaintext']
+        del result["Plaintext"]
 
         return json.dumps(result)
 
@@ -471,11 +505,13 @@ class KmsResponse(BaseResponse):
         number_of_bytes = self.parameters.get("NumberOfBytes")
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
-            raise ValidationException((
-                "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                "to satisfy constraint: Member must have value less than or "
-                "equal to 1024"
-            ).format(number_of_bytes=number_of_bytes))
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                    "to satisfy constraint: Member must have value less than or "
+                    "equal to 1024"
+                ).format(number_of_bytes=number_of_bytes)
+            )
 
         entropy = os.urandom(number_of_bytes)
 
@@ -485,5 +521,5 @@ class KmsResponse(BaseResponse):
 
 
 def _assert_default_policy(policy_name):
-    if policy_name != 'default':
+    if policy_name != "default":
         raise NotFoundException("No such policy exists")

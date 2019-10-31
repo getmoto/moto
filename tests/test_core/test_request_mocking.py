@@ -7,7 +7,7 @@ from moto import mock_sqs, settings
 
 @mock_sqs
 def test_passthrough_requests():
-    conn = boto3.client("sqs", region_name='us-west-1')
+    conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
     res = requests.get("https://httpbin.org/ip")
@@ -15,6 +15,7 @@ def test_passthrough_requests():
 
 
 if not settings.TEST_SERVER_MODE:
+
     @mock_sqs
     def test_requests_to_amazon_subdomains_dont_work():
         res = requests.get("https://fakeservice.amazonaws.com/foo/bar")

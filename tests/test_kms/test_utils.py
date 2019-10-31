@@ -4,7 +4,11 @@ import sure  # noqa
 from nose.tools import assert_raises
 from parameterized import parameterized
 
-from moto.kms.exceptions import AccessDeniedException, InvalidCiphertextException, NotFoundException
+from moto.kms.exceptions import (
+    AccessDeniedException,
+    InvalidCiphertextException,
+    NotFoundException,
+)
 from moto.kms.models import Key
 from moto.kms.utils import (
     _deserialize_ciphertext_blob,
@@ -19,8 +23,14 @@ from moto.kms.utils import (
 )
 
 ENCRYPTION_CONTEXT_VECTORS = (
-    ({"this": "is", "an": "encryption", "context": "example"}, b"an" b"encryption" b"context" b"example" b"this" b"is"),
-    ({"a_this": "one", "b_is": "actually", "c_in": "order"}, b"a_this" b"one" b"b_is" b"actually" b"c_in" b"order"),
+    (
+        {"this": "is", "an": "encryption", "context": "example"},
+        b"an" b"encryption" b"context" b"example" b"this" b"is",
+    ),
+    (
+        {"a_this": "one", "b_is": "actually", "c_in": "order"},
+        b"a_this" b"one" b"b_is" b"actually" b"c_in" b"order",
+    ),
 )
 CIPHERTEXT_BLOB_VECTORS = (
     (
@@ -30,7 +40,10 @@ CIPHERTEXT_BLOB_VECTORS = (
             ciphertext=b"some ciphertext",
             tag=b"1234567890123456",
         ),
-        b"d25652e4-d2d2-49f7-929a-671ccda580c6" b"123456789012" b"1234567890123456" b"some ciphertext",
+        b"d25652e4-d2d2-49f7-929a-671ccda580c6"
+        b"123456789012"
+        b"1234567890123456"
+        b"some ciphertext",
     ),
     (
         Ciphertext(
@@ -93,12 +106,17 @@ def test_encrypt_decrypt_cycle(encryption_context):
     master_key_map = {master_key.id: master_key}
 
     ciphertext_blob = encrypt(
-        master_keys=master_key_map, key_id=master_key.id, plaintext=plaintext, encryption_context=encryption_context
+        master_keys=master_key_map,
+        key_id=master_key.id,
+        plaintext=plaintext,
+        encryption_context=encryption_context,
     )
     ciphertext_blob.should_not.equal(plaintext)
 
     decrypted, decrypting_key_id = decrypt(
-        master_keys=master_key_map, ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
+        master_keys=master_key_map,
+        ciphertext_blob=ciphertext_blob,
+        encryption_context=encryption_context,
     )
     decrypted.should.equal(plaintext)
     decrypting_key_id.should.equal(master_key.id)
@@ -106,7 +124,12 @@ def test_encrypt_decrypt_cycle(encryption_context):
 
 def test_encrypt_unknown_key_id():
     with assert_raises(NotFoundException):
-        encrypt(master_keys={}, key_id="anything", plaintext=b"secrets", encryption_context={})
+        encrypt(
+            master_keys={},
+            key_id="anything",
+            plaintext=b"secrets",
+            encryption_context={},
+        )
 
 
 def test_decrypt_invalid_ciphertext_format():
@@ -118,7 +141,12 @@ def test_decrypt_invalid_ciphertext_format():
 
 
 def test_decrypt_unknwown_key_id():
-    ciphertext_blob = b"d25652e4-d2d2-49f7-929a-671ccda580c6" b"123456789012" b"1234567890123456" b"some ciphertext"
+    ciphertext_blob = (
+        b"d25652e4-d2d2-49f7-929a-671ccda580c6"
+        b"123456789012"
+        b"1234567890123456"
+        b"some ciphertext"
+    )
 
     with assert_raises(AccessDeniedException):
         decrypt(master_keys={}, ciphertext_blob=ciphertext_blob, encryption_context={})
@@ -127,7 +155,11 @@ def test_decrypt_unknwown_key_id():
 def test_decrypt_invalid_ciphertext():
     master_key = Key("nop", "nop", "nop", [], "nop")
     master_key_map = {master_key.id: master_key}
-    ciphertext_blob = master_key.id.encode("utf-8") + b"123456789012" b"1234567890123456" b"some ciphertext"
+    ciphertext_blob = (
+        master_key.id.encode("utf-8") + b"123456789012"
+        b"1234567890123456"
+        b"some ciphertext"
+    )
 
     with assert_raises(InvalidCiphertextException):
         decrypt(

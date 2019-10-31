@@ -6,88 +6,88 @@ from .models import autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):
-
     @property
     def autoscaling_backend(self):
         return autoscaling_backends[self.region]
 
     def create_launch_configuration(self):
-        instance_monitoring_string = self._get_param(
-            'InstanceMonitoring.Enabled')
-        if instance_monitoring_string == 'true':
+        instance_monitoring_string = self._get_param("InstanceMonitoring.Enabled")
+        if instance_monitoring_string == "true":
             instance_monitoring = True
         else:
             instance_monitoring = False
         self.autoscaling_backend.create_launch_configuration(
-            name=self._get_param('LaunchConfigurationName'),
-            image_id=self._get_param('ImageId'),
-            key_name=self._get_param('KeyName'),
-            ramdisk_id=self._get_param('RamdiskId'),
-            kernel_id=self._get_param('KernelId'),
-            security_groups=self._get_multi_param('SecurityGroups.member'),
-            user_data=self._get_param('UserData'),
-            instance_type=self._get_param('InstanceType'),
+            name=self._get_param("LaunchConfigurationName"),
+            image_id=self._get_param("ImageId"),
+            key_name=self._get_param("KeyName"),
+            ramdisk_id=self._get_param("RamdiskId"),
+            kernel_id=self._get_param("KernelId"),
+            security_groups=self._get_multi_param("SecurityGroups.member"),
+            user_data=self._get_param("UserData"),
+            instance_type=self._get_param("InstanceType"),
             instance_monitoring=instance_monitoring,
-            instance_profile_name=self._get_param('IamInstanceProfile'),
-            spot_price=self._get_param('SpotPrice'),
-            ebs_optimized=self._get_param('EbsOptimized'),
-            associate_public_ip_address=self._get_param(
-                "AssociatePublicIpAddress"),
-            block_device_mappings=self._get_list_prefix(
-                'BlockDeviceMappings.member')
+            instance_profile_name=self._get_param("IamInstanceProfile"),
+            spot_price=self._get_param("SpotPrice"),
+            ebs_optimized=self._get_param("EbsOptimized"),
+            associate_public_ip_address=self._get_param("AssociatePublicIpAddress"),
+            block_device_mappings=self._get_list_prefix("BlockDeviceMappings.member"),
         )
         template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def describe_launch_configurations(self):
-        names = self._get_multi_param('LaunchConfigurationNames.member')
-        all_launch_configurations = self.autoscaling_backend.describe_launch_configurations(names)
-        marker = self._get_param('NextToken')
+        names = self._get_multi_param("LaunchConfigurationNames.member")
+        all_launch_configurations = self.autoscaling_backend.describe_launch_configurations(
+            names
+        )
+        marker = self._get_param("NextToken")
         all_names = [lc.name for lc in all_launch_configurations]
         if marker:
             start = all_names.index(marker) + 1
         else:
             start = 0
-        max_records = self._get_int_param('MaxRecords', 50)  # the default is 100, but using 50 to make testing easier
-        launch_configurations_resp = all_launch_configurations[start:start + max_records]
+        max_records = self._get_int_param(
+            "MaxRecords", 50
+        )  # the default is 100, but using 50 to make testing easier
+        launch_configurations_resp = all_launch_configurations[
+            start : start + max_records
+        ]
         next_token = None
         if len(all_launch_configurations) > start + max_records:
             next_token = launch_configurations_resp[-1].name
 
-        template = self.response_template(
-            DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
-        return template.render(launch_configurations=launch_configurations_resp, next_token=next_token)
+        template = self.response_template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
+        return template.render(
+            launch_configurations=launch_configurations_resp, next_token=next_token
+        )
 
     def delete_launch_configuration(self):
-        launch_configurations_name = self.querystring.get(
-            'LaunchConfigurationName')[0]
-        self.autoscaling_backend.delete_launch_configuration(
-            launch_configurations_name)
+        launch_configurations_name = self.querystring.get("LaunchConfigurationName")[0]
+        self.autoscaling_backend.delete_launch_configuration(launch_configurations_name)
         template = self.response_template(DELETE_LAUNCH_CONFIGURATION_TEMPLATE)
         return template.render()
 
     def create_auto_scaling_group(self):
         self.autoscaling_backend.create_auto_scaling_group(
-            name=self._get_param('AutoScalingGroupName'),
-            availability_zones=self._get_multi_param(
-                'AvailabilityZones.member'),
-            desired_capacity=self._get_int_param('DesiredCapacity'),
-            max_size=self._get_int_param('MaxSize'),
-            min_size=self._get_int_param('MinSize'),
-            instance_id=self._get_param('InstanceId'),
-            launch_config_name=self._get_param('LaunchConfigurationName'),
-            vpc_zone_identifier=self._get_param('VPCZoneIdentifier'),
-            default_cooldown=self._get_int_param('DefaultCooldown'),
-            health_check_period=self._get_int_param('HealthCheckGracePeriod'),
-            health_check_type=self._get_param('HealthCheckType'),
-            load_balancers=self._get_multi_param('LoadBalancerNames.member'),
-            target_group_arns=self._get_multi_param('TargetGroupARNs.member'),
-            placement_group=self._get_param('PlacementGroup'),
-            termination_policies=self._get_multi_param(
-                'TerminationPolicies.member'),
-            tags=self._get_list_prefix('Tags.member'),
+            name=self._get_param("AutoScalingGroupName"),
+            availability_zones=self._get_multi_param("AvailabilityZones.member"),
+            desired_capacity=self._get_int_param("DesiredCapacity"),
+            max_size=self._get_int_param("MaxSize"),
+            min_size=self._get_int_param("MinSize"),
+            instance_id=self._get_param("InstanceId"),
+            launch_config_name=self._get_param("LaunchConfigurationName"),
+            vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
+            default_cooldown=self._get_int_param("DefaultCooldown"),
+            health_check_period=self._get_int_param("HealthCheckGracePeriod"),
+            health_check_type=self._get_param("HealthCheckType"),
+            load_balancers=self._get_multi_param("LoadBalancerNames.member"),
+            target_group_arns=self._get_multi_param("TargetGroupARNs.member"),
+            placement_group=self._get_param("PlacementGroup"),
+            termination_policies=self._get_multi_param("TerminationPolicies.member"),
+            tags=self._get_list_prefix("Tags.member"),
             new_instances_protected_from_scale_in=self._get_bool_param(
-                'NewInstancesProtectedFromScaleIn', False)
+                "NewInstancesProtectedFromScaleIn", False
+            ),
         )
         template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
@@ -95,68 +95,73 @@ class AutoScalingResponse(BaseResponse):
     @amz_crc32
     @amzn_request_id
     def attach_instances(self):
-        group_name = self._get_param('AutoScalingGroupName')
-        instance_ids = self._get_multi_param('InstanceIds.member')
-        self.autoscaling_backend.attach_instances(
-            group_name, instance_ids)
+        group_name = self._get_param("AutoScalingGroupName")
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        self.autoscaling_backend.attach_instances(group_name, instance_ids)
         template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
         return template.render()
 
     @amz_crc32
     @amzn_request_id
     def set_instance_health(self):
-        instance_id = self._get_param('InstanceId')
+        instance_id = self._get_param("InstanceId")
         health_status = self._get_param("HealthStatus")
-        if health_status not in ['Healthy', 'Unhealthy']:
-            raise ValueError('Valid instance health states are: [Healthy, Unhealthy]')
+        if health_status not in ["Healthy", "Unhealthy"]:
+            raise ValueError("Valid instance health states are: [Healthy, Unhealthy]")
         should_respect_grace_period = self._get_param("ShouldRespectGracePeriod")
-        self.autoscaling_backend.set_instance_health(instance_id, health_status, should_respect_grace_period)
+        self.autoscaling_backend.set_instance_health(
+            instance_id, health_status, should_respect_grace_period
+        )
         template = self.response_template(SET_INSTANCE_HEALTH_TEMPLATE)
         return template.render()
 
     @amz_crc32
     @amzn_request_id
     def detach_instances(self):
-        group_name = self._get_param('AutoScalingGroupName')
-        instance_ids = self._get_multi_param('InstanceIds.member')
-        should_decrement_string = self._get_param('ShouldDecrementDesiredCapacity')
-        if should_decrement_string == 'true':
+        group_name = self._get_param("AutoScalingGroupName")
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
+        if should_decrement_string == "true":
             should_decrement = True
         else:
             should_decrement = False
         detached_instances = self.autoscaling_backend.detach_instances(
-            group_name, instance_ids, should_decrement)
+            group_name, instance_ids, should_decrement
+        )
         template = self.response_template(DETACH_INSTANCES_TEMPLATE)
         return template.render(detached_instances=detached_instances)
 
     @amz_crc32
     @amzn_request_id
     def attach_load_balancer_target_groups(self):
-        group_name = self._get_param('AutoScalingGroupName')
-        target_group_arns = self._get_multi_param('TargetGroupARNs.member')
+        group_name = self._get_param("AutoScalingGroupName")
+        target_group_arns = self._get_multi_param("TargetGroupARNs.member")
 
         self.autoscaling_backend.attach_load_balancer_target_groups(
-            group_name, target_group_arns)
+            group_name, target_group_arns
+        )
         template = self.response_template(ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
         return template.render()
 
     @amz_crc32
     @amzn_request_id
     def describe_load_balancer_target_groups(self):
-        group_name = self._get_param('AutoScalingGroupName')
+        group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self.autoscaling_backend.describe_load_balancer_target_groups(
-            group_name)
+            group_name
+        )
         template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
         return template.render(target_group_arns=target_group_arns)
 
     @amz_crc32
     @amzn_request_id
     def detach_load_balancer_target_groups(self):
-        group_name = self._get_param('AutoScalingGroupName')
-        target_group_arns = self._get_multi_param('TargetGroupARNs.member')
+        group_name = self._get_param("AutoScalingGroupName")
+        target_group_arns = self._get_multi_param("TargetGroupARNs.member")
 
         self.autoscaling_backend.detach_load_balancer_target_groups(
-            group_name, target_group_arns)
+            group_name, target_group_arns
+        )
         template = self.response_template(DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
         return template.render()
 
@@ -172,7 +177,7 @@ class AutoScalingResponse(BaseResponse):
         max_records = self._get_int_param("MaxRecords", 50)
         if max_records > 100:
             raise ValueError
-        groups = all_groups[start:start + max_records]
+        groups = all_groups[start : start + max_records]
         next_token = None
         if max_records and len(all_groups) > start + max_records:
             next_token = groups[-1].name
@@ -181,42 +186,40 @@ class AutoScalingResponse(BaseResponse):
 
     def update_auto_scaling_group(self):
         self.autoscaling_backend.update_auto_scaling_group(
-            name=self._get_param('AutoScalingGroupName'),
-            availability_zones=self._get_multi_param(
-                'AvailabilityZones.member'),
-            desired_capacity=self._get_int_param('DesiredCapacity'),
-            max_size=self._get_int_param('MaxSize'),
-            min_size=self._get_int_param('MinSize'),
-            launch_config_name=self._get_param('LaunchConfigurationName'),
-            vpc_zone_identifier=self._get_param('VPCZoneIdentifier'),
-            default_cooldown=self._get_int_param('DefaultCooldown'),
-            health_check_period=self._get_int_param('HealthCheckGracePeriod'),
-            health_check_type=self._get_param('HealthCheckType'),
-            placement_group=self._get_param('PlacementGroup'),
-            termination_policies=self._get_multi_param(
-                'TerminationPolicies.member'),
+            name=self._get_param("AutoScalingGroupName"),
+            availability_zones=self._get_multi_param("AvailabilityZones.member"),
+            desired_capacity=self._get_int_param("DesiredCapacity"),
+            max_size=self._get_int_param("MaxSize"),
+            min_size=self._get_int_param("MinSize"),
+            launch_config_name=self._get_param("LaunchConfigurationName"),
+            vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
+            default_cooldown=self._get_int_param("DefaultCooldown"),
+            health_check_period=self._get_int_param("HealthCheckGracePeriod"),
+            health_check_type=self._get_param("HealthCheckType"),
+            placement_group=self._get_param("PlacementGroup"),
+            termination_policies=self._get_multi_param("TerminationPolicies.member"),
             new_instances_protected_from_scale_in=self._get_bool_param(
-                'NewInstancesProtectedFromScaleIn', None)
+                "NewInstancesProtectedFromScaleIn", None
+            ),
         )
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def delete_auto_scaling_group(self):
-        group_name = self._get_param('AutoScalingGroupName')
+        group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_auto_scaling_group(group_name)
         template = self.response_template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def set_desired_capacity(self):
-        group_name = self._get_param('AutoScalingGroupName')
-        desired_capacity = self._get_int_param('DesiredCapacity')
-        self.autoscaling_backend.set_desired_capacity(
-            group_name, desired_capacity)
+        group_name = self._get_param("AutoScalingGroupName")
+        desired_capacity = self._get_int_param("DesiredCapacity")
+        self.autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
         template = self.response_template(SET_DESIRED_CAPACITY_TEMPLATE)
         return template.render()
 
     def create_or_update_tags(self):
-        tags = self._get_list_prefix('Tags.member')
+        tags = self._get_list_prefix("Tags.member")
 
         self.autoscaling_backend.create_or_update_tags(tags)
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
@@ -224,38 +227,38 @@ class AutoScalingResponse(BaseResponse):
 
     def describe_auto_scaling_instances(self):
         instance_states = self.autoscaling_backend.describe_auto_scaling_instances()
-        template = self.response_template(
-            DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
+        template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instance_states=instance_states)
 
     def put_scaling_policy(self):
         policy = self.autoscaling_backend.create_autoscaling_policy(
-            name=self._get_param('PolicyName'),
-            policy_type=self._get_param('PolicyType'),
-            adjustment_type=self._get_param('AdjustmentType'),
-            as_name=self._get_param('AutoScalingGroupName'),
-            scaling_adjustment=self._get_int_param('ScalingAdjustment'),
-            cooldown=self._get_int_param('Cooldown'),
+            name=self._get_param("PolicyName"),
+            policy_type=self._get_param("PolicyType"),
+            adjustment_type=self._get_param("AdjustmentType"),
+            as_name=self._get_param("AutoScalingGroupName"),
+            scaling_adjustment=self._get_int_param("ScalingAdjustment"),
+            cooldown=self._get_int_param("Cooldown"),
         )
         template = self.response_template(CREATE_SCALING_POLICY_TEMPLATE)
         return template.render(policy=policy)
 
     def describe_policies(self):
         policies = self.autoscaling_backend.describe_policies(
-            autoscaling_group_name=self._get_param('AutoScalingGroupName'),
-            policy_names=self._get_multi_param('PolicyNames.member'),
-            policy_types=self._get_multi_param('PolicyTypes.member'))
+            autoscaling_group_name=self._get_param("AutoScalingGroupName"),
+            policy_names=self._get_multi_param("PolicyNames.member"),
+            policy_types=self._get_multi_param("PolicyTypes.member"),
+        )
         template = self.response_template(DESCRIBE_SCALING_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
     def delete_policy(self):
-        group_name = self._get_param('PolicyName')
+        group_name = self._get_param("PolicyName")
         self.autoscaling_backend.delete_policy(group_name)
         template = self.response_template(DELETE_POLICY_TEMPLATE)
         return template.render()
 
     def execute_policy(self):
-        group_name = self._get_param('PolicyName')
+        group_name = self._get_param("PolicyName")
         self.autoscaling_backend.execute_policy(group_name)
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
@@ -263,17 +266,16 @@ class AutoScalingResponse(BaseResponse):
     @amz_crc32
     @amzn_request_id
     def attach_load_balancers(self):
-        group_name = self._get_param('AutoScalingGroupName')
+        group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
-        self.autoscaling_backend.attach_load_balancers(
-            group_name, load_balancer_names)
+        self.autoscaling_backend.attach_load_balancers(group_name, load_balancer_names)
         template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
     @amz_crc32
     @amzn_request_id
     def describe_load_balancers(self):
-        group_name = self._get_param('AutoScalingGroupName')
+        group_name = self._get_param("AutoScalingGroupName")
         load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers)
@@ -281,26 +283,28 @@ class AutoScalingResponse(BaseResponse):
     @amz_crc32
     @amzn_request_id
     def detach_load_balancers(self):
-        group_name = self._get_param('AutoScalingGroupName')
+        group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
-        self.autoscaling_backend.detach_load_balancers(
-            group_name, load_balancer_names)
+        self.autoscaling_backend.detach_load_balancers(group_name, load_balancer_names)
         template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
     def suspend_processes(self):
-        autoscaling_group_name = self._get_param('AutoScalingGroupName')
-        scaling_processes = self._get_multi_param('ScalingProcesses.member')
-        self.autoscaling_backend.suspend_processes(autoscaling_group_name, scaling_processes)
+        autoscaling_group_name = self._get_param("AutoScalingGroupName")
+        scaling_processes = self._get_multi_param("ScalingProcesses.member")
+        self.autoscaling_backend.suspend_processes(
+            autoscaling_group_name, scaling_processes
+        )
         template = self.response_template(SUSPEND_PROCESSES_TEMPLATE)
         return template.render()
 
     def set_instance_protection(self):
-        group_name = self._get_param('AutoScalingGroupName')
-        instance_ids = self._get_multi_param('InstanceIds.member')
-        protected_from_scale_in = self._get_bool_param('ProtectedFromScaleIn')
+        group_name = self._get_param("AutoScalingGroupName")
+        instance_ids = self._get_multi_param("InstanceIds.member")
+        protected_from_scale_in = self._get_bool_param("ProtectedFromScaleIn")
         self.autoscaling_backend.set_instance_protection(
-            group_name, instance_ids, protected_from_scale_in)
+            group_name, instance_ids, protected_from_scale_in
+        )
         template = self.response_template(SET_INSTANCE_PROTECTION_TEMPLATE)
         return template.render()
 

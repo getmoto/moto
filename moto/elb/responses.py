@@ -5,10 +5,7 @@ from boto.ec2.elb.attributes import (
     AccessLogAttribute,
     CrossZoneLoadBalancingAttribute,
 )
-from boto.ec2.elb.policies import (
-    AppCookieStickinessPolicy,
-    OtherPolicy,
-)
+from boto.ec2.elb.policies import AppCookieStickinessPolicy, OtherPolicy
 
 from moto.core.responses import BaseResponse
 from .models import elb_backends
@@ -16,16 +13,15 @@ from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 
 
 class ELBResponse(BaseResponse):
-
     @property
     def elb_backend(self):
         return elb_backends[self.region]
 
     def create_load_balancer(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         availability_zones = self._get_multi_param("AvailabilityZones.member")
         ports = self._get_list_prefix("Listeners.member")
-        scheme = self._get_param('Scheme')
+        scheme = self._get_param("Scheme")
         subnets = self._get_multi_param("Subnets.member")
         security_groups = self._get_multi_param("SecurityGroups.member")
 
@@ -42,27 +38,29 @@ class ELBResponse(BaseResponse):
         return template.render(load_balancer=load_balancer)
 
     def create_load_balancer_listeners(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         ports = self._get_list_prefix("Listeners.member")
 
         self.elb_backend.create_load_balancer_listeners(
-            name=load_balancer_name, ports=ports)
+            name=load_balancer_name, ports=ports
+        )
 
-        template = self.response_template(
-            CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE)
+        template = self.response_template(CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE)
         return template.render()
 
     def describe_load_balancers(self):
         names = self._get_multi_param("LoadBalancerNames.member")
         all_load_balancers = list(self.elb_backend.describe_load_balancers(names))
-        marker = self._get_param('Marker')
+        marker = self._get_param("Marker")
         all_names = [balancer.name for balancer in all_load_balancers]
         if marker:
             start = all_names.index(marker) + 1
         else:
             start = 0
-        page_size = self._get_int_param('PageSize', 50)  # the default is 400, but using 50 to make testing easier
-        load_balancers_resp = all_load_balancers[start:start + page_size]
+        page_size = self._get_int_param(
+            "PageSize", 50
+        )  # the default is 400, but using 50 to make testing easier
+        load_balancers_resp = all_load_balancers[start : start + page_size]
         next_marker = None
         if len(all_load_balancers) > start + page_size:
             next_marker = load_balancers_resp[-1].name
@@ -71,143 +69,158 @@ class ELBResponse(BaseResponse):
         return template.render(load_balancers=load_balancers_resp, marker=next_marker)
 
     def delete_load_balancer_listeners(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         ports = self._get_multi_param("LoadBalancerPorts.member")
         ports = [int(port) for port in ports]
 
-        self.elb_backend.delete_load_balancer_listeners(
-            load_balancer_name, ports)
+        self.elb_backend.delete_load_balancer_listeners(load_balancer_name, ports)
         template = self.response_template(DELETE_LOAD_BALANCER_LISTENERS)
         return template.render()
 
     def delete_load_balancer(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         self.elb_backend.delete_load_balancer(load_balancer_name)
         template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
         return template.render()
 
     def apply_security_groups_to_load_balancer(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         security_group_ids = self._get_multi_param("SecurityGroups.member")
-        self.elb_backend.apply_security_groups_to_load_balancer(load_balancer_name, security_group_ids)
+        self.elb_backend.apply_security_groups_to_load_balancer(
+            load_balancer_name, security_group_ids
+        )
         template = self.response_template(APPLY_SECURITY_GROUPS_TEMPLATE)
         return template.render(security_group_ids=security_group_ids)
 
     def configure_health_check(self):
         check = self.elb_backend.configure_health_check(
-            load_balancer_name=self._get_param('LoadBalancerName'),
-            timeout=self._get_param('HealthCheck.Timeout'),
-            healthy_threshold=self._get_param('HealthCheck.HealthyThreshold'),
-            unhealthy_threshold=self._get_param(
-                'HealthCheck.UnhealthyThreshold'),
-            interval=self._get_param('HealthCheck.Interval'),
-            target=self._get_param('HealthCheck.Target'),
+            load_balancer_name=self._get_param("LoadBalancerName"),
+            timeout=self._get_param("HealthCheck.Timeout"),
+            healthy_threshold=self._get_param("HealthCheck.HealthyThreshold"),
+            unhealthy_threshold=self._get_param("HealthCheck.UnhealthyThreshold"),
+            interval=self._get_param("HealthCheck.Interval"),
+            target=self._get_param("HealthCheck.Target"),
         )
         template = self.response_template(CONFIGURE_HEALTH_CHECK_TEMPLATE)
         return template.render(check=check)
 
     def register_instances_with_load_balancer(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [list(param.values())[0] for param in self._get_list_prefix('Instances.member')]
+        load_balancer_name = self._get_param("LoadBalancerName")
+        instance_ids = [
+            list(param.values())[0]
+            for param in self._get_list_prefix("Instances.member")
+        ]
         template = self.response_template(REGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.register_instances(
-            load_balancer_name, instance_ids)
+            load_balancer_name, instance_ids
+        )
         return template.render(load_balancer=load_balancer)
 
     def set_load_balancer_listener_ssl_certificate(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
-        ssl_certificate_id = self.querystring['SSLCertificateId'][0]
-        lb_port = self.querystring['LoadBalancerPort'][0]
+        load_balancer_name = self._get_param("LoadBalancerName")
+        ssl_certificate_id = self.querystring["SSLCertificateId"][0]
+        lb_port = self.querystring["LoadBalancerPort"][0]
 
         self.elb_backend.set_load_balancer_listener_sslcertificate(
-            load_balancer_name, lb_port, ssl_certificate_id)
+            load_balancer_name, lb_port, ssl_certificate_id
+        )
 
         template = self.response_template(SET_LOAD_BALANCER_SSL_CERTIFICATE)
         return template.render()
 
     def deregister_instances_from_load_balancer(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
-        instance_ids = [list(param.values())[0] for param in self._get_list_prefix('Instances.member')]
+        load_balancer_name = self._get_param("LoadBalancerName")
+        instance_ids = [
+            list(param.values())[0]
+            for param in self._get_list_prefix("Instances.member")
+        ]
         template = self.response_template(DEREGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.deregister_instances(
-            load_balancer_name, instance_ids)
+            load_balancer_name, instance_ids
+        )
         return template.render(load_balancer=load_balancer)
 
     def describe_load_balancer_attributes(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
         template = self.response_template(DESCRIBE_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=load_balancer.attributes)
 
     def modify_load_balancer_attributes(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
 
         cross_zone = self._get_dict_param(
-            "LoadBalancerAttributes.CrossZoneLoadBalancing.")
+            "LoadBalancerAttributes.CrossZoneLoadBalancing."
+        )
         if cross_zone:
             attribute = CrossZoneLoadBalancingAttribute()
             attribute.enabled = cross_zone["enabled"] == "true"
             self.elb_backend.set_cross_zone_load_balancing_attribute(
-                load_balancer_name, attribute)
+                load_balancer_name, attribute
+            )
 
         access_log = self._get_dict_param("LoadBalancerAttributes.AccessLog.")
         if access_log:
             attribute = AccessLogAttribute()
             attribute.enabled = access_log["enabled"] == "true"
-            attribute.s3_bucket_name = access_log['s3_bucket_name']
-            attribute.s3_bucket_prefix = access_log['s3_bucket_prefix']
+            attribute.s3_bucket_name = access_log["s3_bucket_name"]
+            attribute.s3_bucket_prefix = access_log["s3_bucket_prefix"]
             attribute.emit_interval = access_log["emit_interval"]
-            self.elb_backend.set_access_log_attribute(
-                load_balancer_name, attribute)
+            self.elb_backend.set_access_log_attribute(load_balancer_name, attribute)
 
         connection_draining = self._get_dict_param(
-            "LoadBalancerAttributes.ConnectionDraining.")
+            "LoadBalancerAttributes.ConnectionDraining."
+        )
         if connection_draining:
             attribute = ConnectionDrainingAttribute()
             attribute.enabled = connection_draining["enabled"] == "true"
             attribute.timeout = connection_draining.get("timeout", 300)
-            self.elb_backend.set_connection_draining_attribute(load_balancer_name, attribute)
+            self.elb_backend.set_connection_draining_attribute(
+                load_balancer_name, attribute
+            )
 
         connection_settings = self._get_dict_param(
-            "LoadBalancerAttributes.ConnectionSettings.")
+            "LoadBalancerAttributes.ConnectionSettings."
+        )
         if connection_settings:
             attribute = ConnectionSettingAttribute()
             attribute.idle_timeout = connection_settings["idle_timeout"]
             self.elb_backend.set_connection_settings_attribute(
-                load_balancer_name, attribute)
+                load_balancer_name, attribute
+            )
 
         template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
-        return template.render(load_balancer=load_balancer, attributes=load_balancer.attributes)
+        return template.render(
+            load_balancer=load_balancer, attributes=load_balancer.attributes
+        )
 
     def create_load_balancer_policy(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
 
         other_policy = OtherPolicy()
         policy_name = self._get_param("PolicyName")
         other_policy.policy_name = policy_name
 
-        self.elb_backend.create_lb_other_policy(
-            load_balancer_name, other_policy)
+        self.elb_backend.create_lb_other_policy(load_balancer_name, other_policy)
 
         template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
         return template.render()
 
     def create_app_cookie_stickiness_policy(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
 
         policy = AppCookieStickinessPolicy()
         policy.policy_name = self._get_param("PolicyName")
         policy.cookie_name = self._get_param("CookieName")
 
-        self.elb_backend.create_app_cookie_stickiness_policy(
-            load_balancer_name, policy)
+        self.elb_backend.create_app_cookie_stickiness_policy(load_balancer_name, policy)
 
         template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
         return template.render()
 
     def create_lb_cookie_stickiness_policy(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
 
         policy = AppCookieStickinessPolicy()
         policy.policy_name = self._get_param("PolicyName")
@@ -217,62 +230,68 @@ class ELBResponse(BaseResponse):
         else:
             policy.cookie_expiration_period = None
 
-        self.elb_backend.create_lb_cookie_stickiness_policy(
-            load_balancer_name, policy)
+        self.elb_backend.create_lb_cookie_stickiness_policy(load_balancer_name, policy)
 
         template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
         return template.render()
 
     def set_load_balancer_policies_of_listener(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
-        load_balancer_port = int(self._get_param('LoadBalancerPort'))
+        load_balancer_port = int(self._get_param("LoadBalancerPort"))
 
-        mb_listener = [l for l in load_balancer.listeners if int(
-            l.load_balancer_port) == load_balancer_port]
+        mb_listener = [
+            l
+            for l in load_balancer.listeners
+            if int(l.load_balancer_port) == load_balancer_port
+        ]
         if mb_listener:
             policies = self._get_multi_param("PolicyNames.member")
             self.elb_backend.set_load_balancer_policies_of_listener(
-                load_balancer_name, load_balancer_port, policies)
+                load_balancer_name, load_balancer_port, policies
+            )
         # else: explode?
 
         template = self.response_template(
-            SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE)
+            SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE
+        )
         return template.render()
 
     def set_load_balancer_policies_for_backend_server(self):
-        load_balancer_name = self.querystring.get('LoadBalancerName')[0]
+        load_balancer_name = self.querystring.get("LoadBalancerName")[0]
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
-        instance_port = int(self.querystring.get('InstancePort')[0])
+        instance_port = int(self.querystring.get("InstancePort")[0])
 
-        mb_backend = [b for b in load_balancer.backends if int(
-            b.instance_port) == instance_port]
+        mb_backend = [
+            b for b in load_balancer.backends if int(b.instance_port) == instance_port
+        ]
         if mb_backend:
-            policies = self._get_multi_param('PolicyNames.member')
+            policies = self._get_multi_param("PolicyNames.member")
             self.elb_backend.set_load_balancer_policies_of_backend_server(
-                load_balancer_name, instance_port, policies)
+                load_balancer_name, instance_port, policies
+            )
         # else: explode?
 
         template = self.response_template(
-            SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE)
+            SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE
+        )
         return template.render()
 
     def describe_instance_health(self):
-        load_balancer_name = self._get_param('LoadBalancerName')
+        load_balancer_name = self._get_param("LoadBalancerName")
         provided_instance_ids = [
             list(param.values())[0]
-            for param in self._get_list_prefix('Instances.member')
+            for param in self._get_list_prefix("Instances.member")
         ]
         registered_instances_id = self.elb_backend.get_load_balancer(
-            load_balancer_name).instance_ids
+            load_balancer_name
+        ).instance_ids
         if len(provided_instance_ids) == 0:
             provided_instance_ids = registered_instances_id
         template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
         instances = []
         for instance_id in provided_instance_ids:
-            state = "InService" \
-                if instance_id in registered_instances_id\
-                else "Unknown"
+            state = "InService" if instance_id in registered_instances_id else "Unknown"
             instances.append({"InstanceId": instance_id, "State": state})
         return template.render(instances=instances)
 
@@ -293,17 +312,18 @@ class ELBResponse(BaseResponse):
     def remove_tags(self):
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
-                number = key.split('.')[2]
+                number = key.split(".")[2]
                 load_balancer_name = self._get_param(
-                    'LoadBalancerNames.member.{0}'.format(number))
+                    "LoadBalancerNames.member.{0}".format(number)
+                )
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
 
-                key = 'Tag.member.{0}.Key'.format(number)
+                key = "Tag.member.{0}.Key".format(number)
                 for t_key, t_val in self.querystring.items():
-                    if t_key.startswith('Tags.member.'):
-                        if t_key.split('.')[3] == 'Key':
+                    if t_key.startswith("Tags.member."):
+                        if t_key.split(".")[3] == "Key":
                             elb.remove_tag(t_val[0])
 
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
@@ -313,9 +333,10 @@ class ELBResponse(BaseResponse):
         elbs = []
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
-                number = key.split('.')[2]
+                number = key.split(".")[2]
                 load_balancer_name = self._get_param(
-                    'LoadBalancerNames.member.{0}'.format(number))
+                    "LoadBalancerNames.member.{0}".format(number)
+                )
                 elb = self.elb_backend.get_load_balancer(load_balancer_name)
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
@@ -329,10 +350,10 @@ class ELBResponse(BaseResponse):
         tag_keys = []
 
         for t_key, t_val in sorted(self.querystring.items()):
-            if t_key.startswith('Tags.member.'):
-                if t_key.split('.')[3] == 'Key':
+            if t_key.startswith("Tags.member."):
+                if t_key.split(".")[3] == "Key":
                     tag_keys.extend(t_val)
-                elif t_key.split('.')[3] == 'Value':
+                elif t_key.split(".")[3] == "Value":
                     tag_values.extend(t_val)
 
         counts = {}

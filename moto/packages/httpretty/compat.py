@@ -34,33 +34,36 @@ if PY3:  # pragma: no cover
     text_type = str
     byte_type = bytes
     import io
+
     StringIO = io.BytesIO
     basestring = (str, bytes)
 
     class BaseClass(object):
-
         def __repr__(self):
             return self.__str__()
+
+
 else:  # pragma: no cover
     text_type = unicode
     byte_type = str
     import StringIO
+
     StringIO = StringIO.StringIO
     basestring = basestring
 
 
 class BaseClass(object):
-
     def __repr__(self):
         ret = self.__str__()
         if PY3:  # pragma: no cover
             return ret
         else:
-            return ret.encode('utf-8')
+            return ret.encode("utf-8")
 
 
 try:  # pragma: no cover
     from urllib.parse import urlsplit, urlunsplit, parse_qs, quote, quote_plus, unquote
+
     unquote_utf8 = unquote
 except ImportError:  # pragma: no cover
     from urlparse import urlsplit, urlunsplit, parse_qs, unquote
@@ -68,7 +71,7 @@ except ImportError:  # pragma: no cover
 
     def unquote_utf8(qs):
         if isinstance(qs, text_type):
-            qs = qs.encode('utf-8')
+            qs = qs.encode("utf-8")
         s = unquote(qs)
         if isinstance(s, byte_type):
             return s.decode("utf-8")
@@ -88,16 +91,16 @@ if not PY3:  # pragma: no cover
 
 
 __all__ = [
-    'PY3',
-    'StringIO',
-    'text_type',
-    'byte_type',
-    'BaseClass',
-    'BaseHTTPRequestHandler',
-    'quote',
-    'quote_plus',
-    'urlunsplit',
-    'urlsplit',
-    'parse_qs',
-    'ClassTypes',
+    "PY3",
+    "StringIO",
+    "text_type",
+    "byte_type",
+    "BaseClass",
+    "BaseHTTPRequestHandler",
+    "quote",
+    "quote_plus",
+    "urlunsplit",
+    "urlsplit",
+    "parse_qs",
+    "ClassTypes",
 ]
