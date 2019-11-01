@@ -1678,5 +1678,11 @@ class IAMBackend(BaseBackend):
 
         return self.account_password_policy
 
+    def delete_account_password_policy(self):
+        if not self.account_password_policy:
+            raise NoSuchEntity('The account policy with name PasswordPolicy cannot be found.')
+
+        self.account_password_policy = None
+
 
 iam_backend = IAMBackend()

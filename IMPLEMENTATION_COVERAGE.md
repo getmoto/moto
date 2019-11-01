@@ -3286,7 +3286,7 @@
 - [X] deactivate_mfa_device
 - [X] delete_access_key
 - [X] delete_account_alias
-- [ ] delete_account_password_policy
+- [X] delete_account_password_policy
 - [ ] delete_group
 - [ ] delete_group_policy
 - [ ] delete_instance_profile

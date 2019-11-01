@@ -2274,3 +2274,30 @@ def test_get_account_password_policy_errors():
         ClientError,
         'The Password Policy with domain name 123456789012 cannot be found.'
     )
+
+
+@mock_iam
+def test_delete_account_password_policy():
+    client = boto3.client('iam', region_name='us-east-1')
+    client.update_account_password_policy()
+
+    response = client.get_account_password_policy()
+
+    response.should.have.key('PasswordPolicy').which.should.be.a(dict)
+
+    client.delete_account_password_policy()
+
+    client.get_account_password_policy.when.called_with().should.throw(
+        ClientError,
+        'The Password Policy with domain name 123456789012 cannot be found.'
+    )
+
+
+@mock_iam
+def test_delete_account_password_policy_errors():
+    client = boto3.client('iam', region_name='us-east-1')
+
+    client.delete_account_password_policy.when.called_with().should.throw(
+        ClientError,
+        'The account policy with name PasswordPolicy cannot be found.'
+    )

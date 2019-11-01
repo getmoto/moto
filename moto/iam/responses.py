@@ -863,6 +863,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render(password_policy=account_password_policy)
 
+    def delete_account_password_policy(self):
+        iam_backend.delete_account_password_policy()
+
+        template = self.response_template(DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
+        return template.render()
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -2229,3 +2235,10 @@ GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<GetAccountPasswordPolicyResponse xmln
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </GetAccountPasswordPolicyResponse>"""
+
+
+DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<DeleteAccountPasswordPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteAccountPasswordPolicyResponse>"""
