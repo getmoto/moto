@@ -654,12 +654,22 @@ class User(BaseModel):
 
 
 class AccountPasswordPolicy(BaseModel):
-
-    def __init__(self, allow_change_password, hard_expiry, max_password_age, minimum_password_length,
-                 password_reuse_prevention, require_lowercase_characters, require_numbers,
-                 require_symbols, require_uppercase_characters):
+    def __init__(
+        self,
+        allow_change_password,
+        hard_expiry,
+        max_password_age,
+        minimum_password_length,
+        password_reuse_prevention,
+        require_lowercase_characters,
+        require_numbers,
+        require_symbols,
+        require_uppercase_characters,
+    ):
         self._errors = []
-        self._validate(max_password_age, minimum_password_length, password_reuse_prevention)
+        self._validate(
+            max_password_age, minimum_password_length, password_reuse_prevention
+        )
 
         self.allow_users_to_change_password = allow_change_password
         self.hard_expiry = hard_expiry
@@ -675,35 +685,41 @@ class AccountPasswordPolicy(BaseModel):
     def expire_passwords(self):
         return True if self.max_password_age and self.max_password_age > 0 else False
 
-    def _validate(self, max_password_age, minimum_password_length, password_reuse_prevention):
+    def _validate(
+        self, max_password_age, minimum_password_length, password_reuse_prevention
+    ):
         if minimum_password_length > 128:
-            self._errors.append(self._format_error(
-                key='minimumPasswordLength',
-                value=minimum_password_length,
-                constraint='Member must have value less than or equal to 128'
-            ))
+            self._errors.append(
+                self._format_error(
+                    key="minimumPasswordLength",
+                    value=minimum_password_length,
+                    constraint="Member must have value less than or equal to 128",
+                )
+            )
 
         if password_reuse_prevention and password_reuse_prevention > 24:
-            self._errors.append(self._format_error(
-                key='passwordReusePrevention',
-                value=password_reuse_prevention,
-                constraint='Member must have value less than or equal to 24'
-            ))
+            self._errors.append(
+                self._format_error(
+                    key="passwordReusePrevention",
+                    value=password_reuse_prevention,
+                    constraint="Member must have value less than or equal to 24",
+                )
+            )
 
         if max_password_age and max_password_age > 1095:
-            self._errors.append(self._format_error(
-                key='maxPasswordAge',
-                value=max_password_age,
-                constraint='Member must have value less than or equal to 1095'
-            ))
+            self._errors.append(
+                self._format_error(
+                    key="maxPasswordAge",
+                    value=max_password_age,
+                    constraint="Member must have value less than or equal to 1095",
+                )
+            )
 
         self._raise_errors()
 
     def _format_error(self, key, value, constraint):
         return 'Value "{value}" at "{key}" failed to satisfy constraint: {constraint}'.format(
-            constraint=constraint,
-            key=key,
-            value=value,
+            constraint=constraint, key=key, value=value,
         )
 
     def _raise_errors(self):
@@ -713,9 +729,11 @@ class AccountPasswordPolicy(BaseModel):
             errors = "; ".join(self._errors)
             self._errors = []  # reset collected errors
 
-            raise ValidationError('{count} validation error{plural} detected: {errors}'.format(
-                count=count, plural=plural, errors=errors,
-            ))
+            raise ValidationError(
+                "{count} validation error{plural} detected: {errors}".format(
+                    count=count, plural=plural, errors=errors,
+                )
+            )
 
 
 class IAMBackend(BaseBackend):
@@ -1657,9 +1675,18 @@ class IAMBackend(BaseBackend):
     def list_open_id_connect_providers(self):
         return list(self.open_id_providers.keys())
 
-    def update_account_password_policy(self, allow_change_password, hard_expiry, max_password_age, minimum_password_length,
-                                       password_reuse_prevention, require_lowercase_characters, require_numbers,
-                                       require_symbols, require_uppercase_characters):
+    def update_account_password_policy(
+        self,
+        allow_change_password,
+        hard_expiry,
+        max_password_age,
+        minimum_password_length,
+        password_reuse_prevention,
+        require_lowercase_characters,
+        require_numbers,
+        require_symbols,
+        require_uppercase_characters,
+    ):
         self.account_password_policy = AccountPasswordPolicy(
             allow_change_password,
             hard_expiry,
@@ -1669,18 +1696,24 @@ class IAMBackend(BaseBackend):
             require_lowercase_characters,
             require_numbers,
             require_symbols,
-            require_uppercase_characters
+            require_uppercase_characters,
         )
 
     def get_account_password_policy(self):
         if not self.account_password_policy:
-            raise NoSuchEntity('The Password Policy with domain name {} cannot be found.'.format(ACCOUNT_ID))
+            raise NoSuchEntity(
+                "The Password Policy with domain name {} cannot be found.".format(
+                    ACCOUNT_ID
+                )
+            )
 
         return self.account_password_policy
 
     def delete_account_password_policy(self):
         if not self.account_password_policy:
-            raise NoSuchEntity('The account policy with name PasswordPolicy cannot be found.')
+            raise NoSuchEntity(
+                "The account policy with name PasswordPolicy cannot be found."
+            )
 
         self.account_password_policy = None
 

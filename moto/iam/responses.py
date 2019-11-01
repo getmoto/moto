@@ -839,20 +839,33 @@ class IamResponse(BaseResponse):
         return template.render(open_id_provider_arns=open_id_provider_arns)
 
     def update_account_password_policy(self):
-        allow_change_password = self._get_bool_param('AllowUsersToChangePassword', False)
-        hard_expiry = self._get_bool_param('HardExpiry')
-        max_password_age = self._get_int_param('MaxPasswordAge')
-        minimum_password_length = self._get_int_param('MinimumPasswordLength', 6)
-        password_reuse_prevention = self._get_int_param('PasswordReusePrevention')
-        require_lowercase_characters = self._get_bool_param('RequireLowercaseCharacters', False)
-        require_numbers = self._get_bool_param('RequireNumbers', False)
-        require_symbols = self._get_bool_param('RequireSymbols', False)
-        require_uppercase_characters = self._get_bool_param('RequireUppercaseCharacters', False)
+        allow_change_password = self._get_bool_param(
+            "AllowUsersToChangePassword", False
+        )
+        hard_expiry = self._get_bool_param("HardExpiry")
+        max_password_age = self._get_int_param("MaxPasswordAge")
+        minimum_password_length = self._get_int_param("MinimumPasswordLength", 6)
+        password_reuse_prevention = self._get_int_param("PasswordReusePrevention")
+        require_lowercase_characters = self._get_bool_param(
+            "RequireLowercaseCharacters", False
+        )
+        require_numbers = self._get_bool_param("RequireNumbers", False)
+        require_symbols = self._get_bool_param("RequireSymbols", False)
+        require_uppercase_characters = self._get_bool_param(
+            "RequireUppercaseCharacters", False
+        )
 
         iam_backend.update_account_password_policy(
-            allow_change_password, hard_expiry, max_password_age, minimum_password_length,
-            password_reuse_prevention, require_lowercase_characters, require_numbers,
-            require_symbols, require_uppercase_characters)
+            allow_change_password,
+            hard_expiry,
+            max_password_age,
+            minimum_password_length,
+            password_reuse_prevention,
+            require_lowercase_characters,
+            require_numbers,
+            require_symbols,
+            require_uppercase_characters,
+        )
 
         template = self.response_template(UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render()

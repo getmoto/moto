@@ -2362,7 +2362,7 @@
 - [ ] send_ssh_public_key
 
 ## ecr
-30% implemented
+27% implemented
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
@@ -2371,6 +2371,7 @@
 - [ ] delete_lifecycle_policy
 - [X] delete_repository
 - [ ] delete_repository_policy
+- [ ] describe_image_scan_findings
 - [X] describe_images
 - [X] describe_repositories
 - [ ] get_authorization_token
@@ -2382,9 +2383,11 @@
 - [X] list_images
 - [ ] list_tags_for_resource
 - [X] put_image
+- [ ] put_image_scanning_configuration
 - [ ] put_image_tag_mutability
 - [ ] put_lifecycle_policy
 - [ ] set_repository_policy
+- [ ] start_image_scan
 - [ ] start_lifecycle_policy_preview
 - [ ] tag_resource
 - [ ] untag_resource
@@ -2475,6 +2478,7 @@
 - [ ] authorize_cache_security_group_ingress
 - [ ] batch_apply_update_action
 - [ ] batch_stop_update_action
+- [ ] complete_migration
 - [ ] copy_snapshot
 - [ ] create_cache_cluster
 - [ ] create_cache_parameter_group
@@ -2516,6 +2520,7 @@
 - [ ] remove_tags_from_resource
 - [ ] reset_cache_parameter_group
 - [ ] revoke_cache_security_group_ingress
+- [ ] start_migration
 - [ ] test_failover
 
 ## elasticbeanstalk
@@ -3262,7 +3267,8 @@
 - [ ] describe_events
 
 ## iam
-61% implemented- [ ] add_client_id_to_open_id_connect_provider
+62% implemented
+- [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
 - [X] attach_group_policy

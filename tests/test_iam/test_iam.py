@@ -2199,45 +2199,45 @@ def test_list_open_id_connect_providers():
 
 @mock_iam
 def test_update_account_password_policy():
-    client = boto3.client('iam', region_name='us-east-1')
+    client = boto3.client("iam", region_name="us-east-1")
 
     client.update_account_password_policy()
 
     response = client.get_account_password_policy()
-    response['PasswordPolicy'].should.equal({
-        'AllowUsersToChangePassword': False,
-        'ExpirePasswords': False,
-        'MinimumPasswordLength': 6,
-        'RequireLowercaseCharacters': False,
-        'RequireNumbers': False,
-        'RequireSymbols': False,
-        'RequireUppercaseCharacters': False
-    })
+    response["PasswordPolicy"].should.equal(
+        {
+            "AllowUsersToChangePassword": False,
+            "ExpirePasswords": False,
+            "MinimumPasswordLength": 6,
+            "RequireLowercaseCharacters": False,
+            "RequireNumbers": False,
+            "RequireSymbols": False,
+            "RequireUppercaseCharacters": False,
+        }
+    )
 
 
 @mock_iam
 def test_update_account_password_policy_errors():
-    client = boto3.client('iam', region_name='us-east-1')
+    client = boto3.client("iam", region_name="us-east-1")
 
     client.update_account_password_policy.when.called_with(
-        MaxPasswordAge=1096,
-        MinimumPasswordLength=129,
-        PasswordReusePrevention=25
+        MaxPasswordAge=1096, MinimumPasswordLength=129, PasswordReusePrevention=25
     ).should.throw(
         ClientError,
-        '3 validation errors detected: '
+        "3 validation errors detected: "
         'Value "129" at "minimumPasswordLength" failed to satisfy constraint: '
-        'Member must have value less than or equal to 128; '
+        "Member must have value less than or equal to 128; "
         'Value "25" at "passwordReusePrevention" failed to satisfy constraint: '
-        'Member must have value less than or equal to 24; '
+        "Member must have value less than or equal to 24; "
         'Value "1096" at "maxPasswordAge" failed to satisfy constraint: '
-        'Member must have value less than or equal to 1095'
+        "Member must have value less than or equal to 1095",
     )
 
 
 @mock_iam
 def test_get_account_password_policy():
-    client = boto3.client('iam', region_name='us-east-1')
+    client = boto3.client("iam", region_name="us-east-1")
     client.update_account_password_policy(
         AllowUsersToChangePassword=True,
         HardExpiry=True,
@@ -2247,57 +2247,58 @@ def test_get_account_password_policy():
         RequireLowercaseCharacters=True,
         RequireNumbers=True,
         RequireSymbols=True,
-        RequireUppercaseCharacters=True
+        RequireUppercaseCharacters=True,
     )
 
     response = client.get_account_password_policy()
-    
-    response['PasswordPolicy'].should.equal({
-        'AllowUsersToChangePassword': True,
-        'ExpirePasswords': True,
-        'HardExpiry': True,
-        'MaxPasswordAge': 60,
-        'MinimumPasswordLength': 10,
-        'PasswordReusePrevention': 3,
-        'RequireLowercaseCharacters': True,
-        'RequireNumbers': True,
-        'RequireSymbols': True,
-        'RequireUppercaseCharacters': True
-    })
+
+    response["PasswordPolicy"].should.equal(
+        {
+            "AllowUsersToChangePassword": True,
+            "ExpirePasswords": True,
+            "HardExpiry": True,
+            "MaxPasswordAge": 60,
+            "MinimumPasswordLength": 10,
+            "PasswordReusePrevention": 3,
+            "RequireLowercaseCharacters": True,
+            "RequireNumbers": True,
+            "RequireSymbols": True,
+            "RequireUppercaseCharacters": True,
+        }
+    )
 
 
 @mock_iam
 def test_get_account_password_policy_errors():
-    client = boto3.client('iam', region_name='us-east-1')
+    client = boto3.client("iam", region_name="us-east-1")
 
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
-        'The Password Policy with domain name 123456789012 cannot be found.'
+        "The Password Policy with domain name 123456789012 cannot be found.",
     )
 
 
 @mock_iam
 def test_delete_account_password_policy():
-    client = boto3.client('iam', region_name='us-east-1')
+    client = boto3.client("iam", region_name="us-east-1")
     client.update_account_password_policy()
 
     response = client.get_account_password_policy()
 
-    response.should.have.key('PasswordPolicy').which.should.be.a(dict)
+    response.should.have.key("PasswordPolicy").which.should.be.a(dict)
 
     client.delete_account_password_policy()
 
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
-        'The Password Policy with domain name 123456789012 cannot be found.'
+        "The Password Policy with domain name 123456789012 cannot be found.",
     )
 
 
 @mock_iam
 def test_delete_account_password_policy_errors():
-    client = boto3.client('iam', region_name='us-east-1')
+    client = boto3.client("iam", region_name="us-east-1")
 
     client.delete_account_password_policy.when.called_with().should.throw(
-        ClientError,
-        'The account policy with name PasswordPolicy cannot be found.'
+        ClientError, "The account policy with name PasswordPolicy cannot be found."
     )
