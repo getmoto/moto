@@ -255,3 +255,11 @@ class EventsHandler(BaseResponse):
 
     def describe_event_bus(self):
         return json.dumps(self.events_backend.describe_event_bus())
+
+    def create_event_bus(self):
+        name = self._get_param("Name")
+        event_source_name = self._get_param("EventSourceName")
+
+        event_bus = self.events_backend.create_event_bus(name, event_source_name)
+
+        return json.dumps({"EventBusArn": event_bus.arn}), self.response_headers
