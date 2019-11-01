@@ -1,6 +1,7 @@
 import random
 import boto3
 import json
+import sure  # noqa
 
 from moto.events import mock_events
 from botocore.exceptions import ClientError
@@ -220,3 +221,39 @@ def test_put_events():
 
     with assert_raises(ClientError):
         client.put_events(Entries=[event] * 20)
+
+
+@mock_events
+def test_create_event_bus():
+    client = boto3.client("events", "us-east-1")
+    response = client.create_event_bus(Name="test-bus")
+
+    response["EventBusArn"].should.equal(
+        "arn:aws:events:us-east-1:123456789012:event-bus/test-bus"
+    )
+
+
+@mock_events
+def test_create_event_bus_errors():
+    client = boto3.client("events", "us-east-1")
+    response = client.create_event_bus(Name="test-bus")
+
+    client.create_event_bus.when.called_with(Name="test-bus").should.throw(
+        ClientError, "Event bus test-bus already exists."
+    )
+
+    # the 'default' name is already used for the account's default event bus.
+    client.create_event_bus.when.called_with(Name="default").should.throw(
+        ClientError, "Event bus default already exists."
+    )
+
+    # non partner event buses can't contain the '/' character
+    client.create_event_bus.when.called_with(Name="test/test-bus").should.throw(
+        ClientError, "Event bus name must not contain '/'."
+    )
+
+    client.create_event_bus.when.called_with(
+        Name="aws.partner/test/test-bus", EventSourceName="aws.partner/test/test-bus"
+    ).should.throw(
+        ClientError, "Event source aws.partner/test/test-bus does not exist."
+    )

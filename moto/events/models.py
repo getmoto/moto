@@ -5,6 +5,7 @@ import boto3
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
+from moto.sts.models import ACCOUNT_ID
 
 
 class Rule(BaseModel):
@@ -54,6 +55,18 @@ class Rule(BaseModel):
                 self.targets.pop(index)
 
 
+class EventBus(BaseModel):
+    def __init__(self, region_name, name):
+        self.region = region_name
+        self.name = name
+
+    @property
+    def arn(self):
+        return "arn:aws:events:{region}:{account_id}:event-bus/{name}".format(
+            region=self.region, account_id=ACCOUNT_ID, name=self.name
+        )
+
+
 class EventsBackend(BaseBackend):
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
     STATEMENT_ID = re.compile(r"^[a-zA-Z0-9-_]{1,64}$")
@@ -66,11 +79,18 @@ class EventsBackend(BaseBackend):
         self.next_tokens = {}
         self.region_name = region_name
         self.permissions = {}
+        self.event_buses = {}
+        self.event_sources = {}
+
+        self._add_default_event_bus()
 
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
+
+    def _add_default_event_bus(self):
+        self.event_buses["default"] = EventBus(self.region_name, "default")
 
     def _get_rule_by_index(self, i):
         return self.rules.get(self.rules_order[i])
@@ -263,6 +283,28 @@ class EventsBackend(BaseBackend):
         policy = {"Version": "2012-10-17", "Statement": statements}
         policy_json = json.dumps(policy)
         return {"Policy": policy_json, "Name": "default", "Arn": arn}
+
+    def create_event_bus(self, name, event_source_name):
+        if name in self.event_buses:
+            raise JsonRESTError(
+                "ResourceAlreadyExistsException",
+                "Event bus {} already exists.".format(name),
+            )
+
+        if not event_source_name and "/" in name:
+            raise JsonRESTError(
+                "ValidationException", "Event bus name must not contain '/'."
+            )
+
+        if event_source_name and event_source_name not in self.event_sources:
+            raise JsonRESTError(
+                "ResourceNotFoundException",
+                "Event source {} does not exist.".format(event_source_name),
+            )
+
+        self.event_buses[name] = EventBus(self.region_name, name)
+
+        return self.event_buses[name]
 
 
 available_regions = boto3.session.Session().get_available_regions("events")
