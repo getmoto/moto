@@ -33,7 +33,7 @@ def test_create_fifo_queue_fail():
     except botocore.exceptions.ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised InvalidParameterValue Exception")
+        raise RuntimeError("Should of raised InvalidParameterValue Exception")z
 
 
 @mock_sqs
