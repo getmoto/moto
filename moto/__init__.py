@@ -7,14 +7,14 @@ from .autoscaling import mock_autoscaling, mock_autoscaling_deprecated  # noqa
 from .awslambda import mock_lambda, mock_lambda_deprecated  # noqa
 from .batch import mock_batch  # noqa
 from .cloudformation import mock_cloudformation  # noqa
-from .cloudformation import mock_cloudformation_deprecated
+from .cloudformation import mock_cloudformation_deprecated  # noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # noqa
 from .cognitoidentity import mock_cognitoidentity  # noqa
-from .cognitoidentity import mock_cognitoidentity_deprecated
+from .cognitoidentity import mock_cognitoidentity_deprecated  # noqa
 from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # noqa
 from .config import mock_config  # noqa
 from .datapipeline import mock_datapipeline  # noqa
-from .datapipeline import mock_datapipeline_deprecated
+from .datapipeline import mock_datapipeline_deprecated  # noqa
 from .datasync import mock_datasync  # noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # noqa
@@ -59,7 +59,6 @@ from .xray import XRaySegment, mock_xray, mock_xray_client  # noqa
 
 __title__ = "moto"
 __version__ = "1.3.14.dev"
-
 
 
 try:
