@@ -346,7 +346,9 @@ class DynamoHandler(BaseResponse):
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
 
-        projection_expression = self._adjust_projection_expression(projection_expression, expression_attribute_names)
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         try:
             item = self.dynamodb_backend.get_item(name, key, projection_expression)
@@ -413,7 +415,9 @@ class DynamoHandler(BaseResponse):
         filter_expression = self.body.get("FilterExpression")
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
-        projection_expression = self._adjust_projection_expression(projection_expression, expression_attribute_names)
+        projection_expression = self._adjust_projection_expression(
+            projection_expression, expression_attribute_names
+        )
 
         filter_kwargs = {}
 
@@ -569,10 +573,20 @@ class DynamoHandler(BaseResponse):
 
     def _adjust_projection_expression(self, projection_expression, expr_attr_names):
         def _adjust(expression):
-            return expr_attr_names[expression] if expression in expr_attr_names else expression
+            return (
+                expr_attr_names[expression]
+                if expression in expr_attr_names
+                else expression
+            )
+
         if projection_expression and expr_attr_names:
-            expressions = [x.strip() for x in projection_expression.split(',')]
-            return ','.join(['.'.join([_adjust(expr) for expr in nested_expr.split('.')]) for nested_expr in expressions])
+            expressions = [x.strip() for x in projection_expression.split(",")]
+            return ",".join(
+                [
+                    ".".join([_adjust(expr) for expr in nested_expr.split(".")])
+                    for nested_expr in expressions
+                ]
+            )
 
         return projection_expression
 

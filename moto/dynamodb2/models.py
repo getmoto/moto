@@ -108,14 +108,23 @@ class DynamoType(object):
                 self.value.pop(key)
 
     def filter(self, projection_expressions):
-        nested_projections = [expr[0:expr.index('.')] for expr in projection_expressions if '.' in expr]
+        nested_projections = [
+            expr[0 : expr.index(".")] for expr in projection_expressions if "." in expr
+        ]
         if self.is_map():
             expressions_to_delete = []
             for attr in self.value:
-                if attr not in projection_expressions and attr not in nested_projections:
+                if (
+                    attr not in projection_expressions
+                    and attr not in nested_projections
+                ):
                     expressions_to_delete.append(attr)
                 elif attr in nested_projections:
-                    relevant_expressions = [expr[len(attr + '.'):] for expr in projection_expressions if expr.startswith(attr + '.')]
+                    relevant_expressions = [
+                        expr[len(attr + ".") :]
+                        for expr in projection_expressions
+                        if expr.startswith(attr + ".")
+                    ]
                     self.value[attr].filter(relevant_expressions)
             for expr in expressions_to_delete:
                 self.value.pop(expr)
@@ -493,13 +502,19 @@ class Item(BaseModel):
     # Filter using projection_expression
     # Ensure a deep copy is used to filter, otherwise actual data will be removed
     def filter(self, projection_expression):
-        expressions = [x.strip() for x in projection_expression.split(',')]
-        top_level_expressions = [expr[0:expr.index('.')] for expr in expressions if '.' in expr]
+        expressions = [x.strip() for x in projection_expression.split(",")]
+        top_level_expressions = [
+            expr[0 : expr.index(".")] for expr in expressions if "." in expr
+        ]
         for attr in list(self.attrs):
             if attr not in expressions and attr not in top_level_expressions:
                 self.attrs.pop(attr)
             if attr in top_level_expressions:
-                relevant_expressions = [expr[len(attr + '.'):] for expr in expressions if expr.startswith(attr + '.')]
+                relevant_expressions = [
+                    expr[len(attr + ".") :]
+                    for expr in expressions
+                    if expr.startswith(attr + ".")
+                ]
                 self.attrs[attr].filter(relevant_expressions)
 
 
