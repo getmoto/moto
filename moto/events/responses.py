@@ -278,3 +278,21 @@ class EventsHandler(BaseResponse):
         event_bus = self.events_backend.create_event_bus(name, event_source_name)
 
         return json.dumps({"EventBusArn": event_bus.arn}), self.response_headers
+
+    def list_event_buses(self):
+        name_prefix = self._get_param("NamePrefix")
+        # ToDo: add 'NextToken' & 'Limit' parameters
+
+        response = []
+        for event_bus in self.events_backend.list_event_buses(name_prefix):
+            event_bus_response = {
+                "Name": event_bus.name,
+                "Arn": event_bus.arn,
+            }
+
+            if event_bus.policy:
+                event_bus_response["Policy"] = event_bus.policy
+
+            response.append(event_bus_response)
+
+        return json.dumps({"EventBuses": response}), self.response_headers
