@@ -5,9 +5,10 @@ import sure  # noqa
 import moto.server as server
 from moto import mock_iot
 
-'''
+"""
 Test the different server responses
-'''
+"""
+
 
 @mock_iot
 def test_iot_list():
@@ -15,5 +16,5 @@ def test_iot_list():
     test_client = backend.test_client()
 
     # just making sure that server is up
-    res = test_client.get('/things')
+    res = test_client.get("/things")
     res.status_code.should.equal(404)

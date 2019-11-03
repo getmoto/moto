@@ -33,7 +33,9 @@ class Key(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
+        return "arn:aws:kms:{0}:{1}:key/{2}".format(
+            self.region, self.account_id, self.id
+        )
 
     def to_dict(self):
         key_dict = {
@@ -49,14 +51,18 @@ class Key(BaseModel):
             }
         }
         if self.key_state == "PendingDeletion":
-            key_dict["KeyMetadata"]["DeletionDate"] = iso_8601_datetime_without_milliseconds(self.deletion_date)
+            key_dict["KeyMetadata"][
+                "DeletionDate"
+            ] = iso_8601_datetime_without_milliseconds(self.deletion_date)
         return key_dict
 
     def delete(self, region_name):
         kms_backends[region_name].delete_key(self.id)
 
     @classmethod
-    def create_from_cloudformation_json(self, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(
+        self, resource_name, cloudformation_json, region_name
+    ):
         kms_backend = kms_backends[region_name]
         properties = cloudformation_json["Properties"]
 
@@ -206,39 +212,57 @@ class KmsBackend(BaseBackend):
         if 7 <= pending_window_in_days <= 30:
             self.keys[key_id].enabled = False
             self.keys[key_id].key_state = "PendingDeletion"
-            self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
-            return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+            self.keys[key_id].deletion_date = datetime.now() + timedelta(
+                days=pending_window_in_days
+            )
+            return iso_8601_datetime_without_milliseconds(
+                self.keys[key_id].deletion_date
+            )
 
     def encrypt(self, key_id, plaintext, encryption_context):
         key_id = self.any_id_to_key_id(key_id)
 
         ciphertext_blob = encrypt(
-            master_keys=self.keys, key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
+            master_keys=self.keys,
+            key_id=key_id,
+            plaintext=plaintext,
+            encryption_context=encryption_context,
         )
         arn = self.keys[key_id].arn
         return ciphertext_blob, arn
 
     def decrypt(self, ciphertext_blob, encryption_context):
         plaintext, key_id = decrypt(
-            master_keys=self.keys, ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
+            master_keys=self.keys,
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=encryption_context,
         )
         arn = self.keys[key_id].arn
         return plaintext, arn
 
     def re_encrypt(
-        self, ciphertext_blob, source_encryption_context, destination_key_id, destination_encryption_context
+        self,
+        ciphertext_blob,
+        source_encryption_context,
+        destination_key_id,
+        destination_encryption_context,
     ):
         destination_key_id = self.any_id_to_key_id(destination_key_id)
 
         plaintext, decrypting_arn = self.decrypt(
-            ciphertext_blob=ciphertext_blob, encryption_context=source_encryption_context
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=source_encryption_context,
         )
         new_ciphertext_blob, encrypting_arn = self.encrypt(
-            key_id=destination_key_id, plaintext=plaintext, encryption_context=destination_encryption_context
+            key_id=destination_key_id,
+            plaintext=plaintext,
+            encryption_context=destination_encryption_context,
         )
         return new_ciphertext_blob, decrypting_arn, encrypting_arn
 
-    def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens):
+    def generate_data_key(
+        self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens
+    ):
         key_id = self.any_id_to_key_id(key_id)
 
         if key_spec:
@@ -252,7 +276,9 @@ class KmsBackend(BaseBackend):
 
         plaintext = os.urandom(plaintext_len)
 
-        ciphertext_blob, arn = self.encrypt(key_id=key_id, plaintext=plaintext, encryption_context=encryption_context)
+        ciphertext_blob, arn = self.encrypt(
+            key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
+        )
 
         return plaintext, ciphertext_blob, arn
 

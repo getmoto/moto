@@ -12,7 +12,7 @@ from .exceptions import (
     MessageNotInflight,
     ReceiptHandleIsInvalid,
     EmptyBatchRequest,
-    InvalidAttributeName
+    InvalidAttributeName,
 )
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
@@ -22,7 +22,7 @@ DEFAULT_RECEIVED_MESSAGES = 1
 
 class SQSResponse(BaseResponse):
 
-    region_regex = re.compile(r'://(.+?)\.queue\.amazonaws\.com')
+    region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
     @property
     def sqs_backend(self):
@@ -30,19 +30,21 @@ class SQSResponse(BaseResponse):
 
     @property
     def attribute(self):
-        if not hasattr(self, '_attribute'):
-            self._attribute = self._get_map_prefix('Attribute', key_end='.Name', value_end='.Value')
+        if not hasattr(self, "_attribute"):
+            self._attribute = self._get_map_prefix(
+                "Attribute", key_end=".Name", value_end=".Value"
+            )
         return self._attribute
 
     @property
     def tags(self):
-        if not hasattr(self, '_tags'):
-            self._tags = self._get_map_prefix('Tag', key_end='.Key', value_end='.Value')
+        if not hasattr(self, "_tags"):
+            self._tags = self._get_map_prefix("Tag", key_end=".Key", value_end=".Value")
         return self._tags
 
     def _get_queue_name(self):
         try:
-            queue_name = self.querystring.get('QueueUrl')[0].split("/")[-1]
+            queue_name = self.querystring.get("QueueUrl")[0].split("/")[-1]
         except TypeError:
             # Fallback to reading from the URL
             queue_name = self.path.split("/")[-1]
@@ -80,9 +82,11 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_param("QueueName")
 
         try:
-            queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+            queue = self.sqs_backend.create_queue(
+                queue_name, self.tags, **self.attribute
+            )
         except MessageAttributesInvalid as e:
-            return self._error('InvalidParameterValue', e.description)
+            return self._error("InvalidParameterValue", e.description)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -98,14 +102,14 @@ class SQSResponse(BaseResponse):
 
     def list_queues(self):
         request_url = urlparse(self.uri)
-        queue_name_prefix = self._get_param('QueueNamePrefix')
+        queue_name_prefix = self._get_param("QueueNamePrefix")
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
     def change_message_visibility(self):
         queue_name = self._get_queue_name()
-        receipt_handle = self._get_param('ReceiptHandle')
+        receipt_handle = self._get_param("ReceiptHandle")
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
@@ -116,53 +120,64 @@ class SQSResponse(BaseResponse):
             self.sqs_backend.change_message_visibility(
                 queue_name=queue_name,
                 receipt_handle=receipt_handle,
-                visibility_timeout=visibility_timeout
+                visibility_timeout=visibility_timeout,
             )
         except MessageNotInflight as e:
-            return "Invalid request: {0}".format(e.description), dict(status=e.status_code)
+            return (
+                "Invalid request: {0}".format(e.description),
+                dict(status=e.status_code),
+            )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
 
     def change_message_visibility_batch(self):
         queue_name = self._get_queue_name()
-        entries = self._get_list_prefix('ChangeMessageVisibilityBatchRequestEntry')
+        entries = self._get_list_prefix("ChangeMessageVisibilityBatchRequestEntry")
 
         success = []
         error = []
         for entry in entries:
             try:
-                visibility_timeout = self._get_validated_visibility_timeout(entry['visibility_timeout'])
+                visibility_timeout = self._get_validated_visibility_timeout(
+                    entry["visibility_timeout"]
+                )
             except ValueError:
-                error.append({
-                    'Id': entry['id'],
-                    'SenderFault': 'true',
-                    'Code': 'InvalidParameterValue',
-                    'Message': 'Visibility timeout invalid'
-                })
+                error.append(
+                    {
+                        "Id": entry["id"],
+                        "SenderFault": "true",
+                        "Code": "InvalidParameterValue",
+                        "Message": "Visibility timeout invalid",
+                    }
+                )
                 continue
 
             try:
                 self.sqs_backend.change_message_visibility(
                     queue_name=queue_name,
-                    receipt_handle=entry['receipt_handle'],
-                    visibility_timeout=visibility_timeout
+                    receipt_handle=entry["receipt_handle"],
+                    visibility_timeout=visibility_timeout,
                 )
-                success.append(entry['id'])
+                success.append(entry["id"])
             except ReceiptHandleIsInvalid as e:
-                error.append({
-                    'Id': entry['id'],
-                    'SenderFault': 'true',
-                    'Code': 'ReceiptHandleIsInvalid',
-                    'Message': e.description
-                })
+                error.append(
+                    {
+                        "Id": entry["id"],
+                        "SenderFault": "true",
+                        "Code": "ReceiptHandleIsInvalid",
+                        "Message": e.description,
+                    }
+                )
             except MessageNotInflight as e:
-                error.append({
-                    'Id': entry['id'],
-                    'SenderFault': 'false',
-                    'Code': 'AWS.SimpleQueueService.MessageNotInflight',
-                    'Message': e.description
-                })
+                error.append(
+                    {
+                        "Id": entry["id"],
+                        "SenderFault": "false",
+                        "Code": "AWS.SimpleQueueService.MessageNotInflight",
+                        "Message": e.description,
+                    }
+                )
 
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
         return template.render(success=success, errors=error)
@@ -170,10 +185,10 @@ class SQSResponse(BaseResponse):
     def get_queue_attributes(self):
         queue_name = self._get_queue_name()
 
-        if self.querystring.get('AttributeNames'):
-            raise InvalidAttributeName('')
+        if self.querystring.get("AttributeNames"):
+            raise InvalidAttributeName("")
 
-        attribute_names = self._get_multi_param('AttributeName')
+        attribute_names = self._get_multi_param("AttributeName")
 
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
 
@@ -192,14 +207,17 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         queue = self.sqs_backend.delete_queue(queue_name)
         if not queue:
-            return "A queue with name {0} does not exist".format(queue_name), dict(status=404)
+            return (
+                "A queue with name {0} does not exist".format(queue_name),
+                dict(status=404),
+            )
 
         template = self.response_template(DELETE_QUEUE_RESPONSE)
         return template.render(queue=queue)
 
     def send_message(self):
-        message = self._get_param('MessageBody')
-        delay_seconds = int(self._get_param('DelaySeconds', 0))
+        message = self._get_param("MessageBody")
+        delay_seconds = int(self._get_param("DelaySeconds", 0))
         message_group_id = self._get_param("MessageGroupId")
         message_dedupe_id = self._get_param("MessageDeduplicationId")
 
@@ -219,7 +237,7 @@ class SQSResponse(BaseResponse):
             message_attributes=message_attributes,
             delay_seconds=delay_seconds,
             deduplication_id=message_dedupe_id,
-            group_id=message_group_id
+            group_id=message_group_id,
         )
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
@@ -240,25 +258,30 @@ class SQSResponse(BaseResponse):
 
         self.sqs_backend.get_queue(queue_name)
 
-        if self.querystring.get('Entries'):
+        if self.querystring.get("Entries"):
             raise EmptyBatchRequest()
 
         entries = {}
         for key, value in self.querystring.items():
-            match = re.match(r'^SendMessageBatchRequestEntry\.(\d+)\.Id', key)
+            match = re.match(r"^SendMessageBatchRequestEntry\.(\d+)\.Id", key)
             if match:
                 index = match.group(1)
 
                 message_attributes = parse_message_attributes(
-                    self.querystring, base='SendMessageBatchRequestEntry.{}.'.format(index))
+                    self.querystring,
+                    base="SendMessageBatchRequestEntry.{}.".format(index),
+                )
 
                 entries[index] = {
-                    'Id': value[0],
-                    'MessageBody': self.querystring.get(
-                        'SendMessageBatchRequestEntry.{}.MessageBody'.format(index))[0],
-                    'DelaySeconds': self.querystring.get(
-                        'SendMessageBatchRequestEntry.{}.DelaySeconds'.format(index), [None])[0],
-                    'MessageAttributes': message_attributes
+                    "Id": value[0],
+                    "MessageBody": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageBody".format(index)
+                    )[0],
+                    "DelaySeconds": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.DelaySeconds".format(index),
+                        [None],
+                    )[0],
+                    "MessageAttributes": message_attributes,
                 }
 
         messages = self.sqs_backend.send_message_batch(queue_name, entries)
@@ -288,8 +311,9 @@ class SQSResponse(BaseResponse):
         message_ids = []
         for index in range(1, 11):
             # Loop through looking for messages
-            receipt_key = 'DeleteMessageBatchRequestEntry.{0}.ReceiptHandle'.format(
-                index)
+            receipt_key = "DeleteMessageBatchRequestEntry.{0}.ReceiptHandle".format(
+                index
+            )
             receipt_handle = self.querystring.get(receipt_key)
             if not receipt_handle:
                 # Found all messages
@@ -297,8 +321,7 @@ class SQSResponse(BaseResponse):
 
             self.sqs_backend.delete_message(queue_name, receipt_handle[0])
 
-            message_user_id_key = 'DeleteMessageBatchRequestEntry.{0}.Id'.format(
-                index)
+            message_user_id_key = "DeleteMessageBatchRequestEntry.{0}.Id".format(index)
             message_user_id = self.querystring.get(message_user_id_key)[0]
             message_ids.append(message_user_id)
 
@@ -327,7 +350,8 @@ class SQSResponse(BaseResponse):
                 "An error occurred (InvalidParameterValue) when calling "
                 "the ReceiveMessage operation: Value %s for parameter "
                 "MaxNumberOfMessages is invalid. Reason: must be between "
-                "1 and 10, if provided." % message_count)
+                "1 and 10, if provided." % message_count,
+            )
 
         try:
             wait_time = int(self.querystring.get("WaitTimeSeconds")[0])
@@ -340,7 +364,8 @@ class SQSResponse(BaseResponse):
                 "An error occurred (InvalidParameterValue) when calling "
                 "the ReceiveMessage operation: Value %s for parameter "
                 "WaitTimeSeconds is invalid. Reason: must be &lt;= 0 and "
-                "&gt;= 20 if provided." % wait_time)
+                "&gt;= 20 if provided." % wait_time,
+            )
 
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
@@ -350,7 +375,8 @@ class SQSResponse(BaseResponse):
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
         messages = self.sqs_backend.receive_messages(
-            queue_name, message_count, wait_time, visibility_timeout)
+            queue_name, message_count, wait_time, visibility_timeout
+        )
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages)
 
@@ -365,9 +391,9 @@ class SQSResponse(BaseResponse):
 
     def add_permission(self):
         queue_name = self._get_queue_name()
-        actions = self._get_multi_param('ActionName')
-        account_ids = self._get_multi_param('AWSAccountId')
-        label = self._get_param('Label')
+        actions = self._get_multi_param("ActionName")
+        account_ids = self._get_multi_param("AWSAccountId")
+        label = self._get_param("Label")
 
         self.sqs_backend.add_permission(queue_name, actions, account_ids, label)
 
@@ -376,7 +402,7 @@ class SQSResponse(BaseResponse):
 
     def remove_permission(self):
         queue_name = self._get_queue_name()
-        label = self._get_param('Label')
+        label = self._get_param("Label")
 
         self.sqs_backend.remove_permission(queue_name, label)
 
@@ -385,7 +411,7 @@ class SQSResponse(BaseResponse):
 
     def tag_queue(self):
         queue_name = self._get_queue_name()
-        tags = self._get_map_prefix('Tag', key_end='.Key', value_end='.Value')
+        tags = self._get_map_prefix("Tag", key_end=".Key", value_end=".Value")
 
         self.sqs_backend.tag_queue(queue_name, tags)
 
@@ -394,7 +420,7 @@ class SQSResponse(BaseResponse):
 
     def untag_queue(self):
         queue_name = self._get_queue_name()
-        tag_keys = self._get_multi_param('TagKey')
+        tag_keys = self._get_multi_param("TagKey")
 
         self.sqs_backend.untag_queue(queue_name, tag_keys)
 
@@ -672,7 +698,8 @@ ERROR_TOO_LONG_RESPONSE = """<ErrorResponse xmlns="http://queue.amazonaws.com/do
 </ErrorResponse>"""
 
 ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = "Invalid request, maximum visibility timeout is {0}".format(
-    MAXIMUM_VISIBILTY_TIMEOUT)
+    MAXIMUM_VISIBILTY_TIMEOUT
+)
 
 ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
     <Error>

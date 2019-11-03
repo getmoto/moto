@@ -5,10 +5,10 @@ from werkzeug.exceptions import BadRequest
 
 
 class RDSClientError(BadRequest):
-
     def __init__(self, code, message):
         super(RDSClientError, self).__init__()
-        template = Template("""
+        template = Template(
+            """
         <RDSClientError>
             <Error>
               <Code>{{ code }}</Code>
@@ -16,87 +16,94 @@ class RDSClientError(BadRequest):
               <Type>Sender</Type>
             </Error>
             <RequestId>6876f774-7273-11e4-85dc-39e55ca848d1</RequestId>
-        </RDSClientError>""")
+        </RDSClientError>"""
+        )
         self.description = template.render(code=code, message=message)
 
 
 class DBInstanceNotFoundError(RDSClientError):
-
     def __init__(self, database_identifier):
         super(DBInstanceNotFoundError, self).__init__(
-            'DBInstanceNotFound',
-            "Database {0} not found.".format(database_identifier))
+            "DBInstanceNotFound", "Database {0} not found.".format(database_identifier)
+        )
 
 
 class DBSnapshotNotFoundError(RDSClientError):
-
     def __init__(self):
         super(DBSnapshotNotFoundError, self).__init__(
-            'DBSnapshotNotFound',
-            "DBSnapshotIdentifier does not refer to an existing DB snapshot.")
+            "DBSnapshotNotFound",
+            "DBSnapshotIdentifier does not refer to an existing DB snapshot.",
+        )
 
 
 class DBSecurityGroupNotFoundError(RDSClientError):
-
     def __init__(self, security_group_name):
         super(DBSecurityGroupNotFoundError, self).__init__(
-            'DBSecurityGroupNotFound',
-            "Security Group {0} not found.".format(security_group_name))
+            "DBSecurityGroupNotFound",
+            "Security Group {0} not found.".format(security_group_name),
+        )
 
 
 class DBSubnetGroupNotFoundError(RDSClientError):
-
     def __init__(self, subnet_group_name):
         super(DBSubnetGroupNotFoundError, self).__init__(
-            'DBSubnetGroupNotFound',
-            "Subnet Group {0} not found.".format(subnet_group_name))
+            "DBSubnetGroupNotFound",
+            "Subnet Group {0} not found.".format(subnet_group_name),
+        )
 
 
 class DBParameterGroupNotFoundError(RDSClientError):
-
     def __init__(self, db_parameter_group_name):
         super(DBParameterGroupNotFoundError, self).__init__(
-            'DBParameterGroupNotFound',
-            'DB Parameter Group {0} not found.'.format(db_parameter_group_name))
+            "DBParameterGroupNotFound",
+            "DB Parameter Group {0} not found.".format(db_parameter_group_name),
+        )
 
 
 class OptionGroupNotFoundFaultError(RDSClientError):
-
     def __init__(self, option_group_name):
         super(OptionGroupNotFoundFaultError, self).__init__(
-            'OptionGroupNotFoundFault',
-            'Specified OptionGroupName: {0} not found.'.format(option_group_name)
+            "OptionGroupNotFoundFault",
+            "Specified OptionGroupName: {0} not found.".format(option_group_name),
         )
 
 
 class InvalidDBClusterStateFaultError(RDSClientError):
-
     def __init__(self, database_identifier):
         super(InvalidDBClusterStateFaultError, self).__init__(
-            'InvalidDBClusterStateFault',
-            'Invalid DB type, when trying to perform StopDBInstance on {0}e. See AWS RDS documentation on rds.stop_db_instance'.format(database_identifier))
+            "InvalidDBClusterStateFault",
+            "Invalid DB type, when trying to perform StopDBInstance on {0}e. See AWS RDS documentation on rds.stop_db_instance".format(
+                database_identifier
+            ),
+        )
 
 
 class InvalidDBInstanceStateError(RDSClientError):
-
     def __init__(self, database_identifier, istate):
-        estate = "in available state" if istate == 'stop' else "stopped, it cannot be started"
+        estate = (
+            "in available state"
+            if istate == "stop"
+            else "stopped, it cannot be started"
+        )
         super(InvalidDBInstanceStateError, self).__init__(
-            'InvalidDBInstanceState',
-            'Instance {} is not {}.'.format(database_identifier, estate))
+            "InvalidDBInstanceState",
+            "Instance {} is not {}.".format(database_identifier, estate),
+        )
 
 
 class SnapshotQuotaExceededError(RDSClientError):
-
     def __init__(self):
         super(SnapshotQuotaExceededError, self).__init__(
-            'SnapshotQuotaExceeded',
-            'The request cannot be processed because it would exceed the maximum number of snapshots.')
+            "SnapshotQuotaExceeded",
+            "The request cannot be processed because it would exceed the maximum number of snapshots.",
+        )
 
 
 class DBSnapshotAlreadyExistsError(RDSClientError):
-
     def __init__(self, database_snapshot_identifier):
         super(DBSnapshotAlreadyExistsError, self).__init__(
-            'DBSnapshotAlreadyExists',
-            'Cannot create the snapshot because a snapshot with the identifier {} already exists.'.format(database_snapshot_identifier))
+            "DBSnapshotAlreadyExists",
+            "Cannot create the snapshot because a snapshot with the identifier {} already exists.".format(
+                database_snapshot_identifier
+            ),
+        )

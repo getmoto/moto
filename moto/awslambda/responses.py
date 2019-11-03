@@ -32,57 +32,57 @@ class LambdaResponse(BaseResponse):
 
     def root(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'GET':
+        if request.method == "GET":
             return self._list_functions(request, full_url, headers)
-        elif request.method == 'POST':
+        elif request.method == "POST":
             return self._create_function(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
     def event_source_mappings(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'GET':
+        if request.method == "GET":
             querystring = self.querystring
-            event_source_arn = querystring.get('EventSourceArn', [None])[0]
-            function_name = querystring.get('FunctionName', [None])[0]
+            event_source_arn = querystring.get("EventSourceArn", [None])[0]
+            function_name = querystring.get("FunctionName", [None])[0]
             return self._list_event_source_mappings(event_source_arn, function_name)
-        elif request.method == 'POST':
+        elif request.method == "POST":
             return self._create_event_source_mapping(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
     def event_source_mapping(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        path = request.path if hasattr(request, 'path') else path_url(request.url)
-        uuid = path.split('/')[-1]
-        if request.method == 'GET':
+        path = request.path if hasattr(request, "path") else path_url(request.url)
+        uuid = path.split("/")[-1]
+        if request.method == "GET":
             return self._get_event_source_mapping(uuid)
-        elif request.method == 'PUT':
+        elif request.method == "PUT":
             return self._update_event_source_mapping(uuid)
-        elif request.method == 'DELETE':
+        elif request.method == "DELETE":
             return self._delete_event_source_mapping(uuid)
         else:
             raise ValueError("Cannot handle request")
 
     def function(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'GET':
+        if request.method == "GET":
             return self._get_function(request, full_url, headers)
-        elif request.method == 'DELETE':
+        elif request.method == "DELETE":
             return self._delete_function(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
 
     def versions(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'GET':
+        if request.method == "GET":
             # This is ListVersionByFunction
 
-            path = request.path if hasattr(request, 'path') else path_url(request.url)
-            function_name = path.split('/')[-2]
+            path = request.path if hasattr(request, "path") else path_url(request.url)
+            function_name = path.split("/")[-2]
             return self._list_versions_by_function(function_name)
 
-        elif request.method == 'POST':
+        elif request.method == "POST":
             return self._publish_function(request, full_url, headers)
         else:
             raise ValueError("Cannot handle request")
@@ -91,7 +91,7 @@ class LambdaResponse(BaseResponse):
     @amzn_request_id
     def invoke(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'POST':
+        if request.method == "POST":
             return self._invoke(request, full_url)
         else:
             raise ValueError("Cannot handle request")
@@ -100,46 +100,46 @@ class LambdaResponse(BaseResponse):
     @amzn_request_id
     def invoke_async(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'POST':
+        if request.method == "POST":
             return self._invoke_async(request, full_url)
         else:
             raise ValueError("Cannot handle request")
 
     def tag(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'GET':
+        if request.method == "GET":
             return self._list_tags(request, full_url)
-        elif request.method == 'POST':
+        elif request.method == "POST":
             return self._tag_resource(request, full_url)
-        elif request.method == 'DELETE':
+        elif request.method == "DELETE":
             return self._untag_resource(request, full_url)
         else:
             raise ValueError("Cannot handle {0} request".format(request.method))
 
     def policy(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'GET':
+        if request.method == "GET":
             return self._get_policy(request, full_url, headers)
-        if request.method == 'POST':
+        if request.method == "POST":
             return self._add_policy(request, full_url, headers)
 
     def configuration(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'PUT':
+        if request.method == "PUT":
             return self._put_configuration(request)
         else:
             raise ValueError("Cannot handle request")
 
     def code(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
-        if request.method == 'PUT':
+        if request.method == "PUT":
             return self._put_code()
         else:
             raise ValueError("Cannot handle request")
 
     def _add_policy(self, request, full_url, headers):
-        path = request.path if hasattr(request, 'path') else path_url(request.url)
-        function_name = path.split('/')[-2]
+        path = request.path if hasattr(request, "path") else path_url(request.url)
+        function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
             policy = self.body
             self.lambda_backend.add_policy(function_name, policy)
@@ -148,24 +148,30 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _get_policy(self, request, full_url, headers):
-        path = request.path if hasattr(request, 'path') else path_url(request.url)
-        function_name = path.split('/')[-2]
+        path = request.path if hasattr(request, "path") else path_url(request.url)
+        function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
             lambda_function = self.lambda_backend.get_function(function_name)
-            return 200, {}, json.dumps(dict(Policy="{\"Statement\":[" + lambda_function.policy + "]}"))
+            return (
+                200,
+                {},
+                json.dumps(
+                    dict(Policy='{"Statement":[' + lambda_function.policy + "]}")
+                ),
+            )
         else:
             return 404, {}, "{}"
 
     def _invoke(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit('/', 2)[-2]
-        qualifier = self._get_param('qualifier')
+        function_name = self.path.rsplit("/", 2)[-2]
+        qualifier = self._get_param("qualifier")
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
         if fn:
             payload = fn.invoke(self.body, self.headers, response_headers)
-            response_headers['Content-Length'] = str(len(payload))
+            response_headers["Content-Length"] = str(len(payload))
             return 202, response_headers, payload
         else:
             return 404, response_headers, "{}"
@@ -173,38 +179,34 @@ class LambdaResponse(BaseResponse):
     def _invoke_async(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit('/', 3)[-3]
+        function_name = self.path.rsplit("/", 3)[-3]
 
         fn = self.lambda_backend.get_function(function_name, None)
         if fn:
             payload = fn.invoke(self.body, self.headers, response_headers)
-            response_headers['Content-Length'] = str(len(payload))
+            response_headers["Content-Length"] = str(len(payload))
             return 202, response_headers, payload
         else:
             return 404, response_headers, "{}"
 
     def _list_functions(self, request, full_url, headers):
-        result = {
-            'Functions': []
-        }
+        result = {"Functions": []}
 
         for fn in self.lambda_backend.list_functions():
             json_data = fn.get_configuration()
-            json_data['Version'] = '$LATEST'
-            result['Functions'].append(json_data)
+            json_data["Version"] = "$LATEST"
+            result["Functions"].append(json_data)
 
         return 200, {}, json.dumps(result)
 
     def _list_versions_by_function(self, function_name):
-        result = {
-            'Versions': []
-        }
+        result = {"Versions": []}
 
         functions = self.lambda_backend.list_versions_by_function(function_name)
         if functions:
             for fn in functions:
                 json_data = fn.get_configuration()
-                result['Versions'].append(json_data)
+                result["Versions"].append(json_data)
 
         return 200, {}, json.dumps(result)
 
@@ -212,7 +214,11 @@ class LambdaResponse(BaseResponse):
         try:
             fn = self.lambda_backend.create_function(self.json_body)
         except ValueError as e:
-            return 400, {}, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
+            return (
+                400,
+                {},
+                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
+            )
         else:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)
@@ -221,16 +227,20 @@ class LambdaResponse(BaseResponse):
         try:
             fn = self.lambda_backend.create_event_source_mapping(self.json_body)
         except ValueError as e:
-            return 400, {}, json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}})
+            return (
+                400,
+                {},
+                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
+            )
         else:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)
 
     def _list_event_source_mappings(self, event_source_arn, function_name):
-        esms = self.lambda_backend.list_event_source_mappings(event_source_arn, function_name)
-        result = {
-            'EventSourceMappings': [esm.get_configuration() for esm in esms]
-        }
+        esms = self.lambda_backend.list_event_source_mappings(
+            event_source_arn, function_name
+        )
+        result = {"EventSourceMappings": [esm.get_configuration() for esm in esms]}
         return 200, {}, json.dumps(result)
 
     def _get_event_source_mapping(self, uuid):
@@ -251,13 +261,13 @@ class LambdaResponse(BaseResponse):
         esm = self.lambda_backend.delete_event_source_mapping(uuid)
         if esm:
             json_result = esm.get_configuration()
-            json_result.update({'State': 'Deleting'})
+            json_result.update({"State": "Deleting"})
             return 202, {}, json.dumps(json_result)
         else:
             return 404, {}, "{}"
 
     def _publish_function(self, request, full_url, headers):
-        function_name = self.path.rsplit('/', 2)[-2]
+        function_name = self.path.rsplit("/", 2)[-2]
 
         fn = self.lambda_backend.publish_function(function_name)
         if fn:
@@ -267,8 +277,8 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _delete_function(self, request, full_url, headers):
-        function_name = unquote(self.path.rsplit('/', 1)[-1])
-        qualifier = self._get_param('Qualifier', None)
+        function_name = unquote(self.path.rsplit("/", 1)[-1])
+        qualifier = self._get_param("Qualifier", None)
 
         if self.lambda_backend.delete_function(function_name, qualifier):
             return 204, {}, ""
@@ -276,17 +286,17 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _get_function(self, request, full_url, headers):
-        function_name = self.path.rsplit('/', 1)[-1]
-        qualifier = self._get_param('Qualifier', None)
+        function_name = self.path.rsplit("/", 1)[-1]
+        qualifier = self._get_param("Qualifier", None)
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
         if fn:
             code = fn.get_code()
-            if qualifier is None or qualifier == '$LATEST':
-                code['Configuration']['Version'] = '$LATEST'
-            if qualifier == '$LATEST':
-                code['Configuration']['FunctionArn'] += ':$LATEST'
+            if qualifier is None or qualifier == "$LATEST":
+                code["Configuration"]["Version"] = "$LATEST"
+            if qualifier == "$LATEST":
+                code["Configuration"]["FunctionArn"] += ":$LATEST"
             return 200, {}, json.dumps(code)
         else:
             return 404, {}, "{}"
@@ -299,25 +309,25 @@ class LambdaResponse(BaseResponse):
             return self.default_region
 
     def _list_tags(self, request, full_url):
-        function_arn = unquote(self.path.rsplit('/', 1)[-1])
+        function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
         fn = self.lambda_backend.get_function_by_arn(function_arn)
         if fn:
-            return 200, {}, json.dumps({'Tags': fn.tags})
+            return 200, {}, json.dumps({"Tags": fn.tags})
         else:
             return 404, {}, "{}"
 
     def _tag_resource(self, request, full_url):
-        function_arn = unquote(self.path.rsplit('/', 1)[-1])
+        function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
-        if self.lambda_backend.tag_resource(function_arn, self.json_body['Tags']):
+        if self.lambda_backend.tag_resource(function_arn, self.json_body["Tags"]):
             return 200, {}, "{}"
         else:
             return 404, {}, "{}"
 
     def _untag_resource(self, request, full_url):
-        function_arn = unquote(self.path.rsplit('/', 1)[-1])
-        tag_keys = self.querystring['tagKeys']
+        function_arn = unquote(self.path.rsplit("/", 1)[-1])
+        tag_keys = self.querystring["tagKeys"]
 
         if self.lambda_backend.untag_resource(function_arn, tag_keys):
             return 204, {}, "{}"
@@ -325,8 +335,8 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _put_configuration(self, request):
-        function_name = self.path.rsplit('/', 2)[-2]
-        qualifier = self._get_param('Qualifier', None)
+        function_name = self.path.rsplit("/", 2)[-2]
+        qualifier = self._get_param("Qualifier", None)
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
@@ -337,13 +347,13 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _put_code(self):
-        function_name = self.path.rsplit('/', 2)[-2]
-        qualifier = self._get_param('Qualifier', None)
+        function_name = self.path.rsplit("/", 2)[-2]
+        qualifier = self._get_param("Qualifier", None)
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
 
         if fn:
-            if self.json_body.get('Publish', False):
+            if self.json_body.get("Publish", False):
                 fn = self.lambda_backend.publish_function(function_name)
 
             config = fn.update_function_code(self.json_body)

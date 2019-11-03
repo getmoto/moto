@@ -4,64 +4,61 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class SpotInstances(BaseResponse):
-
     def cancel_spot_instance_requests(self):
-        request_ids = self._get_multi_param('SpotInstanceRequestId')
-        if self.is_not_dryrun('CancelSpotInstance'):
-            requests = self.ec2_backend.cancel_spot_instance_requests(
-                request_ids)
+        request_ids = self._get_multi_param("SpotInstanceRequestId")
+        if self.is_not_dryrun("CancelSpotInstance"):
+            requests = self.ec2_backend.cancel_spot_instance_requests(request_ids)
             template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
             return template.render(requests=requests)
 
     def create_spot_datafeed_subscription(self):
-        if self.is_not_dryrun('CreateSpotDatafeedSubscription'):
+        if self.is_not_dryrun("CreateSpotDatafeedSubscription"):
             raise NotImplementedError(
-                'SpotInstances.create_spot_datafeed_subscription is not yet implemented')
+                "SpotInstances.create_spot_datafeed_subscription is not yet implemented"
+            )
 
     def delete_spot_datafeed_subscription(self):
-        if self.is_not_dryrun('DeleteSpotDatafeedSubscription'):
+        if self.is_not_dryrun("DeleteSpotDatafeedSubscription"):
             raise NotImplementedError(
-                'SpotInstances.delete_spot_datafeed_subscription is not yet implemented')
+                "SpotInstances.delete_spot_datafeed_subscription is not yet implemented"
+            )
 
     def describe_spot_datafeed_subscription(self):
         raise NotImplementedError(
-            'SpotInstances.describe_spot_datafeed_subscription is not yet implemented')
+            "SpotInstances.describe_spot_datafeed_subscription is not yet implemented"
+        )
 
     def describe_spot_instance_requests(self):
         filters = filters_from_querystring(self.querystring)
-        requests = self.ec2_backend.describe_spot_instance_requests(
-            filters=filters)
+        requests = self.ec2_backend.describe_spot_instance_requests(filters=filters)
         template = self.response_template(DESCRIBE_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
     def describe_spot_price_history(self):
         raise NotImplementedError(
-            'SpotInstances.describe_spot_price_history is not yet implemented')
+            "SpotInstances.describe_spot_price_history is not yet implemented"
+        )
 
     def request_spot_instances(self):
-        price = self._get_param('SpotPrice')
-        image_id = self._get_param('LaunchSpecification.ImageId')
-        count = self._get_int_param('InstanceCount', 1)
-        type = self._get_param('Type', 'one-time')
-        valid_from = self._get_param('ValidFrom')
-        valid_until = self._get_param('ValidUntil')
-        launch_group = self._get_param('LaunchGroup')
-        availability_zone_group = self._get_param('AvailabilityZoneGroup')
-        key_name = self._get_param('LaunchSpecification.KeyName')
-        security_groups = self._get_multi_param(
-            'LaunchSpecification.SecurityGroup')
-        user_data = self._get_param('LaunchSpecification.UserData')
-        instance_type = self._get_param(
-            'LaunchSpecification.InstanceType', 'm1.small')
-        placement = self._get_param(
-            'LaunchSpecification.Placement.AvailabilityZone')
-        kernel_id = self._get_param('LaunchSpecification.KernelId')
-        ramdisk_id = self._get_param('LaunchSpecification.RamdiskId')
-        monitoring_enabled = self._get_param(
-            'LaunchSpecification.Monitoring.Enabled')
-        subnet_id = self._get_param('LaunchSpecification.SubnetId')
+        price = self._get_param("SpotPrice")
+        image_id = self._get_param("LaunchSpecification.ImageId")
+        count = self._get_int_param("InstanceCount", 1)
+        type = self._get_param("Type", "one-time")
+        valid_from = self._get_param("ValidFrom")
+        valid_until = self._get_param("ValidUntil")
+        launch_group = self._get_param("LaunchGroup")
+        availability_zone_group = self._get_param("AvailabilityZoneGroup")
+        key_name = self._get_param("LaunchSpecification.KeyName")
+        security_groups = self._get_multi_param("LaunchSpecification.SecurityGroup")
+        user_data = self._get_param("LaunchSpecification.UserData")
+        instance_type = self._get_param("LaunchSpecification.InstanceType", "m1.small")
+        placement = self._get_param("LaunchSpecification.Placement.AvailabilityZone")
+        kernel_id = self._get_param("LaunchSpecification.KernelId")
+        ramdisk_id = self._get_param("LaunchSpecification.RamdiskId")
+        monitoring_enabled = self._get_param("LaunchSpecification.Monitoring.Enabled")
+        subnet_id = self._get_param("LaunchSpecification.SubnetId")
 
-        if self.is_not_dryrun('RequestSpotInstance'):
+        if self.is_not_dryrun("RequestSpotInstance"):
             requests = self.ec2_backend.request_spot_instances(
                 price=price,
                 image_id=image_id,

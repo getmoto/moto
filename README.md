@@ -7,9 +7,9 @@
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 ![PyPI](https://img.shields.io/pypi/v/moto.svg)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
-![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)
+![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-# In a nutshell
+## In a nutshell
 
 Moto is a library that allows your tests to easily mock out AWS Services.
 
