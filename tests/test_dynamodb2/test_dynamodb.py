@@ -691,8 +691,8 @@ def test_basic_projection_expressions_using_scan():
     results = table.scan(FilterExpression=Key('forum_name').eq('the-key'),
                          ProjectionExpression='body')['Items']
 
-    results.should.equal([{u'body': u'yet another test message'},
-                          {u'body': u'some test message'}])
+    assert {u'body': u'some test message'} in results
+    assert {u'body': u'yet another test message'} in results
 
     # The projection expression should not remove data from storage
     results = table.query(KeyConditionExpression=Key('forum_name').eq('the-key'))
