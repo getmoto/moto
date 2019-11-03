@@ -238,23 +238,38 @@ class EventsHandler(BaseResponse):
         pass
 
     def put_permission(self):
+        event_bus_name = self._get_param("EventBusName")
         action = self._get_param("Action")
         principal = self._get_param("Principal")
         statement_id = self._get_param("StatementId")
 
-        self.events_backend.put_permission(action, principal, statement_id)
+        self.events_backend.put_permission(
+            event_bus_name, action, principal, statement_id
+        )
 
         return ""
 
     def remove_permission(self):
+        event_bus_name = self._get_param("EventBusName")
         statement_id = self._get_param("StatementId")
 
-        self.events_backend.remove_permission(statement_id)
+        self.events_backend.remove_permission(event_bus_name, statement_id)
 
         return ""
 
     def describe_event_bus(self):
-        return json.dumps(self.events_backend.describe_event_bus())
+        name = self._get_param("Name")
+
+        event_bus = self.events_backend.describe_event_bus(name)
+        response = {
+            "Name": event_bus.name,
+            "Arn": event_bus.arn,
+        }
+
+        if event_bus.policy:
+            response["Policy"] = event_bus.policy
+
+        return json.dumps(response), self.response_headers
 
     def create_event_bus(self):
         name = self._get_param("Name")

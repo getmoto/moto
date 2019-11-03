@@ -206,6 +206,53 @@ def test_permissions():
 
 
 @mock_events
+def test_put_permission_errors():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    client.put_permission.when.called_with(
+        EventBusName="non-existing",
+        Action="events:PutEvents",
+        Principal="762054135200",
+        StatementId="test",
+    ).should.throw(ClientError, "Event bus non-existing does not exist.")
+
+    client.put_permission.when.called_with(
+        EventBusName="test-bus",
+        Action="events:PutPermission",
+        Principal="762054135200",
+        StatementId="test",
+    ).should.throw(
+        ClientError, "Provided value in parameter 'action' is not supported."
+    )
+
+
+@mock_events
+def test_remove_permission_errors():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    client.remove_permission.when.called_with(
+        EventBusName="non-existing", StatementId="test"
+    ).should.throw(ClientError, "Event bus non-existing does not exist.")
+
+    client.remove_permission.when.called_with(
+        EventBusName="test-bus", StatementId="test"
+    ).should.throw(ClientError, "EventBus does not have a policy.")
+
+    client.put_permission(
+        EventBusName="test-bus",
+        Action="events:PutEvents",
+        Principal="762054135200",
+        StatementId="test",
+    )
+
+    client.remove_permission.when.called_with(
+        EventBusName="test-bus", StatementId="non-existing"
+    ).should.throw(ClientError, "Statement with the provided id does not exist.")
+
+
+@mock_events
 def test_put_events():
     client = boto3.client("events", "eu-central-1")
 
@@ -256,4 +303,55 @@ def test_create_event_bus_errors():
         Name="aws.partner/test/test-bus", EventSourceName="aws.partner/test/test-bus"
     ).should.throw(
         ClientError, "Event source aws.partner/test/test-bus does not exist."
+    )
+
+
+@mock_events
+def test_describe_event_bus():
+    client = boto3.client("events", "us-east-1")
+
+    response = client.describe_event_bus()
+
+    response["Name"].should.equal("default")
+    response["Arn"].should.equal(
+        "arn:aws:events:us-east-1:123456789012:event-bus/default"
+    )
+    response.should_not.have.key("Policy")
+
+    client.create_event_bus(Name="test-bus")
+    client.put_permission(
+        EventBusName="test-bus",
+        Action="events:PutEvents",
+        Principal="762054135200",
+        StatementId="test",
+    )
+
+    response = client.describe_event_bus(Name="test-bus")
+
+    response["Name"].should.equal("test-bus")
+    response["Arn"].should.equal(
+        "arn:aws:events:us-east-1:123456789012:event-bus/test-bus"
+    )
+    json.loads(response["Policy"]).should.equal(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "test",
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::762054135200:root"},
+                    "Action": "events:PutEvents",
+                    "Resource": "arn:aws:events:us-east-1:123456789012:event-bus/test-bus",
+                }
+            ],
+        }
+    )
+
+
+@mock_events
+def test_describe_event_bus_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.describe_event_bus.when.called_with(Name="non-existing").should.throw(
+        ClientError, "Event bus non-existing does not exist."
     )
