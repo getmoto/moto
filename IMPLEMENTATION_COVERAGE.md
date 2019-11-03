@@ -2713,7 +2713,7 @@
 - [ ] upgrade_elasticsearch_domain
 
 ## events
-51% implemented
+54% implemented
 - [ ] activate_event_source
 - [X] create_event_bus
 - [ ] create_partner_event_source
@@ -2727,7 +2727,7 @@
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
-- [ ] list_event_buses
+- [X] list_event_buses
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
 - [ ] list_partner_event_sources

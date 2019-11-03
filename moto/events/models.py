@@ -344,6 +344,16 @@ class EventsBackend(BaseBackend):
 
         return self.event_buses[name]
 
+    def list_event_buses(self, name_prefix):
+        if name_prefix:
+            return [
+                event_bus
+                for event_bus in self.event_buses.values()
+                if event_bus.name.startswith(name_prefix)
+            ]
+
+        return list(self.event_buses.values())
+
 
 available_regions = boto3.session.Session().get_available_regions("events")
 events_backends = {region: EventsBackend(region) for region in available_regions}
