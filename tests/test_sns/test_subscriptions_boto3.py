@@ -19,7 +19,10 @@ def test_subscribe_sms():
     arn = resp["TopicArn"]
 
     resp = client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="+15551234567")
-    resp.should.contain("SubscriptionArn")
+    resp.should.have.key("SubscriptionArn")
+
+    resp = client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="+15/55-123.4567")
+    resp.should.have.key("SubscriptionArn")
 
 
 @mock_sns
@@ -50,6 +53,18 @@ def test_subscribe_bad_sms():
         client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="NAA+15551234567")
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameter")
+
+    client.subscribe.when.called_with(
+        TopicArn=arn, Protocol="sms", Endpoint="+15--551234567"
+    ).should.throw(ClientError, "Invalid SMS endpoint: +15--551234567")
+
+    client.subscribe.when.called_with(
+        TopicArn=arn, Protocol="sms", Endpoint="+15551234567."
+    ).should.throw(ClientError, "Invalid SMS endpoint: +15551234567.")
+
+    client.subscribe.when.called_with(
+        TopicArn=arn, Protocol="sms", Endpoint="/+15551234567"
+    ).should.throw(ClientError, "Invalid SMS endpoint: /+15551234567")
 
 
 @mock_sns
