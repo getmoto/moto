@@ -825,7 +825,9 @@ class LambdaBackend(BaseBackend):
         return self._lambdas.publish_function(function_name)
 
     def get_function(self, function_name_or_arn, qualifier=None):
-        return self._lambdas.get_function_by_name_or_arn(function_name_or_arn, qualifier)
+        return self._lambdas.get_function_by_name_or_arn(
+            function_name_or_arn, qualifier
+        )
 
     def list_versions_by_function(self, function_name):
         return self._lambdas.list_versions_by_function(function_name)
