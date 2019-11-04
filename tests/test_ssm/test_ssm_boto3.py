@@ -813,6 +813,7 @@ def test_put_parameter_secure_custom_kms():
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("SecureString")
 
+
 @mock_ssm
 def test_get_parameter_history():
     client = boto3.client("ssm", region_name="us-east-1")
@@ -821,21 +822,25 @@ def test_get_parameter_history():
 
     for i in range(3):
         client.put_parameter(
-            Name=test_parameter_name, Description="A test parameter version %d" % i, Value="value-%d" % i, Type="String",
-            Overwrite=True
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="String",
+            Overwrite=True,
         )
 
     response = client.get_parameter_history(Name=test_parameter_name)
-    parameters_response = response['Parameters']
+    parameters_response = response["Parameters"]
 
     for index, param in enumerate(parameters_response):
-        param['Name'].should.equal(test_parameter_name)
-        param['Type'].should.equal('String')
-        param['Value'].should.equal('value-%d' % index)
-        param['Version'].should.equal(index + 1)
-        param['Description'].should.equal("A test parameter version %d" % index)
+        param["Name"].should.equal(test_parameter_name)
+        param["Type"].should.equal("String")
+        param["Value"].should.equal("value-%d" % index)
+        param["Version"].should.equal(index + 1)
+        param["Description"].should.equal("A test parameter version %d" % index)
 
     len(parameters_response).should.equal(3)
+
 
 @mock_ssm
 def test_get_parameter_history_with_secure_string():
@@ -845,27 +850,33 @@ def test_get_parameter_history_with_secure_string():
 
     for i in range(3):
         client.put_parameter(
-            Name=test_parameter_name, Description="A test parameter version %d" % i, Value="value-%d" % i, Type="SecureString",
-            Overwrite=True
+            Name=test_parameter_name,
+            Description="A test parameter version %d" % i,
+            Value="value-%d" % i,
+            Type="SecureString",
+            Overwrite=True,
         )
 
     for with_decryption in [True, False]:
-        response = client.get_parameter_history(Name=test_parameter_name, WithDecryption=with_decryption)
-        parameters_response = response['Parameters']
+        response = client.get_parameter_history(
+            Name=test_parameter_name, WithDecryption=with_decryption
+        )
+        parameters_response = response["Parameters"]
 
         for index, param in enumerate(parameters_response):
-            param['Name'].should.equal(test_parameter_name)
-            param['Type'].should.equal('SecureString')
-            expected_plaintext_value = 'value-%d' % index
+            param["Name"].should.equal(test_parameter_name)
+            param["Type"].should.equal("SecureString")
+            expected_plaintext_value = "value-%d" % index
             if with_decryption:
-                param['Value'].should.equal(expected_plaintext_value)
+                param["Value"].should.equal(expected_plaintext_value)
             else:
-                param['Value'].should.equal('kms:alias/aws/ssm:%s' % expected_plaintext_value)
-            param['Version'].should.equal(index + 1)
-            param['Description'].should.equal("A test parameter version %d" % index)
+                param["Value"].should.equal(
+                    "kms:alias/aws/ssm:%s" % expected_plaintext_value
+                )
+            param["Version"].should.equal(index + 1)
+            param["Description"].should.equal("A test parameter version %d" % index)
 
         len(parameters_response).should.equal(3)
-
 
 
 @mock_ssm

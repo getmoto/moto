@@ -521,7 +521,9 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
             if "/" in param_name[len(path) + 1 :] and not recursive:
                 continue
-            if not self._match_filters(self.get_parameter(param_name, with_decryption), filters):
+            if not self._match_filters(
+                self.get_parameter(param_name, with_decryption), filters
+            ):
                 continue
             result.append(self.get_parameter(param_name, with_decryption))
 
@@ -605,16 +607,18 @@ class SimpleSystemManagerBackend(BaseBackend):
                 return
 
         last_modified_date = time.time()
-        self._parameters[name].append(Parameter(
-            name,
-            value,
-            type,
-            description,
-            allowed_pattern,
-            keyid,
-            last_modified_date,
-            version,
-        ))
+        self._parameters[name].append(
+            Parameter(
+                name,
+                value,
+                type,
+                description,
+                allowed_pattern,
+                keyid,
+                last_modified_date,
+                version,
+            )
+        )
         return version
 
     def add_tags_to_resource(self, resource_type, resource_id, tags):
