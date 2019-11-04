@@ -296,3 +296,10 @@ class EventsHandler(BaseResponse):
             response.append(event_bus_response)
 
         return json.dumps({"EventBuses": response}), self.response_headers
+
+    def delete_event_bus(self):
+        name = self._get_param("Name")
+
+        self.events_backend.delete_event_bus(name)
+
+        return "", self.response_headers
