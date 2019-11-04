@@ -814,7 +814,7 @@ def test_put_integration_response_requires_responseTemplate():
     # Works fine if responseTemplate is defined
     client.put_integration_response(
         restApiId=api_id,
-        resourceId=resource["id"],
+        resourceId=root_id,
         httpMethod="GET",
         statusCode="200",
         responseTemplates={},
@@ -1018,15 +1018,15 @@ def test_delete_stage():
         variables={"env": "dev"},
     )
     stages = client.get_stages(restApiId=api_id)["item"]
-    [stage["stageName"] for stage in stages].should.equal(
-        [new_stage_name, new_stage_name_with_vars, stage_name]
+    sorted([stage["stageName"] for stage in stages]).should.equal(
+        sorted([new_stage_name, new_stage_name_with_vars, stage_name])
     )
     # delete stage
     response = client.delete_stage(restApiId=api_id, stageName=new_stage_name_with_vars)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
     # verify other stage still exists
     stages = client.get_stages(restApiId=api_id)["item"]
-    [stage["stageName"] for stage in stages].should.equal([new_stage_name, stage_name])
+    sorted([stage["stageName"] for stage in stages]).should.equal(sorted([new_stage_name, stage_name]))
 
 
 @mock_apigateway
