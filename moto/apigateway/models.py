@@ -8,7 +8,10 @@ import requests
 import time
 
 from boto3.session import Session
-from urlparse import urlparse
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 import responses
 from moto.core import BaseBackend, BaseModel
 from .utils import create_id
@@ -728,16 +731,15 @@ class APIGatewayBackend(BaseBackend):
             stage_variables = {}
         api = self.get_rest_api(function_id)
         methods = [
-            res.resource_methods.values()[0] for res in self.list_resources(function_id)
-        ]
+            list(res.resource_methods.values()) for res in self.list_resources(function_id)
+        ][0]
         if not any(methods):
             raise NoMethodDefined()
         method_integrations = [
-            method["methodIntegration"]
+            method["methodIntegration"] if "methodIntegration" in method else None
             for method in methods
-            if "methodIntegration" in method
         ]
-        if not all(method_integrations):
+        if not any(method_integrations):
             raise NoIntegrationDefined()
         deployment = api.create_deployment(name, description, stage_variables)
         return deployment
