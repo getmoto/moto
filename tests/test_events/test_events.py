@@ -283,7 +283,7 @@ def test_create_event_bus():
 @mock_events
 def test_create_event_bus_errors():
     client = boto3.client("events", "us-east-1")
-    response = client.create_event_bus(Name="test-bus")
+    client.create_event_bus(Name="test-bus")
 
     client.create_event_bus.when.called_with(Name="test-bus").should.throw(
         ClientError, "Event bus test-bus already exists."
@@ -414,4 +414,38 @@ def test_list_event_buses():
                 "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/other-bus-2",
             },
         ]
+    )
+
+
+@mock_events
+def test_delete_event_bus():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    response = client.list_event_buses()
+    response["EventBuses"].should.have.length_of(2)
+
+    client.delete_event_bus(Name="test-bus")
+
+    response = client.list_event_buses()
+    response["EventBuses"].should.have.length_of(1)
+    response["EventBuses"].should.equal(
+        [
+            {
+                "Name": "default",
+                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/default",
+            }
+        ]
+    )
+
+    # deleting non existing event bus should be successful
+    client.delete_event_bus(Name="non-existing")
+
+
+@mock_events
+def test_delete_event_bus_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.delete_event_bus.when.called_with(Name="default").should.throw(
+        ClientError, "Cannot delete event bus default."
     )

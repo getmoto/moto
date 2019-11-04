@@ -354,6 +354,14 @@ class EventsBackend(BaseBackend):
 
         return list(self.event_buses.values())
 
+    def delete_event_bus(self, name):
+        if name == "default":
+            raise JsonRESTError(
+                "ValidationException", "Cannot delete event bus default."
+            )
+
+        self.event_buses.pop(name, None)
+
 
 available_regions = boto3.session.Session().get_available_regions("events")
 events_backends = {region: EventsBackend(region) for region in available_regions}
