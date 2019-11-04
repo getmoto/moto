@@ -6,16 +6,16 @@ from six import PY3
 
 
 class TestSocketPair(unittest.TestCase):
-
     @mock_dynamodb2_deprecated
     def test_asyncio_deprecated(self):
         if PY3:
             self.assertIn(
-                'moto.packages.httpretty.core.fakesock.socket',
+                "moto.packages.httpretty.core.fakesock.socket",
                 str(socket.socket),
-                'Our mock should be present'
+                "Our mock should be present",
             )
             import asyncio
+
             self.assertIsNotNone(asyncio.get_event_loop())
 
     @mock_dynamodb2_deprecated
@@ -24,9 +24,9 @@ class TestSocketPair(unittest.TestCase):
         # In Python2, the fakesocket is not set, for some reason.
         if PY3:
             self.assertIn(
-                'moto.packages.httpretty.core.fakesock.socket',
+                "moto.packages.httpretty.core.fakesock.socket",
                 str(socket.socket),
-                'Our mock should be present'
+                "Our mock should be present",
             )
         a, b = socket.socketpair()
         self.assertIsNotNone(a)
@@ -35,7 +35,6 @@ class TestSocketPair(unittest.TestCase):
             a.close()
         if b:
             b.close()
-
 
     @mock_dynamodb2
     def test_socket_pair(self):

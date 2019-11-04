@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import re
 import uuid
 
-E164_REGEX = re.compile(r'^\+?[1-9]\d{1,14}$')
+E164_REGEX = re.compile(r"^\+?[1-9]\d{1,14}$")
 
 
 def make_arn_for_topic(account_id, name, region_name):

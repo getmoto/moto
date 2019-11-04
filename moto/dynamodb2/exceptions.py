@@ -7,4 +7,4 @@ class InvalidUpdateExpression(ValueError):
 
 
 class ItemSizeTooLarge(Exception):
-    message = 'Item size has exceeded the maximum allowed size'
+    message = "Item size has exceeded the maximum allowed size"

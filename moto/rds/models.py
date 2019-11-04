@@ -11,33 +11,34 @@ from moto.rds2.models import rds2_backends
 
 
 class Database(BaseModel):
-
     def get_cfn_attribute(self, attribute_name):
-        if attribute_name == 'Endpoint.Address':
+        if attribute_name == "Endpoint.Address":
             return self.address
-        elif attribute_name == 'Endpoint.Port':
+        elif attribute_name == "Endpoint.Port":
             return self.port
         raise UnformattedGetAttTemplateException()
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get('DBInstanceIdentifier')
+        db_instance_identifier = properties.get("DBInstanceIdentifier")
         if not db_instance_identifier:
             db_instance_identifier = resource_name.lower() + get_random_hex(12)
-        db_security_groups = properties.get('DBSecurityGroups')
+        db_security_groups = properties.get("DBSecurityGroups")
         if not db_security_groups:
             db_security_groups = []
         security_groups = [group.group_name for group in db_security_groups]
         db_subnet_group = properties.get("DBSubnetGroupName")
         db_subnet_group_name = db_subnet_group.subnet_name if db_subnet_group else None
         db_kwargs = {
-            "auto_minor_version_upgrade": properties.get('AutoMinorVersionUpgrade'),
-            "allocated_storage": properties.get('AllocatedStorage'),
+            "auto_minor_version_upgrade": properties.get("AutoMinorVersionUpgrade"),
+            "allocated_storage": properties.get("AllocatedStorage"),
             "availability_zone": properties.get("AvailabilityZone"),
             "backup_retention_period": properties.get("BackupRetentionPeriod"),
-            "db_instance_class": properties.get('DBInstanceClass'),
+            "db_instance_class": properties.get("DBInstanceClass"),
             "db_instance_identifier": db_instance_identifier,
             "db_name": properties.get("DBName"),
             "db_subnet_group_name": db_subnet_group_name,
@@ -45,10 +46,10 @@ class Database(BaseModel):
             "engine_version": properties.get("EngineVersion"),
             "iops": properties.get("Iops"),
             "kms_key_id": properties.get("KmsKeyId"),
-            "master_password": properties.get('MasterUserPassword'),
-            "master_username": properties.get('MasterUsername'),
+            "master_password": properties.get("MasterUserPassword"),
+            "master_username": properties.get("MasterUsername"),
             "multi_az": properties.get("MultiAZ"),
-            "port": properties.get('Port', 3306),
+            "port": properties.get("Port", 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
             "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
             "region": region_name,
@@ -69,7 +70,8 @@ class Database(BaseModel):
         return database
 
     def to_xml(self):
-        template = Template("""<DBInstance>
+        template = Template(
+            """<DBInstance>
               <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
               <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
               <MultiAZ>{{ database.multi_az }}</MultiAZ>
@@ -152,7 +154,8 @@ class Database(BaseModel):
                 <Port>{{ database.port }}</Port>
               </Endpoint>
               <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
-            </DBInstance>""")
+            </DBInstance>"""
+        )
         return template.render(database=self)
 
     def delete(self, region_name):
@@ -161,7 +164,6 @@ class Database(BaseModel):
 
 
 class SecurityGroup(BaseModel):
-
     def __init__(self, group_name, description):
         self.group_name = group_name
         self.description = description
@@ -170,7 +172,8 @@ class SecurityGroup(BaseModel):
         self.ec2_security_groups = []
 
     def to_xml(self):
-        template = Template("""<DBSecurityGroup>
+        template = Template(
+            """<DBSecurityGroup>
             <EC2SecurityGroups>
             {% for security_group in security_group.ec2_security_groups %}
                 <EC2SecurityGroup>
@@ -193,7 +196,8 @@ class SecurityGroup(BaseModel):
             </IPRanges>
             <OwnerId>{{ security_group.ownder_id }}</OwnerId>
             <DBSecurityGroupName>{{ security_group.group_name }}</DBSecurityGroupName>
-        </DBSecurityGroup>""")
+        </DBSecurityGroup>"""
+        )
         return template.render(security_group=self)
 
     def authorize_cidr(self, cidr_ip):
@@ -203,20 +207,19 @@ class SecurityGroup(BaseModel):
         self.ec2_security_groups.append(security_group)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
         group_name = resource_name.lower() + get_random_hex(12)
-        description = properties['GroupDescription']
-        security_group_ingress_rules = properties.get(
-            'DBSecurityGroupIngress', [])
-        tags = properties.get('Tags')
+        description = properties["GroupDescription"]
+        security_group_ingress_rules = properties.get("DBSecurityGroupIngress", [])
+        tags = properties.get("Tags")
 
         ec2_backend = ec2_backends[region_name]
         rds_backend = rds_backends[region_name]
         security_group = rds_backend.create_security_group(
-            group_name,
-            description,
-            tags,
+            group_name, description, tags
         )
 
         for security_group_ingress in security_group_ingress_rules:
@@ -224,12 +227,10 @@ class SecurityGroup(BaseModel):
                 if ingress_type == "CIDRIP":
                     security_group.authorize_cidr(ingress_value)
                 elif ingress_type == "EC2SecurityGroupName":
-                    subnet = ec2_backend.get_security_group_from_name(
-                        ingress_value)
+                    subnet = ec2_backend.get_security_group_from_name(ingress_value)
                     security_group.authorize_security_group(subnet)
                 elif ingress_type == "EC2SecurityGroupId":
-                    subnet = ec2_backend.get_security_group_from_id(
-                        ingress_value)
+                    subnet = ec2_backend.get_security_group_from_id(ingress_value)
                     security_group.authorize_security_group(subnet)
         return security_group
 
@@ -239,7 +240,6 @@ class SecurityGroup(BaseModel):
 
 
 class SubnetGroup(BaseModel):
-
     def __init__(self, subnet_name, description, subnets):
         self.subnet_name = subnet_name
         self.description = description
@@ -249,7 +249,8 @@ class SubnetGroup(BaseModel):
         self.vpc_id = self.subnets[0].vpc_id
 
     def to_xml(self):
-        template = Template("""<DBSubnetGroup>
+        template = Template(
+            """<DBSubnetGroup>
               <VpcId>{{ subnet_group.vpc_id }}</VpcId>
               <SubnetGroupStatus>{{ subnet_group.status }}</SubnetGroupStatus>
               <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
@@ -266,27 +267,26 @@ class SubnetGroup(BaseModel):
                 </Subnet>
                 {% endfor %}
               </Subnets>
-            </DBSubnetGroup>""")
+            </DBSubnetGroup>"""
+        )
         return template.render(subnet_group=self)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
         subnet_name = resource_name.lower() + get_random_hex(12)
-        description = properties['DBSubnetGroupDescription']
-        subnet_ids = properties['SubnetIds']
-        tags = properties.get('Tags')
+        description = properties["DBSubnetGroupDescription"]
+        subnet_ids = properties["SubnetIds"]
+        tags = properties.get("Tags")
 
         ec2_backend = ec2_backends[region_name]
-        subnets = [ec2_backend.get_subnet(subnet_id)
-                   for subnet_id in subnet_ids]
+        subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds_backend = rds_backends[region_name]
         subnet_group = rds_backend.create_subnet_group(
-            subnet_name,
-            description,
-            subnets,
-            tags,
+            subnet_name, description, subnets, tags
         )
         return subnet_group
 
@@ -296,7 +296,6 @@ class SubnetGroup(BaseModel):
 
 
 class RDSBackend(BaseBackend):
-
     def __init__(self, region):
         self.region = region
 
@@ -314,5 +313,6 @@ class RDSBackend(BaseBackend):
         return rds2_backends[self.region]
 
 
-rds_backends = dict((region.name, RDSBackend(region.name))
-                    for region in boto.rds.regions())
+rds_backends = dict(
+    (region.name, RDSBackend(region.name)) for region in boto.rds.regions()
+)

@@ -6,21 +6,20 @@ from moto.ec2.utils import tags_from_query_string, filters_from_querystring
 
 
 class TagResponse(BaseResponse):
-
     def create_tags(self):
-        resource_ids = self._get_multi_param('ResourceId')
+        resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
         tags = tags_from_query_string(self.querystring)
-        if self.is_not_dryrun('CreateTags'):
+        if self.is_not_dryrun("CreateTags"):
             self.ec2_backend.create_tags(resource_ids, tags)
             return CREATE_RESPONSE
 
     def delete_tags(self):
-        resource_ids = self._get_multi_param('ResourceId')
+        resource_ids = self._get_multi_param("ResourceId")
         validate_resource_ids(resource_ids)
         tags = tags_from_query_string(self.querystring)
-        if self.is_not_dryrun('DeleteTags'):
+        if self.is_not_dryrun("DeleteTags"):
             self.ec2_backend.delete_tags(resource_ids, tags)
             return DELETE_RESPONSE
 

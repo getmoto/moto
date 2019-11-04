@@ -16,29 +16,25 @@ def api_version_elb_backend(*args, **kwargs):
     """
     request = args[0]
 
-    if hasattr(request, 'values'):
+    if hasattr(request, "values"):
         # boto3
-        version = request.values.get('Version')
+        version = request.values.get("Version")
     elif isinstance(request, AWSPreparedRequest):
         # boto in-memory
-        version = parse_qs(request.body).get('Version')[0]
+        version = parse_qs(request.body).get("Version")[0]
     else:
         # boto in server mode
         request.parse_request()
-        version = request.querystring.get('Version')[0]
+        version = request.querystring.get("Version")[0]
 
-    if '2012-06-01' == version:
+    if "2012-06-01" == version:
         return ELBResponse.dispatch(*args, **kwargs)
-    elif '2015-12-01' == version:
+    elif "2015-12-01" == version:
         return ELBV2Response.dispatch(*args, **kwargs)
     else:
         raise Exception("Unknown ELB API version: {}".format(version))
 
 
-url_bases = [
-    "https?://elasticloadbalancing.(.+).amazonaws.com",
-]
+url_bases = ["https?://elasticloadbalancing.(.+).amazonaws.com"]
 
-url_paths = {
-    '{0}/$': api_version_elb_backend,
-}
+url_paths = {"{0}/$": api_version_elb_backend}

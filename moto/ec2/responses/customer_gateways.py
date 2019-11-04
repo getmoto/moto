@@ -4,21 +4,20 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class CustomerGateways(BaseResponse):
-
     def create_customer_gateway(self):
         # raise NotImplementedError('CustomerGateways(AmazonVPC).create_customer_gateway is not yet implemented')
-        type = self._get_param('Type')
-        ip_address = self._get_param('IpAddress')
-        bgp_asn = self._get_param('BgpAsn')
+        type = self._get_param("Type")
+        ip_address = self._get_param("IpAddress")
+        bgp_asn = self._get_param("BgpAsn")
         customer_gateway = self.ec2_backend.create_customer_gateway(
-            type, ip_address=ip_address, bgp_asn=bgp_asn)
+            type, ip_address=ip_address, bgp_asn=bgp_asn
+        )
         template = self.response_template(CREATE_CUSTOMER_GATEWAY_RESPONSE)
         return template.render(customer_gateway=customer_gateway)
 
     def delete_customer_gateway(self):
-        customer_gateway_id = self._get_param('CustomerGatewayId')
-        delete_status = self.ec2_backend.delete_customer_gateway(
-            customer_gateway_id)
+        customer_gateway_id = self._get_param("CustomerGatewayId")
+        delete_status = self.ec2_backend.delete_customer_gateway(customer_gateway_id)
         template = self.response_template(DELETE_CUSTOMER_GATEWAY_RESPONSE)
         return template.render(customer_gateway=delete_status)
 

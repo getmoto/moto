@@ -14,14 +14,34 @@ from six.moves.urllib.parse import urlparse
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds, iso_8601_datetime_with_milliseconds
+from moto.core.utils import (
+    iso_8601_datetime_without_milliseconds,
+    iso_8601_datetime_with_milliseconds,
+)
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 
 from .aws_managed_policies import aws_managed_policies_data
-from .exceptions import (IAMNotFoundException, IAMConflictException, IAMReportNotPresentException, IAMLimitExceededException,
-                         MalformedCertificate, DuplicateTags, TagKeyTooBig, InvalidTagCharacters, TooManyTags, TagValueTooBig,
-                         EntityAlreadyExists, ValidationError, InvalidInput)
-from .utils import random_access_key, random_alphanumeric, random_resource_id, random_policy_id
+from .exceptions import (
+    IAMNotFoundException,
+    IAMConflictException,
+    IAMReportNotPresentException,
+    IAMLimitExceededException,
+    MalformedCertificate,
+    DuplicateTags,
+    TagKeyTooBig,
+    InvalidTagCharacters,
+    TooManyTags,
+    TagValueTooBig,
+    EntityAlreadyExists,
+    ValidationError,
+    InvalidInput,
+)
+from .utils import (
+    random_access_key,
+    random_alphanumeric,
+    random_resource_id,
+    random_policy_id,
+)
 
 ACCOUNT_ID = 123456789012
 
@@ -29,10 +49,7 @@ ACCOUNT_ID = 123456789012
 class MFADevice(object):
     """MFA Device class."""
 
-    def __init__(self,
-                 serial_number,
-                 authentication_code_1,
-                 authentication_code_2):
+    def __init__(self, serial_number, authentication_code_1, authentication_code_2):
         self.enable_date = datetime.utcnow()
         self.serial_number = serial_number
         self.authentication_code_1 = authentication_code_1
@@ -45,11 +62,17 @@ class MFADevice(object):
 
 class VirtualMfaDevice(object):
     def __init__(self, device_name):
-        self.serial_number = 'arn:aws:iam::{0}:mfa{1}'.format(ACCOUNT_ID, device_name)
+        self.serial_number = "arn:aws:iam::{0}:mfa{1}".format(ACCOUNT_ID, device_name)
 
-        random_base32_string = ''.join(random.choice(string.ascii_uppercase + '234567') for _ in range(64))
-        self.base32_string_seed = base64.b64encode(random_base32_string.encode('ascii')).decode('ascii')
-        self.qr_code_png = base64.b64encode(os.urandom(64))  # this would be a generated PNG
+        random_base32_string = "".join(
+            random.choice(string.ascii_uppercase + "234567") for _ in range(64)
+        )
+        self.base32_string_seed = base64.b64encode(
+            random_base32_string.encode("ascii")
+        ).decode("ascii")
+        self.qr_code_png = base64.b64encode(
+            os.urandom(64)
+        )  # this would be a generated PNG
 
         self.enable_date = None
         self.user_attribute = None
@@ -63,28 +86,34 @@ class VirtualMfaDevice(object):
 class Policy(BaseModel):
     is_attachable = False
 
-    def __init__(self,
-                 name,
-                 default_version_id=None,
-                 description=None,
-                 document=None,
-                 path=None,
-                 create_date=None,
-                 update_date=None):
+    def __init__(
+        self,
+        name,
+        default_version_id=None,
+        description=None,
+        document=None,
+        path=None,
+        create_date=None,
+        update_date=None,
+    ):
         self.name = name
 
         self.attachment_count = 0
-        self.description = description or ''
+        self.description = description or ""
         self.id = random_policy_id()
-        self.path = path or '/'
+        self.path = path or "/"
 
         if default_version_id:
             self.default_version_id = default_version_id
-            self.next_version_num = int(default_version_id.lstrip('v')) + 1
+            self.next_version_num = int(default_version_id.lstrip("v")) + 1
         else:
-            self.default_version_id = 'v1'
+            self.default_version_id = "v1"
             self.next_version_num = 2
-        self.versions = [PolicyVersion(self.arn, document, True, self.default_version_id, update_date)]
+        self.versions = [
+            PolicyVersion(
+                self.arn, document, True, self.default_version_id, update_date
+            )
+        ]
 
         self.create_date = create_date if create_date is not None else datetime.utcnow()
         self.update_date = update_date if update_date is not None else datetime.utcnow()
@@ -128,7 +157,7 @@ class OpenIDConnectProvider(BaseModel):
 
     @property
     def arn(self):
-        return 'arn:aws:iam::{0}:oidc-provider/{1}'.format(ACCOUNT_ID, self.url)
+        return "arn:aws:iam::{0}:oidc-provider/{1}".format(ACCOUNT_ID, self.url)
 
     @property
     def created_iso_8601(self):
@@ -136,47 +165,53 @@ class OpenIDConnectProvider(BaseModel):
 
     def _validate(self, url, thumbprint_list, client_id_list):
         if any(len(client_id) > 255 for client_id in client_id_list):
-            self._errors.append(self._format_error(
-                key='clientIDList',
-                value=client_id_list,
-                constraint='Member must satisfy constraint: '
-                           '[Member must have length less than or equal to 255, '
-                           'Member must have length greater than or equal to 1]',
-            ))
+            self._errors.append(
+                self._format_error(
+                    key="clientIDList",
+                    value=client_id_list,
+                    constraint="Member must satisfy constraint: "
+                    "[Member must have length less than or equal to 255, "
+                    "Member must have length greater than or equal to 1]",
+                )
+            )
 
         if any(len(thumbprint) > 40 for thumbprint in thumbprint_list):
-            self._errors.append(self._format_error(
-                key='thumbprintList',
-                value=thumbprint_list,
-                constraint='Member must satisfy constraint: '
-                           '[Member must have length less than or equal to 40, '
-                           'Member must have length greater than or equal to 40]',
-            ))
+            self._errors.append(
+                self._format_error(
+                    key="thumbprintList",
+                    value=thumbprint_list,
+                    constraint="Member must satisfy constraint: "
+                    "[Member must have length less than or equal to 40, "
+                    "Member must have length greater than or equal to 40]",
+                )
+            )
 
         if len(url) > 255:
-            self._errors.append(self._format_error(
-                key='url',
-                value=url,
-                constraint='Member must have length less than or equal to 255',
-            ))
+            self._errors.append(
+                self._format_error(
+                    key="url",
+                    value=url,
+                    constraint="Member must have length less than or equal to 255",
+                )
+            )
 
         self._raise_errors()
 
         parsed_url = urlparse(url)
         if not parsed_url.scheme or not parsed_url.netloc:
-            raise ValidationError('Invalid Open ID Connect Provider URL')
+            raise ValidationError("Invalid Open ID Connect Provider URL")
 
         if len(thumbprint_list) > 5:
-            raise InvalidInput('Thumbprint list must contain fewer than 5 entries.')
+            raise InvalidInput("Thumbprint list must contain fewer than 5 entries.")
 
         if len(client_id_list) > 100:
-            raise IAMLimitExceededException('Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100')
+            raise IAMLimitExceededException(
+                "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100"
+            )
 
     def _format_error(self, key, value, constraint):
         return 'Value "{value}" at "{key}" failed to satisfy constraint: {constraint}'.format(
-            constraint=constraint,
-            key=key,
-            value=value,
+            constraint=constraint, key=key, value=value
         )
 
     def _raise_errors(self):
@@ -186,19 +221,17 @@ class OpenIDConnectProvider(BaseModel):
             errors = "; ".join(self._errors)
             self._errors = []  # reset collected errors
 
-            raise ValidationError('{count} validation error{plural} detected: {errors}'.format(
-                count=count, plural=plural, errors=errors,
-            ))
+            raise ValidationError(
+                "{count} validation error{plural} detected: {errors}".format(
+                    count=count, plural=plural, errors=errors
+                )
+            )
 
 
 class PolicyVersion(object):
-
-    def __init__(self,
-                 policy_arn,
-                 document,
-                 is_default=False,
-                 version_id='v1',
-                 create_date=None):
+    def __init__(
+        self, policy_arn, document, is_default=False, version_id="v1", create_date=None
+    ):
         self.policy_arn = policy_arn
         self.document = document or {}
         self.is_default = is_default
@@ -234,23 +267,30 @@ class AWSManagedPolicy(ManagedPolicy):
 
     @classmethod
     def from_data(cls, name, data):
-        return cls(name,
-                   default_version_id=data.get('DefaultVersionId'),
-                   path=data.get('Path'),
-                   document=json.dumps(data.get('Document')),
-                   create_date=datetime.strptime(data.get('CreateDate'), "%Y-%m-%dT%H:%M:%S+00:00"),
-                   update_date=datetime.strptime(data.get('UpdateDate'), "%Y-%m-%dT%H:%M:%S+00:00"))
+        return cls(
+            name,
+            default_version_id=data.get("DefaultVersionId"),
+            path=data.get("Path"),
+            document=json.dumps(data.get("Document")),
+            create_date=datetime.strptime(
+                data.get("CreateDate"), "%Y-%m-%dT%H:%M:%S+00:00"
+            ),
+            update_date=datetime.strptime(
+                data.get("UpdateDate"), "%Y-%m-%dT%H:%M:%S+00:00"
+            ),
+        )
 
     @property
     def arn(self):
-        return 'arn:aws:iam::aws:policy{0}{1}'.format(self.path, self.name)
+        return "arn:aws:iam::aws:policy{0}{1}".format(self.path, self.name)
 
 
 # AWS defines some of its own managed policies and we periodically
 # import them via `make aws_managed_policies`
 aws_managed_policies = [
-    AWSManagedPolicy.from_data(name, d) for name, d
-    in json.loads(aws_managed_policies_data).items()]
+    AWSManagedPolicy.from_data(name, d)
+    for name, d in json.loads(aws_managed_policies_data).items()
+]
 
 
 class InlinePolicy(Policy):
@@ -258,12 +298,20 @@ class InlinePolicy(Policy):
 
 
 class Role(BaseModel):
-
-    def __init__(self, role_id, name, assume_role_policy_document, path, permissions_boundary, description, tags):
+    def __init__(
+        self,
+        role_id,
+        name,
+        assume_role_policy_document,
+        path,
+        permissions_boundary,
+        description,
+        tags,
+    ):
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
-        self.path = path or '/'
+        self.path = path or "/"
         self.policies = {}
         self.managed_policies = {}
         self.create_date = datetime.utcnow()
@@ -276,22 +324,24 @@ class Role(BaseModel):
         return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
         role = iam_backend.create_role(
             role_name=resource_name,
-            assume_role_policy_document=properties['AssumeRolePolicyDocument'],
-            path=properties.get('Path', '/'),
-            permissions_boundary=properties.get('PermissionsBoundary', ''),
-            description=properties.get('Description', ''),
-            tags=properties.get('Tags', {})
+            assume_role_policy_document=properties["AssumeRolePolicyDocument"],
+            path=properties.get("Path", "/"),
+            permissions_boundary=properties.get("PermissionsBoundary", ""),
+            description=properties.get("Description", ""),
+            tags=properties.get("Tags", {}),
         )
 
-        policies = properties.get('Policies', [])
+        policies = properties.get("Policies", [])
         for policy in policies:
-            policy_name = policy['PolicyName']
-            policy_json = policy['PolicyDocument']
+            policy_name = policy["PolicyName"]
+            policy_json = policy["PolicyDocument"]
             role.put_policy(policy_name, policy_json)
 
         return role
@@ -308,7 +358,8 @@ class Role(BaseModel):
             del self.policies[policy_name]
         except KeyError:
             raise IAMNotFoundException(
-                "The role policy with name {0} cannot be found.".format(policy_name))
+                "The role policy with name {0} cannot be found.".format(policy_name)
+            )
 
     @property
     def physical_resource_id(self):
@@ -316,7 +367,8 @@ class Role(BaseModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'Arn':
+
+        if attribute_name == "Arn":
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
@@ -325,11 +377,10 @@ class Role(BaseModel):
 
 
 class InstanceProfile(BaseModel):
-
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
         self.name = name
-        self.path = path or '/'
+        self.path = path or "/"
         self.roles = roles if roles else []
         self.create_date = datetime.utcnow()
 
@@ -338,19 +389,21 @@ class InstanceProfile(BaseModel):
         return iso_8601_datetime_with_milliseconds(self.create_date)
 
     @classmethod
-    def create_from_cloudformation_json(cls, resource_name, cloudformation_json, region_name):
-        properties = cloudformation_json['Properties']
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
 
-        role_ids = properties['Roles']
+        role_ids = properties["Roles"]
         return iam_backend.create_instance_profile(
-            name=resource_name,
-            path=properties.get('Path', '/'),
-            role_ids=role_ids,
+            name=resource_name, path=properties.get("Path", "/"), role_ids=role_ids
         )
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:instance-profile{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+        return "arn:aws:iam::{0}:instance-profile{1}{2}".format(
+            ACCOUNT_ID, self.path, self.name
+        )
 
     @property
     def physical_resource_id(self):
@@ -358,13 +411,13 @@ class InstanceProfile(BaseModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'Arn':
+
+        if attribute_name == "Arn":
             return self.arn
         raise UnformattedGetAttTemplateException()
 
 
 class Certificate(BaseModel):
-
     def __init__(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
         self.cert_name = cert_name
         self.cert_body = cert_body
@@ -378,17 +431,18 @@ class Certificate(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:iam::{0}:server-certificate{1}{2}".format(ACCOUNT_ID, self.path, self.cert_name)
+        return "arn:aws:iam::{0}:server-certificate{1}{2}".format(
+            ACCOUNT_ID, self.path, self.cert_name
+        )
 
 
 class SigningCertificate(BaseModel):
-
     def __init__(self, id, user_name, body):
         self.id = id
         self.user_name = user_name
         self.body = body
         self.upload_date = datetime.utcnow()
-        self.status = 'Active'
+        self.status = "Active"
 
     @property
     def uploaded_iso_8601(self):
@@ -396,12 +450,11 @@ class SigningCertificate(BaseModel):
 
 
 class AccessKey(BaseModel):
-
     def __init__(self, user_name):
         self.user_name = user_name
         self.access_key_id = "AKIA" + random_access_key()
         self.secret_access_key = random_alphanumeric(40)
-        self.status = 'Active'
+        self.status = "Active"
         self.create_date = datetime.utcnow()
         self.last_used = datetime.utcnow()
 
@@ -415,14 +468,14 @@ class AccessKey(BaseModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'SecretAccessKey':
+
+        if attribute_name == "SecretAccessKey":
             return self.secret_access_key
         raise UnformattedGetAttTemplateException()
 
 
 class Group(BaseModel):
-
-    def __init__(self, name, path='/'):
+    def __init__(self, name, path="/"):
         self.name = name
         self.id = random_resource_id()
         self.path = path
@@ -438,17 +491,20 @@ class Group(BaseModel):
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'Arn':
+
+        if attribute_name == "Arn":
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
     @property
     def arn(self):
-        if self.path == '/':
+        if self.path == "/":
             return "arn:aws:iam::{0}:group/{1}".format(ACCOUNT_ID, self.name)
 
         else:
-            return "arn:aws:iam::{0}:group/{1}/{2}".format(ACCOUNT_ID, self.path, self.name)
+            return "arn:aws:iam::{0}:group/{1}/{2}".format(
+                ACCOUNT_ID, self.path, self.name
+            )
 
     def get_policy(self, policy_name):
         try:
@@ -457,9 +513,9 @@ class Group(BaseModel):
             raise IAMNotFoundException("Policy {0} not found".format(policy_name))
 
         return {
-            'policy_name': policy_name,
-            'policy_document': policy_json,
-            'group_name': self.name,
+            "policy_name": policy_name,
+            "policy_document": policy_json,
+            "group_name": self.name,
         }
 
     def put_policy(self, policy_name, policy_json):
@@ -470,7 +526,6 @@ class Group(BaseModel):
 
 
 class User(BaseModel):
-
     def __init__(self, name, path=None):
         self.name = name
         self.id = random_resource_id()
@@ -497,13 +552,12 @@ class User(BaseModel):
         try:
             policy_json = self.policies[policy_name]
         except KeyError:
-            raise IAMNotFoundException(
-                "Policy {0} not found".format(policy_name))
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
 
         return {
-            'policy_name': policy_name,
-            'policy_document': policy_json,
-            'user_name': self.name,
+            "policy_name": policy_name,
+            "policy_document": policy_json,
+            "user_name": self.name,
         }
 
     def put_policy(self, policy_name, policy_json):
@@ -514,8 +568,7 @@ class User(BaseModel):
 
     def delete_policy(self, policy_name):
         if policy_name not in self.policies:
-            raise IAMNotFoundException(
-                "Policy {0} not found".format(policy_name))
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
 
         del self.policies[policy_name]
 
@@ -524,14 +577,11 @@ class User(BaseModel):
         self.access_keys.append(access_key)
         return access_key
 
-    def enable_mfa_device(self,
-                          serial_number,
-                          authentication_code_1,
-                          authentication_code_2):
+    def enable_mfa_device(
+        self, serial_number, authentication_code_1, authentication_code_2
+    ):
         self.mfa_devices[serial_number] = MFADevice(
-            serial_number,
-            authentication_code_1,
-            authentication_code_2
+            serial_number, authentication_code_1, authentication_code_2
         )
 
     def get_all_access_keys(self):
@@ -551,58 +601,58 @@ class User(BaseModel):
                 return key
         else:
             raise IAMNotFoundException(
-                "The Access Key with id {0} cannot be found".format(access_key_id))
+                "The Access Key with id {0} cannot be found".format(access_key_id)
+            )
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'Arn':
+
+        if attribute_name == "Arn":
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
         raise UnformattedGetAttTemplateException()
 
     def to_csv(self):
-        date_format = '%Y-%m-%dT%H:%M:%S+00:00'
+        date_format = "%Y-%m-%dT%H:%M:%S+00:00"
         date_created = self.create_date
         # aagrawal,arn:aws:iam::509284790694:user/aagrawal,2014-09-01T22:28:48+00:00,true,2014-11-12T23:36:49+00:00,2014-09-03T18:59:00+00:00,N/A,false,true,2014-09-01T22:28:48+00:00,false,N/A,false,N/A,false,N/A
         if not self.password:
-            password_enabled = 'false'
-            password_last_used = 'not_supported'
+            password_enabled = "false"
+            password_last_used = "not_supported"
         else:
-            password_enabled = 'true'
-            password_last_used = 'no_information'
+            password_enabled = "true"
+            password_last_used = "no_information"
 
         if len(self.access_keys) == 0:
-            access_key_1_active = 'false'
-            access_key_1_last_rotated = 'N/A'
-            access_key_2_active = 'false'
-            access_key_2_last_rotated = 'N/A'
+            access_key_1_active = "false"
+            access_key_1_last_rotated = "N/A"
+            access_key_2_active = "false"
+            access_key_2_last_rotated = "N/A"
         elif len(self.access_keys) == 1:
-            access_key_1_active = 'true'
+            access_key_1_active = "true"
             access_key_1_last_rotated = date_created.strftime(date_format)
-            access_key_2_active = 'false'
-            access_key_2_last_rotated = 'N/A'
+            access_key_2_active = "false"
+            access_key_2_last_rotated = "N/A"
         else:
-            access_key_1_active = 'true'
+            access_key_1_active = "true"
             access_key_1_last_rotated = date_created.strftime(date_format)
-            access_key_2_active = 'true'
+            access_key_2_active = "true"
             access_key_2_last_rotated = date_created.strftime(date_format)
 
-        return '{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},{9},false,N/A,false,N/A'.format(self.name,
-                                                                                                        self.arn,
-                                                                                                        date_created.strftime(
-                                                                                                            date_format),
-                                                                                                        password_enabled,
-                                                                                                        password_last_used,
-                                                                                                        date_created.strftime(
-                                                                                                            date_format),
-                                                                                                        access_key_1_active,
-                                                                                                        access_key_1_last_rotated,
-                                                                                                        access_key_2_active,
-                                                                                                        access_key_2_last_rotated
-                                                                                                        )
+        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},{9},false,N/A,false,N/A".format(
+            self.name,
+            self.arn,
+            date_created.strftime(date_format),
+            password_enabled,
+            password_last_used,
+            date_created.strftime(date_format),
+            access_key_1_active,
+            access_key_1_last_rotated,
+            access_key_2_active,
+            access_key_2_last_rotated,
+        )
 
 
 class IAMBackend(BaseBackend):
-
     def __init__(self):
         self.instance_profiles = {}
         self.roles = {}
@@ -614,8 +664,7 @@ class IAMBackend(BaseBackend):
         self.account_aliases = []
         self.saml_providers = {}
         self.open_id_providers = {}
-        self.policy_arn_regex = re.compile(
-            r'^arn:aws:iam::[0-9]*:policy/.*$')
+        self.policy_arn_regex = re.compile(r"^arn:aws:iam::[0-9]*:policy/.*$")
         self.virtual_mfa_devices = {}
         super(IAMBackend, self).__init__()
 
@@ -682,10 +731,7 @@ class IAMBackend(BaseBackend):
         iam_policy_document_validator.validate()
 
         policy = ManagedPolicy(
-            policy_name,
-            description=description,
-            document=policy_document,
-            path=path,
+            policy_name, description=description, document=policy_document, path=path
         )
         self.managed_policies[policy.arn] = policy
         return policy
@@ -695,15 +741,21 @@ class IAMBackend(BaseBackend):
             raise IAMNotFoundException("Policy {0} not found".format(policy_arn))
         return self.managed_policies.get(policy_arn)
 
-    def list_attached_role_policies(self, role_name, marker=None, max_items=100, path_prefix='/'):
+    def list_attached_role_policies(
+        self, role_name, marker=None, max_items=100, path_prefix="/"
+    ):
         policies = self.get_role(role_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
-    def list_attached_group_policies(self, group_name, marker=None, max_items=100, path_prefix='/'):
+    def list_attached_group_policies(
+        self, group_name, marker=None, max_items=100, path_prefix="/"
+    ):
         policies = self.get_group(group_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
-    def list_attached_user_policies(self, user_name, marker=None, max_items=100, path_prefix='/'):
+    def list_attached_user_policies(
+        self, user_name, marker=None, max_items=100, path_prefix="/"
+    ):
         policies = self.get_user(user_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -713,11 +765,10 @@ class IAMBackend(BaseBackend):
         if only_attached:
             policies = [p for p in policies if p.attachment_count > 0]
 
-        if scope == 'AWS':
+        if scope == "AWS":
             policies = [p for p in policies if isinstance(p, AWSManagedPolicy)]
-        elif scope == 'Local':
-            policies = [p for p in policies if not isinstance(
-                p, AWSManagedPolicy)]
+        elif scope == "Local":
+            policies = [p for p in policies if not isinstance(p, AWSManagedPolicy)]
 
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -728,7 +779,7 @@ class IAMBackend(BaseBackend):
         policies = sorted(policies, key=lambda policy: policy.name)
         start_idx = int(marker) if marker else 0
 
-        policies = policies[start_idx:start_idx + max_items]
+        policies = policies[start_idx : start_idx + max_items]
 
         if len(policies) < max_items:
             marker = None
@@ -737,13 +788,36 @@ class IAMBackend(BaseBackend):
 
         return policies, marker
 
-    def create_role(self, role_name, assume_role_policy_document, path, permissions_boundary, description, tags):
+    def create_role(
+        self,
+        role_name,
+        assume_role_policy_document,
+        path,
+        permissions_boundary,
+        description,
+        tags,
+    ):
         role_id = random_resource_id()
-        if permissions_boundary and not self.policy_arn_regex.match(permissions_boundary):
-            raise RESTError('InvalidParameterValue', 'Value ({}) for parameter PermissionsBoundary is invalid.'.format(permissions_boundary))
+        if permissions_boundary and not self.policy_arn_regex.match(
+            permissions_boundary
+        ):
+            raise RESTError(
+                "InvalidParameterValue",
+                "Value ({}) for parameter PermissionsBoundary is invalid.".format(
+                    permissions_boundary
+                ),
+            )
 
         clean_tags = self._tag_verification(tags)
-        role = Role(role_id, role_name, assume_role_policy_document, path, permissions_boundary, description, clean_tags)
+        role = Role(
+            role_id,
+            role_name,
+            assume_role_policy_document,
+            path,
+            permissions_boundary,
+            description,
+            clean_tags,
+        )
         self.roles[role_id] = role
         return role
 
@@ -769,17 +843,17 @@ class IAMBackend(BaseBackend):
                 if role.name == role_name:
                     raise IAMConflictException(
                         code="DeleteConflict",
-                        message="Cannot delete entity, must remove roles from instance profile first."
+                        message="Cannot delete entity, must remove roles from instance profile first.",
                     )
         if role.managed_policies:
             raise IAMConflictException(
                 code="DeleteConflict",
-                message="Cannot delete entity, must detach all policies first."
+                message="Cannot delete entity, must detach all policies first.",
             )
         if role.policies:
             raise IAMConflictException(
                 code="DeleteConflict",
-                message="Cannot delete entity, must delete policies first."
+                message="Cannot delete entity, must delete policies first.",
             )
         del self.roles[role.id]
 
@@ -802,7 +876,11 @@ class IAMBackend(BaseBackend):
         for p, d in role.policies.items():
             if p == policy_name:
                 return p, d
-        raise IAMNotFoundException("Policy Document {0} not attached to role {1}".format(policy_name, role_name))
+        raise IAMNotFoundException(
+            "Policy Document {0} not attached to role {1}".format(
+                policy_name, role_name
+            )
+        )
 
     def list_role_policies(self, role_name):
         role = self.get_role(role_name)
@@ -815,17 +893,17 @@ class IAMBackend(BaseBackend):
         tag_keys = {}
         for tag in tags:
             # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
-            ref_key = tag['Key'].lower()
+            ref_key = tag["Key"].lower()
             self._check_tag_duplicate(tag_keys, ref_key)
-            self._validate_tag_key(tag['Key'])
-            if len(tag['Value']) > 256:
-                raise TagValueTooBig(tag['Value'])
+            self._validate_tag_key(tag["Key"])
+            if len(tag["Value"]) > 256:
+                raise TagValueTooBig(tag["Value"])
 
             tag_keys[ref_key] = tag
 
         return tag_keys
 
-    def _validate_tag_key(self, tag_key, exception_param='tags.X.member.key'):
+    def _validate_tag_key(self, tag_key, exception_param="tags.X.member.key"):
         """Validates the tag key.
 
         :param tag_key: The tag key to check against.
@@ -839,7 +917,7 @@ class IAMBackend(BaseBackend):
 
         # Validate that the tag key fits the proper Regex:
         # [\w\s_.:/=+\-@]+ SHOULD be the same as the Java regex on the AWS documentation: [\p{L}\p{Z}\p{N}_.:/=+\-@]+
-        match = re.findall(r'[\w\s_.:/=+\-@]+', tag_key)
+        match = re.findall(r"[\w\s_.:/=+\-@]+", tag_key)
         # Kudos if you can come up with a better way of doing a global search :)
         if not len(match) or len(match[0]) < len(tag_key):
             raise InvalidTagCharacters(tag_key, param=exception_param)
@@ -861,7 +939,7 @@ class IAMBackend(BaseBackend):
         tag_index = sorted(role.tags)
         start_idx = int(marker) if marker else 0
 
-        tag_index = tag_index[start_idx:start_idx + max_items]
+        tag_index = tag_index[start_idx : start_idx + max_items]
 
         if len(role.tags) <= (start_idx + max_items):
             marker = None
@@ -880,13 +958,13 @@ class IAMBackend(BaseBackend):
 
     def untag_role(self, role_name, tag_keys):
         if len(tag_keys) > 50:
-            raise TooManyTags(tag_keys, param='tagKeys')
+            raise TooManyTags(tag_keys, param="tagKeys")
 
         role = self.get_role(role_name)
 
         for key in tag_keys:
             ref_key = key.lower()
-            self._validate_tag_key(key, exception_param='tagKeys')
+            self._validate_tag_key(key, exception_param="tagKeys")
 
             role.tags.pop(ref_key, None)
 
@@ -898,11 +976,13 @@ class IAMBackend(BaseBackend):
         if not policy:
             raise IAMNotFoundException("Policy not found")
         if len(policy.versions) >= 5:
-            raise IAMLimitExceededException("A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version.")
-        set_as_default = (set_as_default == "true")  # convert it to python bool
+            raise IAMLimitExceededException(
+                "A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version."
+            )
+        set_as_default = set_as_default == "true"  # convert it to python bool
         version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
-        version.version_id = 'v{0}'.format(policy.next_version_num)
+        version.version_id = "v{0}".format(policy.next_version_num)
         policy.next_version_num += 1
         if set_as_default:
             policy.update_default_version(version.version_id)
@@ -928,8 +1008,10 @@ class IAMBackend(BaseBackend):
         if not policy:
             raise IAMNotFoundException("Policy not found")
         if version_id == policy.default_version_id:
-            raise IAMConflictException(code="DeleteConflict",
-                                       message="Cannot delete the default version of a policy.")
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete the default version of a policy.",
+            )
         for i, v in enumerate(policy.versions):
             if v.version_id == version_id:
                 del policy.versions[i]
@@ -940,8 +1022,7 @@ class IAMBackend(BaseBackend):
         instance_profile_id = random_resource_id()
 
         roles = [iam_backend.get_role_by_id(role_id) for role_id in role_ids]
-        instance_profile = InstanceProfile(
-            instance_profile_id, name, path, roles)
+        instance_profile = InstanceProfile(instance_profile_id, name, path, roles)
         self.instance_profiles[instance_profile_id] = instance_profile
         return instance_profile
 
@@ -951,7 +1032,8 @@ class IAMBackend(BaseBackend):
                 return profile
 
         raise IAMNotFoundException(
-            "Instance profile {0} not found".format(profile_name))
+            "Instance profile {0} not found".format(profile_name)
+        )
 
     def get_instance_profiles(self):
         return self.instance_profiles.values()
@@ -979,7 +1061,9 @@ class IAMBackend(BaseBackend):
     def get_all_server_certs(self, marker=None):
         return self.certificates.values()
 
-    def upload_server_cert(self, cert_name, cert_body, private_key, cert_chain=None, path=None):
+    def upload_server_cert(
+        self, cert_name, cert_body, private_key, cert_chain=None, path=None
+    ):
         certificate_id = random_resource_id()
         cert = Certificate(cert_name, cert_body, private_key, cert_chain, path)
         self.certificates[certificate_id] = cert
@@ -991,8 +1075,8 @@ class IAMBackend(BaseBackend):
                 return cert
 
         raise IAMNotFoundException(
-            "The Server Certificate with name {0} cannot be "
-            "found.".format(name))
+            "The Server Certificate with name {0} cannot be " "found.".format(name)
+        )
 
     def delete_server_certificate(self, name):
         cert_id = None
@@ -1003,15 +1087,14 @@ class IAMBackend(BaseBackend):
 
         if cert_id is None:
             raise IAMNotFoundException(
-                "The Server Certificate with name {0} cannot be "
-                "found.".format(name))
+                "The Server Certificate with name {0} cannot be " "found.".format(name)
+            )
 
         self.certificates.pop(cert_id, None)
 
-    def create_group(self, group_name, path='/'):
+    def create_group(self, group_name, path="/"):
         if group_name in self.groups:
-            raise IAMConflictException(
-                "Group {0} already exists".format(group_name))
+            raise IAMConflictException("Group {0} already exists".format(group_name))
 
         group = Group(group_name, path)
         self.groups[group_name] = group
@@ -1022,8 +1105,7 @@ class IAMBackend(BaseBackend):
         try:
             group = self.groups[group_name]
         except KeyError:
-            raise IAMNotFoundException(
-                "Group {0} not found".format(group_name))
+            raise IAMNotFoundException("Group {0} not found".format(group_name))
 
         return group
 
@@ -1054,10 +1136,11 @@ class IAMBackend(BaseBackend):
         group = self.get_group(group_name)
         return group.get_policy(policy_name)
 
-    def create_user(self, user_name, path='/'):
+    def create_user(self, user_name, path="/"):
         if user_name in self.users:
             raise IAMConflictException(
-                "EntityAlreadyExists", "User {0} already exists".format(user_name))
+                "EntityAlreadyExists", "User {0} already exists".format(user_name)
+            )
 
         user = User(user_name, path)
         self.users[user_name] = user
@@ -1078,7 +1161,8 @@ class IAMBackend(BaseBackend):
             users = self.users.values()
         except KeyError:
             raise IAMNotFoundException(
-                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items)
+            )
 
         return users
 
@@ -1100,7 +1184,8 @@ class IAMBackend(BaseBackend):
             roles = self.roles.values()
         except KeyError:
             raise IAMNotFoundException(
-                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items))
+                "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items)
+            )
 
         return roles
 
@@ -1113,14 +1198,16 @@ class IAMBackend(BaseBackend):
             if sys.version_info < (3, 0):
                 data = bytes(body)
             else:
-                data = bytes(body, 'utf8')
+                data = bytes(body, "utf8")
 
             x509.load_pem_x509_certificate(data, default_backend())
 
         except Exception:
             raise MalformedCertificate(body)
 
-        user.signing_certificates[cert_id] = SigningCertificate(cert_id, user_name, body)
+        user.signing_certificates[cert_id] = SigningCertificate(
+            cert_id, user_name, body
+        )
 
         return user.signing_certificates[cert_id]
 
@@ -1130,7 +1217,9 @@ class IAMBackend(BaseBackend):
         try:
             del user.signing_certificates[cert_id]
         except KeyError:
-            raise IAMNotFoundException("The Certificate with id {id} cannot be found.".format(id=cert_id))
+            raise IAMNotFoundException(
+                "The Certificate with id {id} cannot be found.".format(id=cert_id)
+            )
 
     def list_signing_certificates(self, user_name):
         user = self.get_user(user_name)
@@ -1144,14 +1233,17 @@ class IAMBackend(BaseBackend):
             user.signing_certificates[cert_id].status = status
 
         except KeyError:
-            raise IAMNotFoundException("The Certificate with id {id} cannot be found.".format(id=cert_id))
+            raise IAMNotFoundException(
+                "The Certificate with id {id} cannot be found.".format(id=cert_id)
+            )
 
     def create_login_profile(self, user_name, password):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
         if user.password:
             raise IAMConflictException(
-                "User {0} already has password".format(user_name))
+                "User {0} already has password".format(user_name)
+            )
         user.password = password
         return user
 
@@ -1159,7 +1251,8 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         if not user.password:
             raise IAMNotFoundException(
-                "Login profile for {0} not found".format(user_name))
+                "Login profile for {0} not found".format(user_name)
+            )
         return user
 
     def update_login_profile(self, user_name, password, password_reset_required):
@@ -1167,7 +1260,8 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         if not user.password:
             raise IAMNotFoundException(
-                "Login profile for {0} not found".format(user_name))
+                "Login profile for {0} not found".format(user_name)
+            )
         user.password = password
         user.password_reset_required = password_reset_required
         return user
@@ -1176,7 +1270,8 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         if not user.password:
             raise IAMNotFoundException(
-                "Login profile for {0} not found".format(user_name))
+                "Login profile for {0} not found".format(user_name)
+            )
         user.password = None
 
     def add_user_to_group(self, group_name, user_name):
@@ -1191,7 +1286,8 @@ class IAMBackend(BaseBackend):
             group.users.remove(user)
         except ValueError:
             raise IAMNotFoundException(
-                "User {0} not in group {1}".format(user_name, group_name))
+                "User {0} not in group {1}".format(user_name, group_name)
+            )
 
     def get_user_policy(self, user_name, policy_name):
         user = self.get_user(user_name)
@@ -1229,13 +1325,11 @@ class IAMBackend(BaseBackend):
         access_keys_list = self.get_all_access_keys_for_all_users()
         for key in access_keys_list:
             if key.access_key_id == access_key_id:
-                return {
-                    'user_name': key.user_name,
-                    'last_used': key.last_used_iso_8601,
-                }
+                return {"user_name": key.user_name, "last_used": key.last_used_iso_8601}
         else:
             raise IAMNotFoundException(
-                "The Access Key with id {0} cannot be found".format(access_key_id))
+                "The Access Key with id {0} cannot be found".format(access_key_id)
+            )
 
     def get_all_access_keys_for_all_users(self):
         access_keys_list = []
@@ -1252,17 +1346,14 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         user.delete_access_key(access_key_id)
 
-    def enable_mfa_device(self,
-                          user_name,
-                          serial_number,
-                          authentication_code_1,
-                          authentication_code_2):
+    def enable_mfa_device(
+        self, user_name, serial_number, authentication_code_1, authentication_code_2
+    ):
         """Enable MFA Device for user."""
         user = self.get_user(user_name)
         if serial_number in user.mfa_devices:
             raise IAMConflictException(
-                "EntityAlreadyExists",
-                "Device {0} already exists".format(serial_number)
+                "EntityAlreadyExists", "Device {0} already exists".format(serial_number)
             )
 
         device = self.virtual_mfa_devices.get(serial_number, None)
@@ -1270,29 +1361,25 @@ class IAMBackend(BaseBackend):
             device.enable_date = datetime.utcnow()
             device.user = user
             device.user_attribute = {
-                'Path': user.path,
-                'UserName': user.name,
-                'UserId': user.id,
-                'Arn': user.arn,
-                'CreateDate': user.created_iso_8601,
-                'PasswordLastUsed': None,  # not supported
-                'PermissionsBoundary': {},  # ToDo: add put_user_permissions_boundary() functionality
-                'Tags': {}  # ToDo: add tag_user() functionality
+                "Path": user.path,
+                "UserName": user.name,
+                "UserId": user.id,
+                "Arn": user.arn,
+                "CreateDate": user.created_iso_8601,
+                "PasswordLastUsed": None,  # not supported
+                "PermissionsBoundary": {},  # ToDo: add put_user_permissions_boundary() functionality
+                "Tags": {},  # ToDo: add tag_user() functionality
             }
 
         user.enable_mfa_device(
-            serial_number,
-            authentication_code_1,
-            authentication_code_2
+            serial_number, authentication_code_1, authentication_code_2
         )
 
     def deactivate_mfa_device(self, user_name, serial_number):
         """Deactivate and detach MFA Device from user if device exists."""
         user = self.get_user(user_name)
         if serial_number not in user.mfa_devices:
-            raise IAMNotFoundException(
-                "Device {0} not found".format(serial_number)
-            )
+            raise IAMNotFoundException("Device {0} not found".format(serial_number))
 
         device = self.virtual_mfa_devices.get(serial_number, None)
         if device:
@@ -1308,25 +1395,33 @@ class IAMBackend(BaseBackend):
 
     def create_virtual_mfa_device(self, device_name, path):
         if not path:
-            path = '/'
+            path = "/"
 
-        if not path.startswith('/') and not path.endswith('/'):
-            raise ValidationError('The specified value for path is invalid. '
-                                  'It must begin and end with / and contain only alphanumeric characters and/or / characters.')
+        if not path.startswith("/") and not path.endswith("/"):
+            raise ValidationError(
+                "The specified value for path is invalid. "
+                "It must begin and end with / and contain only alphanumeric characters and/or / characters."
+            )
 
-        if any(not len(part) for part in path.split('/')[1:-1]):
-            raise ValidationError('The specified value for path is invalid. '
-                                  'It must begin and end with / and contain only alphanumeric characters and/or / characters.')
+        if any(not len(part) for part in path.split("/")[1:-1]):
+            raise ValidationError(
+                "The specified value for path is invalid. "
+                "It must begin and end with / and contain only alphanumeric characters and/or / characters."
+            )
 
         if len(path) > 512:
-            raise ValidationError('1 validation error detected: '
-                                  'Value "{}" at "path" failed to satisfy constraint: '
-                                  'Member must have length less than or equal to 512')
+            raise ValidationError(
+                "1 validation error detected: "
+                'Value "{}" at "path" failed to satisfy constraint: '
+                "Member must have length less than or equal to 512"
+            )
 
         device = VirtualMfaDevice(path + device_name)
 
         if device.serial_number in self.virtual_mfa_devices:
-            raise EntityAlreadyExists('MFADevice entity at the same path and name already exists.')
+            raise EntityAlreadyExists(
+                "MFADevice entity at the same path and name already exists."
+            )
 
         self.virtual_mfa_devices[device.serial_number] = device
         return device
@@ -1335,15 +1430,19 @@ class IAMBackend(BaseBackend):
         device = self.virtual_mfa_devices.pop(serial_number, None)
 
         if not device:
-            raise IAMNotFoundException('VirtualMFADevice with serial number {0} doesn\'t exist.'.format(serial_number))
+            raise IAMNotFoundException(
+                "VirtualMFADevice with serial number {0} doesn't exist.".format(
+                    serial_number
+                )
+            )
 
     def list_virtual_mfa_devices(self, assignment_status, marker, max_items):
         devices = list(self.virtual_mfa_devices.values())
 
-        if assignment_status == 'Assigned':
+        if assignment_status == "Assigned":
             devices = [device for device in devices if device.enable_date]
 
-        if assignment_status == 'Unassigned':
+        if assignment_status == "Unassigned":
             devices = [device for device in devices if not device.enable_date]
 
         sorted(devices, key=lambda device: device.serial_number)
@@ -1351,9 +1450,9 @@ class IAMBackend(BaseBackend):
         start_idx = int(marker) if marker else 0
 
         if start_idx > len(devices):
-            raise ValidationError('Invalid Marker.')
+            raise ValidationError("Invalid Marker.")
 
-        devices = devices[start_idx:start_idx + max_items]
+        devices = devices[start_idx : start_idx + max_items]
 
         if len(devices) < max_items:
             marker = None
@@ -1367,12 +1466,12 @@ class IAMBackend(BaseBackend):
         if user.managed_policies:
             raise IAMConflictException(
                 code="DeleteConflict",
-                message="Cannot delete entity, must detach all policies first."
+                message="Cannot delete entity, must detach all policies first.",
             )
         if user.policies:
             raise IAMConflictException(
                 code="DeleteConflict",
-                message="Cannot delete entity, must delete policies first."
+                message="Cannot delete entity, must delete policies first.",
             )
         del self.users[user_name]
 
@@ -1385,10 +1484,10 @@ class IAMBackend(BaseBackend):
     def get_credential_report(self):
         if not self.credential_report:
             raise IAMReportNotPresentException("Credential report not present")
-        report = 'user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_2_active,access_key_2_last_rotated,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n'
+        report = "user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_2_active,access_key_2_last_rotated,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n"
         for user in self.users:
             report += self.users[user].to_csv()
-        return base64.b64encode(report.encode('ascii')).decode('ascii')
+        return base64.b64encode(report.encode("ascii")).decode("ascii")
 
     def list_account_aliases(self):
         return self.account_aliases
@@ -1407,24 +1506,24 @@ class IAMBackend(BaseBackend):
 
         if len(filter) == 0:
             return {
-                'instance_profiles': self.instance_profiles.values(),
-                'roles': self.roles.values(),
-                'groups': self.groups.values(),
-                'users': self.users.values(),
-                'managed_policies': self.managed_policies.values()
+                "instance_profiles": self.instance_profiles.values(),
+                "roles": self.roles.values(),
+                "groups": self.groups.values(),
+                "users": self.users.values(),
+                "managed_policies": self.managed_policies.values(),
             }
 
-        if 'AWSManagedPolicy' in filter:
+        if "AWSManagedPolicy" in filter:
             returned_policies = aws_managed_policies
-        if 'LocalManagedPolicy' in filter:
+        if "LocalManagedPolicy" in filter:
             returned_policies = returned_policies + list(local_policies)
 
         return {
-            'instance_profiles': self.instance_profiles.values(),
-            'roles': self.roles.values() if 'Role' in filter else [],
-            'groups': self.groups.values() if 'Group' in filter else [],
-            'users': self.users.values() if 'User' in filter else [],
-            'managed_policies': returned_policies
+            "instance_profiles": self.instance_profiles.values(),
+            "roles": self.roles.values() if "Role" in filter else [],
+            "groups": self.groups.values() if "Group" in filter else [],
+            "users": self.users.values() if "User" in filter else [],
+            "managed_policies": returned_policies,
         }
 
     def create_saml_provider(self, name, saml_metadata_document):
@@ -1444,7 +1543,8 @@ class IAMBackend(BaseBackend):
                     del self.saml_providers[saml_provider.name]
         except KeyError:
             raise IAMNotFoundException(
-                "SAMLProvider {0} not found".format(saml_provider_arn))
+                "SAMLProvider {0} not found".format(saml_provider_arn)
+            )
 
     def list_saml_providers(self):
         return self.saml_providers.values()
@@ -1453,7 +1553,9 @@ class IAMBackend(BaseBackend):
         for saml_provider in self.list_saml_providers():
             if saml_provider.arn == saml_provider_arn:
                 return saml_provider
-        raise IAMNotFoundException("SamlProvider {0} not found".format(saml_provider_arn))
+        raise IAMNotFoundException(
+            "SamlProvider {0} not found".format(saml_provider_arn)
+        )
 
     def get_user_from_access_key_id(self, access_key_id):
         for user_name, user in self.users.items():
@@ -1467,7 +1569,7 @@ class IAMBackend(BaseBackend):
         open_id_provider = OpenIDConnectProvider(url, thumbprint_list, client_id_list)
 
         if open_id_provider.arn in self.open_id_providers:
-            raise EntityAlreadyExists('Unknown')
+            raise EntityAlreadyExists("Unknown")
 
         self.open_id_providers[open_id_provider.arn] = open_id_provider
         return open_id_provider
@@ -1479,7 +1581,9 @@ class IAMBackend(BaseBackend):
         open_id_provider = self.open_id_providers.get(arn)
 
         if not open_id_provider:
-            raise IAMNotFoundException('OpenIDConnect Provider not found for arn {}'.format(arn))
+            raise IAMNotFoundException(
+                "OpenIDConnect Provider not found for arn {}".format(arn)
+            )
 
         return open_id_provider
 
