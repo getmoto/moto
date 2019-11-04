@@ -145,6 +145,13 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result = self.ssm_backend.get_parameter_history(name, with_decryption)
 
+        if result is None:
+            error = {
+                "__type": "ParameterNotFound",
+                "message": "Parameter {0} not found.".format(name),
+            }
+            return json.dumps(error), dict(status=400)
+
         response = {"Parameters": []}
         for parameter_version in result:
             param_data = parameter_version.describe_response_object(

@@ -880,6 +880,20 @@ def test_get_parameter_history_with_secure_string():
 
 
 @mock_ssm
+def test_get_parameter_history_missing_parameter():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    try:
+        client.get_parameter_history(Name="test_noexist")
+        raise RuntimeError("Should have failed")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetParameterHistory")
+        err.response["Error"]["Message"].should.equal(
+            "Parameter test_noexist not found."
+        )
+
+
+@mock_ssm
 def test_add_remove_list_tags_for_resource():
     client = boto3.client("ssm", region_name="us-east-1")
 
