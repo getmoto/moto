@@ -140,15 +140,17 @@ class SimpleSystemManagerResponse(BaseResponse):
         return json.dumps(response)
 
     def get_parameter_history(self):
-        name = self._get_param('Name')
+        name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
         result = self.ssm_backend.get_parameter_history(name, with_decryption)
 
         response = {"Parameters": []}
         for parameter_version in result:
-            param_data = parameter_version.describe_response_object(decrypt=with_decryption)
-            response['Parameters'].append(param_data)
+            param_data = parameter_version.describe_response_object(
+                decrypt=with_decryption
+            )
+            response["Parameters"].append(param_data)
 
         return json.dumps(response)
 
