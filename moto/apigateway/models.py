@@ -8,6 +8,7 @@ import requests
 import time
 
 from boto3.session import Session
+
 try:
     from urlparse import urlparse
 except ImportError:
@@ -731,7 +732,8 @@ class APIGatewayBackend(BaseBackend):
             stage_variables = {}
         api = self.get_rest_api(function_id)
         methods = [
-            list(res.resource_methods.values()) for res in self.list_resources(function_id)
+            list(res.resource_methods.values())
+            for res in self.list_resources(function_id)
         ][0]
         if not any(methods):
             raise NoMethodDefined()

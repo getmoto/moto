@@ -1026,7 +1026,9 @@ def test_delete_stage():
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
     # verify other stage still exists
     stages = client.get_stages(restApiId=api_id)["item"]
-    sorted([stage["stageName"] for stage in stages]).should.equal(sorted([new_stage_name, stage_name]))
+    sorted([stage["stageName"] for stage in stages]).should.equal(
+        sorted([new_stage_name, stage_name])
+    )
 
 
 @mock_apigateway
