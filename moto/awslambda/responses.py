@@ -276,7 +276,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _get_function(self, request, full_url, headers):
-        function_name = self.path.rsplit('/', 1)[-1]
+        function_name = unquote(self.path.rsplit('/', 1)[-1])
         qualifier = self._get_param('Qualifier', None)
 
         fn = self.lambda_backend.get_function(function_name, qualifier)
