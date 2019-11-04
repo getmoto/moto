@@ -527,7 +527,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         return result
 
-        return result
+    def get_parameter_history(self, name, with_decryption):
+        if name in self._parameters:
+            return self._parameters[name]
+        return None
 
     def _match_filters(self, parameter, filters=None):
         """Return True if the given parameter matches all the filters"""

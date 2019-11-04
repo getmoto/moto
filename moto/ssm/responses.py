@@ -139,6 +139,19 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Version": result}
         return json.dumps(response)
 
+    def get_parameter_history(self):
+        name = self._get_param('Name')
+        with_decryption = self._get_param("WithDecryption")
+
+        result = self.ssm_backend.get_parameter_history(name, with_decryption)
+
+        response = {"Parameters": []}
+        for parameter_version in result:
+            param_data = parameter_version.describe_response_object(decrypt=with_decryption)
+            response['Parameters'].append(param_data)
+
+        return json.dumps(response)
+
     def add_tags_to_resource(self):
         resource_id = self._get_param("ResourceId")
         resource_type = self._get_param("ResourceType")
