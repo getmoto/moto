@@ -402,10 +402,10 @@ def test_s3_access_denied_with_denying_attached_group_policy():
         "Statement": [{"Effect": "Deny", "Action": "s3:List*", "Resource": "*"}],
     }
     access_key = create_user_with_access_key_and_attached_policy(
-        user_name, attached_policy_document
+        user_name, attached_policy_document, policy_name="policy1"
     )
     create_group_with_attached_policy_and_add_user(
-        user_name, group_attached_policy_document
+        user_name, group_attached_policy_document, policy_name="policy2"
     )
     client = boto3.client(
         "s3",
@@ -476,10 +476,16 @@ def test_access_denied_with_many_irrelevant_policies():
         "Statement": [{"Effect": "Deny", "Action": "lambda:*", "Resource": "*"}],
     }
     access_key = create_user_with_access_key_and_multiple_policies(
-        user_name, inline_policy_document, attached_policy_document
+        user_name,
+        inline_policy_document,
+        attached_policy_document,
+        attached_policy_name="policy1",
     )
     create_group_with_multiple_policies_and_add_user(
-        user_name, group_inline_policy_document, group_attached_policy_document
+        user_name,
+        group_inline_policy_document,
+        group_attached_policy_document,
+        attached_policy_name="policy2",
     )
     client = boto3.client(
         "ec2",
