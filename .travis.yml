@@ -1,6 +1,5 @@
 dist: xenial
 language: python
-sudo: false
 services:
 - docker
 python:
@@ -54,7 +53,7 @@ deploy:
     on:
       branch:
       - master
-    skip_cleanup: true
+    cleanup: false
     skip_existing: true
   # - provider: pypi
   #   distributions: sdist bdist_wheel
