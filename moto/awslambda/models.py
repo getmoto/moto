@@ -304,6 +304,8 @@ class LambdaFunction(BaseModel):
                 self.timeout = value
             elif key == "VpcConfig":
                 self.vpc_config = value
+            elif key == "Environment":
+                self.environment_vars = value["Variables"]
 
         return self.get_configuration()
 
@@ -634,7 +636,7 @@ class LambdaStorage(object):
     def _get_alias(self, name, alias):
         return self._functions[name]["alias"].get(alias, None)
 
-    def get_function(self, name, qualifier=None):
+    def get_function_by_name(self, name, qualifier=None):
         if name not in self._functions:
             return None
 
@@ -657,8 +659,8 @@ class LambdaStorage(object):
     def get_arn(self, arn):
         return self._arns.get(arn, None)
 
-    def get_function_by_name_or_arn(self, input):
-        return self.get_function(input) or self.get_arn(input)
+    def get_function_by_name_or_arn(self, input, qualifier=None):
+        return self.get_function_by_name(input, qualifier) or self.get_arn(input)
 
     def put_function(self, fn):
         """
@@ -719,7 +721,7 @@ class LambdaStorage(object):
                 return True
 
             else:
-                fn = self.get_function(name, qualifier)
+                fn = self.get_function_by_name(name, qualifier)
                 if fn:
                     self._functions[name]["versions"].remove(fn)
 
@@ -822,8 +824,10 @@ class LambdaBackend(BaseBackend):
     def publish_function(self, function_name):
         return self._lambdas.publish_function(function_name)
 
-    def get_function(self, function_name, qualifier=None):
-        return self._lambdas.get_function(function_name, qualifier)
+    def get_function(self, function_name_or_arn, qualifier=None):
+        return self._lambdas.get_function_by_name_or_arn(
+            function_name_or_arn, qualifier
+        )
 
     def list_versions_by_function(self, function_name):
         return self._lambdas.list_versions_by_function(function_name)
@@ -928,7 +932,7 @@ class LambdaBackend(BaseBackend):
                 }
             ]
         }
-        func = self._lambdas.get_function(function_name, qualifier)
+        func = self._lambdas.get_function_by_name_or_arn(function_name, qualifier)
         func.invoke(json.dumps(event), {}, {})
 
     def send_dynamodb_items(self, function_arn, items, source):
