@@ -6,9 +6,13 @@ from moto.core.responses import BaseResponse
 from moto.core.utils import amz_crc32, amzn_request_id
 from six.moves.urllib.parse import urlparse
 
-from .exceptions import (EmptyBatchRequest, InvalidAttributeName,
-                         MessageAttributesInvalid, MessageNotInflight,
-                         ReceiptHandleIsInvalid)
+from .exceptions import (
+    EmptyBatchRequest,
+    InvalidAttributeName,
+    MessageAttributesInvalid,
+    MessageNotInflight,
+    ReceiptHandleIsInvalid,
+)
 from .models import sqs_backends
 from .utils import parse_message_attributes
 

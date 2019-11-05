@@ -4,12 +4,24 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
-from .exceptions import StageNotFoundException, ApiKeyNotFoundException
+from .exceptions import (
+    ApiKeyNotFoundException,
+    BadRequestException,
+    CrossAccountNotAllowed,
+    StageNotFoundException,
+)
 
 
 class APIGatewayResponse(BaseResponse):
+    def error(self, type_, message, status=400):
+        return (
+            status,
+            self.response_headers,
+            json.dumps({"__type": type_, "message": message}),
+        )
+
     def _get_param(self, key):
-        return json.loads(self.body).get(key)
+        return json.loads(self.body).get(key) if self.body else None
 
     def _get_param_with_default_value(self, key, default):
         jsonbody = json.loads(self.body)
@@ -63,14 +75,21 @@ class APIGatewayResponse(BaseResponse):
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
         resource_id = self.path.split("/")[-1]
 
-        if self.method == "GET":
-            resource = self.backend.get_resource(function_id, resource_id)
-        elif self.method == "POST":
-            path_part = self._get_param("pathPart")
-            resource = self.backend.create_resource(function_id, resource_id, path_part)
-        elif self.method == "DELETE":
-            resource = self.backend.delete_resource(function_id, resource_id)
-        return 200, {}, json.dumps(resource.to_dict())
+        try:
+            if self.method == "GET":
+                resource = self.backend.get_resource(function_id, resource_id)
+            elif self.method == "POST":
+                path_part = self._get_param("pathPart")
+                resource = self.backend.create_resource(
+                    function_id, resource_id, path_part
+                )
+            elif self.method == "DELETE":
+                resource = self.backend.delete_resource(function_id, resource_id)
+            return 200, {}, json.dumps(resource.to_dict())
+        except BadRequestException as e:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
+            )
 
     def resource_methods(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -165,6 +184,9 @@ class APIGatewayResponse(BaseResponse):
             stage_response = self.backend.update_stage(
                 function_id, stage_name, patch_operations
             )
+        elif self.method == "DELETE":
+            self.backend.delete_stage(function_id, stage_name)
+            return 202, {}, "{}"
         return 200, {}, json.dumps(stage_response)
 
     def integrations(self, request, full_url, headers):
@@ -174,27 +196,40 @@ class APIGatewayResponse(BaseResponse):
         resource_id = url_path_parts[4]
         method_type = url_path_parts[6]
 
-        if self.method == "GET":
-            integration_response = self.backend.get_integration(
-                function_id, resource_id, method_type
+        try:
+            if self.method == "GET":
+                integration_response = self.backend.get_integration(
+                    function_id, resource_id, method_type
+                )
+            elif self.method == "PUT":
+                integration_type = self._get_param("type")
+                uri = self._get_param("uri")
+                integration_http_method = self._get_param("httpMethod")
+                creds = self._get_param("credentials")
+                request_templates = self._get_param("requestTemplates")
+                integration_response = self.backend.create_integration(
+                    function_id,
+                    resource_id,
+                    method_type,
+                    integration_type,
+                    uri,
+                    credentials=creds,
+                    integration_method=integration_http_method,
+                    request_templates=request_templates,
+                )
+            elif self.method == "DELETE":
+                integration_response = self.backend.delete_integration(
+                    function_id, resource_id, method_type
+                )
+            return 200, {}, json.dumps(integration_response)
+        except BadRequestException as e:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
             )
-        elif self.method == "PUT":
-            integration_type = self._get_param("type")
-            uri = self._get_param("uri")
-            request_templates = self._get_param("requestTemplates")
-            integration_response = self.backend.create_integration(
-                function_id,
-                resource_id,
-                method_type,
-                integration_type,
-                uri,
-                request_templates=request_templates,
+        except CrossAccountNotAllowed as e:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#AccessDeniedException", e.message
             )
-        elif self.method == "DELETE":
-            integration_response = self.backend.delete_integration(
-                function_id, resource_id, method_type
-            )
-        return 200, {}, json.dumps(integration_response)
 
     def integration_responses(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -204,36 +239,52 @@ class APIGatewayResponse(BaseResponse):
         method_type = url_path_parts[6]
         status_code = url_path_parts[9]
 
-        if self.method == "GET":
-            integration_response = self.backend.get_integration_response(
-                function_id, resource_id, method_type, status_code
+        try:
+            if self.method == "GET":
+                integration_response = self.backend.get_integration_response(
+                    function_id, resource_id, method_type, status_code
+                )
+            elif self.method == "PUT":
+                selection_pattern = self._get_param("selectionPattern")
+                response_templates = self._get_param("responseTemplates")
+                integration_response = self.backend.create_integration_response(
+                    function_id,
+                    resource_id,
+                    method_type,
+                    status_code,
+                    selection_pattern,
+                    response_templates,
+                )
+            elif self.method == "DELETE":
+                integration_response = self.backend.delete_integration_response(
+                    function_id, resource_id, method_type, status_code
+                )
+            return 200, {}, json.dumps(integration_response)
+        except BadRequestException as e:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
             )
-        elif self.method == "PUT":
-            selection_pattern = self._get_param("selectionPattern")
-            integration_response = self.backend.create_integration_response(
-                function_id, resource_id, method_type, status_code, selection_pattern
-            )
-        elif self.method == "DELETE":
-            integration_response = self.backend.delete_integration_response(
-                function_id, resource_id, method_type, status_code
-            )
-        return 200, {}, json.dumps(integration_response)
 
     def deployments(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
-        if self.method == "GET":
-            deployments = self.backend.get_deployments(function_id)
-            return 200, {}, json.dumps({"item": deployments})
-        elif self.method == "POST":
-            name = self._get_param("stageName")
-            description = self._get_param_with_default_value("description", "")
-            stage_variables = self._get_param_with_default_value("variables", {})
-            deployment = self.backend.create_deployment(
-                function_id, name, description, stage_variables
+        try:
+            if self.method == "GET":
+                deployments = self.backend.get_deployments(function_id)
+                return 200, {}, json.dumps({"item": deployments})
+            elif self.method == "POST":
+                name = self._get_param("stageName")
+                description = self._get_param_with_default_value("description", "")
+                stage_variables = self._get_param_with_default_value("variables", {})
+                deployment = self.backend.create_deployment(
+                    function_id, name, description, stage_variables
+                )
+                return 200, {}, json.dumps(deployment)
+        except BadRequestException as e:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
             )
-            return 200, {}, json.dumps(deployment)
 
     def individual_deployment(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

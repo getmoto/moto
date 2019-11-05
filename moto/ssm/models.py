@@ -259,7 +259,10 @@ class Command(BaseModel):
 
 class SimpleSystemManagerBackend(BaseBackend):
     def __init__(self):
-        self._parameters = {}
+        # each value is a list of all of the versions for a parameter
+        # to get the current value, grab the last item of the list
+        self._parameters = defaultdict(list)
+
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
         self._errors = []
@@ -294,8 +297,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._validate_parameter_filters(parameter_filters, by_path=False)
 
         result = []
-        for param in self._parameters:
-            ssm_parameter = self._parameters[param]
+        for param_name in self._parameters:
+            ssm_parameter = self.get_parameter(param_name, False)
             if not self._match_filters(ssm_parameter, parameter_filters):
                 continue
 
@@ -504,7 +507,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         result = []
         for name in names:
             if name in self._parameters:
-                result.append(self._parameters[name])
+                result.append(self.get_parameter(name, with_decryption))
         return result
 
     def get_parameters_by_path(self, path, with_decryption, recursive, filters=None):
@@ -513,16 +516,23 @@ class SimpleSystemManagerBackend(BaseBackend):
         # path could be with or without a trailing /. we handle this
         # difference here.
         path = path.rstrip("/") + "/"
-        for param in self._parameters:
-            if path != "/" and not param.startswith(path):
+        for param_name in self._parameters:
+            if path != "/" and not param_name.startswith(path):
                 continue
-            if "/" in param[len(path) + 1 :] and not recursive:
+            if "/" in param_name[len(path) + 1 :] and not recursive:
                 continue
-            if not self._match_filters(self._parameters[param], filters):
+            if not self._match_filters(
+                self.get_parameter(param_name, with_decryption), filters
+            ):
                 continue
-            result.append(self._parameters[param])
+            result.append(self.get_parameter(param_name, with_decryption))
 
         return result
+
+    def get_parameter_history(self, name, with_decryption):
+        if name in self._parameters:
+            return self._parameters[name]
+        return None
 
     def _match_filters(self, parameter, filters=None):
         """Return True if the given parameter matches all the filters"""
@@ -579,31 +589,35 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def get_parameter(self, name, with_decryption):
         if name in self._parameters:
-            return self._parameters[name]
+            return self._parameters[name][-1]
         return None
 
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite
     ):
-        previous_parameter = self._parameters.get(name)
-        version = 1
-
-        if previous_parameter:
+        previous_parameter_versions = self._parameters[name]
+        if len(previous_parameter_versions) == 0:
+            previous_parameter = None
+            version = 1
+        else:
+            previous_parameter = previous_parameter_versions[-1]
             version = previous_parameter.version + 1
 
             if not overwrite:
                 return
 
         last_modified_date = time.time()
-        self._parameters[name] = Parameter(
-            name,
-            value,
-            type,
-            description,
-            allowed_pattern,
-            keyid,
-            last_modified_date,
-            version,
+        self._parameters[name].append(
+            Parameter(
+                name,
+                value,
+                type,
+                description,
+                allowed_pattern,
+                keyid,
+                last_modified_date,
+                version,
+            )
         )
         return version
 

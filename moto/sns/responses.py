@@ -211,14 +211,6 @@ class SNSResponse(BaseResponse):
         protocol = self._get_param("Protocol")
         attributes = self._get_attributes()
 
-        if protocol == "sms" and not is_e164(endpoint):
-            return (
-                self._error(
-                    "InvalidParameter", "Phone number does not meet the E164 format"
-                ),
-                dict(status=400),
-            )
-
         subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
 
         if attributes is not None:

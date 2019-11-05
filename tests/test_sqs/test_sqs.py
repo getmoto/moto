@@ -1,27 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+import base64
+import json
 import os
+import time
+import uuid
 
 import boto
 import boto3
 import botocore.exceptions
 import six
-from botocore.exceptions import ClientError
-from boto.exception import SQSError
-from boto.sqs.message import RawMessage, Message
-
-from freezegun import freeze_time
-import base64
-import json
 import sure  # noqa
-import time
-import uuid
-
-from moto import settings, mock_sqs, mock_sqs_deprecated
-from tests.helpers import requires_boto_gte
 import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+from boto.exception import SQSError
+from boto.sqs.message import Message, RawMessage
+from botocore.exceptions import ClientError
+from freezegun import freeze_time
+from moto import mock_sqs, mock_sqs_deprecated, settings
 from nose import SkipTest
+from nose.tools import assert_raises
+from tests.helpers import requires_boto_gte
 
 
 @mock_sqs
@@ -33,7 +32,7 @@ def test_create_fifo_queue_fail():
     except botocore.exceptions.ClientError as err:
         err.response["Error"]["Code"].should.equal("InvalidParameterValue")
     else:
-        raise RuntimeError("Should of raised InvalidParameterValue Exception")z
+        raise RuntimeError("Should of raised InvalidParameterValue Exception")
 
 
 @mock_sqs

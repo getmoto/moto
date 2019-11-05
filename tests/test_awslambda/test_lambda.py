@@ -388,6 +388,7 @@ def test_get_function():
         Timeout=3,
         MemorySize=128,
         Publish=True,
+        Environment={"Variables": {"test_variable": "test_value"}},
     )
 
     result = conn.get_function(FunctionName="testFunction")
@@ -416,6 +417,11 @@ def test_get_function():
     result["Configuration"]["Timeout"].should.equal(3)
     result["Configuration"]["Version"].should.equal("$LATEST")
     result["Configuration"].should.contain("VpcConfig")
+    result["Configuration"].should.contain("Environment")
+    result["Configuration"]["Environment"].should.contain("Variables")
+    result["Configuration"]["Environment"]["Variables"].should.equal(
+        {"test_variable": "test_value"}
+    )
 
     # Test get function with
     result = conn.get_function(FunctionName="testFunction", Qualifier="$LATEST")
@@ -427,6 +433,33 @@ def test_get_function():
     # Test get function when can't find function name
     with assert_raises(ClientError):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
+
+
+@mock_lambda
+@mock_s3
+def test_get_function_by_arn():
+    bucket_name = "test-bucket"
+    s3_conn = boto3.client("s3", "us-east-1")
+    s3_conn.create_bucket(Bucket=bucket_name)
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", "us-east-1")
+
+    fnc = conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role="test-iam-role",
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    result = conn.get_function(FunctionName=fnc["FunctionArn"])
+    result["Configuration"]["FunctionName"].should.equal("testFunction")
 
 
 @mock_lambda
@@ -1322,6 +1355,7 @@ def test_update_configuration():
         Timeout=3,
         MemorySize=128,
         Publish=True,
+        Environment={"Variables": {"test_old_environment": "test_old_value"}},
     )
 
     assert fxn["Description"] == "test lambda function"
@@ -1336,6 +1370,7 @@ def test_update_configuration():
         Handler="lambda_function.new_lambda_handler",
         Runtime="python3.6",
         Timeout=7,
+        Environment={"Variables": {"test_environment": "test_value"}},
     )
 
     assert updated_config["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -1344,6 +1379,9 @@ def test_update_configuration():
     assert updated_config["MemorySize"] == 128
     assert updated_config["Runtime"] == "python3.6"
     assert updated_config["Timeout"] == 7
+    assert updated_config["Environment"]["Variables"] == {
+        "test_environment": "test_value"
+    }
 
 
 @mock_lambda

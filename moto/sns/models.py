@@ -29,7 +29,7 @@ from .exceptions import (
     ResourceNotFoundError,
     TagLimitExceededError,
 )
-from .utils import make_arn_for_topic, make_arn_for_subscription
+from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_PAGE_SIZE = 100
@@ -413,6 +413,17 @@ class SNSBackend(BaseBackend):
         setattr(topic, attribute_name, attribute_value)
 
     def subscribe(self, topic_arn, endpoint, protocol):
+        if protocol == "sms":
+            if re.search(r"[./-]{2,}", endpoint) or re.search(
+                r"(^[./-]|[./-]$)", endpoint
+            ):
+                raise SNSInvalidParameter("Invalid SMS endpoint: {}".format(endpoint))
+
+            reduced_endpoint = re.sub(r"[./-]", "", endpoint)
+
+            if not is_e164(reduced_endpoint):
+                raise SNSInvalidParameter("Invalid SMS endpoint: {}".format(endpoint))
+
         # AWS doesn't create duplicates
         old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
         if old_subscription:
