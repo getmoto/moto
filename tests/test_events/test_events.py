@@ -361,12 +361,6 @@ def test_describe_event_bus_errors():
 def test_list_event_buses():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus-1")
-    client.put_permission(
-        EventBusName="test-bus-1",
-        Action="events:PutEvents",
-        Principal="111111111111",
-        StatementId="test",
-    )
     client.create_event_bus(Name="test-bus-2")
     client.create_event_bus(Name="other-bus-1")
     client.create_event_bus(Name="other-bus-2")
@@ -391,7 +385,6 @@ def test_list_event_buses():
             {
                 "Name": "test-bus-1",
                 "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/test-bus-1",
-                "Policy": '{"Version": "2012-10-17", "Statement": [{"Sid": "test", "Effect": "Allow", "Principal": {"AWS": "arn:aws:iam::111111111111:root"}, "Action": "events:PutEvents", "Resource": "arn:aws:events:us-east-1:123456789012:event-bus/test-bus-1"}]}',
             },
             {
                 "Name": "test-bus-2",
@@ -403,7 +396,7 @@ def test_list_event_buses():
     response = client.list_event_buses(NamePrefix="other-bus")
 
     response["EventBuses"].should.have.length_of(2)
-    response["EventBuses"].should.equal(
+    sorted(response["EventBuses"], key=lambda i: i["Name"]).should.equal(
         [
             {
                 "Name": "other-bus-1",
