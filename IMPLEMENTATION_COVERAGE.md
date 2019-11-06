@@ -4723,7 +4723,7 @@
 - [ ] update_server_engine_attributes
 
 ## organizations
-41% implemented
+43% implemented
 - [ ] accept_handshake
 - [X] attach_policy
 - [ ] cancel_handshake
@@ -4737,7 +4737,7 @@
 - [ ] delete_organizational_unit
 - [ ] delete_policy
 - [X] describe_account
-- [ ] describe_create_account_status
+- [X] describe_create_account_status
 - [ ] describe_handshake
 - [X] describe_organization
 - [X] describe_organizational_unit
