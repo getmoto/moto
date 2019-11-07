@@ -1,19 +1,20 @@
 from __future__ import unicode_literals
 
 import re
-from six.moves.urllib.parse import urlparse
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import amz_crc32, amzn_request_id
-from .utils import parse_message_attributes
-from .models import sqs_backends
+from six.moves.urllib.parse import urlparse
+
 from .exceptions import (
+    EmptyBatchRequest,
+    InvalidAttributeName,
     MessageAttributesInvalid,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
-    EmptyBatchRequest,
-    InvalidAttributeName,
 )
+from .models import sqs_backends
+from .utils import parse_message_attributes
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
