@@ -214,11 +214,7 @@ class LambdaResponse(BaseResponse):
         try:
             fn = self.lambda_backend.create_function(self.json_body)
         except ValueError as e:
-            return (
-                400,
-                {},
-                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
-            )
+            return 400, {}, json.dumps({"__type": e.args[0], "message": e.args[1]})
         else:
             config = fn.get_configuration()
             return 201, {}, json.dumps(config)

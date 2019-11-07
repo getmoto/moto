@@ -26,6 +26,8 @@ import requests.adapters
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.iam.models import iam_backend
+from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
@@ -667,6 +669,28 @@ class LambdaStorage(object):
         :param fn: Function
         :type fn: LambdaFunction
         """
+        pattern = r"arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
+        valid_role = re.match(pattern, fn.role)
+        if valid_role:
+            account = valid_role.group(2)
+            if account != ACCOUNT_ID:
+                raise ValueError(
+                    "AccessDeniedException", "Cross-account pass role is not allowed."
+                )
+            try:
+                iam_backend.get_role_by_arn(fn.role)
+            except IAMNotFoundException:
+                raise ValueError(
+                    "InvalidParameterValueException",
+                    "The role defined for the function cannot be assumed by Lambda.",
+                )
+        else:
+            raise ValueError(
+                "ValidationException",
+                "1 validation error detected: Value '{0}' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: {1}".format(
+                    fn.role, pattern
+                ),
+            )
         if fn.function_name in self._functions:
             self._functions[fn.function_name]["latest"] = fn
         else:
