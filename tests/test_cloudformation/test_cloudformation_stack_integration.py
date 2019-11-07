@@ -1773,7 +1773,7 @@ def lambda_handler(event, context):
                     "Handler": "lambda_function.handler",
                     "Description": "Test function",
                     "MemorySize": 128,
-                    "Role": "test-role",
+                    "Role": get_role_name(),
                     "Runtime": "python2.7",
                     "Environment": {"Variables": {"TEST_ENV_KEY": "test-env-val"}},
                 },
@@ -1791,7 +1791,7 @@ def lambda_handler(event, context):
     result["Functions"][0]["Description"].should.equal("Test function")
     result["Functions"][0]["Handler"].should.equal("lambda_function.handler")
     result["Functions"][0]["MemorySize"].should.equal(128)
-    result["Functions"][0]["Role"].should.equal("test-role")
+    result["Functions"][0]["Role"].should.equal(get_role_name())
     result["Functions"][0]["Runtime"].should.equal("python2.7")
     result["Functions"][0]["Environment"].should.equal(
         {"Variables": {"TEST_ENV_KEY": "test-env-val"}}
@@ -2311,3 +2311,12 @@ def test_stack_dynamodb_resources_integration():
     response["Item"]["Sales"].should.equal(Decimal("10"))
     response["Item"]["NumberOfSongs"].should.equal(Decimal("5"))
     response["Item"]["Album"].should.equal("myAlbum")
+
+
+def get_role_name():
+    with mock_iam_deprecated():
+        iam = boto.connect_iam()
+        role = iam.create_role("my-role")["create_role_response"]["create_role_result"][
+            "role"
+        ]["arn"]
+        return role
