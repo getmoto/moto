@@ -11,6 +11,7 @@ from boto.exception import EC2ResponseError
 from botocore.exceptions import ParamValidationError, ClientError
 import json
 import sure  # noqa
+import random
 
 from moto import mock_cloudformation_deprecated, mock_ec2, mock_ec2_deprecated
 
@@ -474,3 +475,127 @@ def test_create_subnets_with_overlapping_cidr_blocks():
             subnet_cidr_block
         )
     )
+
+
+@mock_ec2
+def test_available_ip_addresses_in_subnet():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    cidr_range_addresses = [
+        ("10.0.0.0/16", 65531),
+        ("10.0.0.0/17", 32763),
+        ("10.0.0.0/18", 16379),
+        ("10.0.0.0/19", 8187),
+        ("10.0.0.0/20", 4091),
+        ("10.0.0.0/21", 2043),
+        ("10.0.0.0/22", 1019),
+        ("10.0.0.0/23", 507),
+        ("10.0.0.0/24", 251),
+        ("10.0.0.0/25", 123),
+        ("10.0.0.0/26", 59),
+        ("10.0.0.0/27", 27),
+        ("10.0.0.0/28", 11),
+    ]
+    for (cidr, expected_count) in cidr_range_addresses:
+        validate_subnet_details(client, vpc, cidr, expected_count)
+
+
+@mock_ec2
+def test_available_ip_addresses_in_subnet_with_enis():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    # Verify behaviour for various CIDR ranges (...)
+    # Don't try to assign ENIs to /27 and /28, as there are not a lot of IP addresses to go around
+    cidr_range_addresses = [
+        ("10.0.0.0/16", 65531),
+        ("10.0.0.0/17", 32763),
+        ("10.0.0.0/18", 16379),
+        ("10.0.0.0/19", 8187),
+        ("10.0.0.0/20", 4091),
+        ("10.0.0.0/21", 2043),
+        ("10.0.0.0/22", 1019),
+        ("10.0.0.0/23", 507),
+        ("10.0.0.0/24", 251),
+        ("10.0.0.0/25", 123),
+        ("10.0.0.0/26", 59),
+    ]
+    for (cidr, expected_count) in cidr_range_addresses:
+        validate_subnet_details_after_creating_eni(client, vpc, cidr, expected_count)
+
+
+def validate_subnet_details(client, vpc, cidr, expected_ip_address_count):
+    subnet = client.create_subnet(
+        VpcId=vpc.id, CidrBlock=cidr, AvailabilityZone="us-west-1b"
+    )["Subnet"]
+    subnet["AvailableIpAddressCount"].should.equal(expected_ip_address_count)
+    client.delete_subnet(SubnetId=subnet["SubnetId"])
+
+
+def validate_subnet_details_after_creating_eni(
+    client, vpc, cidr, expected_ip_address_count
+):
+    subnet = client.create_subnet(
+        VpcId=vpc.id, CidrBlock=cidr, AvailabilityZone="us-west-1b"
+    )["Subnet"]
+    # Create a random number of Elastic Network Interfaces
+    nr_of_eni_to_create = random.randint(0, 5)
+    ip_addresses_assigned = 0
+    enis_created = []
+    for i in range(0, nr_of_eni_to_create):
+        # Create a random number of IP addresses per ENI
+        nr_of_ip_addresses = random.randint(1, 5)
+        if nr_of_ip_addresses == 1:
+            # Pick the first available IP address (First 4 are reserved by AWS)
+            private_address = "10.0.0." + str(ip_addresses_assigned + 4)
+            eni = client.create_network_interface(
+                SubnetId=subnet["SubnetId"], PrivateIpAddress=private_address
+            )["NetworkInterface"]
+            enis_created.append(eni)
+            ip_addresses_assigned = ip_addresses_assigned + 1
+        else:
+            # Assign a list of IP addresses
+            private_addresses = [
+                "10.0.0." + str(4 + ip_addresses_assigned + i)
+                for i in range(0, nr_of_ip_addresses)
+            ]
+            eni = client.create_network_interface(
+                SubnetId=subnet["SubnetId"],
+                PrivateIpAddresses=[
+                    {"PrivateIpAddress": address} for address in private_addresses
+                ],
+            )["NetworkInterface"]
+            enis_created.append(eni)
+            ip_addresses_assigned = ip_addresses_assigned + nr_of_ip_addresses + 1  #
+    # Verify that the nr of available IP addresses takes these ENIs into account
+    updated_subnet = client.describe_subnets(SubnetIds=[subnet["SubnetId"]])["Subnets"][
+        0
+    ]
+    private_addresses = [
+        eni["PrivateIpAddress"] for eni in enis_created if eni["PrivateIpAddress"]
+    ]
+    for eni in enis_created:
+        private_addresses.extend(
+            [address["PrivateIpAddress"] for address in eni["PrivateIpAddresses"]]
+        )
+    error_msg = (
+        "Nr of IP addresses for Subnet with CIDR {0} is incorrect. Expected: {1}, Actual: {2}. "
+        "Addresses: {3}"
+    )
+    with sure.ensure(
+        error_msg,
+        cidr,
+        str(expected_ip_address_count),
+        updated_subnet["AvailableIpAddressCount"],
+        str(private_addresses),
+    ):
+        updated_subnet["AvailableIpAddressCount"].should.equal(
+            expected_ip_address_count - ip_addresses_assigned
+        )
+    # Clean up, as we have to create a few more subnets that shouldn't interfere with each other
+    for eni in enis_created:
+        client.delete_network_interface(NetworkInterfaceId=eni["NetworkInterfaceId"])
+    client.delete_subnet(SubnetId=subnet["SubnetId"])
