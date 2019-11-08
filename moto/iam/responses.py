@@ -429,10 +429,10 @@ class IamResponse(BaseResponse):
         return template.render(name="GetGroupPolicyResponse", **policy_result)
 
     def delete_group(self):
-        group_name = self._get_param('GroupName')
+        group_name = self._get_param("GroupName")
         iam_backend.delete_group(group_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
-        return template.render(name='DeleteGroup')
+        return template.render(name="DeleteGroup")
 
     def create_user(self):
         user_name = self._get_param("UserName")

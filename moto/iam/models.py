@@ -1225,7 +1225,9 @@ class IAMBackend(BaseBackend):
         try:
             del self.groups[group_name]
         except KeyError:
-            raise IAMNotFoundException("Group {0} not found".format(group_name))
+            raise IAMNotFoundException(
+                "The group with name {0} cannot be found.".format(group_name)
+            )
 
     def create_user(self, user_name, path="/"):
         if user_name in self.users:
