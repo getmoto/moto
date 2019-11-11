@@ -41,7 +41,7 @@ class VPCs(BaseResponse):
         return template.render(vpc_id=vpc_id, attribute=attribute, value=value)
 
     def describe_vpc_classic_link_dns_support(self):
-        vpc_ids = self._get_multi_param('VpcIds')
+        vpc_ids = self._get_multi_param("VpcIds")
         filters = filters_from_querystring(self.querystring)
         vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
@@ -49,21 +49,21 @@ class VPCs(BaseResponse):
         return template.render(vpcs=vpcs, doc_date=doc_date)
 
     def enable_vpc_classic_link_dns_support(self):
-        vpc_id = self._get_param('VpcId')
+        vpc_id = self._get_param("VpcId")
         classic_link_dns_supported = self.ec2_backend.enable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         doc_date = self._get_doc_date()
         template = self.response_template(ENABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
         return template.render(classic_link_dns_supported=classic_link_dns_supported, doc_date=doc_date)
 
     def disable_vpc_classic_link_dns_support(self):
-        vpc_id = self._get_param('VpcId')
+        vpc_id = self._get_param("VpcId")
         classic_link_dns_supported = self.ec2_backend.disable_vpc_classic_link_dns_support(vpc_id=vpc_id)
         doc_date = self._get_doc_date()
         template = self.response_template(DISABLE_VPC_CLASSIC_LINK_DNS_SUPPORT_RESPONSE)
         return template.render(classic_link_dns_supported=classic_link_dns_supported, doc_date=doc_date)
 
     def describe_vpc_classic_link(self):
-        vpc_ids = self._get_multi_param('VpcId')
+        vpc_ids = self._get_multi_param("VpcId")
         filters = filters_from_querystring(self.querystring)
         vpcs = self.ec2_backend.get_all_vpcs(vpc_ids=vpc_ids, filters=filters)
         doc_date = self._get_doc_date()
@@ -71,14 +71,14 @@ class VPCs(BaseResponse):
         return template.render(vpcs=vpcs, doc_date=doc_date)
 
     def enable_vpc_classic_link(self):
-        vpc_id = self._get_param('VpcId')
+        vpc_id = self._get_param("VpcId")
         classic_link_enabled = self.ec2_backend.enable_vpc_classic_link(vpc_id=vpc_id)
         doc_date = self._get_doc_date()
         template = self.response_template(ENABLE_VPC_CLASSIC_LINK_RESPONSE)
         return template.render(classic_link_enabled=classic_link_enabled, doc_date=doc_date)
 
     def disable_vpc_classic_link(self):
-        vpc_id = self._get_param('VpcId')
+        vpc_id = self._get_param("VpcId")
         classic_link_enabled = self.ec2_backend.disable_vpc_classic_link(vpc_id=vpc_id)
         doc_date = self._get_doc_date()
         template = self.response_template(DISABLE_VPC_CLASSIC_LINK_RESPONSE)

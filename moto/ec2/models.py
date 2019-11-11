@@ -2433,9 +2433,9 @@ class VPC(TaggedEC2Resource):
         self.dhcp_options = None
         self.state = "available"
         self.instance_tenancy = instance_tenancy
-        self.is_default = 'true' if is_default else 'false'
-        self.enable_dns_support = 'true'
-        self.classic_link_enabled = 'false'
+        self.is_default = "true" if is_default else "false"
+        self.enable_dns_support = "true"
+        self.classic_link_enabled = "false"
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
@@ -2537,8 +2537,8 @@ class VPC(TaggedEC2Resource):
         # Doesn't check any route tables, maybe something for in the future?
         # See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html#classiclink-limitations
         network_address = ipaddress.ip_network(self.cidr_block).network_address
-        if network_address not in ipaddress.ip_network('10.0.0.0/8') or network_address in ipaddress.ip_network(
-                '10.0.0.0/16') or network_address in ipaddress.ip_network('10.1.0.0/16'):
+        if network_address not in ipaddress.ip_network("10.0.0.0/8") or network_address in ipaddress.ip_network(
+                "10.0.0.0/16") or network_address in ipaddress.ip_network("10.1.0.0/16"):
             self.classic_link_enabled = "true"
 
         return self.classic_link_enabled
@@ -2548,11 +2548,11 @@ class VPC(TaggedEC2Resource):
         return self.classic_link_enabled
 
     def enable_vpc_classic_link_dns_support(self):
-        self.classic_link_dns_supported = 'true'
+        self.classic_link_dns_supported = "true"
         return self.classic_link_dns_supported
 
     def disable_vpc_classic_link_dns_support(self):
-        self.classic_link_dns_supported = 'false'
+        self.classic_link_dns_supported = "false"
         return self.classic_link_dns_supported
 
     def disassociate_vpc_cidr_block(self, association_id):
