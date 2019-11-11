@@ -11,6 +11,7 @@ from nose.tools import assert_raises
 from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds2
 from moto.core import set_initial_no_auth_action_count
 from moto.iam.models import ACCOUNT_ID
+from uuid import uuid4
 
 
 @mock_iam
@@ -71,8 +72,10 @@ def create_user_with_access_key_and_multiple_policies(
 
 
 def create_group_with_attached_policy_and_add_user(
-    user_name, policy_document, group_name="test-group", policy_name="policy1"
+    user_name, policy_document, group_name="test-group", policy_name=None
 ):
+    if not policy_name:
+        policy_name = str(uuid4())
     client = boto3.client("iam", region_name="us-east-1")
     client.create_group(GroupName=group_name)
     policy_arn = client.create_policy(
@@ -101,8 +104,10 @@ def create_group_with_multiple_policies_and_add_user(
     attached_policy_document,
     group_name="test-group",
     inline_policy_name="policy1",
-    attached_policy_name="policy1",
+    attached_policy_name=None,
 ):
+    if not attached_policy_name:
+        attached_policy_name = str(uuid4())
     client = boto3.client("iam", region_name="us-east-1")
     client.create_group(GroupName=group_name)
     client.put_group_policy(
