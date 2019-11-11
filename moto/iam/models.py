@@ -898,6 +898,10 @@ class IAMBackend(BaseBackend):
                     permissions_boundary
                 ),
             )
+        if [role for role in self.get_roles() if role.name == role_name]:
+            raise EntityAlreadyExists(
+                "Role with name {0} already exists.".format(role_name)
+            )
 
         clean_tags = self._tag_verification(tags)
         role = Role(
