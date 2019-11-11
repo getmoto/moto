@@ -820,7 +820,7 @@ class IAMBackend(BaseBackend):
         )
         if policy.arn in self.managed_policies:
             raise EntityAlreadyExists(
-                "A policy called {} already exists. Duplicate names are not allowed.".format(
+                "A policy called {0} already exists. Duplicate names are not allowed.".format(
                     policy_name
                 )
             )
