@@ -2072,6 +2072,22 @@ def test_create_role_with_same_name_should_fail():
 
 
 @mock_iam
+def test_create_policy_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_policy_name = str(uuid4())
+    policy = iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "A policy called {0} already exists. Duplicate names are not allowed.".format(
+            test_policy_name
+        )
+    )
+
+
+@mock_iam
 def test_create_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
