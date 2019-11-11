@@ -6,7 +6,7 @@ from moto.ec2.utils import filters_from_querystring
 
 class VPCs(BaseResponse):
     def _get_doc_date(self):
-        return '2013-10-15' if 'Boto/' in self.headers.get('user-agent', '') else '2016-11-15'
+        return "2013-10-15" if "Boto/" in self.headers.get("user-agent", "") else "2016-11-15"
 
     def create_vpc(self):
         cidr_block = self._get_param('CidrBlock')
