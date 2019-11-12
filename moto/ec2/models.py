@@ -2546,8 +2546,11 @@ class VPC(TaggedEC2Resource):
         # Doesn't check any route tables, maybe something for in the future?
         # See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html#classiclink-limitations
         network_address = ipaddress.ip_network(self.cidr_block).network_address
-        if network_address not in ipaddress.ip_network("10.0.0.0/8") or network_address in ipaddress.ip_network(
-                "10.0.0.0/16") or network_address in ipaddress.ip_network("10.1.0.0/16"):
+        if (
+            network_address not in ipaddress.ip_network("10.0.0.0/8")
+            or network_address in ipaddress.ip_network("10.0.0.0/16")
+            or network_address in ipaddress.ip_network("10.1.0.0/16")
+        ):
             self.classic_link_enabled = "true"
 
         return self.classic_link_enabled

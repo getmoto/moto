@@ -747,10 +747,15 @@ def test_describe_classic_link_multiple():
 
     ec2.meta.client.enable_vpc_classic_link(VpcId=vpc2.id)
     response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc1.id, vpc2.id])
-    expected = [{"VpcId": vpc1.id, "ClassicLinkDnsSupported": False}, {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True}]
+    expected = [
+        {"VpcId": vpc1.id, "ClassicLinkDnsSupported": False},
+        {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True},
+    ]
 
     # Ensure response is sorted, because they can come in random order
-    assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(key=lambda x: x["VpcId"])
+    assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(
+        key=lambda x: x["VpcId"]
+    )
 
 
 @mock_ec2
@@ -808,8 +813,15 @@ def test_describe_classic_link_dns_support_multiple():
     vpc2 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
 
     ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc2.id)
-    response = ec2.meta.client.describe_vpc_classic_link_dns_support(VpcIds=[vpc1.id, vpc2.id])
-    expected = [{"VpcId": vpc1.id, "ClassicLinkDnsSupported": False}, {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True}]
+    response = ec2.meta.client.describe_vpc_classic_link_dns_support(
+        VpcIds=[vpc1.id, vpc2.id]
+    )
+    expected = [
+        {"VpcId": vpc1.id, "ClassicLinkDnsSupported": False},
+        {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True},
+    ]
 
     # Ensure response is sorted, because they can come in random order
-    assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(key=lambda x: x["VpcId"])
+    assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(
+        key=lambda x: x["VpcId"]
+    )
