@@ -750,7 +750,7 @@ def test_describe_classic_link_multiple():
     expected = [{"VpcId": vpc1.id, "ClassicLinkDnsSupported": False}, {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True}]
 
     # Ensure response is sorted, because they can come in random order
-    assert sorted(response.get("Vpcs")) == sorted(expected)
+    assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(key=lambda x: x["VpcId"])
 
 
 @mock_ec2
@@ -812,4 +812,4 @@ def test_describe_classic_link_dns_support_multiple():
     expected = [{"VpcId": vpc1.id, "ClassicLinkDnsSupported": False}, {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True}]
 
     # Ensure response is sorted, because they can come in random order
-    assert sorted(response.get("Vpcs")) == sorted(expected)
+    assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(key=lambda x: x["VpcId"])
