@@ -690,6 +690,7 @@ def test_enable_vpc_classic_link():
     response = ec2.meta.client.enable_vpc_classic_link(VpcId=vpc.id)
     assert response.get("Return").should.be.true
 
+
 @mock_ec2
 def test_enable_vpc_classic_link_failure():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -746,8 +747,10 @@ def test_describe_classic_link_multiple():
 
     ec2.meta.client.enable_vpc_classic_link(VpcId=vpc2.id)
     response = ec2.meta.client.describe_vpc_classic_link(VpcIds=[vpc1.id, vpc2.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkEnabled").should.be.false
-    assert response.get("Vpcs")[1].get("ClassicLinkEnabled").should.be.true
+    expected = [{"VpcId": vpc1.id, "ClassicLinkDnsSupported": False}, {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True}]
+
+    # Ensure response is sorted, because they can come in random order
+    assert sorted(response.get("Vpcs")) == sorted(expected)
 
 
 @mock_ec2
@@ -806,5 +809,7 @@ def test_describe_classic_link_dns_support_multiple():
 
     ec2.meta.client.enable_vpc_classic_link_dns_support(VpcId=vpc2.id)
     response = ec2.meta.client.describe_vpc_classic_link_dns_support(VpcIds=[vpc1.id, vpc2.id])
-    assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported").should.be.false
-    assert response.get("Vpcs")[1].get("ClassicLinkDnsSupported").should.be.true
+    expected = [{"VpcId": vpc1.id, "ClassicLinkDnsSupported": False}, {"VpcId": vpc2.id, "ClassicLinkDnsSupported": True}]
+
+    # Ensure response is sorted, because they can come in random order
+    assert sorted(response.get("Vpcs")) == sorted(expected)
