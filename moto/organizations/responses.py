@@ -65,6 +65,13 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.describe_account(**self.request_params)
         )
 
+    def describe_create_account_status(self):
+        return json.dumps(
+            self.organizations_backend.describe_create_account_status(
+                **self.request_params
+            )
+        )
+
     def list_accounts(self):
         return json.dumps(self.organizations_backend.list_accounts())
 
