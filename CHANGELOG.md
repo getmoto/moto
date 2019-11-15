@@ -31,7 +31,6 @@ Moto Changelog
             * delete_configuration_aggregator()
             * describe_aggregation_authorizations()
             * describe_configuration_aggregators()
-            * describe_identity_pool()
             * get_resource_config_history()
             * list_aggregate_discovered_resources() (For S3)
             * list_discovered_resources() (For S3)
@@ -39,6 +38,7 @@ Moto Changelog
             * put_configuration_aggregator()
         * Cognito
             * assume_role_with_web_identity()
+            * describe_identity_pool()
             * get_open_id_token()
             * update_user_pool_domain()
         * DataSync:
