@@ -2718,12 +2718,12 @@
 - [ ] upgrade_elasticsearch_domain
 
 ## events
-48% implemented
+58% implemented
 - [ ] activate_event_source
-- [ ] create_event_bus
+- [X] create_event_bus
 - [ ] create_partner_event_source
 - [ ] deactivate_event_source
-- [ ] delete_event_bus
+- [X] delete_event_bus
 - [ ] delete_partner_event_source
 - [X] delete_rule
 - [X] describe_event_bus
@@ -2732,7 +2732,7 @@
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
-- [ ] list_event_buses
+- [X] list_event_buses
 - [ ] list_event_sources
 - [ ] list_partner_event_source_accounts
 - [ ] list_partner_event_sources
