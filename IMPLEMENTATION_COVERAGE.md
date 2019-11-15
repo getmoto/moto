@@ -3977,46 +3977,46 @@
 - [ ] update_resource
 
 ## lambda
-0% implemented
+41% implemented
 - [ ] add_layer_version_permission
 - [ ] add_permission
 - [ ] create_alias
-- [ ] create_event_source_mapping
-- [ ] create_function
+- [X] create_event_source_mapping
+- [X] create_function
 - [ ] delete_alias
-- [ ] delete_event_source_mapping
-- [ ] delete_function
+- [X] delete_event_source_mapping
+- [X] delete_function
 - [ ] delete_function_concurrency
 - [ ] delete_layer_version
 - [ ] get_account_settings
 - [ ] get_alias
-- [ ] get_event_source_mapping
-- [ ] get_function
+- [X] get_event_source_mapping
+- [X] get_function
 - [ ] get_function_configuration
 - [ ] get_layer_version
 - [ ] get_layer_version_by_arn
 - [ ] get_layer_version_policy
 - [ ] get_policy
-- [ ] invoke
+- [X] invoke
 - [ ] invoke_async
 - [ ] list_aliases
-- [ ] list_event_source_mappings
-- [ ] list_functions
+- [X] list_event_source_mappings
+- [X] list_functions
 - [ ] list_layer_versions
 - [ ] list_layers
-- [ ] list_tags
-- [ ] list_versions_by_function
+- [X] list_tags
+- [X] list_versions_by_function
 - [ ] publish_layer_version
 - [ ] publish_version
 - [ ] put_function_concurrency
 - [ ] remove_layer_version_permission
 - [ ] remove_permission
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_alias
-- [ ] update_event_source_mapping
-- [ ] update_function_code
-- [ ] update_function_configuration
+- [X] update_event_source_mapping
+- [X] update_function_code
+- [X] update_function_configuration
 
 ## lex-models
 0% implemented
