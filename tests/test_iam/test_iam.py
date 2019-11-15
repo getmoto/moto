@@ -409,6 +409,21 @@ def test_create_policy():
 
 
 @mock_iam
+def test_create_policy_already_exists():
+    conn = boto3.client("iam", region_name="us-east-1")
+    response = conn.create_policy(
+        PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
+    )
+    with assert_raises(conn.exceptions.EntityAlreadyExistsException) as ex:
+        response = conn.create_policy(
+            PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
+        )
+    ex.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    ex.exception.response["Error"]["Message"].should.contain("TestCreatePolicy")
+
+
+@mock_iam
 def test_delete_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     response = conn.create_policy(
