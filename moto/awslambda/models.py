@@ -979,6 +979,32 @@ class LambdaBackend(BaseBackend):
     def add_policy(self, function_name, policy):
         self.get_function(function_name).policy = policy
 
+    def update_function_code(self, function_name, qualifier, body):
+        fn = self.get_function(function_name, qualifier)
+
+        if fn:
+            if body.get("Publish", False):
+                fn = self.publish_function(function_name)
+
+            config = fn.update_function_code(body)
+            return config
+        else:
+            return None
+
+    def update_function_configuration(self, function_name, qualifier, body):
+        fn = self.get_function(function_name, qualifier)
+
+        return fn.update_configuration(body) if fn else None
+
+    def invoke(self, function_name, qualifier, body, headers, response_headers):
+        fn = self.get_function(function_name, qualifier)
+        if fn:
+            payload = fn.invoke(body, headers, response_headers)
+            response_headers["Content-Length"] = str(len(payload))
+            return response_headers, payload
+        else:
+            return response_headers, None
+
 
 def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
