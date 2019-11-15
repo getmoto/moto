@@ -77,6 +77,7 @@ class DynamoType(object):
             attr, list_index = attribute_is_list(attr)
             if not key:
                 # {'S': value} ==> {'S': new_value}
+                self.type = new_value.type
                 self.value = new_value.value
             else:
                 if attr not in self.value:  # nonexistingattribute
