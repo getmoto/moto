@@ -719,7 +719,7 @@ class AccountPasswordPolicy(BaseModel):
 
     def _format_error(self, key, value, constraint):
         return 'Value "{value}" at "{key}" failed to satisfy constraint: {constraint}'.format(
-            constraint=constraint, key=key, value=value,
+            constraint=constraint, key=key, value=value
         )
 
     def _raise_errors(self):
@@ -731,7 +731,7 @@ class AccountPasswordPolicy(BaseModel):
 
             raise ValidationError(
                 "{count} validation error{plural} detected: {errors}".format(
-                    count=count, plural=plural, errors=errors,
+                    count=count, plural=plural, errors=errors
                 )
             )
 
@@ -1104,11 +1104,17 @@ class IAMBackend(BaseBackend):
         raise IAMNotFoundException("Policy not found")
 
     def create_instance_profile(self, name, path, role_ids):
+        if self.instance_profiles.get(name):
+            raise IAMConflictException(
+                code="EntityAlreadyExists",
+                message="Instance Profile {0} already exists.".format(name),
+            )
+
         instance_profile_id = random_resource_id()
 
         roles = [iam_backend.get_role_by_id(role_id) for role_id in role_ids]
         instance_profile = InstanceProfile(instance_profile_id, name, path, roles)
-        self.instance_profiles[instance_profile_id] = instance_profile
+        self.instance_profiles[name] = instance_profile
         return instance_profile
 
     def get_instance_profile(self, profile_name):

@@ -31,7 +31,8 @@ aws_managed_policies:
 	scripts/update_managed_policies.py
 
 upload_pypi_artifact:
-	python setup.py sdist bdist_wheel upload
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
 
 push_dockerhub_image:
 	docker build -t motoserver/moto .

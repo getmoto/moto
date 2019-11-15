@@ -169,6 +169,14 @@ def test_create_role_and_instance_profile():
     profile.path.should.equal("/")
 
 
+@mock_iam
+def test_create_instance_profile_should_throw_when_name_is_not_unique():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
+    with assert_raises(ClientError):
+        conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
+
+
 @mock_iam_deprecated()
 def test_remove_role_from_instance_profile():
     conn = boto.connect_iam()
