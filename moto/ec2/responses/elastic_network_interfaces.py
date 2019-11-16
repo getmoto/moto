@@ -7,12 +7,13 @@ class ElasticNetworkInterfaces(BaseResponse):
     def create_network_interface(self):
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
+        private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
         if self.is_not_dryrun("CreateNetworkInterface"):
             eni = self.ec2_backend.create_network_interface(
-                subnet, private_ip_address, groups, description
+                subnet, private_ip_address, private_ip_addresses, groups, description
             )
             template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
             return template.render(eni=eni)

@@ -214,6 +214,7 @@ class NetworkInterface(TaggedEC2Resource):
         ec2_backend,
         subnet,
         private_ip_address,
+        private_ip_addresses=None,
         device_index=0,
         public_ip_auto_assign=True,
         group_ids=None,
@@ -223,6 +224,7 @@ class NetworkInterface(TaggedEC2Resource):
         self.id = random_eni_id()
         self.device_index = device_index
         self.private_ip_address = private_ip_address or random_private_ip()
+        self.private_ip_addresses = private_ip_addresses
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
@@ -341,12 +343,19 @@ class NetworkInterfaceBackend(object):
         super(NetworkInterfaceBackend, self).__init__()
 
     def create_network_interface(
-        self, subnet, private_ip_address, group_ids=None, description=None, **kwargs
+        self,
+        subnet,
+        private_ip_address,
+        private_ip_addresses=None,
+        group_ids=None,
+        description=None,
+        **kwargs
     ):
         eni = NetworkInterface(
             self,
             subnet,
             private_ip_address,
+            private_ip_addresses,
             group_ids=group_ids,
             description=description,
             **kwargs
@@ -2819,6 +2828,9 @@ class Subnet(TaggedEC2Resource):
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
         self.cidr = ipaddress.IPv4Network(six.text_type(self.cidr_block), strict=False)
+        self._available_ip_addresses = (
+            ipaddress.IPv4Network(six.text_type(self.cidr_block)).num_addresses - 5
+        )
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
@@ -2853,6 +2865,21 @@ class Subnet(TaggedEC2Resource):
             subnet.add_tag(tag_key, tag_value)
 
         return subnet
+
+    @property
+    def available_ip_addresses(self):
+        enis = [
+            eni
+            for eni in self.ec2_backend.get_all_network_interfaces()
+            if eni.subnet.id == self.id
+        ]
+        addresses_taken = [
+            eni.private_ip_address for eni in enis if eni.private_ip_address
+        ]
+        for eni in enis:
+            if eni.private_ip_addresses:
+                addresses_taken.extend(eni.private_ip_addresses)
+        return str(self._available_ip_addresses - len(addresses_taken))
 
     @property
     def availability_zone(self):

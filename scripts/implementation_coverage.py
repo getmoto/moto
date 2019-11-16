@@ -7,16 +7,18 @@ import boto3
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
+alternative_service_names = {'lambda': 'awslambda'}
 
 
 def get_moto_implementation(service_name):
-    service_name_standardized = service_name.replace("-", "") if "-" in service_name else service_name
-    if not hasattr(moto, service_name_standardized):
+    service_name = service_name.replace("-", "") if "-" in service_name else service_name
+    alt_service_name = alternative_service_names[service_name] if service_name in alternative_service_names else service_name
+    if not hasattr(moto, alt_service_name):
         return None
-    module = getattr(moto, service_name_standardized)
+    module = getattr(moto, alt_service_name)
     if module is None:
         return None
-    mock = getattr(module, "mock_{}".format(service_name_standardized))
+    mock = getattr(module, "mock_{}".format(service_name))
     if mock is None:
         return None
     backends = list(mock().backends.values())

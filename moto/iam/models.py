@@ -818,6 +818,12 @@ class IAMBackend(BaseBackend):
         policy = ManagedPolicy(
             policy_name, description=description, document=policy_document, path=path
         )
+        if policy.arn in self.managed_policies:
+            raise EntityAlreadyExists(
+                "A policy called {} already exists. Duplicate names are not allowed.".format(
+                    policy_name
+                )
+            )
         self.managed_policies[policy.arn] = policy
         return policy
 
@@ -1226,6 +1232,14 @@ class IAMBackend(BaseBackend):
     def get_group_policy(self, group_name, policy_name):
         group = self.get_group(group_name)
         return group.get_policy(policy_name)
+
+    def delete_group(self, group_name):
+        try:
+            del self.groups[group_name]
+        except KeyError:
+            raise IAMNotFoundException(
+                "The group with name {0} cannot be found.".format(group_name)
+            )
 
     def create_user(self, user_name, path="/"):
         if user_name in self.users:

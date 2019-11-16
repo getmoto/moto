@@ -3319,3 +3319,66 @@ def _create_user_table():
         TableName="users", Item={"username": {"S": "user3"}, "foo": {"S": "bar"}}
     )
     return client
+
+
+@mock_dynamodb2
+def test_update_item_if_original_value_is_none():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_name": None})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_name = :output",
+        ExpressionAttributeValues={":output": "updated",},
+    )
+    table.scan()["Items"][0]["job_name"].should.equal("updated")
+
+
+@mock_dynamodb2
+def test_update_nested_item_if_original_value_is_none():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_details": {"job_name": None}})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_details.job_name = :output",
+        ExpressionAttributeValues={":output": "updated",},
+    )
+    table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
+
+
+@mock_dynamodb2
+def test_allow_update_to_item_with_different_type():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_details": {"job_name": {"nested": "yes"}}})
+    table.put_item(Item={"job_id": "b", "job_details": {"job_name": {"nested": "yes"}}})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_details.job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.get_item(Key={"job_id": "a"})["Item"]["job_details"][
+        "job_name"
+    ].should.be.equal("updated")
+    table.get_item(Key={"job_id": "b"})["Item"]["job_details"][
+        "job_name"
+    ].should.be.equal({"nested": "yes"})

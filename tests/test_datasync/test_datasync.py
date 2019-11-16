@@ -128,6 +128,22 @@ def test_list_locations():
 
 
 @mock_datasync
+def test_delete_location():
+    client = boto3.client("datasync", region_name="us-east-1")
+    locations = create_locations(client, create_smb=True)
+    response = client.list_locations()
+    assert len(response["Locations"]) == 1
+    location_arn = locations["smb_arn"]
+
+    response = client.delete_location(LocationArn=location_arn)
+    response = client.list_locations()
+    assert len(response["Locations"]) == 0
+
+    with assert_raises(ClientError) as e:
+        response = client.delete_location(LocationArn=location_arn)
+
+
+@mock_datasync
 def test_create_task():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_smb=True, create_s3=True)
@@ -209,6 +225,72 @@ def test_describe_task_not_exist():
 
 
 @mock_datasync
+def test_update_task():
+    client = boto3.client("datasync", region_name="us-east-1")
+    locations = create_locations(client, create_s3=True, create_smb=True)
+
+    initial_name = "Initial_Name"
+    updated_name = "Updated_Name"
+    initial_options = {
+        "VerifyMode": "NONE",
+        "Atime": "BEST_EFFORT",
+        "Mtime": "PRESERVE",
+    }
+    updated_options = {
+        "VerifyMode": "POINT_IN_TIME_CONSISTENT",
+        "Atime": "BEST_EFFORT",
+        "Mtime": "PRESERVE",
+    }
+    response = client.create_task(
+        SourceLocationArn=locations["smb_arn"],
+        DestinationLocationArn=locations["s3_arn"],
+        Name=initial_name,
+        Options=initial_options,
+    )
+    task_arn = response["TaskArn"]
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["TaskArn"] == task_arn
+    assert response["Name"] == initial_name
+    assert response["Options"] == initial_options
+
+    response = client.update_task(
+        TaskArn=task_arn, Name=updated_name, Options=updated_options
+    )
+
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["TaskArn"] == task_arn
+    assert response["Name"] == updated_name
+    assert response["Options"] == updated_options
+
+    with assert_raises(ClientError) as e:
+        client.update_task(TaskArn="doesnt_exist")
+
+
+@mock_datasync
+def test_delete_task():
+    client = boto3.client("datasync", region_name="us-east-1")
+    locations = create_locations(client, create_s3=True, create_smb=True)
+
+    response = client.create_task(
+        SourceLocationArn=locations["smb_arn"],
+        DestinationLocationArn=locations["s3_arn"],
+        Name="task_name",
+    )
+
+    response = client.list_tasks()
+    assert len(response["Tasks"]) == 1
+    task_arn = response["Tasks"][0]["TaskArn"]
+    assert task_arn is not None
+
+    response = client.delete_task(TaskArn=task_arn)
+    response = client.list_tasks()
+    assert len(response["Tasks"]) == 0
+
+    with assert_raises(ClientError) as e:
+        response = client.delete_task(TaskArn=task_arn)
+
+
+@mock_datasync
 def test_start_task_execution():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -261,6 +343,8 @@ def test_describe_task_execution():
         Name="task_name",
     )
     task_arn = response["TaskArn"]
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "AVAILABLE"
 
     response = client.start_task_execution(TaskArn=task_arn)
     task_execution_arn = response["TaskExecutionArn"]
@@ -270,26 +354,38 @@ def test_describe_task_execution():
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["TaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "INITIALIZING"
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "RUNNING"
 
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["TaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "PREPARING"
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "RUNNING"
 
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["TaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "TRANSFERRING"
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "RUNNING"
 
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["TaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "VERIFYING"
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "RUNNING"
 
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["TaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "SUCCESS"
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "AVAILABLE"
 
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["TaskExecutionArn"] == task_execution_arn
     assert response["Status"] == "SUCCESS"
+    response = client.describe_task(TaskArn=task_arn)
+    assert response["Status"] == "AVAILABLE"
 
 
 @mock_datasync
@@ -317,11 +413,13 @@ def test_cancel_task_execution():
 
     response = client.describe_task(TaskArn=task_arn)
     assert response["CurrentTaskExecutionArn"] == task_execution_arn
+    assert response["Status"] == "RUNNING"
 
     response = client.cancel_task_execution(TaskExecutionArn=task_execution_arn)
 
     response = client.describe_task(TaskArn=task_arn)
     assert "CurrentTaskExecutionArn" not in response
+    assert response["Status"] == "AVAILABLE"
 
     response = client.describe_task_execution(TaskExecutionArn=task_execution_arn)
     assert response["Status"] == "ERROR"

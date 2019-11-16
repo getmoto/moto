@@ -8,6 +8,7 @@ import sure  # noqa
 
 from nose.tools import assert_raises
 from boto.exception import BotoServerError
+from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
 
 MOCK_POLICY = """
@@ -181,4 +182,26 @@ def test_list_group_policies():
     )
     conn.list_group_policies(GroupName="my-group")["PolicyNames"].should.equal(
         ["my-policy"]
+    )
+
+
+@mock_iam
+def test_delete_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    groups = conn.list_groups()
+    assert groups["Groups"][0]["GroupName"] == "my-group"
+    assert len(groups["Groups"]) == 1
+    conn.delete_group(GroupName="my-group")
+    conn.list_groups()["Groups"].should.be.empty
+
+
+@mock_iam
+def test_delete_unknown_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with assert_raises(ClientError) as err:
+        conn.delete_group(GroupName="unknown-group")
+    err.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    err.exception.response["Error"]["Message"].should.equal(
+        "The group with name unknown-group cannot be found."
     )
