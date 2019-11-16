@@ -2444,6 +2444,7 @@ class VPC(TaggedEC2Resource):
         self.instance_tenancy = instance_tenancy
         self.is_default = "true" if is_default else "false"
         self.enable_dns_support = "true"
+        self.classic_link_enabled = "false"
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
@@ -2539,6 +2540,32 @@ class VPC(TaggedEC2Resource):
         )
         self.cidr_block_association_set[association_id] = association_set
         return association_set
+
+    def enable_vpc_classic_link(self):
+        # Check if current cidr block doesn't fall within the 10.0.0.0/8 block, excluding 10.0.0.0/16 and 10.1.0.0/16.
+        # Doesn't check any route tables, maybe something for in the future?
+        # See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html#classiclink-limitations
+        network_address = ipaddress.ip_network(self.cidr_block).network_address
+        if (
+            network_address not in ipaddress.ip_network("10.0.0.0/8")
+            or network_address in ipaddress.ip_network("10.0.0.0/16")
+            or network_address in ipaddress.ip_network("10.1.0.0/16")
+        ):
+            self.classic_link_enabled = "true"
+
+        return self.classic_link_enabled
+
+    def disable_vpc_classic_link(self):
+        self.classic_link_enabled = "false"
+        return self.classic_link_enabled
+
+    def enable_vpc_classic_link_dns_support(self):
+        self.classic_link_dns_supported = "true"
+        return self.classic_link_dns_supported
+
+    def disable_vpc_classic_link_dns_support(self):
+        self.classic_link_dns_supported = "false"
+        return self.classic_link_dns_supported
 
     def disassociate_vpc_cidr_block(self, association_id):
         if self.cidr_block == self.cidr_block_association_set.get(
@@ -2669,6 +2696,22 @@ class VPCBackend(object):
             return getattr(vpc, attr_name)
         else:
             raise InvalidParameterValueError(attr_name)
+
+    def enable_vpc_classic_link(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.enable_vpc_classic_link()
+
+    def disable_vpc_classic_link(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.disable_vpc_classic_link()
+
+    def enable_vpc_classic_link_dns_support(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.enable_vpc_classic_link_dns_support()
+
+    def disable_vpc_classic_link_dns_support(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.disable_vpc_classic_link_dns_support()
 
     def modify_vpc_attribute(self, vpc_id, attr_name, attr_value):
         vpc = self.get_vpc(vpc_id)
