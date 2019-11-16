@@ -227,7 +227,7 @@ class Subscription(BaseModel):
                         return False
 
                     for attribute_values in attribute_values:
-                        # Even the offical documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
+                        # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
                         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
                         if int(attribute_values * 1000000) == int(rule * 1000000):
                             return True
@@ -573,7 +573,7 @@ class SNSBackend(BaseBackend):
         combinations = 1
         for rules in six.itervalues(value):
             combinations *= len(rules)
-        # Even the offical documentation states the total combination of values must not exceed 100, in reality it is 150
+        # Even the official documentation states the total combination of values must not exceed 100, in reality it is 150
         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
         if combinations > 150:
             raise SNSInvalidParameter(
