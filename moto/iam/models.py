@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import base64
+import hashlib
 import os
 import random
 import string
@@ -475,6 +476,27 @@ class AccessKey(BaseModel):
         raise UnformattedGetAttTemplateException()
 
 
+class SshPublicKey(BaseModel):
+    def __init__(self, user_name, ssh_public_key_body):
+        self.user_name = user_name
+        self.ssh_public_key_body = ssh_public_key_body
+        self.ssh_public_key_id = "APKA" + random_access_key()
+        self.fingerprint = hashlib.md5(ssh_public_key_body.encode()).hexdigest()
+        self.status = "Active"
+        self.upload_date = datetime.utcnow()
+
+    @property
+    def uploaded_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "PublicKeyBody":
+            return self.public_key_body
+        raise UnformattedGetAttTemplateException()
+
+
 class Group(BaseModel):
     def __init__(self, name, path="/"):
         self.name = name
@@ -536,6 +558,7 @@ class User(BaseModel):
         self.policies = {}
         self.managed_policies = {}
         self.access_keys = []
+        self.ssh_public_keys = []
         self.password = None
         self.password_reset_required = False
         self.signing_certificates = {}
@@ -604,6 +627,33 @@ class User(BaseModel):
             raise IAMNotFoundException(
                 "The Access Key with id {0} cannot be found".format(access_key_id)
             )
+
+    def upload_ssh_public_key(self, ssh_public_key_body):
+        pubkey = SshPublicKey(self.name, ssh_public_key_body)
+        self.ssh_public_keys.append(pubkey)
+        return pubkey
+
+    def get_ssh_public_key(self, ssh_public_key_id):
+        for key in self.ssh_public_keys:
+            if key.ssh_public_key_id == ssh_public_key_id:
+                return key
+        else:
+            raise IAMNotFoundException(
+                "The SSH Public Key with id {0} cannot be found".format(
+                    ssh_public_key_id
+                )
+            )
+
+    def get_all_ssh_public_keys(self):
+        return self.ssh_public_keys
+
+    def update_ssh_public_key(self, ssh_public_key_id, status):
+        key = self.get_ssh_public_key(ssh_public_key_id)
+        key.status = status
+
+    def delete_ssh_public_key(self, ssh_public_key_id):
+        key = self.get_ssh_public_key(ssh_public_key_id)
+        self.ssh_public_keys.remove(key)
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -1583,6 +1633,26 @@ class IAMBackend(BaseBackend):
     def delete_access_key(self, access_key_id, user_name):
         user = self.get_user(user_name)
         user.delete_access_key(access_key_id)
+
+    def upload_ssh_public_key(self, user_name, ssh_public_key_body):
+        user = self.get_user(user_name)
+        return user.upload_ssh_public_key(ssh_public_key_body)
+
+    def get_ssh_public_key(self, user_name, ssh_public_key_id):
+        user = self.get_user(user_name)
+        return user.get_ssh_public_key(ssh_public_key_id)
+
+    def get_all_ssh_public_keys(self, user_name):
+        user = self.get_user(user_name)
+        return user.get_all_ssh_public_keys()
+
+    def update_ssh_public_key(self, user_name, ssh_public_key_id, status):
+        user = self.get_user(user_name)
+        return user.update_ssh_public_key(ssh_public_key_id, status)
+
+    def delete_ssh_public_key(self, user_name, ssh_public_key_id):
+        user = self.get_user(user_name)
+        return user.delete_ssh_public_key(ssh_public_key_id)
 
     def enable_mfa_device(
         self, user_name, serial_number, authentication_code_1, authentication_code_2

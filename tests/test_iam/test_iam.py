@@ -1317,6 +1317,122 @@ def test_get_access_key_last_used():
 
 
 @mock_iam
+def test_upload_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    pubkey = resp["SSHPublicKey"]
+    pubkey["SSHPublicKeyBody"].should.equal(public_key)
+    pubkey["UserName"].should.equal(username)
+    pubkey["SSHPublicKeyId"].should.have.length_of(20)
+    assert pubkey["SSHPublicKeyId"].startswith("APKA")
+    pubkey.should.have.key("Fingerprint")
+    pubkey["Status"].should.equal("Active")
+    (
+        datetime.utcnow() - pubkey["UploadDate"].replace(tzinfo=None)
+    ).seconds.should.be.within(0, 10)
+
+
+@mock_iam
+def test_get_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.get_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Encoding="SSH"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.get_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Encoding="SSH"
+    )
+    resp["SSHPublicKey"]["SSHPublicKeyBody"].should.equal(public_key)
+
+
+@mock_iam
+def test_list_ssh_public_keys():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(0)
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(1)
+    resp["SSHPublicKeys"][0]["SSHPublicKeyId"].should.equal(ssh_public_key_id)
+
+
+@mock_iam
+def test_update_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.update_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Status="Inactive"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+    resp["SSHPublicKey"]["Status"].should.equal("Active")
+
+    resp = client.update_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Status="Inactive"
+    )
+
+    resp = client.get_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Encoding="SSH"
+    )
+    resp["SSHPublicKey"]["Status"].should.equal("Inactive")
+
+
+@mock_iam
+def test_delete_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.delete_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(1)
+
+    resp = client.delete_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id
+    )
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(0)
+
+
+@mock_iam
 def test_get_account_authorization_details():
     test_policy = json.dumps(
         {
