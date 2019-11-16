@@ -820,7 +820,7 @@ class IAMBackend(BaseBackend):
         )
         if policy.arn in self.managed_policies:
             raise EntityAlreadyExists(
-                "A policy called {} already exists. Duplicate names are not allowed.".format(
+                "A policy called {0} already exists. Duplicate names are not allowed.".format(
                     policy_name
                 )
             )
@@ -897,6 +897,10 @@ class IAMBackend(BaseBackend):
                 "Value ({}) for parameter PermissionsBoundary is invalid.".format(
                     permissions_boundary
                 ),
+            )
+        if [role for role in self.get_roles() if role.name == role_name]:
+            raise EntityAlreadyExists(
+                "Role with name {0} already exists.".format(role_name)
             )
 
         clean_tags = self._tag_verification(tags)

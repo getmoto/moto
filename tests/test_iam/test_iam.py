@@ -18,6 +18,7 @@ from nose.tools import raises
 
 from datetime import datetime
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -2048,6 +2049,42 @@ def test_create_role_with_permissions_boundary():
 
     # Ensure the PermissionsBoundary is included in role listing as well
     conn.list_roles().get("Roles")[0].get("PermissionsBoundary").should.equal(expected)
+
+
+@mock_iam
+def test_create_role_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_role_name = str(uuid4())
+    iam.create_role(
+        RoleName=test_role_name, AssumeRolePolicyDocument="policy", Description="test"
+    )
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_role(
+            RoleName=test_role_name,
+            AssumeRolePolicyDocument="policy",
+            Description="test",
+        )
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "Role with name {0} already exists.".format(test_role_name)
+    )
+
+
+@mock_iam
+def test_create_policy_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_policy_name = str(uuid4())
+    policy = iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "A policy called {0} already exists. Duplicate names are not allowed.".format(
+            test_policy_name
+        )
+    )
 
 
 @mock_iam
