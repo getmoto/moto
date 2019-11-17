@@ -736,6 +736,134 @@ class AccountPasswordPolicy(BaseModel):
             )
 
 
+class AccountSummary(BaseModel):
+    def __init__(self, iam_backend):
+        self._iam_backend = iam_backend
+
+        self._group_policy_size_quota = 5120
+        self._instance_profiles_quota = 1000
+        self._groups_per_user_quota = 10
+        self._attached_policies_per_user_quota = 10
+        self._policies_quota = 1500
+        self._account_mfa_enabled = 0  # Haven't found any information being able to activate MFA for the root account programmatically
+        self._access_keys_per_user_quota = 2
+        self._assume_role_policy_size_quota = 2048
+        self._policy_versions_in_use_quota = 10000
+        self._global_endpoint_token_version = (
+            1  # ToDo: Implement set_security_token_service_preferences()
+        )
+        self._versions_per_policy_quota = 5
+        self._attached_policies_per_group_quota = 10
+        self._policy_size_quota = 6144
+        self._account_signing_certificates_present = 0  # valid values: 0 | 1
+        self._users_quota = 5000
+        self._server_certificates_quota = 20
+        self._user_policy_size_quota = 2048
+        self._roles_quota = 1000
+        self._signing_certificates_per_user_quota = 2
+        self._role_policy_size_quota = 10240
+        self._attached_policies_per_role_quota = 10
+        self._account_access_keys_present = 0  # valid values: 0 | 1
+        self._groups_quota = 300
+
+    @property
+    def summary_map(self):
+        return {
+            "GroupPolicySizeQuota": self._group_policy_size_quota,
+            "InstanceProfilesQuota": self._instance_profiles_quota,
+            "Policies": self._policies,
+            "GroupsPerUserQuota": self._groups_per_user_quota,
+            "InstanceProfiles": self._instance_profiles,
+            "AttachedPoliciesPerUserQuota": self._attached_policies_per_user_quota,
+            "Users": self._users,
+            "PoliciesQuota": self._policies_quota,
+            "Providers": self._providers,
+            "AccountMFAEnabled": self._account_mfa_enabled,
+            "AccessKeysPerUserQuota": self._access_keys_per_user_quota,
+            "AssumeRolePolicySizeQuota": self._assume_role_policy_size_quota,
+            "PolicyVersionsInUseQuota": self._policy_versions_in_use_quota,
+            "GlobalEndpointTokenVersion": self._global_endpoint_token_version,
+            "VersionsPerPolicyQuota": self._versions_per_policy_quota,
+            "AttachedPoliciesPerGroupQuota": self._attached_policies_per_group_quota,
+            "PolicySizeQuota": self._policy_size_quota,
+            "Groups": self._groups,
+            "AccountSigningCertificatesPresent": self._account_signing_certificates_present,
+            "UsersQuota": self._users_quota,
+            "ServerCertificatesQuota": self._server_certificates_quota,
+            "MFADevices": self._mfa_devices,
+            "UserPolicySizeQuota": self._user_policy_size_quota,
+            "PolicyVersionsInUse": self._policy_versions_in_use,
+            "ServerCertificates": self._server_certificates,
+            "Roles": self._roles,
+            "RolesQuota": self._roles_quota,
+            "SigningCertificatesPerUserQuota": self._signing_certificates_per_user_quota,
+            "MFADevicesInUse": self._mfa_devices_in_use,
+            "RolePolicySizeQuota": self._role_policy_size_quota,
+            "AttachedPoliciesPerRoleQuota": self._attached_policies_per_role_quota,
+            "AccountAccessKeysPresent": self._account_access_keys_present,
+            "GroupsQuota": self._groups_quota,
+        }
+
+    @property
+    def _groups(self):
+        return len(self._iam_backend.groups)
+
+    @property
+    def _instance_profiles(self):
+        return len(self._iam_backend.instance_profiles)
+
+    @property
+    def _mfa_devices(self):
+        # Don't know, if hardware devices are also counted here
+        return len(self._iam_backend.virtual_mfa_devices)
+
+    @property
+    def _mfa_devices_in_use(self):
+        devices = 0
+
+        for user in self._iam_backend.users.values():
+            devices += len(user.mfa_devices)
+
+        return devices
+
+    @property
+    def _policies(self):
+        customer_policies = [
+            policy
+            for policy in self._iam_backend.managed_policies
+            if not policy.startswith("arn:aws:iam::aws:policy")
+        ]
+        return len(customer_policies)
+
+    @property
+    def _policy_versions_in_use(self):
+        attachments = 0
+
+        for policy in self._iam_backend.managed_policies.values():
+            attachments += policy.attachment_count
+
+        return attachments
+
+    @property
+    def _providers(self):
+        providers = len(self._iam_backend.saml_providers) + len(
+            self._iam_backend.open_id_providers
+        )
+        return providers
+
+    @property
+    def _roles(self):
+        return len(self._iam_backend.roles)
+
+    @property
+    def _server_certificates(self):
+        return len(self._iam_backend.certificates)
+
+    @property
+    def _users(self):
+        return len(self._iam_backend.users)
+
+
 class IAMBackend(BaseBackend):
     def __init__(self):
         self.instance_profiles = {}
@@ -751,6 +879,7 @@ class IAMBackend(BaseBackend):
         self.policy_arn_regex = re.compile(r"^arn:aws:iam::[0-9]*:policy/.*$")
         self.virtual_mfa_devices = {}
         self.account_password_policy = None
+        self.account_summary = AccountSummary(self)
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -1162,7 +1291,7 @@ class IAMBackend(BaseBackend):
     def get_all_server_certs(self, marker=None):
         return self.certificates.values()
 
-    def upload_server_cert(
+    def upload_server_certificate(
         self, cert_name, cert_body, private_key, cert_chain=None, path=None
     ):
         certificate_id = random_resource_id()
@@ -1740,6 +1869,9 @@ class IAMBackend(BaseBackend):
             )
 
         self.account_password_policy = None
+
+    def get_account_summary(self):
+        return self.account_summary
 
 
 iam_backend = IAMBackend()

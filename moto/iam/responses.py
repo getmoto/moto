@@ -351,7 +351,7 @@ class IamResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         cert_chain = self._get_param("CertificateName")
 
-        cert = iam_backend.upload_server_cert(
+        cert = iam_backend.upload_server_certificate(
             cert_name, cert_body, private_key, cert_chain=cert_chain, path=path
         )
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
@@ -887,6 +887,12 @@ class IamResponse(BaseResponse):
 
         template = self.response_template(DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render()
+
+    def get_account_summary(self):
+        account_summary = iam_backend.get_account_summary()
+
+        template = self.response_template(GET_ACCOUNT_SUMMARY_TEMPLATE)
+        return template.render(summary_map=account_summary.summary_map)
 
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
@@ -2261,3 +2267,20 @@ DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<DeleteAccountPasswordPolicyRespons
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteAccountPasswordPolicyResponse>"""
+
+
+GET_ACCOUNT_SUMMARY_TEMPLATE = """<GetAccountSummaryResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountSummaryResult>
+    <SummaryMap>
+      {% for key, value in summary_map.items() %}
+      <entry>
+        <key>{{ key }}</key>
+        <value>{{ value }}</value>
+      </entry>
+      {% endfor %}
+    </SummaryMap>
+  </GetAccountSummaryResult>
+  <ResponseMetadata>
+    <RequestId>85cb9b90-ac28-11e4-a88d-97964EXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountSummaryResponse>"""
