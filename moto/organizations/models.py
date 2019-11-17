@@ -467,5 +467,17 @@ class OrganizationsBackend(BaseBackend):
         tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
         return dict(Tags=tags)
 
+    def untag_resource(self, **kwargs):
+        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
+
+        if account is None:
+            raise RESTError(
+                "InvalidInputException",
+                "You provided a value that does not match the required pattern.",
+            )
+
+        for key in kwargs["TagKeys"]:
+            account.tags.pop(key, None)
+
 
 organizations_backend = OrganizationsBackend()

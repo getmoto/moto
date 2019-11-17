@@ -4767,7 +4767,7 @@
 - [X] move_account
 - [ ] remove_account_from_organization
 - [x] tag_resource
-- [ ] untag_resource
+- [x] untag_resource
 - [ ] update_organizational_unit
 - [ ] update_policy
 
