@@ -75,7 +75,7 @@ MOCK_POLICY_3 = """
 def test_get_all_server_certs():
     conn = boto.connect_iam()
 
-    conn.upload_server_certificate("certname", "certbody", "privatekey")
+    conn.upload_server_cert("certname", "certbody", "privatekey")
     certs = conn.get_all_server_certs()["list_server_certificates_response"][
         "list_server_certificates_result"
     ]["server_certificate_metadata_list"]
@@ -97,7 +97,7 @@ def test_get_server_cert_doesnt_exist():
 def test_get_server_cert():
     conn = boto.connect_iam()
 
-    conn.upload_server_certificate("certname", "certbody", "privatekey")
+    conn.upload_server_cert("certname", "certbody", "privatekey")
     cert = conn.get_server_certificate("certname")
     cert.server_certificate_name.should.equal("certname")
     cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
@@ -107,7 +107,7 @@ def test_get_server_cert():
 def test_upload_server_cert():
     conn = boto.connect_iam()
 
-    conn.upload_server_certificate("certname", "certbody", "privatekey")
+    conn.upload_server_cert("certname", "certbody", "privatekey")
     cert = conn.get_server_certificate("certname")
     cert.server_certificate_name.should.equal("certname")
     cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
@@ -117,7 +117,7 @@ def test_upload_server_cert():
 def test_delete_server_cert():
     conn = boto.connect_iam()
 
-    conn.upload_server_certificate("certname", "certbody", "privatekey")
+    conn.upload_server_cert("certname", "certbody", "privatekey")
     conn.get_server_certificate("certname")
     conn.delete_server_cert("certname")
     with assert_raises(BotoServerError):
@@ -2372,10 +2372,6 @@ def test_get_account_summary():
         }
     )
 
-    client.create_group(GroupName="test-group")
-    client.attach_group_policy(
-        GroupName="test-group", PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess"
-    )
     client.create_instance_profile(InstanceProfileName="test-profile")
     client.create_open_id_connect_provider(
         Url="https://example.com", ThumbprintList=[],
@@ -2389,6 +2385,10 @@ def test_get_account_summary():
     )
     client.create_saml_provider(
         Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
+    )
+    client.create_group(GroupName="test-group")
+    client.attach_group_policy(
+        GroupName="test-group", PolicyArn=response_policy["Policy"]["Arn"]
     )
     client.create_user(UserName="test-user")
     client.attach_user_policy(
