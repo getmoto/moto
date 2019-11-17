@@ -57,6 +57,7 @@ class FakeAccount(BaseModel):
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
         self.attached_policies = []
+        self.tags = {}
 
     @property
     def arn(self):
@@ -441,6 +442,18 @@ class OrganizationsBackend(BaseBackend):
             for obj in policy.attachments
         ]
         return dict(Targets=objects)
+
+    def tag_resource(self, **kwargs):
+        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
+
+        if account is None:
+            raise RESTError(
+                "InvalidInputException",
+                "You provided a value that does not match the required pattern.",
+            )
+
+        new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
+        account.tags.update(new_tags)
 
 
 organizations_backend = OrganizationsBackend()

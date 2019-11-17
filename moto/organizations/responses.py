@@ -119,3 +119,8 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_targets_for_policy(**self.request_params)
         )
+
+    def tag_resource(self):
+        return json.dumps(
+            self.organizations_backend.tag_resource(**self.request_params)
+        )
