@@ -4766,7 +4766,7 @@
 - [X] list_targets_for_policy
 - [X] move_account
 - [ ] remove_account_from_organization
-- [ ] tag_resource
+- [x] tag_resource
 - [ ] untag_resource
 - [ ] update_organizational_unit
 - [ ] update_policy

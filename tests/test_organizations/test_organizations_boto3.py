@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto3
 import json
 import six
+import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
@@ -605,3 +606,32 @@ def test_list_targets_for_policy_exception():
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("InvalidInputException")
+
+
+@mock_organizations
+def test_tag_resource():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+
+    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+
+
+@mock_organizations
+def test_tag_resource_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.tag_resource(
+            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},]
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("TagResource")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.contain(
+        "You provided a value that does not match the required pattern."
+    )
