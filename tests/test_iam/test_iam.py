@@ -2362,3 +2362,123 @@ def test_delete_account_password_policy_errors():
     client.delete_account_password_policy.when.called_with().should.throw(
         ClientError, "The account policy with name PasswordPolicy cannot be found."
     )
+
+
+@mock_iam
+def test_get_account_summary():
+    client = boto3.client("iam", region_name="us-east-1")
+    iam = boto3.resource("iam", region_name="us-east-1")
+
+    account_summary = iam.AccountSummary()
+
+    account_summary.summary_map.should.equal(
+        {
+            "GroupPolicySizeQuota": 5120,
+            "InstanceProfilesQuota": 1000,
+            "Policies": 0,
+            "GroupsPerUserQuota": 10,
+            "InstanceProfiles": 0,
+            "AttachedPoliciesPerUserQuota": 10,
+            "Users": 0,
+            "PoliciesQuota": 1500,
+            "Providers": 0,
+            "AccountMFAEnabled": 0,
+            "AccessKeysPerUserQuota": 2,
+            "AssumeRolePolicySizeQuota": 2048,
+            "PolicyVersionsInUseQuota": 10000,
+            "GlobalEndpointTokenVersion": 1,
+            "VersionsPerPolicyQuota": 5,
+            "AttachedPoliciesPerGroupQuota": 10,
+            "PolicySizeQuota": 6144,
+            "Groups": 0,
+            "AccountSigningCertificatesPresent": 0,
+            "UsersQuota": 5000,
+            "ServerCertificatesQuota": 20,
+            "MFADevices": 0,
+            "UserPolicySizeQuota": 2048,
+            "PolicyVersionsInUse": 0,
+            "ServerCertificates": 0,
+            "Roles": 0,
+            "RolesQuota": 1000,
+            "SigningCertificatesPerUserQuota": 2,
+            "MFADevicesInUse": 0,
+            "RolePolicySizeQuota": 10240,
+            "AttachedPoliciesPerRoleQuota": 10,
+            "AccountAccessKeysPresent": 0,
+            "GroupsQuota": 300,
+        }
+    )
+
+    client.create_instance_profile(InstanceProfileName="test-profile")
+    client.create_open_id_connect_provider(
+        Url="https://example.com", ThumbprintList=[],
+    )
+    response_policy = client.create_policy(
+        PolicyName="test-policy", PolicyDocument=MOCK_POLICY
+    )
+    client.create_role(RoleName="test-role", AssumeRolePolicyDocument="test policy")
+    client.attach_role_policy(
+        RoleName="test-role", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.create_saml_provider(
+        Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
+    )
+    client.create_group(GroupName="test-group")
+    client.attach_group_policy(
+        GroupName="test-group", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.create_user(UserName="test-user")
+    client.attach_user_policy(
+        UserName="test-user", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.enable_mfa_device(
+        UserName="test-user",
+        SerialNumber="123456789",
+        AuthenticationCode1="234567",
+        AuthenticationCode2="987654",
+    )
+    client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
+    client.upload_server_certificate(
+        ServerCertificateName="test-cert",
+        CertificateBody="cert-body",
+        PrivateKey="private-key",
+    )
+    account_summary.load()
+
+    account_summary.summary_map.should.equal(
+        {
+            "GroupPolicySizeQuota": 5120,
+            "InstanceProfilesQuota": 1000,
+            "Policies": 1,
+            "GroupsPerUserQuota": 10,
+            "InstanceProfiles": 1,
+            "AttachedPoliciesPerUserQuota": 10,
+            "Users": 1,
+            "PoliciesQuota": 1500,
+            "Providers": 2,
+            "AccountMFAEnabled": 0,
+            "AccessKeysPerUserQuota": 2,
+            "AssumeRolePolicySizeQuota": 2048,
+            "PolicyVersionsInUseQuota": 10000,
+            "GlobalEndpointTokenVersion": 1,
+            "VersionsPerPolicyQuota": 5,
+            "AttachedPoliciesPerGroupQuota": 10,
+            "PolicySizeQuota": 6144,
+            "Groups": 1,
+            "AccountSigningCertificatesPresent": 0,
+            "UsersQuota": 5000,
+            "ServerCertificatesQuota": 20,
+            "MFADevices": 1,
+            "UserPolicySizeQuota": 2048,
+            "PolicyVersionsInUse": 3,
+            "ServerCertificates": 1,
+            "Roles": 1,
+            "RolesQuota": 1000,
+            "SigningCertificatesPerUserQuota": 2,
+            "MFADevicesInUse": 1,
+            "RolePolicySizeQuota": 10240,
+            "AttachedPoliciesPerRoleQuota": 10,
+            "AccountAccessKeysPresent": 0,
+            "GroupsQuota": 300,
+        }
+    )
