@@ -147,7 +147,7 @@ class SESBackend(BaseBackend):
 
     def __type_of_message__(self, destinations):
         """Checks the destination for any special address that could indicate delivery,
-        complaint or bounce like in SES simualtor"""
+        complaint or bounce like in SES simulator"""
         alladdress = (
             destinations.get("ToAddresses", [])
             + destinations.get("CcAddresses", [])

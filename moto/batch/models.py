@@ -624,7 +624,7 @@ class BatchBackend(BaseBackend):
 
     def get_job_definition(self, identifier):
         """
-        Get job defintiion by name or ARN
+        Get job definitions by name or ARN
         :param identifier: Name or ARN
         :type identifier: str
 
@@ -643,7 +643,7 @@ class BatchBackend(BaseBackend):
 
     def get_job_definitions(self, identifier):
         """
-        Get job defintiion by name or ARN
+        Get job definitions by name or ARN
         :param identifier: Name or ARN
         :type identifier: str
 
@@ -934,7 +934,7 @@ class BatchBackend(BaseBackend):
             self.ecs_backend.delete_cluster(compute_env.ecs_name)
 
             if compute_env.env_type == "MANAGED":
-                # Delete compute envrionment
+                # Delete compute environment
                 instance_ids = [instance.id for instance in compute_env.instances]
                 self.ec2_backend.terminate_instances(instance_ids)
 
@@ -1195,7 +1195,7 @@ class BatchBackend(BaseBackend):
         depends_on=None,
         container_overrides=None,
     ):
-        # TODO parameters, retries (which is a dict raw from request), job dependancies and container overrides are ignored for now
+        # TODO parameters, retries (which is a dict raw from request), job dependencies and container overrides are ignored for now
 
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
