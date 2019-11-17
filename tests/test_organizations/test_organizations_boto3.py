@@ -618,6 +618,17 @@ def test_tag_resource():
 
     client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
 
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(
+        ResourceId=account_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
+
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
 
 @mock_organizations
 def test_tag_resource_errors():
@@ -630,6 +641,36 @@ def test_tag_resource_errors():
         )
     ex = e.exception
     ex.operation_name.should.equal("TagResource")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.contain(
+        "You provided a value that does not match the required pattern."
+    )
+
+
+@mock_organizations
+def test_list_tags_for_resource():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=account_id)
+
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+
+@mock_organizations
+def test_list_tags_for_resource_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.list_tags_for_resource(ResourceId="000000000000")
+    ex = e.exception
+    ex.operation_name.should.equal("ListTagsForResource")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.contain(
