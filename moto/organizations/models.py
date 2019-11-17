@@ -455,5 +455,17 @@ class OrganizationsBackend(BaseBackend):
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         account.tags.update(new_tags)
 
+    def list_tags_for_resource(self, **kwargs):
+        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
+
+        if account is None:
+            raise RESTError(
+                "InvalidInputException",
+                "You provided a value that does not match the required pattern.",
+            )
+
+        tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
+        return dict(Tags=tags)
+
 
 organizations_backend = OrganizationsBackend()
