@@ -489,13 +489,6 @@ class SshPublicKey(BaseModel):
     def uploaded_iso_8601(self):
         return iso_8601_datetime_without_milliseconds(self.upload_date)
 
-    def get_cfn_attribute(self, attribute_name):
-        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-
-        if attribute_name == "PublicKeyBody":
-            return self.public_key_body
-        raise UnformattedGetAttTemplateException()
-
 
 class Group(BaseModel):
     def __init__(self, name, path="/"):
