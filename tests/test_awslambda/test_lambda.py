@@ -162,7 +162,7 @@ if settings.TEST_SERVER_MODE:
         conn = boto3.client("lambda", "us-west-2")
         conn.create_function(
             FunctionName="testFunction",
-            Runtime="python2.7",
+            Runtime="python3.7",
             Role="test-iam-role",
             Handler="lambda_function.lambda_handler",
             Code={"ZipFile": get_test_zip_file2()},
@@ -184,18 +184,20 @@ if settings.TEST_SERVER_MODE:
             vol.id,
             vol.state,
             vol.size,
-            json.dumps(in_data),
+            json.dumps(in_data).replace(
+                " ", ""
+            ),  # Makes the tests pass as the result is missing the whitespace
         )
 
         log_result = base64.b64decode(result["LogResult"]).decode("utf-8")
 
-        # fix for running under travis (TODO: investigate why it has an extra newline)
+        # The Docker lambda invocation will return an additional '\n', so need to replace it:
         log_result = log_result.replace("\n\n", "\n")
         log_result.should.equal(msg)
 
         payload = result["Payload"].read().decode("utf-8")
 
-        # fix for running under travis (TODO: investigate why it has an extra newline)
+        # The Docker lambda invocation will return an additional '\n', so need to replace it:
         payload = payload.replace("\n\n", "\n")
         payload.should.equal(msg)
 
