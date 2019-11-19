@@ -190,7 +190,7 @@ def create_backend_app(service):
         index = 2
         while endpoint in backend_app.view_functions:
             # HACK: Sometimes we map the same view to multiple url_paths. Flask
-            # requries us to have different names.
+            # requires us to have different names.
             endpoint = original_endpoint + str(index)
             index += 1
 
