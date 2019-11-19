@@ -58,7 +58,7 @@ from .xray import XRaySegment, mock_xray, mock_xray_client  # noqa
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "1.3.14.dev"
+__version__ = "1.3.15.dev"
 
 
 try:

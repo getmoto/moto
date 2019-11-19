@@ -53,8 +53,9 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-
-_stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
+# The lambci container is returning a special escape character for the "RequestID" fields. Unicode 033:
+# _stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
+_stderr_regex = re.compile(r"\033\[\d+.*")
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
@@ -450,7 +451,7 @@ class LambdaFunction(BaseModel):
             if exit_code != 0:
                 raise Exception("lambda invoke failed output: {}".format(output))
 
-            # strip out RequestId lines
+            # strip out RequestId lines (TODO: This will return an additional '\n' in the response)
             output = os.linesep.join(
                 [
                     line
@@ -997,6 +998,32 @@ class LambdaBackend(BaseBackend):
 
     def add_policy(self, function_name, policy):
         self.get_function(function_name).policy = policy
+
+    def update_function_code(self, function_name, qualifier, body):
+        fn = self.get_function(function_name, qualifier)
+
+        if fn:
+            if body.get("Publish", False):
+                fn = self.publish_function(function_name)
+
+            config = fn.update_function_code(body)
+            return config
+        else:
+            return None
+
+    def update_function_configuration(self, function_name, qualifier, body):
+        fn = self.get_function(function_name, qualifier)
+
+        return fn.update_configuration(body) if fn else None
+
+    def invoke(self, function_name, qualifier, body, headers, response_headers):
+        fn = self.get_function(function_name, qualifier)
+        if fn:
+            payload = fn.invoke(body, headers, response_headers)
+            response_headers["Content-Length"] = str(len(payload))
+            return response_headers, payload
+        else:
+            return response_headers, None
 
 
 def do_validate_s3():

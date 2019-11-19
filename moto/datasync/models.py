@@ -27,12 +27,14 @@ class Task(BaseModel):
         name,
         region_name,
         arn_counter=0,
+        metadata=None,
     ):
         self.source_location_arn = source_location_arn
         self.destination_location_arn = destination_location_arn
+        self.name = name
+        self.metadata = metadata
         # For simplicity Tasks are either available or running
         self.status = "AVAILABLE"
-        self.name = name
         self.current_task_execution_arn = None
         # Generate ARN
         self.arn = "arn:aws:datasync:{0}:111222333444:task/task-{1}".format(
@@ -129,7 +131,27 @@ class DataSyncBackend(BaseBackend):
         self.locations[location.arn] = location
         return location.arn
 
-    def create_task(self, source_location_arn, destination_location_arn, name):
+    def _get_location(self, location_arn, typ):
+        if location_arn not in self.locations:
+            raise InvalidRequestException(
+                "Location {0} is not found.".format(location_arn)
+            )
+        location = self.locations[location_arn]
+        if location.typ != typ:
+            raise InvalidRequestException(
+                "Invalid Location type: {0}".format(location.typ)
+            )
+        return location
+
+    def delete_location(self, location_arn):
+        if location_arn in self.locations:
+            del self.locations[location_arn]
+        else:
+            raise InvalidRequestException
+
+    def create_task(
+        self, source_location_arn, destination_location_arn, name, metadata=None
+    ):
         if source_location_arn not in self.locations:
             raise InvalidRequestException(
                 "Location {0} not found.".format(source_location_arn)
@@ -145,9 +167,32 @@ class DataSyncBackend(BaseBackend):
             name,
             region_name=self.region_name,
             arn_counter=self.arn_counter,
+            metadata=metadata,
         )
         self.tasks[task.arn] = task
         return task.arn
+
+    def _get_task(self, task_arn):
+        if task_arn in self.tasks:
+            return self.tasks[task_arn]
+        else:
+            raise InvalidRequestException
+
+    def update_task(self, task_arn, name, metadata):
+        if task_arn in self.tasks:
+            task = self.tasks[task_arn]
+            task.name = name
+            task.metadata = metadata
+        else:
+            raise InvalidRequestException(
+                "Sync task {0} is not found.".format(task_arn)
+            )
+
+    def delete_task(self, task_arn):
+        if task_arn in self.tasks:
+            del self.tasks[task_arn]
+        else:
+            raise InvalidRequestException
 
     def start_task_execution(self, task_arn):
         self.arn_counter = self.arn_counter + 1
@@ -161,12 +206,19 @@ class DataSyncBackend(BaseBackend):
                 return task_execution.arn
         raise InvalidRequestException("Invalid request.")
 
+    def _get_task_execution(self, task_execution_arn):
+        if task_execution_arn in self.task_executions:
+            return self.task_executions[task_execution_arn]
+        else:
+            raise InvalidRequestException
+
     def cancel_task_execution(self, task_execution_arn):
         if task_execution_arn in self.task_executions:
             task_execution = self.task_executions[task_execution_arn]
             task_execution.cancel()
             task_arn = task_execution.task_arn
             self.tasks[task_arn].current_task_execution_arn = None
+            self.tasks[task_arn].status = "AVAILABLE"
             return
         raise InvalidRequestException(
             "Sync task {0} is not found.".format(task_execution_arn)

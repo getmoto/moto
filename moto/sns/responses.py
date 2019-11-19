@@ -77,7 +77,7 @@ class SNSResponse(BaseResponse):
                     transform_value = value["StringValue"]
             elif "BinaryValue" in value:
                 transform_value = value["BinaryValue"]
-            if not transform_value:
+            if transform_value == "":
                 raise InvalidParameterValue(
                     "The message attribute '{0}' must contain non-empty "
                     "message attribute value for message attribute "

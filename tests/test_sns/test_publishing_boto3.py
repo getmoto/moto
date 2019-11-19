@@ -173,6 +173,27 @@ def test_publish_to_sqs_msg_attr_byte_value():
     )
 
 
+@mock_sqs
+@mock_sns
+def test_publish_to_sqs_msg_attr_number_type():
+    sns = boto3.resource("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="test-topic")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
+
+    topic.publish(
+        Message="test message",
+        MessageAttributes={"retries": {"DataType": "Number", "StringValue": "0"}},
+    )
+
+    message = json.loads(queue.receive_messages()[0].body)
+    message["Message"].should.equal("test message")
+    message["MessageAttributes"].should.equal(
+        {"retries": {"Type": "Number", "Value": 0}}
+    )
+
+
 @mock_sns
 def test_publish_sms():
     client = boto3.client("sns", region_name="us-east-1")
