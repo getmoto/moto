@@ -1506,7 +1506,6 @@ def test_update_function_s3():
 @mock_lambda
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
-    err.exception.response["Error"]["Code"].should.equal("ValidationException")
     err.exception.response["Error"]["Message"].should.equal(
         "1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
     )
@@ -1515,7 +1514,6 @@ def test_create_function_with_invalid_arn():
 @mock_lambda
 def test_create_function_with_arn_from_different_account():
     err = create_invalid_lambda("arn:aws:iam::000000000000:role/example_role")
-    err.exception.response["Error"]["Code"].should.equal("AccessDeniedException")
     err.exception.response["Error"]["Message"].should.equal(
         "Cross-account pass role is not allowed."
     )
@@ -1525,9 +1523,6 @@ def test_create_function_with_arn_from_different_account():
 def test_create_function_with_unknown_arn():
     err = create_invalid_lambda(
         "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/service-role/unknown_role"
-    )
-    err.exception.response["Error"]["Code"].should.equal(
-        "InvalidParameterValueException"
     )
     err.exception.response["Error"]["Message"].should.equal(
         "The role defined for the function cannot be assumed by Lambda."
@@ -1555,6 +1550,11 @@ def create_invalid_lambda(role):
 def get_role_name():
     with mock_iam():
         iam = boto3.client("iam")
-        return iam.create_role(
-            RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
-        )["Role"]["Arn"]
+        try:
+            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+        except ClientError:
+            return iam.create_role(
+                RoleName="my-role",
+                AssumeRolePolicyDocument="some policy",
+                Path="/my-path/",
+            )["Role"]["Arn"]
