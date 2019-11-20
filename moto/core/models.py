@@ -44,6 +44,7 @@ class BaseMockAWS(object):
             "AWS_ACCESS_KEY_ID": "foobar_key",
             "AWS_SECRET_ACCESS_KEY": "foobar_secret",
         }
+        self.default_session_mock = mock.patch("boto3.DEFAULT_SESSION", None)
         self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
 
         if self.__class__.nested_count == 0:
@@ -62,6 +63,7 @@ class BaseMockAWS(object):
         self.stop()
 
     def start(self, reset=True):
+        self.default_session_mock.start()
         self.env_variables_mocks.start()
 
         self.__class__.nested_count += 1
@@ -72,6 +74,7 @@ class BaseMockAWS(object):
         self.enable_patching()
 
     def stop(self):
+        self.default_session_mock.stop()
         self.env_variables_mocks.stop()
         self.__class__.nested_count -= 1
 
