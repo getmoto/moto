@@ -88,7 +88,9 @@ class IAMPolicyDocumentValidator:
         self._policy_document = policy_document
         self._policy_json = {}
         self._statements = []
-        self._resource_error = ""  # the first resource error found that does not generate a legacy parsing error
+        self._resource_error = (
+            ""
+        )  # the first resource error found that does not generate a legacy parsing error
 
     def validate(self):
         try:
