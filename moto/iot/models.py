@@ -82,8 +82,8 @@ class FakeThingGroup(BaseModel):
         if parent_group_name:
             self.metadata["parentGroupName"] = parent_group_name
             self.metadata["rootToParentThingGroups"] = [
-                {"groupName": g.thing_group_name, "groupArn": g.arn}
-                for g in thing_groups
+                {"groupName": group.thing_group_name, "groupArn": group_arn}
+                for group_arn, group in thing_groups.items()
             ]
         self.arn = "arn:aws:iot:%s:1:thinggroup/%s" % (
             self.region_name,
