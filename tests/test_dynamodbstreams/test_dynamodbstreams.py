@@ -226,7 +226,10 @@ class TestEdges:
         with assert_raises(conn.exceptions.ResourceInUseException):
             resp = conn.update_table(
                 TableName="test-streams",
-                StreamSpecification={"StreamViewType": "OLD_IMAGES", "StreamEnabled": True},
+                StreamSpecification={
+                    "StreamViewType": "OLD_IMAGES",
+                    "StreamEnabled": True,
+                },
             )
 
     def test_stream_with_range_key(self):

@@ -563,7 +563,7 @@ def test_create_stage():
     api_id = response["id"]
 
     create_method_integration(client, api_id)
-    response = client.create_deployment(restApiId=api_id, stageName=stage_name,)
+    response = client.create_deployment(restApiId=api_id, stageName=stage_name)
     deployment_id = response["id"]
 
     response = client.get_deployment(restApiId=api_id, deploymentId=deployment_id)

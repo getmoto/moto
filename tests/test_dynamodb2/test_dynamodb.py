@@ -3335,7 +3335,7 @@ def test_update_item_if_original_value_is_none():
     table.update_item(
         Key={"job_id": "a"},
         UpdateExpression="SET job_name = :output",
-        ExpressionAttributeValues={":output": "updated",},
+        ExpressionAttributeValues={":output": "updated"},
     )
     table.scan()["Items"][0]["job_name"].should.equal("updated")
 
@@ -3354,7 +3354,7 @@ def test_update_nested_item_if_original_value_is_none():
     table.update_item(
         Key={"job_id": "a"},
         UpdateExpression="SET job_details.job_name = :output",
-        ExpressionAttributeValues={":output": "updated",},
+        ExpressionAttributeValues={":output": "updated"},
     )
     table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
 

@@ -261,10 +261,7 @@ class EventsHandler(BaseResponse):
         name = self._get_param("Name")
 
         event_bus = self.events_backend.describe_event_bus(name)
-        response = {
-            "Name": event_bus.name,
-            "Arn": event_bus.arn,
-        }
+        response = {"Name": event_bus.name, "Arn": event_bus.arn}
 
         if event_bus.policy:
             response["Policy"] = event_bus.policy
@@ -285,10 +282,7 @@ class EventsHandler(BaseResponse):
 
         response = []
         for event_bus in self.events_backend.list_event_buses(name_prefix):
-            event_bus_response = {
-                "Name": event_bus.name,
-                "Arn": event_bus.arn,
-            }
+            event_bus_response = {"Name": event_bus.name, "Arn": event_bus.arn}
 
             if event_bus.policy:
                 event_bus_response["Policy"] = event_bus.policy
