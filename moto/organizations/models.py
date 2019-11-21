@@ -8,7 +8,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
-from moto.organizations.exceptions import InvalidInputError
+from moto.organizations.exceptions import InvalidInputException
 
 
 class FakeOrganization(BaseModel):
@@ -448,7 +448,7 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputError
+            raise InvalidInputException
 
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         account.tags.update(new_tags)
@@ -457,7 +457,7 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputError
+            raise InvalidInputException
 
         tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
         return dict(Tags=tags)
@@ -466,7 +466,7 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputError
+            raise InvalidInputException
 
         for key in kwargs["TagKeys"]:
             account.tags.pop(key, None)
