@@ -213,7 +213,7 @@ class TestEdges:
 
         resp = conn.update_table(
             TableName="test-streams",
-            StreamSpecification={"StreamViewType": "KEYS_ONLY"},
+            StreamSpecification={"StreamEnabled": True, "StreamViewType": "KEYS_ONLY"},
         )
         assert "StreamSpecification" in resp["TableDescription"]
         assert resp["TableDescription"]["StreamSpecification"] == {
@@ -226,7 +226,10 @@ class TestEdges:
         with assert_raises(conn.exceptions.ResourceInUseException):
             resp = conn.update_table(
                 TableName="test-streams",
-                StreamSpecification={"StreamViewType": "OLD_IMAGES"},
+                StreamSpecification={
+                    "StreamEnabled": True,
+                    "StreamViewType": "OLD_IMAGES",
+                },
             )
 
     def test_stream_with_range_key(self):
@@ -243,7 +246,7 @@ class TestEdges:
                 {"AttributeName": "color", "AttributeType": "S"},
             ],
             ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-            StreamSpecification={"StreamViewType": "NEW_IMAGES"},
+            StreamSpecification={"StreamEnabled": True, "StreamViewType": "NEW_IMAGES"},
         )
         stream_arn = resp["TableDescription"]["LatestStreamArn"]
 
