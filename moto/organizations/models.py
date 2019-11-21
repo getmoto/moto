@@ -8,6 +8,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
+from moto.organizations.exceptions import InvalidInputError
 
 
 class FakeOrganization(BaseModel):
@@ -447,10 +448,7 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise RESTError(
-                "InvalidInputException",
-                "You provided a value that does not match the required pattern.",
-            )
+            raise InvalidInputError
 
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         account.tags.update(new_tags)
@@ -459,10 +457,7 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise RESTError(
-                "InvalidInputException",
-                "You provided a value that does not match the required pattern.",
-            )
+            raise InvalidInputError
 
         tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
         return dict(Tags=tags)
@@ -471,10 +466,7 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise RESTError(
-                "InvalidInputException",
-                "You provided a value that does not match the required pattern.",
-            )
+            raise InvalidInputError
 
         for key in kwargs["TagKeys"]:
             account.tags.pop(key, None)
