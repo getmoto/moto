@@ -582,6 +582,170 @@ def test_delete_principal_thing():
 
 
 @mock_iot
+def test_describe_thing_group_metadata_hierarchy():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    group_name_1a = "my-group-name-1a"
+    group_name_1b = "my-group-name-1b"
+    group_name_2a = "my-group-name-2a"
+    group_name_2b = "my-group-name-2b"
+    group_name_3a = "my-group-name-3a"
+    group_name_3b = "my-group-name-3b"
+    group_name_3c = "my-group-name-3c"
+    group_name_3d = "my-group-name-3d"
+
+    # --1a
+    #    |--2a
+    #    |   |--3a
+    #    |   |--3b
+    #    |
+    #    |--2b
+    #        |--3c
+    #        |--3d
+    # --1b
+
+    # create thing groups tree
+    # 1
+    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
+    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
+    thing_group1a.should.have.key("thingGroupArn")
+    thing_group1b = client.create_thing_group(thingGroupName=group_name_1b)
+    thing_group1b.should.have.key("thingGroupName").which.should.equal(group_name_1b)
+    thing_group1b.should.have.key("thingGroupArn")
+    # 2
+    thing_group2a = client.create_thing_group(
+        thingGroupName=group_name_2a, parentGroupName=group_name_1a
+    )
+    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
+    thing_group2a.should.have.key("thingGroupArn")
+    thing_group2b = client.create_thing_group(
+        thingGroupName=group_name_2b, parentGroupName=group_name_1a
+    )
+    thing_group2b.should.have.key("thingGroupName").which.should.equal(group_name_2b)
+    thing_group2b.should.have.key("thingGroupArn")
+    # 3
+    thing_group3a = client.create_thing_group(
+        thingGroupName=group_name_3a, parentGroupName=group_name_2a
+    )
+    thing_group3a.should.have.key("thingGroupName").which.should.equal(group_name_3a)
+    thing_group3a.should.have.key("thingGroupArn")
+    thing_group3b = client.create_thing_group(
+        thingGroupName=group_name_3b, parentGroupName=group_name_2a
+    )
+    thing_group3b.should.have.key("thingGroupName").which.should.equal(group_name_3b)
+    thing_group3b.should.have.key("thingGroupArn")
+    thing_group3c = client.create_thing_group(
+        thingGroupName=group_name_3c, parentGroupName=group_name_2b
+    )
+    thing_group3c.should.have.key("thingGroupName").which.should.equal(group_name_3c)
+    thing_group3c.should.have.key("thingGroupArn")
+    thing_group3d = client.create_thing_group(
+        thingGroupName=group_name_3d, parentGroupName=group_name_2b
+    )
+    thing_group3d.should.have.key("thingGroupName").which.should.equal(group_name_3d)
+    thing_group3d.should.have.key("thingGroupArn")
+
+    # describe groups
+    # groups level 1
+    # 1a
+    thing_group_description1a = client.describe_thing_group(thingGroupName=group_name_1a)
+    thing_group_description1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
+    thing_group_description1a.should.have.key("thingGroupProperties")
+    thing_group_description1a.should.have.key("thingGroupMetadata")
+    thing_group_description1a["thingGroupMetadata"].should.have.key("creationDate")
+    thing_group_description1a.should.have.key("version")
+    # 1b
+    thing_group_description1b = client.describe_thing_group(thingGroupName=group_name_1b)
+    thing_group_description1b.should.have.key("thingGroupName").which.should.equal(group_name_1b)
+    thing_group_description1b.should.have.key("thingGroupProperties")
+    thing_group_description1b.should.have.key("thingGroupMetadata")
+    thing_group_description1b["thingGroupMetadata"].should.have.length_of(1)
+    thing_group_description1b["thingGroupMetadata"].should.have.key("creationDate")
+    thing_group_description1b.should.have.key("version")
+    # groups level 2
+    # 2a
+    thing_group_description2a = client.describe_thing_group(thingGroupName=group_name_2a)
+    thing_group_description2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
+    thing_group_description2a.should.have.key("thingGroupProperties")
+    thing_group_description2a.should.have.key("thingGroupMetadata")
+    thing_group_description2a["thingGroupMetadata"].should.have.length_of(3)
+    thing_group_description2a["thingGroupMetadata"].should.have.key("parentGroupName").being.equal(group_name_1a)
+    thing_group_description2a["thingGroupMetadata"].should.have.key('rootToParentThingGroups')
+    thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"].should.have.length_of(1)
+    thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupName'].should.match(group_name_1a)
+    thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupArn'].should.match(thing_group1a['thingGroupArn'])
+    thing_group_description2a.should.have.key("version")
+    # 2b
+    thing_group_description2b = client.describe_thing_group(thingGroupName=group_name_2b)
+    thing_group_description2b.should.have.key("thingGroupName").which.should.equal(group_name_2b)
+    thing_group_description2b.should.have.key("thingGroupProperties")
+    thing_group_description2b.should.have.key("thingGroupMetadata")
+    thing_group_description2b["thingGroupMetadata"].should.have.length_of(3)
+    thing_group_description2b["thingGroupMetadata"].should.have.key("parentGroupName").being.equal(group_name_1a)
+    thing_group_description2b["thingGroupMetadata"].should.have.key('rootToParentThingGroups')
+    thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"].should.have.length_of(1)
+    thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupName'].should.match(group_name_1a)
+    thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupArn'].should.match(thing_group1a['thingGroupArn'])
+    thing_group_description2b.should.have.key("version")
+    # groups level 3
+    # 3a
+    thing_group_description3a = client.describe_thing_group(thingGroupName=group_name_3a)
+    thing_group_description3a.should.have.key("thingGroupName").which.should.equal(group_name_3a)
+    thing_group_description3a.should.have.key("thingGroupProperties")
+    thing_group_description3a.should.have.key("thingGroupMetadata")
+    thing_group_description3a["thingGroupMetadata"].should.have.length_of(3)
+    thing_group_description3a["thingGroupMetadata"].should.have.key("parentGroupName").being.equal(group_name_2a)
+    thing_group_description3a["thingGroupMetadata"].should.have.key('rootToParentThingGroups')
+    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"].should.have.length_of(2)
+    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupName'].should.match(group_name_1a)
+    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupArn'].should.match(thing_group1a['thingGroupArn'])
+    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupName'].should.match(group_name_2a)
+    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupArn'].should.match(thing_group2a['thingGroupArn'])
+    thing_group_description3a.should.have.key("version")
+    # 3b
+    thing_group_description3b = client.describe_thing_group(thingGroupName=group_name_3b)
+    thing_group_description3b.should.have.key("thingGroupName").which.should.equal(group_name_3b)
+    thing_group_description3b.should.have.key("thingGroupProperties")
+    thing_group_description3b.should.have.key("thingGroupMetadata")
+    thing_group_description3b["thingGroupMetadata"].should.have.length_of(3)
+    thing_group_description3b["thingGroupMetadata"].should.have.key("parentGroupName").being.equal(group_name_2a)
+    thing_group_description3b["thingGroupMetadata"].should.have.key('rootToParentThingGroups')
+    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"].should.have.length_of(2)
+    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupName'].should.match(group_name_1a)
+    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupArn'].should.match(thing_group1a['thingGroupArn'])
+    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupName'].should.match(group_name_2a)
+    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupArn'].should.match(thing_group2a['thingGroupArn'])
+    thing_group_description3b.should.have.key("version")
+    # 3c
+    thing_group_description3c = client.describe_thing_group(thingGroupName=group_name_3c)
+    thing_group_description3c.should.have.key("thingGroupName").which.should.equal(group_name_3c)
+    thing_group_description3c.should.have.key("thingGroupProperties")
+    thing_group_description3c.should.have.key("thingGroupMetadata")
+    thing_group_description3c["thingGroupMetadata"].should.have.length_of(3)
+    thing_group_description3c["thingGroupMetadata"].should.have.key("parentGroupName").being.equal(group_name_2b)
+    thing_group_description3c["thingGroupMetadata"].should.have.key('rootToParentThingGroups')
+    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"].should.have.length_of(2)
+    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupName'].should.match(group_name_1a)
+    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupArn'].should.match(thing_group1a['thingGroupArn'])
+    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupName'].should.match(group_name_2b)
+    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupArn'].should.match(thing_group2b['thingGroupArn'])
+    thing_group_description3c.should.have.key("version")
+    # 3d
+    thing_group_description3d = client.describe_thing_group(thingGroupName=group_name_3d)
+    thing_group_description3d.should.have.key("thingGroupName").which.should.equal(group_name_3d)
+    thing_group_description3d.should.have.key("thingGroupProperties")
+    thing_group_description3d.should.have.key("thingGroupMetadata")
+    thing_group_description3d["thingGroupMetadata"].should.have.length_of(3)
+    thing_group_description3d["thingGroupMetadata"].should.have.key("parentGroupName").being.equal(group_name_2b)
+    thing_group_description3d["thingGroupMetadata"].should.have.key('rootToParentThingGroups')
+    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"].should.have.length_of(2)
+    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupName'].should.match(group_name_1a)
+    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][0]['groupArn'].should.match(thing_group1a['thingGroupArn'])
+    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupName'].should.match(group_name_2b)
+    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1]['groupArn'].should.match(thing_group2b['thingGroupArn'])
+    thing_group_description3d.should.have.key("version")
+
+
+@mock_iot
 def test_thing_groups():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name = "my-group-name"

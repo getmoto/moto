@@ -81,10 +81,22 @@ class FakeThingGroup(BaseModel):
         self.metadata = {"creationDate": int(t * 1000) / 1000.0}
         if parent_group_name:
             self.metadata["parentGroupName"] = parent_group_name
-            self.metadata["rootToParentThingGroups"] = [
-                {"groupName": group.thing_group_name, "groupArn": group_arn}
-                for group_arn, group in thing_groups.items()
-            ]
+            #initilize rootToParentThingGroups
+            if 'rootToParentThingGroups' not in self.metadata:
+                self.metadata["rootToParentThingGroups"] = []
+            #search for parent arn
+            for thing_group_arn, thing_group in thing_groups.items():
+                if thing_group.thing_group_name == parent_group_name:
+                    parent_thing_group_structure = thing_group
+                    break
+            #if parent arn found (should always be found)
+            if (parent_thing_group_structure):
+                # copy parent's rootToParentThingGroups
+                if "rootToParentThingGroups" in parent_thing_group_structure.metadata:
+                    self.metadata["rootToParentThingGroups"].extend(parent_thing_group_structure.metadata["rootToParentThingGroups"])
+                self.metadata["rootToParentThingGroups"].extend([
+                    {"groupName": parent_group_name, "groupArn": parent_thing_group_structure.arn}
+                ])
         self.arn = "arn:aws:iot:%s:1:thinggroup/%s" % (
             self.region_name,
             thing_group_name,
