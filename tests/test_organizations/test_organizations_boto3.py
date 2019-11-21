@@ -641,9 +641,9 @@ def test_tag_resource_errors():
         )
     ex = e.exception
     ex.operation_name.should.equal("TagResource")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
-    ex.response["Error"]["Message"].should.contain(
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
     )
 
@@ -671,9 +671,9 @@ def test_list_tags_for_resource_errors():
         client.list_tags_for_resource(ResourceId="000000000000")
     ex = e.exception
     ex.operation_name.should.equal("ListTagsForResource")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
-    ex.response["Error"]["Message"].should.contain(
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
     )
 
@@ -708,8 +708,8 @@ def test_untag_resource_errors():
         client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
     ex = e.exception
     ex.operation_name.should.equal("UntagResource")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
-    ex.response["Error"]["Message"].should.contain(
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
     )
