@@ -4,6 +4,4 @@ from .responses import DataSyncResponse
 
 url_bases = ["https?://(.*?)(datasync)(.*?).amazonaws.com"]
 
-url_paths = {
-    "{0}/$": DataSyncResponse.dispatch,
-}
+url_paths = {"{0}/$": DataSyncResponse.dispatch}
