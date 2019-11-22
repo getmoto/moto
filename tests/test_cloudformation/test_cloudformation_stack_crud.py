@@ -598,7 +598,7 @@ def test_create_stack_kinesis():
 
 def get_role_name():
     with mock_iam():
-        iam = boto3.client("iam")
+        iam = boto3.client("iam", region_name="us-west-2")
         return iam.create_role(
             RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
         )["Role"]["Arn"]

@@ -1549,7 +1549,7 @@ def create_invalid_lambda(role):
 
 def get_role_name():
     with mock_iam():
-        iam = boto3.client("iam")
+        iam = boto3.client("iam", region_name="us-west-2")
         try:
             return iam.get_role(RoleName="my-role")["Role"]["Arn"]
         except ClientError:
