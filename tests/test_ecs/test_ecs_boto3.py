@@ -1924,9 +1924,7 @@ def test_attributes():
     )
     attrs = resp["attributes"]
 
-    NUM_CUSTOM_ATTRIBUTES = (
-        4
-    )  # 2 specific to individual machines and 1 global, going to both machines (2 + 1*2)
+    NUM_CUSTOM_ATTRIBUTES = 4  # 2 specific to individual machines and 1 global, going to both machines (2 + 1*2)
     NUM_DEFAULT_ATTRIBUTES = 4
     len(attrs).should.equal(
         NUM_CUSTOM_ATTRIBUTES + (NUM_DEFAULT_ATTRIBUTES * len(instances))

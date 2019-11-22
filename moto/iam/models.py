@@ -788,9 +788,7 @@ class AccountSummary(BaseModel):
         self._groups_per_user_quota = 10
         self._attached_policies_per_user_quota = 10
         self._policies_quota = 1500
-        self._account_mfa_enabled = (
-            0
-        )  # Haven't found any information being able to activate MFA for the root account programmatically
+        self._account_mfa_enabled = 0  # Haven't found any information being able to activate MFA for the root account programmatically
         self._access_keys_per_user_quota = 2
         self._assume_role_policy_size_quota = 2048
         self._policy_versions_in_use_quota = 10000
