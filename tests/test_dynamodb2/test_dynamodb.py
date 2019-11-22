@@ -3119,8 +3119,8 @@ def test_sorted_query_with_numerical_sort_key():
 # https://github.com/spulec/moto/issues/1874
 @mock_dynamodb2
 def test_item_size_is_under_400KB():
-    dynamodb = boto3.resource("dynamodb")
-    client = boto3.client("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     dynamodb.create_table(
         TableName="moto-test",
@@ -3172,7 +3172,7 @@ def assert_failure_due_to_item_size(func, **kwargs):
 @mock_dynamodb2
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
@@ -3201,7 +3201,7 @@ def test_hash_key_cannot_use_begins_with_operations():
 
 @mock_dynamodb2
 def test_update_supports_complex_expression_attribute_values():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -3237,7 +3237,7 @@ def test_update_supports_complex_expression_attribute_values():
 
 @mock_dynamodb2
 def test_update_supports_list_append():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -3272,7 +3272,7 @@ def test_update_supports_list_append():
 
 @mock_dynamodb2
 def test_update_catches_invalid_list_append_operation():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -3335,7 +3335,7 @@ def test_update_item_if_original_value_is_none():
     table.update_item(
         Key={"job_id": "a"},
         UpdateExpression="SET job_name = :output",
-        ExpressionAttributeValues={":output": "updated",},
+        ExpressionAttributeValues={":output": "updated"},
     )
     table.scan()["Items"][0]["job_name"].should.equal("updated")
 
@@ -3354,7 +3354,7 @@ def test_update_nested_item_if_original_value_is_none():
     table.update_item(
         Key={"job_id": "a"},
         UpdateExpression="SET job_details.job_name = :output",
-        ExpressionAttributeValues={":output": "updated",},
+        ExpressionAttributeValues={":output": "updated"},
     )
     table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
 
