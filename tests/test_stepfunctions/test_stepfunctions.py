@@ -524,7 +524,7 @@ def _get_account_id():
     global account_id
     if account_id:
         return account_id
-    sts = boto3.client("sts")
+    sts = boto3.client("sts", region_name=region)
     identity = sts.get_caller_identity()
     account_id = identity["Account"]
     return account_id

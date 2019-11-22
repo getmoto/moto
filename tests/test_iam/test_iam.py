@@ -2526,9 +2526,7 @@ def test_get_account_summary():
     )
 
     client.create_instance_profile(InstanceProfileName="test-profile")
-    client.create_open_id_connect_provider(
-        Url="https://example.com", ThumbprintList=[],
-    )
+    client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
     response_policy = client.create_policy(
         PolicyName="test-policy", PolicyDocument=MOCK_POLICY
     )
