@@ -302,9 +302,7 @@ class Job(threading.Thread, BaseModel):
         self.job_id = str(uuid.uuid4())
         self.job_definition = job_def
         self.job_queue = job_queue
-        self.job_state = (
-            "SUBMITTED"
-        )  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
+        self.job_state = "SUBMITTED"  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
         self.job_queue.jobs.append(self)
         self.job_started_at = datetime.datetime(1970, 1, 1)
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
