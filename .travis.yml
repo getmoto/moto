@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: python
 services:
 - docker
@@ -54,7 +54,7 @@ deploy:
     on:
       branch:
       - master
-    cleanup: false
+    skip_cleanup: true
     skip_existing: true
   # - provider: pypi
   #   distributions: sdist bdist_wheel

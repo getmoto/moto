@@ -761,7 +761,7 @@ class SQSBackend(BaseBackend):
 
         new_messages = []
         for message in queue._messages:
-            # Only delete message if it is not visible and the reciept_handle
+            # Only delete message if it is not visible and the receipt_handle
             # matches.
             if message.receipt_handle == receipt_handle:
                 queue.pending_messages.remove(message)

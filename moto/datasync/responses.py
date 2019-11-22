@@ -153,7 +153,7 @@ class DataSyncResponse(BaseResponse):
         task_execution_arn = self._get_param("TaskExecutionArn")
         task_execution = self.datasync_backend._get_task_execution(task_execution_arn)
         result = json.dumps(
-            {"TaskExecutionArn": task_execution.arn, "Status": task_execution.status,}
+            {"TaskExecutionArn": task_execution.arn, "Status": task_execution.status}
         )
         if task_execution.status == "SUCCESS":
             self.datasync_backend.tasks[task_execution.task_arn].status = "AVAILABLE"

@@ -430,7 +430,7 @@ class WorkflowExecution(BaseModel):
         )
 
     def fail(self, event_id, details=None, reason=None):
-        # TODO: implement lenght constraints on details/reason
+        # TODO: implement length constraints on details/reason
         self.execution_status = "CLOSED"
         self.close_status = "FAILED"
         self.close_timestamp = unix_time()

@@ -125,7 +125,7 @@ class HTTPrettyRequest(BaseHTTPRequestHandler, BaseClass):
     internal `parse_request` method.
 
     It also replaces the `rfile` and `wfile` attributes with StringIO
-    instances so that we garantee that it won't make any I/O, neighter
+    instances so that we guarantee that it won't make any I/O, neighter
     for writing nor reading.
 
     It has some convenience attributes:

@@ -46,8 +46,9 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-
-_stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
+# The lambci container is returning a special escape character for the "RequestID" fields. Unicode 033:
+# _stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
+_stderr_regex = re.compile(r"\033\[\d+.*")
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
@@ -444,7 +445,7 @@ class LambdaFunction(BaseModel):
             if exit_code != 0:
                 raise Exception("lambda invoke failed output: {}".format(output))
 
-            # strip out RequestId lines
+            # strip out RequestId lines (TODO: This will return an additional '\n' in the response)
             output = os.linesep.join(
                 [
                     line

@@ -316,8 +316,7 @@ class EventsBackend(BaseBackend):
 
         if not event_bus:
             raise JsonRESTError(
-                "ResourceNotFoundException",
-                "Event bus {} does not exist.".format(name),
+                "ResourceNotFoundException", "Event bus {} does not exist.".format(name)
             )
 
         return event_bus

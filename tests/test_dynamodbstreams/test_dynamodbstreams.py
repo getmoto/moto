@@ -213,7 +213,7 @@ class TestEdges:
 
         resp = conn.update_table(
             TableName="test-streams",
-            StreamSpecification={"StreamEnabled": True, "StreamViewType": "KEYS_ONLY"},
+            StreamSpecification={"StreamViewType": "KEYS_ONLY", "StreamEnabled": True},
         )
         assert "StreamSpecification" in resp["TableDescription"]
         assert resp["TableDescription"]["StreamSpecification"] == {
@@ -227,8 +227,8 @@ class TestEdges:
             resp = conn.update_table(
                 TableName="test-streams",
                 StreamSpecification={
-                    "StreamEnabled": True,
                     "StreamViewType": "OLD_IMAGES",
+                    "StreamEnabled": True,
                 },
             )
 
@@ -246,7 +246,7 @@ class TestEdges:
                 {"AttributeName": "color", "AttributeType": "S"},
             ],
             ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-            StreamSpecification={"StreamEnabled": True, "StreamViewType": "NEW_IMAGES"},
+            StreamSpecification={"StreamViewType": "NEW_IMAGES", "StreamEnabled": True},
         )
         stream_arn = resp["TableDescription"]["LatestStreamArn"]
 
