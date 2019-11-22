@@ -206,7 +206,6 @@ class SecretsManagerBackend(BaseBackend):
                     return version
         return None
 
-
     def describe_secret(self, secret_id):
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
