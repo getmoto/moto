@@ -106,6 +106,7 @@ mock_mediastore = lazy_load(".mediastore", "mock_mediastore")
 mock_mediastoredata = lazy_load(
     ".mediastoredata", "mock_mediastoredata", boto3_name="mediastore-data"
 )
+mock_meteringmarketplace = lazy_load(".meteringmarketplace", "mock_meteringmarketplace")
 mock_mq = lazy_load(".mq", "mock_mq", boto3_name="mq")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
