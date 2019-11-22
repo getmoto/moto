@@ -170,13 +170,13 @@ class SecretsManagerBackend(BaseBackend):
                 awsprevious_version['version_stages'].remove('AWSPREVIOUS')
             if awscurrent_version:
                 awscurrent_version['version_stages'].remove('AWSCURRENT')
-                awscurrent_version['version_stages'].update(('AWSPREVIOUS',))
-            secret_version['version_stages'].update(('AWSCURRENT',))
+                awscurrent_version['version_stages'].append('AWSPREVIOUS')
+            secret_version['version_stages'].append('AWSCURRENT')
             self.secrets[secret_id]['default_version_id'] = version_id
 
         # if this is the only version, set AWSCURRENT
         if len(self.secrets[secret_id]['versions']) == 1:
-            secret_version['version_stages'].update(('AWSCURRENT',))
+            secret_version['version_stages'].append('AWSCURRENT')
 
         secret = self.secrets[secret_id]
         secret['secret_id'] = secret_id
