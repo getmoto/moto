@@ -25,11 +25,25 @@ class SecretsManager(BaseModel):
         self.region = region_name
 
 
+class SecretsStore(dict):
+    def __setitem__(self, key, value):
+        new_key = get_secret_name_from_arn(key)
+        super(SecretsStore, self).__setitem__(new_key, value)
+
+    def __getitem__(self, key):
+        new_key = get_secret_name_from_arn(key)
+        return super(SecretsStore, self).__getitem__(new_key)
+
+    def __contains__(self, key):
+        new_key = get_secret_name_from_arn(key)
+        return dict.__contains__(self, new_key)
+
+
 class SecretsManagerBackend(BaseBackend):
     def __init__(self, region_name=None, **kwargs):
         super(SecretsManagerBackend, self).__init__()
         self.region = region_name
-        self.secrets = {}
+        self.secrets = SecretsStore()
 
     def reset(self):
         region_name = self.region
@@ -44,7 +58,6 @@ class SecretsManagerBackend(BaseBackend):
         return (dt - epoch).total_seconds()
 
     def get_secret_value(self, secret_id, version_id, version_stage):
-        secret_id = get_secret_name_from_arn(secret_id)
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -196,7 +209,6 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def describe_secret(self, secret_id):
-        secret_id = get_secret_name_from_arn(secret_id)
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
