@@ -44,7 +44,15 @@ class SecretsManagerBackend(BaseBackend):
         return (dt - epoch).total_seconds()
 
     def get_secret_value(self, secret_id, version_id, version_stage):
-
+        # can fetch by both arn and by name
+        # but we are storing via name
+        # so we need to change the arn to name
+        # if it starts with arn then the secret id is arn
+        if secret_id.startswith("arn:aws:secretsmanager:%s" % self.region):
+            # split the arn by colon
+            # then get the last value which is the name appended with a random string
+            # then remove the random string
+            secret_id = '-'.join(secret_id.split(':')[-1].split('-')[:-1])
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
