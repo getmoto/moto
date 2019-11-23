@@ -17,7 +17,7 @@ from .exceptions import (
     InvalidRequestException,
     ClientError,
 )
-from .utils import random_password, secret_arn
+from .utils import random_password, secret_arn, get_secret_name_from_arn
 
 
 class SecretsManager(BaseModel):
@@ -44,15 +44,7 @@ class SecretsManagerBackend(BaseBackend):
         return (dt - epoch).total_seconds()
 
     def get_secret_value(self, secret_id, version_id, version_stage):
-        # can fetch by both arn and by name
-        # but we are storing via name
-        # so we need to change the arn to name
-        # if it starts with arn then the secret id is arn
-        if secret_id.startswith("arn:aws:secretsmanager:%s" % self.region):
-            # split the arn by colon
-            # then get the last value which is the name appended with a random string
-            # then remove the random string
-            secret_id = '-'.join(secret_id.split(':')[-1].split('-')[:-1])
+        secret_id = get_secret_name_from_arn(secret_id)
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -204,6 +196,7 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def describe_secret(self, secret_id):
+        secret_id = get_secret_name_from_arn(secret_id)
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
