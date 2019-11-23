@@ -27,6 +27,18 @@ def test_get_secret_value():
 
 
 @mock_secretsmanager
+def test_get_secret_value_by_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_value = "test_get_secret_value_by_arn"
+    result = conn.create_secret(
+        Name="java-util-test-password", SecretString=secret_value
+    )
+    result = conn.get_secret_value(SecretId=result["ARN"])
+    assert result["SecretString"] == secret_value
+
+
+@mock_secretsmanager
 def test_get_secret_value_binary():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
