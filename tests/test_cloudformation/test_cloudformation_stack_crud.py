@@ -4,7 +4,6 @@ import os
 import json
 
 import boto
-import boto3
 import boto.iam
 import boto.s3
 import boto.s3.key
@@ -20,7 +19,7 @@ from moto import (
     mock_cloudformation_deprecated,
     mock_s3_deprecated,
     mock_route53_deprecated,
-    mock_iam,
+    mock_iam_deprecated,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -597,8 +596,9 @@ def test_create_stack_kinesis():
 
 
 def get_role_name():
-    with mock_iam():
-        iam = boto3.client("iam", region_name="us-west-2")
-        return iam.create_role(
-            RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
-        )["Role"]["Arn"]
+    with mock_iam_deprecated():
+        iam = boto.connect_iam()
+        role = iam.create_role("my-role")["create_role_response"]["create_role_result"][
+            "role"
+        ]["arn"]
+        return role
