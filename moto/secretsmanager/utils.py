@@ -81,7 +81,7 @@ def get_secret_name_from_arn(secret_id):
         # split the arn by colon
         # then get the last value which is the name appended with a random string
         # then remove the random string
-        secret_id = '-'.join(secret_id.split(':')[-1].split('-')[:-1])
+        secret_id = "-".join(secret_id.split(":")[-1].split("-")[:-1])
     return secret_id
 
 
