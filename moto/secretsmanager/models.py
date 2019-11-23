@@ -127,7 +127,7 @@ class SecretsManagerBackend(BaseBackend):
         version_id=None,
         version_stages=None,
     ):
-
+        print("_add_secret: version_stages = {}".format(version_stages))
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
 
@@ -294,8 +294,8 @@ class SecretsManagerBackend(BaseBackend):
         if secret["auto_rotate_after_days"] > 0:
             secret["rotation_enabled"] = True
 
-        if "AWSCURRENT" in old_secret_version["version_stages"]:
-            old_secret_version["version_stages"].remove("AWSCURRENT")
+        if "AWSCURRENT" in old_secret_version['version_stages']:
+            old_secret_version['version_stages'].remove("AWSCURRENT")
 
         response = json.dumps(
             {
