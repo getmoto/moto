@@ -374,6 +374,18 @@ def test_describe_secret():
 
 
 @mock_secretsmanager
+def test_describe_secret_with_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    results = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    secret_description = conn.describe_secret(SecretId=results['ARN'])
+
+    assert secret_description  # Returned dict is not empty
+    assert secret_description["Name"] == ("test-secret")
+    assert secret_description["ARN"] != results['ARN']
+
+
+@mock_secretsmanager
 def test_describe_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
