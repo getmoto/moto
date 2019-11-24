@@ -127,7 +127,7 @@ def get_template(bucket_name, version, runtime):
 
 def get_role_arn():
     with mock_iam():
-        iam = boto3.client("iam")
+        iam = boto3.client("iam", region_name="us-west-2")
         try:
             return iam.get_role(RoleName="my-role")["Role"]["Arn"]
         except ClientError:
