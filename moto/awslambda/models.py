@@ -357,6 +357,8 @@ class LambdaFunction(BaseModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+                self.code["S3Bucket"] = updated_spec["S3Bucket"]
+                self.code["S3Key"] = updated_spec["S3Key"]
 
         return self.get_configuration()
 
@@ -520,6 +522,15 @@ class LambdaFunction(BaseModel):
             return make_function_arn(self.region, ACCOUNT_ID, self.function_name)
         raise UnformattedGetAttTemplateException()
 
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        updated_props = cloudformation_json["Properties"]
+        original_resource.update_configuration(updated_props)
+        original_resource.update_function_code(updated_props["Code"])
+        return original_resource
+
     @staticmethod
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
@@ -528,6 +539,9 @@ class LambdaFunction(BaseModel):
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
+
+    def delete(self, region):
+        lambda_backends[region].delete_function(self.function_name)
 
 
 class EventSourceMapping(BaseModel):
