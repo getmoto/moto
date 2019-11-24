@@ -340,6 +340,7 @@ class Role(BaseModel):
             permissions_boundary=properties.get("PermissionsBoundary", ""),
             description=properties.get("Description", ""),
             tags=properties.get("Tags", {}),
+            max_session_duration=properties.get("MaxSessionDuration", 3600)
         )
 
         policies = properties.get("Policies", [])
