@@ -309,6 +309,7 @@ class Role(BaseModel):
         permissions_boundary,
         description,
         tags,
+        max_session_duration,
     ):
         self.id = role_id
         self.name = name
@@ -320,6 +321,7 @@ class Role(BaseModel):
         self.tags = tags
         self.description = description
         self.permissions_boundary = permissions_boundary
+        self.max_session_duration = max_session_duration
 
     @property
     def created_iso_8601(self):
@@ -938,9 +940,10 @@ class IAMBackend(BaseBackend):
         role.description = role_description
         return role
 
-    def update_role(self, role_name, role_description):
+    def update_role(self, role_name, role_description, max_session_duration):
         role = self.get_role(role_name)
         role.description = role_description
+        role.max_session_duration = max_session_duration
         return role
 
     def detach_role_policy(self, policy_arn, role_name):
@@ -1059,6 +1062,7 @@ class IAMBackend(BaseBackend):
         permissions_boundary,
         description,
         tags,
+        max_session_duration,
     ):
         role_id = random_resource_id()
         if permissions_boundary and not self.policy_arn_regex.match(
@@ -1084,6 +1088,7 @@ class IAMBackend(BaseBackend):
             permissions_boundary,
             description,
             clean_tags,
+            max_session_duration,
         )
         self.roles[role_id] = role
         return role
