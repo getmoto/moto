@@ -3237,6 +3237,7 @@ def test_update_supports_complex_expression_attribute_values():
 
 @mock_dynamodb2
 def test_update_supports_list_append():
+    # Verify whether the list_append operation works as expected
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
@@ -3266,6 +3267,132 @@ def test_update_supports_list_append():
         {
             "SHA256": {"S": "sha-of-file"},
             "crontab": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_supports_nested_list_append():
+    # Verify whether we can append a list that's inside a map
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"L": [{"S": "bar1"}]}}},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "nested_list_append"}},
+        UpdateExpression="SET a.#b = list_append(a.#b, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ExpressionAttributeNames={"#b": "b"},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.get_item(
+        TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
+    )["Item"]
+    result.should.equal(
+        {
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_supports_multiple_levels_nested_list_append():
+    # Verify whether we can append a list that's inside a map that's inside a map  (Inception!)
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}]}}}}},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "nested_list_append"}},
+        UpdateExpression="SET a.#b.c = list_append(a.#b.#c, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ExpressionAttributeNames={"#b": "b", "#c": "c"},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.get_item(
+        TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
+    )["Item"]
+    result.should.equal(
+        {
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_supports_nested_list_append_onto_another_list():
+    # Verify whether we can take the contents of one list, and use that to fill another list
+    # Note that the contents of the other list is completely overwritten
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "list_append_another"},
+            "a": {"M": {"b": {"L": [{"S": "bar1"}]}, "c": {"L": [{"S": "car1"}]}}},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "list_append_another"}},
+        UpdateExpression="SET a.#c = list_append(a.#b, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ExpressionAttributeNames={"#b": "b", "#c": "c"},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.get_item(
+        TableName="TestTable", Key={"id": {"S": "list_append_another"}}
+    )["Item"]
+    result.should.equal(
+        {
+            "id": {"S": "list_append_another"},
+            "a": {
+                "M": {
+                    "b": {"L": [{"S": "bar1"}]},
+                    "c": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
+                }
+            },
         }
     )
 
