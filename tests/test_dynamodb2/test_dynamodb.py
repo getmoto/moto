@@ -560,6 +560,308 @@ def test_basic_projection_expressions_using_scan():
 
 
 @mock_dynamodb2
+def test_nested_projection_expression_using_get_item():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+            "foo": "bar",
+        }
+    )
+    table.put_item(
+        Item={
+            "forum_name": "key2",
+            "nested": {"id": "id2", "incode": "code2"},
+            "foo": "bar",
+        }
+    )
+
+    # Test a get_item returning all items
+    result = table.get_item(
+        Key={"forum_name": "key1"},
+        ProjectionExpression="nested.level1.id, nested.level2",
+    )["Item"]
+    result.should.equal(
+        {"nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}}
+    )
+    # Assert actual data has not been deleted
+    result = table.get_item(Key={"forum_name": "key1"})["Item"]
+    result.should.equal(
+        {
+            "foo": "bar",
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+        }
+    )
+
+
+@mock_dynamodb2
+def test_basic_projection_expressions_using_query():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
+    )
+    table.put_item(
+        Item={
+            "forum_name": "not-the-key",
+            "subject": "123",
+            "body": "some other test message",
+        }
+    )
+
+    # Test a query returning all items
+    result = table.query(
+        KeyConditionExpression=Key("forum_name").eq("the-key"),
+        ProjectionExpression="body, subject",
+    )["Items"][0]
+
+    assert "body" in result
+    assert result["body"] == "some test message"
+    assert "subject" in result
+    assert "forum_name" not in result
+
+    table.put_item(
+        Item={
+            "forum_name": "the-key",
+            "subject": "1234",
+            "body": "yet another test message",
+        }
+    )
+
+    items = table.query(
+        KeyConditionExpression=Key("forum_name").eq("the-key"),
+        ProjectionExpression="body",
+    )["Items"]
+
+    assert "body" in items[0]
+    assert "subject" not in items[0]
+    assert items[0]["body"] == "some test message"
+    assert "body" in items[1]
+    assert "subject" not in items[1]
+    assert items[1]["body"] == "yet another test message"
+
+    # The projection expression should not remove data from storage
+    items = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))["Items"]
+    assert "subject" in items[0]
+    assert "body" in items[1]
+    assert "forum_name" in items[1]
+
+
+@mock_dynamodb2
+def test_nested_projection_expression_using_query():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+            "foo": "bar",
+        }
+    )
+    table.put_item(
+        Item={
+            "forum_name": "key2",
+            "nested": {"id": "id2", "incode": "code2"},
+            "foo": "bar",
+        }
+    )
+
+    # Test a query returning all items
+    result = table.query(
+        KeyConditionExpression=Key("forum_name").eq("key1"),
+        ProjectionExpression="nested.level1.id, nested.level2",
+    )["Items"][0]
+
+    assert "nested" in result
+    result["nested"].should.equal(
+        {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
+    )
+    assert "foo" not in result
+    # Assert actual data has not been deleted
+    result = table.query(KeyConditionExpression=Key("forum_name").eq("key1"))["Items"][
+        0
+    ]
+    result.should.equal(
+        {
+            "foo": "bar",
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+        }
+    )
+
+
+@mock_dynamodb2
+def test_basic_projection_expressions_using_scan():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+
+    table.put_item(
+        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
+    )
+    table.put_item(
+        Item={
+            "forum_name": "not-the-key",
+            "subject": "123",
+            "body": "some other test message",
+        }
+    )
+    # Test a scan returning all items
+    results = table.scan(
+        FilterExpression=Key("forum_name").eq("the-key"),
+        ProjectionExpression="body, subject",
+    )["Items"]
+
+    results.should.equal([{"body": "some test message", "subject": "123"}])
+
+    table.put_item(
+        Item={
+            "forum_name": "the-key",
+            "subject": "1234",
+            "body": "yet another test message",
+        }
+    )
+
+    results = table.scan(
+        FilterExpression=Key("forum_name").eq("the-key"), ProjectionExpression="body"
+    )["Items"]
+
+    assert {"body": "some test message"} in results
+    assert {"body": "yet another test message"} in results
+
+    # The projection expression should not remove data from storage
+    results = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"))
+    assert "subject" in results["Items"][0]
+    assert "body" in results["Items"][1]
+    assert "forum_name" in results["Items"][1]
+
+
+@mock_dynamodb2
+def test_nested_projection_expression_using_scan():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+            "foo": "bar",
+        }
+    )
+    table.put_item(
+        Item={
+            "forum_name": "key2",
+            "nested": {"id": "id2", "incode": "code2"},
+            "foo": "bar",
+        }
+    )
+
+    # Test a scan
+    results = table.scan(
+        FilterExpression=Key("forum_name").eq("key1"),
+        ProjectionExpression="nested.level1.id, nested.level2",
+    )["Items"]
+    results.should.equal(
+        [
+            {
+                "nested": {
+                    "level1": {"id": "id1"},
+                    "level2": {"include": "all", "id": "id2"},
+                }
+            }
+        ]
+    )
+    # Assert original data is still there
+    results = table.scan(FilterExpression=Key("forum_name").eq("key1"))["Items"]
+    results.should.equal(
+        [
+            {
+                "forum_name": "key1",
+                "foo": "bar",
+                "nested": {
+                    "level1": {"att": "irrelevant", "id": "id1"},
+                    "level2": {"include": "all", "id": "id2"},
+                    "level3": {"id": "irrelevant"},
+                },
+            }
+        ]
+    )
+
+
+@mock_dynamodb2
 def test_basic_projection_expression_using_get_item_with_attr_expression_names():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -659,6 +961,121 @@ def test_basic_projection_expressions_using_query_with_attr_expression_names():
 
 
 @mock_dynamodb2
+def test_nested_projection_expression_using_get_item_with_attr_expression():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+            "foo": "bar",
+        }
+    )
+    table.put_item(
+        Item={
+            "forum_name": "key2",
+            "nested": {"id": "id2", "incode": "code2"},
+            "foo": "bar",
+        }
+    )
+
+    # Test a get_item returning all items
+    result = table.get_item(
+        Key={"forum_name": "key1"},
+        ProjectionExpression="#nst.level1.id, #nst.#lvl2",
+        ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
+    )["Item"]
+    result.should.equal(
+        {"nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}}
+    )
+    # Assert actual data has not been deleted
+    result = table.get_item(Key={"forum_name": "key1"})["Item"]
+    result.should.equal(
+        {
+            "foo": "bar",
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+        }
+    )
+
+
+@mock_dynamodb2
+def test_nested_projection_expression_using_query_with_attr_expression_names():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+            "foo": "bar",
+        }
+    )
+    table.put_item(
+        Item={
+            "forum_name": "key2",
+            "nested": {"id": "id2", "incode": "code2"},
+            "foo": "bar",
+        }
+    )
+
+    # Test a query returning all items
+    result = table.query(
+        KeyConditionExpression=Key("forum_name").eq("key1"),
+        ProjectionExpression="#nst.level1.id, #nst.#lvl2",
+        ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
+    )["Items"][0]
+
+    assert "nested" in result
+    result["nested"].should.equal(
+        {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
+    )
+    assert "foo" not in result
+    # Assert actual data has not been deleted
+    result = table.query(KeyConditionExpression=Key("forum_name").eq("key1"))["Items"][
+        0
+    ]
+    result.should.equal(
+        {
+            "foo": "bar",
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+        }
+    )
+
+
+@mock_dynamodb2
 def test_basic_projection_expressions_using_scan_with_attr_expression_names():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -717,6 +1134,70 @@ def test_basic_projection_expressions_using_scan_with_attr_expression_names():
     assert "attachment" in results["Items"][0]
     assert "subject" in results["Items"][0]
     assert "form_name" not in results["Items"][0]
+
+
+@mock_dynamodb2
+def test_nested_projection_expression_using_scan_with_attr_expression_names():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={
+            "forum_name": "key1",
+            "nested": {
+                "level1": {"id": "id1", "att": "irrelevant"},
+                "level2": {"id": "id2", "include": "all"},
+                "level3": {"id": "irrelevant"},
+            },
+            "foo": "bar",
+        }
+    )
+    table.put_item(
+        Item={
+            "forum_name": "key2",
+            "nested": {"id": "id2", "incode": "code2"},
+            "foo": "bar",
+        }
+    )
+
+    # Test a scan
+    results = table.scan(
+        FilterExpression=Key("forum_name").eq("key1"),
+        ProjectionExpression="nested.level1.id, nested.level2",
+        ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
+    )["Items"]
+    results.should.equal(
+        [
+            {
+                "nested": {
+                    "level1": {"id": "id1"},
+                    "level2": {"include": "all", "id": "id2"},
+                }
+            }
+        ]
+    )
+    # Assert original data is still there
+    results = table.scan(FilterExpression=Key("forum_name").eq("key1"))["Items"]
+    results.should.equal(
+        [
+            {
+                "forum_name": "key1",
+                "foo": "bar",
+                "nested": {
+                    "level1": {"att": "irrelevant", "id": "id1"},
+                    "level2": {"include": "all", "id": "id2"},
+                    "level3": {"id": "irrelevant"},
+                },
+            }
+        ]
+    )
 
 
 @mock_dynamodb2
@@ -2638,8 +3119,8 @@ def test_sorted_query_with_numerical_sort_key():
 # https://github.com/spulec/moto/issues/1874
 @mock_dynamodb2
 def test_item_size_is_under_400KB():
-    dynamodb = boto3.resource("dynamodb")
-    client = boto3.client("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     dynamodb.create_table(
         TableName="moto-test",
@@ -2691,7 +3172,7 @@ def assert_failure_due_to_item_size(func, **kwargs):
 @mock_dynamodb2
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
@@ -2720,7 +3201,7 @@ def test_hash_key_cannot_use_begins_with_operations():
 
 @mock_dynamodb2
 def test_update_supports_complex_expression_attribute_values():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -2756,7 +3237,7 @@ def test_update_supports_complex_expression_attribute_values():
 
 @mock_dynamodb2
 def test_update_supports_list_append():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -2791,7 +3272,7 @@ def test_update_supports_list_append():
 
 @mock_dynamodb2
 def test_update_catches_invalid_list_append_operation():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -2838,3 +3319,66 @@ def _create_user_table():
         TableName="users", Item={"username": {"S": "user3"}, "foo": {"S": "bar"}}
     )
     return client
+
+
+@mock_dynamodb2
+def test_update_item_if_original_value_is_none():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_name": None})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.scan()["Items"][0]["job_name"].should.equal("updated")
+
+
+@mock_dynamodb2
+def test_update_nested_item_if_original_value_is_none():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_details": {"job_name": None}})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_details.job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
+
+
+@mock_dynamodb2
+def test_allow_update_to_item_with_different_type():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_details": {"job_name": {"nested": "yes"}}})
+    table.put_item(Item={"job_id": "b", "job_details": {"job_name": {"nested": "yes"}}})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_details.job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.get_item(Key={"job_id": "a"})["Item"]["job_details"][
+        "job_name"
+    ].should.be.equal("updated")
+    table.get_item(Key={"job_id": "b"})["Item"]["job_details"][
+        "job_name"
+    ].should.be.equal({"nested": "yes"})

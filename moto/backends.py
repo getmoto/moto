@@ -5,12 +5,15 @@ from moto.apigateway import apigateway_backends
 from moto.athena import athena_backends
 from moto.autoscaling import autoscaling_backends
 from moto.awslambda import lambda_backends
+from moto.batch import batch_backends
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
 from moto.cognitoidentity import cognitoidentity_backends
 from moto.cognitoidp import cognitoidp_backends
+from moto.config import config_backends
 from moto.core import moto_api_backends
 from moto.datapipeline import datapipeline_backends
+from moto.datasync import datasync_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
@@ -25,6 +28,8 @@ from moto.glacier import glacier_backends
 from moto.glue import glue_backends
 from moto.iam import iam_backends
 from moto.instance_metadata import instance_metadata_backends
+from moto.iot import iot_backends
+from moto.iotdata import iotdata_backends
 from moto.kinesis import kinesis_backends
 from moto.kms import kms_backends
 from moto.logs import logs_backends
@@ -34,6 +39,7 @@ from moto.polly import polly_backends
 from moto.rds2 import rds2_backends
 from moto.redshift import redshift_backends
 from moto.resourcegroups import resourcegroups_backends
+from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
 from moto.route53 import route53_backends
 from moto.s3 import s3_backends
 from moto.secretsmanager import secretsmanager_backends
@@ -45,11 +51,6 @@ from moto.stepfunctions import stepfunction_backends
 from moto.sts import sts_backends
 from moto.swf import swf_backends
 from moto.xray import xray_backends
-from moto.iot import iot_backends
-from moto.iotdata import iotdata_backends
-from moto.batch import batch_backends
-from moto.resourcegroupstaggingapi import resourcegroupstaggingapi_backends
-from moto.config import config_backends
 
 BACKENDS = {
     "acm": acm_backends,
@@ -63,6 +64,7 @@ BACKENDS = {
     "cognito-idp": cognitoidp_backends,
     "config": config_backends,
     "datapipeline": datapipeline_backends,
+    "datasync": datasync_backends,
     "dynamodb": dynamodb_backends,
     "dynamodb2": dynamodb_backends2,
     "dynamodbstreams": dynamodbstreams_backends,

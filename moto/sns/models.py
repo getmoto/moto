@@ -29,7 +29,7 @@ from .exceptions import (
     ResourceNotFoundError,
     TagLimitExceededError,
 )
-from .utils import make_arn_for_topic, make_arn_for_subscription
+from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
 DEFAULT_ACCOUNT_ID = 123456789012
 DEFAULT_PAGE_SIZE = 100
@@ -227,7 +227,7 @@ class Subscription(BaseModel):
                         return False
 
                     for attribute_values in attribute_values:
-                        # Even the offical documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
+                        # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
                         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
                         if int(attribute_values * 1000000) == int(rule * 1000000):
                             return True
@@ -413,6 +413,17 @@ class SNSBackend(BaseBackend):
         setattr(topic, attribute_name, attribute_value)
 
     def subscribe(self, topic_arn, endpoint, protocol):
+        if protocol == "sms":
+            if re.search(r"[./-]{2,}", endpoint) or re.search(
+                r"(^[./-]|[./-]$)", endpoint
+            ):
+                raise SNSInvalidParameter("Invalid SMS endpoint: {}".format(endpoint))
+
+            reduced_endpoint = re.sub(r"[./-]", "", endpoint)
+
+            if not is_e164(reduced_endpoint):
+                raise SNSInvalidParameter("Invalid SMS endpoint: {}".format(endpoint))
+
         # AWS doesn't create duplicates
         old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
         if old_subscription:
@@ -562,7 +573,7 @@ class SNSBackend(BaseBackend):
         combinations = 1
         for rules in six.itervalues(value):
             combinations *= len(rules)
-        # Even the offical documentation states the total combination of values must not exceed 100, in reality it is 150
+        # Even the official documentation states the total combination of values must not exceed 100, in reality it is 150
         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
         if combinations > 150:
             raise SNSInvalidParameter(

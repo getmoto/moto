@@ -160,6 +160,17 @@ def test_create_account():
 
 
 @mock_organizations
+def test_describe_create_account_status():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    request_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["Id"]
+    response = client.describe_create_account_status(CreateAccountRequestId=request_id)
+    validate_create_account_status(response["CreateAccountStatus"])
+
+
+@mock_organizations
 def test_describe_account():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]

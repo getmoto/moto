@@ -18,6 +18,7 @@ from nose.tools import raises
 
 from datetime import datetime
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -167,6 +168,14 @@ def test_create_role_and_instance_profile():
     # Test with an empty path:
     profile = conn.create_instance_profile("my-other-profile")
     profile.path.should.equal("/")
+
+
+@mock_iam
+def test_create_instance_profile_should_throw_when_name_is_not_unique():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
+    with assert_raises(ClientError):
+        conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
 
 
 @mock_iam_deprecated()
@@ -1308,6 +1317,122 @@ def test_get_access_key_last_used():
 
 
 @mock_iam
+def test_upload_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    pubkey = resp["SSHPublicKey"]
+    pubkey["SSHPublicKeyBody"].should.equal(public_key)
+    pubkey["UserName"].should.equal(username)
+    pubkey["SSHPublicKeyId"].should.have.length_of(20)
+    assert pubkey["SSHPublicKeyId"].startswith("APKA")
+    pubkey.should.have.key("Fingerprint")
+    pubkey["Status"].should.equal("Active")
+    (
+        datetime.utcnow() - pubkey["UploadDate"].replace(tzinfo=None)
+    ).seconds.should.be.within(0, 10)
+
+
+@mock_iam
+def test_get_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.get_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Encoding="SSH"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.get_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Encoding="SSH"
+    )
+    resp["SSHPublicKey"]["SSHPublicKeyBody"].should.equal(public_key)
+
+
+@mock_iam
+def test_list_ssh_public_keys():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(0)
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(1)
+    resp["SSHPublicKeys"][0]["SSHPublicKeyId"].should.equal(ssh_public_key_id)
+
+
+@mock_iam
+def test_update_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.update_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Status="Inactive"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+    resp["SSHPublicKey"]["Status"].should.equal("Active")
+
+    resp = client.update_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Status="Inactive"
+    )
+
+    resp = client.get_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Encoding="SSH"
+    )
+    resp["SSHPublicKey"]["Status"].should.equal("Inactive")
+
+
+@mock_iam
+def test_delete_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.delete_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(1)
+
+    resp = client.delete_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id
+    )
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(0)
+
+
+@mock_iam
 def test_get_account_authorization_details():
     test_policy = json.dumps(
         {
@@ -2043,6 +2168,42 @@ def test_create_role_with_permissions_boundary():
 
 
 @mock_iam
+def test_create_role_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_role_name = str(uuid4())
+    iam.create_role(
+        RoleName=test_role_name, AssumeRolePolicyDocument="policy", Description="test"
+    )
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_role(
+            RoleName=test_role_name,
+            AssumeRolePolicyDocument="policy",
+            Description="test",
+        )
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "Role with name {0} already exists.".format(test_role_name)
+    )
+
+
+@mock_iam
+def test_create_policy_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_policy_name = str(uuid4())
+    policy = iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "A policy called {0} already exists. Duplicate names are not allowed.".format(
+            test_policy_name
+        )
+    )
+
+
+@mock_iam
 def test_create_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -2209,4 +2370,229 @@ def test_list_open_id_connect_providers():
 
     sorted(response["OpenIDConnectProviderList"], key=lambda i: i["Arn"]).should.equal(
         [{"Arn": open_id_arn_1}, {"Arn": open_id_arn_2}, {"Arn": open_id_arn_3}]
+    )
+
+
+@mock_iam
+def test_update_account_password_policy():
+    client = boto3.client("iam", region_name="us-east-1")
+
+    client.update_account_password_policy()
+
+    response = client.get_account_password_policy()
+    response["PasswordPolicy"].should.equal(
+        {
+            "AllowUsersToChangePassword": False,
+            "ExpirePasswords": False,
+            "MinimumPasswordLength": 6,
+            "RequireLowercaseCharacters": False,
+            "RequireNumbers": False,
+            "RequireSymbols": False,
+            "RequireUppercaseCharacters": False,
+        }
+    )
+
+
+@mock_iam
+def test_update_account_password_policy_errors():
+    client = boto3.client("iam", region_name="us-east-1")
+
+    client.update_account_password_policy.when.called_with(
+        MaxPasswordAge=1096, MinimumPasswordLength=129, PasswordReusePrevention=25
+    ).should.throw(
+        ClientError,
+        "3 validation errors detected: "
+        'Value "129" at "minimumPasswordLength" failed to satisfy constraint: '
+        "Member must have value less than or equal to 128; "
+        'Value "25" at "passwordReusePrevention" failed to satisfy constraint: '
+        "Member must have value less than or equal to 24; "
+        'Value "1096" at "maxPasswordAge" failed to satisfy constraint: '
+        "Member must have value less than or equal to 1095",
+    )
+
+
+@mock_iam
+def test_get_account_password_policy():
+    client = boto3.client("iam", region_name="us-east-1")
+    client.update_account_password_policy(
+        AllowUsersToChangePassword=True,
+        HardExpiry=True,
+        MaxPasswordAge=60,
+        MinimumPasswordLength=10,
+        PasswordReusePrevention=3,
+        RequireLowercaseCharacters=True,
+        RequireNumbers=True,
+        RequireSymbols=True,
+        RequireUppercaseCharacters=True,
+    )
+
+    response = client.get_account_password_policy()
+
+    response["PasswordPolicy"].should.equal(
+        {
+            "AllowUsersToChangePassword": True,
+            "ExpirePasswords": True,
+            "HardExpiry": True,
+            "MaxPasswordAge": 60,
+            "MinimumPasswordLength": 10,
+            "PasswordReusePrevention": 3,
+            "RequireLowercaseCharacters": True,
+            "RequireNumbers": True,
+            "RequireSymbols": True,
+            "RequireUppercaseCharacters": True,
+        }
+    )
+
+
+@mock_iam
+def test_get_account_password_policy_errors():
+    client = boto3.client("iam", region_name="us-east-1")
+
+    client.get_account_password_policy.when.called_with().should.throw(
+        ClientError,
+        "The Password Policy with domain name 123456789012 cannot be found.",
+    )
+
+
+@mock_iam
+def test_delete_account_password_policy():
+    client = boto3.client("iam", region_name="us-east-1")
+    client.update_account_password_policy()
+
+    response = client.get_account_password_policy()
+
+    response.should.have.key("PasswordPolicy").which.should.be.a(dict)
+
+    client.delete_account_password_policy()
+
+    client.get_account_password_policy.when.called_with().should.throw(
+        ClientError,
+        "The Password Policy with domain name 123456789012 cannot be found.",
+    )
+
+
+@mock_iam
+def test_delete_account_password_policy_errors():
+    client = boto3.client("iam", region_name="us-east-1")
+
+    client.delete_account_password_policy.when.called_with().should.throw(
+        ClientError, "The account policy with name PasswordPolicy cannot be found."
+    )
+
+
+@mock_iam
+def test_get_account_summary():
+    client = boto3.client("iam", region_name="us-east-1")
+    iam = boto3.resource("iam", region_name="us-east-1")
+
+    account_summary = iam.AccountSummary()
+
+    account_summary.summary_map.should.equal(
+        {
+            "GroupPolicySizeQuota": 5120,
+            "InstanceProfilesQuota": 1000,
+            "Policies": 0,
+            "GroupsPerUserQuota": 10,
+            "InstanceProfiles": 0,
+            "AttachedPoliciesPerUserQuota": 10,
+            "Users": 0,
+            "PoliciesQuota": 1500,
+            "Providers": 0,
+            "AccountMFAEnabled": 0,
+            "AccessKeysPerUserQuota": 2,
+            "AssumeRolePolicySizeQuota": 2048,
+            "PolicyVersionsInUseQuota": 10000,
+            "GlobalEndpointTokenVersion": 1,
+            "VersionsPerPolicyQuota": 5,
+            "AttachedPoliciesPerGroupQuota": 10,
+            "PolicySizeQuota": 6144,
+            "Groups": 0,
+            "AccountSigningCertificatesPresent": 0,
+            "UsersQuota": 5000,
+            "ServerCertificatesQuota": 20,
+            "MFADevices": 0,
+            "UserPolicySizeQuota": 2048,
+            "PolicyVersionsInUse": 0,
+            "ServerCertificates": 0,
+            "Roles": 0,
+            "RolesQuota": 1000,
+            "SigningCertificatesPerUserQuota": 2,
+            "MFADevicesInUse": 0,
+            "RolePolicySizeQuota": 10240,
+            "AttachedPoliciesPerRoleQuota": 10,
+            "AccountAccessKeysPresent": 0,
+            "GroupsQuota": 300,
+        }
+    )
+
+    client.create_instance_profile(InstanceProfileName="test-profile")
+    client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
+    response_policy = client.create_policy(
+        PolicyName="test-policy", PolicyDocument=MOCK_POLICY
+    )
+    client.create_role(RoleName="test-role", AssumeRolePolicyDocument="test policy")
+    client.attach_role_policy(
+        RoleName="test-role", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.create_saml_provider(
+        Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
+    )
+    client.create_group(GroupName="test-group")
+    client.attach_group_policy(
+        GroupName="test-group", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.create_user(UserName="test-user")
+    client.attach_user_policy(
+        UserName="test-user", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.enable_mfa_device(
+        UserName="test-user",
+        SerialNumber="123456789",
+        AuthenticationCode1="234567",
+        AuthenticationCode2="987654",
+    )
+    client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
+    client.upload_server_certificate(
+        ServerCertificateName="test-cert",
+        CertificateBody="cert-body",
+        PrivateKey="private-key",
+    )
+    account_summary.load()
+
+    account_summary.summary_map.should.equal(
+        {
+            "GroupPolicySizeQuota": 5120,
+            "InstanceProfilesQuota": 1000,
+            "Policies": 1,
+            "GroupsPerUserQuota": 10,
+            "InstanceProfiles": 1,
+            "AttachedPoliciesPerUserQuota": 10,
+            "Users": 1,
+            "PoliciesQuota": 1500,
+            "Providers": 2,
+            "AccountMFAEnabled": 0,
+            "AccessKeysPerUserQuota": 2,
+            "AssumeRolePolicySizeQuota": 2048,
+            "PolicyVersionsInUseQuota": 10000,
+            "GlobalEndpointTokenVersion": 1,
+            "VersionsPerPolicyQuota": 5,
+            "AttachedPoliciesPerGroupQuota": 10,
+            "PolicySizeQuota": 6144,
+            "Groups": 1,
+            "AccountSigningCertificatesPresent": 0,
+            "UsersQuota": 5000,
+            "ServerCertificatesQuota": 20,
+            "MFADevices": 1,
+            "UserPolicySizeQuota": 2048,
+            "PolicyVersionsInUse": 3,
+            "ServerCertificates": 1,
+            "Roles": 1,
+            "RolesQuota": 1000,
+            "SigningCertificatesPerUserQuota": 2,
+            "MFADevicesInUse": 1,
+            "RolePolicySizeQuota": 10240,
+            "AttachedPoliciesPerRoleQuota": 10,
+            "AccountAccessKeysPresent": 0,
+            "GroupsQuota": 300,
+        }
     )

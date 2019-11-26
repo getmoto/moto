@@ -351,7 +351,7 @@ class IamResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         cert_chain = self._get_param("CertificateName")
 
-        cert = iam_backend.upload_server_cert(
+        cert = iam_backend.upload_server_certificate(
             cert_name, cert_body, private_key, cert_chain=cert_chain, path=path
         )
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
@@ -427,6 +427,12 @@ class IamResponse(BaseResponse):
         policy_result = iam_backend.get_group_policy(group_name, policy_name)
         template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
         return template.render(name="GetGroupPolicyResponse", **policy_result)
+
+    def delete_group(self):
+        group_name = self._get_param("GroupName")
+        iam_backend.delete_group(group_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteGroup")
 
     def create_user(self):
         user_name = self._get_param("UserName")
@@ -583,6 +589,46 @@ class IamResponse(BaseResponse):
         iam_backend.delete_access_key(access_key_id, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteAccessKey")
+
+    def upload_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_body = self._get_param("SSHPublicKeyBody")
+
+        key = iam_backend.upload_ssh_public_key(user_name, ssh_public_key_body)
+        template = self.response_template(UPLOAD_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render(key=key)
+
+    def get_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_id = self._get_param("SSHPublicKeyId")
+
+        key = iam_backend.get_ssh_public_key(user_name, ssh_public_key_id)
+        template = self.response_template(GET_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render(key=key)
+
+    def list_ssh_public_keys(self):
+        user_name = self._get_param("UserName")
+
+        keys = iam_backend.get_all_ssh_public_keys(user_name)
+        template = self.response_template(LIST_SSH_PUBLIC_KEYS_TEMPLATE)
+        return template.render(keys=keys)
+
+    def update_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_id = self._get_param("SSHPublicKeyId")
+        status = self._get_param("Status")
+
+        iam_backend.update_ssh_public_key(user_name, ssh_public_key_id, status)
+        template = self.response_template(UPDATE_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render()
+
+    def delete_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_id = self._get_param("SSHPublicKeyId")
+
+        iam_backend.delete_ssh_public_key(user_name, ssh_public_key_id)
+        template = self.response_template(DELETE_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render()
 
     def deactivate_mfa_device(self):
         user_name = self._get_param("UserName")
@@ -837,6 +883,56 @@ class IamResponse(BaseResponse):
 
         template = self.response_template(LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE)
         return template.render(open_id_provider_arns=open_id_provider_arns)
+
+    def update_account_password_policy(self):
+        allow_change_password = self._get_bool_param(
+            "AllowUsersToChangePassword", False
+        )
+        hard_expiry = self._get_bool_param("HardExpiry")
+        max_password_age = self._get_int_param("MaxPasswordAge")
+        minimum_password_length = self._get_int_param("MinimumPasswordLength", 6)
+        password_reuse_prevention = self._get_int_param("PasswordReusePrevention")
+        require_lowercase_characters = self._get_bool_param(
+            "RequireLowercaseCharacters", False
+        )
+        require_numbers = self._get_bool_param("RequireNumbers", False)
+        require_symbols = self._get_bool_param("RequireSymbols", False)
+        require_uppercase_characters = self._get_bool_param(
+            "RequireUppercaseCharacters", False
+        )
+
+        iam_backend.update_account_password_policy(
+            allow_change_password,
+            hard_expiry,
+            max_password_age,
+            minimum_password_length,
+            password_reuse_prevention,
+            require_lowercase_characters,
+            require_numbers,
+            require_symbols,
+            require_uppercase_characters,
+        )
+
+        template = self.response_template(UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
+        return template.render()
+
+    def get_account_password_policy(self):
+        account_password_policy = iam_backend.get_account_password_policy()
+
+        template = self.response_template(GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
+        return template.render(password_policy=account_password_policy)
+
+    def delete_account_password_policy(self):
+        iam_backend.delete_account_password_policy()
+
+        template = self.response_template(DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
+        return template.render()
+
+    def get_account_summary(self):
+        account_summary = iam_backend.get_account_summary()
+
+        template = self.response_template(GET_ACCOUNT_SUMMARY_TEMPLATE)
+        return template.render(summary_map=account_summary.summary_map)
 
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
@@ -1640,6 +1736,73 @@ GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
 </GetAccessKeyLastUsedResponse>
 """
 
+UPLOAD_SSH_PUBLIC_KEY_TEMPLATE = """<UploadSSHPublicKeyResponse>
+   <UploadSSHPublicKeyResult>
+     <SSHPublicKey>
+         <UserName>{{ key.user_name }}</UserName>
+         <SSHPublicKeyBody>{{ key.ssh_public_key_body }}</SSHPublicKeyBody>
+         <SSHPublicKeyId>{{ key.ssh_public_key_id }}</SSHPublicKeyId>
+         <Fingerprint>{{ key.fingerprint }}</Fingerprint>
+         <Status>{{ key.status }}</Status>
+         <UploadDate>{{ key.uploaded_iso_8601 }}</UploadDate>
+      </SSHPublicKey>
+   </UploadSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UploadSSHPublicKeyResponse>"""
+
+GET_SSH_PUBLIC_KEY_TEMPLATE = """<GetSSHPublicKeyResponse>
+   <GetSSHPublicKeyResult>
+     <SSHPublicKey>
+         <UserName>{{ key.user_name }}</UserName>
+         <SSHPublicKeyBody>{{ key.ssh_public_key_body }}</SSHPublicKeyBody>
+         <SSHPublicKeyId>{{ key.ssh_public_key_id }}</SSHPublicKeyId>
+         <Fingerprint>{{ key.fingerprint }}</Fingerprint>
+         <Status>{{ key.status }}</Status>
+         <UploadDate>{{ key.uploaded_iso_8601 }}</UploadDate>
+      </SSHPublicKey>
+   </GetSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetSSHPublicKeyResponse>"""
+
+LIST_SSH_PUBLIC_KEYS_TEMPLATE = """<ListSSHPublicKeysResponse>
+   <ListSSHPublicKeysResult>
+      <SSHPublicKeys>
+        {% for key in keys %}
+            <member>
+                <UserName>{{ key.user_name }}</UserName>
+                <SSHPublicKeyId>{{ key.ssh_public_key_id }}</SSHPublicKeyId>
+                <Status>{{ key.status }}</Status>
+                <UploadDate>{{ key.uploaded_iso_8601 }}</UploadDate>
+            </member>
+        {% endfor %}
+      </SSHPublicKeys>
+      <IsTruncated>false</IsTruncated>
+   </ListSSHPublicKeysResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListSSHPublicKeysResponse>"""
+
+UPDATE_SSH_PUBLIC_KEY_TEMPLATE = """<UpdateSSHPublicKeyResponse>
+   <UpdateSSHPublicKeyResult>
+   </UpdateSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UpdateSSHPublicKeyResponse>"""
+
+DELETE_SSH_PUBLIC_KEY_TEMPLATE = """<DeleteSSHPublicKeyResponse>
+   <DeleteSSHPublicKeyResult>
+   </DeleteSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</DeleteSSHPublicKeyResponse>"""
+
 CREDENTIAL_REPORT_GENERATING = """
 <GenerateCredentialReportResponse>
     <GenerateCredentialReportResult>
@@ -2170,3 +2333,61 @@ LIST_OPEN_ID_CONNECT_PROVIDERS_TEMPLATE = """<ListOpenIDConnectProvidersResponse
     <RequestId>de2c0228-4f63-11e4-aefa-bfd6aEXAMPLE</RequestId>
   </ResponseMetadata>
 </ListOpenIDConnectProvidersResponse>"""
+
+
+UPDATE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<UpdateAccountPasswordPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</UpdateAccountPasswordPolicyResponse>"""
+
+
+GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<GetAccountPasswordPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountPasswordPolicyResult>
+    <PasswordPolicy>
+      <AllowUsersToChangePassword>{{ password_policy.allow_users_to_change_password | lower }}</AllowUsersToChangePassword>
+      <ExpirePasswords>{{ password_policy.expire_passwords | lower }}</ExpirePasswords>
+      {% if password_policy.hard_expiry %}
+      <HardExpiry>{{ password_policy.hard_expiry | lower }}</HardExpiry>
+      {% endif %}
+      {% if password_policy.max_password_age %}
+      <MaxPasswordAge>{{ password_policy.max_password_age }}</MaxPasswordAge>
+      {% endif %}
+      <MinimumPasswordLength>{{ password_policy.minimum_password_length }}</MinimumPasswordLength>
+      {% if password_policy.password_reuse_prevention %}
+      <PasswordReusePrevention>{{ password_policy.password_reuse_prevention }}</PasswordReusePrevention>
+      {% endif %}
+      <RequireLowercaseCharacters>{{ password_policy.require_lowercase_characters | lower }}</RequireLowercaseCharacters>
+      <RequireNumbers>{{ password_policy.require_numbers | lower }}</RequireNumbers>
+      <RequireSymbols>{{ password_policy.require_symbols | lower }}</RequireSymbols>
+      <RequireUppercaseCharacters>{{ password_policy.require_uppercase_characters | lower }}</RequireUppercaseCharacters>
+    </PasswordPolicy>
+  </GetAccountPasswordPolicyResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountPasswordPolicyResponse>"""
+
+
+DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<DeleteAccountPasswordPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</DeleteAccountPasswordPolicyResponse>"""
+
+
+GET_ACCOUNT_SUMMARY_TEMPLATE = """<GetAccountSummaryResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountSummaryResult>
+    <SummaryMap>
+      {% for key, value in summary_map.items() %}
+      <entry>
+        <key>{{ key }}</key>
+        <value>{{ value }}</value>
+      </entry>
+      {% endfor %}
+    </SummaryMap>
+  </GetAccountSummaryResult>
+  <ResponseMetadata>
+    <RequestId>85cb9b90-ac28-11e4-a88d-97964EXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountSummaryResponse>"""

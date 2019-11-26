@@ -77,7 +77,7 @@ class SNSResponse(BaseResponse):
                     transform_value = value["StringValue"]
             elif "BinaryValue" in value:
                 transform_value = value["BinaryValue"]
-            if not transform_value:
+            if transform_value == "":
                 raise InvalidParameterValue(
                     "The message attribute '{0}' must contain non-empty "
                     "message attribute value for message attribute "
@@ -210,14 +210,6 @@ class SNSResponse(BaseResponse):
         endpoint = self._get_param("Endpoint")
         protocol = self._get_param("Protocol")
         attributes = self._get_attributes()
-
-        if protocol == "sms" and not is_e164(endpoint):
-            return (
-                self._error(
-                    "InvalidParameter", "Phone number does not meet the E164 format"
-                ),
-                dict(status=400),
-            )
 
         subscription = self.backend.subscribe(topic_arn, endpoint, protocol)
 

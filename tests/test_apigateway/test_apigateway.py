@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError
 
 import responses
 from moto import mock_apigateway, settings
+from nose.tools import assert_raises
 
 
 @freeze_time("2015-01-01")
@@ -46,6 +47,32 @@ def test_list_and_delete_apis():
 
 
 @mock_apigateway
+def test_create_resource__validate_name():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    invalid_names = ["/users", "users/", "users/{user_id}", "us{er"]
+    valid_names = ["users", "{user_id}", "user_09", "good-dog"]
+    # All invalid names should throw an exception
+    for name in invalid_names:
+        with assert_raises(ClientError) as ex:
+            client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end."
+        )
+    # All valid names  should go through
+    for name in valid_names:
+        client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
+
+
+@mock_apigateway
 def test_create_resource():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -69,9 +96,7 @@ def test_create_resource():
         }
     )
 
-    response = client.create_resource(
-        restApiId=api_id, parentId=root_id, pathPart="/users"
-    )
+    client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
 
     resources = client.get_resources(restApiId=api_id)["items"]
     len(resources).should.equal(2)
@@ -79,9 +104,7 @@ def test_create_resource():
         0
     ]
 
-    response = client.delete_resource(
-        restApiId=api_id, resourceId=non_root_resource["id"]
-    )
+    client.delete_resource(restApiId=api_id, resourceId=non_root_resource["id"])
 
     len(client.get_resources(restApiId=api_id)["items"]).should.equal(1)
 
@@ -223,6 +246,7 @@ def test_integrations():
         httpMethod="GET",
         type="HTTP",
         uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
     )
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
@@ -308,6 +332,7 @@ def test_integrations():
         type="HTTP",
         uri=test_uri,
         requestTemplates=templates,
+        integrationHttpMethod="POST",
     )
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
@@ -340,12 +365,13 @@ def test_integration_response():
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
     )
 
-    response = client.put_integration(
+    client.put_integration(
         restApiId=api_id,
         resourceId=root_id,
         httpMethod="GET",
         type="HTTP",
         uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
     )
 
     response = client.put_integration_response(
@@ -354,6 +380,7 @@ def test_integration_response():
         httpMethod="GET",
         statusCode="200",
         selectionPattern="foobar",
+        responseTemplates={},
     )
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
@@ -410,6 +437,7 @@ def test_update_stage_configuration():
     stage_name = "staging"
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
+    create_method_integration(client, api_id)
 
     response = client.create_deployment(
         restApiId=api_id, stageName=stage_name, description="1.0.1"
@@ -534,6 +562,7 @@ def test_create_stage():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
+    create_method_integration(client, api_id)
     response = client.create_deployment(restApiId=api_id, stageName=stage_name)
     deployment_id = response["id"]
 
@@ -691,11 +720,324 @@ def test_create_stage():
 
 
 @mock_apigateway
+def test_create_deployment_requires_REST_methods():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    stage_name = "staging"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    with assert_raises(ClientError) as ex:
+        client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "The REST API doesn't contain any methods"
+    )
+
+
+@mock_apigateway
+def test_create_deployment_requires_REST_method_integrations():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    stage_name = "staging"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "No integration defined for method"
+    )
+
+
+@mock_apigateway
+def test_create_simple_deployment_with_get_method():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    stage_name = "staging"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    create_method_integration(client, api_id)
+    deployment = client.create_deployment(restApiId=api_id, stageName=stage_name)
+    assert "id" in deployment
+
+
+@mock_apigateway
+def test_create_simple_deployment_with_post_method():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    stage_name = "staging"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    create_method_integration(client, api_id, httpMethod="POST")
+    deployment = client.create_deployment(restApiId=api_id, stageName=stage_name)
+    assert "id" in deployment
+
+
+@mock_apigateway
+# https://github.com/aws/aws-sdk-js/issues/2588
+def test_put_integration_response_requires_responseTemplate():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
+    )
+    client.put_method_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+    client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        type="HTTP",
+        uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.put_integration_response(
+            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+        )
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.exception.response["Error"]["Message"].should.equal("Invalid request input")
+    # Works fine if responseTemplate is defined
+    client.put_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        statusCode="200",
+        responseTemplates={},
+    )
+
+
+@mock_apigateway
+def test_put_integration_validation():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
+    )
+    client.put_method_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+
+    http_types = ["HTTP", "HTTP_PROXY"]
+    aws_types = ["AWS", "AWS_PROXY"]
+    types_requiring_integration_method = http_types + aws_types
+    types_not_requiring_integration_method = ["MOCK"]
+
+    for type in types_requiring_integration_method:
+        # Ensure that integrations of these types fail if no integrationHttpMethod is provided
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                httpMethod="GET",
+                type=type,
+                uri="http://httpbin.org/robots.txt",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Enumeration value for HttpMethod must be non-empty"
+        )
+    for type in types_not_requiring_integration_method:
+        # Ensure that integrations of these types do not need the integrationHttpMethod
+        client.put_integration(
+            restApiId=api_id,
+            resourceId=root_id,
+            httpMethod="GET",
+            type=type,
+            uri="http://httpbin.org/robots.txt",
+        )
+    for type in http_types:
+        # Ensure that it works fine when providing the integrationHttpMethod-argument
+        client.put_integration(
+            restApiId=api_id,
+            resourceId=root_id,
+            httpMethod="GET",
+            type=type,
+            uri="http://httpbin.org/robots.txt",
+            integrationHttpMethod="POST",
+        )
+    for type in ["AWS"]:
+        # Ensure that it works fine when providing the integrationHttpMethod + credentials
+        client.put_integration(
+            restApiId=api_id,
+            resourceId=root_id,
+            credentials="arn:aws:iam::123456789012:role/service-role/testfunction-role-oe783psq",
+            httpMethod="GET",
+            type=type,
+            uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
+            integrationHttpMethod="POST",
+        )
+    for type in aws_types:
+        # Ensure that credentials are not required when URI points to a Lambda stream
+        client.put_integration(
+            restApiId=api_id,
+            resourceId=root_id,
+            httpMethod="GET",
+            type=type,
+            uri="arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:012345678901:function:MyLambda/invocations",
+            integrationHttpMethod="POST",
+        )
+    for type in ["AWS_PROXY"]:
+        # Ensure that aws_proxy does not support S3
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                credentials="arn:aws:iam::123456789012:role/service-role/testfunction-role-oe783psq",
+                httpMethod="GET",
+                type=type,
+                uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
+                integrationHttpMethod="POST",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations."
+        )
+    for type in aws_types:
+        # Ensure that the Role ARN is for the current account
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                credentials="arn:aws:iam::000000000000:role/service-role/testrole",
+                httpMethod="GET",
+                type=type,
+                uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
+                integrationHttpMethod="POST",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("AccessDeniedException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Cross-account pass role is not allowed."
+        )
+    for type in ["AWS"]:
+        # Ensure that the Role ARN is specified for aws integrations
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                httpMethod="GET",
+                type=type,
+                uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
+                integrationHttpMethod="POST",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Role ARN must be specified for AWS integrations"
+        )
+    for type in http_types:
+        # Ensure that the URI is valid HTTP
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                httpMethod="GET",
+                type=type,
+                uri="non-valid-http",
+                integrationHttpMethod="POST",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Invalid HTTP endpoint specified for URI"
+        )
+    for type in aws_types:
+        # Ensure that the URI is an ARN
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                httpMethod="GET",
+                type=type,
+                uri="non-valid-arn",
+                integrationHttpMethod="POST",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "Invalid ARN specified in the request"
+        )
+    for type in aws_types:
+        # Ensure that the URI is a valid ARN
+        with assert_raises(ClientError) as ex:
+            client.put_integration(
+                restApiId=api_id,
+                resourceId=root_id,
+                httpMethod="GET",
+                type=type,
+                uri="arn:aws:iam::0000000000:role/service-role/asdf",
+                integrationHttpMethod="POST",
+            )
+        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.exception.response["Error"]["Message"].should.equal(
+            "AWS ARN for integration must contain path or action"
+        )
+
+
+@mock_apigateway
+def test_delete_stage():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    stage_name = "staging"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    create_method_integration(client, api_id)
+    deployment_id1 = client.create_deployment(restApiId=api_id, stageName=stage_name)[
+        "id"
+    ]
+    deployment_id2 = client.create_deployment(restApiId=api_id, stageName=stage_name)[
+        "id"
+    ]
+
+    new_stage_name = "current"
+    client.create_stage(
+        restApiId=api_id, stageName=new_stage_name, deploymentId=deployment_id1
+    )
+
+    new_stage_name_with_vars = "stage_with_vars"
+    client.create_stage(
+        restApiId=api_id,
+        stageName=new_stage_name_with_vars,
+        deploymentId=deployment_id2,
+        variables={"env": "dev"},
+    )
+    stages = client.get_stages(restApiId=api_id)["item"]
+    sorted([stage["stageName"] for stage in stages]).should.equal(
+        sorted([new_stage_name, new_stage_name_with_vars, stage_name])
+    )
+    # delete stage
+    response = client.delete_stage(restApiId=api_id, stageName=new_stage_name_with_vars)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    # verify other stage still exists
+    stages = client.get_stages(restApiId=api_id)["item"]
+    sorted([stage["stageName"] for stage in stages]).should.equal(
+        sorted([new_stage_name, stage_name])
+    )
+
+
+@mock_apigateway
 def test_deployment():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
+    create_method_integration(client, api_id)
 
     response = client.create_deployment(restApiId=api_id, stageName=stage_name)
     deployment_id = response["id"]
@@ -719,7 +1061,7 @@ def test_deployment():
     response["items"][0].pop("createdDate")
     response["items"].should.equal([{"id": deployment_id, "description": ""}])
 
-    response = client.delete_deployment(restApiId=api_id, deploymentId=deployment_id)
+    client.delete_deployment(restApiId=api_id, deploymentId=deployment_id)
 
     response = client.get_deployments(restApiId=api_id)
     len(response["items"]).should.equal(0)
@@ -730,7 +1072,7 @@ def test_deployment():
     stage["stageName"].should.equal(stage_name)
     stage["deploymentId"].should.equal(deployment_id)
 
-    stage = client.update_stage(
+    client.update_stage(
         restApiId=api_id,
         stageName=stage_name,
         patchOperations=[
@@ -774,6 +1116,7 @@ def test_http_proxying_integration():
         httpMethod="GET",
         type="HTTP",
         uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
     )
 
     stage_name = "staging"
@@ -888,7 +1231,6 @@ def test_usage_plans():
 @mock_apigateway
 def test_usage_plan_keys():
     region_name = "us-west-2"
-    usage_plan_id = "test_usage_plan_id"
     client = boto3.client("apigateway", region_name=region_name)
     usage_plan_id = "test"
 
@@ -932,7 +1274,6 @@ def test_usage_plan_keys():
 @mock_apigateway
 def test_create_usage_plan_key_non_existent_api_key():
     region_name = "us-west-2"
-    usage_plan_id = "test_usage_plan_id"
     client = boto3.client("apigateway", region_name=region_name)
     usage_plan_id = "test"
 
@@ -976,3 +1317,34 @@ def test_get_usage_plans_using_key_id():
     len(only_plans_with_key["items"]).should.equal(1)
     only_plans_with_key["items"][0]["name"].should.equal(attached_plan["name"])
     only_plans_with_key["items"][0]["id"].should.equal(attached_plan["id"])
+
+
+def create_method_integration(client, api_id, httpMethod="GET"):
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod=httpMethod,
+        authorizationType="NONE",
+    )
+    client.put_method_response(
+        restApiId=api_id, resourceId=root_id, httpMethod=httpMethod, statusCode="200"
+    )
+    client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod=httpMethod,
+        type="HTTP",
+        uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
+    )
+    client.put_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod=httpMethod,
+        statusCode="200",
+        responseTemplates={},
+    )

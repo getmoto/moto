@@ -162,7 +162,7 @@ if settings.TEST_SERVER_MODE:
         conn = boto3.client("lambda", "us-west-2")
         conn.create_function(
             FunctionName="testFunction",
-            Runtime="python2.7",
+            Runtime="python3.7",
             Role="test-iam-role",
             Handler="lambda_function.lambda_handler",
             Code={"ZipFile": get_test_zip_file2()},
@@ -184,18 +184,20 @@ if settings.TEST_SERVER_MODE:
             vol.id,
             vol.state,
             vol.size,
-            json.dumps(in_data),
+            json.dumps(in_data).replace(
+                " ", ""
+            ),  # Makes the tests pass as the result is missing the whitespace
         )
 
         log_result = base64.b64decode(result["LogResult"]).decode("utf-8")
 
-        # fix for running under travis (TODO: investigate why it has an extra newline)
+        # The Docker lambda invocation will return an additional '\n', so need to replace it:
         log_result = log_result.replace("\n\n", "\n")
         log_result.should.equal(msg)
 
         payload = result["Payload"].read().decode("utf-8")
 
-        # fix for running under travis (TODO: investigate why it has an extra newline)
+        # The Docker lambda invocation will return an additional '\n', so need to replace it:
         payload = payload.replace("\n\n", "\n")
         payload.should.equal(msg)
 
@@ -999,10 +1001,10 @@ def test_list_versions_by_function_for_nonexistent_function():
 @mock_lambda
 @mock_sqs
 def test_create_event_source_mapping():
-    sqs = boto3.resource("sqs")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1028,11 +1030,11 @@ def test_create_event_source_mapping():
 @mock_lambda
 @mock_sqs
 def test_invoke_function_from_sqs():
-    logs_conn = boto3.client("logs")
-    sqs = boto3.resource("sqs")
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1052,7 +1054,7 @@ def test_invoke_function_from_sqs():
     assert response["EventSourceArn"] == queue.attributes["QueueArn"]
     assert response["State"] == "Enabled"
 
-    sqs_client = boto3.client("sqs")
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
     sqs_client.send_message(QueueUrl=queue.url, MessageBody="test")
     start = time.time()
     while (time.time() - start) < 30:
@@ -1079,8 +1081,8 @@ def test_invoke_function_from_sqs():
 @mock_lambda
 @mock_dynamodb2
 def test_invoke_function_from_dynamodb():
-    logs_conn = boto3.client("logs")
-    dynamodb = boto3.client("dynamodb")
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     table_name = "table_with_stream"
     table = dynamodb.create_table(
         TableName=table_name,
@@ -1092,7 +1094,7 @@ def test_invoke_function_from_dynamodb():
         },
     )
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1139,11 +1141,11 @@ def test_invoke_function_from_dynamodb():
 @mock_lambda
 @mock_sqs
 def test_invoke_function_from_sqs_exception():
-    logs_conn = boto3.client("logs")
-    sqs = boto3.resource("sqs")
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1199,10 +1201,10 @@ def test_invoke_function_from_sqs_exception():
 @mock_lambda
 @mock_sqs
 def test_list_event_source_mappings():
-    sqs = boto3.resource("sqs")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1231,10 +1233,10 @@ def test_list_event_source_mappings():
 @mock_lambda
 @mock_sqs
 def test_get_event_source_mapping():
-    sqs = boto3.resource("sqs")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1261,10 +1263,10 @@ def test_get_event_source_mapping():
 @mock_lambda
 @mock_sqs
 def test_update_event_source_mapping():
-    sqs = boto3.resource("sqs")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func1 = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
@@ -1305,10 +1307,10 @@ def test_update_event_source_mapping():
 @mock_lambda
 @mock_sqs
 def test_delete_event_source_mapping():
-    sqs = boto3.resource("sqs")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
-    conn = boto3.client("lambda")
+    conn = boto3.client("lambda", region_name="us-east-1")
     func1 = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",

@@ -77,6 +77,7 @@ class DynamoType(object):
             attr, list_index = attribute_is_list(attr)
             if not key:
                 # {'S': value} ==> {'S': new_value}
+                self.type = new_value.type
                 self.value = new_value.value
             else:
                 if attr not in self.value:  # nonexistingattribute
@@ -106,6 +107,28 @@ class DynamoType(object):
                 self.value[attr].delete(".".join(key.split(".")[1:]))
             else:
                 self.value.pop(key)
+
+    def filter(self, projection_expressions):
+        nested_projections = [
+            expr[0 : expr.index(".")] for expr in projection_expressions if "." in expr
+        ]
+        if self.is_map():
+            expressions_to_delete = []
+            for attr in self.value:
+                if (
+                    attr not in projection_expressions
+                    and attr not in nested_projections
+                ):
+                    expressions_to_delete.append(attr)
+                elif attr in nested_projections:
+                    relevant_expressions = [
+                        expr[len(attr + ".") :]
+                        for expr in projection_expressions
+                        if expr.startswith(attr + ".")
+                    ]
+                    self.value[attr].filter(relevant_expressions)
+            for expr in expressions_to_delete:
+                self.value.pop(expr)
 
     def __hash__(self):
         return hash((self.type, self.value))
@@ -477,6 +500,24 @@ class Item(BaseModel):
                     "%s action not support for update_with_attribute_updates" % action
                 )
 
+    # Filter using projection_expression
+    # Ensure a deep copy is used to filter, otherwise actual data will be removed
+    def filter(self, projection_expression):
+        expressions = [x.strip() for x in projection_expression.split(",")]
+        top_level_expressions = [
+            expr[0 : expr.index(".")] for expr in expressions if "." in expr
+        ]
+        for attr in list(self.attrs):
+            if attr not in expressions and attr not in top_level_expressions:
+                self.attrs.pop(attr)
+            if attr in top_level_expressions:
+                relevant_expressions = [
+                    expr[len(attr + ".") :]
+                    for expr in expressions
+                    if expr.startswith(attr + ".")
+                ]
+                self.attrs[attr].filter(relevant_expressions)
+
 
 class StreamRecord(BaseModel):
     def __init__(self, table, stream_type, event_name, old, new, seq):
@@ -774,11 +815,8 @@ class Table(BaseModel):
                 result = self.items[hash_key]
 
             if projection_expression and result:
-                expressions = [x.strip() for x in projection_expression.split(",")]
                 result = copy.deepcopy(result)
-                for attr in list(result.attrs):
-                    if attr not in expressions:
-                        result.attrs.pop(attr)
+                result.filter(projection_expression)
 
             if not result:
                 raise KeyError
@@ -911,13 +949,10 @@ class Table(BaseModel):
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
 
+        results = copy.deepcopy(results)
         if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(",")]
-            results = copy.deepcopy(results)
             for result in results:
-                for attr in list(result.attrs):
-                    if attr not in expressions:
-                        result.attrs.pop(attr)
+                result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key
@@ -1004,12 +1039,9 @@ class Table(BaseModel):
                 results.append(item)
 
         if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(",")]
             results = copy.deepcopy(results)
             for result in results:
-                for attr in list(result.attrs):
-                    if attr not in expressions:
-                        result.attrs.pop(attr)
+                result.filter(projection_expression)
 
         results, last_evaluated_key = self._trim_results(
             results, limit, exclusive_start_key, index_name

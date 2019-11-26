@@ -269,9 +269,31 @@ class OrganizationsBackend(BaseBackend):
             )
         return account
 
+    def get_account_by_attr(self, attr, value):
+        account = next(
+            (
+                account
+                for account in self.accounts
+                if hasattr(account, attr) and getattr(account, attr) == value
+            ),
+            None,
+        )
+        if account is None:
+            raise RESTError(
+                "AccountNotFoundException",
+                "You specified an account that doesn't exist.",
+            )
+        return account
+
     def describe_account(self, **kwargs):
         account = self.get_account_by_id(kwargs["AccountId"])
         return account.describe()
+
+    def describe_create_account_status(self, **kwargs):
+        account = self.get_account_by_attr(
+            "create_account_status_id", kwargs["CreateAccountRequestId"]
+        )
+        return account.create_account_status
 
     def list_accounts(self):
         return dict(

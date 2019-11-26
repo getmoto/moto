@@ -3,15 +3,36 @@ from __future__ import unicode_literals
 
 import random
 import string
+import re
 import requests
 import time
 
 from boto3.session import Session
+
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 import responses
 from moto.core import BaseBackend, BaseModel
 from .utils import create_id
 from moto.core.utils import path_url
-from .exceptions import StageNotFoundException, ApiKeyNotFoundException
+from moto.sts.models import ACCOUNT_ID
+from .exceptions import (
+    ApiKeyNotFoundException,
+    AwsProxyNotAllowed,
+    CrossAccountNotAllowed,
+    IntegrationMethodNotDefined,
+    InvalidArn,
+    InvalidIntegrationArn,
+    InvalidHttpEndpoint,
+    InvalidResourcePathException,
+    InvalidRequestInput,
+    StageNotFoundException,
+    RoleNotSpecified,
+    NoIntegrationDefined,
+    NoMethodDefined,
+)
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 
@@ -534,6 +555,8 @@ class APIGatewayBackend(BaseBackend):
         return resource
 
     def create_resource(self, function_id, parent_resource_id, path_part):
+        if not re.match("^\\{?[a-zA-Z0-9._-]+\\}?$", path_part):
+            raise InvalidResourcePathException()
         api = self.get_rest_api(function_id)
         child = api.add_child(path=path_part, parent_id=parent_resource_id)
         return child
@@ -594,6 +617,10 @@ class APIGatewayBackend(BaseBackend):
             stage = api.stages[stage_name] = Stage()
         return stage.apply_operations(patch_operations)
 
+    def delete_stage(self, function_id, stage_name):
+        api = self.get_rest_api(function_id)
+        del api.stages[stage_name]
+
     def get_method_response(self, function_id, resource_id, method_type, response_code):
         method = self.get_method(function_id, resource_id, method_type)
         method_response = method.get_response(response_code)
@@ -620,9 +647,40 @@ class APIGatewayBackend(BaseBackend):
         method_type,
         integration_type,
         uri,
+        integration_method=None,
+        credentials=None,
         request_templates=None,
     ):
         resource = self.get_resource(function_id, resource_id)
+        if credentials and not re.match(
+            "^arn:aws:iam::" + str(ACCOUNT_ID), credentials
+        ):
+            raise CrossAccountNotAllowed()
+        if not integration_method and integration_type in [
+            "HTTP",
+            "HTTP_PROXY",
+            "AWS",
+            "AWS_PROXY",
+        ]:
+            raise IntegrationMethodNotDefined()
+        if integration_type in ["AWS_PROXY"] and re.match(
+            "^arn:aws:apigateway:[a-zA-Z0-9-]+:s3", uri
+        ):
+            raise AwsProxyNotAllowed()
+        if (
+            integration_type in ["AWS"]
+            and re.match("^arn:aws:apigateway:[a-zA-Z0-9-]+:s3", uri)
+            and not credentials
+        ):
+            raise RoleNotSpecified()
+        if integration_type in ["HTTP", "HTTP_PROXY"] and not self._uri_validator(uri):
+            raise InvalidHttpEndpoint()
+        if integration_type in ["AWS", "AWS_PROXY"] and not re.match("^arn:aws:", uri):
+            raise InvalidArn()
+        if integration_type in ["AWS", "AWS_PROXY"] and not re.match(
+            "^arn:aws:apigateway:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+:(path|action)/", uri
+        ):
+            raise InvalidIntegrationArn()
         integration = resource.add_integration(
             method_type, integration_type, uri, request_templates=request_templates
         )
@@ -637,8 +695,16 @@ class APIGatewayBackend(BaseBackend):
         return resource.delete_integration(method_type)
 
     def create_integration_response(
-        self, function_id, resource_id, method_type, status_code, selection_pattern
+        self,
+        function_id,
+        resource_id,
+        method_type,
+        status_code,
+        selection_pattern,
+        response_templates,
     ):
+        if response_templates is None:
+            raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
             status_code, selection_pattern
@@ -665,6 +731,18 @@ class APIGatewayBackend(BaseBackend):
         if stage_variables is None:
             stage_variables = {}
         api = self.get_rest_api(function_id)
+        methods = [
+            list(res.resource_methods.values())
+            for res in self.list_resources(function_id)
+        ][0]
+        if not any(methods):
+            raise NoMethodDefined()
+        method_integrations = [
+            method["methodIntegration"] if "methodIntegration" in method else None
+            for method in methods
+        ]
+        if not any(method_integrations):
+            raise NoIntegrationDefined()
         deployment = api.create_deployment(name, description, stage_variables)
         return deployment
 
@@ -752,6 +830,13 @@ class APIGatewayBackend(BaseBackend):
     def delete_usage_plan_key(self, usage_plan_id, key_id):
         self.usage_plan_keys[usage_plan_id].pop(key_id)
         return {}
+
+    def _uri_validator(self, uri):
+        try:
+            result = urlparse(uri)
+            return all([result.scheme, result.netloc, result.path])
+        except Exception:
+            return False
 
 
 apigateway_backends = {}
