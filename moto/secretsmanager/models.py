@@ -453,6 +453,30 @@ class SecretsManagerBackend(BaseBackend):
 
         return arn, name
 
+    @staticmethod
+    def get_resource_policy(secret_id):
+        resource_policy = {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": [
+                        "arn:aws:iam::111122223333:root",
+                        "arn:aws:iam::444455556666:root",
+                    ]
+                },
+                "Action": ["secretsmanager:GetSecretValue"],
+                "Resource": "*",
+            },
+        }
+        return json.dumps(
+            {
+                "ARN": secret_id,
+                "Name": secret_id,
+                "ResourcePolicy": json.dumps(resource_policy),
+            }
+        )
+
 
 available_regions = boto3.session.Session().get_available_regions("secretsmanager")
 secretsmanager_backends = {
