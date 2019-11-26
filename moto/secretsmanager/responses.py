@@ -114,3 +114,9 @@ class SecretsManagerResponse(BaseResponse):
             secret_id=secret_id
         )
         return json.dumps(dict(ARN=arn, Name=name))
+
+    def get_resource_policy(self):
+        secret_id = self._get_param("SecretId")
+        return secretsmanager_backends[self.region].get_resource_policy(
+            secret_id=secret_id
+        )
