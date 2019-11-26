@@ -1,6 +1,7 @@
-from datetime import datetime
-
 import boto3
+import copy
+import sure  # noqa # pylint: disable=unused-import
+from datetime import datetime
 from moto import mock_meteringmarketplace
 from moto.meteringmarketplace.models import Result
 
@@ -77,10 +78,14 @@ def test_batch_meter_usage():
         UsageRecords=USAGE_RECORDS, ProductCode="PUFXZLyUElvQvrsG"
     )
 
+    res.should.have.key("Results").length_of(10)
+
+    records_without_time = copy.copy(USAGE_RECORDS)
+    for r in records_without_time:
+        r.pop("Timestamp")
+
     for record in res["Results"]:
-        assert record["UsageRecord"] in USAGE_RECORDS
+        record["UsageRecord"].pop("Timestamp")
+        assert record["UsageRecord"] in records_without_time
         assert record["MeteringRecordId"]
         assert record["Status"] in [Result.DUPLICATE_RECORD, Result.CUSTOMER_NOT_SUBSCRIBED, Result.SUCCESS]
-
-    for record in res["UnprocessedRecords"]:
-        pass

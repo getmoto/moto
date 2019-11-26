@@ -1,6 +1,8 @@
+import collections
 from boto3.session import Session
-
 from moto.core import BaseBackend, BaseModel
+from moto.moto_api._internal import mock_random
+from moto.core.utils import BackendDict
 
 
 class UsageRecord(BaseModel, dict):
@@ -10,7 +12,7 @@ class UsageRecord(BaseModel, dict):
         self.customer_identifier = customer_identifier
         self.dimension = dimension
         self.quantity = quantity
-        self.metering_record_id = uuid.uuid4().hex
+        self.metering_record_id = mock_random.uuid4().hex
 
     @classmethod
     def from_data(cls, data):
@@ -60,7 +62,10 @@ class Result(BaseModel, dict):
     DUPLICATE_RECORD = "DuplicateRecord"
 
     def __init__(self, **kwargs):
-        self.usage_record = kwargs
+        self.usage_record = UsageRecord(timestamp=kwargs["Timestamp"],
+                                        customer_identifier=kwargs["CustomerIdentifier"],
+                                        dimension=kwargs["Dimension"],
+                                        quantity=kwargs["Quantity"])
         self.status = Result.SUCCESS
         self["MeteringRecordId"] = self.usage_record.metering_record_id
 
@@ -111,12 +116,23 @@ class ResultDeque(collections.deque):
 
 
 class MeteringMarketplaceBackend(BaseBackend):
-    def __init__(self):
-        super(MeteringMarketplaceBackend, self).__init__()
+    def __init__(self, region_name, account_id):
+        super().__init__(region_name, account_id)
         self.customers_by_product = collections.defaultdict(CustomerDeque)
         self.records_by_product = collections.defaultdict(ResultDeque)
 
+    def batch_meter_usage(self, product_code, usage_records):
+        results = []
+        for usage in usage_records:
+            result = Result(**usage)
+            if not self.customers_by_product[product_code].is_subscribed(result.usage_record.customer_identifier):
+                result.status = result.CUSTOMER_NOT_SUBSCRIBED
+            elif self.records_by_product[product_code].is_duplicate(result):
+                result.status = result.DUPLICATE_RECORD
+            else:
+                records.append(result)
+            results.append(result)
+        return results
 
-meteringmarketplace_backends = {}
-for region_name in Session().get_available_regions("meteringmarketplace"):
-    meteringmarketplace_backends[region_name] = MeteringMarketplaceBackend()
+
+meteringmarketplace_backends = BackendDict(MeteringMarketplaceBackend, "meteringmarketplace")
