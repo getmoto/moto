@@ -1156,7 +1156,11 @@ def test_api_keys():
 
     apikey_value = "12345"
     apikey_name = "TESTKEY1"
-    payload = {"value": apikey_value, "name": apikey_name, "tags": {"tag1": "test_tag1", "tag2": "1"}}
+    payload = {
+        "value": apikey_value,
+        "name": apikey_name,
+        "tags": {"tag1": "test_tag1", "tag2": "1"},
+    }
     response = client.create_api_key(**payload)
     apikey_id = response["id"]
     apikey = client.get_api_key(apiKey=response["id"])
