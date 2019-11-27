@@ -158,6 +158,20 @@ def test_get_parameters_by_path():
     len(response["Parameters"]).should.equal(1)
     {p["Name"] for p in response["Parameters"]}.should.equal(set(["/baz/pwd"]))
 
+    response = client.get_parameters_by_path(Path="/", Recursive=True, MaxResults=4)
+    len(response["Parameters"]).should.equal(4)
+    response["NextToken"].should.equal("4")
+    response = client.get_parameters_by_path(
+        Path="/", Recursive=True, MaxResults=4, NextToken=response["NextToken"]
+    )
+    len(response["Parameters"]).should.equal(4)
+    response["NextToken"].should.equal("8")
+    response = client.get_parameters_by_path(
+        Path="/", Recursive=True, MaxResults=4, NextToken=response["NextToken"]
+    )
+    len(response["Parameters"]).should.equal(1)
+    response.should_not.have.key("NextToken")
+
 
 @mock_ssm
 def test_put_parameter():
