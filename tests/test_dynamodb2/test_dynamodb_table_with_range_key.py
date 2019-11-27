@@ -1289,6 +1289,16 @@ def test_update_item_add_with_expression():
     current_item["str_set"] = current_item["str_set"].union({"item4"})
     dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
 
+    # Update item to add a string value to a non-existing set
+    # Should just create the set in the background
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="ADD non_existing_str_set :v",
+        ExpressionAttributeValues={":v": {"item4"}},
+    )
+    current_item["non_existing_str_set"] = {"item4"}
+    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+
     # Update item to add a num value to a num set
     table.update_item(
         Key=item_key,
@@ -1334,6 +1344,43 @@ def test_update_item_add_with_expression():
         UpdateExpression="ADD str_set :v",
         ExpressionAttributeValues={":v": "new_string"},
     ).should.have.raised(ClientError)
+
+
+@mock_dynamodb2
+def test_update_item_add_with_nested_sets_and_expression_names():
+    table = _create_table_with_range_key()
+
+    item_key = {"forum_name": "the-key", "subject": "123"}
+    current_item = {
+        "forum_name": "the-key",
+        "subject": "123",
+        "nested": {"str_set": {"item1", "item2", "item3"}},
+    }
+
+    # Put an entry in the DB to play with
+    table.put_item(Item=current_item)
+
+    # Update item to add a string value to a nested string set
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="ADD nested.str_set :v",
+        ExpressionAttributeValues={":v": {"item4"}},
+    )
+    current_item["nested"]["str_set"] = current_item["nested"]["str_set"].union(
+        {"item4"}
+    )
+    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+
+    # Update item to add a string value to a non-existing set
+    # Should just create the set in the background
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="ADD #ns.#ne :v",
+        ExpressionAttributeNames={"#ns": "nested", "#ne": "non_existing_str_set"},
+        ExpressionAttributeValues={":v": {"new_item"}},
+    )
+    current_item["nested"]["non_existing_str_set"] = {"new_item"}
+    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
 
 
 @mock_dynamodb2
