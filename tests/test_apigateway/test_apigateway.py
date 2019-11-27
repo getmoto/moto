@@ -1154,7 +1154,6 @@ def test_api_keys():
     response = client.get_api_keys()
     len(response["items"]).should.equal(0)
 
-# TODO INSPECT IF THIS IS A BUG, IF AN API_KEY_VALUE MUST BE AT LEAST 20 CHARACTERS
     apikey_value = "12345"
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name, "tags": {"tag1": "test_tag1", "tag2": "1"}}
@@ -1162,7 +1161,6 @@ def test_api_keys():
     apikey_id = response["id"]
     apikey = client.get_api_key(apiKey=response["id"])
     apikey["name"].should.equal(apikey_name)
-# TODO THIS IS A BUG! THE GET_API_KEY API, DOES NOT RETURN IT'S VALUE!
     apikey["value"].should.equal(apikey_value)
     apikey["tags"]["tag1"].should.equal("test_tag1")
     apikey["tags"]["tag2"].should.equal("1")
