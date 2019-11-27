@@ -9,6 +9,7 @@ from .exceptions import (
     BadRequestException,
     CrossAccountNotAllowed,
     StageNotFoundException,
+    ApiKeyAlreadyExists
 )
 
 
@@ -302,7 +303,17 @@ class APIGatewayResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
-            apikey_response = self.backend.create_apikey(json.loads(self.body))
+            try:
+                apikey_response = self.backend.create_apikey(json.loads(self.body))
+            except ApiKeyAlreadyExists as error:
+                return (
+                    error.code,
+                    self.headers,
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
+
         elif self.method == "GET":
             apikeys_response = self.backend.get_apikeys()
             return 200, {}, json.dumps({"item": apikeys_response})

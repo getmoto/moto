@@ -1131,34 +1131,41 @@ def test_http_proxying_integration():
 
 
 @mock_apigateway
+def test_create_api_key():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    apikey_value = "12345"
+    apikey_name = "TESTKEY1"
+    payload = {"value": apikey_value, "name": apikey_name}
+
+    client.create_api_key(**payload)
+
+    response = client.get_api_keys()
+    len(response["items"]).should.equal(1)
+
+    client.create_api_key.when.called_with(**payload).should.throw(ClientError)
+
+
+@mock_apigateway
 def test_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
     response = client.get_api_keys()
     len(response["items"]).should.equal(0)
 
+# TODO INSPECT IF THIS IS A BUG, IF AN API_KEY_VALUE MUST BE AT LEAST 20 CHARACTERS
     apikey_value = "12345"
     apikey_name = "TESTKEY1"
-    payload = {"value": apikey_value, "name": apikey_name}
+    payload = {"value": apikey_value, "name": apikey_name, "tags": {"tag1": "test_tag1", "tag2": "1"}}
     response = client.create_api_key(**payload)
+    apikey_id = response["id"]
     apikey = client.get_api_key(apiKey=response["id"])
     apikey["name"].should.equal(apikey_name)
+# TODO THIS IS A BUG! THE GET_API_KEY API, DOES NOT RETURN IT'S VALUE!
     apikey["value"].should.equal(apikey_value)
-
-    apikey_name = "TESTKEY2"
-    payload = {"name": apikey_name, "tags": {"tag1": "test_tag1", "tag2": "1"}}
-    response = client.create_api_key(**payload)
-    apikey_id = response["id"]
-    apikey = client.get_api_key(apiKey=apikey_id)
-    apikey["name"].should.equal(apikey_name)
     apikey["tags"]["tag1"].should.equal("test_tag1")
     apikey["tags"]["tag2"].should.equal("1")
-    len(apikey["value"]).should.equal(40)
-
-    apikey_name = "TESTKEY3"
-    payload = {"name": apikey_name}
-    response = client.create_api_key(**payload)
-    apikey_id = response["id"]
 
     patch_operations = [
         {"op": "replace", "path": "/name", "value": "TESTKEY3_CHANGE"},
@@ -1172,13 +1179,25 @@ def test_api_keys():
     response["description"].should.equal("APIKEY UPDATE TEST")
     response["enabled"].should.equal(False)
 
+    updated_api_key = client.get_api_key(apiKey=apikey_id)
+    updated_api_key["name"].should.equal("TESTKEY3_CHANGE")
+    updated_api_key["customerId"].should.equal("12345")
+    updated_api_key["description"].should.equal("APIKEY UPDATE TEST")
+    updated_api_key["enabled"].should.equal(False)
+
     response = client.get_api_keys()
-    len(response["items"]).should.equal(3)
+    len(response["items"]).should.equal(1)
+
+    payload = {"name": apikey_name}
+    client.create_api_key(**payload)
+
+    response = client.get_api_keys()
+    len(response["items"]).should.equal(2)
 
     client.delete_api_key(apiKey=apikey_id)
 
     response = client.get_api_keys()
-    len(response["items"]).should.equal(2)
+    len(response["items"]).should.equal(1)
 
 
 @mock_apigateway
