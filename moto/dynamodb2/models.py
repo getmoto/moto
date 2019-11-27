@@ -63,6 +63,16 @@ class DynamoType(object):
         elif self.is_map():
             self.value = dict((k, DynamoType(v)) for k, v in self.value.items())
 
+    def get(self, key):
+        if not key:
+            return self
+        else:
+            key_head = key.split(".")[0]
+            key_tail = ".".join(key.split(".")[1:])
+            if key_head not in self.value:
+                self.value[key_head] = DynamoType({"NONE": None})
+            return self.value[key_head].get(key_tail)
+
     def set(self, key, new_value, index=None):
         if index:
             index = int(index)
@@ -388,11 +398,19 @@ class Item(BaseModel):
                     # created with only this value if it doesn't exist yet
                     # New value must be of same set type as previous value
                     elif dyn_value.is_set():
-                        existing = self.attrs.get(key, DynamoType({dyn_value.type: {}}))
-                        if not existing.same_type(dyn_value):
+                        key_head = key.split(".")[0]
+                        key_tail = ".".join(key.split(".")[1:])
+                        if key_head not in self.attrs:
+                            self.attrs[key_head] = DynamoType({dyn_value.type: {}})
+                        existing = self.attrs.get(key_head)
+                        existing = existing.get(key_tail)
+                        if existing.value and not existing.same_type(dyn_value):
                             raise TypeError()
-                        new_set = set(existing.value).union(dyn_value.value)
-                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
+                        new_set = set(existing.value or []).union(dyn_value.value)
+                        existing.set(
+                            key=None,
+                            new_value=DynamoType({dyn_value.type: list(new_set)}),
+                        )
                     else:  # Number and Sets are the only supported types for ADD
                         raise TypeError
 
