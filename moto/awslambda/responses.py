@@ -165,7 +165,7 @@ class LambdaResponse(BaseResponse):
     def _invoke(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("qualifier")
 
         response_header, payload = self.lambda_backend.invoke(
@@ -179,7 +179,7 @@ class LambdaResponse(BaseResponse):
     def _invoke_async(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit("/", 3)[-3]
+        function_name = unquote(self.path.rsplit("/", 3)[-3])
 
         fn = self.lambda_backend.get_function(function_name, None)
         if fn:
@@ -267,7 +267,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _publish_function(self, request, full_url, headers):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
 
         fn = self.lambda_backend.publish_function(function_name)
         if fn:
@@ -335,7 +335,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _put_configuration(self, request):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
         resp = self.lambda_backend.update_function_configuration(
             function_name, qualifier, body=self.json_body
@@ -347,7 +347,7 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _put_code(self):
-        function_name = self.path.rsplit("/", 2)[-2]
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("Qualifier", None)
         resp = self.lambda_backend.update_function_code(
             function_name, qualifier, body=self.json_body
