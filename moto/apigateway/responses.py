@@ -324,7 +324,13 @@ class APIGatewayResponse(BaseResponse):
                 )
 
         elif self.method == "GET":
-            apikeys_response = self.backend.get_apikeys()
+            include_values = (
+                True
+                if self.querystring.get("includeValues", ["False"])[0]
+                in ("True", "true")
+                else False
+            )
+            apikeys_response = self.backend.get_apikeys(include_values=include_values)
             return 200, {}, json.dumps({"item": apikeys_response})
         return 200, {}, json.dumps(apikey_response)
 
@@ -335,7 +341,15 @@ class APIGatewayResponse(BaseResponse):
         apikey = url_path_parts[2]
 
         if self.method == "GET":
-            apikey_response = self.backend.get_apikey(apikey)
+            include_value = (
+                True
+                if self.querystring.get("includeValue", ["False"])[0]
+                in ("True", "true")
+                else False
+            )
+            apikey_response = self.backend.get_apikey(
+                apikey, include_value=include_value
+            )
         elif self.method == "PATCH":
             patch_operations = self._get_param("patchOperations")
             apikey_response = self.backend.update_apikey(apikey, patch_operations)
