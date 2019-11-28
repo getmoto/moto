@@ -425,12 +425,18 @@ class Item(BaseModel):
 
                     if not dyn_value.is_set():
                         raise TypeError
-                    existing = self.attrs.get(key, None)
+                    key_head = key.split(".")[0]
+                    key_tail = ".".join(key.split(".")[1:])
+                    existing = self.attrs.get(key_head)
+                    existing = existing.get(key_tail)
                     if existing:
                         if not existing.same_type(dyn_value):
                             raise TypeError
                         new_set = set(existing.value).difference(dyn_value.value)
-                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
+                        existing.set(
+                            key=None,
+                            new_value=DynamoType({existing.type: list(new_set)}),
+                        )
                 else:
                     raise NotImplementedError(
                         "{} update action not yet supported".format(action)
