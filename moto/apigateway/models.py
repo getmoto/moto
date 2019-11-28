@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 import random
 import string
 import re
+from copy import copy
+
 import requests
 import time
 
@@ -1029,18 +1031,35 @@ class APIGatewayBackend(BaseBackend):
         if payload.get("value") is not None:
             if len(payload.get("value")) < 20:
                 raise ApiKeyValueMinLength()
-            for api_key in self.get_apikeys():
+            for api_key in self.get_apikeys(include_values=True):
                 if api_key.get("value") == payload["value"]:
                     raise ApiKeyAlreadyExists()
         key = ApiKey(**payload)
         self.keys[key["id"]] = key
         return key
 
-    def get_apikeys(self):
-        return list(self.keys.values())
+    def get_apikeys(self, include_values=False):
+        api_keys = list(self.keys.values())
 
-    def get_apikey(self, api_key_id):
-        return self.keys[api_key_id]
+        if not include_values:
+            keys = []
+            for api_key in list(self.keys.values()):
+                new_key = copy(api_key)
+                del new_key["value"]
+                keys.append(new_key)
+            api_keys = keys
+
+        return api_keys
+
+    def get_apikey(self, api_key_id, include_value=False):
+        api_key = self.keys[api_key_id]
+
+        if not include_value:
+            new_key = copy(api_key)
+            del new_key["value"]
+            api_key = new_key
+
+        return api_key
 
     def update_apikey(self, api_key_id, patch_operations):
         key = self.keys[api_key_id]
