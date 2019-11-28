@@ -18,6 +18,7 @@ from .exceptions import (
     InvalidModelName,
     RestAPINotFound,
     ModelNotFound,
+    ApiKeyValueMinLength,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -454,7 +455,17 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
+
+            except ApiKeyValueMinLength as error:
+                return (
+                    error.code,
+                    self.headers,
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
             return 201, {}, json.dumps(apikey_response)
+
         elif self.method == "GET":
             apikeys_response = self.backend.get_apikeys()
             return 200, {}, json.dumps({"item": apikeys_response})

@@ -1829,11 +1829,23 @@ def test_http_proxying_integration():
 
 
 @mock_apigateway
+def test_api_key_value_min_length():
+    region_name = "us-east-1"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    apikey_value = "12345"
+    apikey_name = "TESTKEY1"
+    payload = {"value": apikey_value, "name": apikey_name}
+
+    client.create_api_key.when.called_with(**payload).should.throw(ClientError)
+
+
+@mock_apigateway
 def test_create_api_key():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "12345"
+    apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
@@ -1874,7 +1886,7 @@ def test_api_keys():
     response = client.get_api_keys()
     len(response["items"]).should.equal(0)
 
-    apikey_value = "12345"
+    apikey_value = "01234567890123456789"
     apikey_name = "TESTKEY1"
     payload = {
         "value": apikey_value,

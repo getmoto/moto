@@ -40,6 +40,7 @@ from .exceptions import (
     InvalidModelName,
     RestAPINotFound,
     ModelNotFound,
+    ApiKeyValueMinLength,
 )
 from ..core.models import responses_mock
 
@@ -1026,6 +1027,8 @@ class APIGatewayBackend(BaseBackend):
 
     def create_apikey(self, payload):
         if payload.get("value") is not None:
+            if len(payload.get("value")) < 20:
+                raise ApiKeyValueMinLength()
             for api_key in self.get_apikeys():
                 if api_key.get("value") == payload["value"]:
                     raise ApiKeyAlreadyExists()
