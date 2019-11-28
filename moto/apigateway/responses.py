@@ -10,6 +10,7 @@ from .exceptions import (
     CrossAccountNotAllowed,
     StageNotFoundException,
     ApiKeyAlreadyExists,
+    ApiKeyValueMinLength,
 )
 
 
@@ -306,6 +307,14 @@ class APIGatewayResponse(BaseResponse):
             try:
                 apikey_response = self.backend.create_apikey(json.loads(self.body))
             except ApiKeyAlreadyExists as error:
+                return (
+                    error.code,
+                    self.headers,
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
+            except ApiKeyValueMinLength as error:
                 return (
                     error.code,
                     self.headers,

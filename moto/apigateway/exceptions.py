@@ -110,3 +110,12 @@ class ApiKeyAlreadyExists(RESTError):
         super(ApiKeyAlreadyExists, self).__init__(
             "ConflictException", "API Key already exists"
         )
+
+
+class ApiKeyValueMinLength(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(ApiKeyValueMinLength, self).__init__(
+            "BadRequestException", "API Key value should be at least 20 characters"
+        )
