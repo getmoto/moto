@@ -13,6 +13,7 @@ import time
 import uuid
 import itertools
 
+from .utils import parameter_arn
 from .exceptions import (
     ValidationException,
     InvalidFilterValue,
@@ -60,19 +61,23 @@ class Parameter(BaseModel):
         if value.startswith(prefix):
             return value[len(prefix) :]
 
-    def response_object(self, decrypt=False):
+    def response_object(self, decrypt=False, region=None):
         r = {
             "Name": self.name,
             "Type": self.type,
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
+            "LastModifiedDate": round(self.last_modified_date, 3),
         }
+
+        if region:
+            r["ARN"] = parameter_arn(region, self.name)
 
         return r
 
     def describe_response_object(self, decrypt=False):
         r = self.response_object(decrypt)
-        r["LastModifiedDate"] = int(self.last_modified_date)
+        r["LastModifiedDate"] = round(self.last_modified_date, 3)
         r["LastModifiedUser"] = "N/A"
 
         if self.description:
