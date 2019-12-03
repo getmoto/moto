@@ -15,24 +15,30 @@ class OpsworkInstance(BaseModel):
     used to populate a reservation request when "start" is called
     """
 
-    def __init__(self, stack_id, layer_ids, instance_type, ec2_backend,
-                 auto_scale_type=None,
-                 hostname=None,
-                 os=None,
-                 ami_id="ami-08111162",
-                 ssh_keyname=None,
-                 availability_zone=None,
-                 virtualization_type="hvm",
-                 subnet_id=None,
-                 architecture="x86_64",
-                 root_device_type="ebs",
-                 block_device_mappings=None,
-                 install_updates_on_boot=True,
-                 ebs_optimized=False,
-                 agent_version="INHERIT",
-                 instance_profile_arn=None,
-                 associate_public_ip=None,
-                 security_group_ids=None):
+    def __init__(
+        self,
+        stack_id,
+        layer_ids,
+        instance_type,
+        ec2_backend,
+        auto_scale_type=None,
+        hostname=None,
+        os=None,
+        ami_id="ami-08111162",
+        ssh_keyname=None,
+        availability_zone=None,
+        virtualization_type="hvm",
+        subnet_id=None,
+        architecture="x86_64",
+        root_device_type="ebs",
+        block_device_mappings=None,
+        install_updates_on_boot=True,
+        ebs_optimized=False,
+        agent_version="INHERIT",
+        instance_profile_arn=None,
+        associate_public_ip=None,
+        security_group_ids=None,
+    ):
 
         self.ec2_backend = ec2_backend
 
@@ -55,13 +61,12 @@ class OpsworkInstance(BaseModel):
         # formatting in to_dict()
         self.block_device_mappings = block_device_mappings
         if self.block_device_mappings is None:
-            self.block_device_mappings = [{
-                'DeviceName': 'ROOT_DEVICE',
-                'Ebs': {
-                    'VolumeSize': 8,
-                    'VolumeType': 'gp2'
+            self.block_device_mappings = [
+                {
+                    "DeviceName": "ROOT_DEVICE",
+                    "Ebs": {"VolumeSize": 8, "VolumeType": "gp2"},
                 }
-            }]
+            ]
         self.security_group_ids = security_group_ids
         if self.security_group_ids is None:
             self.security_group_ids = []
@@ -102,9 +107,9 @@ class OpsworkInstance(BaseModel):
             )
             self.instance = reservation.instances[0]
             self.reported_os = {
-                'Family': 'rhel (fixed)',
-                'Name': 'amazon (fixed)',
-                'Version': '2016.03 (fixed)'
+                "Family": "rhel (fixed)",
+                "Name": "amazon (fixed)",
+                "Version": "2016.03 (fixed)",
             }
             self.platform = self.instance.platform
             self.security_group_ids = self.instance.security_groups
@@ -156,32 +161,43 @@ class OpsworkInstance(BaseModel):
             d.update({"RootDeviceVolumeId": "vol-a20e450a (fixed)"})
             if self.ssh_keyname is not None:
                 d.update(
-                    {"SshHostDsaKeyFingerprint": "24:36:32:fe:d8:5f:9c:18:b1:ad:37:e9:eb:e8:69:58 (fixed)"})
+                    {
+                        "SshHostDsaKeyFingerprint": "24:36:32:fe:d8:5f:9c:18:b1:ad:37:e9:eb:e8:69:58 (fixed)"
+                    }
+                )
                 d.update(
-                    {"SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"})
+                    {
+                        "SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"
+                    }
+                )
             d.update({"PrivateDns": self.instance.private_dns})
             d.update({"PrivateIp": self.instance.private_ip})
-            d.update({"PublicDns": getattr(self.instance, 'public_dns', None)})
-            d.update({"PublicIp": getattr(self.instance, 'public_ip', None)})
+            d.update({"PublicDns": getattr(self.instance, "public_dns", None)})
+            d.update({"PublicIp": getattr(self.instance, "public_ip", None)})
         return d
 
 
 class Layer(BaseModel):
-
-    def __init__(self, stack_id, type, name, shortname,
-                 attributes=None,
-                 custom_instance_profile_arn=None,
-                 custom_json=None,
-                 custom_security_group_ids=None,
-                 packages=None,
-                 volume_configurations=None,
-                 enable_autohealing=None,
-                 auto_assign_elastic_ips=None,
-                 auto_assign_public_ips=None,
-                 custom_recipes=None,
-                 install_updates_on_boot=None,
-                 use_ebs_optimized_instances=None,
-                 lifecycle_event_configuration=None):
+    def __init__(
+        self,
+        stack_id,
+        type,
+        name,
+        shortname,
+        attributes=None,
+        custom_instance_profile_arn=None,
+        custom_json=None,
+        custom_security_group_ids=None,
+        packages=None,
+        volume_configurations=None,
+        enable_autohealing=None,
+        auto_assign_elastic_ips=None,
+        auto_assign_public_ips=None,
+        custom_recipes=None,
+        install_updates_on_boot=None,
+        use_ebs_optimized_instances=None,
+        lifecycle_event_configuration=None,
+    ):
         self.stack_id = stack_id
         self.type = type
         self.name = name
@@ -190,31 +206,31 @@ class Layer(BaseModel):
         self.attributes = attributes
         if attributes is None:
             self.attributes = {
-                'BundlerVersion': None,
-                'EcsClusterArn': None,
-                'EnableHaproxyStats': None,
-                'GangliaPassword': None,
-                'GangliaUrl': None,
-                'GangliaUser': None,
-                'HaproxyHealthCheckMethod': None,
-                'HaproxyHealthCheckUrl': None,
-                'HaproxyStatsPassword': None,
-                'HaproxyStatsUrl': None,
-                'HaproxyStatsUser': None,
-                'JavaAppServer': None,
-                'JavaAppServerVersion': None,
-                'Jvm': None,
-                'JvmOptions': None,
-                'JvmVersion': None,
-                'ManageBundler': None,
-                'MemcachedMemory': None,
-                'MysqlRootPassword': None,
-                'MysqlRootPasswordUbiquitous': None,
-                'NodejsVersion': None,
-                'PassengerVersion': None,
-                'RailsStack': None,
-                'RubyVersion': None,
-                'RubygemsVersion': None
+                "BundlerVersion": None,
+                "EcsClusterArn": None,
+                "EnableHaproxyStats": None,
+                "GangliaPassword": None,
+                "GangliaUrl": None,
+                "GangliaUser": None,
+                "HaproxyHealthCheckMethod": None,
+                "HaproxyHealthCheckUrl": None,
+                "HaproxyStatsPassword": None,
+                "HaproxyStatsUrl": None,
+                "HaproxyStatsUser": None,
+                "JavaAppServer": None,
+                "JavaAppServerVersion": None,
+                "Jvm": None,
+                "JvmOptions": None,
+                "JvmVersion": None,
+                "ManageBundler": None,
+                "MemcachedMemory": None,
+                "MysqlRootPassword": None,
+                "MysqlRootPasswordUbiquitous": None,
+                "NodejsVersion": None,
+                "PassengerVersion": None,
+                "RailsStack": None,
+                "RubyVersion": None,
+                "RubygemsVersion": None,
             }  # May not be accurate
 
         self.packages = packages
@@ -224,11 +240,11 @@ class Layer(BaseModel):
         self.custom_recipes = custom_recipes
         if custom_recipes is None:
             self.custom_recipes = {
-                'Configure': [],
-                'Deploy': [],
-                'Setup': [],
-                'Shutdown': [],
-                'Undeploy': [],
+                "Configure": [],
+                "Deploy": [],
+                "Setup": [],
+                "Shutdown": [],
+                "Undeploy": [],
             }
 
         self.custom_security_group_ids = custom_security_group_ids
@@ -271,9 +287,9 @@ class Layer(BaseModel):
                 "Configure": [],
                 "Setup": [],
                 "Shutdown": [],
-                "Undeploy": []
+                "Undeploy": [],
             },  # May not be accurate
-            "DefaultSecurityGroupNames": ['AWS-OpsWorks-Custom-Server'],
+            "DefaultSecurityGroupNames": ["AWS-OpsWorks-Custom-Server"],
             "EnableAutoHealing": self.enable_autohealing,
             "LayerId": self.id,
             "LifecycleEventConfiguration": self.lifecycle_event_configuration,
@@ -287,29 +303,33 @@ class Layer(BaseModel):
         if self.custom_json is not None:
             d.update({"CustomJson": self.custom_json})
         if self.custom_instance_profile_arn is not None:
-            d.update(
-                {"CustomInstanceProfileArn": self.custom_instance_profile_arn})
+            d.update({"CustomInstanceProfileArn": self.custom_instance_profile_arn})
         return d
 
 
 class Stack(BaseModel):
-
-    def __init__(self, name, region, service_role_arn, default_instance_profile_arn,
-                 vpcid="vpc-1f99bf7a",
-                 attributes=None,
-                 default_os='Ubuntu 12.04 LTS',
-                 hostname_theme='Layer_Dependent',
-                 default_availability_zone='us-east-1a',
-                 default_subnet_id='subnet-73981004',
-                 custom_json=None,
-                 configuration_manager=None,
-                 chef_configuration=None,
-                 use_custom_cookbooks=False,
-                 use_opsworks_security_groups=True,
-                 custom_cookbooks_source=None,
-                 default_ssh_keyname=None,
-                 default_root_device_type='instance-store',
-                 agent_version='LATEST'):
+    def __init__(
+        self,
+        name,
+        region,
+        service_role_arn,
+        default_instance_profile_arn,
+        vpcid="vpc-1f99bf7a",
+        attributes=None,
+        default_os="Ubuntu 12.04 LTS",
+        hostname_theme="Layer_Dependent",
+        default_availability_zone="us-east-1a",
+        default_subnet_id="subnet-73981004",
+        custom_json=None,
+        configuration_manager=None,
+        chef_configuration=None,
+        use_custom_cookbooks=False,
+        use_opsworks_security_groups=True,
+        custom_cookbooks_source=None,
+        default_ssh_keyname=None,
+        default_root_device_type="instance-store",
+        agent_version="LATEST",
+    ):
 
         self.name = name
         self.region = region
@@ -319,11 +339,11 @@ class Stack(BaseModel):
         self.vpcid = vpcid
         self.attributes = attributes
         if attributes is None:
-            self.attributes = {'Color': None}
+            self.attributes = {"Color": None}
 
         self.configuration_manager = configuration_manager
         if configuration_manager is None:
-            self.configuration_manager = {'Name': 'Chef', 'Version': '11.4'}
+            self.configuration_manager = {"Name": "Chef", "Version": "11.4"}
 
         self.chef_configuration = chef_configuration
         if chef_configuration is None:
@@ -356,15 +376,13 @@ class Stack(BaseModel):
     def generate_hostname(self):
         # this doesn't match amazon's implementation
         return "{theme}-{rand}-(moto)".format(
-            theme=self.hostname_theme,
-            rand=[choice("abcdefghijhk") for _ in range(4)])
+            theme=self.hostname_theme, rand=[choice("abcdefghijhk") for _ in range(4)]
+        )
 
     @property
     def arn(self):
         return "arn:aws:opsworks:{region}:{account_number}:stack/{id}".format(
-            region=self.region,
-            account_number=self.account_number,
-            id=self.id
+            region=self.region, account_number=self.account_number, id=self.id
         )
 
     def to_dict(self):
@@ -389,7 +407,7 @@ class Stack(BaseModel):
             "StackId": self.id,
             "UseCustomCookbooks": self.use_custom_cookbooks,
             "UseOpsworksSecurityGroups": self.use_opsworks_security_groups,
-            "VpcId": self.vpcid
+            "VpcId": self.vpcid,
         }
         if self.custom_json is not None:
             response.update({"CustomJson": self.custom_json})
@@ -399,17 +417,21 @@ class Stack(BaseModel):
 
 
 class App(BaseModel):
-
-    def __init__(self, stack_id, name, type,
-                 shortname=None,
-                 description=None,
-                 datasources=None,
-                 app_source=None,
-                 domains=None,
-                 enable_ssl=False,
-                 ssl_configuration=None,
-                 attributes=None,
-                 environment=None):
+    def __init__(
+        self,
+        stack_id,
+        name,
+        type,
+        shortname=None,
+        description=None,
+        datasources=None,
+        app_source=None,
+        domains=None,
+        enable_ssl=False,
+        ssl_configuration=None,
+        attributes=None,
+        environment=None,
+    ):
         self.stack_id = stack_id
         self.name = name
         self.type = type
@@ -463,13 +485,12 @@ class App(BaseModel):
             "Shortname": self.shortname,
             "SslConfiguration": self.ssl_configuration,
             "StackId": self.stack_id,
-            "Type": self.type
+            "Type": self.type,
         }
         return d
 
 
 class OpsWorksBackend(BaseBackend):
-
     def __init__(self, ec2_backend):
         self.stacks = {}
         self.layers = {}
@@ -488,55 +509,59 @@ class OpsWorksBackend(BaseBackend):
         return stack
 
     def create_layer(self, **kwargs):
-        name = kwargs['name']
-        shortname = kwargs['shortname']
-        stackid = kwargs['stack_id']
+        name = kwargs["name"]
+        shortname = kwargs["shortname"]
+        stackid = kwargs["stack_id"]
         if stackid not in self.stacks:
             raise ResourceNotFoundException(stackid)
         if name in [l.name for l in self.stacks[stackid].layers]:
             raise ValidationException(
-                'There is already a layer named "{0}" '
-                'for this stack'.format(name))
+                'There is already a layer named "{0}" ' "for this stack".format(name)
+            )
         if shortname in [l.shortname for l in self.stacks[stackid].layers]:
             raise ValidationException(
                 'There is already a layer with shortname "{0}" '
-                'for this stack'.format(shortname))
+                "for this stack".format(shortname)
+            )
         layer = Layer(**kwargs)
         self.layers[layer.id] = layer
         self.stacks[stackid].layers.append(layer)
         return layer
 
     def create_app(self, **kwargs):
-        name = kwargs['name']
-        stackid = kwargs['stack_id']
+        name = kwargs["name"]
+        stackid = kwargs["stack_id"]
         if stackid not in self.stacks:
             raise ResourceNotFoundException(stackid)
         if name in [a.name for a in self.stacks[stackid].apps]:
             raise ValidationException(
-                'There is already an app named "{0}" '
-                'for this stack'.format(name))
+                'There is already an app named "{0}" ' "for this stack".format(name)
+            )
         app = App(**kwargs)
         self.apps[app.id] = app
         self.stacks[stackid].apps.append(app)
         return app
 
     def create_instance(self, **kwargs):
-        stack_id = kwargs['stack_id']
-        layer_ids = kwargs['layer_ids']
+        stack_id = kwargs["stack_id"]
+        layer_ids = kwargs["layer_ids"]
 
         if stack_id not in self.stacks:
             raise ResourceNotFoundException(
-                "Unable to find stack with ID {0}".format(stack_id))
+                "Unable to find stack with ID {0}".format(stack_id)
+            )
 
         unknown_layers = set(layer_ids) - set(self.layers.keys())
         if unknown_layers:
             raise ResourceNotFoundException(", ".join(unknown_layers))
 
         layers = [self.layers[id] for id in layer_ids]
-        if len(set([layer.stack_id for layer in layers])) != 1 or \
-                any([layer.stack_id != stack_id for layer in layers]):
+        if len(set([layer.stack_id for layer in layers])) != 1 or any(
+            [layer.stack_id != stack_id for layer in layers]
+        ):
             raise ValidationException(
-                "Please only provide layer IDs from the same stack")
+                "Please only provide layer IDs from the same stack"
+            )
 
         stack = self.stacks[stack_id]
         # pick the first to set default instance_profile_arn and
@@ -549,12 +574,9 @@ class OpsWorksBackend(BaseBackend):
         kwargs.setdefault("subnet_id", stack.default_subnet_id)
         kwargs.setdefault("root_device_type", stack.default_root_device_type)
         if layer.custom_instance_profile_arn:
-            kwargs.setdefault("instance_profile_arn",
-                              layer.custom_instance_profile_arn)
-        kwargs.setdefault("instance_profile_arn",
-                          stack.default_instance_profile_arn)
-        kwargs.setdefault("security_group_ids",
-                          layer.custom_security_group_ids)
+            kwargs.setdefault("instance_profile_arn", layer.custom_instance_profile_arn)
+        kwargs.setdefault("instance_profile_arn", stack.default_instance_profile_arn)
+        kwargs.setdefault("security_group_ids", layer.custom_security_group_ids)
         kwargs.setdefault("associate_public_ip", layer.auto_assign_public_ips)
         kwargs.setdefault("ebs_optimized", layer.use_ebs_optimized_instances)
         kwargs.update({"ec2_backend": self.ec2_backend})
@@ -579,7 +601,8 @@ class OpsWorksBackend(BaseBackend):
         if stack_id is not None:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
-                    "Unable to find stack with ID {0}".format(stack_id))
+                    "Unable to find stack with ID {0}".format(stack_id)
+                )
             return [layer.to_dict() for layer in self.stacks[stack_id].layers]
 
         unknown_layers = set(layer_ids) - set(self.layers.keys())
@@ -595,7 +618,8 @@ class OpsWorksBackend(BaseBackend):
         if stack_id is not None:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
-                    "Unable to find stack with ID {0}".format(stack_id))
+                    "Unable to find stack with ID {0}".format(stack_id)
+                )
             return [app.to_dict() for app in self.stacks[stack_id].apps]
 
         unknown_apps = set(app_ids) - set(self.apps.keys())
@@ -605,9 +629,11 @@ class OpsWorksBackend(BaseBackend):
 
     def describe_instances(self, instance_ids, layer_id, stack_id):
         if len(list(filter(None, (instance_ids, layer_id, stack_id)))) != 1:
-            raise ValidationException("Please provide either one or more "
-                                      "instance IDs or one stack ID or one "
-                                      "layer ID")
+            raise ValidationException(
+                "Please provide either one or more "
+                "instance IDs or one stack ID or one "
+                "layer ID"
+            )
         if instance_ids:
             unknown_instances = set(instance_ids) - set(self.instances.keys())
             if unknown_instances:
@@ -617,23 +643,28 @@ class OpsWorksBackend(BaseBackend):
         if layer_id:
             if layer_id not in self.layers:
                 raise ResourceNotFoundException(
-                    "Unable to find layer with ID {0}".format(layer_id))
-            instances = [i.to_dict() for i in self.instances.values()
-                         if layer_id in i.layer_ids]
+                    "Unable to find layer with ID {0}".format(layer_id)
+                )
+            instances = [
+                i.to_dict() for i in self.instances.values() if layer_id in i.layer_ids
+            ]
             return instances
 
         if stack_id:
             if stack_id not in self.stacks:
                 raise ResourceNotFoundException(
-                    "Unable to find stack with ID {0}".format(stack_id))
-            instances = [i.to_dict() for i in self.instances.values()
-                         if stack_id == i.stack_id]
+                    "Unable to find stack with ID {0}".format(stack_id)
+                )
+            instances = [
+                i.to_dict() for i in self.instances.values() if stack_id == i.stack_id
+            ]
             return instances
 
     def start_instance(self, instance_id):
         if instance_id not in self.instances:
             raise ResourceNotFoundException(
-                "Unable to find instance with ID {0}".format(instance_id))
+                "Unable to find instance with ID {0}".format(instance_id)
+            )
         self.instances[instance_id].start()
 
 

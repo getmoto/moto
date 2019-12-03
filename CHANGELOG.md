@@ -1,6 +1,189 @@
 Moto Changelog
 ===================
 
+1.3.14
+-----
+
+    General Changes:
+        * Support for Python 3.8
+        * Linting: Black is now enforced.
+
+    New Services:
+        * Athena
+        * Config
+        * DataSync
+        * Step Functions
+
+    New methods:
+        * Athena:
+            * create_work_group()
+            * list_work_groups()
+        * API Gateway:
+            * delete_stage()
+            * update_api_key()
+        * CloudWatch Logs
+            * list_tags_log_group()
+            * tag_log_group()
+            * untag_log_group()
+        * Config
+            * batch_get_resource_config()
+            * delete_aggregation_authorization()
+            * delete_configuration_aggregator()
+            * describe_aggregation_authorizations()
+            * describe_configuration_aggregators()
+            * get_resource_config_history()
+            * list_aggregate_discovered_resources() (For S3)
+            * list_discovered_resources() (For S3)
+            * put_aggregation_authorization()
+            * put_configuration_aggregator()
+        * Cognito
+            * assume_role_with_web_identity()
+            * describe_identity_pool()
+            * get_open_id_token()
+            * update_user_pool_domain()
+        * DataSync:
+            * cancel_task_execution()
+            * create_location()
+            * create_task()
+            * start_task_execution()
+        * EC2:
+            * create_launch_template()
+            * create_launch_template_version()
+            * describe_launch_template_versions()
+            * describe_launch_templates()
+        * ECS
+            * decrypt()
+            * encrypt()
+            * generate_data_key_without_plaintext()
+            * generate_random()
+            * re_encrypt()
+        * Glue
+            * batch_get_partition()
+        * IAM
+            * create_open_id_connect_provider()
+            * create_virtual_mfa_device()
+            * delete_account_password_policy()
+            * delete_open_id_connect_provider()
+            * delete_policy()
+            * delete_virtual_mfa_device()
+            * get_account_password_policy()
+            * get_open_id_connect_provider()
+            * list_open_id_connect_providers()
+            * list_virtual_mfa_devices()
+            * update_account_password_policy()
+        * Lambda
+            * create_event_source_mapping()
+            * delete_event_source_mapping()
+            * get_event_source_mapping()
+            * list_event_source_mappings()
+            * update_configuration()
+            * update_event_source_mapping()
+            * update_function_code()
+        * KMS
+            * decrypt()
+            * encrypt()
+            * generate_data_key_without_plaintext()
+            * generate_random()
+            * re_encrypt()
+        * SES
+            * send_templated_email()
+        * SNS
+            * add_permission()
+            * list_tags_for_resource()
+            * remove_permission()
+            * tag_resource()
+            * untag_resource()
+        * SSM
+            * describe_parameters()
+            * get_parameter_history()
+        * Step Functions
+            * create_state_machine()
+            * delete_state_machine()
+            * describe_execution()
+            * describe_state_machine()
+            * describe_state_machine_for_execution()
+            * list_executions()
+            * list_state_machines()
+            * list_tags_for_resource()
+            * start_execution()
+            * stop_execution()
+        SQS
+            * list_queue_tags()
+            * send_message_batch()
+
+    General updates:
+        * API Gateway:
+            * Now generates valid IDs
+            * API Keys, Usage Plans now support tags
+        * ACM:
+            * list_certificates() accepts the status parameter
+        * Batch:
+            * submit_job() can now be called with job name
+        * CloudWatch Events
+            * Multi-region support
+        * CloudWatch Logs
+            * get_log_events() now supports pagination
+        * Cognito:
+            * Now throws UsernameExistsException for known users
+        * DynamoDB
+            * update_item() now supports lists, the list_append-operator and removing nested items
+            * delete_item() now supports condition expressions
+            * get_item() now supports projection expression
+            * Enforces 400KB item size
+            * Validation on duplicate keys in batch_get_item()
+            * Validation on AttributeDefinitions on create_table()
+            * Validation on Query Key Expression
+            * Projection Expressions now support nested attributes
+        * EC2:
+            * Change DesiredCapacity behaviour for AutoScaling groups
+            * Extend list of supported EC2 ENI properties
+            * Create ASG from Instance now supported
+            * ASG attached to a terminated instance now recreate the instance of required
+            * Unify OwnerIDs
+        * ECS
+            * Task definition revision deregistration: remaining revisions now remain unchanged
+            * Fix created_at/updated_at format for deployments
+            * Support multiple regions
+        * ELB
+            * Return correct response then describing target health of stopped instances
+            * Target groups now longer show terminated instances
+            * 'fixed-response' now a supported action-type
+            * Now supports redirect: authenticate-cognito
+        * Kinesis FireHose
+            * Now supports ExtendedS3DestinationConfiguration
+        * KMS
+            * Now supports tags
+        * Organizations
+            * create_organization() now creates Master account
+        * Redshift
+            * Fix timezone problems when creating a cluster
+            * Support for enhanced_vpc_routing-parameter
+        * Route53
+            * Implemented UPSERT for change_resource_records
+        * S3:
+            * Support partNumber for head_object
+            * Support for INTELLIGENT_TIERING, GLACIER and DEEP_ARCHIVE
+            * Fix KeyCount attribute
+            * list_objects now supports pagination (next_marker)
+            * Support tagging for versioned objects
+        * STS
+            * Implement validation on policy length
+        * Lambda
+            * Support EventSourceMappings for SQS, DynamoDB
+            * get_function(), delete_function() now both support ARNs as parameters
+        * IAM
+            * Roles now support tags
+            * Policy Validation: SID can be empty
+            * Validate roles have no attachments when deleting
+        * SecretsManager
+            * Now supports binary secrets
+        * IOT
+            * update_thing_shadow validation
+            * delete_thing now also removed principals
+        * SQS
+            * Tags supported for create_queue()
+
+
 1.3.7
 -----
 

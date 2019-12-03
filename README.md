@@ -7,9 +7,9 @@
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=stable)](http://docs.getmoto.org)
 ![PyPI](https://img.shields.io/pypi/v/moto.svg)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
-![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)
+![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-# In a nutshell
+## In a nutshell
 
 Moto is a library that allows your tests to easily mock out AWS Services.
 
@@ -296,6 +296,9 @@ def test_describe_instances_allowed():
 ```
 
 See [the related test suite](https://github.com/spulec/moto/blob/master/tests/test_core/test_auth.py) for more examples.
+
+## Experimental: AWS Config Querying
+For details about the experimental AWS Config support please see the [AWS Config readme here](CONFIG_README.md).
 
 ## Very Important -- Recommended Usage
 There are some important caveats to be aware of when using moto:

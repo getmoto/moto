@@ -12,26 +12,29 @@ class AWSError(Exception):
         self.status = status if status is not None else self.STATUS
 
     def response(self):
-        return json.dumps({'__type': self.code, 'message': self.message}), dict(status=self.status)
+        return (
+            json.dumps({"__type": self.code, "message": self.message}),
+            dict(status=self.status),
+        )
 
 
 class InvalidRequestException(AWSError):
-    CODE = 'InvalidRequestException'
+    CODE = "InvalidRequestException"
 
 
 class InvalidParameterValueException(AWSError):
-    CODE = 'InvalidParameterValue'
+    CODE = "InvalidParameterValue"
 
 
 class ValidationError(AWSError):
-    CODE = 'ValidationError'
+    CODE = "ValidationError"
 
 
 class InternalFailure(AWSError):
-    CODE = 'InternalFailure'
+    CODE = "InternalFailure"
     STATUS = 500
 
 
 class ClientException(AWSError):
-    CODE = 'ClientException'
+    CODE = "ClientException"
     STATUS = 400

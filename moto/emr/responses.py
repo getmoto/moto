@@ -20,20 +20,27 @@ def generate_boto3_response(operation):
     determined to be from boto3. Pass the API action as a parameter.
 
     """
+
     def _boto3_request(method):
         @wraps(method)
         def f(self, *args, **kwargs):
             rendered = method(self, *args, **kwargs)
-            if 'json' in self.headers.get('Content-Type', []):
+            if "json" in self.headers.get("Content-Type", []):
                 self.response_headers.update(
-                    {'x-amzn-requestid': '2690d7eb-ed86-11dd-9877-6fad448a8419',
-                     'date': datetime.now(pytz.utc).strftime('%a, %d %b %Y %H:%M:%S %Z'),
-                     'content-type': 'application/x-amz-json-1.1'})
-                resp = xml_to_json_response(
-                    self.aws_service_spec, operation, rendered)
-                return '' if resp is None else json.dumps(resp)
+                    {
+                        "x-amzn-requestid": "2690d7eb-ed86-11dd-9877-6fad448a8419",
+                        "date": datetime.now(pytz.utc).strftime(
+                            "%a, %d %b %Y %H:%M:%S %Z"
+                        ),
+                        "content-type": "application/x-amz-json-1.1",
+                    }
+                )
+                resp = xml_to_json_response(self.aws_service_spec, operation, rendered)
+                return "" if resp is None else json.dumps(resp)
             return rendered
+
         return f
+
     return _boto3_request
 
 
@@ -41,10 +48,12 @@ class ElasticMapReduceResponse(BaseResponse):
 
     # EMR end points are inconsistent in the placement of region name
     # in the URL, so parsing it out needs to be handled differently
-    region_regex = [re.compile(r'elasticmapreduce\.(.+?)\.amazonaws\.com'),
-                    re.compile(r'(.+?)\.elasticmapreduce\.amazonaws\.com')]
+    region_regex = [
+        re.compile(r"elasticmapreduce\.(.+?)\.amazonaws\.com"),
+        re.compile(r"(.+?)\.elasticmapreduce\.amazonaws\.com"),
+    ]
 
-    aws_service_spec = AWSServiceSpec('data/emr/2009-03-31/service-2.json')
+    aws_service_spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json")
 
     def get_region_from_url(self, request, full_url):
         parsed = urlparse(full_url)
@@ -58,28 +67,28 @@ class ElasticMapReduceResponse(BaseResponse):
     def backend(self):
         return emr_backends[self.region]
 
-    @generate_boto3_response('AddInstanceGroups')
+    @generate_boto3_response("AddInstanceGroups")
     def add_instance_groups(self):
-        jobflow_id = self._get_param('JobFlowId')
-        instance_groups = self._get_list_prefix('InstanceGroups.member')
+        jobflow_id = self._get_param("JobFlowId")
+        instance_groups = self._get_list_prefix("InstanceGroups.member")
         for item in instance_groups:
-            item['instance_count'] = int(item['instance_count'])
-        instance_groups = self.backend.add_instance_groups(
-            jobflow_id, instance_groups)
+            item["instance_count"] = int(item["instance_count"])
+        instance_groups = self.backend.add_instance_groups(jobflow_id, instance_groups)
         template = self.response_template(ADD_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
-    @generate_boto3_response('AddJobFlowSteps')
+    @generate_boto3_response("AddJobFlowSteps")
     def add_job_flow_steps(self):
-        job_flow_id = self._get_param('JobFlowId')
+        job_flow_id = self._get_param("JobFlowId")
         steps = self.backend.add_job_flow_steps(
-            job_flow_id, steps_from_query_string(self._get_list_prefix('Steps.member')))
+            job_flow_id, steps_from_query_string(self._get_list_prefix("Steps.member"))
+        )
         template = self.response_template(ADD_JOB_FLOW_STEPS_TEMPLATE)
         return template.render(steps=steps)
 
-    @generate_boto3_response('AddTags')
+    @generate_boto3_response("AddTags")
     def add_tags(self):
-        cluster_id = self._get_param('ResourceId')
+        cluster_id = self._get_param("ResourceId")
         tags = tags_from_query_string(self.querystring)
         self.backend.add_tags(cluster_id, tags)
         template = self.response_template(ADD_TAGS_TEMPLATE)
@@ -94,235 +103,257 @@ class ElasticMapReduceResponse(BaseResponse):
     def delete_security_configuration(self):
         raise NotImplementedError
 
-    @generate_boto3_response('DescribeCluster')
+    @generate_boto3_response("DescribeCluster")
     def describe_cluster(self):
-        cluster_id = self._get_param('ClusterId')
+        cluster_id = self._get_param("ClusterId")
         cluster = self.backend.get_cluster(cluster_id)
         template = self.response_template(DESCRIBE_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
-    @generate_boto3_response('DescribeJobFlows')
+    @generate_boto3_response("DescribeJobFlows")
     def describe_job_flows(self):
-        created_after = self._get_param('CreatedAfter')
-        created_before = self._get_param('CreatedBefore')
+        created_after = self._get_param("CreatedAfter")
+        created_before = self._get_param("CreatedBefore")
         job_flow_ids = self._get_multi_param("JobFlowIds.member")
-        job_flow_states = self._get_multi_param('JobFlowStates.member')
+        job_flow_states = self._get_multi_param("JobFlowStates.member")
         clusters = self.backend.describe_job_flows(
-            job_flow_ids, job_flow_states, created_after, created_before)
+            job_flow_ids, job_flow_states, created_after, created_before
+        )
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(clusters=clusters)
 
     def describe_security_configuration(self):
         raise NotImplementedError
 
-    @generate_boto3_response('DescribeStep')
+    @generate_boto3_response("DescribeStep")
     def describe_step(self):
-        cluster_id = self._get_param('ClusterId')
-        step_id = self._get_param('StepId')
+        cluster_id = self._get_param("ClusterId")
+        step_id = self._get_param("StepId")
         step = self.backend.describe_step(cluster_id, step_id)
         template = self.response_template(DESCRIBE_STEP_TEMPLATE)
         return template.render(step=step)
 
-    @generate_boto3_response('ListBootstrapActions')
+    @generate_boto3_response("ListBootstrapActions")
     def list_bootstrap_actions(self):
-        cluster_id = self._get_param('ClusterId')
-        marker = self._get_param('Marker')
+        cluster_id = self._get_param("ClusterId")
+        marker = self._get_param("Marker")
         bootstrap_actions, marker = self.backend.list_bootstrap_actions(
-            cluster_id, marker)
+            cluster_id, marker
+        )
         template = self.response_template(LIST_BOOTSTRAP_ACTIONS_TEMPLATE)
         return template.render(bootstrap_actions=bootstrap_actions, marker=marker)
 
-    @generate_boto3_response('ListClusters')
+    @generate_boto3_response("ListClusters")
     def list_clusters(self):
-        cluster_states = self._get_multi_param('ClusterStates.member')
-        created_after = self._get_param('CreatedAfter')
-        created_before = self._get_param('CreatedBefore')
-        marker = self._get_param('Marker')
+        cluster_states = self._get_multi_param("ClusterStates.member")
+        created_after = self._get_param("CreatedAfter")
+        created_before = self._get_param("CreatedBefore")
+        marker = self._get_param("Marker")
         clusters, marker = self.backend.list_clusters(
-            cluster_states, created_after, created_before, marker)
+            cluster_states, created_after, created_before, marker
+        )
         template = self.response_template(LIST_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters, marker=marker)
 
-    @generate_boto3_response('ListInstanceGroups')
+    @generate_boto3_response("ListInstanceGroups")
     def list_instance_groups(self):
-        cluster_id = self._get_param('ClusterId')
-        marker = self._get_param('Marker')
+        cluster_id = self._get_param("ClusterId")
+        marker = self._get_param("Marker")
         instance_groups, marker = self.backend.list_instance_groups(
-            cluster_id, marker=marker)
+            cluster_id, marker=marker
+        )
         template = self.response_template(LIST_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups, marker=marker)
 
     def list_instances(self):
         raise NotImplementedError
 
-    @generate_boto3_response('ListSteps')
+    @generate_boto3_response("ListSteps")
     def list_steps(self):
-        cluster_id = self._get_param('ClusterId')
-        marker = self._get_param('Marker')
-        step_ids = self._get_multi_param('StepIds.member')
-        step_states = self._get_multi_param('StepStates.member')
+        cluster_id = self._get_param("ClusterId")
+        marker = self._get_param("Marker")
+        step_ids = self._get_multi_param("StepIds.member")
+        step_states = self._get_multi_param("StepStates.member")
         steps, marker = self.backend.list_steps(
-            cluster_id, marker=marker, step_ids=step_ids, step_states=step_states)
+            cluster_id, marker=marker, step_ids=step_ids, step_states=step_states
+        )
         template = self.response_template(LIST_STEPS_TEMPLATE)
         return template.render(steps=steps, marker=marker)
 
-    @generate_boto3_response('ModifyInstanceGroups')
+    @generate_boto3_response("ModifyInstanceGroups")
     def modify_instance_groups(self):
-        instance_groups = self._get_list_prefix('InstanceGroups.member')
+        instance_groups = self._get_list_prefix("InstanceGroups.member")
         for item in instance_groups:
-            item['instance_count'] = int(item['instance_count'])
+            item["instance_count"] = int(item["instance_count"])
         instance_groups = self.backend.modify_instance_groups(instance_groups)
         template = self.response_template(MODIFY_INSTANCE_GROUPS_TEMPLATE)
         return template.render(instance_groups=instance_groups)
 
-    @generate_boto3_response('RemoveTags')
+    @generate_boto3_response("RemoveTags")
     def remove_tags(self):
-        cluster_id = self._get_param('ResourceId')
-        tag_keys = self._get_multi_param('TagKeys.member')
+        cluster_id = self._get_param("ResourceId")
+        tag_keys = self._get_multi_param("TagKeys.member")
         self.backend.remove_tags(cluster_id, tag_keys)
         template = self.response_template(REMOVE_TAGS_TEMPLATE)
         return template.render()
 
-    @generate_boto3_response('RunJobFlow')
+    @generate_boto3_response("RunJobFlow")
     def run_job_flow(self):
         instance_attrs = dict(
-            master_instance_type=self._get_param(
-                'Instances.MasterInstanceType'),
-            slave_instance_type=self._get_param('Instances.SlaveInstanceType'),
-            instance_count=self._get_int_param('Instances.InstanceCount', 1),
-            ec2_key_name=self._get_param('Instances.Ec2KeyName'),
-            ec2_subnet_id=self._get_param('Instances.Ec2SubnetId'),
-            hadoop_version=self._get_param('Instances.HadoopVersion'),
+            master_instance_type=self._get_param("Instances.MasterInstanceType"),
+            slave_instance_type=self._get_param("Instances.SlaveInstanceType"),
+            instance_count=self._get_int_param("Instances.InstanceCount", 1),
+            ec2_key_name=self._get_param("Instances.Ec2KeyName"),
+            ec2_subnet_id=self._get_param("Instances.Ec2SubnetId"),
+            hadoop_version=self._get_param("Instances.HadoopVersion"),
             availability_zone=self._get_param(
-                'Instances.Placement.AvailabilityZone', self.backend.region_name + 'a'),
+                "Instances.Placement.AvailabilityZone", self.backend.region_name + "a"
+            ),
             keep_job_flow_alive_when_no_steps=self._get_bool_param(
-                'Instances.KeepJobFlowAliveWhenNoSteps', False),
+                "Instances.KeepJobFlowAliveWhenNoSteps", False
+            ),
             termination_protected=self._get_bool_param(
-                'Instances.TerminationProtected', False),
+                "Instances.TerminationProtected", False
+            ),
             emr_managed_master_security_group=self._get_param(
-                'Instances.EmrManagedMasterSecurityGroup'),
+                "Instances.EmrManagedMasterSecurityGroup"
+            ),
             emr_managed_slave_security_group=self._get_param(
-                'Instances.EmrManagedSlaveSecurityGroup'),
+                "Instances.EmrManagedSlaveSecurityGroup"
+            ),
             service_access_security_group=self._get_param(
-                'Instances.ServiceAccessSecurityGroup'),
+                "Instances.ServiceAccessSecurityGroup"
+            ),
             additional_master_security_groups=self._get_multi_param(
-                'Instances.AdditionalMasterSecurityGroups.member.'),
-            additional_slave_security_groups=self._get_multi_param('Instances.AdditionalSlaveSecurityGroups.member.'))
+                "Instances.AdditionalMasterSecurityGroups.member."
+            ),
+            additional_slave_security_groups=self._get_multi_param(
+                "Instances.AdditionalSlaveSecurityGroups.member."
+            ),
+        )
 
         kwargs = dict(
-            name=self._get_param('Name'),
-            log_uri=self._get_param('LogUri'),
-            job_flow_role=self._get_param('JobFlowRole'),
-            service_role=self._get_param('ServiceRole'),
-            steps=steps_from_query_string(
-                self._get_list_prefix('Steps.member')),
-            visible_to_all_users=self._get_bool_param(
-                'VisibleToAllUsers', False),
+            name=self._get_param("Name"),
+            log_uri=self._get_param("LogUri"),
+            job_flow_role=self._get_param("JobFlowRole"),
+            service_role=self._get_param("ServiceRole"),
+            steps=steps_from_query_string(self._get_list_prefix("Steps.member")),
+            visible_to_all_users=self._get_bool_param("VisibleToAllUsers", False),
             instance_attrs=instance_attrs,
         )
 
-        bootstrap_actions = self._get_list_prefix('BootstrapActions.member')
+        bootstrap_actions = self._get_list_prefix("BootstrapActions.member")
         if bootstrap_actions:
             for ba in bootstrap_actions:
                 args = []
                 idx = 1
-                keyfmt = 'script_bootstrap_action._args.member.{0}'
+                keyfmt = "script_bootstrap_action._args.member.{0}"
                 key = keyfmt.format(idx)
                 while key in ba:
                     args.append(ba.pop(key))
                     idx += 1
                     key = keyfmt.format(idx)
-                ba['args'] = args
-                ba['script_path'] = ba.pop('script_bootstrap_action._path')
-            kwargs['bootstrap_actions'] = bootstrap_actions
+                ba["args"] = args
+                ba["script_path"] = ba.pop("script_bootstrap_action._path")
+            kwargs["bootstrap_actions"] = bootstrap_actions
 
-        configurations = self._get_list_prefix('Configurations.member')
+        configurations = self._get_list_prefix("Configurations.member")
         if configurations:
             for idx, config in enumerate(configurations, 1):
                 for key in list(config.keys()):
-                    if key.startswith('properties.'):
+                    if key.startswith("properties."):
                         config.pop(key)
-                config['properties'] = {}
+                config["properties"] = {}
                 map_items = self._get_map_prefix(
-                    'Configurations.member.{0}.Properties.entry'.format(idx))
-                config['properties'] = map_items
+                    "Configurations.member.{0}.Properties.entry".format(idx)
+                )
+                config["properties"] = map_items
 
-            kwargs['configurations'] = configurations
+            kwargs["configurations"] = configurations
 
-        release_label = self._get_param('ReleaseLabel')
-        ami_version = self._get_param('AmiVersion')
+        release_label = self._get_param("ReleaseLabel")
+        ami_version = self._get_param("AmiVersion")
         if release_label:
-            kwargs['release_label'] = release_label
+            kwargs["release_label"] = release_label
             if ami_version:
                 message = (
-                    'Only one AMI version and release label may be specified. '
-                    'Provided AMI: {0}, release label: {1}.').format(
-                        ami_version, release_label)
-                raise EmrError(error_type="ValidationException",
-                               message=message, template='error_json')
+                    "Only one AMI version and release label may be specified. "
+                    "Provided AMI: {0}, release label: {1}."
+                ).format(ami_version, release_label)
+                raise EmrError(
+                    error_type="ValidationException",
+                    message=message,
+                    template="error_json",
+                )
         else:
             if ami_version:
-                kwargs['requested_ami_version'] = ami_version
-                kwargs['running_ami_version'] = ami_version
+                kwargs["requested_ami_version"] = ami_version
+                kwargs["running_ami_version"] = ami_version
             else:
-                kwargs['running_ami_version'] = '1.0.0'
+                kwargs["running_ami_version"] = "1.0.0"
 
-        custom_ami_id = self._get_param('CustomAmiId')
+        custom_ami_id = self._get_param("CustomAmiId")
         if custom_ami_id:
-            kwargs['custom_ami_id'] = custom_ami_id
-            if release_label and release_label < 'emr-5.7.0':
-                message = 'Custom AMI is not allowed'
-                raise EmrError(error_type='ValidationException',
-                            message=message, template='error_json')
+            kwargs["custom_ami_id"] = custom_ami_id
+            if release_label and release_label < "emr-5.7.0":
+                message = "Custom AMI is not allowed"
+                raise EmrError(
+                    error_type="ValidationException",
+                    message=message,
+                    template="error_json",
+                )
             elif ami_version:
-                message = 'Custom AMI is not supported in this version of EMR'
-                raise EmrError(error_type='ValidationException',
-                            message=message, template='error_json')
+                message = "Custom AMI is not supported in this version of EMR"
+                raise EmrError(
+                    error_type="ValidationException",
+                    message=message,
+                    template="error_json",
+                )
 
         cluster = self.backend.run_job_flow(**kwargs)
 
-        applications = self._get_list_prefix('Applications.member')
+        applications = self._get_list_prefix("Applications.member")
         if applications:
             self.backend.add_applications(cluster.id, applications)
         else:
             self.backend.add_applications(
-                cluster.id, [{'Name': 'Hadoop', 'Version': '0.18'}])
+                cluster.id, [{"Name": "Hadoop", "Version": "0.18"}]
+            )
 
-        instance_groups = self._get_list_prefix(
-            'Instances.InstanceGroups.member')
+        instance_groups = self._get_list_prefix("Instances.InstanceGroups.member")
         if instance_groups:
             for ig in instance_groups:
-                ig['instance_count'] = int(ig['instance_count'])
+                ig["instance_count"] = int(ig["instance_count"])
             self.backend.add_instance_groups(cluster.id, instance_groups)
 
-        tags = self._get_list_prefix('Tags.member')
+        tags = self._get_list_prefix("Tags.member")
         if tags:
             self.backend.add_tags(
-                cluster.id, dict((d['key'], d['value']) for d in tags))
+                cluster.id, dict((d["key"], d["value"]) for d in tags)
+            )
 
         template = self.response_template(RUN_JOB_FLOW_TEMPLATE)
         return template.render(cluster=cluster)
 
-    @generate_boto3_response('SetTerminationProtection')
+    @generate_boto3_response("SetTerminationProtection")
     def set_termination_protection(self):
-        termination_protection = self._get_param('TerminationProtected')
-        job_ids = self._get_multi_param('JobFlowIds.member')
-        self.backend.set_termination_protection(
-            job_ids, termination_protection)
+        termination_protection = self._get_param("TerminationProtected")
+        job_ids = self._get_multi_param("JobFlowIds.member")
+        self.backend.set_termination_protection(job_ids, termination_protection)
         template = self.response_template(SET_TERMINATION_PROTECTION_TEMPLATE)
         return template.render()
 
-    @generate_boto3_response('SetVisibleToAllUsers')
+    @generate_boto3_response("SetVisibleToAllUsers")
     def set_visible_to_all_users(self):
-        visible_to_all_users = self._get_param('VisibleToAllUsers')
-        job_ids = self._get_multi_param('JobFlowIds.member')
+        visible_to_all_users = self._get_param("VisibleToAllUsers")
+        job_ids = self._get_multi_param("JobFlowIds.member")
         self.backend.set_visible_to_all_users(job_ids, visible_to_all_users)
         template = self.response_template(SET_VISIBLE_TO_ALL_USERS_TEMPLATE)
         return template.render()
 
-    @generate_boto3_response('TerminateJobFlows')
+    @generate_boto3_response("TerminateJobFlows")
     def terminate_job_flows(self):
-        job_ids = self._get_multi_param('JobFlowIds.member.')
+        job_ids = self._get_multi_param("JobFlowIds.member.")
         self.backend.terminate_job_flows(job_ids)
         template = self.response_template(TERMINATE_JOB_FLOWS_TEMPLATE)
         return template.render()

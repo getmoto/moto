@@ -119,7 +119,7 @@ def append_mock_to_init_py(service):
     filtered_lines = [_ for _ in lines if re.match('^from.*mock.*$', _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'from .{} import mock_{}  # flake8: noqa'.format(get_escaped_service(service), get_escaped_service(service))
+    new_line = 'from .{} import mock_{}  # noqa'.format(get_escaped_service(service), get_escaped_service(service))
     lines.insert(last_import_line_index + 1, new_line)
 
     body = '\n'.join(lines) + '\n'

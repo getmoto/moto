@@ -6,6 +6,4 @@ url_bases = [
     "https?://firehose.(.+).amazonaws.com",
 ]
 
-url_paths = {
-    '{0}/$': KinesisResponse.dispatch,
-}
+url_paths = {"{0}/$": KinesisResponse.dispatch}

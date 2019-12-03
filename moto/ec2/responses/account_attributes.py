@@ -3,13 +3,12 @@ from moto.core.responses import BaseResponse
 
 
 class AccountAttributes(BaseResponse):
-
     def describe_account_attributes(self):
         template = self.response_template(DESCRIBE_ACCOUNT_ATTRIBUTES_RESULT)
         return template.render()
 
 
-DESCRIBE_ACCOUNT_ATTRIBUTES_RESULT = u"""
+DESCRIBE_ACCOUNT_ATTRIBUTES_RESULT = """
 <DescribeAccountAttributesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <accountAttributeSet>

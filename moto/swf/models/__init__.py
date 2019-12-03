@@ -12,25 +12,21 @@ from ..exceptions import (
     SWFTypeDeprecatedFault,
     SWFValidationException,
 )
-from .activity_task import ActivityTask  # flake8: noqa
-from .activity_type import ActivityType  # flake8: noqa
-from .decision_task import DecisionTask  # flake8: noqa
-from .domain import Domain  # flake8: noqa
-from .generic_type import GenericType  # flake8: noqa
-from .history_event import HistoryEvent  # flake8: noqa
-from .timeout import Timeout  # flake8: noqa
-from .workflow_type import WorkflowType  # flake8: noqa
-from .workflow_execution import WorkflowExecution  # flake8: noqa
+from .activity_task import ActivityTask  # noqa
+from .activity_type import ActivityType  # noqa
+from .decision_task import DecisionTask  # noqa
+from .domain import Domain  # noqa
+from .generic_type import GenericType  # noqa
+from .history_event import HistoryEvent  # noqa
+from .timeout import Timeout  # noqa
+from .workflow_type import WorkflowType  # noqa
+from .workflow_execution import WorkflowExecution  # noqa
 from time import sleep
 
-KNOWN_SWF_TYPES = {
-    "activity": ActivityType,
-    "workflow": WorkflowType,
-}
+KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 
 
 class SWFBackend(BaseBackend):
-
     def __init__(self, region_name):
         self.region_name = region_name
         self.domains = []
@@ -55,46 +51,53 @@ class SWFBackend(BaseBackend):
                 wfe._process_timeouts()
 
     def list_domains(self, status, reverse_order=None):
-        domains = [domain for domain in self.domains
-                   if domain.status == status]
+        domains = [domain for domain in self.domains if domain.status == status]
         domains = sorted(domains, key=lambda domain: domain.name)
         if reverse_order:
             domains = reversed(domains)
         return domains
 
-    def list_open_workflow_executions(self, domain_name, maximum_page_size,
-                                      tag_filter, reverse_order, **kwargs):
+    def list_open_workflow_executions(
+        self, domain_name, maximum_page_size, tag_filter, reverse_order, **kwargs
+    ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         if domain.status == "DEPRECATED":
             raise SWFDomainDeprecatedFault(domain_name)
         open_wfes = [
-            wfe for wfe in domain.workflow_executions
-            if wfe.execution_status == 'OPEN'
+            wfe for wfe in domain.workflow_executions if wfe.execution_status == "OPEN"
         ]
 
         if tag_filter:
             for open_wfe in open_wfes:
-                if tag_filter['tag'] not in open_wfe.tag_list:
+                if tag_filter["tag"] not in open_wfe.tag_list:
                     open_wfes.remove(open_wfe)
         if reverse_order:
             open_wfes = reversed(open_wfes)
         return open_wfes[0:maximum_page_size]
 
-    def list_closed_workflow_executions(self, domain_name, close_time_filter,
-                                        tag_filter, close_status_filter, maximum_page_size, reverse_order,
-                                        **kwargs):
+    def list_closed_workflow_executions(
+        self,
+        domain_name,
+        close_time_filter,
+        tag_filter,
+        close_status_filter,
+        maximum_page_size,
+        reverse_order,
+        **kwargs
+    ):
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         if domain.status == "DEPRECATED":
             raise SWFDomainDeprecatedFault(domain_name)
         closed_wfes = [
-            wfe for wfe in domain.workflow_executions
-            if wfe.execution_status == 'CLOSED'
+            wfe
+            for wfe in domain.workflow_executions
+            if wfe.execution_status == "CLOSED"
         ]
         if tag_filter:
             for closed_wfe in closed_wfes:
-                if tag_filter['tag'] not in closed_wfe.tag_list:
+                if tag_filter["tag"] not in closed_wfe.tag_list:
                     closed_wfes.remove(closed_wfe)
         if close_status_filter:
             for closed_wfe in closed_wfes:
@@ -104,12 +107,12 @@ class SWFBackend(BaseBackend):
             closed_wfes = reversed(closed_wfes)
         return closed_wfes[0:maximum_page_size]
 
-    def register_domain(self, name, workflow_execution_retention_period_in_days,
-                        description=None):
+    def register_domain(
+        self, name, workflow_execution_retention_period_in_days, description=None
+    ):
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
-        domain = Domain(name, workflow_execution_retention_period_in_days,
-                        description)
+        domain = Domain(name, workflow_execution_retention_period_in_days, description)
         self.domains.append(domain)
 
     def deprecate_domain(self, name):
@@ -149,15 +152,23 @@ class SWFBackend(BaseBackend):
         domain = self._get_domain(domain_name)
         return domain.get_type(kind, name, version)
 
-    def start_workflow_execution(self, domain_name, workflow_id,
-                                 workflow_name, workflow_version,
-                                 tag_list=None, input=None, **kwargs):
+    def start_workflow_execution(
+        self,
+        domain_name,
+        workflow_id,
+        workflow_name,
+        workflow_version,
+        tag_list=None,
+        input=None,
+        **kwargs
+    ):
         domain = self._get_domain(domain_name)
         wf_type = domain.get_type("workflow", workflow_name, workflow_version)
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
-        wfe = WorkflowExecution(domain, wf_type, workflow_id,
-                                tag_list=tag_list, input=input, **kwargs)
+        wfe = WorkflowExecution(
+            domain, wf_type, workflow_id, tag_list=tag_list, input=input, **kwargs
+        )
         domain.add_workflow_execution(wfe)
         wfe.start()
 
@@ -213,9 +224,9 @@ class SWFBackend(BaseBackend):
                 count += wfe.open_counts["openDecisionTasks"]
         return count
 
-    def respond_decision_task_completed(self, task_token,
-                                        decisions=None,
-                                        execution_context=None):
+    def respond_decision_task_completed(
+        self, task_token, decisions=None, execution_context=None
+    ):
         # process timeouts on all objects
         self._process_timeouts()
         # let's find decision task
@@ -244,14 +255,15 @@ class SWFBackend(BaseBackend):
                 "execution",
                 "WorkflowExecution=[workflowId={0}, runId={1}]".format(
                     wfe.workflow_id, wfe.run_id
-                )
+                ),
             )
         # decision task found, but already completed
         if decision_task.state != "STARTED":
             if decision_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
                     "decision task, scheduledEventId = {0}".format(
-                        decision_task.scheduled_event_id)
+                        decision_task.scheduled_event_id
+                    )
                 )
             else:
                 raise ValueError(
@@ -263,9 +275,11 @@ class SWFBackend(BaseBackend):
         # everything's good
         if decision_task:
             wfe = decision_task.workflow_execution
-            wfe.complete_decision_task(decision_task.task_token,
-                                       decisions=decisions,
-                                       execution_context=execution_context)
+            wfe.complete_decision_task(
+                decision_task.task_token,
+                decisions=decisions,
+                execution_context=execution_context,
+            )
 
     def poll_for_activity_task(self, domain_name, task_list, identity=None):
         # process timeouts on all objects
@@ -308,8 +322,7 @@ class SWFBackend(BaseBackend):
         count = 0
         for _task_list, tasks in domain.activity_task_lists.items():
             if _task_list == task_list:
-                pending = [t for t in tasks if t.state in [
-                    "SCHEDULED", "STARTED"]]
+                pending = [t for t in tasks if t.state in ["SCHEDULED", "STARTED"]]
                 count += len(pending)
         return count
 
@@ -333,14 +346,15 @@ class SWFBackend(BaseBackend):
                 "execution",
                 "WorkflowExecution=[workflowId={0}, runId={1}]".format(
                     wfe.workflow_id, wfe.run_id
-                )
+                ),
             )
         # activity task found, but already completed
         if activity_task.state != "STARTED":
             if activity_task.state == "COMPLETED":
                 raise SWFUnknownResourceFault(
                     "activity, scheduledEventId = {0}".format(
-                        activity_task.scheduled_event_id)
+                        activity_task.scheduled_event_id
+                    )
                 )
             else:
                 raise ValueError(
@@ -364,18 +378,24 @@ class SWFBackend(BaseBackend):
         self._process_timeouts()
         activity_task = self._find_activity_task_from_token(task_token)
         wfe = activity_task.workflow_execution
-        wfe.fail_activity_task(activity_task.task_token,
-                               reason=reason, details=details)
+        wfe.fail_activity_task(activity_task.task_token, reason=reason, details=details)
 
-    def terminate_workflow_execution(self, domain_name, workflow_id, child_policy=None,
-                                     details=None, reason=None, run_id=None):
+    def terminate_workflow_execution(
+        self,
+        domain_name,
+        workflow_id,
+        child_policy=None,
+        details=None,
+        reason=None,
+        run_id=None,
+    ):
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         wfe = domain.get_workflow_execution(
-            workflow_id, run_id=run_id, raise_if_closed=True)
-        wfe.terminate(child_policy=child_policy,
-                      details=details, reason=reason)
+            workflow_id, run_id=run_id, raise_if_closed=True
+        )
+        wfe.terminate(child_policy=child_policy, details=details, reason=reason)
 
     def record_activity_task_heartbeat(self, task_token, details=None):
         # process timeouts on all objects
@@ -385,12 +405,15 @@ class SWFBackend(BaseBackend):
         if details:
             activity_task.details = details
 
-    def signal_workflow_execution(self, domain_name, signal_name, workflow_id, input=None, run_id=None):
+    def signal_workflow_execution(
+        self, domain_name, signal_name, workflow_id, input=None, run_id=None
+    ):
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         wfe = domain.get_workflow_execution(
-            workflow_id, run_id=run_id, raise_if_closed=True)
+            workflow_id, run_id=run_id, raise_if_closed=True
+        )
         wfe.signal(signal_name, input)
 
 

@@ -1,9 +1,10 @@
 -r requirements.txt
 mock
 nose
+black; python_version >= '3.6'
 sure==1.4.11
 coverage
-flake8==3.5.0
+flake8==3.7.8
 freezegun
 flask
 boto>=2.45.0

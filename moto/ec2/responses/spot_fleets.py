@@ -3,12 +3,12 @@ from moto.core.responses import BaseResponse
 
 
 class SpotFleets(BaseResponse):
-
     def cancel_spot_fleet_requests(self):
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
         terminate_instances = self._get_param("TerminateInstances")
         spot_fleets = self.ec2_backend.cancel_spot_fleet_requests(
-            spot_fleet_request_ids, terminate_instances)
+            spot_fleet_request_ids, terminate_instances
+        )
         template = self.response_template(CANCEL_SPOT_FLEETS_TEMPLATE)
         return template.render(spot_fleets=spot_fleets)
 
@@ -16,37 +16,42 @@ class SpotFleets(BaseResponse):
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
 
         spot_requests = self.ec2_backend.describe_spot_fleet_instances(
-            spot_fleet_request_id)
-        template = self.response_template(
-            DESCRIBE_SPOT_FLEET_INSTANCES_TEMPLATE)
-        return template.render(spot_request_id=spot_fleet_request_id, spot_requests=spot_requests)
+            spot_fleet_request_id
+        )
+        template = self.response_template(DESCRIBE_SPOT_FLEET_INSTANCES_TEMPLATE)
+        return template.render(
+            spot_request_id=spot_fleet_request_id, spot_requests=spot_requests
+        )
 
     def describe_spot_fleet_requests(self):
         spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
 
-        requests = self.ec2_backend.describe_spot_fleet_requests(
-            spot_fleet_request_ids)
+        requests = self.ec2_backend.describe_spot_fleet_requests(spot_fleet_request_ids)
         template = self.response_template(DESCRIBE_SPOT_FLEET_TEMPLATE)
         return template.render(requests=requests)
 
     def modify_spot_fleet_request(self):
         spot_fleet_request_id = self._get_param("SpotFleetRequestId")
         target_capacity = self._get_int_param("TargetCapacity")
-        terminate_instances = self._get_param("ExcessCapacityTerminationPolicy", if_none="Default")
+        terminate_instances = self._get_param(
+            "ExcessCapacityTerminationPolicy", if_none="Default"
+        )
         successful = self.ec2_backend.modify_spot_fleet_request(
-            spot_fleet_request_id, target_capacity, terminate_instances)
+            spot_fleet_request_id, target_capacity, terminate_instances
+        )
         template = self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE)
         return template.render(successful=successful)
 
     def request_spot_fleet(self):
         spot_config = self._get_dict_param("SpotFleetRequestConfig.")
-        spot_price = spot_config.get('spot_price')
-        target_capacity = spot_config['target_capacity']
-        iam_fleet_role = spot_config['iam_fleet_role']
-        allocation_strategy = spot_config['allocation_strategy']
+        spot_price = spot_config.get("spot_price")
+        target_capacity = spot_config["target_capacity"]
+        iam_fleet_role = spot_config["iam_fleet_role"]
+        allocation_strategy = spot_config["allocation_strategy"]
 
         launch_specs = self._get_list_prefix(
-            "SpotFleetRequestConfig.LaunchSpecifications")
+            "SpotFleetRequestConfig.LaunchSpecifications"
+        )
 
         request = self.ec2_backend.request_spot_fleet(
             spot_price=spot_price,

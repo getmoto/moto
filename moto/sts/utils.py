@@ -19,17 +19,20 @@ def random_secret_access_key():
 
 
 def random_session_token():
-    return SESSION_TOKEN_PREFIX + base64.b64encode(os.urandom(266))[len(SESSION_TOKEN_PREFIX):].decode()
+    return (
+        SESSION_TOKEN_PREFIX
+        + base64.b64encode(os.urandom(266))[len(SESSION_TOKEN_PREFIX) :].decode()
+    )
 
 
 def random_assumed_role_id():
-    return ACCOUNT_SPECIFIC_ASSUMED_ROLE_ID_PREFIX + _random_uppercase_or_digit_sequence(9)
+    return (
+        ACCOUNT_SPECIFIC_ASSUMED_ROLE_ID_PREFIX + _random_uppercase_or_digit_sequence(9)
+    )
 
 
 def _random_uppercase_or_digit_sequence(length):
-    return ''.join(
-        six.text_type(
-            random.choice(
-                string.ascii_uppercase + string.digits
-            )) for _ in range(length)
+    return "".join(
+        six.text_type(random.choice(string.ascii_uppercase + string.digits))
+        for _ in range(length)
     )

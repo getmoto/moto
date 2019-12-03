@@ -9,7 +9,11 @@ import uuid
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 
-from .exceptions import InvalidCiphertextException, AccessDeniedException, NotFoundException
+from .exceptions import (
+    InvalidCiphertextException,
+    AccessDeniedException,
+    NotFoundException,
+)
 
 
 MASTER_KEY_LEN = 32
@@ -43,7 +47,12 @@ def _serialize_ciphertext_blob(ciphertext):
 
     NOTE: This is just a simple binary format. It is not what KMS actually does.
     """
-    header = struct.pack(CIPHERTEXT_HEADER_FORMAT, ciphertext.key_id.encode("utf-8"), ciphertext.iv, ciphertext.tag)
+    header = struct.pack(
+        CIPHERTEXT_HEADER_FORMAT,
+        ciphertext.key_id.encode("utf-8"),
+        ciphertext.iv,
+        ciphertext.tag,
+    )
     return header + ciphertext.ciphertext
 
 
@@ -55,7 +64,9 @@ def _deserialize_ciphertext_blob(ciphertext_blob):
     header = ciphertext_blob[:HEADER_LEN]
     ciphertext = ciphertext_blob[HEADER_LEN:]
     key_id, iv, tag = struct.unpack(CIPHERTEXT_HEADER_FORMAT, header)
-    return Ciphertext(key_id=key_id.decode("utf-8"), iv=iv, ciphertext=ciphertext, tag=tag)
+    return Ciphertext(
+        key_id=key_id.decode("utf-8"), iv=iv, ciphertext=ciphertext, tag=tag
+    )
 
 
 def _serialize_encryption_context(encryption_context):
@@ -88,17 +99,23 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
     except KeyError:
         is_alias = key_id.startswith("alias/") or ":alias/" in key_id
         raise NotFoundException(
-            "{id_type} {key_id} is not found.".format(id_type="Alias" if is_alias else "keyId", key_id=key_id)
+            "{id_type} {key_id} is not found.".format(
+                id_type="Alias" if is_alias else "keyId", key_id=key_id
+            )
         )
 
     iv = os.urandom(IV_LEN)
     aad = _serialize_encryption_context(encryption_context=encryption_context)
 
-    encryptor = Cipher(algorithms.AES(key.key_material), modes.GCM(iv), backend=default_backend()).encryptor()
+    encryptor = Cipher(
+        algorithms.AES(key.key_material), modes.GCM(iv), backend=default_backend()
+    ).encryptor()
     encryptor.authenticate_additional_data(aad)
     ciphertext = encryptor.update(plaintext) + encryptor.finalize()
     return _serialize_ciphertext_blob(
-        ciphertext=Ciphertext(key_id=key_id, iv=iv, ciphertext=ciphertext, tag=encryptor.tag)
+        ciphertext=Ciphertext(
+            key_id=key_id, iv=iv, ciphertext=ciphertext, tag=encryptor.tag
+        )
     )
 
 
@@ -132,7 +149,9 @@ def decrypt(master_keys, ciphertext_blob, encryption_context):
 
     try:
         decryptor = Cipher(
-            algorithms.AES(key.key_material), modes.GCM(ciphertext.iv, ciphertext.tag), backend=default_backend()
+            algorithms.AES(key.key_material),
+            modes.GCM(ciphertext.iv, ciphertext.tag),
+            backend=default_backend(),
         ).decryptor()
         decryptor.authenticate_additional_data(aad)
         plaintext = decryptor.update(ciphertext.ciphertext) + decryptor.finalize()

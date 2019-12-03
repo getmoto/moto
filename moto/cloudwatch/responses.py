@@ -6,7 +6,6 @@ from dateutil.parser import parse as dtparse
 
 
 class CloudWatchResponse(BaseResponse):
-
     @property
     def cloudwatch_backend(self):
         return cloudwatch_backends[self.region]
@@ -17,45 +16,54 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def put_metric_alarm(self):
-        name = self._get_param('AlarmName')
-        namespace = self._get_param('Namespace')
-        metric_name = self._get_param('MetricName')
-        comparison_operator = self._get_param('ComparisonOperator')
-        evaluation_periods = self._get_param('EvaluationPeriods')
-        period = self._get_param('Period')
-        threshold = self._get_param('Threshold')
-        statistic = self._get_param('Statistic')
-        description = self._get_param('AlarmDescription')
-        dimensions = self._get_list_prefix('Dimensions.member')
-        alarm_actions = self._get_multi_param('AlarmActions.member')
-        ok_actions = self._get_multi_param('OKActions.member')
+        name = self._get_param("AlarmName")
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        comparison_operator = self._get_param("ComparisonOperator")
+        evaluation_periods = self._get_param("EvaluationPeriods")
+        period = self._get_param("Period")
+        threshold = self._get_param("Threshold")
+        statistic = self._get_param("Statistic")
+        description = self._get_param("AlarmDescription")
+        dimensions = self._get_list_prefix("Dimensions.member")
+        alarm_actions = self._get_multi_param("AlarmActions.member")
+        ok_actions = self._get_multi_param("OKActions.member")
         insufficient_data_actions = self._get_multi_param(
-            "InsufficientDataActions.member")
-        unit = self._get_param('Unit')
-        alarm = self.cloudwatch_backend.put_metric_alarm(name, namespace, metric_name,
-                                                         comparison_operator,
-                                                         evaluation_periods, period,
-                                                         threshold, statistic,
-                                                         description, dimensions,
-                                                         alarm_actions, ok_actions,
-                                                         insufficient_data_actions,
-                                                         unit)
+            "InsufficientDataActions.member"
+        )
+        unit = self._get_param("Unit")
+        alarm = self.cloudwatch_backend.put_metric_alarm(
+            name,
+            namespace,
+            metric_name,
+            comparison_operator,
+            evaluation_periods,
+            period,
+            threshold,
+            statistic,
+            description,
+            dimensions,
+            alarm_actions,
+            ok_actions,
+            insufficient_data_actions,
+            unit,
+        )
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
 
     @amzn_request_id
     def describe_alarms(self):
-        action_prefix = self._get_param('ActionPrefix')
-        alarm_name_prefix = self._get_param('AlarmNamePrefix')
-        alarm_names = self._get_multi_param('AlarmNames.member')
-        state_value = self._get_param('StateValue')
+        action_prefix = self._get_param("ActionPrefix")
+        alarm_name_prefix = self._get_param("AlarmNamePrefix")
+        alarm_names = self._get_multi_param("AlarmNames.member")
+        state_value = self._get_param("StateValue")
 
         if action_prefix:
-            alarms = self.cloudwatch_backend.get_alarms_by_action_prefix(
-                action_prefix)
+            alarms = self.cloudwatch_backend.get_alarms_by_action_prefix(action_prefix)
         elif alarm_name_prefix:
             alarms = self.cloudwatch_backend.get_alarms_by_alarm_name_prefix(
-                alarm_name_prefix)
+                alarm_name_prefix
+            )
         elif alarm_names:
             alarms = self.cloudwatch_backend.get_alarms_by_alarm_names(alarm_names)
         elif state_value:
@@ -68,15 +76,15 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def delete_alarms(self):
-        alarm_names = self._get_multi_param('AlarmNames.member')
+        alarm_names = self._get_multi_param("AlarmNames.member")
         self.cloudwatch_backend.delete_alarms(alarm_names)
         template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
 
     @amzn_request_id
     def put_metric_data(self):
-        namespace = self._get_param('Namespace')
-        metric_data = self._get_multi_param('MetricData.member')
+        namespace = self._get_param("Namespace")
+        metric_data = self._get_multi_param("MetricData.member")
 
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
@@ -84,25 +92,29 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def get_metric_statistics(self):
-        namespace = self._get_param('Namespace')
-        metric_name = self._get_param('MetricName')
-        start_time = dtparse(self._get_param('StartTime'))
-        end_time = dtparse(self._get_param('EndTime'))
-        period = int(self._get_param('Period'))
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        start_time = dtparse(self._get_param("StartTime"))
+        end_time = dtparse(self._get_param("EndTime"))
+        period = int(self._get_param("Period"))
         statistics = self._get_multi_param("Statistics.member")
 
         # Unsupported Parameters (To Be Implemented)
-        unit = self._get_param('Unit')
-        extended_statistics = self._get_param('ExtendedStatistics')
-        dimensions = self._get_param('Dimensions')
+        unit = self._get_param("Unit")
+        extended_statistics = self._get_param("ExtendedStatistics")
+        dimensions = self._get_param("Dimensions")
         if unit or extended_statistics or dimensions:
-            raise NotImplemented()
+            raise NotImplementedError()
 
         # TODO: this should instead throw InvalidParameterCombination
         if not statistics:
-            raise NotImplemented("Must specify either Statistics or ExtendedStatistics")
+            raise NotImplementedError(
+                "Must specify either Statistics or ExtendedStatistics"
+            )
 
-        datapoints = self.cloudwatch_backend.get_metric_statistics(namespace, metric_name, start_time, end_time, period, statistics)
+        datapoints = self.cloudwatch_backend.get_metric_statistics(
+            namespace, metric_name, start_time, end_time, period, statistics
+        )
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
 
@@ -114,13 +126,13 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def delete_dashboards(self):
-        dashboards = self._get_multi_param('DashboardNames.member')
+        dashboards = self._get_multi_param("DashboardNames.member")
         if dashboards is None:
-            return self._error('InvalidParameterValue', 'Need at least 1 dashboard')
+            return self._error("InvalidParameterValue", "Need at least 1 dashboard")
 
         status, error = self.cloudwatch_backend.delete_dashboards(dashboards)
         if not status:
-            return self._error('ResourceNotFound', error)
+            return self._error("ResourceNotFound", error)
 
         template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
         return template.render()
@@ -143,18 +155,18 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def get_dashboard(self):
-        dashboard_name = self._get_param('DashboardName')
+        dashboard_name = self._get_param("DashboardName")
 
         dashboard = self.cloudwatch_backend.get_dashboard(dashboard_name)
         if dashboard is None:
-            return self._error('ResourceNotFound', 'Dashboard does not exist')
+            return self._error("ResourceNotFound", "Dashboard does not exist")
 
         template = self.response_template(GET_DASHBOARD_TEMPLATE)
         return template.render(dashboard=dashboard)
 
     @amzn_request_id
     def list_dashboards(self):
-        prefix = self._get_param('DashboardNamePrefix', '')
+        prefix = self._get_param("DashboardNamePrefix", "")
 
         dashboards = self.cloudwatch_backend.list_dashboards(prefix)
 
@@ -163,13 +175,13 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def put_dashboard(self):
-        name = self._get_param('DashboardName')
-        body = self._get_param('DashboardBody')
+        name = self._get_param("DashboardName")
+        body = self._get_param("DashboardBody")
 
         try:
             json.loads(body)
         except ValueError:
-            return self._error('InvalidParameterInput', 'Body is invalid JSON')
+            return self._error("InvalidParameterInput", "Body is invalid JSON")
 
         self.cloudwatch_backend.put_dashboard(name, body)
 
@@ -178,12 +190,14 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def set_alarm_state(self):
-        alarm_name = self._get_param('AlarmName')
-        reason = self._get_param('StateReason')
-        reason_data = self._get_param('StateReasonData')
-        state_value = self._get_param('StateValue')
+        alarm_name = self._get_param("AlarmName")
+        reason = self._get_param("StateReason")
+        reason_data = self._get_param("StateReasonData")
+        state_value = self._get_param("StateValue")
 
-        self.cloudwatch_backend.set_alarm_state(alarm_name, reason, reason_data, state_value)
+        self.cloudwatch_backend.set_alarm_state(
+            alarm_name, reason, reason_data, state_value
+        )
 
         template = self.response_template(SET_ALARM_STATE_TEMPLATE)
         return template.render()
