@@ -9,8 +9,26 @@ class AmisResponse(BaseResponse):
         description = self._get_param("Description", if_none="")
         instance_id = self._get_param("InstanceId")
         if self.is_not_dryrun("CreateImage"):
+            block_devices = []
+            instance = self.ec2_backend.get_instance(instance_id)
+            volume = self.ec2_backend.get_volume(instance.block_device_mapping['/dev/sda1'].volume_id)
+            for device in self._get_list_prefix('BlockDeviceMapping'):
+                volume_type = volume.volume_type if device['device_name'] == '/dev/sda1' else 'standard'
+                volume_size = volume.size if device['device_name'] == '/dev/sda1' else 8
+                storage = {
+                    'device_name': device['device_name'],
+                    'virtual_name': device.get('virtual_name'),
+                    'ebs': {
+                        'delete': device.get('ebs._delete_on_termination', True),
+                        'iops': device.get('ebs._iops', None),
+                        'volume_type': device.get('ebs._volume_type', volume_type),
+                        'volume_size': device.get('ebs._volume_size', volume_size),
+                        'volume_id': None
+                    }
+                 }
+                block_devices.append(storage)
             image = self.ec2_backend.create_image(
-                instance_id, name, description, context=self
+                instance_id, name, description, block_device_mapping=block_devices, context=self
             )
             template = self.response_template(CREATE_IMAGE_RESPONSE)
             return template.render(image=image)
@@ -119,15 +137,20 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
           <rootDeviceType>{{ image.root_device_type }}</rootDeviceType>
           <rootDeviceName>{{ image.root_device_name }}</rootDeviceName>
           <blockDeviceMapping>
+          {% for device in image.block_device_mapping %}
             <item>
-              <deviceName>{{ image.root_device_name }}</deviceName>
+              <deviceName>{{ device["device_name"] }}</deviceName>
               <ebs>
                 <snapshotId>{{ image.ebs_snapshot.id }}</snapshotId>
-                <volumeSize>15</volumeSize>
-                <deleteOnTermination>false</deleteOnTermination>
-                <volumeType>{{ image.root_device_type }}</volumeType>
+                <volumeSize>{{ device["ebs"]["volume_size"] }}</volumeSize>
+                <deleteOnTermination>{{ device["ebs"]["delete"] }}</deleteOnTermination>
+                <volumeType>{{ device["ebs"]["volume_type"] }}</volumeType>
+                {% if device["ebs"]["iops"] %}
+                    <iops>{{ device["ebs"]["iops"] }}</iops>
+                {% endif %}
               </ebs>
             </item>
+          {% endfor %}  
           </blockDeviceMapping>
           <virtualizationType>{{ image.virtualization_type }}</virtualizationType>
           <tagSet>
