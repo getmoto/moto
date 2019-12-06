@@ -1251,6 +1251,7 @@ class Ami(TaggedEC2Resource):
             utc_date_and_time() if creation_date is None else creation_date
         )
 
+        volume = None
         if instance:
             self.instance = instance
             self.instance_id = instance.id
@@ -1285,7 +1286,6 @@ class Ami(TaggedEC2Resource):
                 self.name = source_ami.name
             if not description:
                 self.description = source_ami.description
-            volume = self.ec2_backend.create_volume(15, region_name)
 
         self.launch_permission_groups = set()
         self.launch_permission_users = set()
@@ -1293,6 +1293,7 @@ class Ami(TaggedEC2Resource):
         if public:
             self.launch_permission_groups.add("all")
 
+        volume = volume or self.ec2_backend.create_volume(15, region_name)
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id
         )
