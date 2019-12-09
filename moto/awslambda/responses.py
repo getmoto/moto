@@ -211,30 +211,14 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps(result)
 
     def _create_function(self, request, full_url, headers):
-        try:
-            fn = self.lambda_backend.create_function(self.json_body)
-        except ValueError as e:
-            return (
-                400,
-                {},
-                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
-            )
-        else:
-            config = fn.get_configuration()
-            return 201, {}, json.dumps(config)
+        fn = self.lambda_backend.create_function(self.json_body)
+        config = fn.get_configuration()
+        return 201, {}, json.dumps(config)
 
     def _create_event_source_mapping(self, request, full_url, headers):
-        try:
-            fn = self.lambda_backend.create_event_source_mapping(self.json_body)
-        except ValueError as e:
-            return (
-                400,
-                {},
-                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
-            )
-        else:
-            config = fn.get_configuration()
-            return 201, {}, json.dumps(config)
+        fn = self.lambda_backend.create_event_source_mapping(self.json_body)
+        config = fn.get_configuration()
+        return 201, {}, json.dumps(config)
 
     def _list_event_source_mappings(self, event_source_arn, function_name):
         esms = self.lambda_backend.list_event_source_mappings(

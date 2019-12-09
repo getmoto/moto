@@ -26,11 +26,18 @@ import requests.adapters
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.iam.models import iam_backend
+from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
+from .exceptions import (
+    CrossAccountNotAllowed,
+    InvalidRoleFormat,
+    InvalidParameterValueException,
+)
 from .utils import make_function_arn, make_function_ver_arn
 from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
@@ -214,9 +221,8 @@ class LambdaFunction(BaseModel):
                 key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
-                    raise ValueError(
-                        "InvalidParameterValueException",
-                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist",
+                    raise InvalidParameterValueException(
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist"
                     )
             except MissingKey:
                 if do_validate_s3():
@@ -668,6 +674,19 @@ class LambdaStorage(object):
         :param fn: Function
         :type fn: LambdaFunction
         """
+        valid_role = re.match(InvalidRoleFormat.pattern, fn.role)
+        if valid_role:
+            account = valid_role.group(2)
+            if account != ACCOUNT_ID:
+                raise CrossAccountNotAllowed()
+            try:
+                iam_backend.get_role_by_arn(fn.role)
+            except IAMNotFoundException:
+                raise InvalidParameterValueException(
+                    "The role defined for the function cannot be assumed by Lambda."
+                )
+        else:
+            raise InvalidRoleFormat(fn.role)
         if fn.function_name in self._functions:
             self._functions[fn.function_name]["latest"] = fn
         else:
