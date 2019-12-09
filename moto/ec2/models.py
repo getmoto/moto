@@ -1644,23 +1644,27 @@ class RegionsAndZonesBackend(object):
 class SecurityRule(object):
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
         self.ip_protocol = ip_protocol
-        self.from_port = from_port
-        self.to_port = to_port
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
 
-    @property
-    def unique_representation(self):
-        return "{0}-{1}-{2}-{3}-{4}".format(
-            self.ip_protocol,
-            self.from_port,
-            self.to_port,
-            self.ip_ranges,
-            self.source_groups,
-        )
+        if ip_protocol != "-1":
+            self.from_port = from_port
+            self.to_port = to_port
 
     def __eq__(self, other):
-        return self.unique_representation == other.unique_representation
+        if self.ip_protocol != other.ip_protocol:
+            return False
+        if self.ip_ranges != other.ip_ranges:
+            return False
+        if self.source_groups != other.source_groups:
+            return False
+        if self.ip_protocol != "-1":
+            if self.from_port != other.from_port:
+                return False
+            if self.to_port != other.to_port:
+                return False
+
+        return True
 
 
 class SecurityGroup(TaggedEC2Resource):
@@ -1670,7 +1674,7 @@ class SecurityGroup(TaggedEC2Resource):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = [SecurityRule(-1, None, None, ["0.0.0.0/0"], [])]
+        self.egress_rules = [SecurityRule("-1", None, None, ["0.0.0.0/0"], [])]
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
