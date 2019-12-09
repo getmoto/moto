@@ -388,6 +388,19 @@ def instance_value_in_filter_values(instance_value, filter_values):
 
 
 def filter_reservations(reservations, filter_dict):
+    """Filter Reservations.
+
+    Return a reservations object that only contains instances that pass the
+    filter dictionary.
+
+    Args:
+        reservation (obj): reservation object
+        filter_dict (dict): filter dictionary
+    Returns:
+        reservation object
+    Raises:
+        N/A
+    """
     result = []
     for reservation in reservations:
         new_instances = []

@@ -4,6 +4,7 @@ from boto.ec2.instancetype import InstanceType
 from moto.autoscaling import autoscaling_backends
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
+from moto.ec2.exceptions import FilterNotImplementedError
 from moto.ec2.utils import filters_from_querystring, dict_from_querystring
 from moto.elbv2 import elbv2_backends
 
@@ -115,6 +116,12 @@ class InstanceResponse(BaseResponse):
     def describe_instance_status(self):
         instance_ids = self._get_multi_param("InstanceId")
         include_all_instances = self._get_param("IncludeAllInstances") == "true"
+        filters = self._get_multi_param("Filters")
+
+        if filters:
+            raise FilterNotImplementedError(
+                "describe_instance_status Filters attribute is not implemented"
+            )
 
         if instance_ids:
             instances = self.ec2_backend.get_multi_instances_by_id(instance_ids)
