@@ -174,8 +174,13 @@ class DynamoType(object):
 
         Returns DynamoType or None.
         """
-        if isinstance(key, six.string_types) and self.is_map() and key in self.value:
-            return DynamoType(self.value[key])
+        if isinstance(key, six.string_types) and self.is_map():
+            if "." in key and key.split(".")[0] in self.value:
+                return self.value[key.split(".")[0]].child_attr(
+                    ".".join(key.split(".")[1:])
+                )
+            elif "." not in key and key in self.value:
+                return DynamoType(self.value[key])
 
         if isinstance(key, int) and self.is_list():
             idx = key
@@ -418,7 +423,14 @@ class Item(BaseModel):
             list_append_re = re.match("list_append\\((.+),(.+)\\)", value)
             if list_append_re:
                 new_value = expression_attribute_values[list_append_re.group(2).strip()]
-                old_list = self.attrs[list_append_re.group(1)]
+                old_list_key = list_append_re.group(1)
+                # Get the existing value
+                old_list = self.attrs[old_list_key.split(".")[0]]
+                if "." in old_list_key:
+                    # Value is nested inside a map - find the appropriate child attr
+                    old_list = old_list.child_attr(
+                        ".".join(old_list_key.split(".")[1:])
+                    )
                 if not old_list.is_list():
                     raise ParamValidationError
                 old_list.value.extend(new_value["L"])
