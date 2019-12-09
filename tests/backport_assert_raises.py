@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+
 """
 Patch courtesy of:
 https://marmida.com/blog/index.php/2012/08/08/monkey-patching-assert_raises/
@@ -19,7 +20,6 @@ try:
 except TypeError:
     # this version of assert_raises doesn't support the 1-arg version
     class AssertRaisesContext(object):
-
         def __init__(self, expected):
             self.expected = expected
 

@@ -25,17 +25,17 @@ SUPPORTED_HISTORY_EVENT_TYPES = (
     "ActivityTaskTimedOut",
     "DecisionTaskTimedOut",
     "WorkflowExecutionTimedOut",
-    "WorkflowExecutionSignaled"
+    "WorkflowExecutionSignaled",
 )
 
 
 class HistoryEvent(BaseModel):
-
     def __init__(self, event_id, event_type, event_timestamp=None, **kwargs):
         if event_type not in SUPPORTED_HISTORY_EVENT_TYPES:
             raise NotImplementedError(
                 "HistoryEvent does not implement attributes for type '{0}'".format(
-                    event_type)
+                    event_type
+                )
             )
         self.event_id = event_id
         self.event_type = event_type
@@ -61,7 +61,7 @@ class HistoryEvent(BaseModel):
             "eventId": self.event_id,
             "eventType": self.event_type,
             "eventTimestamp": self.event_timestamp,
-            self._attributes_key(): self.event_attributes
+            self._attributes_key(): self.event_attributes,
         }
 
     def _attributes_key(self):

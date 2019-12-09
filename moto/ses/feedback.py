@@ -11,32 +11,20 @@ COMMON_MAIL = {
         "sourceArn": "arn:aws:ses:us-west-2:888888888888:identity/example.com",
         "sourceIp": "127.0.3.0",
         "sendingAccountId": "123456789012",
-        "destination": [
-            "recipient@example.com"
-        ],
+        "destination": ["recipient@example.com"],
         "headersTruncated": False,
         "headers": [
-            {
-                "name": "From",
-                "value": "\"Sender Name\" <sender@example.com>"
-            },
-            {
-                "name": "To",
-                "value": "\"Recipient Name\" <recipient@example.com>"
-            }
+            {"name": "From", "value": '"Sender Name" <sender@example.com>'},
+            {"name": "To", "value": '"Recipient Name" <recipient@example.com>'},
         ],
         "commonHeaders": {
-            "from": [
-                "Sender Name <sender@example.com>"
-            ],
+            "from": ["Sender Name <sender@example.com>"],
             "date": "Mon, 08 Oct 2018 14:05:45 +0000",
-            "to": [
-                "Recipient Name <recipient@example.com>"
-            ],
+            "to": ["Recipient Name <recipient@example.com>"],
             "messageId": " custom-message-ID",
-            "subject": "Message sent using Amazon SES"
-        }
-    }
+            "subject": "Message sent using Amazon SES",
+        },
+    },
 }
 BOUNCE = {
     "bounceType": "Permanent",
@@ -46,30 +34,26 @@ BOUNCE = {
             "status": "5.0.0",
             "action": "failed",
             "diagnosticCode": "smtp; 550 user unknown",
-            "emailAddress": "recipient1@example.com"
+            "emailAddress": "recipient1@example.com",
         },
         {
             "status": "4.0.0",
             "action": "delayed",
-            "emailAddress": "recipient2@example.com"
-        }
+            "emailAddress": "recipient2@example.com",
+        },
     ],
     "reportingMTA": "example.com",
     "timestamp": "2012-05-25T14:59:38.605Z",
     "feedbackId": "000001378603176d-5a4b5ad9-6f30-4198-a8c3-b1eb0c270a1d-000000",
-    "remoteMtaIp": "127.0.2.0"
+    "remoteMtaIp": "127.0.2.0",
 }
 COMPLAINT = {
     "userAgent": "AnyCompany Feedback Loop (V0.01)",
-    "complainedRecipients": [
-            {
-                "emailAddress": "recipient1@example.com"
-            }
-    ],
+    "complainedRecipients": [{"emailAddress": "recipient1@example.com"}],
     "complaintFeedbackType": "abuse",
     "arrivalDate": "2009-12-03T04:24:21.000-05:00",
     "timestamp": "2012-05-25T14:59:38.623Z",
-    "feedbackId": "000001378603177f-18c07c78-fa81-4a58-9dd1-fedc3cb8f49a-000000"
+    "feedbackId": "000001378603177f-18c07c78-fa81-4a58-9dd1-fedc3cb8f49a-000000",
 }
 DELIVERY = {
     "timestamp": "2014-05-28T22:41:01.184Z",
@@ -77,5 +61,5 @@ DELIVERY = {
     "recipients": ["success@simulator.amazonses.com"],
     "smtpResponse": "250 ok:  Message 64111812 accepted",
     "reportingMTA": "a8-70.smtp-out.amazonses.com",
-    "remoteMtaIp": "127.0.2.0"
+    "remoteMtaIp": "127.0.2.0",
 }

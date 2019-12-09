@@ -6,6 +6,7 @@ import random
 import uuid
 
 import boto3
+
 # noinspection PyUnresolvedReferences
 import sure  # noqa
 from botocore.exceptions import ClientError
@@ -21,15 +22,10 @@ def test_create_user_pool():
 
     name = str(uuid.uuid4())
     value = str(uuid.uuid4())
-    result = conn.create_user_pool(
-        PoolName=name,
-        LambdaConfig={
-            "PreSignUp": value
-        }
-    )
+    result = conn.create_user_pool(PoolName=name, LambdaConfig={"PreSignUp": value})
 
     result["UserPool"]["Id"].should_not.be.none
-    result["UserPool"]["Id"].should.match(r'[\w-]+_[0-9a-zA-Z]+')
+    result["UserPool"]["Id"].should.match(r"[\w-]+_[0-9a-zA-Z]+")
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
 
@@ -102,10 +98,7 @@ def test_describe_user_pool():
     name = str(uuid.uuid4())
     value = str(uuid.uuid4())
     user_pool_details = conn.create_user_pool(
-        PoolName=name,
-        LambdaConfig={
-            "PreSignUp": value
-        }
+        PoolName=name, LambdaConfig={"PreSignUp": value}
     )
 
     result = conn.describe_user_pool(UserPoolId=user_pool_details["UserPool"]["Id"])
@@ -139,7 +132,7 @@ def test_create_user_pool_domain_custom_domain_config():
 
     domain = str(uuid.uuid4())
     custom_domain_config = {
-        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012",
+        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012"
     }
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_domain(
@@ -184,7 +177,7 @@ def test_update_user_pool_domain():
 
     domain = str(uuid.uuid4())
     custom_domain_config = {
-        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012",
+        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012"
     }
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)
@@ -203,9 +196,7 @@ def test_create_user_pool_client():
     value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientName=client_name,
-        CallbackURLs=[value],
+        UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
     )
 
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
@@ -236,11 +227,11 @@ def test_list_user_pool_clients_returns_max_items():
     client_count = 10
     for i in range(client_count):
         client_name = str(uuid.uuid4())
-        conn.create_user_pool_client(UserPoolId=user_pool_id,
-                                     ClientName=client_name)
+        conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     max_results = 5
-    result = conn.list_user_pool_clients(UserPoolId=user_pool_id,
-                                         MaxResults=max_results)
+    result = conn.list_user_pool_clients(
+        UserPoolId=user_pool_id, MaxResults=max_results
+    )
     result["UserPoolClients"].should.have.length_of(max_results)
     result.should.have.key("NextToken")
 
@@ -254,18 +245,18 @@ def test_list_user_pool_clients_returns_next_tokens():
     client_count = 10
     for i in range(client_count):
         client_name = str(uuid.uuid4())
-        conn.create_user_pool_client(UserPoolId=user_pool_id,
-                                     ClientName=client_name)
+        conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     max_results = 5
-    result = conn.list_user_pool_clients(UserPoolId=user_pool_id,
-                                         MaxResults=max_results)
+    result = conn.list_user_pool_clients(
+        UserPoolId=user_pool_id, MaxResults=max_results
+    )
     result["UserPoolClients"].should.have.length_of(max_results)
     result.should.have.key("NextToken")
 
     next_token = result["NextToken"]
-    result_2 = conn.list_user_pool_clients(UserPoolId=user_pool_id,
-                                           MaxResults=max_results,
-                                           NextToken=next_token)
+    result_2 = conn.list_user_pool_clients(
+        UserPoolId=user_pool_id, MaxResults=max_results, NextToken=next_token
+    )
     result_2["UserPoolClients"].should.have.length_of(max_results)
     result_2.shouldnt.have.key("NextToken")
 
@@ -279,11 +270,11 @@ def test_list_user_pool_clients_when_max_items_more_than_total_items():
     client_count = 10
     for i in range(client_count):
         client_name = str(uuid.uuid4())
-        conn.create_user_pool_client(UserPoolId=user_pool_id,
-                                     ClientName=client_name)
+        conn.create_user_pool_client(UserPoolId=user_pool_id, ClientName=client_name)
     max_results = client_count + 5
-    result = conn.list_user_pool_clients(UserPoolId=user_pool_id,
-                                         MaxResults=max_results)
+    result = conn.list_user_pool_clients(
+        UserPoolId=user_pool_id, MaxResults=max_results
+    )
     result["UserPoolClients"].should.have.length_of(client_count)
     result.shouldnt.have.key("NextToken")
 
@@ -296,14 +287,11 @@ def test_describe_user_pool_client():
     value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_details = conn.create_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientName=client_name,
-        CallbackURLs=[value],
+        UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
     )
 
     result = conn.describe_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientId=client_details["UserPoolClient"]["ClientId"],
+        UserPoolId=user_pool_id, ClientId=client_details["UserPoolClient"]["ClientId"]
     )
 
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
@@ -321,9 +309,7 @@ def test_update_user_pool_client():
     new_value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_details = conn.create_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientName=old_client_name,
-        CallbackURLs=[old_value],
+        UserPoolId=user_pool_id, ClientName=old_client_name, CallbackURLs=[old_value]
     )
 
     result = conn.update_user_pool_client(
@@ -344,13 +330,11 @@ def test_delete_user_pool_client():
 
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_details = conn.create_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientName=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )
 
     conn.delete_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientId=client_details["UserPoolClient"]["ClientId"],
+        UserPoolId=user_pool_id, ClientId=client_details["UserPoolClient"]["ClientId"]
     )
 
     caught = False
@@ -377,9 +361,7 @@ def test_create_identity_provider():
         UserPoolId=user_pool_id,
         ProviderName=provider_name,
         ProviderType=provider_type,
-        ProviderDetails={
-            "thing": value
-        },
+        ProviderDetails={"thing": value},
     )
 
     result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
@@ -402,10 +384,7 @@ def test_list_identity_providers():
         ProviderDetails={},
     )
 
-    result = conn.list_identity_providers(
-        UserPoolId=user_pool_id,
-        MaxResults=10,
-    )
+    result = conn.list_identity_providers(UserPoolId=user_pool_id, MaxResults=10)
 
     result["Providers"].should.have.length_of(1)
     result["Providers"][0]["ProviderName"].should.equal(provider_name)
@@ -430,8 +409,9 @@ def test_list_identity_providers_returns_max_items():
         )
 
     max_results = 5
-    result = conn.list_identity_providers(UserPoolId=user_pool_id,
-                                          MaxResults=max_results)
+    result = conn.list_identity_providers(
+        UserPoolId=user_pool_id, MaxResults=max_results
+    )
     result["Providers"].should.have.length_of(max_results)
     result.should.have.key("NextToken")
 
@@ -454,14 +434,16 @@ def test_list_identity_providers_returns_next_tokens():
         )
 
     max_results = 5
-    result = conn.list_identity_providers(UserPoolId=user_pool_id, MaxResults=max_results)
+    result = conn.list_identity_providers(
+        UserPoolId=user_pool_id, MaxResults=max_results
+    )
     result["Providers"].should.have.length_of(max_results)
     result.should.have.key("NextToken")
 
     next_token = result["NextToken"]
-    result_2 = conn.list_identity_providers(UserPoolId=user_pool_id,
-                                           MaxResults=max_results,
-                                           NextToken=next_token)
+    result_2 = conn.list_identity_providers(
+        UserPoolId=user_pool_id, MaxResults=max_results, NextToken=next_token
+    )
     result_2["Providers"].should.have.length_of(max_results)
     result_2.shouldnt.have.key("NextToken")
 
@@ -484,7 +466,9 @@ def test_list_identity_providers_when_max_items_more_than_total_items():
         )
 
     max_results = identity_provider_count + 5
-    result = conn.list_identity_providers(UserPoolId=user_pool_id, MaxResults=max_results)
+    result = conn.list_identity_providers(
+        UserPoolId=user_pool_id, MaxResults=max_results
+    )
     result["Providers"].should.have.length_of(identity_provider_count)
     result.shouldnt.have.key("NextToken")
 
@@ -501,14 +485,11 @@ def test_describe_identity_providers():
         UserPoolId=user_pool_id,
         ProviderName=provider_name,
         ProviderType=provider_type,
-        ProviderDetails={
-            "thing": value
-        },
+        ProviderDetails={"thing": value},
     )
 
     result = conn.describe_identity_provider(
-        UserPoolId=user_pool_id,
-        ProviderName=provider_name,
+        UserPoolId=user_pool_id, ProviderName=provider_name
     )
 
     result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
@@ -530,17 +511,13 @@ def test_update_identity_provider():
         UserPoolId=user_pool_id,
         ProviderName=provider_name,
         ProviderType=provider_type,
-        ProviderDetails={
-            "thing": value
-        },
+        ProviderDetails={"thing": value},
     )
 
     result = conn.update_identity_provider(
         UserPoolId=user_pool_id,
         ProviderName=provider_name,
-        ProviderDetails={
-            "thing": new_value
-        },
+        ProviderDetails={"thing": new_value},
     )
 
     result["IdentityProvider"]["UserPoolId"].should.equal(user_pool_id)
@@ -557,16 +534,12 @@ def test_update_identity_provider_no_user_pool():
 
     with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
-            UserPoolId="foo",
-            ProviderName="bar",
-            ProviderDetails={
-                "thing": new_value
-            },
+            UserPoolId="foo", ProviderName="bar", ProviderDetails={"thing": new_value}
         )
 
-    cm.exception.operation_name.should.equal('UpdateIdentityProvider')
-    cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
-    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
+    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -583,14 +556,12 @@ def test_update_identity_provider_no_identity_provider():
         conn.update_identity_provider(
             UserPoolId=user_pool_id,
             ProviderName="foo",
-            ProviderDetails={
-                "thing": new_value
-            },
+            ProviderDetails={"thing": new_value},
         )
 
-    cm.exception.operation_name.should.equal('UpdateIdentityProvider')
-    cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
-    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
+    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -605,9 +576,7 @@ def test_delete_identity_providers():
         UserPoolId=user_pool_id,
         ProviderName=provider_name,
         ProviderType=provider_type,
-        ProviderDetails={
-            "thing": value
-        },
+        ProviderDetails={"thing": value},
     )
 
     conn.delete_identity_provider(UserPoolId=user_pool_id, ProviderName=provider_name)
@@ -615,8 +584,7 @@ def test_delete_identity_providers():
     caught = False
     try:
         conn.describe_identity_provider(
-            UserPoolId=user_pool_id,
-            ProviderName=provider_name,
+            UserPoolId=user_pool_id, ProviderName=provider_name
         )
     except conn.exceptions.ResourceNotFoundException:
         caught = True
@@ -662,9 +630,9 @@ def test_create_group_with_duplicate_name_raises_error():
 
     with assert_raises(ClientError) as cm:
         conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.operation_name.should.equal('CreateGroup')
-    cm.exception.response['Error']['Code'].should.equal('GroupExistsException')
-    cm.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
+    cm.exception.operation_name.should.equal("CreateGroup")
+    cm.exception.response["Error"]["Code"].should.equal("GroupExistsException")
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -710,7 +678,7 @@ def test_delete_group():
 
     with assert_raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.response['Error']['Code'].should.equal('ResourceNotFoundException')
+    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cognitoidp
@@ -724,7 +692,9 @@ def test_admin_add_user_to_group():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    result = conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    result = conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
 
@@ -739,8 +709,12 @@ def test_admin_add_user_to_group_again_is_noop():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
 
 
 @mock_cognitoidp
@@ -754,7 +728,9 @@ def test_list_users_in_group():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
 
     result = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
 
@@ -775,8 +751,12 @@ def test_list_users_in_group_ignores_deleted_user():
     username2 = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username2)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username2, GroupName=group_name)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username2, GroupName=group_name
+    )
     conn.admin_delete_user(UserPoolId=user_pool_id, Username=username)
 
     result = conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)
@@ -796,7 +776,9 @@ def test_admin_list_groups_for_user():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
 
     result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
 
@@ -817,8 +799,12 @@ def test_admin_list_groups_for_user_ignores_deleted_group():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name2)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name2
+    )
     conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
 
     result = conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)
@@ -838,14 +824,20 @@ def test_admin_remove_user_from_group():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
 
-    result = conn.admin_remove_user_from_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    result = conn.admin_remove_user_from_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
-    conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name) \
-        ["Users"].should.have.length_of(0)
-    conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id) \
-        ["Groups"].should.have.length_of(0)
+    conn.list_users_in_group(UserPoolId=user_pool_id, GroupName=group_name)[
+        "Users"
+    ].should.have.length_of(0)
+    conn.admin_list_groups_for_user(Username=username, UserPoolId=user_pool_id)[
+        "Groups"
+    ].should.have.length_of(0)
 
 
 @mock_cognitoidp
@@ -859,8 +851,12 @@ def test_admin_remove_user_from_group_again_is_noop():
     username = str(uuid.uuid4())
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
-    conn.admin_add_user_to_group(UserPoolId=user_pool_id, Username=username, GroupName=group_name)
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
+    conn.admin_add_user_to_group(
+        UserPoolId=user_pool_id, Username=username, GroupName=group_name
+    )
 
 
 @mock_cognitoidp
@@ -873,9 +869,7 @@ def test_admin_create_user():
     result = conn.admin_create_user(
         UserPoolId=user_pool_id,
         Username=username,
-        UserAttributes=[
-            {"Name": "thing", "Value": value}
-        ],
+        UserAttributes=[{"Name": "thing", "Value": value}],
     )
 
     result["User"]["Username"].should.equal(username)
@@ -884,6 +878,32 @@ def test_admin_create_user():
     result["User"]["Attributes"][0]["Name"].should.equal("thing")
     result["User"]["Attributes"][0]["Value"].should.equal(value)
     result["User"]["Enabled"].should.equal(True)
+
+
+@mock_cognitoidp
+def test_admin_create_existing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "thing", "Value": value}],
+    )
+
+    caught = False
+    try:
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+        )
+    except conn.exceptions.UsernameExistsException:
+        caught = True
+
+    caught.should.be.true
 
 
 @mock_cognitoidp
@@ -896,9 +916,7 @@ def test_admin_get_user():
     conn.admin_create_user(
         UserPoolId=user_pool_id,
         Username=username,
-        UserAttributes=[
-            {"Name": "thing", "Value": value}
-        ],
+        UserAttributes=[{"Name": "thing", "Value": value}],
     )
 
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
@@ -944,8 +962,7 @@ def test_list_users_returns_limit_items():
     # Given 10 users
     user_count = 10
     for i in range(user_count):
-        conn.admin_create_user(UserPoolId=user_pool_id,
-                               Username=str(uuid.uuid4()))
+        conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
     max_results = 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
     result["Users"].should.have.length_of(max_results)
@@ -960,8 +977,7 @@ def test_list_users_returns_pagination_tokens():
     # Given 10 users
     user_count = 10
     for i in range(user_count):
-        conn.admin_create_user(UserPoolId=user_pool_id,
-                               Username=str(uuid.uuid4()))
+        conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
 
     max_results = 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
@@ -969,8 +985,9 @@ def test_list_users_returns_pagination_tokens():
     result.should.have.key("PaginationToken")
 
     next_token = result["PaginationToken"]
-    result_2 = conn.list_users(UserPoolId=user_pool_id,
-                               Limit=max_results, PaginationToken=next_token)
+    result_2 = conn.list_users(
+        UserPoolId=user_pool_id, Limit=max_results, PaginationToken=next_token
+    )
     result_2["Users"].should.have.length_of(max_results)
     result_2.shouldnt.have.key("PaginationToken")
 
@@ -983,8 +1000,7 @@ def test_list_users_when_limit_more_than_total_items():
     # Given 10 users
     user_count = 10
     for i in range(user_count):
-        conn.admin_create_user(UserPoolId=user_pool_id,
-                               Username=str(uuid.uuid4()))
+        conn.admin_create_user(UserPoolId=user_pool_id, Username=str(uuid.uuid4()))
 
     max_results = user_count + 5
     result = conn.list_users(UserPoolId=user_pool_id, Limit=max_results)
@@ -1003,8 +1019,9 @@ def test_admin_disable_user():
     result = conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
-    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
-        ["Enabled"].should.equal(False)
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
+        "Enabled"
+    ].should.equal(False)
 
 
 @mock_cognitoidp
@@ -1019,8 +1036,9 @@ def test_admin_enable_user():
     result = conn.admin_enable_user(UserPoolId=user_pool_id, Username=username)
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
-    conn.admin_get_user(UserPoolId=user_pool_id, Username=username) \
-        ["Enabled"].should.equal(True)
+    conn.admin_get_user(UserPoolId=user_pool_id, Username=username)[
+        "Enabled"
+    ].should.equal(True)
 
 
 @mock_cognitoidp
@@ -1050,27 +1068,21 @@ def authentication_flow(conn):
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id,
         ClientName=str(uuid.uuid4()),
-        ReadAttributes=[user_attribute_name]
+        ReadAttributes=[user_attribute_name],
     )["UserPoolClient"]["ClientId"]
 
     conn.admin_create_user(
         UserPoolId=user_pool_id,
         Username=username,
         TemporaryPassword=temporary_password,
-        UserAttributes=[{
-            'Name': user_attribute_name,
-            'Value': user_attribute_value
-        }]
+        UserAttributes=[{"Name": user_attribute_name, "Value": user_attribute_value}],
     )
 
     result = conn.admin_initiate_auth(
         UserPoolId=user_pool_id,
         ClientId=client_id,
         AuthFlow="ADMIN_NO_SRP_AUTH",
-        AuthParameters={
-            "USERNAME": username,
-            "PASSWORD": temporary_password
-        },
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
     )
 
     # A newly created user is forced to set a new password
@@ -1083,10 +1095,7 @@ def authentication_flow(conn):
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
-        ChallengeResponses={
-            "USERNAME": username,
-            "NEW_PASSWORD": new_password
-        }
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
     result["AuthenticationResult"]["IdToken"].should_not.be.none
@@ -1099,9 +1108,7 @@ def authentication_flow(conn):
         "access_token": result["AuthenticationResult"]["AccessToken"],
         "username": username,
         "password": new_password,
-        "additional_fields": {
-            user_attribute_name: user_attribute_value
-        }
+        "additional_fields": {user_attribute_name: user_attribute_value},
     }
 
 
@@ -1124,7 +1131,9 @@ def test_token_legitimacy():
     id_token = outputs["id_token"]
     access_token = outputs["access_token"]
     client_id = outputs["client_id"]
-    issuer = "https://cognito-idp.us-west-2.amazonaws.com/{}".format(outputs["user_pool_id"])
+    issuer = "https://cognito-idp.us-west-2.amazonaws.com/{}".format(
+        outputs["user_pool_id"]
+    )
     id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
     id_claims["iss"].should.equal(issuer)
     id_claims["aud"].should.equal(client_id)
@@ -1155,10 +1164,7 @@ def test_change_password():
         UserPoolId=outputs["user_pool_id"],
         ClientId=outputs["client_id"],
         AuthFlow="ADMIN_NO_SRP_AUTH",
-        AuthParameters={
-            "USERNAME": outputs["username"],
-            "PASSWORD": newer_password,
-        },
+        AuthParameters={"USERNAME": outputs["username"], "PASSWORD": newer_password},
     )
 
     result["AuthenticationResult"].should_not.be.none
@@ -1168,7 +1174,9 @@ def test_change_password():
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    result = conn.forgot_password(ClientId=str(uuid.uuid4()), Username=str(uuid.uuid4()))
+    result = conn.forgot_password(
+        ClientId=str(uuid.uuid4()), Username=str(uuid.uuid4())
+    )
     result["CodeDeliveryDetails"].should_not.be.none
 
 
@@ -1179,14 +1187,11 @@ def test_confirm_forgot_password():
     username = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientName=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
     )["UserPoolClient"]["ClientId"]
 
     conn.admin_create_user(
-        UserPoolId=user_pool_id,
-        Username=username,
-        TemporaryPassword=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=str(uuid.uuid4())
     )
 
     conn.confirm_forgot_password(
@@ -1195,6 +1200,7 @@ def test_confirm_forgot_password():
         ConfirmationCode=str(uuid.uuid4()),
         Password=str(uuid.uuid4()),
     )
+
 
 @mock_cognitoidp
 def test_admin_update_user_attributes():
@@ -1207,41 +1213,26 @@ def test_admin_update_user_attributes():
         UserPoolId=user_pool_id,
         Username=username,
         UserAttributes=[
-            {
-                'Name': 'family_name',
-                'Value': 'Doe',
-            },
-            {
-                'Name': 'given_name',
-                'Value': 'John',
-            }
-        ]
+            {"Name": "family_name", "Value": "Doe"},
+            {"Name": "given_name", "Value": "John"},
+        ],
     )
 
     conn.admin_update_user_attributes(
         UserPoolId=user_pool_id,
         Username=username,
         UserAttributes=[
-            {
-                'Name': 'family_name',
-                'Value': 'Doe',
-            },
-            {
-                'Name': 'given_name',
-                'Value': 'Jane',
-            }
-        ]
+            {"Name": "family_name", "Value": "Doe"},
+            {"Name": "given_name", "Value": "Jane"},
+        ],
     )
 
-    user = conn.admin_get_user(
-        UserPoolId=user_pool_id,
-        Username=username
-    )
-    attributes = user['UserAttributes']
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    attributes = user["UserAttributes"]
     attributes.should.be.a(list)
     for attr in attributes:
-        val = attr['Value']
-        if attr['Name'] == 'family_name':
-            val.should.equal('Doe')
-        elif attr['Name'] == 'given_name':
-            val.should.equal('Jane')
+        val = attr["Value"]
+        if attr["Name"] == "family_name":
+            val.should.equal("Doe")
+        elif attr["Name"] == "given_name":
+            val.should.equal("Jane")

@@ -6,44 +6,42 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class Subnets(BaseResponse):
-
     def create_subnet(self):
-        vpc_id = self._get_param('VpcId')
-        cidr_block = self._get_param('CidrBlock')
+        vpc_id = self._get_param("VpcId")
+        cidr_block = self._get_param("CidrBlock")
         availability_zone = self._get_param(
-            'AvailabilityZone', if_none=random.choice(
-                self.ec2_backend.describe_availability_zones()).name)
+            "AvailabilityZone",
+            if_none=random.choice(self.ec2_backend.describe_availability_zones()).name,
+        )
         subnet = self.ec2_backend.create_subnet(
-            vpc_id,
-            cidr_block,
-            availability_zone,
-            context=self,
+            vpc_id, cidr_block, availability_zone, context=self
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
     def delete_subnet(self):
-        subnet_id = self._get_param('SubnetId')
+        subnet_id = self._get_param("SubnetId")
         subnet = self.ec2_backend.delete_subnet(subnet_id)
         template = self.response_template(DELETE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
     def describe_subnets(self):
-        subnet_ids = self._get_multi_param('SubnetId')
+        subnet_ids = self._get_multi_param("SubnetId")
         filters = filters_from_querystring(self.querystring)
         subnets = self.ec2_backend.get_all_subnets(subnet_ids, filters)
         template = self.response_template(DESCRIBE_SUBNETS_RESPONSE)
         return template.render(subnets=subnets)
 
     def modify_subnet_attribute(self):
-        subnet_id = self._get_param('SubnetId')
+        subnet_id = self._get_param("SubnetId")
 
-        for attribute in ('MapPublicIpOnLaunch', 'AssignIpv6AddressOnCreation'):
-            if self.querystring.get('%s.Value' % attribute):
+        for attribute in ("MapPublicIpOnLaunch", "AssignIpv6AddressOnCreation"):
+            if self.querystring.get("%s.Value" % attribute):
                 attr_name = camelcase_to_underscores(attribute)
-                attr_value = self.querystring.get('%s.Value' % attribute)[0]
+                attr_value = self.querystring.get("%s.Value" % attribute)[0]
                 self.ec2_backend.modify_subnet_attribute(
-                    subnet_id, attr_name, attr_value)
+                    subnet_id, attr_name, attr_value
+                )
                 return MODIFY_SUBNET_ATTRIBUTE_RESPONSE
 
 
@@ -55,7 +53,7 @@ CREATE_SUBNET_RESPONSE = """
     <state>pending</state>
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
-    <availableIpAddressCount>251</availableIpAddressCount>
+    <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>
     <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
     <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
@@ -83,7 +81,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <state>available</state>
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
-        <availableIpAddressCount>251</availableIpAddressCount>
+        <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>
         <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
         <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>

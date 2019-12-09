@@ -4,29 +4,29 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class VPNConnections(BaseResponse):
-
     def create_vpn_connection(self):
-        type = self._get_param('Type')
-        cgw_id = self._get_param('CustomerGatewayId')
-        vgw_id = self._get_param('VPNGatewayId')
-        static_routes = self._get_param('StaticRoutesOnly')
+        type = self._get_param("Type")
+        cgw_id = self._get_param("CustomerGatewayId")
+        vgw_id = self._get_param("VPNGatewayId")
+        static_routes = self._get_param("StaticRoutesOnly")
         vpn_connection = self.ec2_backend.create_vpn_connection(
-            type, cgw_id, vgw_id, static_routes_only=static_routes)
+            type, cgw_id, vgw_id, static_routes_only=static_routes
+        )
         template = self.response_template(CREATE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
     def delete_vpn_connection(self):
-        vpn_connection_id = self._get_param('VpnConnectionId')
-        vpn_connection = self.ec2_backend.delete_vpn_connection(
-            vpn_connection_id)
+        vpn_connection_id = self._get_param("VpnConnectionId")
+        vpn_connection = self.ec2_backend.delete_vpn_connection(vpn_connection_id)
         template = self.response_template(DELETE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
     def describe_vpn_connections(self):
-        vpn_connection_ids = self._get_multi_param('VpnConnectionId')
+        vpn_connection_ids = self._get_multi_param("VpnConnectionId")
         filters = filters_from_querystring(self.querystring)
         vpn_connections = self.ec2_backend.get_all_vpn_connections(
-            vpn_connection_ids=vpn_connection_ids, filters=filters)
+            vpn_connection_ids=vpn_connection_ids, filters=filters
+        )
         template = self.response_template(DESCRIBE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connections=vpn_connections)
 

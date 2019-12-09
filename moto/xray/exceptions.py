@@ -11,11 +11,14 @@ class AWSError(Exception):
         self.status = status if status is not None else self.STATUS
 
     def response(self):
-        return json.dumps({'__type': self.code, 'message': self.message}), dict(status=self.status)
+        return (
+            json.dumps({"__type": self.code, "message": self.message}),
+            dict(status=self.status),
+        )
 
 
 class InvalidRequestException(AWSError):
-    CODE = 'InvalidRequestException'
+    CODE = "InvalidRequestException"
 
 
 class BadSegmentException(Exception):
@@ -25,15 +28,15 @@ class BadSegmentException(Exception):
         self.message = message
 
     def __repr__(self):
-        return '<BadSegment {0}>'.format('-'.join([self.id, self.code, self.message]))
+        return "<BadSegment {0}>".format("-".join([self.id, self.code, self.message]))
 
     def to_dict(self):
         result = {}
         if self.id is not None:
-            result['Id'] = self.id
+            result["Id"] = self.id
         if self.code is not None:
-            result['ErrorCode'] = self.code
+            result["ErrorCode"] = self.code
         if self.message is not None:
-            result['Message'] = self.message
+            result["Message"] = self.message
 
         return result

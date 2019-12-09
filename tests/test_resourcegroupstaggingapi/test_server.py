@@ -4,9 +4,9 @@ import sure  # noqa
 
 import moto.server as server
 
-'''
+"""
 Test the different server responses
-'''
+"""
 
 
 def test_resourcegroupstaggingapi_list():
@@ -15,10 +15,10 @@ def test_resourcegroupstaggingapi_list():
     # do test
 
     headers = {
-        'X-Amz-Target': 'ResourceGroupsTaggingAPI_20170126.GetResources',
-        'X-Amz-Date': '20171114T234623Z'
+        "X-Amz-Target": "ResourceGroupsTaggingAPI_20170126.GetResources",
+        "X-Amz-Date": "20171114T234623Z",
     }
-    resp = test_client.post('/', headers=headers, data='{}')
+    resp = test_client.post("/", headers=headers, data="{}")
 
     assert resp.status_code == 200
-    assert b'ResourceTagMappingList' in resp.data
+    assert b"ResourceTagMappingList" in resp.data

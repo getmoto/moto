@@ -39,7 +39,7 @@ install_requires = [
     "werkzeug",
     "PyYAML>=5.1",
     "pytz",
-    "python-dateutil<3.0.0,>=2.1",
+    "python-dateutil<2.8.1,>=2.1",
     "python-jose<4.0.0",
     "mock",
     "docker>=2.5.1",
@@ -94,4 +94,7 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
+    project_urls={
+        "Documentation": "http://docs.getmoto.org/en/latest/",
+    },
 )

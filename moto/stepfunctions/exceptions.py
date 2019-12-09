@@ -12,24 +12,27 @@ class AWSError(Exception):
         self.status = status if status is not None else self.STATUS
 
     def response(self):
-        return json.dumps({'__type': self.type, 'message': self.message}), dict(status=self.status)
+        return (
+            json.dumps({"__type": self.type, "message": self.message}),
+            dict(status=self.status),
+        )
 
 
 class ExecutionDoesNotExist(AWSError):
-    TYPE = 'ExecutionDoesNotExist'
+    TYPE = "ExecutionDoesNotExist"
     STATUS = 400
 
 
 class InvalidArn(AWSError):
-    TYPE = 'InvalidArn'
+    TYPE = "InvalidArn"
     STATUS = 400
 
 
 class InvalidName(AWSError):
-    TYPE = 'InvalidName'
+    TYPE = "InvalidName"
     STATUS = 400
 
 
 class StateMachineDoesNotExist(AWSError):
-    TYPE = 'StateMachineDoesNotExist'
+    TYPE = "StateMachineDoesNotExist"
     STATUS = 400

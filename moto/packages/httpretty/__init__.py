@@ -25,7 +25,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 from __future__ import unicode_literals
 
-__version__ = version = '0.8.10'
+__version__ = version = "0.8.10"
 
 from .core import httpretty, httprettified, EmptyRequestHeaders
 from .errors import HTTPrettyError, UnmockedError

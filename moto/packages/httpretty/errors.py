@@ -32,9 +32,8 @@ class HTTPrettyError(Exception):
 
 
 class UnmockedError(HTTPrettyError):
-
     def __init__(self):
         super(UnmockedError, self).__init__(
-            'No mocking was registered, and real connections are '
-            'not allowed (httpretty.allow_net_connect = False).'
+            "No mocking was registered, and real connections are "
+            "not allowed (httpretty.allow_net_connect = False)."
         )

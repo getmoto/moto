@@ -26,7 +26,12 @@ from six import string_types
 
 from moto.iam.models import ACCOUNT_ID, Policy
 from moto.iam import iam_backend
-from moto.core.exceptions import SignatureDoesNotMatchError, AccessDeniedError, InvalidClientTokenIdError, AuthFailureError
+from moto.core.exceptions import (
+    SignatureDoesNotMatchError,
+    AccessDeniedError,
+    InvalidClientTokenIdError,
+    AuthFailureError,
+)
 from moto.s3.exceptions import (
     BucketAccessDeniedError,
     S3AccessDeniedError,
@@ -35,7 +40,7 @@ from moto.s3.exceptions import (
     S3InvalidAccessKeyIdError,
     BucketInvalidAccessKeyIdError,
     BucketSignatureDoesNotMatchError,
-    S3SignatureDoesNotMatchError
+    S3SignatureDoesNotMatchError,
 )
 from moto.sts import sts_backend
 
@@ -50,9 +55,8 @@ def create_access_key(access_key_id, headers):
 
 
 class IAMUserAccessKey(object):
-
     def __init__(self, access_key_id, headers):
-        iam_users = iam_backend.list_users('/', None, None)
+        iam_users = iam_backend.list_users("/", None, None)
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:
                 if access_key.access_key_id == access_key_id:
@@ -67,8 +71,7 @@ class IAMUserAccessKey(object):
     @property
     def arn(self):
         return "arn:aws:iam::{account_id}:user/{iam_user_name}".format(
-            account_id=ACCOUNT_ID,
-            iam_user_name=self._owner_user_name
+            account_id=ACCOUNT_ID, iam_user_name=self._owner_user_name
         )
 
     def create_credentials(self):
@@ -79,27 +82,34 @@ class IAMUserAccessKey(object):
 
         inline_policy_names = iam_backend.list_user_policies(self._owner_user_name)
         for inline_policy_name in inline_policy_names:
-            inline_policy = iam_backend.get_user_policy(self._owner_user_name, inline_policy_name)
+            inline_policy = iam_backend.get_user_policy(
+                self._owner_user_name, inline_policy_name
+            )
             user_policies.append(inline_policy)
 
-        attached_policies, _ = iam_backend.list_attached_user_policies(self._owner_user_name)
+        attached_policies, _ = iam_backend.list_attached_user_policies(
+            self._owner_user_name
+        )
         user_policies += attached_policies
 
         user_groups = iam_backend.get_groups_for_user(self._owner_user_name)
         for user_group in user_groups:
             inline_group_policy_names = iam_backend.list_group_policies(user_group.name)
             for inline_group_policy_name in inline_group_policy_names:
-                inline_user_group_policy = iam_backend.get_group_policy(user_group.name, inline_group_policy_name)
+                inline_user_group_policy = iam_backend.get_group_policy(
+                    user_group.name, inline_group_policy_name
+                )
                 user_policies.append(inline_user_group_policy)
 
-            attached_group_policies, _ = iam_backend.list_attached_group_policies(user_group.name)
+            attached_group_policies, _ = iam_backend.list_attached_group_policies(
+                user_group.name
+            )
             user_policies += attached_group_policies
 
         return user_policies
 
 
 class AssumedRoleAccessKey(object):
-
     def __init__(self, access_key_id, headers):
         for assumed_role in sts_backend.assumed_roles:
             if assumed_role.access_key_id == access_key_id:
@@ -118,28 +128,33 @@ class AssumedRoleAccessKey(object):
         return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
             account_id=ACCOUNT_ID,
             role_name=self._owner_role_name,
-            session_name=self._session_name
+            session_name=self._session_name,
         )
 
     def create_credentials(self):
-        return Credentials(self._access_key_id, self._secret_access_key, self._session_token)
+        return Credentials(
+            self._access_key_id, self._secret_access_key, self._session_token
+        )
 
     def collect_policies(self):
         role_policies = []
 
         inline_policy_names = iam_backend.list_role_policies(self._owner_role_name)
         for inline_policy_name in inline_policy_names:
-            _, inline_policy = iam_backend.get_role_policy(self._owner_role_name, inline_policy_name)
+            _, inline_policy = iam_backend.get_role_policy(
+                self._owner_role_name, inline_policy_name
+            )
             role_policies.append(inline_policy)
 
-        attached_policies, _ = iam_backend.list_attached_role_policies(self._owner_role_name)
+        attached_policies, _ = iam_backend.list_attached_role_policies(
+            self._owner_role_name
+        )
         role_policies += attached_policies
 
         return role_policies
 
 
 class CreateAccessKeyFailure(Exception):
-
     def __init__(self, reason, *args):
         super(CreateAccessKeyFailure, self).__init__(*args)
         self.reason = reason
@@ -147,32 +162,54 @@ class CreateAccessKeyFailure(Exception):
 
 @six.add_metaclass(ABCMeta)
 class IAMRequestBase(object):
-
     def __init__(self, method, path, data, headers):
-        log.debug("Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
-            class_name=self.__class__.__name__, method=method, path=path, data=data, headers=headers))
+        log.debug(
+            "Creating {class_name} with method={method}, path={path}, data={data}, headers={headers}".format(
+                class_name=self.__class__.__name__,
+                method=method,
+                path=path,
+                data=data,
+                headers=headers,
+            )
+        )
         self._method = method
         self._path = path
         self._data = data
         self._headers = headers
-        credential_scope = self._get_string_between('Credential=', ',', self._headers['Authorization'])
-        credential_data = credential_scope.split('/')
+        credential_scope = self._get_string_between(
+            "Credential=", ",", self._headers["Authorization"]
+        )
+        credential_data = credential_scope.split("/")
         self._region = credential_data[2]
         self._service = credential_data[3]
-        self._action = self._service + ":" + (self._data["Action"][0] if isinstance(self._data["Action"], list) else self._data["Action"])
+        self._action = (
+            self._service
+            + ":"
+            + (
+                self._data["Action"][0]
+                if isinstance(self._data["Action"], list)
+                else self._data["Action"]
+            )
+        )
         try:
-            self._access_key = create_access_key(access_key_id=credential_data[0], headers=headers)
+            self._access_key = create_access_key(
+                access_key_id=credential_data[0], headers=headers
+            )
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)
 
     def check_signature(self):
-        original_signature = self._get_string_between('Signature=', ',', self._headers['Authorization'])
+        original_signature = self._get_string_between(
+            "Signature=", ",", self._headers["Authorization"]
+        )
         calculated_signature = self._calculate_signature()
         if original_signature != calculated_signature:
             self._raise_signature_does_not_match()
 
     def check_action_permitted(self):
-        if self._action == 'sts:GetCallerIdentity':  # always allowed, even if there's an explicit Deny for it
+        if (
+            self._action == "sts:GetCallerIdentity"
+        ):  # always allowed, even if there's an explicit Deny for it
             return True
         policies = self._access_key.collect_policies()
 
@@ -213,10 +250,14 @@ class IAMRequestBase(object):
         return headers
 
     def _create_aws_request(self):
-        signed_headers = self._get_string_between('SignedHeaders=', ',', self._headers['Authorization']).split(';')
+        signed_headers = self._get_string_between(
+            "SignedHeaders=", ",", self._headers["Authorization"]
+        ).split(";")
         headers = self._create_headers_for_aws_request(signed_headers, self._headers)
-        request = AWSRequest(method=self._method, url=self._path, data=self._data, headers=headers)
-        request.context['timestamp'] = headers['X-Amz-Date']
+        request = AWSRequest(
+            method=self._method, url=self._path, data=self._data, headers=headers
+        )
+        request.context["timestamp"] = headers["X-Amz-Date"]
 
         return request
 
@@ -234,7 +275,6 @@ class IAMRequestBase(object):
 
 
 class IAMRequest(IAMRequestBase):
-
     def _raise_signature_does_not_match(self):
         if self._service == "ec2":
             raise AuthFailureError()
@@ -251,14 +291,10 @@ class IAMRequest(IAMRequestBase):
         return SigV4Auth(credentials, self._service, self._region)
 
     def _raise_access_denied(self):
-        raise AccessDeniedError(
-            user_arn=self._access_key.arn,
-            action=self._action
-        )
+        raise AccessDeniedError(user_arn=self._access_key.arn, action=self._action)
 
 
 class S3IAMRequest(IAMRequestBase):
-
     def _raise_signature_does_not_match(self):
         if "BucketName" in self._data:
             raise BucketSignatureDoesNotMatchError(bucket=self._data["BucketName"])
@@ -288,10 +324,13 @@ class S3IAMRequest(IAMRequestBase):
 
 
 class IAMPolicy(object):
-
     def __init__(self, policy):
         if isinstance(policy, Policy):
-            default_version = next(policy_version for policy_version in policy.versions if policy_version.is_default)
+            default_version = next(
+                policy_version
+                for policy_version in policy.versions
+                if policy_version.is_default
+            )
             policy_document = default_version.document
         elif isinstance(policy, string_types):
             policy_document = policy
@@ -321,7 +360,6 @@ class IAMPolicy(object):
 
 
 class IAMPolicyStatement(object):
-
     def __init__(self, statement):
         self._statement = statement
 

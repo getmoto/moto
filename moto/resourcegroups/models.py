@@ -23,14 +23,14 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = "arn:aws:resource-groups:us-west-1:123456789012:{name}".format(name=name)
+        self.arn = "arn:aws:resource-groups:us-west-1:123456789012:{name}".format(
+            name=name
+        )
 
     @staticmethod
     def _format_error(key, value, constraint):
         return "Value '{value}' at '{key}' failed to satisfy constraint: {constraint}".format(
-            constraint=constraint,
-            key=key,
-            value=value,
+            constraint=constraint, key=key, value=value
         )
 
     def _raise_errors(self):
@@ -38,24 +38,30 @@ class FakeResourceGroup(BaseModel):
             errors_len = len(self.errors)
             plural = "s" if len(self.errors) > 1 else ""
             errors = "; ".join(self.errors)
-            raise BadRequestException("{errors_len} validation error{plural} detected: {errors}".format(
-                errors_len=errors_len, plural=plural, errors=errors,
-            ))
+            raise BadRequestException(
+                "{errors_len} validation error{plural} detected: {errors}".format(
+                    errors_len=errors_len, plural=plural, errors=errors
+                )
+            )
 
     def _validate_description(self, value):
         errors = []
         if len(value) > 511:
-            errors.append(self._format_error(
-                key="description",
-                value=value,
-                constraint="Member must have length less than or equal to 512",
-            ))
+            errors.append(
+                self._format_error(
+                    key="description",
+                    value=value,
+                    constraint="Member must have length less than or equal to 512",
+                )
+            )
         if not re.match(r"^[\sa-zA-Z0-9_.-]*$", value):
-            errors.append(self._format_error(
-                key="name",
-                value=value,
-                constraint=r"Member must satisfy regular expression pattern: [\sa-zA-Z0-9_\.-]*",
-            ))
+            errors.append(
+                self._format_error(
+                    key="name",
+                    value=value,
+                    constraint=r"Member must satisfy regular expression pattern: [\sa-zA-Z0-9_\.-]*",
+                )
+            )
         if errors:
             self.errors += errors
             return False
@@ -64,18 +70,22 @@ class FakeResourceGroup(BaseModel):
     def _validate_name(self, value):
         errors = []
         if len(value) > 128:
-            errors.append(self._format_error(
-                key="name",
-                value=value,
-                constraint="Member must have length less than or equal to 128",
-            ))
+            errors.append(
+                self._format_error(
+                    key="name",
+                    value=value,
+                    constraint="Member must have length less than or equal to 128",
+                )
+            )
         # Note \ is a character to match not an escape.
         if not re.match(r"^[a-zA-Z0-9_\\.-]+$", value):
-            errors.append(self._format_error(
-                key="name",
-                value=value,
-                constraint=r"Member must satisfy regular expression pattern: [a-zA-Z0-9_\.-]+",
-            ))
+            errors.append(
+                self._format_error(
+                    key="name",
+                    value=value,
+                    constraint=r"Member must satisfy regular expression pattern: [a-zA-Z0-9_\.-]+",
+                )
+            )
         if errors:
             self.errors += errors
             return False
@@ -84,17 +94,21 @@ class FakeResourceGroup(BaseModel):
     def _validate_resource_query(self, value):
         errors = []
         if value["Type"] not in {"CLOUDFORMATION_STACK_1_0", "TAG_FILTERS_1_0"}:
-            errors.append(self._format_error(
-                key="resourceQuery.type",
-                value=value,
-                constraint="Member must satisfy enum value set: [CLOUDFORMATION_STACK_1_0, TAG_FILTERS_1_0]",
-            ))
+            errors.append(
+                self._format_error(
+                    key="resourceQuery.type",
+                    value=value,
+                    constraint="Member must satisfy enum value set: [CLOUDFORMATION_STACK_1_0, TAG_FILTERS_1_0]",
+                )
+            )
         if len(value["Query"]) > 2048:
-            errors.append(self._format_error(
-                key="resourceQuery.query",
-                value=value,
-                constraint="Member must have length less than or equal to 2048",
-            ))
+            errors.append(
+                self._format_error(
+                    key="resourceQuery.query",
+                    value=value,
+                    constraint="Member must have length less than or equal to 2048",
+                )
+            )
         if errors:
             self.errors += errors
             return False
@@ -183,7 +197,7 @@ class FakeResourceGroup(BaseModel):
         self._tags = value
 
 
-class ResourceGroups():
+class ResourceGroups:
     def __init__(self):
         self.by_name = {}
         self.by_arn = {}
@@ -213,7 +227,9 @@ class ResourceGroupsBackend(BaseBackend):
         type = resource_query["Type"]
         query = json.loads(resource_query["Query"])
         query_keys = set(query.keys())
-        invalid_json_exception = BadRequestException("Invalid query: Invalid query format: check JSON syntax")
+        invalid_json_exception = BadRequestException(
+            "Invalid query: Invalid query format: check JSON syntax"
+        )
         if not isinstance(query["ResourceTypeFilters"], list):
             raise invalid_json_exception
         if type == "CLOUDFORMATION_STACK_1_0":
@@ -255,7 +271,9 @@ class ResourceGroupsBackend(BaseBackend):
                         "Invalid query: The TagFilter element cannot have empty or null Key field"
                     )
                 if len(key) > 128:
-                    raise BadRequestException("Invalid query: The maximum length for a tag Key is 128")
+                    raise BadRequestException(
+                        "Invalid query: The maximum length for a tag Key is 128"
+                    )
                 values = tag_filter["Values"]
                 if not isinstance(values, list):
                     raise invalid_json_exception
@@ -274,16 +292,13 @@ class ResourceGroupsBackend(BaseBackend):
     @staticmethod
     def _validate_tags(tags):
         for tag in tags:
-            if tag.lower().startswith('aws:'):
+            if tag.lower().startswith("aws:"):
                 raise BadRequestException("Tag keys must not start with 'aws:'")
 
     def create_group(self, name, resource_query, description=None, tags=None):
         tags = tags or {}
         group = FakeResourceGroup(
-            name=name,
-            resource_query=resource_query,
-            description=description,
-            tags=tags,
+            name=name, resource_query=resource_query, description=description, tags=tags
         )
         if name in self.groups:
             raise BadRequestException("Cannot create group: group already exists")
@@ -335,4 +350,6 @@ class ResourceGroupsBackend(BaseBackend):
 
 
 available_regions = boto3.session.Session().get_available_regions("resource-groups")
-resourcegroups_backends = {region: ResourceGroupsBackend(region_name=region) for region in available_regions}
+resourcegroups_backends = {
+    region: ResourceGroupsBackend(region_name=region) for region in available_regions
+}

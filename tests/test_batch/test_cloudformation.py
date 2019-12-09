@@ -5,20 +5,29 @@ import datetime
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs, mock_cloudformation
+from moto import (
+    mock_batch,
+    mock_iam,
+    mock_ec2,
+    mock_ecs,
+    mock_logs,
+    mock_cloudformation,
+)
 import functools
 import nose
 import json
 
-DEFAULT_REGION = 'eu-central-1'
+DEFAULT_REGION = "eu-central-1"
 
 
 def _get_clients():
-    return boto3.client('ec2', region_name=DEFAULT_REGION), \
-           boto3.client('iam', region_name=DEFAULT_REGION), \
-           boto3.client('ecs', region_name=DEFAULT_REGION), \
-           boto3.client('logs', region_name=DEFAULT_REGION), \
-           boto3.client('batch', region_name=DEFAULT_REGION)
+    return (
+        boto3.client("ec2", region_name=DEFAULT_REGION),
+        boto3.client("iam", region_name=DEFAULT_REGION),
+        boto3.client("ecs", region_name=DEFAULT_REGION),
+        boto3.client("logs", region_name=DEFAULT_REGION),
+        boto3.client("batch", region_name=DEFAULT_REGION),
+    )
 
 
 def _setup(ec2_client, iam_client):
@@ -27,26 +36,21 @@ def _setup(ec2_client, iam_client):
     :return: VPC ID, Subnet ID, Security group ID, IAM Role ARN
     :rtype: tuple
     """
-    resp = ec2_client.create_vpc(CidrBlock='172.30.0.0/24')
-    vpc_id = resp['Vpc']['VpcId']
+    resp = ec2_client.create_vpc(CidrBlock="172.30.0.0/24")
+    vpc_id = resp["Vpc"]["VpcId"]
     resp = ec2_client.create_subnet(
-        AvailabilityZone='eu-central-1a',
-        CidrBlock='172.30.0.0/25',
-        VpcId=vpc_id
+        AvailabilityZone="eu-central-1a", CidrBlock="172.30.0.0/25", VpcId=vpc_id
     )
-    subnet_id = resp['Subnet']['SubnetId']
+    subnet_id = resp["Subnet"]["SubnetId"]
     resp = ec2_client.create_security_group(
-        Description='test_sg_desc',
-        GroupName='test_sg',
-        VpcId=vpc_id
+        Description="test_sg_desc", GroupName="test_sg", VpcId=vpc_id
     )
-    sg_id = resp['GroupId']
+    sg_id = resp["GroupId"]
 
     resp = iam_client.create_role(
-        RoleName='TestRole',
-        AssumeRolePolicyDocument='some_policy'
+        RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
     )
-    iam_arn = resp['Role']['Arn']
+    iam_arn = resp["Role"]["Arn"]
 
     return vpc_id, subnet_id, sg_id, iam_arn
 
@@ -61,7 +65,7 @@ def test_create_env_cf():
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     create_environment_template = {
-        'Resources': {
+        "Resources": {
             "ComputeEnvironment": {
                 "Type": "AWS::Batch::ComputeEnvironment",
                 "Properties": {
@@ -71,32 +75,35 @@ def test_create_env_cf():
                         "MinvCpus": 0,
                         "DesiredvCpus": 0,
                         "MaxvCpus": 64,
-                        "InstanceTypes": [
-                            "optimal"
-                        ],
+                        "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn
+                        "InstanceRole": iam_arn,
                     },
-                    "ServiceRole": iam_arn
-                }
+                    "ServiceRole": iam_arn,
+                },
             }
         }
     }
     cf_json = json.dumps(create_environment_template)
 
-    cf_conn = boto3.client('cloudformation', DEFAULT_REGION)
-    stack_id = cf_conn.create_stack(
-        StackName='test_stack',
-        TemplateBody=cf_json,
-    )['StackId']
+    cf_conn = boto3.client("cloudformation", DEFAULT_REGION)
+    stack_id = cf_conn.create_stack(StackName="test_stack", TemplateBody=cf_json)[
+        "StackId"
+    ]
 
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
 
-    stack_resources['StackResourceSummaries'][0]['ResourceStatus'].should.equal('CREATE_COMPLETE')
+    stack_resources["StackResourceSummaries"][0]["ResourceStatus"].should.equal(
+        "CREATE_COMPLETE"
+    )
     # Spot checks on the ARN
-    stack_resources['StackResourceSummaries'][0]['PhysicalResourceId'].startswith('arn:aws:batch:')
-    stack_resources['StackResourceSummaries'][0]['PhysicalResourceId'].should.contain('test_stack')
+    stack_resources["StackResourceSummaries"][0]["PhysicalResourceId"].startswith(
+        "arn:aws:batch:"
+    )
+    stack_resources["StackResourceSummaries"][0]["PhysicalResourceId"].should.contain(
+        "test_stack"
+    )
 
 
 @mock_cloudformation()
@@ -109,7 +116,7 @@ def test_create_job_queue_cf():
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     create_environment_template = {
-        'Resources': {
+        "Resources": {
             "ComputeEnvironment": {
                 "Type": "AWS::Batch::ComputeEnvironment",
                 "Properties": {
@@ -119,17 +126,14 @@ def test_create_job_queue_cf():
                         "MinvCpus": 0,
                         "DesiredvCpus": 0,
                         "MaxvCpus": 64,
-                        "InstanceTypes": [
-                            "optimal"
-                        ],
+                        "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn
+                        "InstanceRole": iam_arn,
                     },
-                    "ServiceRole": iam_arn
-                }
+                    "ServiceRole": iam_arn,
+                },
             },
-
             "JobQueue": {
                 "Type": "AWS::Batch::JobQueue",
                 "Properties": {
@@ -137,31 +141,35 @@ def test_create_job_queue_cf():
                     "ComputeEnvironmentOrder": [
                         {
                             "Order": 1,
-                            "ComputeEnvironment": {"Ref": "ComputeEnvironment"}
+                            "ComputeEnvironment": {"Ref": "ComputeEnvironment"},
                         }
-                    ]
-                }
+                    ],
+                },
             },
         }
     }
     cf_json = json.dumps(create_environment_template)
 
-    cf_conn = boto3.client('cloudformation', DEFAULT_REGION)
-    stack_id = cf_conn.create_stack(
-        StackName='test_stack',
-        TemplateBody=cf_json,
-    )['StackId']
+    cf_conn = boto3.client("cloudformation", DEFAULT_REGION)
+    stack_id = cf_conn.create_stack(StackName="test_stack", TemplateBody=cf_json)[
+        "StackId"
+    ]
 
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
-    len(stack_resources['StackResourceSummaries']).should.equal(2)
+    len(stack_resources["StackResourceSummaries"]).should.equal(2)
 
-    job_queue_resource = list(filter(lambda item: item['ResourceType'] == 'AWS::Batch::JobQueue', stack_resources['StackResourceSummaries']))[0]
+    job_queue_resource = list(
+        filter(
+            lambda item: item["ResourceType"] == "AWS::Batch::JobQueue",
+            stack_resources["StackResourceSummaries"],
+        )
+    )[0]
 
-    job_queue_resource['ResourceStatus'].should.equal('CREATE_COMPLETE')
+    job_queue_resource["ResourceStatus"].should.equal("CREATE_COMPLETE")
     # Spot checks on the ARN
-    job_queue_resource['PhysicalResourceId'].startswith('arn:aws:batch:')
-    job_queue_resource['PhysicalResourceId'].should.contain('test_stack')
-    job_queue_resource['PhysicalResourceId'].should.contain('job-queue/')
+    job_queue_resource["PhysicalResourceId"].startswith("arn:aws:batch:")
+    job_queue_resource["PhysicalResourceId"].should.contain("test_stack")
+    job_queue_resource["PhysicalResourceId"].should.contain("job-queue/")
 
 
 @mock_cloudformation()
@@ -174,7 +182,7 @@ def test_create_job_def_cf():
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     create_environment_template = {
-        'Resources': {
+        "Resources": {
             "ComputeEnvironment": {
                 "Type": "AWS::Batch::ComputeEnvironment",
                 "Properties": {
@@ -184,17 +192,14 @@ def test_create_job_def_cf():
                         "MinvCpus": 0,
                         "DesiredvCpus": 0,
                         "MaxvCpus": 64,
-                        "InstanceTypes": [
-                            "optimal"
-                        ],
+                        "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn
+                        "InstanceRole": iam_arn,
                     },
-                    "ServiceRole": iam_arn
-                }
+                    "ServiceRole": iam_arn,
+                },
             },
-
             "JobQueue": {
                 "Type": "AWS::Batch::JobQueue",
                 "Properties": {
@@ -202,46 +207,54 @@ def test_create_job_def_cf():
                     "ComputeEnvironmentOrder": [
                         {
                             "Order": 1,
-                            "ComputeEnvironment": {"Ref": "ComputeEnvironment"}
+                            "ComputeEnvironment": {"Ref": "ComputeEnvironment"},
                         }
-                    ]
-                }
+                    ],
+                },
             },
-
             "JobDefinition": {
                 "Type": "AWS::Batch::JobDefinition",
                 "Properties": {
                     "Type": "container",
                     "ContainerProperties": {
                         "Image": {
-                            "Fn::Join": ["", ["137112412989.dkr.ecr.", {"Ref": "AWS::Region"}, ".amazonaws.com/amazonlinux:latest"]]
+                            "Fn::Join": [
+                                "",
+                                [
+                                    "137112412989.dkr.ecr.",
+                                    {"Ref": "AWS::Region"},
+                                    ".amazonaws.com/amazonlinux:latest",
+                                ],
+                            ]
                         },
                         "Vcpus": 2,
                         "Memory": 2000,
-                        "Command": ["echo", "Hello world"]
+                        "Command": ["echo", "Hello world"],
                     },
-                    "RetryStrategy": {
-                        "Attempts": 1
-                    }
-                }
+                    "RetryStrategy": {"Attempts": 1},
+                },
             },
         }
     }
     cf_json = json.dumps(create_environment_template)
 
-    cf_conn = boto3.client('cloudformation', DEFAULT_REGION)
-    stack_id = cf_conn.create_stack(
-        StackName='test_stack',
-        TemplateBody=cf_json,
-    )['StackId']
+    cf_conn = boto3.client("cloudformation", DEFAULT_REGION)
+    stack_id = cf_conn.create_stack(StackName="test_stack", TemplateBody=cf_json)[
+        "StackId"
+    ]
 
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
-    len(stack_resources['StackResourceSummaries']).should.equal(3)
+    len(stack_resources["StackResourceSummaries"]).should.equal(3)
 
-    job_def_resource = list(filter(lambda item: item['ResourceType'] == 'AWS::Batch::JobDefinition', stack_resources['StackResourceSummaries']))[0]
+    job_def_resource = list(
+        filter(
+            lambda item: item["ResourceType"] == "AWS::Batch::JobDefinition",
+            stack_resources["StackResourceSummaries"],
+        )
+    )[0]
 
-    job_def_resource['ResourceStatus'].should.equal('CREATE_COMPLETE')
+    job_def_resource["ResourceStatus"].should.equal("CREATE_COMPLETE")
     # Spot checks on the ARN
-    job_def_resource['PhysicalResourceId'].startswith('arn:aws:batch:')
-    job_def_resource['PhysicalResourceId'].should.contain('test_stack-JobDef')
-    job_def_resource['PhysicalResourceId'].should.contain('job-definition/')
+    job_def_resource["PhysicalResourceId"].startswith("arn:aws:batch:")
+    job_def_resource["PhysicalResourceId"].should.contain("test_stack-JobDef")
+    job_def_resource["PhysicalResourceId"].should.contain("job-definition/")

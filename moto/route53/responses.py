@@ -8,23 +8,24 @@ import xmltodict
 
 
 class Route53(BaseResponse):
-
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
         if request.method == "POST":
             elements = xmltodict.parse(self.body)
             if "HostedZoneConfig" in elements["CreateHostedZoneRequest"]:
-                comment = elements["CreateHostedZoneRequest"][
-                    "HostedZoneConfig"]["Comment"]
+                comment = elements["CreateHostedZoneRequest"]["HostedZoneConfig"][
+                    "Comment"
+                ]
                 try:
                     # in boto3, this field is set directly in the xml
                     private_zone = elements["CreateHostedZoneRequest"][
-                        "HostedZoneConfig"]["PrivateZone"]
+                        "HostedZoneConfig"
+                    ]["PrivateZone"]
                 except KeyError:
                     # if a VPC subsection is only included in xmls params when private_zone=True,
                     # see boto: boto/route53/connection.py
-                    private_zone = 'VPC' in elements["CreateHostedZoneRequest"]
+                    private_zone = "VPC" in elements["CreateHostedZoneRequest"]
             else:
                 comment = None
                 private_zone = False
@@ -35,9 +36,7 @@ class Route53(BaseResponse):
                 name += "."
 
             new_zone = route53_backend.create_hosted_zone(
-                name,
-                comment=comment,
-                private_zone=private_zone,
+                name, comment=comment, private_zone=private_zone
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
             return 201, headers, template.render(zone=new_zone)
@@ -54,9 +53,15 @@ class Route53(BaseResponse):
         dnsname = query_params.get("dnsname")
 
         if dnsname:
-            dnsname = dnsname[0]    # parse_qs gives us a list, but this parameter doesn't repeat
+            dnsname = dnsname[
+                0
+            ]  # parse_qs gives us a list, but this parameter doesn't repeat
             # return all zones with that name (there can be more than one)
-            zones = [zone for zone in route53_backend.get_all_hosted_zones() if zone.name == dnsname]
+            zones = [
+                zone
+                for zone in route53_backend.get_all_hosted_zones()
+                if zone.name == dnsname
+            ]
         else:
             # sort by names, but with domain components reversed
             # see http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones_by_name
@@ -76,7 +81,7 @@ class Route53(BaseResponse):
     def get_or_delete_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
-        zoneid = parsed_url.path.rstrip('/').rsplit('/', 1)[1]
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
             return 404, headers, "Zone %s not Found" % zoneid
@@ -95,7 +100,7 @@ class Route53(BaseResponse):
         parsed_url = urlparse(full_url)
         method = request.method
 
-        zoneid = parsed_url.path.rstrip('/').rsplit('/', 2)[1]
+        zoneid = parsed_url.path.rstrip("/").rsplit("/", 2)[1]
         the_zone = route53_backend.get_hosted_zone(zoneid)
         if not the_zone:
             return 404, headers, "Zone %s Not Found" % zoneid
@@ -103,46 +108,55 @@ class Route53(BaseResponse):
         if method == "POST":
             elements = xmltodict.parse(self.body)
 
-            change_list = elements['ChangeResourceRecordSetsRequest'][
-                'ChangeBatch']['Changes']['Change']
+            change_list = elements["ChangeResourceRecordSetsRequest"]["ChangeBatch"][
+                "Changes"
+            ]["Change"]
             if not isinstance(change_list, list):
-                change_list = [elements['ChangeResourceRecordSetsRequest'][
-                    'ChangeBatch']['Changes']['Change']]
+                change_list = [
+                    elements["ChangeResourceRecordSetsRequest"]["ChangeBatch"][
+                        "Changes"
+                    ]["Change"]
+                ]
 
             for value in change_list:
-                action = value['Action']
-                record_set = value['ResourceRecordSet']
+                action = value["Action"]
+                record_set = value["ResourceRecordSet"]
 
-                cleaned_record_name = record_set['Name'].strip('.')
-                cleaned_hosted_zone_name = the_zone.name.strip('.')
+                cleaned_record_name = record_set["Name"].strip(".")
+                cleaned_hosted_zone_name = the_zone.name.strip(".")
 
                 if not cleaned_record_name.endswith(cleaned_hosted_zone_name):
                     error_msg = """
                     An error occurred (InvalidChangeBatch) when calling the ChangeResourceRecordSets operation:
                     RRSet with DNS name %s is not permitted in zone %s
-                    """ % (record_set['Name'], the_zone.name)
+                    """ % (
+                        record_set["Name"],
+                        the_zone.name,
+                    )
                     return 400, headers, error_msg
 
-                if not record_set['Name'].endswith('.'):
-                    record_set['Name'] += '.'
+                if not record_set["Name"].endswith("."):
+                    record_set["Name"] += "."
 
-                if action in ('CREATE', 'UPSERT'):
-                    if 'ResourceRecords' in record_set:
-                        resource_records = list(
-                            record_set['ResourceRecords'].values())[0]
+                if action in ("CREATE", "UPSERT"):
+                    if "ResourceRecords" in record_set:
+                        resource_records = list(record_set["ResourceRecords"].values())[
+                            0
+                        ]
                         if not isinstance(resource_records, list):
                             # Depending on how many records there are, this may
                             # or may not be a list
                             resource_records = [resource_records]
-                        record_set['ResourceRecords'] = [x['Value'] for x in resource_records]
-                    if action == 'CREATE':
+                        record_set["ResourceRecords"] = [
+                            x["Value"] for x in resource_records
+                        ]
+                    if action == "CREATE":
                         the_zone.add_rrset(record_set)
                     else:
                         the_zone.upsert_rrset(record_set)
                 elif action == "DELETE":
-                    if 'SetIdentifier' in record_set:
-                        the_zone.delete_rrset_by_id(
-                            record_set["SetIdentifier"])
+                    if "SetIdentifier" in record_set:
+                        the_zone.delete_rrset_by_id(record_set["SetIdentifier"])
                     else:
                         the_zone.delete_rrset(record_set)
 
@@ -163,20 +177,20 @@ class Route53(BaseResponse):
         method = request.method
 
         if method == "POST":
-            properties = xmltodict.parse(self.body)['CreateHealthCheckRequest'][
-                'HealthCheckConfig']
+            properties = xmltodict.parse(self.body)["CreateHealthCheckRequest"][
+                "HealthCheckConfig"
+            ]
             health_check_args = {
-                "ip_address": properties.get('IPAddress'),
-                "port": properties.get('Port'),
-                "type": properties['Type'],
-                "resource_path": properties.get('ResourcePath'),
-                "fqdn": properties.get('FullyQualifiedDomainName'),
-                "search_string": properties.get('SearchString'),
-                "request_interval": properties.get('RequestInterval'),
-                "failure_threshold": properties.get('FailureThreshold'),
+                "ip_address": properties.get("IPAddress"),
+                "port": properties.get("Port"),
+                "type": properties["Type"],
+                "resource_path": properties.get("ResourcePath"),
+                "fqdn": properties.get("FullyQualifiedDomainName"),
+                "search_string": properties.get("SearchString"),
+                "request_interval": properties.get("RequestInterval"),
+                "failure_threshold": properties.get("FailureThreshold"),
             }
-            health_check = route53_backend.create_health_check(
-                health_check_args)
+            health_check = route53_backend.create_health_check(health_check_args)
             template = Template(CREATE_HEALTH_CHECK_RESPONSE)
             return 201, headers, template.render(health_check=health_check)
         elif method == "DELETE":
@@ -191,13 +205,14 @@ class Route53(BaseResponse):
     def not_implemented_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
-        action = ''
-        if 'tags' in full_url:
-            action = 'tags'
-        elif 'trafficpolicyinstances' in full_url:
-            action = 'policies'
+        action = ""
+        if "tags" in full_url:
+            action = "tags"
+        elif "trafficpolicyinstances" in full_url:
+            action = "policies"
         raise NotImplementedError(
-            "The action for {0} has not been implemented for route 53".format(action))
+            "The action for {0} has not been implemented for route 53".format(action)
+        )
 
     def list_or_change_tags_for_resource_request(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -209,17 +224,19 @@ class Route53(BaseResponse):
         if request.method == "GET":
             tags = route53_backend.list_tags_for_resource(id_)
             template = Template(LIST_TAGS_FOR_RESOURCE_RESPONSE)
-            return 200, headers, template.render(
-                resource_type=type_, resource_id=id_, tags=tags)
+            return (
+                200,
+                headers,
+                template.render(resource_type=type_, resource_id=id_, tags=tags),
+            )
 
         if request.method == "POST":
-            tags = xmltodict.parse(
-                self.body)['ChangeTagsForResourceRequest']
+            tags = xmltodict.parse(self.body)["ChangeTagsForResourceRequest"]
 
-            if 'AddTags' in tags:
-                tags = tags['AddTags']
-            elif 'RemoveTagKeys' in tags:
-                tags = tags['RemoveTagKeys']
+            if "AddTags" in tags:
+                tags = tags["AddTags"]
+            elif "RemoveTagKeys" in tags:
+                tags = tags["RemoveTagKeys"]
 
             route53_backend.change_tags_for_resource(id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
