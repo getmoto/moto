@@ -166,70 +166,202 @@ def test_delete_retention_policy():
 
 @mock_logs
 def test_get_log_events():
-    conn = boto3.client("logs", "us-west-2")
+    client = boto3.client("logs", "us-west-2")
     log_group_name = "test"
     log_stream_name = "stream"
-    conn.create_log_group(logGroupName=log_group_name)
-    conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
     events = [{"timestamp": x, "message": str(x)} for x in range(20)]
 
-    conn.put_log_events(
+    client.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=events
     )
 
-    resp = conn.get_log_events(
+    resp = client.get_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, limit=10
     )
 
     resp["events"].should.have.length_of(10)
-    resp.should.have.key("nextForwardToken")
-    resp.should.have.key("nextBackwardToken")
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000010"
-    )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000000"
-    )
-    for i in range(10):
-        resp["events"][i]["timestamp"].should.equal(i)
-        resp["events"][i]["message"].should.equal(str(i))
-
-    next_token = resp["nextForwardToken"]
-
-    resp = conn.get_log_events(
-        logGroupName=log_group_name,
-        logStreamName=log_stream_name,
-        nextToken=next_token,
-        limit=10,
-    )
-
-    resp["events"].should.have.length_of(10)
-    resp.should.have.key("nextForwardToken")
-    resp.should.have.key("nextBackwardToken")
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000020"
-    )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000000"
-    )
     for i in range(10):
         resp["events"][i]["timestamp"].should.equal(i + 10)
         resp["events"][i]["message"].should.equal(str(i + 10))
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000019"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000010"
+    )
 
-    resp = conn.get_log_events(
+    resp = client.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=resp["nextBackwardToken"],
+        limit=20,
+    )
+
+    resp["events"].should.have.length_of(10)
+    for i in range(10):
+        resp["events"][i]["timestamp"].should.equal(i)
+        resp["events"][i]["message"].should.equal(str(i))
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000009"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000000"
+    )
+
+    resp = client.get_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
         nextToken=resp["nextBackwardToken"],
         limit=10,
     )
 
+    resp["events"].should.have.length_of(0)
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000000"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000000"
+    )
+
+    resp = client.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=resp["nextForwardToken"],
+        limit=1,
+    )
+
+    resp["events"].should.have.length_of(1)
+    resp["events"][0]["timestamp"].should.equal(1)
+    resp["events"][0]["message"].should.equal(str(1))
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000001"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000001"
+    )
+
+
+@mock_logs
+def test_get_log_events_with_start_from_head():
+    client = boto3.client("logs", "us-west-2")
+    log_group_name = "test"
+    log_stream_name = "stream"
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    events = [{"timestamp": x, "message": str(x)} for x in range(20)]
+
+    client.put_log_events(
+        logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=events
+    )
+
+    resp = client.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        limit=10,
+        startFromHead=True,  # this parameter is only relevant without the usage of nextToken
+    )
+
     resp["events"].should.have.length_of(10)
-    resp.should.have.key("nextForwardToken")
-    resp.should.have.key("nextBackwardToken")
     for i in range(10):
         resp["events"][i]["timestamp"].should.equal(i)
         resp["events"][i]["message"].should.equal(str(i))
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000009"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000000"
+    )
+
+    resp = client.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=resp["nextForwardToken"],
+        limit=20,
+    )
+
+    resp["events"].should.have.length_of(10)
+    for i in range(10):
+        resp["events"][i]["timestamp"].should.equal(i + 10)
+        resp["events"][i]["message"].should.equal(str(i + 10))
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000019"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000010"
+    )
+
+    resp = client.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=resp["nextForwardToken"],
+        limit=10,
+    )
+
+    resp["events"].should.have.length_of(0)
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000019"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000019"
+    )
+
+    resp = client.get_log_events(
+        logGroupName=log_group_name,
+        logStreamName=log_stream_name,
+        nextToken=resp["nextBackwardToken"],
+        limit=1,
+    )
+
+    resp["events"].should.have.length_of(1)
+    resp["events"][0]["timestamp"].should.equal(18)
+    resp["events"][0]["message"].should.equal(str(18))
+    resp["nextForwardToken"].should.equal(
+        "f/00000000000000000000000000000000000000000000000000000018"
+    )
+    resp["nextBackwardToken"].should.equal(
+        "b/00000000000000000000000000000000000000000000000000000018"
+    )
+
+
+@mock_logs
+def test_get_log_events_errors():
+    client = boto3.client("logs", "us-west-2")
+    log_group_name = "test"
+    log_stream_name = "stream"
+    client.create_log_group(logGroupName=log_group_name)
+    client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
+
+    with assert_raises(ClientError) as e:
+        client.get_log_events(
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            nextToken="n/00000000000000000000000000000000000000000000000000000000",
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("GetLogEvents")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.response["Error"]["Message"].should.contain(
+        "The specified nextToken is invalid."
+    )
+
+    with assert_raises(ClientError) as e:
+        client.get_log_events(
+            logGroupName=log_group_name,
+            logStreamName=log_stream_name,
+            nextToken="not-existing-token",
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("GetLogEvents")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.response["Error"]["Message"].should.contain(
+        "The specified nextToken is invalid."
+    )
 
 
 @mock_logs
