@@ -35,6 +35,8 @@ from .exceptions import (
     InvalidTargetBucketForLogging,
     DuplicateTagKeys,
     CrossLocationLoggingProhibitted,
+    NoSuchPublicAccessBlockConfiguration,
+    InvalidPublicAccessBlockConfiguration,
 )
 from .utils import clean_key_name, _VersionedKeyStore
 
@@ -659,11 +661,8 @@ class Notification(BaseModel):
         else:
             data["filter"] = None
 
-        data[
-            "objectPrefixes"
-        ] = (
-            []
-        )  # Not sure why this is a thing since AWS just seems to return this as filters ¯\_(ツ)_/¯
+        # Not sure why this is a thing since AWS just seems to return this as filters ¯\_(ツ)_/¯
+        data["objectPrefixes"] = []
 
         return data
 
@@ -728,6 +727,38 @@ class NotificationConfiguration(BaseModel):
         return data
 
 
+def convert_str_to_bool(item):
+    """Converts a boolean string to a boolean value"""
+    if isinstance(item, str):
+        return item.lower() == "true"
+
+    return False
+
+
+class PublicAccessBlock(BaseModel):
+    def __init__(
+        self,
+        block_public_acls,
+        ignore_public_acls,
+        block_public_policy,
+        restrict_public_buckets,
+    ):
+        # The boto XML appears to expect these values to exist as lowercase strings...
+        self.block_public_acls = block_public_acls or "false"
+        self.ignore_public_acls = ignore_public_acls or "false"
+        self.block_public_policy = block_public_policy or "false"
+        self.restrict_public_buckets = restrict_public_buckets or "false"
+
+    def to_config_dict(self):
+        # Need to make the string values booleans for Config:
+        return {
+            "blockPublicAcls": convert_str_to_bool(self.block_public_acls),
+            "ignorePublicAcls": convert_str_to_bool(self.ignore_public_acls),
+            "blockPublicPolicy": convert_str_to_bool(self.block_public_policy),
+            "restrictPublicBuckets": convert_str_to_bool(self.restrict_public_buckets),
+        }
+
+
 class FakeBucket(BaseModel):
     def __init__(self, name, region_name):
         self.name = name
@@ -746,6 +777,7 @@ class FakeBucket(BaseModel):
         self.accelerate_configuration = None
         self.payer = "BucketOwner"
         self.creation_date = datetime.datetime.utcnow()
+        self.public_access_block = None
 
     @property
     def location(self):
@@ -1079,12 +1111,15 @@ class FakeBucket(BaseModel):
         }
 
         # Make the supplementary configuration:
-        # TODO: Implement Public Access Block Support
-
         # This is a dobule-wrapped JSON for some reason...
         s_config = {
             "AccessControlList": json.dumps(json.dumps(self.acl.to_config_dict()))
         }
+
+        if self.public_access_block:
+            s_config["PublicAccessBlockConfiguration"] = json.dumps(
+                self.public_access_block.to_config_dict()
+            )
 
         # Tagging is special:
         if config_dict["tags"]:
@@ -1221,6 +1256,14 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
 
+    def get_bucket_public_access_block(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+
+        if not bucket.public_access_block:
+            raise NoSuchPublicAccessBlockConfiguration()
+
+        return bucket.public_access_block
+
     def set_key(
         self, bucket_name, key_name, value, storage=None, etag=None, multipart=None
     ):
@@ -1309,6 +1352,10 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_cors()
 
+    def delete_bucket_public_access_block(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.public_access_block = None
+
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -1323,6 +1370,19 @@ class S3Backend(BaseBackend):
         if bucket.name.find(".") != -1:
             raise InvalidRequest("PutBucketAccelerateConfiguration")
         bucket.set_accelerate_configuration(accelerate_configuration)
+
+    def put_bucket_public_access_block(self, bucket_name, pub_block_config):
+        bucket = self.get_bucket(bucket_name)
+
+        if not pub_block_config:
+            raise InvalidPublicAccessBlockConfiguration()
+
+        bucket.public_access_block = PublicAccessBlock(
+            pub_block_config.get("BlockPublicAcls"),
+            pub_block_config.get("IgnorePublicAcls"),
+            pub_block_config.get("BlockPublicPolicy"),
+            pub_block_config.get("RestrictPublicBuckets"),
+        )
 
     def initiate_multipart(self, bucket_name, key_name, metadata):
         bucket = self.get_bucket(bucket_name)
