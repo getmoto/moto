@@ -19,6 +19,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from moto.ec2.exceptions import FilterNotImplementedError
 from tests.helpers import requires_boto_gte
 
 
@@ -1164,6 +1165,21 @@ def test_describe_instance_status_with_instance_filter():
     cm.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_describe_instance_status_filter_attribute():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    instances = ec2.run_instances(
+        ImageId="ami-123", MinCount=1, MaxCount=1, InstanceType="t2.micro"
+    )
+    assert instances
+    with assert_raises(FilterNotImplementedError) as ex:
+        ec2.describe_instance_status(
+            Filters=[{"Name": "instance-state-name", "Values": ["stopped"]}]
+        )
+    ex.exception.error_code.should.equal("FilterNotImplementedError")
+    ex.exception.message.should.contain("Filters attribute is not implemented")
 
 
 @requires_boto_gte("2.32.0")
