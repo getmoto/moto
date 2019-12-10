@@ -968,7 +968,9 @@ class APIGatewayBackend(BaseBackend):
         methods = [
             list(res.resource_methods.values())
             for res in self.list_resources(function_id)
-        ][0]
+        ]
+        # flatten list (fixes an issue in upstream moto)
+        methods = [item for sublist in methods for item in sublist]
         if not any(methods):
             raise NoMethodDefined()
         method_integrations = [
