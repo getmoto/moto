@@ -182,7 +182,7 @@ class JobDefinition(BaseModel):
         self._region = region_name
         self.container_properties = container_properties
         self.arn = None
-        self.status = "INACTIVE"
+        self.status = "ACTIVE"
 
         if parameters is None:
             parameters = {}
