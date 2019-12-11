@@ -27,6 +27,18 @@ def test_get_secret_value():
 
 
 @mock_secretsmanager
+def test_get_secret_value_by_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_value = "test_get_secret_value_by_arn"
+    result = conn.create_secret(
+        Name="java-util-test-password", SecretString=secret_value
+    )
+    result = conn.get_secret_value(SecretId=result["ARN"])
+    assert result["SecretString"] == secret_value
+
+
+@mock_secretsmanager
 def test_get_secret_value_binary():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -359,6 +371,18 @@ def test_describe_secret():
     assert secret_description["ARN"] != ""  # Test arn not empty
     assert secret_description_2["Name"] == ("test-secret-2")
     assert secret_description_2["ARN"] != ""  # Test arn not empty
+
+
+@mock_secretsmanager
+def test_describe_secret_with_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    results = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    secret_description = conn.describe_secret(SecretId=results["ARN"])
+
+    assert secret_description  # Returned dict is not empty
+    assert secret_description["Name"] == ("test-secret")
+    assert secret_description["ARN"] != results["ARN"]
 
 
 @mock_secretsmanager

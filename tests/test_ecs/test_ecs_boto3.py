@@ -172,6 +172,69 @@ def test_list_task_definitions():
 
 
 @mock_ecs
+def test_list_task_definitions_with_family_prefix():
+    client = boto3.client("ecs", region_name="us-east-1")
+    _ = client.register_task_definition(
+        family="test_ecs_task_a",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    _ = client.register_task_definition(
+        family="test_ecs_task_a",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    _ = client.register_task_definition(
+        family="test_ecs_task_b",
+        containerDefinitions=[
+            {
+                "name": "hello_world2",
+                "image": "docker/hello-world2:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY2"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    empty_response = client.list_task_definitions(familyPrefix="test_ecs_task")
+    len(empty_response["taskDefinitionArns"]).should.equal(0)
+    filtered_response = client.list_task_definitions(familyPrefix="test_ecs_task_a")
+    len(filtered_response["taskDefinitionArns"]).should.equal(2)
+    filtered_response["taskDefinitionArns"][0].should.equal(
+        "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task_a:1"
+    )
+    filtered_response["taskDefinitionArns"][1].should.equal(
+        "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task_a:2"
+    )
+
+
+@mock_ecs
 def test_describe_task_definition():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.register_task_definition(
@@ -1756,7 +1819,7 @@ def test_update_task_definition_family_through_cloudformation_should_trigger_a_r
     cfn_conn.update_stack(StackName="test_stack", TemplateBody=template2_json)
 
     ecs_conn = boto3.client("ecs", region_name="us-west-1")
-    resp = ecs_conn.list_task_definitions(familyPrefix="testTaskDefinition")
+    resp = ecs_conn.list_task_definitions(familyPrefix="testTaskDefinition2")
     len(resp["taskDefinitionArns"]).should.equal(1)
     resp["taskDefinitionArns"][0].endswith("testTaskDefinition2:1").should.be.true
 

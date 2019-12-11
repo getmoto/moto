@@ -8,6 +8,7 @@ import random
 import re
 import six
 import string
+from botocore.exceptions import ClientError
 from six.moves.urllib.parse import urlparse
 
 
@@ -141,7 +142,10 @@ class convert_flask_to_httpretty_response(object):
     def __call__(self, args=None, **kwargs):
         from flask import request, Response
 
-        result = self.callback(request, request.url, {})
+        try:
+            result = self.callback(request, request.url, {})
+        except ClientError as exc:
+            result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
         if len(result) == 3:
             status, headers, content = result

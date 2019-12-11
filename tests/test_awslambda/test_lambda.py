@@ -15,6 +15,7 @@ from freezegun import freeze_time
 from moto import (
     mock_dynamodb2,
     mock_lambda,
+    mock_iam,
     mock_s3,
     mock_ec2,
     mock_sns,
@@ -22,6 +23,7 @@ from moto import (
     settings,
     mock_sqs,
 )
+from moto.sts.models import ACCOUNT_ID
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
@@ -96,7 +98,7 @@ def test_invoke_requestresponse_function():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
         Description="test lambda function",
@@ -129,7 +131,7 @@ def test_invoke_event_function():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
         Description="test lambda function",
@@ -163,7 +165,7 @@ if settings.TEST_SERVER_MODE:
         conn.create_function(
             FunctionName="testFunction",
             Runtime="python3.7",
-            Role="test-iam-role",
+            Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"ZipFile": get_test_zip_file2()},
             Description="test lambda function",
@@ -218,7 +220,7 @@ def test_invoke_function_from_sns():
     result = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -262,7 +264,7 @@ def test_create_based_on_s3_with_missing_bucket():
     conn.create_function.when.called_with(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "this-bucket-does-not-exist", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -287,7 +289,7 @@ def test_create_function_from_aws_bucket():
     result = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -308,7 +310,7 @@ def test_create_function_from_aws_bucket():
                 _lambda_region
             ),
             "Runtime": "python2.7",
-            "Role": "test-iam-role",
+            "Role": result["Role"],
             "Handler": "lambda_function.lambda_handler",
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
@@ -334,7 +336,7 @@ def test_create_function_from_zipfile():
     result = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
         Description="test lambda function",
@@ -355,7 +357,7 @@ def test_create_function_from_zipfile():
                 _lambda_region
             ),
             "Runtime": "python2.7",
-            "Role": "test-iam-role",
+            "Role": result["Role"],
             "Handler": "lambda_function.lambda_handler",
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
@@ -383,7 +385,7 @@ def test_get_function():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -414,7 +416,7 @@ def test_get_function():
     result["Configuration"]["FunctionName"].should.equal("testFunction")
     result["Configuration"]["Handler"].should.equal("lambda_function.lambda_handler")
     result["Configuration"]["MemorySize"].should.equal(128)
-    result["Configuration"]["Role"].should.equal("test-iam-role")
+    result["Configuration"]["Role"].should.equal(get_role_name())
     result["Configuration"]["Runtime"].should.equal("python2.7")
     result["Configuration"]["Timeout"].should.equal(3)
     result["Configuration"]["Version"].should.equal("$LATEST")
@@ -451,7 +453,7 @@ def test_get_function_by_arn():
     fnc = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
         Description="test lambda function",
@@ -477,7 +479,7 @@ def test_delete_function():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -512,7 +514,7 @@ def test_delete_function_by_arn():
     fnc = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
         Description="test lambda function",
@@ -547,7 +549,7 @@ def test_publish():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -599,7 +601,7 @@ def test_list_create_list_get_delete_list():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -624,7 +626,7 @@ def test_list_create_list_get_delete_list():
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
-            "Role": "test-iam-role",
+            "Role": get_role_name(),
             "Runtime": "python2.7",
             "Timeout": 3,
             "Version": "$LATEST",
@@ -665,7 +667,7 @@ def lambda_handler(event, context):
     client.create_function(
         FunctionName="test-lambda-fx",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Description="test lambda function",
         Timeout=3,
@@ -698,7 +700,7 @@ def test_tags():
     function = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -766,7 +768,7 @@ def test_invoke_async_function():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
         Description="test lambda function",
@@ -790,7 +792,7 @@ def test_get_function_created_with_zipfile():
     result = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
         Description="test lambda function",
@@ -819,7 +821,7 @@ def test_get_function_created_with_zipfile():
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
             "MemorySize": 128,
-            "Role": "test-iam-role",
+            "Role": get_role_name(),
             "Runtime": "python2.7",
             "Timeout": 3,
             "Version": "$LATEST",
@@ -835,7 +837,7 @@ def test_add_function_permission():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
         Description="test lambda function",
@@ -866,7 +868,7 @@ def test_get_function_policy():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
         Description="test lambda function",
@@ -906,7 +908,7 @@ def test_list_versions_by_function():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="arn:aws:iam::123456789012:role/test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -935,7 +937,7 @@ def test_list_versions_by_function():
     conn.create_function(
         FunctionName="testFunction_2",
         Runtime="python2.7",
-        Role="arn:aws:iam::123456789012:role/test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -964,7 +966,7 @@ def test_create_function_with_already_exists():
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -976,7 +978,7 @@ def test_create_function_with_already_exists():
     response = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -1008,7 +1010,7 @@ def test_create_event_source_mapping():
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1038,7 +1040,7 @@ def test_invoke_function_from_sqs():
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1098,7 +1100,7 @@ def test_invoke_function_from_dynamodb():
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function executed after a DynamoDB table is updated",
@@ -1149,7 +1151,7 @@ def test_invoke_function_from_sqs_exception():
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file4()},
         Description="test lambda function",
@@ -1208,7 +1210,7 @@ def test_list_event_source_mappings():
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1240,7 +1242,7 @@ def test_get_event_source_mapping():
     func = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1270,7 +1272,7 @@ def test_update_event_source_mapping():
     func1 = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1281,7 +1283,7 @@ def test_update_event_source_mapping():
     func2 = conn.create_function(
         FunctionName="testFunction2",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1314,7 +1316,7 @@ def test_delete_event_source_mapping():
     func1 = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
         Description="test lambda function",
@@ -1350,7 +1352,7 @@ def test_update_configuration():
     fxn = conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -1395,7 +1397,7 @@ def test_update_function_zip():
     fxn = conn.create_function(
         FunctionName="testFunctionZip",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content_one},
         Description="test lambda function",
@@ -1430,7 +1432,7 @@ def test_update_function_zip():
             "FunctionName": "testFunctionZip",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
-            "Role": "test-iam-role",
+            "Role": fxn["Role"],
             "Runtime": "python2.7",
             "Timeout": 3,
             "Version": "2",
@@ -1453,7 +1455,7 @@ def test_update_function_s3():
     fxn = conn.create_function(
         FunctionName="testFunctionS3",
         Runtime="python2.7",
-        Role="test-iam-role",
+        Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": "test-bucket", "S3Key": "test.zip"},
         Description="test lambda function",
@@ -1492,10 +1494,67 @@ def test_update_function_s3():
             "FunctionName": "testFunctionS3",
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
-            "Role": "test-iam-role",
+            "Role": fxn["Role"],
             "Runtime": "python2.7",
             "Timeout": 3,
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
         }
     )
+
+
+@mock_lambda
+def test_create_function_with_invalid_arn():
+    err = create_invalid_lambda("test-iam-role")
+    err.exception.response["Error"]["Message"].should.equal(
+        "1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
+    )
+
+
+@mock_lambda
+def test_create_function_with_arn_from_different_account():
+    err = create_invalid_lambda("arn:aws:iam::000000000000:role/example_role")
+    err.exception.response["Error"]["Message"].should.equal(
+        "Cross-account pass role is not allowed."
+    )
+
+
+@mock_lambda
+def test_create_function_with_unknown_arn():
+    err = create_invalid_lambda(
+        "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/service-role/unknown_role"
+    )
+    err.exception.response["Error"]["Message"].should.equal(
+        "The role defined for the function cannot be assumed by Lambda."
+    )
+
+
+def create_invalid_lambda(role):
+    conn = boto3.client("lambda", "us-west-2")
+    zip_content = get_test_zip_file1()
+    with assert_raises(ClientError) as err:
+        conn.create_function(
+            FunctionName="testFunction",
+            Runtime="python2.7",
+            Role=role,
+            Handler="lambda_function.handler",
+            Code={"ZipFile": zip_content},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
+    return err
+
+
+def get_role_name():
+    with mock_iam():
+        iam = boto3.client("iam", region_name="us-west-2")
+        try:
+            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+        except ClientError:
+            return iam.create_role(
+                RoleName="my-role",
+                AssumeRolePolicyDocument="some policy",
+                Path="/my-path/",
+            )["Role"]["Arn"]

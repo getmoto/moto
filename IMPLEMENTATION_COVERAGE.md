@@ -4850,12 +4850,12 @@
 - [X] list_policies
 - [X] list_policies_for_target
 - [X] list_roots
-- [ ] list_tags_for_resource
+- [x] list_tags_for_resource
 - [X] list_targets_for_policy
 - [X] move_account
 - [ ] remove_account_from_organization
-- [ ] tag_resource
-- [ ] untag_resource
+- [x] tag_resource
+- [x] untag_resource
 - [ ] update_organizational_unit
 - [ ] update_policy
 
