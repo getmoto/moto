@@ -837,7 +837,7 @@ class BatchBackend(BaseBackend):
         for instance_type in cr["instanceTypes"]:
             if instance_type == "optimal":
                 pass  # Optimal should pick from latest of current gen
-            elif instance_type not in EC2_INSTANCE_TYPES:
+            elif "." in instance_type and instance_type not in EC2_INSTANCE_TYPES:
                 raise InvalidParameterValueException(
                     "Instance type {0} does not exist".format(instance_type)
                 )
