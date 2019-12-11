@@ -567,16 +567,14 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return task_definition
 
-    def list_task_definitions(self):
-        """
-        Filtering not implemented
-        """
+    def list_task_definitions(self, family_prefix):
         task_arns = []
         for task_definition_list in self.task_definitions.values():
             task_arns.extend(
                 [
                     task_definition.arn
                     for task_definition in task_definition_list.values()
+                    if family_prefix is None or task_definition.family == family_prefix
                 ]
             )
         return task_arns

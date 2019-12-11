@@ -1773,11 +1773,25 @@ def lambda_handler(event, context):
                     "Handler": "lambda_function.handler",
                     "Description": "Test function",
                     "MemorySize": 128,
-                    "Role": "test-role",
+                    "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
                     "Runtime": "python2.7",
                     "Environment": {"Variables": {"TEST_ENV_KEY": "test-env-val"}},
                 },
-            }
+            },
+            "MyRole": {
+                "Type": "AWS::IAM::Role",
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["sts:AssumeRole"],
+                                "Effect": "Allow",
+                                "Principal": {"Service": ["ec2.amazonaws.com"]},
+                            }
+                        ]
+                    }
+                },
+            },
         },
     }
 
@@ -1791,7 +1805,6 @@ def lambda_handler(event, context):
     result["Functions"][0]["Description"].should.equal("Test function")
     result["Functions"][0]["Handler"].should.equal("lambda_function.handler")
     result["Functions"][0]["MemorySize"].should.equal(128)
-    result["Functions"][0]["Role"].should.equal("test-role")
     result["Functions"][0]["Runtime"].should.equal("python2.7")
     result["Functions"][0]["Environment"].should.equal(
         {"Variables": {"TEST_ENV_KEY": "test-env-val"}}

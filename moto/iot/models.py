@@ -55,7 +55,7 @@ class FakeThingType(BaseModel):
         self.thing_type_properties = thing_type_properties
         self.thing_type_id = str(uuid.uuid4())  # I don't know the rule of id
         t = time.time()
-        self.metadata = {"deprecated": False, "creationData": int(t * 1000) / 1000.0}
+        self.metadata = {"deprecated": False, "creationDate": int(t * 1000) / 1000.0}
         self.arn = "arn:aws:iot:%s:1:thingtype/%s" % (self.region_name, thing_type_name)
 
     def to_dict(self):
@@ -69,7 +69,12 @@ class FakeThingType(BaseModel):
 
 class FakeThingGroup(BaseModel):
     def __init__(
-        self, thing_group_name, parent_group_name, thing_group_properties, region_name
+        self,
+        thing_group_name,
+        parent_group_name,
+        thing_group_properties,
+        region_name,
+        thing_groups,
     ):
         self.region_name = region_name
         self.thing_group_name = thing_group_name
@@ -78,7 +83,32 @@ class FakeThingGroup(BaseModel):
         self.parent_group_name = parent_group_name
         self.thing_group_properties = thing_group_properties or {}
         t = time.time()
-        self.metadata = {"creationData": int(t * 1000) / 1000.0}
+        self.metadata = {"creationDate": int(t * 1000) / 1000.0}
+        if parent_group_name:
+            self.metadata["parentGroupName"] = parent_group_name
+            # initilize rootToParentThingGroups
+            if "rootToParentThingGroups" not in self.metadata:
+                self.metadata["rootToParentThingGroups"] = []
+            # search for parent arn
+            for thing_group_arn, thing_group in thing_groups.items():
+                if thing_group.thing_group_name == parent_group_name:
+                    parent_thing_group_structure = thing_group
+                    break
+            # if parent arn found (should always be found)
+            if parent_thing_group_structure:
+                # copy parent's rootToParentThingGroups
+                if "rootToParentThingGroups" in parent_thing_group_structure.metadata:
+                    self.metadata["rootToParentThingGroups"].extend(
+                        parent_thing_group_structure.metadata["rootToParentThingGroups"]
+                    )
+                self.metadata["rootToParentThingGroups"].extend(
+                    [
+                        {
+                            "groupName": parent_group_name,
+                            "groupArn": parent_thing_group_structure.arn,
+                        }
+                    ]
+                )
         self.arn = "arn:aws:iot:%s:1:thinggroup/%s" % (
             self.region_name,
             thing_group_name,
@@ -639,6 +669,7 @@ class IoTBackend(BaseBackend):
             parent_group_name,
             thing_group_properties,
             self.region_name,
+            self.thing_groups,
         )
         self.thing_groups[thing_group.arn] = thing_group
         return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id

@@ -26,11 +26,18 @@ import requests.adapters
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.iam.models import iam_backend
+from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
+from .exceptions import (
+    CrossAccountNotAllowed,
+    InvalidRoleFormat,
+    InvalidParameterValueException,
+)
 from .utils import make_function_arn, make_function_ver_arn
 from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
@@ -214,9 +221,8 @@ class LambdaFunction(BaseModel):
                 key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
-                    raise ValueError(
-                        "InvalidParameterValueException",
-                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist",
+                    raise InvalidParameterValueException(
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist"
                     )
             except MissingKey:
                 if do_validate_s3():
@@ -357,6 +363,8 @@ class LambdaFunction(BaseModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+                self.code["S3Bucket"] = updated_spec["S3Bucket"]
+                self.code["S3Key"] = updated_spec["S3Key"]
 
         return self.get_configuration()
 
@@ -520,6 +528,15 @@ class LambdaFunction(BaseModel):
             return make_function_arn(self.region, ACCOUNT_ID, self.function_name)
         raise UnformattedGetAttTemplateException()
 
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        updated_props = cloudformation_json["Properties"]
+        original_resource.update_configuration(updated_props)
+        original_resource.update_function_code(updated_props["Code"])
+        return original_resource
+
     @staticmethod
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
@@ -528,6 +545,9 @@ class LambdaFunction(BaseModel):
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
+
+    def delete(self, region):
+        lambda_backends[region].delete_function(self.function_name)
 
 
 class EventSourceMapping(BaseModel):
@@ -668,6 +688,19 @@ class LambdaStorage(object):
         :param fn: Function
         :type fn: LambdaFunction
         """
+        valid_role = re.match(InvalidRoleFormat.pattern, fn.role)
+        if valid_role:
+            account = valid_role.group(2)
+            if account != ACCOUNT_ID:
+                raise CrossAccountNotAllowed()
+            try:
+                iam_backend.get_role_by_arn(fn.role)
+            except IAMNotFoundException:
+                raise InvalidParameterValueException(
+                    "The role defined for the function cannot be assumed by Lambda."
+                )
+        else:
+            raise InvalidRoleFormat(fn.role)
         if fn.function_name in self._functions:
             self._functions[fn.function_name]["latest"] = fn
         else:

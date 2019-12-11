@@ -72,6 +72,19 @@ def secret_arn(region, secret_id):
     )
 
 
+def get_secret_name_from_arn(secret_id):
+    # can fetch by both arn and by name
+    # but we are storing via name
+    # so we need to change the arn to name
+    # if it starts with arn then the secret id is arn
+    if secret_id.startswith("arn:aws:secretsmanager:"):
+        # split the arn by colon
+        # then get the last value which is the name appended with a random string
+        # then remove the random string
+        secret_id = "-".join(secret_id.split(":")[-1].split("-")[:-1])
+    return secret_id
+
+
 def _exclude_characters(password, exclude_characters):
     for c in exclude_characters:
         if c in string.punctuation:
