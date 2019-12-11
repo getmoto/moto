@@ -2631,6 +2631,43 @@ def test_scan_by_non_exists_index():
 
 
 @mock_dynamodb2
+def test_query_by_non_exists_index():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_col", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with assert_raises(ValueError) as ex:
+        dynamodb.query(
+            TableName="test",
+            IndexName="non_exists_index",
+            KeyConditionExpression="CarModel=M",
+        )
+
+    str(ex.exception).should.equal(
+        "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
+    )
+
+
+@mock_dynamodb2
 def test_batch_items_returns_all():
     dynamodb = _create_user_table()
     returned_items = dynamodb.batch_get_item(
