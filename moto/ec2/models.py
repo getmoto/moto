@@ -2449,6 +2449,7 @@ class VPC(TaggedEC2Resource):
         self.is_default = "true" if is_default else "false"
         self.enable_dns_support = "true"
         self.classic_link_enabled = "false"
+        self.classic_link_dns_supported = "false"
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
