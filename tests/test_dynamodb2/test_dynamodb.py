@@ -2655,14 +2655,15 @@ def test_query_by_non_exists_index():
         ],
     )
 
-    with assert_raises(ValueError) as ex:
+    with assert_raises(ClientError) as ex:
         dynamodb.query(
             TableName="test",
             IndexName="non_exists_index",
             KeyConditionExpression="CarModel=M",
         )
 
-    str(ex.exception).should.equal(
+    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
         "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
     )
 
