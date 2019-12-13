@@ -438,9 +438,12 @@ class DynamoHandler(BaseResponse):
                 all_indexes = (table.global_indexes or []) + (table.indexes or [])
                 indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
                 if index_name not in indexes_by_name:
-                    raise ValueError(
-                        "Invalid index: %s for table: %s. Available indexes are: %s"
-                        % (index_name, name, ", ".join(indexes_by_name.keys()))
+                    er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
+                    return self.error(
+                        er,
+                        "Invalid index: {} for table: {}. Available indexes are: {}".format(
+                            index_name, name, ", ".join(indexes_by_name.keys())
+                        ),
                     )
 
                 index = indexes_by_name[index_name]["KeySchema"]
@@ -481,7 +484,9 @@ class DynamoHandler(BaseResponse):
                     ]
                 elif "begins_with" in range_key_expression:
                     range_comparison = "BEGINS_WITH"
-                    range_values = [value_alias_map[range_key_expression_components[1]]]
+                    range_values = [
+                        value_alias_map[range_key_expression_components[-1]]
+                    ]
                 else:
                     range_values = [value_alias_map[range_key_expression_components[2]]]
             else:
