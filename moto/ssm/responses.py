@@ -77,12 +77,19 @@ class SimpleSystemManagerResponse(BaseResponse):
         with_decryption = self._get_param("WithDecryption")
         recursive = self._get_param("Recursive", False)
         filters = self._get_param("ParameterFilters")
+        token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults", 10)
 
-        result = self.ssm_backend.get_parameters_by_path(
-            path, with_decryption, recursive, filters
+        result, next_token = self.ssm_backend.get_parameters_by_path(
+            path,
+            with_decryption,
+            recursive,
+            filters,
+            next_token=token,
+            max_results=max_results,
         )
 
-        response = {"Parameters": []}
+        response = {"Parameters": [], "NextToken": next_token}
 
         for parameter in result:
             param_data = parameter.response_object(with_decryption)
