@@ -5589,63 +5589,63 @@
 - [X] delete_bucket_cors
 - [ ] delete_bucket_encryption
 - [ ] delete_bucket_inventory_configuration
-- [ ] delete_bucket_lifecycle
+- [X] delete_bucket_lifecycle
 - [ ] delete_bucket_metrics_configuration
 - [X] delete_bucket_policy
 - [ ] delete_bucket_replication
 - [X] delete_bucket_tagging
 - [ ] delete_bucket_website
-- [ ] delete_object
+- [X] delete_object
 - [ ] delete_object_tagging
-- [ ] delete_objects
-- [ ] delete_public_access_block
+- [X] delete_objects
+- [X] delete_public_access_block
 - [ ] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
-- [ ] get_bucket_cors
+- [X] get_bucket_cors
 - [ ] get_bucket_encryption
 - [ ] get_bucket_inventory_configuration
-- [ ] get_bucket_lifecycle
-- [ ] get_bucket_lifecycle_configuration
-- [ ] get_bucket_location
-- [ ] get_bucket_logging
+- [X] get_bucket_lifecycle
+- [X] get_bucket_lifecycle_configuration
+- [X] get_bucket_location
+- [X] get_bucket_logging
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
 - [ ] get_bucket_notification_configuration
 - [X] get_bucket_policy
-- [ ] get_bucket_policy_status
+- [X] get_bucket_policy_status
 - [ ] get_bucket_replication
 - [ ] get_bucket_request_payment
-- [ ] get_bucket_tagging
+- [X] get_bucket_tagging
 - [X] get_bucket_versioning
 - [ ] get_bucket_website
-- [ ] get_object
-- [ ] get_object_acl
+- [X] get_object
+- [X] get_object_acl
 - [ ] get_object_legal_hold
 - [ ] get_object_lock_configuration
 - [ ] get_object_retention
 - [ ] get_object_tagging
 - [ ] get_object_torrent
-- [ ] get_public_access_block
+- [X] get_public_access_block
 - [ ] head_bucket
 - [ ] head_object
 - [ ] list_bucket_analytics_configurations
 - [ ] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
-- [ ] list_buckets
-- [ ] list_multipart_uploads
+- [X] list_buckets
+- [X] list_multipart_uploads
 - [ ] list_object_versions
-- [ ] list_objects
-- [ ] list_objects_v2
+- [X] list_objects
+- [X] list_objects_v2
 - [ ] list_parts
 - [X] put_bucket_accelerate_configuration
-- [ ] put_bucket_acl
+- [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
 - [ ] put_bucket_encryption
 - [ ] put_bucket_inventory_configuration
-- [ ] put_bucket_lifecycle
-- [ ] put_bucket_lifecycle_configuration
+- [X] put_bucket_lifecycle
+- [X] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
@@ -5654,15 +5654,15 @@
 - [ ] put_bucket_replication
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
-- [ ] put_bucket_versioning
+- [X] put_bucket_versioning
 - [ ] put_bucket_website
-- [ ] put_object
+- [X] put_object
 - [ ] put_object_acl
 - [ ] put_object_legal_hold
 - [ ] put_object_lock_configuration
 - [ ] put_object_retention
 - [ ] put_object_tagging
-- [ ] put_public_access_block
+- [X] put_public_access_block
 - [ ] restore_object
 - [ ] select_object_content
 - [ ] upload_part

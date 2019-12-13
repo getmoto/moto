@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
 import re
+import sys
 
 import six
 
-from moto.core.utils import str_to_rfc_1123_datetime
+from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
 from six.moves.urllib.parse import parse_qs, urlparse, unquote
 
 import xmltodict
@@ -70,6 +71,7 @@ ACTION_MAP = {
             "notification": "GetBucketNotification",
             "accelerate": "GetAccelerateConfiguration",
             "versions": "ListBucketVersions",
+            "public_access_block": "GetPublicAccessBlock",
             "DEFAULT": "ListBucket",
         },
         "PUT": {
@@ -83,6 +85,7 @@ ACTION_MAP = {
             "cors": "PutBucketCORS",
             "notification": "PutBucketNotification",
             "accelerate": "PutAccelerateConfiguration",
+            "public_access_block": "PutPublicAccessBlock",
             "DEFAULT": "CreateBucket",
         },
         "DELETE": {
@@ -90,6 +93,7 @@ ACTION_MAP = {
             "policy": "DeleteBucketPolicy",
             "tagging": "PutBucketTagging",
             "cors": "PutBucketCORS",
+            "public_access_block": "DeletePublicAccessBlock",
             "DEFAULT": "DeleteBucket",
         },
     },
@@ -399,6 +403,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return 200, {}, template.render()
             template = self.response_template(S3_BUCKET_ACCELERATE)
             return template.render(bucket=bucket)
+        elif "publicAccessBlock" in querystring:
+            public_block_config = self.backend.get_bucket_public_access_block(
+                bucket_name
+            )
+            template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
+            return template.render(public_block_config=public_block_config)
 
         elif "versions" in querystring:
             delimiter = querystring.get("delimiter", [None])[0]
@@ -651,6 +661,23 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             except Exception as e:
                 raise e
 
+        elif "publicAccessBlock" in querystring:
+            parsed_xml = xmltodict.parse(body)
+            parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
+
+            # If Python 2, fix the unicode strings:
+            if sys.version_info[0] < 3:
+                parsed_xml = {
+                    "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
+                        dict(parsed_xml["PublicAccessBlockConfiguration"])
+                    )
+                }
+
+            self.backend.put_bucket_public_access_block(
+                bucket_name, parsed_xml["PublicAccessBlockConfiguration"]
+            )
+            return ""
+
         else:
             if body:
                 # us-east-1, the default AWS region behaves a bit differently
@@ -705,6 +732,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif "lifecycle" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             bucket.delete_lifecycle()
+            return 204, {}, ""
+        elif "publicAccessBlock" in querystring:
+            self.backend.delete_bucket_public_access_block(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -2052,4 +2082,13 @@ S3_BUCKET_ACCELERATE = """
 
 S3_BUCKET_ACCELERATE_NOT_SET = """
 <AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
+"""
+
+S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
+<PublicAccessBlockConfiguration>
+  <BlockPublicAcls>{{public_block_config.block_public_acls}}</BlockPublicAcls>
+  <IgnorePublicAcls>{{public_block_config.ignore_public_acls}}</IgnorePublicAcls>
+  <BlockPublicPolicy>{{public_block_config.block_public_policy}}</BlockPublicPolicy>
+  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets}}</RestrictPublicBuckets>
+</PublicAccessBlockConfiguration>
 """
