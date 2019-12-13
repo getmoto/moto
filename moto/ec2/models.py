@@ -3306,6 +3306,7 @@ class Route(object):
         local=False,
         gateway=None,
         instance=None,
+        nat_gateway=None,
         interface=None,
         vpc_pcx=None,
     ):
@@ -3315,6 +3316,7 @@ class Route(object):
         self.local = local
         self.gateway = gateway
         self.instance = instance
+        self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
 
@@ -3327,6 +3329,7 @@ class Route(object):
         gateway_id = properties.get("GatewayId")
         instance_id = properties.get("InstanceId")
         interface_id = properties.get("NetworkInterfaceId")
+        nat_gateway_id = properties.get("NatGatewayId")
         pcx_id = properties.get("VpcPeeringConnectionId")
 
         route_table_id = properties["RouteTableId"]
@@ -3336,6 +3339,7 @@ class Route(object):
             destination_cidr_block=properties.get("DestinationCidrBlock"),
             gateway_id=gateway_id,
             instance_id=instance_id,
+            nat_gateway_id=nat_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -3353,6 +3357,7 @@ class RouteBackend(object):
         local=False,
         gateway_id=None,
         instance_id=None,
+        nat_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
@@ -3373,12 +3378,17 @@ class RouteBackend(object):
         except ValueError:
             raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
+        nat_gateway = None
+        if nat_gateway_id is not None:
+            nat_gateway = self.nat_gateways.get(nat_gateway_id)
+
         route = Route(
             route_table,
             destination_cidr_block,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
+            nat_gateway=nat_gateway,
             interface=None,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
