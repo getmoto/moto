@@ -608,6 +608,9 @@ def test_describe_task_definition():
     resp = batch_client.describe_job_definitions(jobDefinitions=["sleep10", "test1"])
     len(resp["jobDefinitions"]).should.equal(3)
 
+    for job_definition in resp["jobDefinitions"]:
+        job_definition["status"].should.equal("ACTIVE")
+
 
 @mock_logs
 @mock_ec2
