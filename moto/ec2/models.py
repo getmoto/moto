@@ -4827,7 +4827,35 @@ class NatGatewayBackend(object):
         super(NatGatewayBackend, self).__init__()
 
     def get_all_nat_gateways(self, filters):
-        return self.nat_gateways.values()
+        nat_gateways = self.nat_gateways.values()
+
+        if filters is not None:
+            if filters.get("nat-gateway-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.id in filters["nat-gateway-id"]
+                ]
+            if filters.get("vpc-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.vpc_id in filters["vpc-id"]
+                ]
+            if filters.get("subnet-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.subnet_id in filters["subnet-id"]
+                ]
+            if filters.get("state") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.state in filters["state"]
+                ]
+
+        return nat_gateways
 
     def create_nat_gateway(self, subnet_id, allocation_id):
         nat_gateway = NatGateway(self, subnet_id, allocation_id)
