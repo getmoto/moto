@@ -384,8 +384,9 @@ class Job(threading.Thread, BaseModel):
             time.sleep(1)
 
             self.job_state = "STARTING"
+            log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             container = self.docker_client.containers.run(
-                image, cmd, detach=True, name=name
+                image, cmd, detach=True, name=name, log_config=log_config
             )
             self.job_state = "RUNNING"
             self.job_started_at = datetime.datetime.now()
