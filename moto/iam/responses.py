@@ -182,6 +182,7 @@ class IamResponse(BaseResponse):
         permissions_boundary = self._get_param("PermissionsBoundary")
         description = self._get_param("Description")
         tags = self._get_multi_param("Tags.member")
+        max_session_duration = self._get_param("MaxSessionDuration", 3600)
 
         role = iam_backend.create_role(
             role_name,
@@ -190,6 +191,7 @@ class IamResponse(BaseResponse):
             permissions_boundary,
             description,
             tags,
+            max_session_duration,
         )
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
@@ -258,7 +260,8 @@ class IamResponse(BaseResponse):
     def update_role(self):
         role_name = self._get_param("RoleName")
         description = self._get_param("Description")
-        role = iam_backend.update_role(role_name, description)
+        max_session_duration = self._get_param("MaxSessionDuration", 3600)
+        role = iam_backend.update_role(role_name, description, max_session_duration)
         template = self.response_template(UPDATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -1189,9 +1192,12 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description %}
       <Description>{{role.description}}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.permissions_boundary %}
       <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
@@ -1244,6 +1250,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Description>{{role.description}}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}
@@ -1268,9 +1275,12 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description %}
       <Description>{{role.description}}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}

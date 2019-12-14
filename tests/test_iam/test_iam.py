@@ -1703,6 +1703,21 @@ def test_delete_saml_provider():
 
 
 @mock_iam()
+def test_create_role_defaults():
+    """Tests default values"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="{}",
+    )
+
+    # Get role:
+    role = conn.get_role(RoleName="my-role")["Role"]
+
+    assert role["MaxSessionDuration"] == 3600
+    assert role.get("Description") is None
+
+
+@mock_iam()
 def test_create_role_with_tags():
     """Tests both the tag_role and get_role_tags capability"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -2042,6 +2057,28 @@ def test_update_role():
     )
     response = conn.update_role(RoleName="my-role", Description="test")
     assert len(response.keys()) == 1
+
+
+@mock_iam()
+def test_update_role_defaults():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Description="test",
+        Path="/my-path/",
+    )
+    response = conn.update_role(RoleName="my-role")
+    assert len(response.keys()) == 1
+
+    role = conn.get_role(RoleName="my-role")["Role"]
+
+    assert role["MaxSessionDuration"] == 3600
+    assert role.get("Description") is None
 
 
 @mock_iam()
