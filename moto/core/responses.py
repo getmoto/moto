@@ -241,7 +241,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             elif self.body:
                 try:
                     querystring.update(parse_qs(raw_body, keep_blank_values=True))
-                except UnicodeEncodeError:
+                except (UnicodeEncodeError, UnicodeDecodeError):
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)
