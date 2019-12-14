@@ -51,6 +51,10 @@ def _setup(ec2_client, iam_client):
         RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
     )
     iam_arn = resp["Role"]["Arn"]
+    iam_client.create_instance_profile(InstanceProfileName="TestRole")
+    iam_client.add_role_to_instance_profile(
+        InstanceProfileName="TestRole", RoleName="TestRole"
+    )
 
     return vpc_id, subnet_id, sg_id, iam_arn
 
@@ -78,7 +82,7 @@ def test_create_env_cf():
                         "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn,
+                        "InstanceRole": iam_arn.replace("role", "instance-profile"),
                     },
                     "ServiceRole": iam_arn,
                 },
@@ -129,7 +133,7 @@ def test_create_job_queue_cf():
                         "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn,
+                        "InstanceRole": iam_arn.replace("role", "instance-profile"),
                     },
                     "ServiceRole": iam_arn,
                 },
@@ -195,7 +199,7 @@ def test_create_job_def_cf():
                         "InstanceTypes": ["optimal"],
                         "Subnets": [subnet_id],
                         "SecurityGroupIds": [sg_id],
-                        "InstanceRole": iam_arn,
+                        "InstanceRole": iam_arn.replace("role", "instance-profile"),
                     },
                     "ServiceRole": iam_arn,
                 },

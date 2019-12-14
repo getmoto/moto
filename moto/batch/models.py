@@ -854,8 +854,10 @@ class BatchBackend(BaseBackend):
                 raise InvalidParameterValueException(
                     "computeResources must contain {0}".format(param)
                 )
-
-        if self.iam_backend.get_role_by_arn(cr["instanceRole"]) is None:
+        for profile in self.iam_backend.get_instance_profiles():
+            if profile.arn == cr["instanceRole"]:
+                break
+        else:
             raise InvalidParameterValueException(
                 "could not find instanceRole {0}".format(cr["instanceRole"])
             )

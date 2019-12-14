@@ -55,6 +55,10 @@ def _setup(ec2_client, iam_client):
         RoleName="TestRole", AssumeRolePolicyDocument="some_policy"
     )
     iam_arn = resp["Role"]["Arn"]
+    iam_client.create_instance_profile(InstanceProfileName="TestRole")
+    iam_client.add_role_to_instance_profile(
+        InstanceProfileName="TestRole", RoleName="TestRole"
+    )
 
     return vpc_id, subnet_id, sg_id, iam_arn
 
@@ -83,7 +87,7 @@ def test_create_managed_compute_environment():
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
             "ec2KeyPair": "string",
-            "instanceRole": iam_arn,
+            "instanceRole": iam_arn.replace("role", "instance-profile"),
             "tags": {"string": "string"},
             "bidPercentage": 123,
             "spotIamFleetRole": "string",
@@ -209,7 +213,7 @@ def test_delete_managed_compute_environment():
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
             "ec2KeyPair": "string",
-            "instanceRole": iam_arn,
+            "instanceRole": iam_arn.replace("role", "instance-profile"),
             "tags": {"string": "string"},
             "bidPercentage": 123,
             "spotIamFleetRole": "string",
