@@ -2425,7 +2425,7 @@
 
 ## ec2-instance-connect
 0% implemented
-- [ ] send_ssh_public_key
+- [x] send_ssh_public_key
 
 ## ecr
 27% implemented
