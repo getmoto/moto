@@ -29,3 +29,8 @@ class CodePipelineResponse(BaseResponse):
         )
 
         return json.dumps({"pipeline": pipeline})
+
+    def list_pipelines(self):
+        pipelines = self.codepipeline_backend.list_pipelines()
+
+        return json.dumps({"pipelines": pipelines})

@@ -127,6 +127,21 @@ class CodePipelineBackend(BaseBackend):
 
         return codepipeline.pipeline
 
+    def list_pipelines(self):
+        pipelines = []
+
+        for name, codepipeline in self.pipelines.items():
+            pipelines.append(
+                {
+                    "name": name,
+                    "version": codepipeline.pipeline["version"],
+                    "created": codepipeline.metadata["created"],
+                    "updated": codepipeline.metadata["updated"],
+                }
+            )
+
+        return sorted(pipelines, key=lambda i: i["name"])
+
 
 codepipeline_backends = {}
 for region in Session().get_available_regions("codepipeline"):

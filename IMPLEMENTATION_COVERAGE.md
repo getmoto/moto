@@ -1263,7 +1263,7 @@
 - [ ] update_deployment_group
 
 ## codepipeline
-8% implemented
+11% implemented
 - [ ] acknowledge_job
 - [ ] acknowledge_third_party_job
 - [ ] create_custom_action_type
@@ -1282,7 +1282,7 @@
 - [ ] list_action_executions
 - [ ] list_action_types
 - [ ] list_pipeline_executions
-- [ ] list_pipelines
+- [X] list_pipelines
 - [ ] list_tags_for_resource
 - [ ] list_webhooks
 - [ ] poll_for_jobs
