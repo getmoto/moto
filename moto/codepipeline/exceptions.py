@@ -8,3 +8,12 @@ class InvalidStructureException(JsonRESTError):
         super(InvalidStructureException, self).__init__(
             "InvalidStructureException", message
         )
+
+
+class PipelineNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(PipelineNotFoundException, self).__init__(
+            "PipelineNotFoundException", message
+        )

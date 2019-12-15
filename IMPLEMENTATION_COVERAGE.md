@@ -1263,7 +1263,7 @@
 - [ ] update_deployment_group
 
 ## codepipeline
-2% implemented
+5% implemented
 - [ ] acknowledge_job
 - [ ] acknowledge_third_party_job
 - [ ] create_custom_action_type
@@ -1275,7 +1275,7 @@
 - [ ] disable_stage_transition
 - [ ] enable_stage_transition
 - [ ] get_job_details
-- [ ] get_pipeline
+- [X] get_pipeline
 - [ ] get_pipeline_execution
 - [ ] get_pipeline_state
 - [ ] get_third_party_job_details
