@@ -142,6 +142,9 @@ class CodePipelineBackend(BaseBackend):
 
         return sorted(pipelines, key=lambda i: i["name"])
 
+    def delete_pipeline(self, name):
+        self.pipelines.pop(name, None)
+
 
 codepipeline_backends = {}
 for region in Session().get_available_regions("codepipeline"):
