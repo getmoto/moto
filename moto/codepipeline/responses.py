@@ -11,7 +11,14 @@ class CodePipelineResponse(BaseResponse):
 
     def create_pipeline(self):
         pipeline, tags = self.codepipeline_backend.create_pipeline(
-            self._get_param("pipeline"), self._get_param("tags")
+            self.region, self._get_param("pipeline"), self._get_param("tags")
         )
 
         return json.dumps({"pipeline": pipeline, "tags": tags})
+
+    def get_pipeline(self):
+        pipeline, metadata = self.codepipeline_backend.get_pipeline(
+            self._get_param("name")
+        )
+
+        return json.dumps({"pipeline": pipeline, "metadata": metadata})
