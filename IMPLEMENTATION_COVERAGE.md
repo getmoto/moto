@@ -1263,7 +1263,7 @@
 - [ ] update_deployment_group
 
 ## codepipeline
-5% implemented
+8% implemented
 - [ ] acknowledge_job
 - [ ] acknowledge_third_party_job
 - [ ] create_custom_action_type
@@ -1299,7 +1299,7 @@
 - [ ] start_pipeline_execution
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_pipeline
+- [X] update_pipeline
 
 ## codestar
 0% implemented

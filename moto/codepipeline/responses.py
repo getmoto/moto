@@ -22,3 +22,10 @@ class CodePipelineResponse(BaseResponse):
         )
 
         return json.dumps({"pipeline": pipeline, "metadata": metadata})
+
+    def update_pipeline(self):
+        pipeline = self.codepipeline_backend.update_pipeline(
+            self._get_param("pipeline")
+        )
+
+        return json.dumps({"pipeline": pipeline})
