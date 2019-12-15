@@ -34,3 +34,8 @@ class CodePipelineResponse(BaseResponse):
         pipelines = self.codepipeline_backend.list_pipelines()
 
         return json.dumps({"pipelines": pipelines})
+
+    def delete_pipeline(self):
+        self.codepipeline_backend.delete_pipeline(self._get_param("name"))
+
+        return ""
