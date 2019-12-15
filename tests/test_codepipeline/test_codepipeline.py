@@ -698,6 +698,121 @@ def test_update_pipeline_errors():
     )
 
 
+@freeze_time("2019-01-01 12:00:00")
+@mock_codepipeline
+def test_list_pipelines():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    client.create_pipeline(
+        pipeline={
+            "name": "test-pipeline-1",
+            "roleArn": get_role_arn(),
+            "artifactStore": {
+                "type": "S3",
+                "location": "codepipeline-us-east-1-123456789012",
+            },
+            "stages": [
+                {
+                    "name": "Stage-1",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Source",
+                                "owner": "AWS",
+                                "provider": "S3",
+                                "version": "1",
+                            },
+                            "configuration": {
+                                "S3Bucket": "test-bucket",
+                                "S3ObjectKey": "test-object",
+                            },
+                            "outputArtifacts": [{"name": "artifact"},],
+                        },
+                    ],
+                },
+                {
+                    "name": "Stage-2",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Approval",
+                                "owner": "AWS",
+                                "provider": "Manual",
+                                "version": "1",
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+    client.create_pipeline(
+        pipeline={
+            "name": "test-pipeline-2",
+            "roleArn": get_role_arn(),
+            "artifactStore": {
+                "type": "S3",
+                "location": "codepipeline-us-east-1-123456789012",
+            },
+            "stages": [
+                {
+                    "name": "Stage-1",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Source",
+                                "owner": "AWS",
+                                "provider": "S3",
+                                "version": "1",
+                            },
+                            "configuration": {
+                                "S3Bucket": "test-bucket",
+                                "S3ObjectKey": "test-object",
+                            },
+                            "outputArtifacts": [{"name": "artifact"},],
+                        },
+                    ],
+                },
+                {
+                    "name": "Stage-2",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Approval",
+                                "owner": "AWS",
+                                "provider": "Manual",
+                                "version": "1",
+                            },
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    response = client.list_pipelines()
+
+    response["pipelines"].should.equal(
+        [
+            {
+                "name": "test-pipeline-1",
+                "version": 1,
+                "created": datetime.now(timezone.utc),
+                "updated": datetime.now(timezone.utc),
+            },
+            {
+                "name": "test-pipeline-2",
+                "version": 1,
+                "created": datetime.now(timezone.utc),
+                "updated": datetime.now(timezone.utc),
+            },
+        ]
+    )
+
+
 @mock_iam
 def get_role_arn():
     iam = boto3.client("iam", region_name="us-east-1")
