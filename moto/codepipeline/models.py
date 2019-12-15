@@ -11,6 +11,7 @@ from moto.iam import iam_backends
 from moto.codepipeline.exceptions import (
     InvalidStructureException,
     PipelineNotFoundException,
+    ResourceNotFoundException,
 )
 from moto.core import BaseBackend, BaseModel
 
@@ -19,7 +20,10 @@ DEFAULT_ACCOUNT_ID = "123456789012"
 
 class CodePipeline(BaseModel):
     def __init__(self, region, pipeline):
-        self.pipeline = self._add_default_values(pipeline)
+        # the version number for a new pipeline is always 1
+        pipeline["version"] = 1
+
+        self.pipeline = self.add_default_values(pipeline)
         self.tags = {}
 
         self._arn = "arn:aws:codepipeline:{0}:{1}:{2}".format(
@@ -36,7 +40,7 @@ class CodePipeline(BaseModel):
             "updated": iso_8601_datetime_with_milliseconds(self._updated),
         }
 
-    def _add_default_values(self, pipeline):
+    def add_default_values(self, pipeline):
         for stage in pipeline["stages"]:
             for action in stage["actions"]:
                 if "runOrder" not in action:
@@ -105,6 +109,23 @@ class CodePipelineBackend(BaseBackend):
             )
 
         return codepipeline.pipeline, codepipeline.metadata
+
+    def update_pipeline(self, pipeline):
+        codepipeline = self.pipelines.get(pipeline["name"])
+
+        if not codepipeline:
+            raise ResourceNotFoundException(
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    DEFAULT_ACCOUNT_ID, pipeline["name"]
+                )
+            )
+
+        # version number is auto incremented
+        pipeline["version"] = codepipeline.pipeline["version"] + 1
+        codepipeline._updated = datetime.utcnow()
+        codepipeline.pipeline = codepipeline.add_default_values(pipeline)
+
+        return codepipeline.pipeline
 
 
 codepipeline_backends = {}
