@@ -283,7 +283,7 @@ def test_create_queues_in_multiple_region():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     west1_conn.list_queues()["QueueUrls"][0].should.equal(
-        "{base_url}/{AccountId}/blah".format(base_url=base_url,AccountId=ACCCOUNT_ID)
+        "{base_url}/{AccountId}/blah".format(base_url=base_url,AccountId=ACCOUNT_ID)
     )
 
 
