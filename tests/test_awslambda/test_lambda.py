@@ -306,8 +306,8 @@ def test_create_function_from_aws_bucket():
     result.should.equal(
         {
             "FunctionName": "testFunction",
-            "FunctionArn": "arn:aws:lambda:{}:123456789012:function:testFunction".format(
-                _lambda_region
+            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunction".format(
+                _lambda_region, ACCOUNT_ID
             ),
             "Runtime": "python2.7",
             "Role": result["Role"],
@@ -353,8 +353,8 @@ def test_create_function_from_zipfile():
     result.should.equal(
         {
             "FunctionName": "testFunction",
-            "FunctionArn": "arn:aws:lambda:{}:123456789012:function:testFunction".format(
-                _lambda_region
+            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunction".format(
+                _lambda_region, ACCOUNT_ID
             ),
             "Runtime": "python2.7",
             "Role": result["Role"],
@@ -431,7 +431,7 @@ def test_get_function():
     result = conn.get_function(FunctionName="testFunction", Qualifier="$LATEST")
     result["Configuration"]["Version"].should.equal("$LATEST")
     result["Configuration"]["FunctionArn"].should.equal(
-        "arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST"
+        "arn:aws:lambda:us-west-2:{}:function:testFunction:$LATEST".format(ACCOUNT_ID)
     )
 
     # Test get function when can't find function name
@@ -620,8 +620,8 @@ def test_list_create_list_get_delete_list():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:{}:123456789012:function:testFunction".format(
-                _lambda_region
+            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunction".format(
+                _lambda_region, ACCOUNT_ID
             ),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.lambda_handler",
@@ -749,16 +749,16 @@ def test_tags_not_found():
     """
     conn = boto3.client("lambda", "us-west-2")
     conn.list_tags.when.called_with(
-        Resource="arn:aws:lambda:123456789012:function:not-found"
+        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID)
     ).should.throw(botocore.client.ClientError)
 
     conn.tag_resource.when.called_with(
-        Resource="arn:aws:lambda:123456789012:function:not-found",
+        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID),
         Tags=dict(spam="eggs"),
     ).should.throw(botocore.client.ClientError)
 
     conn.untag_resource.when.called_with(
-        Resource="arn:aws:lambda:123456789012:function:not-found", TagKeys=["spam"]
+        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID), TagKeys=["spam"]
     ).should.throw(botocore.client.ClientError)
 
 
@@ -815,8 +815,8 @@ def test_get_function_created_with_zipfile():
             "CodeSha256": hashlib.sha256(zip_content).hexdigest(),
             "CodeSize": len(zip_content),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:{}:123456789012:function:testFunction".format(
-                _lambda_region
+            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunction".format(
+                _lambda_region, ACCOUNT_ID
             ),
             "FunctionName": "testFunction",
             "Handler": "lambda_function.handler",
@@ -923,15 +923,15 @@ def test_list_versions_by_function():
     assert len(versions["Versions"]) == 3
     assert (
         versions["Versions"][0]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:123456789012:function:testFunction:$LATEST"
+        == "arn:aws:lambda:us-west-2:{}:function:testFunction:$LATEST".format(ACCOUNT_ID)
     )
     assert (
         versions["Versions"][1]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:123456789012:function:testFunction:1"
+        == "arn:aws:lambda:us-west-2:{}:function:testFunction:1".format(ACCOUNT_ID)
     )
     assert (
         versions["Versions"][2]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:123456789012:function:testFunction:2"
+        == "arn:aws:lambda:us-west-2:{}:function:testFunction:2".format(ACCOUNT_ID)
     )
 
     conn.create_function(
@@ -949,7 +949,7 @@ def test_list_versions_by_function():
     assert len(versions["Versions"]) == 1
     assert (
         versions["Versions"][0]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:123456789012:function:testFunction_2:$LATEST"
+        == "arn:aws:lambda:us-west-2:{}:function:testFunction_2:$LATEST".format(ACCOUNT_ID)
     )
 
 
@@ -1426,8 +1426,8 @@ def test_update_function_zip():
             "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
             "CodeSize": len(zip_content_two),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:{}:123456789012:function:testFunctionZip:2".format(
-                _lambda_region
+            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunctionZip:2".format(
+                _lambda_region, ACCOUNT_ID
             ),
             "FunctionName": "testFunctionZip",
             "Handler": "lambda_function.lambda_handler",
@@ -1488,8 +1488,8 @@ def test_update_function_s3():
             "CodeSha256": hashlib.sha256(zip_content_two).hexdigest(),
             "CodeSize": len(zip_content_two),
             "Description": "test lambda function",
-            "FunctionArn": "arn:aws:lambda:{}:123456789012:function:testFunctionS3:2".format(
-                _lambda_region
+            "FunctionArn": "arn:aws:lambda:{}:{}:function:testFunctionS3:2".format(
+                _lambda_region, ACCOUNT_ID
             ),
             "FunctionName": "testFunctionS3",
             "Handler": "lambda_function.lambda_handler",

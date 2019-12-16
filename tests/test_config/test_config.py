@@ -7,7 +7,7 @@ from nose.tools import assert_raises
 
 from moto import mock_s3
 from moto.config import mock_config
-
+from moto.iam.models import ACCOUNT_ID
 
 @mock_config
 def test_put_configuration_recorder():
@@ -397,7 +397,7 @@ def test_put_configuration_aggregator():
         account_aggregation_source
     ]
     assert (
-        "arn:aws:config:us-west-2:123456789012:config-aggregator/config-aggregator-"
+        "arn:aws:config:us-west-2:{}:config-aggregator/config-aggregator-".format(ACCOUNT_ID)
         in result["ConfigurationAggregator"]["ConfigurationAggregatorArn"]
     )
     assert (
@@ -628,8 +628,7 @@ def test_put_aggregation_authorization():
 
     assert (
         result["AggregationAuthorization"]["AggregationAuthorizationArn"]
-        == "arn:aws:config:us-west-2:123456789012:"
-        "aggregation-authorization/012345678910/us-east-1"
+        == "arn:aws:config:us-west-2:{}:aggregation-authorization/012345678910/us-east-1".format(ACCOUNT_ID)
     )
     assert result["AggregationAuthorization"]["AuthorizedAccountId"] == "012345678910"
     assert result["AggregationAuthorization"]["AuthorizedAwsRegion"] == "us-east-1"
@@ -643,8 +642,7 @@ def test_put_aggregation_authorization():
     )
     assert (
         result["AggregationAuthorization"]["AggregationAuthorizationArn"]
-        == "arn:aws:config:us-west-2:123456789012:"
-        "aggregation-authorization/012345678910/us-east-1"
+        == "arn:aws:config:us-west-2:{}:aggregation-authorization/012345678910/us-east-1".format(ACCOUNT_ID)
     )
     assert result["AggregationAuthorization"]["AuthorizedAccountId"] == "012345678910"
     assert result["AggregationAuthorization"]["AuthorizedAwsRegion"] == "us-east-1"
@@ -1416,7 +1414,7 @@ def test_list_aggregate_discovered_resource():
     assert len(result["ResourceIdentifiers"]) == 12
     for x in range(0, 10):
         assert result["ResourceIdentifiers"][x] == {
-            "SourceAccountId": "123456789012",
+            "SourceAccountId": ACCOUNT_ID,
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "bucket{}".format(x),
             "ResourceName": "bucket{}".format(x),
@@ -1424,7 +1422,7 @@ def test_list_aggregate_discovered_resource():
         }
     for x in range(11, 12):
         assert result["ResourceIdentifiers"][x] == {
-            "SourceAccountId": "123456789012",
+            "SourceAccountId": ACCOUNT_ID,
             "ResourceType": "AWS::S3::Bucket",
             "ResourceId": "eu-bucket{}".format(x),
             "ResourceName": "eu-bucket{}".format(x),

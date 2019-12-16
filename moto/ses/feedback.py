@@ -1,3 +1,4 @@
+from moto.iam.models import ACCOUNT_ID
 """
 SES Feedback messages
 Extracted from https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html
@@ -10,7 +11,7 @@ COMMON_MAIL = {
         "source": "sender@example.com",
         "sourceArn": "arn:aws:ses:us-west-2:888888888888:identity/example.com",
         "sourceIp": "127.0.3.0",
-        "sendingAccountId": "123456789012",
+        "sendingAccountId": ACCOUNT_ID,
         "destination": ["recipient@example.com"],
         "headersTruncated": False,
         "headers": [

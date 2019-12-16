@@ -15,6 +15,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
+from moto.iam.models import ACCOUNT_ID
 
 
 @mock_elb_deprecated
@@ -76,7 +77,7 @@ def test_create_load_balancer_with_certificate():
 
     zones = ["us-east-1a"]
     ports = [
-        (443, 8443, "https", "arn:aws:iam:123456789012:server-certificate/test-cert")
+        (443, 8443, "https", "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID))
     ]
     conn.create_load_balancer("my-lb", zones, ports)
 
@@ -90,7 +91,7 @@ def test_create_load_balancer_with_certificate():
     listener.instance_port.should.equal(8443)
     listener.protocol.should.equal("HTTPS")
     listener.ssl_certificate_id.should.equal(
-        "arn:aws:iam:123456789012:server-certificate/test-cert"
+        "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID)
     )
 
 

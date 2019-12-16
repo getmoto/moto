@@ -4,6 +4,7 @@ import boto3
 import sure  # noqa
 
 from moto import mock_ec2
+from moto.iam.models import ACCOUNT_ID
 
 
 def get_subnet_id(conn):
@@ -20,7 +21,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
         "ClientToken": "string",
         "SpotPrice": "0.12",
         "TargetCapacity": 6,
-        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
         "LaunchSpecifications": [
             {
                 "ImageId": "ami-123",
@@ -45,7 +46,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
                 ],
                 "Monitoring": {"Enabled": True},
                 "SubnetId": subnet_id,
-                "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                "IamInstanceProfile": {"Arn": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)},
                 "EbsOptimized": False,
                 "WeightedCapacity": 2.0,
                 "SpotPrice": "0.13",
@@ -58,7 +59,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
                 "InstanceType": "t2.large",
                 "Monitoring": {"Enabled": True},
                 "SubnetId": subnet_id,
-                "IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:role/fleet"},
+                "IamInstanceProfile": {"Arn": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)},
                 "EbsOptimized": False,
                 "WeightedCapacity": 4.0,
                 "SpotPrice": "10.00",
@@ -90,7 +91,7 @@ def test_create_spot_fleet_with_lowest_price():
     spot_fleet_config["SpotPrice"].should.equal("0.12")
     spot_fleet_config["TargetCapacity"].should.equal(6)
     spot_fleet_config["IamFleetRole"].should.equal(
-        "arn:aws:iam::123456789012:role/fleet"
+        "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)
     )
     spot_fleet_config["AllocationStrategy"].should.equal("lowestPrice")
     spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
@@ -101,7 +102,7 @@ def test_create_spot_fleet_with_lowest_price():
     launch_spec["EbsOptimized"].should.equal(False)
     launch_spec["SecurityGroups"].should.equal([{"GroupId": "sg-123"}])
     launch_spec["IamInstanceProfile"].should.equal(
-        {"Arn": "arn:aws:iam::123456789012:role/fleet"}
+        {"Arn": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)}
     )
     launch_spec["ImageId"].should.equal("ami-123")
     launch_spec["InstanceType"].should.equal("t2.small")

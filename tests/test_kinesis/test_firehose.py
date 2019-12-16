@@ -7,6 +7,7 @@ import boto3
 import sure  # noqa
 
 from moto import mock_kinesis
+from moto.iam.models import ACCOUNT_ID
 
 
 def create_s3_delivery_stream(client, stream_name):
@@ -14,7 +15,7 @@ def create_s3_delivery_stream(client, stream_name):
         DeliveryStreamName=stream_name,
         DeliveryStreamType="DirectPut",
         ExtendedS3DestinationConfiguration={
-            "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
             "BucketARN": "arn:aws:s3:::kinesis-test",
             "Prefix": "myFolder/",
             "CompressionFormat": "UNCOMPRESSED",
@@ -26,7 +27,7 @@ def create_s3_delivery_stream(client, stream_name):
                 },
                 "SchemaConfiguration": {
                     "DatabaseName": stream_name,
-                    "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                    "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                     "TableName": "outputTable",
                 },
             },
@@ -38,7 +39,7 @@ def create_redshift_delivery_stream(client, stream_name):
     return client.create_delivery_stream(
         DeliveryStreamName=stream_name,
         RedshiftDestinationConfiguration={
-            "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
             "ClusterJDBCURL": "jdbc:redshift://host.amazonaws.com:5439/database",
             "CopyCommand": {
                 "DataTableName": "outputTable",
@@ -47,7 +48,7 @@ def create_redshift_delivery_stream(client, stream_name):
             "Username": "username",
             "Password": "password",
             "S3Configuration": {
-                "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                 "BucketARN": "arn:aws:s3:::kinesis-test",
                 "Prefix": "myFolder/",
                 "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -81,7 +82,7 @@ def test_create_redshift_delivery_stream():
                 {
                     "DestinationId": "string",
                     "RedshiftDestinationDescription": {
-                        "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                         "ClusterJDBCURL": "jdbc:redshift://host.amazonaws.com:5439/database",
                         "CopyCommand": {
                             "DataTableName": "outputTable",
@@ -89,7 +90,7 @@ def test_create_redshift_delivery_stream():
                         },
                         "Username": "username",
                         "S3DestinationDescription": {
-                            "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                             "BucketARN": "arn:aws:s3:::kinesis-test",
                             "Prefix": "myFolder/",
                             "BufferingHints": {
@@ -130,7 +131,7 @@ def test_create_s3_delivery_stream():
                 {
                     "DestinationId": "string",
                     "ExtendedS3DestinationDescription": {
-                        "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                         "BucketARN": "arn:aws:s3:::kinesis-test",
                         "Prefix": "myFolder/",
                         "CompressionFormat": "UNCOMPRESSED",
@@ -146,7 +147,7 @@ def test_create_s3_delivery_stream():
                             },
                             "SchemaConfiguration": {
                                 "DatabaseName": "stream1",
-                                "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                                "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                                 "TableName": "outputTable",
                             },
                         },
@@ -165,7 +166,7 @@ def test_create_stream_without_redshift():
     response = client.create_delivery_stream(
         DeliveryStreamName="stream1",
         S3DestinationConfiguration={
-            "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+            "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
             "BucketARN": "arn:aws:s3:::kinesis-test",
             "Prefix": "myFolder/",
             "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
@@ -191,8 +192,8 @@ def test_create_stream_without_redshift():
                 {
                     "DestinationId": "string",
                     "S3DestinationDescription": {
-                        "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
-                        "RoleARN": "arn:aws:iam::123456789012:role/firehose_delivery_role",
+                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
+                        "RoleARN": "arn:aws:iam::{}:role/firehose_delivery_role".format(ACCOUNT_ID),
                         "BucketARN": "arn:aws:s3:::kinesis-test",
                         "Prefix": "myFolder/",
                         "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},

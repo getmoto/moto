@@ -27,6 +27,7 @@ from moto.route53 import models as route53_models
 from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
+from moto.iam.models import ACCOUNT_ID
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,
@@ -431,7 +432,7 @@ class ResourceMap(collections.Mapping):
 
         # Create the default resources
         self._parsed_resources = {
-            "AWS::AccountId": "123456789012",
+            "AWS::AccountId": ACCOUNT_ID,
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,

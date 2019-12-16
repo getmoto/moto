@@ -4,7 +4,7 @@ import time
 import boto3
 from moto.core import BaseBackend, BaseModel
 
-ACCOUNT_ID = 123456789012
+from moto.iam.models import ACCOUNT_ID
 
 
 class TaggableResourceMixin(object):

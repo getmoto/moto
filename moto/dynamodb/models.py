@@ -6,6 +6,7 @@ import json
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
+from moto.iam.models import ACCOUNT_ID
 from .comparisons import get_comparison_func
 
 
@@ -277,8 +278,8 @@ class Table(BaseModel):
         if attribute_name == "StreamArn":
             region = "us-east-1"
             time = "2000-01-01T00:00:00.000"
-            return "arn:aws:dynamodb:{0}:123456789012:table/{1}/stream/{2}".format(
-                region, self.name, time
+            return "arn:aws:dynamodb:{0}:{1}:table/{2}/stream/{3}".format(
+                region, ACCOUNT_ID, self.name, time
             )
         raise UnformattedGetAttTemplateException()
 

@@ -10,6 +10,7 @@ from nose.tools import assert_raises
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
+from moto.iam.models import ACCOUNT_ID
 
 MOCK_POLICY = """
 {
@@ -51,7 +52,7 @@ def test_get_group_current():
     assert result["Group"]["GroupName"] == "my-group"
     assert isinstance(result["Group"]["CreateDate"], datetime)
     assert result["Group"]["GroupId"]
-    assert result["Group"]["Arn"] == "arn:aws:iam::123456789012:group/my-group"
+    assert result["Group"]["Arn"] == "arn:aws:iam::{}:group/my-group".format(ACCOUNT_ID)
     assert not result["Users"]
 
     # Make a group with a different path:
@@ -59,7 +60,7 @@ def test_get_group_current():
     assert other_group["Group"]["Path"] == "some/location"
     assert (
         other_group["Group"]["Arn"]
-        == "arn:aws:iam::123456789012:group/some/location/my-other-group"
+        == "arn:aws:iam::{}:group/some/location/my-other-group".format(ACCOUNT_ID)
     )
 
 

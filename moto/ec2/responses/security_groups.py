@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
+from moto.iam.models import ACCOUNT_ID
 
 
 def try_parse_int(value, default=None):
@@ -176,7 +177,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
    <securityGroupInfo>
       {% for group in groups %}
           <item>
-             <ownerId>123456789012</ownerId>
+             <ownerId>"""+ACCOUNT_ID+"""</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -196,7 +197,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>123456789012</userId>
+                                 <userId>"""+ACCOUNT_ID+"""</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -225,7 +226,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>123456789012</userId>
+                                 <userId>"""+ACCOUNT_ID+"""</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>

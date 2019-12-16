@@ -6,6 +6,7 @@ import sure  # noqa
 from moto.events import mock_events
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
+from moto.iam.models import ACCOUNT_ID
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -276,7 +277,7 @@ def test_create_event_bus():
     response = client.create_event_bus(Name="test-bus")
 
     response["EventBusArn"].should.equal(
-        "arn:aws:events:us-east-1:123456789012:event-bus/test-bus"
+        "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(ACCOUNT_ID)
     )
 
 
@@ -314,7 +315,7 @@ def test_describe_event_bus():
 
     response["Name"].should.equal("default")
     response["Arn"].should.equal(
-        "arn:aws:events:us-east-1:123456789012:event-bus/default"
+        "arn:aws:events:us-east-1:{}:event-bus/default".format(ACCOUNT_ID)
     )
     response.should_not.have.key("Policy")
 
@@ -330,7 +331,7 @@ def test_describe_event_bus():
 
     response["Name"].should.equal("test-bus")
     response["Arn"].should.equal(
-        "arn:aws:events:us-east-1:123456789012:event-bus/test-bus"
+        "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(ACCOUNT_ID)
     )
     json.loads(response["Policy"]).should.equal(
         {
@@ -341,7 +342,7 @@ def test_describe_event_bus():
                     "Effect": "Allow",
                     "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
                     "Action": "events:PutEvents",
-                    "Resource": "arn:aws:events:us-east-1:123456789012:event-bus/test-bus",
+                    "Resource": "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(ACCOUNT_ID),
                 }
             ],
         }
@@ -372,23 +373,23 @@ def test_list_event_buses():
         [
             {
                 "Name": "default",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/default",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(ACCOUNT_ID),
             },
             {
                 "Name": "other-bus-1",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/other-bus-1",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(ACCOUNT_ID),
             },
             {
                 "Name": "other-bus-2",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/other-bus-2",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(ACCOUNT_ID),
             },
             {
                 "Name": "test-bus-1",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/test-bus-1",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-1".format(ACCOUNT_ID),
             },
             {
                 "Name": "test-bus-2",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/test-bus-2",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-2".format(ACCOUNT_ID),
             },
         ]
     )
@@ -400,11 +401,11 @@ def test_list_event_buses():
         [
             {
                 "Name": "other-bus-1",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/other-bus-1",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(ACCOUNT_ID),
             },
             {
                 "Name": "other-bus-2",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/other-bus-2",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(ACCOUNT_ID),
             },
         ]
     )
@@ -426,7 +427,7 @@ def test_delete_event_bus():
         [
             {
                 "Name": "default",
-                "Arn": "arn:aws:events:us-east-1:123456789012:event-bus/default",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(ACCOUNT_ID),
             }
         ]
     )

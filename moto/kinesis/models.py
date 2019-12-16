@@ -13,6 +13,7 @@ from hashlib import md5
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
+from moto.iam.models import ACCOUNT_ID
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
@@ -133,7 +134,7 @@ class Stream(BaseModel):
         self.shard_count = shard_count
         self.creation_datetime = datetime.datetime.now()
         self.region = region
-        self.account_number = "123456789012"
+        self.account_number = ACCOUNT_ID
         self.shards = {}
         self.tags = {}
         self.status = "ACTIVE"
@@ -259,8 +260,8 @@ class DeliveryStream(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:firehose:us-east-1:123456789012:deliverystream/{0}".format(
-            self.name
+        return "arn:aws:firehose:us-east-1:{1}:deliverystream/{0}".format(
+            self.name, ACCOUNT_ID
         )
 
     def destinations_to_dict(self):

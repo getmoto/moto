@@ -6,6 +6,7 @@ import json
 import re
 
 from moto.core import BaseBackend, BaseModel
+from moto.iam.models import ACCOUNT_ID
 from .exceptions import BadRequestException
 
 
@@ -23,8 +24,8 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = "arn:aws:resource-groups:us-west-1:123456789012:{name}".format(
-            name=name
+        self.arn = "arn:aws:resource-groups:us-west-1:{AccountId}:{name}".format(
+            name=name, AccountId=ACCOUNT_ID
         )
 
     @staticmethod

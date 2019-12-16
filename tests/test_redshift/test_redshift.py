@@ -18,7 +18,7 @@ from moto import mock_ec2
 from moto import mock_ec2_deprecated
 from moto import mock_redshift
 from moto import mock_redshift_deprecated
-
+from moto.iam.models import ACCOUNT_ID
 
 @mock_redshift
 def test_create_cluster_boto3():
@@ -998,12 +998,12 @@ def test_create_cluster_status_update():
 def test_describe_tags_with_resource_type():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
-    cluster_arn = "arn:aws:redshift:us-east-1:123456789012:" "cluster:{}".format(
-        cluster_identifier
+    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
+        ACCOUNT_ID, cluster_identifier
     )
     snapshot_identifier = "my_snapshot"
-    snapshot_arn = "arn:aws:redshift:us-east-1:123456789012:" "snapshot:{}/{}".format(
-        cluster_identifier, snapshot_identifier
+    snapshot_arn = "arn:aws:redshift:us-east-1:{}:" "snapshot:{}/{}".format(
+        ACCOUNT_ID, cluster_identifier, snapshot_identifier
     )
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
@@ -1044,7 +1044,7 @@ def test_describe_tags_with_resource_type():
 @mock_redshift
 def test_describe_tags_cannot_specify_resource_type_and_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
-    resource_name = "arn:aws:redshift:us-east-1:123456789012:cluster:cluster-id"
+    resource_name = "arn:aws:redshift:us-east-1:{}:cluster:cluster-id".format(ACCOUNT_ID)
     resource_type = "cluster"
     client.describe_tags.when.called_with(
         ResourceName=resource_name, ResourceType=resource_type
@@ -1055,12 +1055,12 @@ def test_describe_tags_cannot_specify_resource_type_and_resource_name():
 def test_describe_tags_with_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
-    cluster_arn = "arn:aws:redshift:us-east-1:123456789012:" "cluster:{}".format(
-        cluster_identifier
+    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
+        ACCOUNT_ID, cluster_identifier
     )
     snapshot_identifier = "snapshot-id"
-    snapshot_arn = "arn:aws:redshift:us-east-1:123456789012:" "snapshot:{}/{}".format(
-        cluster_identifier, snapshot_identifier
+    snapshot_arn = "arn:aws:redshift:us-east-1:{}:" "snapshot:{}/{}".format(
+        ACCOUNT_ID, cluster_identifier, snapshot_identifier
     )
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
@@ -1102,8 +1102,8 @@ def test_describe_tags_with_resource_name():
 def test_create_tags():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
-    cluster_arn = "arn:aws:redshift:us-east-1:123456789012:" "cluster:{}".format(
-        cluster_identifier
+    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
+        ACCOUNT_ID, cluster_identifier
     )
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"
@@ -1133,8 +1133,8 @@ def test_create_tags():
 def test_delete_tags():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
-    cluster_arn = "arn:aws:redshift:us-east-1:123456789012:" "cluster:{}".format(
-        cluster_identifier
+    cluster_arn = "arn:aws:redshift:us-east-1:{}:" "cluster:{}".format(
+        ACCOUNT_ID, cluster_identifier
     )
     tag_key = "test-tag-key"
     tag_value = "test-tag-value"

@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
+from moto.iam.models import ACCOUNT_ID
 import uuid
 import datetime
 from random import choice
@@ -367,7 +368,7 @@ class Stack(BaseModel):
         self.id = "{0}".format(uuid.uuid4())
         self.layers = []
         self.apps = []
-        self.account_number = "123456789012"
+        self.account_number = ACCOUNT_ID
         self.created_at = datetime.datetime.utcnow()
 
     def __eq__(self, other):

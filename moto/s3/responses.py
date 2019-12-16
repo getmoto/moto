@@ -13,6 +13,7 @@ import xmltodict
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
+from moto.iam.models import ACCOUNT_ID
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -1898,7 +1899,7 @@ S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
     <Key>{{ upload.key_name }}</Key>
     <UploadId>{{ upload.id }}</UploadId>
     <Initiator>
-      <ID>arn:aws:iam::123456789012:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
+      <ID>arn:aws:iam::"""+ACCOUNT_ID+""":user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
       <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
     </Initiator>
     <Owner>

@@ -7,6 +7,7 @@ from six.moves.urllib.parse import urlparse
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
+from moto.iam.models import ACCOUNT_ID
 from .models import cloudformation_backends
 from .exceptions import ValidationError
 
@@ -425,7 +426,7 @@ class CloudFormationResponse(BaseResponse):
         stackset = self.cloudformation_backend.get_stack_set(stackset_name)
 
         if not stackset.admin_role:
-            stackset.admin_role = "arn:aws:iam::123456789012:role/AWSCloudFormationStackSetAdministrationRole"
+            stackset.admin_role = "arn:aws:iam::{AccountId}:role/AWSCloudFormationStackSetAdministrationRole".format(AccountId=ACCOUNT_ID)
         if not stackset.execution_role:
             stackset.execution_role = "AWSCloudFormationStackSetExecutionRole"
 
@@ -1055,7 +1056,7 @@ DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationRes
   <DescribeStackSetOperationResult>
     <StackSetOperation>
       <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
-      <AdministrationRoleARN>arn:aws:iam::123456789012:role/{{ stackset.admin_role }}</AdministrationRoleARN>
+      <AdministrationRoleARN>arn:aws:iam::"""+ACCOUNT_ID+""":role/{{ stackset.admin_role }}</AdministrationRoleARN>
       <StackSetId>{{ stackset.id }}</StackSetId>
       <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
       <OperationId>{{ operation.OperationId }}</OperationId>
@@ -1080,7 +1081,7 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationRe
     {% for account, region in instance.items() %}
       <member>
         <AccountGateResult>
-          <StatusReason>Function not found: arn:aws:lambda:us-west-2:123456789012:function:AWSCloudFormationStackSetAccountGate</StatusReason>
+          <StatusReason>Function not found: arn:aws:lambda:us-west-2:"""+ACCOUNT_ID+""":function:AWSCloudFormationStackSetAccountGate</StatusReason>
           <Status>SKIPPED</Status>
         </AccountGateResult>
         <Region>{{ region }}</Region>

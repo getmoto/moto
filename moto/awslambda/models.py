@@ -45,7 +45,7 @@ from moto.dynamodbstreams import dynamodbstreams_backends
 
 logger = logging.getLogger(__name__)
 
-ACCOUNT_ID = "123456789012"
+from moto.iam.models import ACCOUNT_ID
 
 
 try:
