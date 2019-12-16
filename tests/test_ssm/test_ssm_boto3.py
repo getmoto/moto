@@ -102,6 +102,18 @@ def test_get_parameters_by_path():
     response = client.get_parameters_by_path(Path="/", Recursive=False)
     len(response["Parameters"]).should.equal(2)
     {p["Value"] for p in response["Parameters"]}.should.equal(set(["bar", "qux"]))
+    {p["ARN"] for p in response["Parameters"]}.should.equal(
+        set(
+            [
+                "arn:aws:ssm:us-east-1:1234567890:parameter/foo",
+                "arn:aws:ssm:us-east-1:1234567890:parameter/baz",
+            ]
+        )
+    )
+    {
+        p["LastModifiedDate"].should.be.a(datetime.datetime)
+        for p in response["Parameters"]
+    }
 
     response = client.get_parameters_by_path(Path="/", Recursive=True)
     len(response["Parameters"]).should.equal(9)
@@ -190,6 +202,11 @@ def test_put_parameter():
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameters"][0]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
+    initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
     try:
         client.put_parameter(
@@ -208,6 +225,12 @@ def test_put_parameter():
     response["Parameters"][0]["Value"].should.equal("value")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(1)
+    response["Parameters"][0]["LastModifiedDate"].should.equal(
+        initial_modification_date
+    )
+    response["Parameters"][0]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
 
     response = client.put_parameter(
         Name="test",
@@ -227,6 +250,12 @@ def test_put_parameter():
     response["Parameters"][0]["Value"].should.equal("value 3")
     response["Parameters"][0]["Type"].should.equal("String")
     response["Parameters"][0]["Version"].should.equal(2)
+    response["Parameters"][0]["LastModifiedDate"].should_not.equal(
+        initial_modification_date
+    )
+    response["Parameters"][0]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
 
 
 @mock_ssm
@@ -253,6 +282,10 @@ def test_get_parameter():
     response["Parameter"]["Name"].should.equal("test")
     response["Parameter"]["Value"].should.equal("value")
     response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
 
 
 @mock_ssm

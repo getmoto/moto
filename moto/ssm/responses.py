@@ -51,7 +51,7 @@ class SimpleSystemManagerResponse(BaseResponse):
             }
             return json.dumps(error), dict(status=400)
 
-        response = {"Parameter": result.response_object(with_decryption)}
+        response = {"Parameter": result.response_object(with_decryption, self.region)}
         return json.dumps(response)
 
     def get_parameters(self):
@@ -63,7 +63,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Parameters": [], "InvalidParameters": []}
 
         for parameter in result:
-            param_data = parameter.response_object(with_decryption)
+            param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
         param_names = [param.name for param in result]
@@ -92,7 +92,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Parameters": [], "NextToken": next_token}
 
         for parameter in result:
-            param_data = parameter.response_object(with_decryption)
+            param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 
         return json.dumps(response)
