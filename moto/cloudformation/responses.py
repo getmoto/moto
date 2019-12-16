@@ -1056,7 +1056,7 @@ DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationRes
   <DescribeStackSetOperationResult>
     <StackSetOperation>
       <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
-      <AdministrationRoleARN>arn:aws:iam::"""+ACCOUNT_ID+""":role/{{ stackset.admin_role }}</AdministrationRoleARN>
+      <AdministrationRoleARN>arn:aws:iam::""" + ACCOUNT_ID + """:role/{{ stackset.admin_role }}</AdministrationRoleARN>
       <StackSetId>{{ stackset.id }}</StackSetId>
       <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
       <OperationId>{{ operation.OperationId }}</OperationId>
@@ -1081,7 +1081,7 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationRe
     {% for account, region in instance.items() %}
       <member>
         <AccountGateResult>
-          <StatusReason>Function not found: arn:aws:lambda:us-west-2:"""+ACCOUNT_ID+""":function:AWSCloudFormationStackSetAccountGate</StatusReason>
+          <StatusReason>Function not found: arn:aws:lambda:us-west-2:""" + ACCOUNT_ID + """:function:AWSCloudFormationStackSetAccountGate</StatusReason>
           <Status>SKIPPED</Status>
         </AccountGateResult>
         <Region>{{ region }}</Region>

@@ -2,8 +2,10 @@ from __future__ import unicode_literals
 
 import random
 import string
+from moto.iam.models import ACCOUNT_ID
 
-from moto.iam.models import ACCOUNT_ID as MASTER_ACCOUNT_ID
+
+MASTER_ACCOUNT_ID = ACCOUNT_ID
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
 ORGANIZATION_ARN_FORMAT = "arn:aws:organizations::{0}:organization/{1}"

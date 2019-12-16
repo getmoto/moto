@@ -45,7 +45,7 @@ from .utils import (
     random_policy_id,
 )
 
-ACCOUNT_ID = '123456789012' #make sure this is a str and not an int
+ACCOUNT_ID = '123456789012'
 
 
 class MFADevice(object):

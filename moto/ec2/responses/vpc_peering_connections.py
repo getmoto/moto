@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.iam.models import ACCOUNT_ID
 
+
 class VPCPeeringConnections(BaseResponse):
     def create_vpc_peering_connection(self):
         peer_region = self._get_param("PeerRegion")
@@ -56,7 +57,7 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>"""+ACCOUNT_ID+"""</ownerId>
+      <ownerId>""" + ACCOUNT_ID + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
     </accepterVpcInfo>
     <status>
@@ -82,7 +83,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
     </requesterVpcInfo>
     <accepterVpcInfo>
-     <ownerId>"""+ACCOUNT_ID+"""</ownerId>
+     <ownerId>""" + ACCOUNT_ID + """</ownerId>
      <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
      <peeringOptions>
@@ -120,7 +121,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>"""+ACCOUNT_ID+"""</ownerId>
+      <ownerId>""" + ACCOUNT_ID + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
       <peeringOptions>
