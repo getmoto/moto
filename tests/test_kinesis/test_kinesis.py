@@ -22,7 +22,9 @@ def test_create_cluster():
     stream = stream_response["StreamDescription"]
     stream["StreamName"].should.equal("my_stream")
     stream["HasMoreShards"].should.equal(False)
-    stream["StreamARN"].should.equal("arn:aws:kinesis:us-west-2:{}:my_stream".format(ACCOUNT_ID))
+    stream["StreamARN"].should.equal(
+        "arn:aws:kinesis:us-west-2:{}:my_stream".format(ACCOUNT_ID)
+    )
     stream["StreamStatus"].should.equal("ACTIVE")
 
     shards = stream["Shards"]

@@ -23,6 +23,7 @@ from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
 
+
 @mock_sqs
 def test_create_fifo_queue_fail():
     sqs = boto3.client("sqs", region_name="us-east-1")
@@ -283,7 +284,7 @@ def test_create_queues_in_multiple_region():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     west1_conn.list_queues()["QueueUrls"][0].should.equal(
-        "{base_url}/{AccountId}/blah".format(base_url=base_url,AccountId=ACCOUNT_ID)
+        "{base_url}/{AccountId}/blah".format(base_url=base_url, AccountId=ACCOUNT_ID)
     )
 
 
@@ -305,7 +306,9 @@ def test_get_queue_with_prefix():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     queue[0].should.equal(
-        "{base_url}/{AccountId}/test-queue".format(base_url=base_url, AccountId=ACCOUNT_ID)
+        "{base_url}/{AccountId}/test-queue".format(
+            base_url=base_url, AccountId=ACCOUNT_ID
+        )
     )
 
 
@@ -851,7 +854,9 @@ def test_queue_attributes():
     attributes = queue.get_attributes()
 
     attributes["QueueArn"].should.look_like(
-        "arn:aws:sqs:us-east-1:{AccountId}:{name}".format(AccountId=ACCOUNT_ID,name=queue_name)
+        "arn:aws:sqs:us-east-1:{AccountId}:{name}".format(
+            AccountId=ACCOUNT_ID, name=queue_name
+        )
     )
 
     attributes["VisibilityTimeout"].should.look_like(str(visibility_timeout))

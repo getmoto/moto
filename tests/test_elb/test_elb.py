@@ -77,7 +77,12 @@ def test_create_load_balancer_with_certificate():
 
     zones = ["us-east-1a"]
     ports = [
-        (443, 8443, "https", "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID))
+        (
+            443,
+            8443,
+            "https",
+            "arn:aws:iam:{}:server-certificate/test-cert".format(ACCOUNT_ID),
+        )
     ]
     conn.create_load_balancer("my-lb", zones, ports)
 

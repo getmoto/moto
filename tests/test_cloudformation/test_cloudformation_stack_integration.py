@@ -1934,7 +1934,9 @@ def test_stack_spot_fleet():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)
+                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
+                                        ACCOUNT_ID
+                                    )
                                 },
                                 "WeightedCapacity": "4",
                                 "SpotPrice": "10.00",
@@ -2019,7 +2021,9 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)
+                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
+                                        ACCOUNT_ID
+                                    )
                                 },
                                 "WeightedCapacity": "4",
                             },

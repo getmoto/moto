@@ -20,7 +20,9 @@ SERVER_CRT = _GET_RESOURCE("star_moto_com.pem")
 SERVER_COMMON_NAME = "*.moto.com"
 SERVER_CRT_BAD = _GET_RESOURCE("star_moto_com-bad.pem")
 SERVER_KEY = _GET_RESOURCE("star_moto_com.key")
-BAD_ARN = "arn:aws:acm:us-east-2:{}:certificate/_0000000-0000-0000-0000-000000000000".format(ACCOUNT_ID)
+BAD_ARN = "arn:aws:acm:us-east-2:{}:certificate/_0000000-0000-0000-0000-000000000000".format(
+    ACCOUNT_ID
+)
 
 
 def _import_cert(client):

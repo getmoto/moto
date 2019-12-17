@@ -342,7 +342,9 @@ def test_describe_event_bus():
                     "Effect": "Allow",
                     "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
                     "Action": "events:PutEvents",
-                    "Resource": "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(ACCOUNT_ID),
+                    "Resource": "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(
+                        ACCOUNT_ID
+                    ),
                 }
             ],
         }
@@ -373,23 +375,33 @@ def test_list_event_buses():
         [
             {
                 "Name": "default",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(
+                    ACCOUNT_ID
+                ),
             },
             {
                 "Name": "other-bus-1",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(
+                    ACCOUNT_ID
+                ),
             },
             {
                 "Name": "other-bus-2",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(
+                    ACCOUNT_ID
+                ),
             },
             {
                 "Name": "test-bus-1",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-1".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-1".format(
+                    ACCOUNT_ID
+                ),
             },
             {
                 "Name": "test-bus-2",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-2".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-2".format(
+                    ACCOUNT_ID
+                ),
             },
         ]
     )
@@ -401,11 +413,15 @@ def test_list_event_buses():
         [
             {
                 "Name": "other-bus-1",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(
+                    ACCOUNT_ID
+                ),
             },
             {
                 "Name": "other-bus-2",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(
+                    ACCOUNT_ID
+                ),
             },
         ]
     )
@@ -427,7 +443,9 @@ def test_delete_event_bus():
         [
             {
                 "Name": "default",
-                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(ACCOUNT_ID),
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(
+                    ACCOUNT_ID
+                ),
             }
         ]
     )

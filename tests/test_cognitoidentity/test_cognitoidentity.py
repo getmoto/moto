@@ -8,6 +8,7 @@ from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import ACCOUNT_ID
 
+
 @mock_cognitoidentity
 def test_create_identity_pool():
     conn = boto3.client("cognito-identity", "us-west-2")
@@ -17,7 +18,9 @@ def test_create_identity_pool():
         AllowUnauthenticatedIdentities=False,
         SupportedLoginProviders={"graph.facebook.com": "123456789012345"},
         DeveloperProviderName="devname",
-        OpenIdConnectProviderARNs=["arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)],
+        OpenIdConnectProviderARNs=[
+            "arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)
+        ],
         CognitoIdentityProviders=[
             {
                 "ProviderName": "testprovider",
@@ -39,7 +42,9 @@ def test_describe_identity_pool():
         AllowUnauthenticatedIdentities=False,
         SupportedLoginProviders={"graph.facebook.com": "123456789012345"},
         DeveloperProviderName="devname",
-        OpenIdConnectProviderARNs=["arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)],
+        OpenIdConnectProviderARNs=[
+            "arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)
+        ],
         CognitoIdentityProviders=[
             {
                 "ProviderName": "testprovider",

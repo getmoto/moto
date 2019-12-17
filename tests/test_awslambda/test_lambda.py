@@ -758,7 +758,8 @@ def test_tags_not_found():
     ).should.throw(botocore.client.ClientError)
 
     conn.untag_resource.when.called_with(
-        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID), TagKeys=["spam"]
+        Resource="arn:aws:lambda:{}:function:not-found".format(ACCOUNT_ID),
+        TagKeys=["spam"],
     ).should.throw(botocore.client.ClientError)
 
 
@@ -921,18 +922,15 @@ def test_list_versions_by_function():
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
     versions = conn.list_versions_by_function(FunctionName="testFunction")
     assert len(versions["Versions"]) == 3
-    assert (
-        versions["Versions"][0]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:{}:function:testFunction:$LATEST".format(ACCOUNT_ID)
-    )
-    assert (
-        versions["Versions"][1]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:{}:function:testFunction:1".format(ACCOUNT_ID)
-    )
-    assert (
-        versions["Versions"][2]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:{}:function:testFunction:2".format(ACCOUNT_ID)
-    )
+    assert versions["Versions"][0][
+        "FunctionArn"
+    ] == "arn:aws:lambda:us-west-2:{}:function:testFunction:$LATEST".format(ACCOUNT_ID)
+    assert versions["Versions"][1][
+        "FunctionArn"
+    ] == "arn:aws:lambda:us-west-2:{}:function:testFunction:1".format(ACCOUNT_ID)
+    assert versions["Versions"][2][
+        "FunctionArn"
+    ] == "arn:aws:lambda:us-west-2:{}:function:testFunction:2".format(ACCOUNT_ID)
 
     conn.create_function(
         FunctionName="testFunction_2",
@@ -947,9 +945,10 @@ def test_list_versions_by_function():
     )
     versions = conn.list_versions_by_function(FunctionName="testFunction_2")
     assert len(versions["Versions"]) == 1
-    assert (
-        versions["Versions"][0]["FunctionArn"]
-        == "arn:aws:lambda:us-west-2:{}:function:testFunction_2:$LATEST".format(ACCOUNT_ID)
+    assert versions["Versions"][0][
+        "FunctionArn"
+    ] == "arn:aws:lambda:us-west-2:{}:function:testFunction_2:$LATEST".format(
+        ACCOUNT_ID
     )
 
 

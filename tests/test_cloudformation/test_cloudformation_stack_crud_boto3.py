@@ -298,9 +298,7 @@ def test_boto3_list_stack_set_operation_results():
     )
 
     response["Summaries"].should.have.length_of(3)
-    response["Summaries"][0].should.have.key("Account").which.should.equal(
-        ACCOUNT_ID
-    )
+    response["Summaries"][0].should.have.key("Account").which.should.equal(ACCOUNT_ID)
     response["Summaries"][1].should.have.key("Status").which.should.equal("STOPPED")
 
 

@@ -1887,7 +1887,8 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </CompleteMultipartUploadResult>
 """
 
-S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
+S3_ALL_MULTIPARTS = (
+    """<?xml version="1.0" encoding="UTF-8"?>
 <ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Bucket>{{ bucket_name }}</Bucket>
   <KeyMarker></KeyMarker>
@@ -1899,7 +1900,9 @@ S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
     <Key>{{ upload.key_name }}</Key>
     <UploadId>{{ upload.id }}</UploadId>
     <Initiator>
-      <ID>arn:aws:iam::""" + ACCOUNT_ID + """:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
+      <ID>arn:aws:iam::"""
+    + ACCOUNT_ID
+    + """:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
       <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
     </Initiator>
     <Owner>
@@ -1912,6 +1915,7 @@ S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
   {% endfor %}
 </ListMultipartUploadsResult>
 """
+)
 
 S3_NO_POLICY = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>

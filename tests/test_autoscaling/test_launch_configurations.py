@@ -23,7 +23,9 @@ def test_create_launch_configuration():
         security_groups=["default", "default2"],
         user_data=b"This is some user_data",
         instance_monitoring=True,
-        instance_profile_name="arn:aws:iam::{}:instance-profile/testing".format(ACCOUNT_ID),
+        instance_profile_name="arn:aws:iam::{}:instance-profile/testing".format(
+            ACCOUNT_ID
+        ),
         spot_price=0.1,
     )
     conn.create_launch_configuration(config)
@@ -72,7 +74,9 @@ def test_create_launch_configuration_with_block_device_mappings():
         security_groups=["default", "default2"],
         user_data=b"This is some user_data",
         instance_monitoring=True,
-        instance_profile_name="arn:aws:iam::{}:instance-profile/testing".format(ACCOUNT_ID),
+        instance_profile_name="arn:aws:iam::{}:instance-profile/testing".format(
+            ACCOUNT_ID
+        ),
         spot_price=0.1,
         block_device_mappings=[block_device_mapping],
     )

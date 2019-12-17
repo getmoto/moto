@@ -20,6 +20,7 @@ from moto import mock_redshift
 from moto import mock_redshift_deprecated
 from moto.core import ACCOUNT_ID
 
+
 @mock_redshift
 def test_create_cluster_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
@@ -1044,7 +1045,9 @@ def test_describe_tags_with_resource_type():
 @mock_redshift
 def test_describe_tags_cannot_specify_resource_type_and_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
-    resource_name = "arn:aws:redshift:us-east-1:{}:cluster:cluster-id".format(ACCOUNT_ID)
+    resource_name = "arn:aws:redshift:us-east-1:{}:cluster:cluster-id".format(
+        ACCOUNT_ID
+    )
     resource_type = "cluster"
     client.describe_tags.when.called_with(
         ResourceName=resource_name, ResourceType=resource_type

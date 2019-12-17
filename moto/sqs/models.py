@@ -33,6 +33,7 @@ from .exceptions import (
 )
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB

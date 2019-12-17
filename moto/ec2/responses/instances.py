@@ -8,6 +8,7 @@ from moto.ec2.utils import filters_from_querystring, dict_from_querystring
 from moto.elbv2 import elbv2_backends
 from moto.core import ACCOUNT_ID
 
+
 class InstanceResponse(BaseResponse):
     def describe_instances(self):
         filter_dict = filters_from_querystring(self.querystring)
@@ -246,10 +247,13 @@ class InstanceResponse(BaseResponse):
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
 
-EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+EC2_RUN_INSTANCES = (
+    """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <reservationId>{{ reservation.id }}</reservationId>
-  <ownerId>""" + ACCOUNT_ID + """</ownerId>
+  <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
   <groupSet>
     <item>
       <groupId>sg-245f6a01</groupId>
@@ -331,7 +335,9 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
                   <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
                 {% endif %}
                 <description>Primary network interface</description>
-                <ownerId>""" + ACCOUNT_ID + """</ownerId>
+                <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                 <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
@@ -354,7 +360,9 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
                 {% if nic.public_ip %}
                   <association>
                     <publicIp>{{ nic.public_ip }}</publicIp>
-                    <ipOwnerId>""" + ACCOUNT_ID + """</ipOwnerId>
+                    <ipOwnerId>"""
+    + ACCOUNT_ID
+    + """</ipOwnerId>
                   </association>
                 {% endif %}
                 <privateIpAddressesSet>
@@ -364,7 +372,9 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
                     {% if nic.public_ip %}
                       <association>
                         <publicIp>{{ nic.public_ip }}</publicIp>
-                        <ipOwnerId>""" + ACCOUNT_ID + """</ipOwnerId>
+                        <ipOwnerId>"""
+    + ACCOUNT_ID
+    + """</ipOwnerId>
                       </association>
                     {% endif %}
                   </item>
@@ -376,14 +386,18 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
     {% endfor %}
   </instancesSet>
   </RunInstancesResponse>"""
+)
 
-EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+EC2_DESCRIBE_INSTANCES = (
+    """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>fdcdcab1-ae5c-489e-9c33-4637c5dda355</requestId>
       <reservationSet>
         {% for reservation in reservations %}
           <item>
             <reservationId>{{ reservation.id }}</reservationId>
-            <ownerId>""" + ACCOUNT_ID + """</ownerId>
+            <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
             <groupSet>
               {% for group in reservation.dynamic_group_list %}
               <item>
@@ -476,7 +490,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                      {% endfor %}
                     </blockDeviceMapping>
                     <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
-                    <clientToken>ABCDE""" + ACCOUNT_ID + """3</clientToken>
+                    <clientToken>ABCDE"""
+    + ACCOUNT_ID
+    + """3</clientToken>
                     {% if instance.get_tags() %}
                     <tagSet>
                       {% for tag in instance.get_tags() %}
@@ -499,7 +515,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                             <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
                           {% endif %}
                           <description>Primary network interface</description>
-                          <ownerId>""" + ACCOUNT_ID + """</ownerId>
+                          <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
                           <status>in-use</status>
                           <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                           <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
@@ -526,7 +544,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                           {% if nic.public_ip %}
                             <association>
                               <publicIp>{{ nic.public_ip }}</publicIp>
-                              <ipOwnerId>""" + ACCOUNT_ID + """</ipOwnerId>
+                              <ipOwnerId>"""
+    + ACCOUNT_ID
+    + """</ipOwnerId>
                             </association>
                           {% endif %}
                           <privateIpAddressesSet>
@@ -536,7 +556,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                               {% if nic.public_ip %}
                                 <association>
                                   <publicIp>{{ nic.public_ip }}</publicIp>
-                                  <ipOwnerId>""" + ACCOUNT_ID + """</ipOwnerId>
+                                  <ipOwnerId>"""
+    + ACCOUNT_ID
+    + """</ipOwnerId>
                                 </association>
                               {% endif %}
                             </item>
@@ -554,6 +576,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
       <nextToken>{{ next_token }}</nextToken>
       {% endif %}
 </DescribeInstancesResponse>"""
+)
 
 EC2_TERMINATE_INSTANCES = """
 <TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

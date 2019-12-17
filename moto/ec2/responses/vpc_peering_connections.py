@@ -41,7 +41,8 @@ class VPCPeeringConnections(BaseResponse):
         return template.render()
 
 
-CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
+CREATE_VPC_PEERING_CONNECTION_RESPONSE = (
+    """
 <CreateVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
  <vpcPeeringConnection>
@@ -57,7 +58,9 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>""" + ACCOUNT_ID + """</ownerId>
+      <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
     </accepterVpcInfo>
     <status>
@@ -69,8 +72,10 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
  </vpcPeeringConnection>
 </CreateVpcPeeringConnectionResponse>
 """
+)
 
-DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
+DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
+    """
 <DescribeVpcPeeringConnectionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
 <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
  <vpcPeeringConnectionSet>
@@ -83,7 +88,9 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
     </requesterVpcInfo>
     <accepterVpcInfo>
-     <ownerId>""" + ACCOUNT_ID + """</ownerId>
+     <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
      <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
      <peeringOptions>
@@ -102,6 +109,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
  </vpcPeeringConnectionSet>
 </DescribeVpcPeeringConnectionsResponse>
 """
+)
 
 DELETE_VPC_PEERING_CONNECTION_RESPONSE = """
 <DeleteVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -110,7 +118,8 @@ DELETE_VPC_PEERING_CONNECTION_RESPONSE = """
 </DeleteVpcPeeringConnectionResponse>
 """
 
-ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
+ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
+    """
 <AcceptVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
   <vpcPeeringConnection>
@@ -121,7 +130,9 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
     </requesterVpcInfo>
     <accepterVpcInfo>
-      <ownerId>""" + ACCOUNT_ID + """</ownerId>
+      <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
       <vpcId>{{ vpc_pcx.peer_vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.peer_vpc.cidr_block }}</cidrBlock>
       <peeringOptions>
@@ -138,6 +149,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
   </vpcPeeringConnection>
 </AcceptVpcPeeringConnectionResponse>
 """
+)
 
 REJECT_VPC_PEERING_CONNECTION_RESPONSE = """
 <RejectVpcPeeringConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

@@ -882,7 +882,9 @@ def test_put_integration_validation():
         client.put_integration(
             restApiId=api_id,
             resourceId=root_id,
-            credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(ACCOUNT_ID),
+            credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(
+                ACCOUNT_ID
+            ),
             httpMethod="GET",
             type=type,
             uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
@@ -904,7 +906,9 @@ def test_put_integration_validation():
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
-                credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(ACCOUNT_ID),
+                credentials="arn:aws:iam::{}:role/service-role/testfunction-role-oe783psq".format(
+                    ACCOUNT_ID
+                ),
                 httpMethod="GET",
                 type=type,
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",

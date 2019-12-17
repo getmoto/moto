@@ -10,6 +10,7 @@ from moto import mock_sns
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 from moto.core import ACCOUNT_ID
 
+
 @mock_sns
 def test_create_and_delete_topic():
     conn = boto3.client("sns", region_name="us-east-1")
@@ -132,7 +133,9 @@ def test_topic_corresponds_to_region():
         conn.create_topic(Name="some-topic")
         topics_json = conn.list_topics()
         topic_arn = topics_json["Topics"][0]["TopicArn"]
-        topic_arn.should.equal("arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID))
+        topic_arn.should.equal(
+            "arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID)
+        )
 
 
 @mock_sns
@@ -170,7 +173,9 @@ def test_topic_attributes():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(ACCOUNT_ID),
+                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(
+                        ACCOUNT_ID
+                    ),
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],
@@ -271,7 +276,9 @@ def test_add_remove_permissions():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(ACCOUNT_ID),
+                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
+                        ACCOUNT_ID
+                    ),
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 },
                 {
@@ -279,7 +286,9 @@ def test_add_remove_permissions():
                     "Effect": "Allow",
                     "Principal": {"AWS": "arn:aws:iam::999999999999:root"},
                     "Action": "SNS:Publish",
-                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(ACCOUNT_ID),
+                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
+                        ACCOUNT_ID
+                    ),
                 },
             ],
         }
@@ -308,7 +317,9 @@ def test_add_remove_permissions():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(ACCOUNT_ID),
+                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
+                        ACCOUNT_ID
+                    ),
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],

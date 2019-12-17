@@ -59,7 +59,9 @@ def test_topic_corresponds_to_region():
         topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0][
             "TopicArn"
         ]
-        topic_arn.should.equal("arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID))
+        topic_arn.should.equal(
+            "arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID)
+        )
 
 
 @mock_sns_deprecated
@@ -99,7 +101,9 @@ def test_topic_attributes():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(ACCOUNT_ID),
+                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(
+                        ACCOUNT_ID
+                    ),
                     "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],

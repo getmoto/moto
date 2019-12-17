@@ -426,7 +426,9 @@ class CloudFormationResponse(BaseResponse):
         stackset = self.cloudformation_backend.get_stack_set(stackset_name)
 
         if not stackset.admin_role:
-            stackset.admin_role = "arn:aws:iam::{AccountId}:role/AWSCloudFormationStackSetAdministrationRole".format(AccountId=ACCOUNT_ID)
+            stackset.admin_role = "arn:aws:iam::{AccountId}:role/AWSCloudFormationStackSetAdministrationRole".format(
+                AccountId=ACCOUNT_ID
+            )
         if not stackset.execution_role:
             stackset.execution_role = "AWSCloudFormationStackSetExecutionRole"
 
@@ -1052,11 +1054,14 @@ STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse x
   </ResponseMetadata>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     </StopStackSetOperationResponse>
 """
 
-DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = (
+    """<DescribeStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <DescribeStackSetOperationResult>
     <StackSetOperation>
       <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
-      <AdministrationRoleARN>arn:aws:iam::""" + ACCOUNT_ID + """:role/{{ stackset.admin_role }}</AdministrationRoleARN>
+      <AdministrationRoleARN>arn:aws:iam::"""
+    + ACCOUNT_ID
+    + """:role/{{ stackset.admin_role }}</AdministrationRoleARN>
       <StackSetId>{{ stackset.id }}</StackSetId>
       <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
       <OperationId>{{ operation.OperationId }}</OperationId>
@@ -1073,15 +1078,19 @@ DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationRes
   </ResponseMetadata>
 </DescribeStackSetOperationResponse>
 """
+)
 
-LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationResultsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
+LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
+    """<ListStackSetOperationResultsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <ListStackSetOperationResultsResult>
     <Summaries>
     {% for instance in operation.Instances %}
     {% for account, region in instance.items() %}
       <member>
         <AccountGateResult>
-          <StatusReason>Function not found: arn:aws:lambda:us-west-2:""" + ACCOUNT_ID + """:function:AWSCloudFormationStackSetAccountGate</StatusReason>
+          <StatusReason>Function not found: arn:aws:lambda:us-west-2:"""
+    + ACCOUNT_ID
+    + """:function:AWSCloudFormationStackSetAccountGate</StatusReason>
           <Status>SKIPPED</Status>
         </AccountGateResult>
         <Region>{{ region }}</Region>
@@ -1097,3 +1106,4 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationRe
   </ResponseMetadata>
 </ListStackSetOperationResultsResponse>
 """
+)

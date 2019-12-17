@@ -58,10 +58,9 @@ def test_get_group_current():
     # Make a group with a different path:
     other_group = conn.create_group(GroupName="my-other-group", Path="some/location")
     assert other_group["Group"]["Path"] == "some/location"
-    assert (
-        other_group["Group"]["Arn"]
-        == "arn:aws:iam::{}:group/some/location/my-other-group".format(ACCOUNT_ID)
-    )
+    assert other_group["Group"][
+        "Arn"
+    ] == "arn:aws:iam::{}:group/some/location/my-other-group".format(ACCOUNT_ID)
 
 
 @mock_iam_deprecated()
