@@ -439,11 +439,18 @@ class SNSBackend(BaseBackend):
         subscription = Subscription(topic, endpoint, protocol)
         attributes = {
             "PendingConfirmation": "false",
+            "ConfirmationWasAuthenticated": "true",
             "Endpoint": endpoint,
             "TopicArn": topic_arn,
             "Protocol": protocol,
             "SubscriptionArn": subscription.arn,
+            "Owner": DEFAULT_ACCOUNT_ID,
+            "RawMessageDelivery": "false",
         }
+
+        if protocol in ["http", "https"]:
+            attributes["EffectiveDeliveryPolicy"] = topic.effective_delivery_policy
+
         subscription.attributes = attributes
         self.subscriptions[subscription.arn] = subscription
         return subscription
@@ -703,18 +710,18 @@ for region in Session().get_available_regions("sns"):
 
 
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
-    "http": {
-        "disableSubscriptionOverrides": False,
-        "defaultHealthyRetryPolicy": {
-            "numNoDelayRetries": 0,
-            "numMinDelayRetries": 0,
-            "minDelayTarget": 20,
-            "maxDelayTarget": 20,
-            "numMaxDelayRetries": 0,
-            "numRetries": 3,
-            "backoffFunction": "linear",
-        },
-    }
+    "defaultHealthyRetryPolicy": {
+        "numNoDelayRetries": 0,
+        "numMinDelayRetries": 0,
+        "minDelayTarget": 20,
+        "maxDelayTarget": 20,
+        "numMaxDelayRetries": 0,
+        "numRetries": 3,
+        "backoffFunction": "linear",
+    },
+    "sicklyRetryPolicy": None,
+    "throttlePolicy": None,
+    "guaranteed": False,
 }
 
 
