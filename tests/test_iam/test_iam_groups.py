@@ -10,7 +10,7 @@ from nose.tools import assert_raises
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 MOCK_POLICY = """
 {

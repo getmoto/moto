@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import random
 import string
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 MASTER_ACCOUNT_ID = ACCOUNT_ID

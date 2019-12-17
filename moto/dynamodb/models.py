@@ -6,7 +6,7 @@ import json
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .comparisons import get_comparison_func
 
 

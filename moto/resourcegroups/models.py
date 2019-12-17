@@ -6,7 +6,7 @@ import json
 import re
 
 from moto.core import BaseBackend, BaseModel
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .exceptions import BadRequestException
 
 

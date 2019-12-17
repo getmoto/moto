@@ -18,7 +18,7 @@ from moto import mock_ec2
 from moto import mock_ec2_deprecated
 from moto import mock_redshift
 from moto import mock_redshift_deprecated
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 @mock_redshift
 def test_create_cluster_boto3():

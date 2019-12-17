@@ -8,7 +8,7 @@ from dateutil.tz import tzutc
 from uuid import uuid4
 from .utils import make_arn_for_dashboard
 
-from moto.iam.models import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 _EMPTY_LIST = tuple()
 

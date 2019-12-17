@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 from moto import mock_sts, mock_stepfunctions
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 region = "us-east-1"
 simple_definition = (

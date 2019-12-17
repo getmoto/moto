@@ -23,6 +23,9 @@ from .utils import (
 )
 
 
+ACCOUNT_ID = os.environ.get('MOTO_ACCOUNT_ID','123456789012')
+    
+
 class BaseMockAWS(object):
     nested_count = 0
 

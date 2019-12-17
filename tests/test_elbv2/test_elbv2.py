@@ -10,7 +10,7 @@ import sure  # noqa
 
 from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation
 from moto.elbv2 import elbv2_backends
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_elbv2

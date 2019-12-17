@@ -8,7 +8,7 @@ from moto.core import BaseBackend, BaseModel
 from .resources import VOICE_DATA
 from .utils import make_arn_for_lexicon
 
-from moto.iam.models import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 
 class Lexicon(BaseModel):

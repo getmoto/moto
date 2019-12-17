@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import json
 from werkzeug.exceptions import BadRequest
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 class ResourceNotFoundError(BadRequest):

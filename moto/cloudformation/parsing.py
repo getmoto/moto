@@ -27,7 +27,7 @@ from moto.route53 import models as route53_models
 from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,

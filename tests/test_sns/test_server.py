@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 import sure  # noqa
 

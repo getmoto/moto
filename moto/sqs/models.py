@@ -12,7 +12,6 @@ import boto.sqs
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
-from moto.iam.models import ACCOUNT_ID
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_message_id,
@@ -33,7 +32,7 @@ from .exceptions import (
     InvalidAttributeName,
 )
 
-from moto.iam.models import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -419,7 +418,7 @@ class Queue(BaseModel):
 
     def url(self, request_url):
         return "{0}://{1}/{2}/{3}".format(
-            request_url.scheme, request_url.netloc, ACCOUNT_ID, self.name
+            request_url.scheme, request_url.netloc, DEFAULT_ACCOUNT_ID, self.name
         )
 
     @property

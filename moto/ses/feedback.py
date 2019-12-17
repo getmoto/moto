@@ -1,4 +1,4 @@
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 """
 SES Feedback messages
 Extracted from https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html

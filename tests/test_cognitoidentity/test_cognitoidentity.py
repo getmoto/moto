@@ -6,7 +6,7 @@ from nose.tools import assert_raises
 
 from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 @mock_cognitoidentity
 def test_create_identity_pool():

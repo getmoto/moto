@@ -13,7 +13,7 @@ from dateutil.tz import tzutc
 
 from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from nose.tools import assert_raises, assert_equals
 from nose.tools import raises
 

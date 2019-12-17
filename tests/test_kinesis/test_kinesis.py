@@ -8,7 +8,7 @@ import boto3
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
 
 from moto import mock_kinesis, mock_kinesis_deprecated
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_kinesis_deprecated

@@ -7,7 +7,7 @@ from six.moves.urllib.parse import urlparse
 from moto.core.responses import BaseResponse
 from moto.core.utils import amzn_request_id
 from moto.s3 import s3_backend
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
 from .exceptions import ValidationError
 

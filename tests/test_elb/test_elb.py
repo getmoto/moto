@@ -15,7 +15,7 @@ from nose.tools import assert_raises
 import sure  # noqa
 
 from moto import mock_elb, mock_ec2, mock_elb_deprecated, mock_ec2_deprecated
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_elb_deprecated

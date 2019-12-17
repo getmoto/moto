@@ -6,7 +6,7 @@ import sure  # noqa
 from moto.events import mock_events
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},

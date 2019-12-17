@@ -6,7 +6,7 @@ from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring, dict_from_querystring
 from moto.elbv2 import elbv2_backends
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 class InstanceResponse(BaseResponse):
     def describe_instances(self):

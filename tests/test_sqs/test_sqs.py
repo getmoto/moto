@@ -21,7 +21,7 @@ from moto import mock_sqs, mock_sqs_deprecated, settings
 from nose import SkipTest
 from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 @mock_sqs
 def test_create_fifo_queue_fail():

@@ -7,7 +7,7 @@ import os
 import string
 
 from cfnlint import decode, core
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 def generate_stack_id(stack_name, region="us-east-1", account="123456789"):
     random_id = uuid.uuid4()

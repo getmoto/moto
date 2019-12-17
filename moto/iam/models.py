@@ -14,7 +14,7 @@ from cryptography.hazmat.backends import default_backend
 from six.moves.urllib.parse import urlparse
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
@@ -44,8 +44,6 @@ from .utils import (
     random_resource_id,
     random_policy_id,
 )
-
-ACCOUNT_ID = '123456789012'
 
 
 class MFADevice(object):

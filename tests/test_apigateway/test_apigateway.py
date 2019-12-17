@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 
 import responses
 from moto import mock_apigateway, settings
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from nose.tools import assert_raises
 
 

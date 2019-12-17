@@ -14,7 +14,7 @@ from jose import jws
 from nose.tools import assert_raises
 
 from moto import mock_cognitoidp
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_cognitoidp

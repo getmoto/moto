@@ -42,7 +42,7 @@ from .utils import make_function_arn, make_function_ver_arn
 from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 logger = logging.getLogger(__name__)
 

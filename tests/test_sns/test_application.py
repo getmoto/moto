@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 import sure  # noqa
 
 

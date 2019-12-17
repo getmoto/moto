@@ -4,7 +4,7 @@ import boto3
 import sure  # noqa
 
 from moto import mock_ec2
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 def get_subnet_id(conn):

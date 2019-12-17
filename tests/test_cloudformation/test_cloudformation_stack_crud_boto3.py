@@ -11,7 +11,7 @@ import sure  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",

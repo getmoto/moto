@@ -28,7 +28,7 @@ from .utils import (
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
-from moto.iam.models import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 logger = logging.getLogger(__name__)

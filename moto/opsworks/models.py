@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 import uuid
 import datetime
 from random import choice

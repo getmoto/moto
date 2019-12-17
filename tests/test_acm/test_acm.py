@@ -9,7 +9,7 @@ import uuid
 from botocore.exceptions import ClientError
 
 from moto import mock_acm
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")

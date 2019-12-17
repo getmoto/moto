@@ -43,7 +43,7 @@ from moto import (
     mock_sqs_deprecated,
     mock_elbv2,
 )
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.dynamodb2.models import Table
 
 from .fixtures import (

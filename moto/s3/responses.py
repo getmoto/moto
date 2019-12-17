@@ -13,7 +13,7 @@ import xmltodict
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,

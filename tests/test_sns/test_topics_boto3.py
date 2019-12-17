@@ -8,7 +8,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from moto import mock_sns
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 @mock_sns
 def test_create_and_delete_topic():

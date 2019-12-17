@@ -8,7 +8,7 @@ import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
 from moto import mock_autoscaling
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from tests.helpers import requires_boto_gte
 
 

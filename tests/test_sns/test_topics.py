@@ -8,7 +8,7 @@ import sure  # noqa
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 
 @mock_sns_deprecated

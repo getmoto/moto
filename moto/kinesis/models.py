@@ -13,7 +13,7 @@ from hashlib import md5
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
