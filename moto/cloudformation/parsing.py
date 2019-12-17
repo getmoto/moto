@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import collections
 import functools
 import logging
 import copy
