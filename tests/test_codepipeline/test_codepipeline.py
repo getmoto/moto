@@ -1,7 +1,8 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
 import boto3
+import pytz
 import sure  # noqa
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
@@ -454,8 +455,8 @@ def test_get_pipeline():
     response["metadata"].should.equal(
         {
             "pipelineArn": "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline",
-            "created": datetime.now(timezone.utc),
-            "updated": datetime.now(timezone.utc),
+            "created": datetime.now(pytz.utc),
+            "updated": datetime.now(pytz.utc),
         }
     )
 
@@ -480,7 +481,7 @@ def test_update_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
     role_arn = get_role_arn()
     with freeze_time("2019-01-01 12:00:00"):
-        created_time = datetime.now(timezone.utc)
+        created_time = datetime.now(pytz.utc)
         client.create_pipeline(
             pipeline={
                 "name": "test-pipeline",
@@ -529,7 +530,7 @@ def test_update_pipeline():
         )
 
     with freeze_time("2019-01-02 12:00:00"):
-        updated_time = datetime.now(timezone.utc)
+        updated_time = datetime.now(pytz.utc)
         response = client.update_pipeline(
             pipeline={
                 "name": "test-pipeline",
@@ -800,14 +801,14 @@ def test_list_pipelines():
             {
                 "name": "test-pipeline-1",
                 "version": 1,
-                "created": datetime.now(timezone.utc),
-                "updated": datetime.now(timezone.utc),
+                "created": datetime.now(pytz.utc),
+                "updated": datetime.now(pytz.utc),
             },
             {
                 "name": "test-pipeline-2",
                 "version": 1,
-                "created": datetime.now(timezone.utc),
-                "updated": datetime.now(timezone.utc),
+                "created": datetime.now(pytz.utc),
+                "updated": datetime.now(pytz.utc),
             },
         ]
     )
@@ -867,8 +868,8 @@ def test_delete_pipeline():
             {
                 "name": "test-pipeline",
                 "version": 1,
-                "created": datetime.now(timezone.utc),
-                "updated": datetime.now(timezone.utc),
+                "created": datetime.now(pytz.utc),
+                "updated": datetime.now(pytz.utc),
             }
         ]
     )
