@@ -45,7 +45,8 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_config_query
 
-DEFAULT_ACCOUNT_ID = "123456789012"
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
 POP_STRINGS = [
     "capitalizeStart",
     "CapitalizeStart",

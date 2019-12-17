@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
 from moto.ec2.utils import filters_from_querystring
+from moto.core import ACCOUNT_ID
 
 
 def try_parse_int(value, default=None):
@@ -171,12 +172,15 @@ DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazon
   <return>true</return>
 </DeleteSecurityGroupResponse>"""
 
-DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+DESCRIBE_SECURITY_GROUPS_RESPONSE = (
+    """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <securityGroupInfo>
       {% for group in groups %}
           <item>
-             <ownerId>123456789012</ownerId>
+             <ownerId>"""
+    + ACCOUNT_ID
+    + """</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -196,7 +200,9 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>123456789012</userId>
+                                 <userId>"""
+    + ACCOUNT_ID
+    + """</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -225,7 +231,9 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                        <groups>
                           {% for source_group in rule.source_groups %}
                               <item>
-                                 <userId>123456789012</userId>
+                                 <userId>"""
+    + ACCOUNT_ID
+    + """</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -255,6 +263,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
       {% endfor %}
    </securityGroupInfo>
 </DescribeSecurityGroupsResponse>"""
+)
 
 AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE = """<AuthorizeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

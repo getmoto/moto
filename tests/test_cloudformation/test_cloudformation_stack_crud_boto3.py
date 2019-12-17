@@ -11,6 +11,7 @@ import sure  # noqa
 from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
+from moto.core import ACCOUNT_ID
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -174,17 +175,17 @@ def test_boto3_describe_stack_instances():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
     usw2_instance = cf_conn.describe_stack_instance(
         StackSetName="test_stack_set",
-        StackInstanceAccount="123456789012",
+        StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
     )
     use1_instance = cf_conn.describe_stack_instance(
         StackSetName="test_stack_set",
-        StackInstanceAccount="123456789012",
+        StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-east-1",
     )
 
@@ -192,13 +193,13 @@ def test_boto3_describe_stack_instances():
         "us-west-2"
     )
     usw2_instance["StackInstance"].should.have.key("Account").which.should.equal(
-        "123456789012"
+        ACCOUNT_ID
     )
     use1_instance["StackInstance"].should.have.key("Region").which.should.equal(
         "us-east-1"
     )
     use1_instance["StackInstance"].should.have.key("Account").which.should.equal(
-        "123456789012"
+        ACCOUNT_ID
     )
 
 
@@ -236,7 +237,7 @@ def test_boto3_stop_stack_set_operation():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
     operation_id = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")[
@@ -257,7 +258,7 @@ def test_boto3_describe_stack_set_operation():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
     operation_id = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")[
@@ -282,7 +283,7 @@ def test_boto3_list_stack_set_operation_results():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
     operation_id = cf_conn.list_stack_set_operations(StackSetName="test_stack_set")[
@@ -297,9 +298,7 @@ def test_boto3_list_stack_set_operation_results():
     )
 
     response["Summaries"].should.have.length_of(3)
-    response["Summaries"][0].should.have.key("Account").which.should.equal(
-        "123456789012"
-    )
+    response["Summaries"][0].should.have.key("Account").which.should.equal(ACCOUNT_ID)
     response["Summaries"][1].should.have.key("Status").which.should.equal("STOPPED")
 
 
@@ -321,28 +320,28 @@ def test_boto3_update_stack_instances():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-1", "us-west-2"],
     )
     cf_conn.update_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-west-1", "us-west-2"],
         ParameterOverrides=param_overrides,
     )
     usw2_instance = cf_conn.describe_stack_instance(
         StackSetName="test_stack_set",
-        StackInstanceAccount="123456789012",
+        StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
     )
     usw1_instance = cf_conn.describe_stack_instance(
         StackSetName="test_stack_set",
-        StackInstanceAccount="123456789012",
+        StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-1",
     )
     use1_instance = cf_conn.describe_stack_instance(
         StackSetName="test_stack_set",
-        StackInstanceAccount="123456789012",
+        StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-east-1",
     )
 
@@ -383,13 +382,13 @@ def test_boto3_delete_stack_instances():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
 
     cf_conn.delete_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1"],
         RetainStacks=False,
     )
@@ -410,7 +409,7 @@ def test_boto3_create_stack_instances():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
 
@@ -419,7 +418,7 @@ def test_boto3_create_stack_instances():
     ].should.have.length_of(2)
     cf_conn.list_stack_instances(StackSetName="test_stack_set")["Summaries"][0][
         "Account"
-    ].should.equal("123456789012")
+    ].should.equal(ACCOUNT_ID)
 
 
 @mock_cloudformation
@@ -440,13 +439,13 @@ def test_boto3_create_stack_instances_with_param_overrides():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
         ParameterOverrides=param_overrides,
     )
     usw2_instance = cf_conn.describe_stack_instance(
         StackSetName="test_stack_set",
-        StackInstanceAccount="123456789012",
+        StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
     )
 
@@ -509,12 +508,12 @@ def test_boto3_list_stack_set_operations():
     )
     cf_conn.create_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
     cf_conn.update_stack_instances(
         StackSetName="test_stack_set",
-        Accounts=["123456789012"],
+        Accounts=[ACCOUNT_ID],
         Regions=["us-east-1", "us-west-2"],
     )
 
@@ -682,12 +681,12 @@ def test_create_stack_with_notification_arn():
     cf.create_stack(
         StackName="test_stack_with_notifications",
         TemplateBody=dummy_template_json,
-        NotificationARNs=["arn:aws:sns:us-east-1:123456789012:fake-queue"],
+        NotificationARNs=["arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)],
     )
 
     stack = list(cf.stacks.all())[0]
     stack.notification_arns.should.contain(
-        "arn:aws:sns:us-east-1:123456789012:fake-queue"
+        "arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)
     )
 
 
@@ -697,10 +696,10 @@ def test_create_stack_with_role_arn():
     cf.create_stack(
         StackName="test_stack_with_notifications",
         TemplateBody=dummy_template_json,
-        RoleARN="arn:aws:iam::123456789012:role/moto",
+        RoleARN="arn:aws:iam::{}:role/moto".format(ACCOUNT_ID),
     )
     stack = list(cf.stacks.all())[0]
-    stack.role_arn.should.equal("arn:aws:iam::123456789012:role/moto")
+    stack.role_arn.should.equal("arn:aws:iam::{}:role/moto".format(ACCOUNT_ID))
 
 
 @mock_cloudformation
@@ -1019,7 +1018,7 @@ def test_describe_updated_stack():
 
     cf_conn.update_stack(
         StackName="test_stack",
-        RoleARN="arn:aws:iam::123456789012:role/moto",
+        RoleARN="arn:aws:iam::{}:role/moto".format(ACCOUNT_ID),
         TemplateBody=dummy_update_template_json,
         Tags=[{"Key": "foo", "Value": "baz"}],
     )
@@ -1030,7 +1029,7 @@ def test_describe_updated_stack():
     stack_by_id["StackId"].should.equal(stack["StackId"])
     stack_by_id["StackName"].should.equal("test_stack")
     stack_by_id["StackStatus"].should.equal("UPDATE_COMPLETE")
-    stack_by_id["RoleARN"].should.equal("arn:aws:iam::123456789012:role/moto")
+    stack_by_id["RoleARN"].should.equal("arn:aws:iam::{}:role/moto".format(ACCOUNT_ID))
     stack_by_id["Tags"].should.equal([{"Key": "foo", "Value": "baz"}])
 
 

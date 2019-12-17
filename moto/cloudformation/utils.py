@@ -7,6 +7,7 @@ import os
 import string
 
 from cfnlint import decode, core
+from moto.core import ACCOUNT_ID
 
 
 def generate_stack_id(stack_name, region="us-east-1", account="123456789"):
@@ -29,8 +30,8 @@ def generate_stackset_id(stackset_name):
 
 
 def generate_stackset_arn(stackset_id, region_name):
-    return "arn:aws:cloudformation:{}:123456789012:stackset/{}".format(
-        region_name, stackset_id
+    return "arn:aws:cloudformation:{}:{}:stackset/{}".format(
+        region_name, ACCOUNT_ID, stackset_id
     )
 
 

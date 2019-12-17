@@ -43,6 +43,7 @@ from moto import (
     mock_sqs_deprecated,
     mock_elbv2,
 )
+from moto.core import ACCOUNT_ID
 from moto.dynamodb2.models import Table
 
 from .fixtures import (
@@ -1912,7 +1913,7 @@ def test_stack_spot_fleet():
                 "Type": "AWS::EC2::SpotFleet",
                 "Properties": {
                     "SpotFleetRequestConfigData": {
-                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
                         "SpotPrice": "0.12",
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
@@ -1933,7 +1934,9 @@ def test_stack_spot_fleet():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::123456789012:role/fleet"
+                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
+                                        ACCOUNT_ID
+                                    )
                                 },
                                 "WeightedCapacity": "4",
                                 "SpotPrice": "10.00",
@@ -1966,7 +1969,7 @@ def test_stack_spot_fleet():
     spot_fleet_config["SpotPrice"].should.equal("0.12")
     spot_fleet_config["TargetCapacity"].should.equal(6)
     spot_fleet_config["IamFleetRole"].should.equal(
-        "arn:aws:iam::123456789012:role/fleet"
+        "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)
     )
     spot_fleet_config["AllocationStrategy"].should.equal("diversified")
     spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
@@ -1999,7 +2002,7 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                 "Type": "AWS::EC2::SpotFleet",
                 "Properties": {
                     "SpotFleetRequestConfigData": {
-                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
                         "LaunchSpecifications": [
@@ -2018,7 +2021,9 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::123456789012:role/fleet"
+                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
+                                        ACCOUNT_ID
+                                    )
                                 },
                                 "WeightedCapacity": "4",
                             },

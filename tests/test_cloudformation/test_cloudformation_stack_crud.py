@@ -14,6 +14,7 @@ import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
+from moto.core import ACCOUNT_ID
 
 from moto import (
     mock_cloudformation_deprecated,
@@ -129,12 +130,12 @@ def test_create_stack_with_notification_arn():
     conn.create_stack(
         "test_stack_with_notifications",
         template_body=dummy_template_json,
-        notification_arns="arn:aws:sns:us-east-1:123456789012:fake-queue",
+        notification_arns="arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID),
     )
 
     stack = conn.describe_stacks()[0]
     [n.value for n in stack.notification_arns].should.contain(
-        "arn:aws:sns:us-east-1:123456789012:fake-queue"
+        "arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)
     )
 
 

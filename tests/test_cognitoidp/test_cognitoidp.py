@@ -14,6 +14,7 @@ from jose import jws
 from nose.tools import assert_raises
 
 from moto import mock_cognitoidp
+from moto.core import ACCOUNT_ID
 
 
 @mock_cognitoidp
@@ -132,7 +133,9 @@ def test_create_user_pool_domain_custom_domain_config():
 
     domain = str(uuid.uuid4())
     custom_domain_config = {
-        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012"
+        "CertificateArn": "arn:aws:acm:us-east-1:{}:certificate/123456789012".format(
+            ACCOUNT_ID
+        )
     }
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     result = conn.create_user_pool_domain(
@@ -177,7 +180,9 @@ def test_update_user_pool_domain():
 
     domain = str(uuid.uuid4())
     custom_domain_config = {
-        "CertificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/123456789012"
+        "CertificateArn": "arn:aws:acm:us-east-1:{}:certificate/123456789012".format(
+            ACCOUNT_ID
+        )
     }
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     conn.create_user_pool_domain(UserPoolId=user_pool_id, Domain=domain)

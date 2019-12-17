@@ -28,11 +28,10 @@ from .utils import (
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
-
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 logger = logging.getLogger(__name__)
-DEFAULT_ACCOUNT_ID = 123456789012
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$"
 )
