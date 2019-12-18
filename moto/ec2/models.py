@@ -1722,6 +1722,12 @@ class SecurityGroup(TaggedEC2Resource):
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
 
+        # Append default IPv6 egress rule for VPCs with IPv6 support
+        if vpc_id:
+            vpc = self.ec2_backend.vpcs.get(vpc_id)
+            if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
+                self.egress_rules.append(SecurityRule("-1", None, None, [], []))
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
