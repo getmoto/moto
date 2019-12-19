@@ -1,11 +1,9 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
-import pytz
 import sure  # noqa
 from botocore.exceptions import ClientError
-from freezegun import freeze_time
 from nose.tools import assert_raises
 
 from moto import mock_codepipeline, mock_iam
@@ -347,7 +345,6 @@ def test_create_pipeline_errors():
     )
 
 
-@freeze_time("2019-01-01 12:00:00")
 @mock_codepipeline
 def test_get_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
@@ -452,13 +449,11 @@ def test_get_pipeline():
             "version": 1,
         }
     )
-    response["metadata"].should.equal(
-        {
-            "pipelineArn": "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline",
-            "created": datetime.now(pytz.utc),
-            "updated": datetime.now(pytz.utc),
-        }
+    response["metadata"]["pipelineArn"].should.equal(
+        "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline"
     )
+    response["metadata"]["created"].should.be.a(datetime)
+    response["metadata"]["updated"].should.be.a(datetime)
 
 
 @mock_codepipeline
@@ -480,102 +475,102 @@ def test_get_pipeline_errors():
 def test_update_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
     role_arn = get_role_arn()
-    with freeze_time("2019-01-01 12:00:00"):
-        created_time = datetime.now(pytz.utc)
-        client.create_pipeline(
-            pipeline={
-                "name": "test-pipeline",
-                "roleArn": role_arn,
-                "artifactStore": {
-                    "type": "S3",
-                    "location": "codepipeline-us-east-1-123456789012",
-                },
-                "stages": [
-                    {
-                        "name": "Stage-1",
-                        "actions": [
-                            {
-                                "name": "Action-1",
-                                "actionTypeId": {
-                                    "category": "Source",
-                                    "owner": "AWS",
-                                    "provider": "S3",
-                                    "version": "1",
-                                },
-                                "configuration": {
-                                    "S3Bucket": "test-bucket",
-                                    "S3ObjectKey": "test-object",
-                                },
-                                "outputArtifacts": [{"name": "artifact"},],
-                            },
-                        ],
-                    },
-                    {
-                        "name": "Stage-2",
-                        "actions": [
-                            {
-                                "name": "Action-1",
-                                "actionTypeId": {
-                                    "category": "Approval",
-                                    "owner": "AWS",
-                                    "provider": "Manual",
-                                    "version": "1",
-                                },
-                            },
-                        ],
-                    },
-                ],
+    client.create_pipeline(
+        pipeline={
+            "name": "test-pipeline",
+            "roleArn": role_arn,
+            "artifactStore": {
+                "type": "S3",
+                "location": "codepipeline-us-east-1-123456789012",
             },
-            tags=[{"key": "key", "value": "value"}],
-        )
-
-    with freeze_time("2019-01-02 12:00:00"):
-        updated_time = datetime.now(pytz.utc)
-        response = client.update_pipeline(
-            pipeline={
-                "name": "test-pipeline",
-                "roleArn": role_arn,
-                "artifactStore": {
-                    "type": "S3",
-                    "location": "codepipeline-us-east-1-123456789012",
+            "stages": [
+                {
+                    "name": "Stage-1",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Source",
+                                "owner": "AWS",
+                                "provider": "S3",
+                                "version": "1",
+                            },
+                            "configuration": {
+                                "S3Bucket": "test-bucket",
+                                "S3ObjectKey": "test-object",
+                            },
+                            "outputArtifacts": [{"name": "artifact"},],
+                        },
+                    ],
                 },
-                "stages": [
-                    {
-                        "name": "Stage-1",
-                        "actions": [
-                            {
-                                "name": "Action-1",
-                                "actionTypeId": {
-                                    "category": "Source",
-                                    "owner": "AWS",
-                                    "provider": "S3",
-                                    "version": "1",
-                                },
-                                "configuration": {
-                                    "S3Bucket": "different-bucket",
-                                    "S3ObjectKey": "test-object",
-                                },
-                                "outputArtifacts": [{"name": "artifact"},],
+                {
+                    "name": "Stage-2",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Approval",
+                                "owner": "AWS",
+                                "provider": "Manual",
+                                "version": "1",
                             },
-                        ],
-                    },
-                    {
-                        "name": "Stage-2",
-                        "actions": [
-                            {
-                                "name": "Action-1",
-                                "actionTypeId": {
-                                    "category": "Approval",
-                                    "owner": "AWS",
-                                    "provider": "Manual",
-                                    "version": "1",
-                                },
+                        },
+                    ],
+                },
+            ],
+        },
+        tags=[{"key": "key", "value": "value"}],
+    )
+
+    response = client.get_pipeline(name="test-pipeline")
+    created_time = response["metadata"]["created"]
+    updated_time = response["metadata"]["updated"]
+
+    response = client.update_pipeline(
+        pipeline={
+            "name": "test-pipeline",
+            "roleArn": role_arn,
+            "artifactStore": {
+                "type": "S3",
+                "location": "codepipeline-us-east-1-123456789012",
+            },
+            "stages": [
+                {
+                    "name": "Stage-1",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Source",
+                                "owner": "AWS",
+                                "provider": "S3",
+                                "version": "1",
                             },
-                        ],
-                    },
-                ],
-            }
-        )
+                            "configuration": {
+                                "S3Bucket": "different-bucket",
+                                "S3ObjectKey": "test-object",
+                            },
+                            "outputArtifacts": [{"name": "artifact"},],
+                        },
+                    ],
+                },
+                {
+                    "name": "Stage-2",
+                    "actions": [
+                        {
+                            "name": "Action-1",
+                            "actionTypeId": {
+                                "category": "Approval",
+                                "owner": "AWS",
+                                "provider": "Manual",
+                                "version": "1",
+                            },
+                        },
+                    ],
+                },
+            ],
+        }
+    )
 
     response["pipeline"].should.equal(
         {
@@ -630,14 +625,9 @@ def test_update_pipeline():
         }
     )
 
-    response = client.get_pipeline(name="test-pipeline")
-    response["metadata"].should.equal(
-        {
-            "pipelineArn": "arn:aws:codepipeline:us-east-1:123456789012:test-pipeline",
-            "created": created_time,
-            "updated": updated_time,
-        }
-    )
+    metadata = client.get_pipeline(name="test-pipeline")["metadata"]
+    metadata["created"].should.equal(created_time)
+    metadata["updated"].should.be.greater_than(updated_time)
 
 
 @mock_codepipeline
@@ -699,7 +689,6 @@ def test_update_pipeline_errors():
     )
 
 
-@freeze_time("2019-01-01 12:00:00")
 @mock_codepipeline
 def test_list_pipelines():
     client = boto3.client("codepipeline", region_name="us-east-1")
@@ -796,25 +785,17 @@ def test_list_pipelines():
 
     response = client.list_pipelines()
 
-    response["pipelines"].should.equal(
-        [
-            {
-                "name": "test-pipeline-1",
-                "version": 1,
-                "created": datetime.now(pytz.utc),
-                "updated": datetime.now(pytz.utc),
-            },
-            {
-                "name": "test-pipeline-2",
-                "version": 1,
-                "created": datetime.now(pytz.utc),
-                "updated": datetime.now(pytz.utc),
-            },
-        ]
-    )
+    response["pipelines"].should.have.length_of(2)
+    response["pipelines"][0]["name"].should.equal("test-pipeline-1")
+    response["pipelines"][0]["version"].should.equal(1)
+    response["pipelines"][0]["created"].should.be.a(datetime)
+    response["pipelines"][0]["updated"].should.be.a(datetime)
+    response["pipelines"][1]["name"].should.equal("test-pipeline-2")
+    response["pipelines"][1]["version"].should.equal(1)
+    response["pipelines"][1]["created"].should.be.a(datetime)
+    response["pipelines"][1]["updated"].should.be.a(datetime)
 
 
-@freeze_time("2019-01-01 12:00:00")
 @mock_codepipeline
 def test_delete_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
@@ -863,16 +844,7 @@ def test_delete_pipeline():
             ],
         },
     )
-    client.list_pipelines()["pipelines"].should.equal(
-        [
-            {
-                "name": "test-pipeline",
-                "version": 1,
-                "created": datetime.now(pytz.utc),
-                "updated": datetime.now(pytz.utc),
-            }
-        ]
-    )
+    client.list_pipelines()["pipelines"].should.have.length_of(1)
 
     client.delete_pipeline(name="test-pipeline")
 
