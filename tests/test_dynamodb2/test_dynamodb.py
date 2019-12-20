@@ -348,6 +348,8 @@ def test_put_item_with_special_chars():
             '"': {"S": "foo"},
         },
     )
+
+
 @requires_boto_gte("2.9")
 @mock_dynamodb2
 def test_put_item_with_streams():
@@ -363,7 +365,10 @@ def test_put_item_with_streams():
         TableName=name,
         KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        StreamSpecification={'StreamEnabled': True, 'StreamViewType': 'NEW_AND_OLD_IMAGES'},
+        StreamSpecification={
+            "StreamEnabled": True,
+            "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
@@ -374,7 +379,7 @@ def test_put_item_with_streams():
             "subject": {"S": "Check this out!"},
             "Body": {"S": "http://url_to_lolcat.gif"},
             "SentBy": {"S": "test"},
-            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}}
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
         },
     )
 
