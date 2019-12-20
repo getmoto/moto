@@ -1737,9 +1737,7 @@ def test_delete_saml_provider():
 def test_create_role_defaults():
     """Tests default values"""
     conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="{}",
-    )
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
 
     # Get role:
     role = conn.get_role(RoleName="my-role")["Role"]
@@ -2672,3 +2670,56 @@ def test_get_account_summary():
             "GroupsQuota": 300,
         }
     )
+
+
+@mock_iam()
+def test_list_user_tags():
+    """Tests both setting a tags on a user in create_user and list_user_tags"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="kenny-bania")
+    conn.create_user(
+        UserName="jackie-chiles", Tags=[{"Key": "Sue-Allen", "Value": "Oh-Henry"}]
+    )
+    conn.create_user(
+        UserName="cosmo",
+        Tags=[
+            {"Key": "Stan", "Value": "The Caddy"},
+            {"Key": "like-a", "Value": "glove"},
+        ],
+    )
+
+    assert conn.list_user_tags(UserName="kenny-bania") == {
+        "Tags": [],
+        "IsTruncated": False,
+        "ResponseMetadata": {
+            "RequestId": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+            "HTTPStatusCode": 200,
+            "HTTPHeaders": {"server": "amazon.com"},
+            "RetryAttempts": 0,
+        },
+    }
+
+    assert conn.list_user_tags(UserName="jackie-chiles") == {
+        "Tags": [{"Key": "Sue-Allen", "Value": "Oh-Henry"}],
+        "IsTruncated": False,
+        "ResponseMetadata": {
+            "RequestId": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+            "HTTPStatusCode": 200,
+            "HTTPHeaders": {"server": "amazon.com"},
+            "RetryAttempts": 0,
+        },
+    }
+
+    assert conn.list_user_tags(UserName="cosmo") == {
+        "Tags": [
+            {"Key": "Stan", "Value": "The Caddy"},
+            {"Key": "like-a", "Value": "glove"},
+        ],
+        "IsTruncated": False,
+        "ResponseMetadata": {
+            "RequestId": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+            "HTTPStatusCode": 200,
+            "HTTPHeaders": {"server": "amazon.com"},
+            "RetryAttempts": 0,
+        },
+    }

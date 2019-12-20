@@ -440,8 +440,8 @@ class IamResponse(BaseResponse):
     def create_user(self):
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
-
-        user = iam_backend.create_user(user_name, path)
+        tags = self._get_multi_param("Tags.member")
+        user = iam_backend.create_user(user_name, path, tags)
         template = self.response_template(USER_TEMPLATE)
         return template.render(action="Create", user=user)
 
@@ -537,6 +537,12 @@ class IamResponse(BaseResponse):
         policies = iam_backend.list_user_policies(user_name)
         template = self.response_template(LIST_USER_POLICIES_TEMPLATE)
         return template.render(policies=policies)
+
+    def list_user_tags(self):
+        user_name = self._get_param("UserName")
+        tags = iam_backend.list_user_tags(user_name)
+        template = self.response_template(LIST_USER_TAGS_TEMPLATE)
+        return template.render(user_tags=tags or [])
 
     def put_user_policy(self):
         user_name = self._get_param("UserName")
@@ -1698,6 +1704,23 @@ LIST_USER_POLICIES_TEMPLATE = """<ListUserPoliciesResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListUserPoliciesResponse>"""
+
+LIST_USER_TAGS_TEMPLATE = """<ListUserTagsResponse>
+   <ListUserTagsResult>
+      <Tags>
+        {% for tag in user_tags %}
+          <item>
+            <Key>{{ tag.Key }}</Key>
+            <Value>{{ tag.Value }}</Value>
+          </item>
+        {% endfor %}
+       </Tags>
+      <IsTruncated>false</IsTruncated>
+   </ListUserTagsResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListUserTagsResponse>"""
 
 CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
    <CreateAccessKeyResult>
