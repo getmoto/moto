@@ -1,0 +1,41 @@
+import json
+
+from moto.core.responses import BaseResponse
+from .models import codepipeline_backends
+
+
+class CodePipelineResponse(BaseResponse):
+    @property
+    def codepipeline_backend(self):
+        return codepipeline_backends[self.region]
+
+    def create_pipeline(self):
+        pipeline, tags = self.codepipeline_backend.create_pipeline(
+            self.region, self._get_param("pipeline"), self._get_param("tags")
+        )
+
+        return json.dumps({"pipeline": pipeline, "tags": tags})
+
+    def get_pipeline(self):
+        pipeline, metadata = self.codepipeline_backend.get_pipeline(
+            self._get_param("name")
+        )
+
+        return json.dumps({"pipeline": pipeline, "metadata": metadata})
+
+    def update_pipeline(self):
+        pipeline = self.codepipeline_backend.update_pipeline(
+            self._get_param("pipeline")
+        )
+
+        return json.dumps({"pipeline": pipeline})
+
+    def list_pipelines(self):
+        pipelines = self.codepipeline_backend.list_pipelines()
+
+        return json.dumps({"pipelines": pipelines})
+
+    def delete_pipeline(self):
+        self.codepipeline_backend.delete_pipeline(self._get_param("name"))
+
+        return ""

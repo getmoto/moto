@@ -8,6 +8,7 @@ from moto.awslambda import lambda_backends
 from moto.batch import batch_backends
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
+from moto.codepipeline import codepipeline_backends
 from moto.cognitoidentity import cognitoidentity_backends
 from moto.cognitoidp import cognitoidp_backends
 from moto.config import config_backends
@@ -60,6 +61,7 @@ BACKENDS = {
     "batch": batch_backends,
     "cloudformation": cloudformation_backends,
     "cloudwatch": cloudwatch_backends,
+    "codepipeline": codepipeline_backends,
     "cognito-identity": cognitoidentity_backends,
     "cognito-idp": cognitoidp_backends,
     "config": config_backends,
