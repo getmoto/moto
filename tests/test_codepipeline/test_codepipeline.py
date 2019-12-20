@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
 import boto3
 import sure  # noqa
@@ -857,18 +857,21 @@ def test_delete_pipeline():
 @mock_iam
 def get_role_arn():
     iam = boto3.client("iam", region_name="us-east-1")
-    return iam.create_role(
-        RoleName="test-role",
-        AssumeRolePolicyDocument=json.dumps(
-            {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {"Service": "codepipeline.amazonaws.com"},
-                        "Action": "sts:AssumeRole",
-                    }
-                ],
-            }
-        ),
-    )["Role"]["Arn"]
+    try:
+        return iam.get_role(RoleName="test-role")["Role"]["Arn"]
+    except ClientError:
+        return iam.create_role(
+            RoleName="test-role",
+            AssumeRolePolicyDocument=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"Service": "codepipeline.amazonaws.com"},
+                            "Action": "sts:AssumeRole",
+                        }
+                    ],
+                }
+            ),
+        )["Role"]["Arn"]
