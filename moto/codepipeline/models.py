@@ -15,7 +15,7 @@ from moto.codepipeline.exceptions import (
 )
 from moto.core import BaseBackend, BaseModel
 
-DEFAULT_ACCOUNT_ID = "123456789012"
+from moto.iam.models import ACCOUNT_ID
 
 
 class CodePipeline(BaseModel):
@@ -27,7 +27,7 @@ class CodePipeline(BaseModel):
         self.tags = {}
 
         self._arn = "arn:aws:codepipeline:{0}:{1}:{2}".format(
-            region, DEFAULT_ACCOUNT_ID, pipeline["name"]
+            region, ACCOUNT_ID, pipeline["name"]
         )
         self._created = datetime.utcnow()
         self._updated = datetime.utcnow()
@@ -67,7 +67,7 @@ class CodePipelineBackend(BaseBackend):
         if pipeline["name"] in self.pipelines:
             raise InvalidStructureException(
                 "A pipeline with the name '{0}' already exists in account '{1}'".format(
-                    pipeline["name"], DEFAULT_ACCOUNT_ID
+                    pipeline["name"], ACCOUNT_ID
                 )
             )
 
@@ -104,7 +104,7 @@ class CodePipelineBackend(BaseBackend):
         if not codepipeline:
             raise PipelineNotFoundException(
                 "Account '{0}' does not have a pipeline with name '{1}'".format(
-                    DEFAULT_ACCOUNT_ID, name
+                    ACCOUNT_ID, name
                 )
             )
 
@@ -116,7 +116,7 @@ class CodePipelineBackend(BaseBackend):
         if not codepipeline:
             raise ResourceNotFoundException(
                 "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
-                    DEFAULT_ACCOUNT_ID, pipeline["name"]
+                    ACCOUNT_ID, pipeline["name"]
                 )
             )
 
