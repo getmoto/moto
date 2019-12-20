@@ -348,6 +348,35 @@ def test_put_item_with_special_chars():
             '"': {"S": "foo"},
         },
     )
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_put_item_with_streams():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        StreamSpecification={'StreamEnabled': True, 'StreamViewType': 'NEW_AND_OLD_IMAGES'},
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}}
+        },
+    )
 
 
 @requires_boto_gte("2.9")
