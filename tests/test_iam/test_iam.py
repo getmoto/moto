@@ -2687,39 +2687,16 @@ def test_list_user_tags():
             {"Key": "like-a", "Value": "glove"},
         ],
     )
+    response = conn.list_user_tags(UserName="kenny-bania")
+    response["Tags"].should.equal([])
+    response["IsTruncated"].should_not.be.ok
 
-    assert conn.list_user_tags(UserName="kenny-bania") == {
-        "Tags": [],
-        "IsTruncated": False,
-        "ResponseMetadata": {
-            "RequestId": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-            "HTTPStatusCode": 200,
-            "HTTPHeaders": {"server": "amazon.com"},
-            "RetryAttempts": 0,
-        },
-    }
+    response = conn.list_user_tags(UserName="jackie-chiles")
+    response["Tags"].should.equal([{"Key": "Sue-Allen", "Value": "Oh-Henry"}])
+    response["IsTruncated"].should_not.be.ok
 
-    assert conn.list_user_tags(UserName="jackie-chiles") == {
-        "Tags": [{"Key": "Sue-Allen", "Value": "Oh-Henry"}],
-        "IsTruncated": False,
-        "ResponseMetadata": {
-            "RequestId": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-            "HTTPStatusCode": 200,
-            "HTTPHeaders": {"server": "amazon.com"},
-            "RetryAttempts": 0,
-        },
-    }
-
-    assert conn.list_user_tags(UserName="cosmo") == {
-        "Tags": [
-            {"Key": "Stan", "Value": "The Caddy"},
-            {"Key": "like-a", "Value": "glove"},
-        ],
-        "IsTruncated": False,
-        "ResponseMetadata": {
-            "RequestId": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-            "HTTPStatusCode": 200,
-            "HTTPHeaders": {"server": "amazon.com"},
-            "RetryAttempts": 0,
-        },
-    }
+    response = conn.list_user_tags(UserName="cosmo")
+    response["Tags"].should.equal(
+        [{"Key": "Stan", "Value": "The Caddy"}, {"Key": "like-a", "Value": "glove"}]
+    )
+    response["IsTruncated"].should_not.be.ok
