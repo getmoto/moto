@@ -145,6 +145,21 @@ class CodePipelineBackend(BaseBackend):
     def delete_pipeline(self, name):
         self.pipelines.pop(name, None)
 
+    def list_tags_for_resource(self, arn):
+        name = arn.split(":")[-1]
+        pipeline = self.pipelines.get(name)
+
+        if not pipeline:
+            raise ResourceNotFoundException(
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    ACCOUNT_ID, name
+                )
+            )
+
+        tags = [{"key": key, "value": value} for key, value in pipeline.tags.items()]
+
+        return tags
+
 
 codepipeline_backends = {}
 for region in Session().get_available_regions("codepipeline"):
