@@ -133,33 +133,35 @@ class IoTResponse(BaseResponse):
 
     def describe_job(self):
         job = self.iot_backend.describe_job(job_id=self._get_param("jobId"))
-        return json.dumps(dict(
-            documentSource=job.document_source,
-            job=dict(
-                comment=job.comment,
-                completedAt=job.completed_at,
-                createdAt=job.created_at,
-                description=job.description,
-                documentParameters=job.document_parameters,
-                forceCanceled=job.force,
-                reasonCode=job.reason_code,
-                jobArn=job.job_arn,
-                jobExecutionsRolloutConfig=job.job_executions_rollout_config,
-                jobId=job.job_id,
-                jobProcessDetails=job.job_process_details,
-                lastUpdatedAt=job.last_updated_at,
-                presignedUrlConfig=job.presigned_url_config,
-                status=job.status,
-                targets=job.targets,
-                targetSelection=job.target_selection
-            )))
+        return json.dumps(
+            dict(
+                documentSource=job.document_source,
+                job=dict(
+                    comment=job.comment,
+                    completedAt=job.completed_at,
+                    createdAt=job.created_at,
+                    description=job.description,
+                    documentParameters=job.document_parameters,
+                    forceCanceled=job.force,
+                    reasonCode=job.reason_code,
+                    jobArn=job.job_arn,
+                    jobExecutionsRolloutConfig=job.job_executions_rollout_config,
+                    jobId=job.job_id,
+                    jobProcessDetails=job.job_process_details,
+                    lastUpdatedAt=job.last_updated_at,
+                    presignedUrlConfig=job.presigned_url_config,
+                    status=job.status,
+                    targets=job.targets,
+                    targetSelection=job.target_selection,
+                ),
+            )
+        )
 
     def delete_job(self):
         job_id = self._get_param("jobId")
         force = self._get_bool_param("force")
 
-        self.iot_backend.delete_job(job_id=job_id,
-                                    force=force)
+        self.iot_backend.delete_job(job_id=job_id, force=force)
 
         return json.dumps(dict())
 
@@ -169,10 +171,9 @@ class IoTResponse(BaseResponse):
         comment = self._get_param("comment")
         force = self._get_bool_param("force")
 
-        job = self.iot_backend.cancel_job(job_id=job_id,
-                                          reason_code=reason_code,
-                                          comment=comment,
-                                          force=force)
+        job = self.iot_backend.cancel_job(
+            job_id=job_id, reason_code=reason_code, comment=comment, force=force
+        )
 
         return json.dumps(job.to_dict())
 
@@ -180,25 +181,29 @@ class IoTResponse(BaseResponse):
         job = self.iot_backend.get_job_document(job_id=self._get_param("jobId"))
 
         if job.document is not None:
-            return json.dumps({'document': job.document})
+            return json.dumps({"document": job.document})
         else:
             # job.document_source is not None:
             # TODO: needs to be implemented to get document_source's content from S3
-            return json.dumps({'document': ''})
+            return json.dumps({"document": ""})
 
     def list_jobs(self):
-        status = self._get_param("status"),
-        target_selection = self._get_param("targetSelection"),
-        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
+        status = (self._get_param("status"),)
+        target_selection = (self._get_param("targetSelection"),)
+        max_results = self._get_int_param(
+            "maxResults", 50
+        )  # not the default, but makes testing easier
         previous_next_token = self._get_param("nextToken")
-        thing_group_name = self._get_param("thingGroupName"),
+        thing_group_name = (self._get_param("thingGroupName"),)
         thing_group_id = self._get_param("thingGroupId")
-        jobs, next_token = self.iot_backend.list_jobs(status=status,
-                                                      target_selection=target_selection,
-                                                      max_results=max_results,
-                                                      token=previous_next_token,
-                                                      thing_group_name=thing_group_name,
-                                                      thing_group_id=thing_group_id)
+        jobs, next_token = self.iot_backend.list_jobs(
+            status=status,
+            target_selection=target_selection,
+            max_results=max_results,
+            token=previous_next_token,
+            thing_group_name=thing_group_name,
+            thing_group_id=thing_group_id,
+        )
 
         return json.dumps(dict(jobs=jobs, nextToken=next_token))
 
@@ -206,9 +211,9 @@ class IoTResponse(BaseResponse):
         job_id = self._get_param("jobId")
         thing_name = self._get_param("thingName")
         execution_number = self._get_int_param("executionNumber")
-        job_execution = self.iot_backend.describe_job_execution(job_id=job_id,
-                                                                thing_name=thing_name,
-                                                                execution_number=execution_number)
+        job_execution = self.iot_backend.describe_job_execution(
+            job_id=job_id, thing_name=thing_name, execution_number=execution_number
+        )
 
         return json.dumps(dict(execution=job_execution.to_get_dict()))
 
@@ -219,11 +224,13 @@ class IoTResponse(BaseResponse):
         expected_version = self._get_int_param("expectedVersion")
         status_details = self._get_param("statusDetails")
 
-        self.iot_backend.cancel_job_execution(job_id=job_id,
-                                              thing_name=thing_name,
-                                              force=force,
-                                              expected_version=expected_version,
-                                              status_details=status_details)
+        self.iot_backend.cancel_job_execution(
+            job_id=job_id,
+            thing_name=thing_name,
+            force=force,
+            expected_version=expected_version,
+            status_details=status_details,
+        )
 
         return json.dumps(dict())
 
@@ -233,34 +240,41 @@ class IoTResponse(BaseResponse):
         execution_number = self._get_int_param("executionNumber")
         force = self._get_bool_param("force")
 
-        self.iot_backend.delete_job_execution(job_id=job_id,
-                                              thing_name=thing_name,
-                                              execution_number=execution_number,
-                                              force=force)
+        self.iot_backend.delete_job_execution(
+            job_id=job_id,
+            thing_name=thing_name,
+            execution_number=execution_number,
+            force=force,
+        )
 
         return json.dumps(dict())
 
     def list_job_executions_for_job(self):
         job_id = self._get_param("jobId")
         status = self._get_param("status")
-        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
+        max_results = self._get_int_param(
+            "maxResults", 50
+        )  # not the default, but makes testing easier
         next_token = self._get_param("nextToken")
-        job_executions, next_token = self.iot_backend.list_job_executions_for_job(job_id=job_id,
-                                                                                  status=status,
-                                                                                  max_results=max_results,
-                                                                                  next_token=next_token)
+        job_executions, next_token = self.iot_backend.list_job_executions_for_job(
+            job_id=job_id, status=status, max_results=max_results, next_token=next_token
+        )
 
         return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
 
     def list_job_executions_for_thing(self):
         thing_name = self._get_param("thingName")
         status = self._get_param("status")
-        max_results = self._get_int_param("maxResults", 50)  # not the default, but makes testing easier
+        max_results = self._get_int_param(
+            "maxResults", 50
+        )  # not the default, but makes testing easier
         next_token = self._get_param("nextToken")
-        job_executions, next_token = self.iot_backend.list_job_executions_for_thing(thing_name=thing_name,
-                                                                                    status=status,
-                                                                                    max_results=max_results,
-                                                                                    next_token=next_token)
+        job_executions, next_token = self.iot_backend.list_job_executions_for_thing(
+            thing_name=thing_name,
+            status=status,
+            max_results=max_results,
+            next_token=next_token,
+        )
 
         return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
 
@@ -352,35 +366,39 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict())
 
     def create_policy_version(self):
-        policy_name = self._get_param('policyName')
-        policy_document = self._get_param('policyDocument')
-        set_as_default = self._get_bool_param('setAsDefault')
-        policy_version = self.iot_backend.create_policy_version(policy_name, policy_document, set_as_default)
+        policy_name = self._get_param("policyName")
+        policy_document = self._get_param("policyDocument")
+        set_as_default = self._get_bool_param("setAsDefault")
+        policy_version = self.iot_backend.create_policy_version(
+            policy_name, policy_document, set_as_default
+        )
 
         return json.dumps(dict(policy_version.to_dict_at_creation()))
 
     def set_default_policy_version(self):
-        policy_name = self._get_param('policyName')
-        version_id = self._get_param('policyVersionId')
+        policy_name = self._get_param("policyName")
+        version_id = self._get_param("policyVersionId")
         self.iot_backend.set_default_policy_version(policy_name, version_id)
 
         return json.dumps(dict())
 
     def get_policy_version(self):
-        policy_name = self._get_param('policyName')
-        version_id = self._get_param('policyVersionId')
+        policy_name = self._get_param("policyName")
+        version_id = self._get_param("policyVersionId")
         policy_version = self.iot_backend.get_policy_version(policy_name, version_id)
         return json.dumps(dict(policy_version.to_get_dict()))
 
     def list_policy_versions(self):
-        policy_name = self._get_param('policyName')
-        policiy_versions = self.iot_backend.list_policy_versions(policy_name=policy_name)
+        policy_name = self._get_param("policyName")
+        policiy_versions = self.iot_backend.list_policy_versions(
+            policy_name=policy_name
+        )
 
         return json.dumps(dict(policyVersions=[_.to_dict() for _ in policiy_versions]))
 
     def delete_policy_version(self):
-        policy_name = self._get_param('policyName')
-        version_id = self._get_param('policyVersionId')
+        policy_name = self._get_param("policyName")
+        version_id = self._get_param("policyVersionId")
         self.iot_backend.delete_policy_version(policy_name, version_id)
 
         return json.dumps(dict())
@@ -392,15 +410,15 @@ class IoTResponse(BaseResponse):
         return json.dumps(dict())
 
     def list_attached_policies(self):
-        principal = unquote(self._get_param('target'))
+        principal = unquote(self._get_param("target"))
         # marker = self._get_param("marker")
         # page_size = self._get_int_param("pageSize")
-        policies = self.iot_backend.list_attached_policies(
-            target=principal
-        )
+        policies = self.iot_backend.list_attached_policies(target=principal)
         # TODO: implement pagination in the future
         next_marker = None
-        return json.dumps(dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker))
+        return json.dumps(
+            dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker)
+        )
 
     def attach_principal_policy(self):
         policy_name = self._get_param("policyName")

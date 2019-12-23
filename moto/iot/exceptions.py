@@ -27,7 +27,7 @@ class InvalidStateTransitionException(IoTClientError):
         self.code = 409
         super(InvalidStateTransitionException, self).__init__(
             "InvalidStateTransitionException",
-            msg or "An attempt was made to change to an invalid state."
+            msg or "An attempt was made to change to an invalid state.",
         )
 
 

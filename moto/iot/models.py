@@ -18,7 +18,7 @@ from .exceptions import (
     ResourceNotFoundException,
     InvalidRequestException,
     InvalidStateTransitionException,
-    VersionConflictException
+    VersionConflictException,
 )
 
 
@@ -187,7 +187,7 @@ class FakePolicy(BaseModel):
             "policyName": self.name,
             "policyArn": self.arn,
             "policyDocument": self.document,
-            "defaultVersionId": self.default_version_id
+            "defaultVersionId": self.default_version_id,
         }
 
     def to_dict_at_creation(self):
@@ -195,7 +195,7 @@ class FakePolicy(BaseModel):
             "policyName": self.name,
             "policyArn": self.arn,
             "policyDocument": self.document,
-            "policyVersionId": self.default_version_id
+            "policyVersionId": self.default_version_id,
         }
 
     def to_dict(self):
@@ -203,12 +203,7 @@ class FakePolicy(BaseModel):
 
 
 class FakePolicyVersion(object):
-
-    def __init__(self,
-                 policy_name,
-                 document,
-                 is_default,
-                 region_name):
+    def __init__(self, policy_name, document, is_default, region_name):
         self.name = policy_name
         self.arn = "arn:aws:iot:%s:1:policy/%s" % (region_name, policy_name)
         self.document = document or {}
@@ -227,7 +222,7 @@ class FakePolicyVersion(object):
             "isDefaultVersion": self.is_default,
             "creationDate": self.create_datetime,
             "lastModifiedDate": self.last_modified_datetime,
-            "generationId": self.version_id
+            "generationId": self.version_id,
         }
 
     def to_dict_at_creation(self):
@@ -235,7 +230,7 @@ class FakePolicyVersion(object):
             "policyArn": self.arn,
             "policyDocument": self.document,
             "policyVersionId": self.version_id,
-            "isDefaultVersion": self.is_default
+            "isDefaultVersion": self.is_default,
         }
 
     def to_dict(self):
@@ -314,7 +309,7 @@ class FakeJob(BaseModel):
             "jobProcessDetails": self.job_process_details,
             "documentParameters": self.document_parameters,
             "document": self.document,
-            "documentSource": self.document_source
+            "documentSource": self.document_source,
         }
 
         return obj
@@ -326,8 +321,14 @@ class FakeJob(BaseModel):
 
 
 class FakeJobExecution(BaseModel):
-
-    def __init__(self, job_id, thing_arn, status="QUEUED", force_canceled=False, status_details_map={}):
+    def __init__(
+        self,
+        job_id,
+        thing_arn,
+        status="QUEUED",
+        force_canceled=False,
+        status_details_map={},
+    ):
         self.job_id = job_id
         self.status = status  # IN_PROGRESS | CANCELED | COMPLETED
         self.force_canceled = force_canceled
@@ -352,7 +353,7 @@ class FakeJobExecution(BaseModel):
             "lastUpdatedAt": self.last_updated_at,
             "executionNumber": self.execution_number,
             "versionNumber": self.version_number,
-            "approximateSecondsBeforeTimedOut": self.approximate_seconds_before_time_out
+            "approximateSecondsBeforeTimedOut": self.approximate_seconds_before_time_out,
         }
 
         return obj
@@ -367,7 +368,7 @@ class FakeJobExecution(BaseModel):
                 "startedAt": self.started_at,
                 "lastUpdatedAt": self.last_updated_at,
                 "executionNumber": self.execution_number,
-            }
+            },
         }
 
         return obj
@@ -684,7 +685,9 @@ class IoTBackend(BaseBackend):
         policy = self.get_policy(policy_name)
         if not policy:
             raise ResourceNotFoundException()
-        version = FakePolicyVersion(policy_name, policy_document, set_as_default, self.region_name)
+        version = FakePolicyVersion(
+            policy_name, policy_document, set_as_default, self.region_name
+        )
         policy.versions.append(version)
         version.version_id = "{0}".format(len(policy.versions))
         if set_as_default:
@@ -724,7 +727,8 @@ class IoTBackend(BaseBackend):
             raise ResourceNotFoundException()
         if version_id == policy.default_version_id:
             raise InvalidRequestException(
-                "Cannot delete the default version of a policy")
+                "Cannot delete the default version of a policy"
+            )
         for i, v in enumerate(policy.versions):
             if v.version_id == version_id:
                 del policy.versions[i]
@@ -1017,7 +1021,15 @@ class IoTBackend(BaseBackend):
     def get_job_document(self, job_id):
         return self.jobs[job_id]
 
-    def list_jobs(self, status, target_selection, max_results, token, thing_group_name, thing_group_id):
+    def list_jobs(
+        self,
+        status,
+        target_selection,
+        max_results,
+        token,
+        thing_group_name,
+        thing_group_id,
+    ):
         # TODO: implement filters
         all_jobs = [_.to_dict() for _ in self.jobs.values()]
         filtered_jobs = all_jobs
@@ -1027,8 +1039,12 @@ class IoTBackend(BaseBackend):
             next_token = str(max_results) if len(filtered_jobs) > max_results else None
         else:
             token = int(token)
-            jobs = filtered_jobs[token:token + max_results]
-            next_token = str(token + max_results) if len(filtered_jobs) > token + max_results else None
+            jobs = filtered_jobs[token : token + max_results]
+            next_token = (
+                str(token + max_results)
+                if len(filtered_jobs) > token + max_results
+                else None
+            )
 
         return jobs, next_token
 
@@ -1038,19 +1054,25 @@ class IoTBackend(BaseBackend):
         except KeyError:
             raise ResourceNotFoundException()
 
-        if job_execution is None or \
-                (execution_number is not None and job_execution.execution_number != execution_number):
+        if job_execution is None or (
+            execution_number is not None
+            and job_execution.execution_number != execution_number
+        ):
             raise ResourceNotFoundException()
 
         return job_execution
 
-    def cancel_job_execution(self, job_id, thing_name, force, expected_version, status_details):
+    def cancel_job_execution(
+        self, job_id, thing_name, force, expected_version, status_details
+    ):
         job_execution = self.job_executions[(job_id, thing_name)]
 
         if job_execution is None:
             raise ResourceNotFoundException()
 
-        job_execution.force_canceled = force if force is not None else job_execution.force_canceled
+        job_execution.force_canceled = (
+            force if force is not None else job_execution.force_canceled
+        )
         # TODO: implement expected_version and status_details (at most 10 can be specified)
 
         if job_execution.status == "IN_PROGRESS" and force:
@@ -1076,11 +1098,19 @@ class IoTBackend(BaseBackend):
             raise InvalidStateTransitionException()
 
     def list_job_executions_for_job(self, job_id, status, max_results, next_token):
-        job_executions = [self.job_executions[je].to_dict() for je in self.job_executions if je[0] == job_id]
+        job_executions = [
+            self.job_executions[je].to_dict()
+            for je in self.job_executions
+            if je[0] == job_id
+        ]
 
         if status is not None:
-            job_executions = list(filter(lambda elem:
-                                         status in elem["status"] and elem["status"] == status, job_executions))
+            job_executions = list(
+                filter(
+                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    job_executions,
+                )
+            )
 
         token = next_token
         if token is None:
@@ -1088,17 +1118,31 @@ class IoTBackend(BaseBackend):
             next_token = str(max_results) if len(job_executions) > max_results else None
         else:
             token = int(token)
-            job_executions = job_executions[token:token + max_results]
-            next_token = str(token + max_results) if len(job_executions) > token + max_results else None
+            job_executions = job_executions[token : token + max_results]
+            next_token = (
+                str(token + max_results)
+                if len(job_executions) > token + max_results
+                else None
+            )
 
         return job_executions, next_token
 
-    def list_job_executions_for_thing(self, thing_name, status, max_results, next_token):
-        job_executions = [self.job_executions[je].to_dict() for je in self.job_executions if je[1] == thing_name]
+    def list_job_executions_for_thing(
+        self, thing_name, status, max_results, next_token
+    ):
+        job_executions = [
+            self.job_executions[je].to_dict()
+            for je in self.job_executions
+            if je[1] == thing_name
+        ]
 
         if status is not None:
-            job_executions = list(filter(lambda elem:
-                                         status in elem["status"] and elem["status"] == status, job_executions))
+            job_executions = list(
+                filter(
+                    lambda elem: status in elem["status"] and elem["status"] == status,
+                    job_executions,
+                )
+            )
 
         token = next_token
         if token is None:
@@ -1106,8 +1150,12 @@ class IoTBackend(BaseBackend):
             next_token = str(max_results) if len(job_executions) > max_results else None
         else:
             token = int(token)
-            job_executions = job_executions[token:token + max_results]
-            next_token = str(token + max_results) if len(job_executions) > token + max_results else None
+            job_executions = job_executions[token : token + max_results]
+            next_token = (
+                str(token + max_results)
+                if len(job_executions) > token + max_results
+                else None
+            )
 
         return job_executions, next_token
 
