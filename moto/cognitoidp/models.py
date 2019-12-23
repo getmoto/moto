@@ -14,7 +14,13 @@ from jose import jws
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
-from .exceptions import GroupExistsException, NotAuthorizedError, ResourceNotFoundError, UserNotFoundError
+from .exceptions import (
+    GroupExistsException,
+    NotAuthorizedError,
+    ResourceNotFoundError,
+    UserNotFoundError,
+    UsernameExistsException,
+)
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
@@ -44,19 +50,22 @@ def paginate(limit, start_arg="next_token", limit_arg="max_results"):
     def outer_wrapper(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            start = int(default_start if kwargs.get(start_arg) is None else kwargs[start_arg])
+            start = int(
+                default_start if kwargs.get(start_arg) is None else kwargs[start_arg]
+            )
             lim = int(limit if kwargs.get(limit_arg) is None else kwargs[limit_arg])
             stop = start + lim
             result = func(*args, **kwargs)
             limited_results = list(itertools.islice(result, start, stop))
             next_token = stop if stop < len(result) else None
             return limited_results, next_token
+
         return wrapper
+
     return outer_wrapper
 
 
 class CognitoIdpUserPool(BaseModel):
-
     def __init__(self, region, name, extended_config):
         self.region = region
         self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
@@ -74,7 +83,9 @@ class CognitoIdpUserPool(BaseModel):
         self.access_tokens = {}
         self.id_tokens = {}
 
-        with open(os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")) as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
+        ) as f:
             self.json_web_key = json.loads(f.read())
 
     def _base_json(self):
@@ -91,14 +102,18 @@ class CognitoIdpUserPool(BaseModel):
         if extended:
             user_pool_json.update(self.extended_config)
         else:
-            user_pool_json["LambdaConfig"] = self.extended_config.get("LambdaConfig") or {}
+            user_pool_json["LambdaConfig"] = (
+                self.extended_config.get("LambdaConfig") or {}
+            )
 
         return user_pool_json
 
     def create_jwt(self, client_id, username, expires_in=60 * 60, extra_data={}):
         now = int(time.time())
         payload = {
-            "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(self.region, self.id),
+            "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(
+                self.region, self.id
+            ),
             "sub": self.users[username].id,
             "aud": client_id,
             "token_use": "id",
@@ -107,7 +122,7 @@ class CognitoIdpUserPool(BaseModel):
         }
         payload.update(extra_data)
 
-        return jws.sign(payload, self.json_web_key, algorithm='RS256'), expires_in
+        return jws.sign(payload, self.json_web_key, algorithm="RS256"), expires_in
 
     def create_id_token(self, client_id, username):
         id_token, expires_in = self.create_jwt(client_id, username)
@@ -120,11 +135,10 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token
 
     def create_access_token(self, client_id, username):
-        extra_data = self.get_user_extra_data_by_client_id(
-            client_id, username
+        extra_data = self.get_user_extra_data_by_client_id(client_id, username)
+        access_token, expires_in = self.create_jwt(
+            client_id, username, extra_data=extra_data
         )
-        access_token, expires_in = self.create_jwt(client_id, username,
-                                                   extra_data=extra_data)
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
@@ -142,29 +156,27 @@ class CognitoIdpUserPool(BaseModel):
         current_client = self.clients.get(client_id, None)
         if current_client:
             for readable_field in current_client.get_readable_fields():
-                attribute = list(filter(
-                    lambda f: f['Name'] == readable_field,
-                    self.users.get(username).attributes
-                ))
+                attribute = list(
+                    filter(
+                        lambda f: f["Name"] == readable_field,
+                        self.users.get(username).attributes,
+                    )
+                )
                 if len(attribute) > 0:
-                    extra_data.update({
-                        attribute[0]['Name']: attribute[0]['Value']
-                    })
+                    extra_data.update({attribute[0]["Name"]: attribute[0]["Value"]})
         return extra_data
 
 
 class CognitoIdpUserPoolDomain(BaseModel):
-
     def __init__(self, user_pool_id, domain, custom_domain_config=None):
         self.user_pool_id = user_pool_id
         self.domain = domain
         self.custom_domain_config = custom_domain_config or {}
 
     def _distribution_name(self):
-        if self.custom_domain_config and \
-                'CertificateArn' in self.custom_domain_config:
+        if self.custom_domain_config and "CertificateArn" in self.custom_domain_config:
             hash = hashlib.md5(
-                self.custom_domain_config['CertificateArn'].encode('utf-8')
+                self.custom_domain_config["CertificateArn"].encode("utf-8")
             ).hexdigest()
             return "{hash}.cloudfront.net".format(hash=hash[:16])
         return None
@@ -182,14 +194,11 @@ class CognitoIdpUserPoolDomain(BaseModel):
                 "Version": None,
             }
         elif distribution:
-            return {
-                "CloudFrontDomain": distribution,
-            }
+            return {"CloudFrontDomain": distribution}
         return None
 
 
 class CognitoIdpUserPoolClient(BaseModel):
-
     def __init__(self, user_pool_id, extended_config):
         self.user_pool_id = user_pool_id
         self.id = str(uuid.uuid4())
@@ -211,11 +220,10 @@ class CognitoIdpUserPoolClient(BaseModel):
         return user_pool_client_json
 
     def get_readable_fields(self):
-        return self.extended_config.get('ReadAttributes', [])
+        return self.extended_config.get("ReadAttributes", [])
 
 
 class CognitoIdpIdentityProvider(BaseModel):
-
     def __init__(self, name, extended_config):
         self.name = name
         self.extended_config = extended_config or {}
@@ -239,7 +247,6 @@ class CognitoIdpIdentityProvider(BaseModel):
 
 
 class CognitoIdpGroup(BaseModel):
-
     def __init__(self, user_pool_id, group_name, description, role_arn, precedence):
         self.user_pool_id = user_pool_id
         self.group_name = group_name
@@ -266,7 +273,6 @@ class CognitoIdpGroup(BaseModel):
 
 
 class CognitoIdpUser(BaseModel):
-
     def __init__(self, user_pool_id, username, password, status, attributes):
         self.id = str(uuid.uuid4())
         self.user_pool_id = user_pool_id
@@ -299,19 +305,18 @@ class CognitoIdpUser(BaseModel):
                 {
                     "Enabled": self.enabled,
                     attributes_key: self.attributes,
-                    "MFAOptions": []
+                    "MFAOptions": [],
                 }
             )
 
         return user_json
 
     def update_attributes(self, new_attributes):
-
         def flatten_attrs(attrs):
-            return {attr['Name']: attr['Value'] for attr in attrs}
+            return {attr["Name"]: attr["Value"] for attr in attrs}
 
         def expand_attrs(attrs):
-            return [{'Name': k, 'Value': v} for k, v in attrs.items()]
+            return [{"Name": k, "Value": v} for k, v in attrs.items()]
 
         flat_attributes = flatten_attrs(self.attributes)
         flat_attributes.update(flatten_attrs(new_attributes))
@@ -319,7 +324,6 @@ class CognitoIdpUser(BaseModel):
 
 
 class CognitoIdpBackend(BaseBackend):
-
     def __init__(self, region):
         super(CognitoIdpBackend, self).__init__()
         self.region = region
@@ -495,7 +499,9 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        group = CognitoIdpGroup(user_pool_id, group_name, description, role_arn, precedence)
+        group = CognitoIdpGroup(
+            user_pool_id, group_name, description, role_arn, precedence
+        )
         if group.group_name in user_pool.groups:
             raise GroupExistsException("A group with the name already exists")
         user_pool.groups[group.group_name] = group
@@ -561,7 +567,16 @@ class CognitoIdpBackend(BaseBackend):
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        user = CognitoIdpUser(user_pool_id, username, temporary_password, UserStatus["FORCE_CHANGE_PASSWORD"], attributes)
+        if username in user_pool.users:
+            raise UsernameExistsException(username)
+
+        user = CognitoIdpUser(
+            user_pool_id,
+            username,
+            temporary_password,
+            UserStatus["FORCE_CHANGE_PASSWORD"],
+            attributes,
+        )
         user_pool.users[user.username] = user
         return user
 
@@ -607,7 +622,9 @@ class CognitoIdpBackend(BaseBackend):
 
     def _log_user_in(self, user_pool, client, username):
         refresh_token = user_pool.create_refresh_token(client.id, username)
-        access_token, id_token, expires_in = user_pool.create_tokens_from_refresh_token(refresh_token)
+        access_token, id_token, expires_in = user_pool.create_tokens_from_refresh_token(
+            refresh_token
+        )
 
         return {
             "AuthenticationResult": {
@@ -650,7 +667,11 @@ class CognitoIdpBackend(BaseBackend):
             return self._log_user_in(user_pool, client, username)
         elif auth_flow == "REFRESH_TOKEN":
             refresh_token = auth_parameters.get("REFRESH_TOKEN")
-            id_token, access_token, expires_in = user_pool.create_tokens_from_refresh_token(refresh_token)
+            (
+                id_token,
+                access_token,
+                expires_in,
+            ) = user_pool.create_tokens_from_refresh_token(refresh_token)
 
             return {
                 "AuthenticationResult": {
@@ -662,7 +683,9 @@ class CognitoIdpBackend(BaseBackend):
         else:
             return {}
 
-    def respond_to_auth_challenge(self, session, client_id, challenge_name, challenge_responses):
+    def respond_to_auth_challenge(
+        self, session, client_id, challenge_name, challenge_responses
+    ):
         user_pool = self.sessions.get(session)
         if not user_pool:
             raise ResourceNotFoundError(session)

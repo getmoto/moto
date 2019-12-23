@@ -5,7 +5,7 @@ import os
 from boto.s3.key import Key
 import re
 import six
-from six.moves.urllib.parse import urlparse, unquote
+from six.moves.urllib.parse import urlparse, unquote, quote
 import sys
 
 
@@ -16,19 +16,19 @@ bucket_name_regex = re.compile("(.+).s3(.*).amazonaws.com")
 
 
 def bucket_name_from_url(url):
-    if os.environ.get('S3_IGNORE_SUBDOMAIN_BUCKETNAME', '') in ['1', 'true']:
+    if os.environ.get("S3_IGNORE_SUBDOMAIN_BUCKETNAME", "") in ["1", "true"]:
         return None
     domain = urlparse(url).netloc
 
-    if domain.startswith('www.'):
+    if domain.startswith("www."):
         domain = domain[4:]
 
-    if 'amazonaws.com' in domain:
+    if "amazonaws.com" in domain:
         bucket_result = bucket_name_regex.search(domain)
         if bucket_result:
             return bucket_result.groups()[0]
     else:
-        if '.' in domain:
+        if "." in domain:
             return domain.split(".")[0]
         else:
             # No subdomain found.
@@ -36,23 +36,23 @@ def bucket_name_from_url(url):
 
 
 REGION_URL_REGEX = re.compile(
-    r'^https?://(s3[-\.](?P<region1>.+)\.amazonaws\.com/(.+)|'
-    r'(.+)\.s3-(?P<region2>.+)\.amazonaws\.com)/?')
+    r"^https?://(s3[-\.](?P<region1>.+)\.amazonaws\.com/(.+)|"
+    r"(.+)\.s3-(?P<region2>.+)\.amazonaws\.com)/?"
+)
 
 
 def parse_region_from_url(url):
     match = REGION_URL_REGEX.search(url)
     if match:
-        region = match.group('region1') or match.group('region2')
+        region = match.group("region1") or match.group("region2")
     else:
-        region = 'us-east-1'
+        region = "us-east-1"
     return region
 
 
 def metadata_from_headers(headers):
     metadata = {}
-    meta_regex = re.compile(
-        '^x-amz-meta-([a-zA-Z0-9\-_]+)$', flags=re.IGNORECASE)
+    meta_regex = re.compile("^x-amz-meta-([a-zA-Z0-9\-_]+)$", flags=re.IGNORECASE)
     for header, value in headers.items():
         if isinstance(header, six.string_types):
             result = meta_regex.match(header)
@@ -70,9 +70,14 @@ def metadata_from_headers(headers):
 
 def clean_key_name(key_name):
     if six.PY2:
-        return unquote(key_name.encode('utf-8')).decode('utf-8')
-
+        return unquote(key_name.encode("utf-8")).decode("utf-8")
     return unquote(key_name)
+
+
+def undo_clean_key_name(key_name):
+    if six.PY2:
+        return quote(key_name.encode("utf-8")).decode("utf-8")
+    return quote(key_name)
 
 
 class _VersionedKeyStore(dict):
@@ -135,6 +140,7 @@ class _VersionedKeyStore(dict):
     values = itervalues = _itervalues
 
     if sys.version_info[0] < 3:
+
         def items(self):
             return list(self.iteritems())
 

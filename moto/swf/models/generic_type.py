@@ -5,7 +5,6 @@ from moto.core.utils import camelcase_to_underscores
 
 
 class GenericType(BaseModel):
-
     def __init__(self, name, version, **kwargs):
         self.name = name
         self.version = version
@@ -24,7 +23,9 @@ class GenericType(BaseModel):
 
     def __repr__(self):
         cls = self.__class__.__name__
-        attrs = "name: %(name)s, version: %(version)s, status: %(status)s" % self.__dict__
+        attrs = (
+            "name: %(name)s, version: %(version)s, status: %(status)s" % self.__dict__
+        )
         return "{0}({1})".format(cls, attrs)
 
     @property
@@ -36,10 +37,7 @@ class GenericType(BaseModel):
         raise NotImplementedError()
 
     def to_short_dict(self):
-        return {
-            "name": self.name,
-            "version": self.version,
-        }
+        return {"name": self.name, "version": self.version}
 
     def to_medium_dict(self):
         hsh = {
@@ -54,10 +52,7 @@ class GenericType(BaseModel):
         return hsh
 
     def to_full_dict(self):
-        hsh = {
-            "typeInfo": self.to_medium_dict(),
-            "configuration": {}
-        }
+        hsh = {"typeInfo": self.to_medium_dict(), "configuration": {}}
         if self.task_list:
             hsh["configuration"]["defaultTaskList"] = {"name": self.task_list}
         for key in self._configuration_keys:

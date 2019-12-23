@@ -11,9 +11,9 @@ from botocore.exceptions import ClientError
 # Package modules
 from moto import mock_cloudformation
 
-AWS_REGION = 'us-west-1'
+AWS_REGION = "us-west-1"
 
-SG_STACK_NAME = 'simple-sg-stack'
+SG_STACK_NAME = "simple-sg-stack"
 SG_TEMPLATE = """
 AWSTemplateFormatVersion: 2010-09-09
 Description: Simple test CF template for moto_cloudformation
@@ -42,7 +42,7 @@ Outputs:
 
 """
 
-EC2_STACK_NAME = 'simple-ec2-stack'
+EC2_STACK_NAME = "simple-ec2-stack"
 EC2_TEMPLATE = """
 ---
 # The latest template format version is "2010-09-09" and as of 2018-04-09
@@ -65,23 +65,25 @@ class TestSimpleInstance(unittest.TestCase):
     def test_simple_instance(self):
         """Test that we can create a simple CloudFormation stack that imports values from an existing CloudFormation stack"""
         with mock_cloudformation():
-            client = boto3.client('cloudformation', region_name=AWS_REGION)
+            client = boto3.client("cloudformation", region_name=AWS_REGION)
             client.create_stack(StackName=SG_STACK_NAME, TemplateBody=SG_TEMPLATE)
-            response = client.create_stack(StackName=EC2_STACK_NAME, TemplateBody=EC2_TEMPLATE)
-            self.assertIn('StackId', response)
-            response = client.describe_stacks(StackName=response['StackId'])
-            self.assertIn('Stacks', response)
-            stack_info = response['Stacks']
+            response = client.create_stack(
+                StackName=EC2_STACK_NAME, TemplateBody=EC2_TEMPLATE
+            )
+            self.assertIn("StackId", response)
+            response = client.describe_stacks(StackName=response["StackId"])
+            self.assertIn("Stacks", response)
+            stack_info = response["Stacks"]
             self.assertEqual(1, len(stack_info))
-            self.assertIn('StackName', stack_info[0])
-            self.assertEqual(EC2_STACK_NAME, stack_info[0]['StackName'])
+            self.assertIn("StackName", stack_info[0])
+            self.assertEqual(EC2_STACK_NAME, stack_info[0]["StackName"])
 
     def test_simple_instance_missing_export(self):
         """Test that we get an exception if a CloudFormation stack tries to imports a non-existent export value"""
         with mock_cloudformation():
-            client = boto3.client('cloudformation', region_name=AWS_REGION)
+            client = boto3.client("cloudformation", region_name=AWS_REGION)
             with self.assertRaises(ClientError) as e:
                 client.create_stack(StackName=EC2_STACK_NAME, TemplateBody=EC2_TEMPLATE)
-            self.assertIn('Error', e.exception.response)
-            self.assertIn('Code', e.exception.response['Error'])
-            self.assertEqual('ExportNotFound', e.exception.response['Error']['Code'])
+            self.assertIn("Error", e.exception.response)
+            self.assertIn("Code", e.exception.response["Error"])
+            self.assertEqual("ExportNotFound", e.exception.response["Error"]["Code"])

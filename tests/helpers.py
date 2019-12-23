@@ -29,7 +29,6 @@ class requires_boto_gte(object):
 
 
 class disable_on_py3(object):
-
     def __call__(self, test):
         if not six.PY3:
             return test

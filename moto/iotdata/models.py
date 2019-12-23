@@ -6,8 +6,9 @@ import jsondiff
 from moto.core import BaseBackend, BaseModel
 from moto.iot import iot_backends
 from .exceptions import (
+    ConflictException,
     ResourceNotFoundException,
-    InvalidRequestException
+    InvalidRequestException,
 )
 
 
@@ -15,6 +16,7 @@ class FakeShadow(BaseModel):
     """See the specification:
     http://docs.aws.amazon.com/iot/latest/developerguide/thing-shadow-document-syntax.html
     """
+
     def __init__(self, desired, reported, requested_payload, version, deleted=False):
         self.desired = desired
         self.reported = reported
@@ -23,15 +25,23 @@ class FakeShadow(BaseModel):
         self.timestamp = int(time.time())
         self.deleted = deleted
 
-        self.metadata_desired = self._create_metadata_from_state(self.desired, self.timestamp)
-        self.metadata_reported = self._create_metadata_from_state(self.reported, self.timestamp)
+        self.metadata_desired = self._create_metadata_from_state(
+            self.desired, self.timestamp
+        )
+        self.metadata_reported = self._create_metadata_from_state(
+            self.reported, self.timestamp
+        )
 
     @classmethod
     def create_from_previous_version(cls, previous_shadow, payload):
         """
         set None to payload when you want to delete shadow
         """
-        version, previous_payload = (previous_shadow.version + 1, previous_shadow.to_dict(include_delta=False)) if previous_shadow else (1, {})
+        version, previous_payload = (
+            (previous_shadow.version + 1, previous_shadow.to_dict(include_delta=False))
+            if previous_shadow
+            else (1, {})
+        )
 
         if payload is None:
             # if given payload is None, delete existing payload
@@ -40,13 +50,11 @@ class FakeShadow(BaseModel):
             return shadow
 
         # we can make sure that payload has 'state' key
-        desired = payload['state'].get(
-            'desired',
-            previous_payload.get('state', {}).get('desired', None)
+        desired = payload["state"].get(
+            "desired", previous_payload.get("state", {}).get("desired", None)
         )
-        reported = payload['state'].get(
-            'reported',
-            previous_payload.get('state', {}).get('reported', None)
+        reported = payload["state"].get(
+            "reported", previous_payload.get("state", {}).get("reported", None)
         )
         shadow = FakeShadow(desired, reported, payload, version)
         return shadow
@@ -75,58 +83,60 @@ class FakeShadow(BaseModel):
             if isinstance(elem, list):
                 return [_f(_, ts) for _ in elem]
             return {"timestamp": ts}
+
         return _f(state, ts)
 
     def to_response_dict(self):
-        desired = self.requested_payload['state'].get('desired', None)
-        reported = self.requested_payload['state'].get('reported', None)
+        desired = self.requested_payload["state"].get("desired", None)
+        reported = self.requested_payload["state"].get("reported", None)
 
         payload = {}
         if desired is not None:
-            payload['desired'] = desired
+            payload["desired"] = desired
         if reported is not None:
-            payload['reported'] = reported
+            payload["reported"] = reported
 
         metadata = {}
         if desired is not None:
-            metadata['desired'] = self._create_metadata_from_state(desired, self.timestamp)
+            metadata["desired"] = self._create_metadata_from_state(
+                desired, self.timestamp
+            )
         if reported is not None:
-            metadata['reported'] = self._create_metadata_from_state(reported, self.timestamp)
+            metadata["reported"] = self._create_metadata_from_state(
+                reported, self.timestamp
+            )
         return {
-            'state': payload,
-            'metadata': metadata,
-            'timestamp': self.timestamp,
-            'version': self.version
+            "state": payload,
+            "metadata": metadata,
+            "timestamp": self.timestamp,
+            "version": self.version,
         }
 
     def to_dict(self, include_delta=True):
         """returning nothing except for just top-level keys for now.
         """
         if self.deleted:
-            return {
-                'timestamp': self.timestamp,
-                'version': self.version
-            }
+            return {"timestamp": self.timestamp, "version": self.version}
         delta = self.parse_payload(self.desired, self.reported)
         payload = {}
         if self.desired is not None:
-            payload['desired'] = self.desired
+            payload["desired"] = self.desired
         if self.reported is not None:
-            payload['reported'] = self.reported
+            payload["reported"] = self.reported
         if include_delta and (delta is not None and len(delta.keys()) != 0):
-            payload['delta'] = delta
+            payload["delta"] = delta
 
         metadata = {}
         if self.metadata_desired is not None:
-            metadata['desired'] = self.metadata_desired
+            metadata["desired"] = self.metadata_desired
         if self.metadata_reported is not None:
-            metadata['reported'] = self.metadata_reported
+            metadata["reported"] = self.metadata_reported
 
         return {
-            'state': payload,
-            'metadata': metadata,
-            'timestamp': self.timestamp,
-            'version': self.version
+            "state": payload,
+            "metadata": metadata,
+            "timestamp": self.timestamp,
+            "version": self.version,
         }
 
 
@@ -153,15 +163,19 @@ class IoTDataPlaneBackend(BaseBackend):
         try:
             payload = json.loads(payload)
         except ValueError:
-            raise InvalidRequestException('invalid json')
-        if 'state' not in payload:
-            raise InvalidRequestException('need node `state`')
-        if not isinstance(payload['state'], dict):
-            raise InvalidRequestException('state node must be an Object')
-        if any(_ for _ in payload['state'].keys() if _ not in ['desired', 'reported']):
-            raise InvalidRequestException('State contains an invalid node')
+            raise InvalidRequestException("invalid json")
+        if "state" not in payload:
+            raise InvalidRequestException("need node `state`")
+        if not isinstance(payload["state"], dict):
+            raise InvalidRequestException("state node must be an Object")
+        if any(_ for _ in payload["state"].keys() if _ not in ["desired", "reported"]):
+            raise InvalidRequestException("State contains an invalid node")
 
-        new_shadow = FakeShadow.create_from_previous_version(thing.thing_shadow, payload)
+        if "version" in payload and thing.thing_shadow.version != payload["version"]:
+            raise ConflictException("Version conflict")
+        new_shadow = FakeShadow.create_from_previous_version(
+            thing.thing_shadow, payload
+        )
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
 
@@ -180,7 +194,9 @@ class IoTDataPlaneBackend(BaseBackend):
         if thing.thing_shadow is None:
             raise ResourceNotFoundException()
         payload = None
-        new_shadow = FakeShadow.create_from_previous_version(thing.thing_shadow, payload)
+        new_shadow = FakeShadow.create_from_previous_version(
+            thing.thing_shadow, payload
+        )
         thing.thing_shadow = new_shadow
         return thing.thing_shadow
 

@@ -9,5 +9,6 @@ class BadRequestException(HTTPException):
 
     def __init__(self, message, **kwargs):
         super(BadRequestException, self).__init__(
-            description=json.dumps({"Message": message, "Code": "BadRequestException"}), **kwargs
+            description=json.dumps({"Message": message, "Code": "BadRequestException"}),
+            **kwargs
         )

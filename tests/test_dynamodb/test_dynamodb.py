@@ -15,20 +15,17 @@ from boto.exception import DynamoDBResponseError
 
 @mock_dynamodb_deprecated
 def test_list_tables():
-    name = 'TestTable'
-    dynamodb_backend.create_table(
-        name, hash_key_attr="name", hash_key_type="S")
-    conn = boto.connect_dynamodb('the_key', 'the_secret')
-    assert conn.list_tables() == ['TestTable']
+    name = "TestTable"
+    dynamodb_backend.create_table(name, hash_key_attr="name", hash_key_type="S")
+    conn = boto.connect_dynamodb("the_key", "the_secret")
+    assert conn.list_tables() == ["TestTable"]
 
 
 @mock_dynamodb_deprecated
 def test_list_tables_layer_1():
-    dynamodb_backend.create_table(
-        "test_1", hash_key_attr="name", hash_key_type="S")
-    dynamodb_backend.create_table(
-        "test_2", hash_key_attr="name", hash_key_type="S")
-    conn = boto.connect_dynamodb('the_key', 'the_secret')
+    dynamodb_backend.create_table("test_1", hash_key_attr="name", hash_key_type="S")
+    dynamodb_backend.create_table("test_2", hash_key_attr="name", hash_key_type="S")
+    conn = boto.connect_dynamodb("the_key", "the_secret")
     res = conn.layer1.list_tables(limit=1)
     expected = {"TableNames": ["test_1"], "LastEvaluatedTableName": "test_1"}
     res.should.equal(expected)
@@ -40,15 +37,15 @@ def test_list_tables_layer_1():
 
 @mock_dynamodb_deprecated
 def test_describe_missing_table():
-    conn = boto.connect_dynamodb('the_key', 'the_secret')
+    conn = boto.connect_dynamodb("the_key", "the_secret")
     with assert_raises(DynamoDBResponseError):
-        conn.describe_table('messages')
+        conn.describe_table("messages")
 
 
 @mock_dynamodb_deprecated
 def test_dynamodb_with_connect_to_region():
     # this will work if connected with boto.connect_dynamodb()
-    dynamodb = boto.dynamodb.connect_to_region('us-west-2')
+    dynamodb = boto.dynamodb.connect_to_region("us-west-2")
 
-    schema = dynamodb.create_schema('column1', str(), 'column2', int())
-    dynamodb.create_table('table1', schema, 200, 200)
+    schema = dynamodb.create_schema("column1", str(), "column2", int())
+    dynamodb.create_table("table1", schema, 200, 200)

@@ -4,17 +4,17 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class NatGateways(BaseResponse):
-
     def create_nat_gateway(self):
-        subnet_id = self._get_param('SubnetId')
-        allocation_id = self._get_param('AllocationId')
+        subnet_id = self._get_param("SubnetId")
+        allocation_id = self._get_param("AllocationId")
         nat_gateway = self.ec2_backend.create_nat_gateway(
-            subnet_id=subnet_id, allocation_id=allocation_id)
+            subnet_id=subnet_id, allocation_id=allocation_id
+        )
         template = self.response_template(CREATE_NAT_GATEWAY)
         return template.render(nat_gateway=nat_gateway)
 
     def delete_nat_gateway(self):
-        nat_gateway_id = self._get_param('NatGatewayId')
+        nat_gateway_id = self._get_param("NatGatewayId")
         nat_gateway = self.ec2_backend.delete_nat_gateway(nat_gateway_id)
         template = self.response_template(DELETE_NAT_GATEWAY_RESPONSE)
         return template.render(nat_gateway=nat_gateway)

@@ -9,15 +9,13 @@ import tests.backport_assert_raises  # noqa
 
 # Fake WorkflowExecution for tests purposes
 WorkflowExecution = namedtuple(
-    "WorkflowExecution",
-    ["workflow_id", "run_id", "execution_status", "open"]
+    "WorkflowExecution", ["workflow_id", "run_id", "execution_status", "open"]
 )
 
 
 def test_domain_short_dict_representation():
     domain = Domain("foo", "52")
-    domain.to_short_dict().should.equal(
-        {"name": "foo", "status": "REGISTERED"})
+    domain.to_short_dict().should.equal({"name": "foo", "status": "REGISTERED"})
 
     domain.description = "foo bar"
     domain.to_short_dict()["description"].should.equal("foo bar")
@@ -39,9 +37,7 @@ def test_domain_string_representation():
 def test_domain_add_to_activity_task_list():
     domain = Domain("my-domain", "60")
     domain.add_to_activity_task_list("foo", "bar")
-    domain.activity_task_lists.should.equal({
-        "foo": ["bar"]
-    })
+    domain.activity_task_lists.should.equal({"foo": ["bar"]})
 
 
 def test_domain_activity_tasks():
@@ -54,9 +50,7 @@ def test_domain_activity_tasks():
 def test_domain_add_to_decision_task_list():
     domain = Domain("my-domain", "60")
     domain.add_to_decision_task_list("foo", "bar")
-    domain.decision_task_lists.should.equal({
-        "foo": ["bar"]
-    })
+    domain.decision_task_lists.should.equal({"foo": ["bar"]})
 
 
 def test_domain_decision_tasks():
@@ -70,50 +64,44 @@ def test_domain_get_workflow_execution():
     domain = Domain("my-domain", "60")
 
     wfe1 = WorkflowExecution(
-        workflow_id="wf-id-1", run_id="run-id-1", execution_status="OPEN", open=True)
+        workflow_id="wf-id-1", run_id="run-id-1", execution_status="OPEN", open=True
+    )
     wfe2 = WorkflowExecution(
-        workflow_id="wf-id-1", run_id="run-id-2", execution_status="CLOSED", open=False)
+        workflow_id="wf-id-1", run_id="run-id-2", execution_status="CLOSED", open=False
+    )
     wfe3 = WorkflowExecution(
-        workflow_id="wf-id-2", run_id="run-id-3", execution_status="OPEN", open=True)
+        workflow_id="wf-id-2", run_id="run-id-3", execution_status="OPEN", open=True
+    )
     wfe4 = WorkflowExecution(
-        workflow_id="wf-id-3", run_id="run-id-4", execution_status="CLOSED", open=False)
+        workflow_id="wf-id-3", run_id="run-id-4", execution_status="CLOSED", open=False
+    )
     domain.workflow_executions = [wfe1, wfe2, wfe3, wfe4]
 
     # get workflow execution through workflow_id and run_id
-    domain.get_workflow_execution(
-        "wf-id-1", run_id="run-id-1").should.equal(wfe1)
-    domain.get_workflow_execution(
-        "wf-id-1", run_id="run-id-2").should.equal(wfe2)
-    domain.get_workflow_execution(
-        "wf-id-3", run_id="run-id-4").should.equal(wfe4)
+    domain.get_workflow_execution("wf-id-1", run_id="run-id-1").should.equal(wfe1)
+    domain.get_workflow_execution("wf-id-1", run_id="run-id-2").should.equal(wfe2)
+    domain.get_workflow_execution("wf-id-3", run_id="run-id-4").should.equal(wfe4)
 
     domain.get_workflow_execution.when.called_with(
         "wf-id-1", run_id="non-existent"
-    ).should.throw(
-        SWFUnknownResourceFault,
-    )
+    ).should.throw(SWFUnknownResourceFault)
 
     # get OPEN workflow execution by default if no run_id
     domain.get_workflow_execution("wf-id-1").should.equal(wfe1)
-    domain.get_workflow_execution.when.called_with(
-        "wf-id-3"
-    ).should.throw(
+    domain.get_workflow_execution.when.called_with("wf-id-3").should.throw(
         SWFUnknownResourceFault
     )
-    domain.get_workflow_execution.when.called_with(
-        "wf-id-non-existent"
-    ).should.throw(
+    domain.get_workflow_execution.when.called_with("wf-id-non-existent").should.throw(
         SWFUnknownResourceFault
     )
 
     # raise_if_closed attribute
     domain.get_workflow_execution(
-        "wf-id-1", run_id="run-id-1", raise_if_closed=True).should.equal(wfe1)
+        "wf-id-1", run_id="run-id-1", raise_if_closed=True
+    ).should.equal(wfe1)
     domain.get_workflow_execution.when.called_with(
         "wf-id-3", run_id="run-id-4", raise_if_closed=True
-    ).should.throw(
-        SWFUnknownResourceFault
-    )
+    ).should.throw(SWFUnknownResourceFault)
 
     # raise_if_none attribute
     domain.get_workflow_execution("foo", raise_if_none=False).should.be.none

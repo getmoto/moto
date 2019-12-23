@@ -1,16 +1,18 @@
 from __future__ import unicode_literals
 
 import os
-import boto.kms
-from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
-from .utils import generate_key_id
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import boto.kms
+
+from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
+
+from .utils import decrypt, encrypt, generate_key_id, generate_master_key
+
 
 class Key(BaseModel):
-
     def __init__(self, policy, key_usage, description, tags, region):
         self.id = generate_key_id()
         self.policy = policy
@@ -19,10 +21,11 @@ class Key(BaseModel):
         self.description = description
         self.enabled = True
         self.region = region
-        self.account_id = "0123456789012"
+        self.account_id = "012345678912"
         self.key_rotation_status = False
         self.deletion_date = None
         self.tags = tags or {}
+        self.key_material = generate_master_key()
 
     @property
     def physical_resource_id(self):
@@ -30,7 +33,9 @@ class Key(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:kms:{0}:{1}:key/{2}".format(self.region, self.account_id, self.id)
+        return "arn:aws:kms:{0}:{1}:key/{2}".format(
+            self.region, self.account_id, self.id
+        )
 
     def to_dict(self):
         key_dict = {
@@ -45,38 +50,42 @@ class Key(BaseModel):
                 "KeyState": self.key_state,
             }
         }
-        if self.key_state == 'PendingDeletion':
-            key_dict['KeyMetadata']['DeletionDate'] = iso_8601_datetime_without_milliseconds(self.deletion_date)
+        if self.key_state == "PendingDeletion":
+            key_dict["KeyMetadata"][
+                "DeletionDate"
+            ] = iso_8601_datetime_without_milliseconds(self.deletion_date)
         return key_dict
 
     def delete(self, region_name):
         kms_backends[region_name].delete_key(self.id)
 
     @classmethod
-    def create_from_cloudformation_json(self, resource_name, cloudformation_json, region_name):
+    def create_from_cloudformation_json(
+        self, resource_name, cloudformation_json, region_name
+    ):
         kms_backend = kms_backends[region_name]
-        properties = cloudformation_json['Properties']
+        properties = cloudformation_json["Properties"]
 
         key = kms_backend.create_key(
-            policy=properties['KeyPolicy'],
-            key_usage='ENCRYPT_DECRYPT',
-            description=properties['Description'],
-            tags=properties.get('Tags'),
+            policy=properties["KeyPolicy"],
+            key_usage="ENCRYPT_DECRYPT",
+            description=properties["Description"],
+            tags=properties.get("Tags"),
             region=region_name,
         )
-        key.key_rotation_status = properties['EnableKeyRotation']
-        key.enabled = properties['Enabled']
+        key.key_rotation_status = properties["EnableKeyRotation"]
+        key.enabled = properties["Enabled"]
         return key
 
     def get_cfn_attribute(self, attribute_name):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
-        if attribute_name == 'Arn':
+
+        if attribute_name == "Arn":
             return self.arn
         raise UnformattedGetAttTemplateException()
 
 
 class KmsBackend(BaseBackend):
-
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
@@ -109,16 +118,43 @@ class KmsBackend(BaseBackend):
         # allow the different methods (alias, ARN :key/, keyId, ARN alias) to
         # describe key not just KeyId
         key_id = self.get_key_id(key_id)
-        if r'alias/' in str(key_id).lower():
-            key_id = self.get_key_id_from_alias(key_id.split('alias/')[1])
+        if r"alias/" in str(key_id).lower():
+            key_id = self.get_key_id_from_alias(key_id.split("alias/")[1])
         return self.keys[self.get_key_id(key_id)]
 
     def list_keys(self):
         return self.keys.values()
 
-    def get_key_id(self, key_id):
+    @staticmethod
+    def get_key_id(key_id):
         # Allow use of ARN as well as pure KeyId
-        return str(key_id).split(r':key/')[1] if r':key/' in str(key_id).lower() else key_id
+        if key_id.startswith("arn:") and ":key/" in key_id:
+            return key_id.split(":key/")[1]
+
+        return key_id
+
+    @staticmethod
+    def get_alias_name(alias_name):
+        # Allow use of ARN as well as alias name
+        if alias_name.startswith("arn:") and ":alias/" in alias_name:
+            return alias_name.split(":alias/")[1]
+
+        return alias_name
+
+    def any_id_to_key_id(self, key_id):
+        """Go from any valid key ID to the raw key ID.
+
+        Acceptable inputs:
+        - raw key ID
+        - key ARN
+        - alias name
+        - alias ARN
+        """
+        key_id = self.get_alias_name(key_id)
+        key_id = self.get_key_id(key_id)
+        if key_id.startswith("alias/"):
+            key_id = self.get_key_id_from_alias(key_id)
+        return key_id
 
     def alias_exists(self, alias_name):
         for aliases in self.key_to_aliases.values():
@@ -162,37 +198,89 @@ class KmsBackend(BaseBackend):
 
     def disable_key(self, key_id):
         self.keys[key_id].enabled = False
-        self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].key_state = "Disabled"
 
     def enable_key(self, key_id):
         self.keys[key_id].enabled = True
-        self.keys[key_id].key_state = 'Enabled'
+        self.keys[key_id].key_state = "Enabled"
 
     def cancel_key_deletion(self, key_id):
-        self.keys[key_id].key_state = 'Disabled'
+        self.keys[key_id].key_state = "Disabled"
         self.keys[key_id].deletion_date = None
 
     def schedule_key_deletion(self, key_id, pending_window_in_days):
         if 7 <= pending_window_in_days <= 30:
             self.keys[key_id].enabled = False
-            self.keys[key_id].key_state = 'PendingDeletion'
-            self.keys[key_id].deletion_date = datetime.now() + timedelta(days=pending_window_in_days)
-            return iso_8601_datetime_without_milliseconds(self.keys[key_id].deletion_date)
+            self.keys[key_id].key_state = "PendingDeletion"
+            self.keys[key_id].deletion_date = datetime.now() + timedelta(
+                days=pending_window_in_days
+            )
+            return iso_8601_datetime_without_milliseconds(
+                self.keys[key_id].deletion_date
+            )
 
-    def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens):
-        key = self.keys[self.get_key_id(key_id)]
+    def encrypt(self, key_id, plaintext, encryption_context):
+        key_id = self.any_id_to_key_id(key_id)
+
+        ciphertext_blob = encrypt(
+            master_keys=self.keys,
+            key_id=key_id,
+            plaintext=plaintext,
+            encryption_context=encryption_context,
+        )
+        arn = self.keys[key_id].arn
+        return ciphertext_blob, arn
+
+    def decrypt(self, ciphertext_blob, encryption_context):
+        plaintext, key_id = decrypt(
+            master_keys=self.keys,
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=encryption_context,
+        )
+        arn = self.keys[key_id].arn
+        return plaintext, arn
+
+    def re_encrypt(
+        self,
+        ciphertext_blob,
+        source_encryption_context,
+        destination_key_id,
+        destination_encryption_context,
+    ):
+        destination_key_id = self.any_id_to_key_id(destination_key_id)
+
+        plaintext, decrypting_arn = self.decrypt(
+            ciphertext_blob=ciphertext_blob,
+            encryption_context=source_encryption_context,
+        )
+        new_ciphertext_blob, encrypting_arn = self.encrypt(
+            key_id=destination_key_id,
+            plaintext=plaintext,
+            encryption_context=destination_encryption_context,
+        )
+        return new_ciphertext_blob, decrypting_arn, encrypting_arn
+
+    def generate_data_key(
+        self, key_id, encryption_context, number_of_bytes, key_spec, grant_tokens
+    ):
+        key_id = self.any_id_to_key_id(key_id)
 
         if key_spec:
-            if key_spec == 'AES_128':
-                bytes = 16
+            # Note: Actual validation of key_spec is done in kms.responses
+            if key_spec == "AES_128":
+                plaintext_len = 16
             else:
-                bytes = 32
+                plaintext_len = 32
         else:
-            bytes = number_of_bytes
+            plaintext_len = number_of_bytes
 
-        plaintext = os.urandom(bytes)
+        plaintext = os.urandom(plaintext_len)
 
-        return plaintext, key.arn
+        ciphertext_blob, arn = self.encrypt(
+            key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
+        )
+
+        return plaintext, ciphertext_blob, arn
 
 
 kms_backends = {}
