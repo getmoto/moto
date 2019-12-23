@@ -53,3 +53,10 @@ class CodePipelineResponse(BaseResponse):
         )
 
         return ""
+
+    def untag_resource(self):
+        self.codepipeline_backend.untag_resource(
+            self._get_param("resourceArn"), self._get_param("tagKeys")
+        )
+
+        return ""

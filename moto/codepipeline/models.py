@@ -192,6 +192,20 @@ class CodePipelineBackend(BaseBackend):
         for tag in tags:
             pipeline.tags.update({tag["key"]: tag["value"]})
 
+    def untag_resource(self, arn, tag_keys):
+        name = arn.split(":")[-1]
+        pipeline = self.pipelines.get(name)
+
+        if not pipeline:
+            raise ResourceNotFoundException(
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    ACCOUNT_ID, name
+                )
+            )
+
+        for key in tag_keys:
+            pipeline.tags.pop(key, None)
+
 
 codepipeline_backends = {}
 for region in Session().get_available_regions("codepipeline"):

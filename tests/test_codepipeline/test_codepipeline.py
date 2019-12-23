@@ -602,6 +602,52 @@ def test_tag_resource_errors():
     )
 
 
+@mock_codepipeline
+def test_untag_resource():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    name = "test-pipeline"
+    create_basic_codepipeline(client, name)
+
+    response = client.list_tags_for_resource(
+        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+    )
+    response["tags"].should.equal([{"key": "key", "value": "value"}])
+
+    client.untag_resource(
+        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+        tagKeys=["key"],
+    )
+
+    response = client.list_tags_for_resource(
+        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+    )
+    response["tags"].should.have.length_of(0)
+
+    # removing a not existing tag should raise no exception
+    client.untag_resource(
+        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+        tagKeys=["key"],
+    )
+
+
+@mock_codepipeline
+def test_untag_resource_errors():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+
+    with assert_raises(ClientError) as e:
+        client.untag_resource(
+            resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing",
+            tagKeys=["key"],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("UntagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
+    )
+
+
 @mock_iam
 def get_role_arn():
     client = boto3.client("iam", region_name="us-east-1")

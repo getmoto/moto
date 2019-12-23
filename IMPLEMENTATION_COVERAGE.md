@@ -1374,7 +1374,7 @@
 - [ ] update_profiling_group
 
 ## codepipeline
-13% implemented
+22% implemented
 - [ ] acknowledge_job
 - [ ] acknowledge_third_party_job
 - [ ] create_custom_action_type
@@ -1394,7 +1394,7 @@
 - [ ] list_action_types
 - [ ] list_pipeline_executions
 - [X] list_pipelines
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_webhooks
 - [ ] poll_for_jobs
 - [ ] poll_for_third_party_jobs
@@ -1408,8 +1408,8 @@
 - [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
 - [ ] start_pipeline_execution
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_pipeline
 
 ## codestar
