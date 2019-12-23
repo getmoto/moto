@@ -12,6 +12,8 @@ from moto.codepipeline.exceptions import (
     InvalidStructureException,
     PipelineNotFoundException,
     ResourceNotFoundException,
+    InvalidTagsException,
+    TooManyTagsException,
 )
 from moto.core import BaseBackend, BaseModel
 
@@ -54,6 +56,18 @@ class CodePipeline(BaseModel):
 
         return pipeline
 
+    def validate_tags(self, tags):
+        for tag in tags:
+            if tag["key"].startswith("aws:"):
+                raise InvalidTagsException(
+                    "Not allowed to modify system tags. "
+                    "System tags start with 'aws:'. "
+                    "msg=[Caller is an end user and not allowed to mutate system tags]"
+                )
+
+        if (len(self.tags) + len(tags)) > 50:
+            raise TooManyTagsException(self._arn)
+
 
 class CodePipelineBackend(BaseBackend):
     def __init__(self):
@@ -93,6 +107,8 @@ class CodePipelineBackend(BaseBackend):
         self.pipelines[pipeline["name"]] = CodePipeline(region, pipeline)
 
         if tags:
+            self.pipelines[pipeline["name"]].validate_tags(tags)
+
             new_tags = {tag["key"]: tag["value"] for tag in tags}
             self.pipelines[pipeline["name"]].tags.update(new_tags)
 
@@ -159,6 +175,22 @@ class CodePipelineBackend(BaseBackend):
         tags = [{"key": key, "value": value} for key, value in pipeline.tags.items()]
 
         return tags
+
+    def tag_resource(self, arn, tags):
+        name = arn.split(":")[-1]
+        pipeline = self.pipelines.get(name)
+
+        if not pipeline:
+            raise ResourceNotFoundException(
+                "The account with id '{0}' does not include a pipeline with the name '{1}'".format(
+                    ACCOUNT_ID, name
+                )
+            )
+
+        pipeline.validate_tags(tags)
+
+        for tag in tags:
+            pipeline.tags.update({tag["key"]: tag["value"]})
 
 
 codepipeline_backends = {}

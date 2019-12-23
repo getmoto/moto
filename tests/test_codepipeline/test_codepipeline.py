@@ -530,6 +530,78 @@ def test_list_tags_for_resource_errors():
     )
 
 
+@mock_codepipeline
+def test_tag_resource():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    name = "test-pipeline"
+    create_basic_codepipeline(client, name)
+
+    client.tag_resource(
+        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+        tags=[{"key": "key-2", "value": "value-2"}],
+    )
+
+    response = client.list_tags_for_resource(
+        resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name)
+    )
+    response["tags"].should.equal(
+        [{"key": "key", "value": "value"}, {"key": "key-2", "value": "value-2"}]
+    )
+
+
+@mock_codepipeline
+def test_tag_resource_errors():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    name = "test-pipeline"
+    create_basic_codepipeline(client, name)
+
+    with assert_raises(ClientError) as e:
+        client.tag_resource(
+            resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing",
+            tags=[{"key": "key-2", "value": "value-2"}],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("TagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The account with id '123456789012' does not include a pipeline with the name 'not-existing'"
+    )
+
+    with assert_raises(ClientError) as e:
+        client.tag_resource(
+            resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+            tags=[{"key": "aws:key", "value": "value"}],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("TagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidTagsException")
+    ex.response["Error"]["Message"].should.equal(
+        "Not allowed to modify system tags. "
+        "System tags start with 'aws:'. "
+        "msg=[Caller is an end user and not allowed to mutate system tags]"
+    )
+
+    with assert_raises(ClientError) as e:
+        client.tag_resource(
+            resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
+            tags=[
+                {"key": "key-{}".format(i), "value": "value-{}".format(i)}
+                for i in range(50)
+            ],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("TagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TooManyTagsException")
+    ex.response["Error"]["Message"].should.equal(
+        "Tag limit exceeded for resource [arn:aws:codepipeline:us-east-1:123456789012:{}].".format(
+            name
+        )
+    )
+
+
 @mock_iam
 def get_role_arn():
     client = boto3.client("iam", region_name="us-east-1")

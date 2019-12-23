@@ -46,3 +46,10 @@ class CodePipelineResponse(BaseResponse):
         )
 
         return json.dumps({"tags": tags})
+
+    def tag_resource(self):
+        self.codepipeline_backend.tag_resource(
+            self._get_param("resourceArn"), self._get_param("tags")
+        )
+
+        return ""
