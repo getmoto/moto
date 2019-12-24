@@ -112,7 +112,7 @@ class CodePipelineBackend(BaseBackend):
             new_tags = {tag["key"]: tag["value"] for tag in tags}
             self.pipelines[pipeline["name"]].tags.update(new_tags)
 
-        return pipeline, tags
+        return pipeline, sorted(tags, key=lambda i: i["key"])
 
     def get_pipeline(self, name):
         codepipeline = self.pipelines.get(name)
@@ -174,7 +174,7 @@ class CodePipelineBackend(BaseBackend):
 
         tags = [{"key": key, "value": value} for key, value in pipeline.tags.items()]
 
-        return tags
+        return sorted(tags, key=lambda i: i["key"])
 
     def tag_resource(self, arn, tags):
         name = arn.split(":")[-1]
