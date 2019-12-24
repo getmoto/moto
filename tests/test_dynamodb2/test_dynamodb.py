@@ -394,9 +394,12 @@ def test_put_item_with_streams():
             "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
         }
     )
-    stream_shard = dynamodb_backends2["us-west-2"].get_table(name).stream_shard
-    len(stream_shard.items).should.be.equal(1)
-    stream_record = stream_shard.items[0].record
+    table = dynamodb_backends2["us-west-2"].get_table(name)
+    if not table:
+        # There is no way to access stream data over the API, so this part can't run in server-tests mode.
+        return
+    len(table.stream_shard.items).should.be.equal(1)
+    stream_record = table.stream_shard.items[0].record
     stream_record["eventName"].should.be.equal("INSERT")
     stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
