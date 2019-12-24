@@ -9,7 +9,7 @@ from boto3.dynamodb.conditions import Attr, Key
 import sure  # noqa
 import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
-from moto.dynamodb2 import dynamodb_backend2
+from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError, ParamValidationError
 from tests.helpers import requires_boto_gte
@@ -382,6 +382,23 @@ def test_put_item_with_streams():
             "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
         },
     )
+
+    result = conn.get_item(TableName=name, Key={"forum_name": {"S": "LOLCat Forum"}})
+
+    result["Item"].should.be.equal(
+        {
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        }
+    )
+    stream_shard = dynamodb_backends2["us-west-2"].get_table(name).stream_shard
+    len(stream_shard.items).should.be.equal(1)
+    stream_record = stream_shard.items[0].record
+    stream_record["eventName"].should.be.equal("INSERT")
+    stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
 
 @requires_boto_gte("2.9")
