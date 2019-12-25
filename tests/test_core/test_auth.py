@@ -10,7 +10,8 @@ from nose.tools import assert_raises
 
 from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds2
 from moto.core import set_initial_no_auth_action_count
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
+from uuid import uuid4
 
 
 @mock_iam
@@ -71,8 +72,10 @@ def create_user_with_access_key_and_multiple_policies(
 
 
 def create_group_with_attached_policy_and_add_user(
-    user_name, policy_document, group_name="test-group", policy_name="policy1"
+    user_name, policy_document, group_name="test-group", policy_name=None
 ):
+    if not policy_name:
+        policy_name = str(uuid4())
     client = boto3.client("iam", region_name="us-east-1")
     client.create_group(GroupName=group_name)
     policy_arn = client.create_policy(
@@ -101,8 +104,10 @@ def create_group_with_multiple_policies_and_add_user(
     attached_policy_document,
     group_name="test-group",
     inline_policy_name="policy1",
-    attached_policy_name="policy1",
+    attached_policy_name=None,
 ):
+    if not attached_policy_name:
+        attached_policy_name = str(uuid4())
     client = boto3.client("iam", region_name="us-east-1")
     client.create_group(GroupName=group_name)
     client.put_group_policy(
@@ -402,10 +407,10 @@ def test_s3_access_denied_with_denying_attached_group_policy():
         "Statement": [{"Effect": "Deny", "Action": "s3:List*", "Resource": "*"}],
     }
     access_key = create_user_with_access_key_and_attached_policy(
-        user_name, attached_policy_document
+        user_name, attached_policy_document, policy_name="policy1"
     )
     create_group_with_attached_policy_and_add_user(
-        user_name, group_attached_policy_document
+        user_name, group_attached_policy_document, policy_name="policy2"
     )
     client = boto3.client(
         "s3",
@@ -476,10 +481,16 @@ def test_access_denied_with_many_irrelevant_policies():
         "Statement": [{"Effect": "Deny", "Action": "lambda:*", "Resource": "*"}],
     }
     access_key = create_user_with_access_key_and_multiple_policies(
-        user_name, inline_policy_document, attached_policy_document
+        user_name,
+        inline_policy_document,
+        attached_policy_document,
+        attached_policy_name="policy1",
     )
     create_group_with_multiple_policies_and_add_user(
-        user_name, group_inline_policy_document, group_attached_policy_document
+        user_name,
+        group_inline_policy_document,
+        group_attached_policy_document,
+        attached_policy_name="policy2",
     )
     client = boto3.client(
         "ec2",

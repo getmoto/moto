@@ -13,11 +13,13 @@ from dateutil.tz import tzutc
 
 from moto import mock_iam, mock_iam_deprecated
 from moto.iam.models import aws_managed_policies
+from moto.core import ACCOUNT_ID
 from nose.tools import assert_raises, assert_equals
 from nose.tools import raises
 
 from datetime import datetime
 from tests.helpers import requires_boto_gte
+from uuid import uuid4
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -82,7 +84,9 @@ def test_get_all_server_certs():
     certs.should.have.length_of(1)
     cert1 = certs[0]
     cert1.server_certificate_name.should.equal("certname")
-    cert1.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+    cert1.arn.should.equal(
+        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
+    )
 
 
 @mock_iam_deprecated()
@@ -100,7 +104,9 @@ def test_get_server_cert():
     conn.upload_server_cert("certname", "certbody", "privatekey")
     cert = conn.get_server_certificate("certname")
     cert.server_certificate_name.should.equal("certname")
-    cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+    cert.arn.should.equal(
+        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
+    )
 
 
 @mock_iam_deprecated()
@@ -110,7 +116,9 @@ def test_upload_server_cert():
     conn.upload_server_cert("certname", "certbody", "privatekey")
     cert = conn.get_server_certificate("certname")
     cert.server_certificate_name.should.equal("certname")
-    cert.arn.should.equal("arn:aws:iam::123456789012:server-certificate/certname")
+    cert.arn.should.equal(
+        "arn:aws:iam::{}:server-certificate/certname".format(ACCOUNT_ID)
+    )
 
 
 @mock_iam_deprecated()
@@ -404,8 +412,23 @@ def test_create_policy():
         PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
     )
     response["Policy"]["Arn"].should.equal(
-        "arn:aws:iam::123456789012:policy/TestCreatePolicy"
+        "arn:aws:iam::{}:policy/TestCreatePolicy".format(ACCOUNT_ID)
     )
+
+
+@mock_iam
+def test_create_policy_already_exists():
+    conn = boto3.client("iam", region_name="us-east-1")
+    response = conn.create_policy(
+        PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
+    )
+    with assert_raises(conn.exceptions.EntityAlreadyExistsException) as ex:
+        response = conn.create_policy(
+            PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
+        )
+    ex.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    ex.exception.response["Error"]["Message"].should.contain("TestCreatePolicy")
 
 
 @mock_iam
@@ -426,12 +449,14 @@ def test_create_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with assert_raises(ClientError):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+            PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(
+                ACCOUNT_ID
+            ),
             PolicyDocument='{"some":"policy"}',
         )
     conn.create_policy(PolicyName="TestCreatePolicyVersion", PolicyDocument=MOCK_POLICY)
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY,
         SetAsDefault=True,
     )
@@ -439,11 +464,11 @@ def test_create_policy_versions():
     version.get("PolicyVersion").get("VersionId").should.equal("v2")
     version.get("PolicyVersion").get("IsDefaultVersion").should.be.ok
     conn.delete_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(ACCOUNT_ID),
         VersionId="v1",
     )
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestCreatePolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestCreatePolicyVersion".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY,
     )
     version.get("PolicyVersion").get("VersionId").should.equal("v3")
@@ -458,12 +483,16 @@ def test_create_many_policy_versions():
     )
     for _ in range(0, 4):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestCreateManyPolicyVersions",
+            PolicyArn="arn:aws:iam::{}:policy/TestCreateManyPolicyVersions".format(
+                ACCOUNT_ID
+            ),
             PolicyDocument=MOCK_POLICY,
         )
     with assert_raises(ClientError):
         conn.create_policy_version(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestCreateManyPolicyVersions",
+            PolicyArn="arn:aws:iam::{}:policy/TestCreateManyPolicyVersions".format(
+                ACCOUNT_ID
+            ),
             PolicyDocument=MOCK_POLICY,
         )
 
@@ -475,17 +504,23 @@ def test_set_default_policy_version():
         PolicyName="TestSetDefaultPolicyVersion", PolicyDocument=MOCK_POLICY
     )
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestSetDefaultPolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        ),
         PolicyDocument=MOCK_POLICY_2,
         SetAsDefault=True,
     )
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestSetDefaultPolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        ),
         PolicyDocument=MOCK_POLICY_3,
         SetAsDefault=True,
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestSetDefaultPolicyVersion"
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        )
     )
     versions.get("Versions")[0].get("Document").should.equal(json.loads(MOCK_POLICY))
     versions.get("Versions")[0].get("IsDefaultVersion").shouldnt.be.ok
@@ -501,9 +536,11 @@ def test_get_policy():
     response = conn.create_policy(
         PolicyName="TestGetPolicy", PolicyDocument=MOCK_POLICY
     )
-    policy = conn.get_policy(PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicy")
+    policy = conn.get_policy(
+        PolicyArn="arn:aws:iam::{}:policy/TestGetPolicy".format(ACCOUNT_ID)
+    )
     policy["Policy"]["Arn"].should.equal(
-        "arn:aws:iam::123456789012:policy/TestGetPolicy"
+        "arn:aws:iam::{}:policy/TestGetPolicy".format(ACCOUNT_ID)
     )
 
 
@@ -526,16 +563,16 @@ def test_get_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestGetPolicyVersion", PolicyDocument=MOCK_POLICY)
     version = conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestGetPolicyVersion".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY,
     )
     with assert_raises(ClientError):
         conn.get_policy_version(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
+            PolicyArn="arn:aws:iam::{}:policy/TestGetPolicyVersion".format(ACCOUNT_ID),
             VersionId="v2-does-not-exist",
         )
     retrieved = conn.get_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestGetPolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestGetPolicyVersion".format(ACCOUNT_ID),
         VersionId=version.get("PolicyVersion").get("VersionId"),
     )
     retrieved.get("PolicyVersion").get("Document").should.equal(json.loads(MOCK_POLICY))
@@ -585,25 +622,25 @@ def test_list_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with assert_raises(ClientError):
         versions = conn.list_policy_versions(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions"
+            PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID)
         )
     conn.create_policy(PolicyName="TestListPolicyVersions", PolicyDocument=MOCK_POLICY)
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions"
+        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID)
     )
     versions.get("Versions")[0].get("VersionId").should.equal("v1")
     versions.get("Versions")[0].get("IsDefaultVersion").should.be.ok
 
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
+        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY_2,
     )
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions",
+        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY_3,
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestListPolicyVersions"
+        PolicyArn="arn:aws:iam::{}:policy/TestListPolicyVersions".format(ACCOUNT_ID)
     )
     versions.get("Versions")[1].get("Document").should.equal(json.loads(MOCK_POLICY_2))
     versions.get("Versions")[1].get("IsDefaultVersion").shouldnt.be.ok
@@ -616,20 +653,22 @@ def test_delete_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestDeletePolicyVersion", PolicyDocument=MOCK_POLICY)
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY,
     )
     with assert_raises(ClientError):
         conn.delete_policy_version(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+            PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(
+                ACCOUNT_ID
+            ),
             VersionId="v2-nope-this-does-not-exist",
         )
     conn.delete_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID),
         VersionId="v2",
     )
     versions = conn.list_policy_versions(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion"
+        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID)
     )
     len(versions.get("Versions")).should.equal(1)
 
@@ -639,12 +678,14 @@ def test_delete_default_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestDeletePolicyVersion", PolicyDocument=MOCK_POLICY)
     conn.create_policy_version(
-        PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+        PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(ACCOUNT_ID),
         PolicyDocument=MOCK_POLICY_2,
     )
     with assert_raises(ClientError):
         conn.delete_policy_version(
-            PolicyArn="arn:aws:iam::123456789012:policy/TestDeletePolicyVersion",
+            PolicyArn="arn:aws:iam::{}:policy/TestDeletePolicyVersion".format(
+                ACCOUNT_ID
+            ),
             VersionId="v1",
         )
 
@@ -697,7 +738,7 @@ def test_list_users():
     user = response["Users"][0]
     user["UserName"].should.equal("my-user")
     user["Path"].should.equal("/")
-    user["Arn"].should.equal("arn:aws:iam::123456789012:user/my-user")
+    user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
 
 
 @mock_iam()
@@ -823,7 +864,9 @@ def test_create_virtual_mfa_device():
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
     device = response["VirtualMFADevice"]
 
-    device["SerialNumber"].should.equal("arn:aws:iam::123456789012:mfa/test-device")
+    device["SerialNumber"].should.equal(
+        "arn:aws:iam::{}:mfa/test-device".format(ACCOUNT_ID)
+    )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
     device["QRCodePNG"].should_not.be.empty
 
@@ -832,7 +875,9 @@ def test_create_virtual_mfa_device():
     )
     device = response["VirtualMFADevice"]
 
-    device["SerialNumber"].should.equal("arn:aws:iam::123456789012:mfa/test-device-2")
+    device["SerialNumber"].should.equal(
+        "arn:aws:iam::{}:mfa/test-device-2".format(ACCOUNT_ID)
+    )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
     device["QRCodePNG"].should_not.be.empty
 
@@ -842,7 +887,7 @@ def test_create_virtual_mfa_device():
     device = response["VirtualMFADevice"]
 
     device["SerialNumber"].should.equal(
-        "arn:aws:iam::123456789012:mfa/test/test-device"
+        "arn:aws:iam::{}:mfa/test/test-device".format(ACCOUNT_ID)
     )
     device["Base32StringSeed"].decode("ascii").should.match("[A-Z234567]")
     device["QRCodePNG"].should_not.be.empty
@@ -904,7 +949,7 @@ def test_delete_virtual_mfa_device():
 def test_delete_virtual_mfa_device_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
-    serial_number = "arn:aws:iam::123456789012:mfa/not-existing"
+    serial_number = "arn:aws:iam::{}:mfa/not-existing".format(ACCOUNT_ID)
     client.delete_virtual_mfa_device.when.called_with(
         SerialNumber=serial_number
     ).should.throw(
@@ -993,7 +1038,9 @@ def test_enable_virtual_mfa_device():
     device["User"]["Path"].should.equal("/")
     device["User"]["UserName"].should.equal("test-user")
     device["User"]["UserId"].should_not.be.empty
-    device["User"]["Arn"].should.equal("arn:aws:iam::123456789012:user/test-user")
+    device["User"]["Arn"].should.equal(
+        "arn:aws:iam::{}:user/test-user".format(ACCOUNT_ID)
+    )
     device["User"]["CreateDate"].should.be.a(datetime)
     device["EnableDate"].should.be.a(datetime)
     response["IsTruncated"].should_not.be.ok
@@ -1301,6 +1348,122 @@ def test_get_access_key_last_used():
 
 
 @mock_iam
+def test_upload_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    pubkey = resp["SSHPublicKey"]
+    pubkey["SSHPublicKeyBody"].should.equal(public_key)
+    pubkey["UserName"].should.equal(username)
+    pubkey["SSHPublicKeyId"].should.have.length_of(20)
+    assert pubkey["SSHPublicKeyId"].startswith("APKA")
+    pubkey.should.have.key("Fingerprint")
+    pubkey["Status"].should.equal("Active")
+    (
+        datetime.utcnow() - pubkey["UploadDate"].replace(tzinfo=None)
+    ).seconds.should.be.within(0, 10)
+
+
+@mock_iam
+def test_get_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.get_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Encoding="SSH"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.get_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Encoding="SSH"
+    )
+    resp["SSHPublicKey"]["SSHPublicKeyBody"].should.equal(public_key)
+
+
+@mock_iam
+def test_list_ssh_public_keys():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(0)
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(1)
+    resp["SSHPublicKeys"][0]["SSHPublicKeyId"].should.equal(ssh_public_key_id)
+
+
+@mock_iam
+def test_update_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.update_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Status="Inactive"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+    resp["SSHPublicKey"]["Status"].should.equal("Active")
+
+    resp = client.update_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Status="Inactive"
+    )
+
+    resp = client.get_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id, Encoding="SSH"
+    )
+    resp["SSHPublicKey"]["Status"].should.equal("Inactive")
+
+
+@mock_iam
+def test_delete_ssh_public_key():
+    iam = boto3.resource("iam", region_name="us-east-1")
+    client = iam.meta.client
+    username = "test-user"
+    iam.create_user(UserName=username)
+    public_key = MOCK_CERT
+
+    with assert_raises(ClientError):
+        client.delete_ssh_public_key(
+            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx"
+        )
+
+    resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
+    ssh_public_key_id = resp["SSHPublicKey"]["SSHPublicKeyId"]
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(1)
+
+    resp = client.delete_ssh_public_key(
+        UserName=username, SSHPublicKeyId=ssh_public_key_id
+    )
+
+    resp = client.list_ssh_public_keys(UserName=username)
+    resp["SSHPublicKeys"].should.have.length_of(0)
+
+
+@mock_iam
 def test_get_account_authorization_details():
     test_policy = json.dumps(
         {
@@ -1312,7 +1475,7 @@ def test_get_account_authorization_details():
     )
 
     conn = boto3.client("iam", region_name="us-east-1")
-    boundary = "arn:aws:iam::123456789012:policy/boundary"
+    boundary = "arn:aws:iam::{}:policy/boundary".format(ACCOUNT_ID)
     conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="some policy",
@@ -1338,10 +1501,12 @@ def test_get_account_authorization_details():
     )
 
     conn.attach_user_policy(
-        UserName="testUser", PolicyArn="arn:aws:iam::123456789012:policy/testPolicy"
+        UserName="testUser",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
     )
     conn.attach_group_policy(
-        GroupName="testGroup", PolicyArn="arn:aws:iam::123456789012:policy/testPolicy"
+        GroupName="testGroup",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
     )
 
     conn.add_user_to_group(UserName="testUser", GroupName="testGroup")
@@ -1360,7 +1525,8 @@ def test_get_account_authorization_details():
         RoleName="my-role", PolicyName="test-policy", PolicyDocument=test_policy
     )
     conn.attach_role_policy(
-        RoleName="my-role", PolicyArn="arn:aws:iam::123456789012:policy/testPolicy"
+        RoleName="my-role",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
     )
 
     result = conn.get_account_authorization_details(Filter=["Role"])
@@ -1377,7 +1543,7 @@ def test_get_account_authorization_details():
         "PermissionsBoundary"
     ] == {
         "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
-        "PermissionsBoundaryArn": "arn:aws:iam::123456789012:policy/boundary",
+        "PermissionsBoundaryArn": "arn:aws:iam::{}:policy/boundary".format(ACCOUNT_ID),
     }
     assert len(result["RoleDetailList"][0]["Tags"]) == 2
     assert len(result["RoleDetailList"][0]["RolePolicyList"]) == 1
@@ -1386,10 +1552,9 @@ def test_get_account_authorization_details():
         result["RoleDetailList"][0]["AttachedManagedPolicies"][0]["PolicyName"]
         == "testPolicy"
     )
-    assert (
-        result["RoleDetailList"][0]["AttachedManagedPolicies"][0]["PolicyArn"]
-        == "arn:aws:iam::123456789012:policy/testPolicy"
-    )
+    assert result["RoleDetailList"][0]["AttachedManagedPolicies"][0][
+        "PolicyArn"
+    ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
 
     result = conn.get_account_authorization_details(Filter=["User"])
     assert len(result["RoleDetailList"]) == 0
@@ -1402,10 +1567,9 @@ def test_get_account_authorization_details():
         result["UserDetailList"][0]["AttachedManagedPolicies"][0]["PolicyName"]
         == "testPolicy"
     )
-    assert (
-        result["UserDetailList"][0]["AttachedManagedPolicies"][0]["PolicyArn"]
-        == "arn:aws:iam::123456789012:policy/testPolicy"
-    )
+    assert result["UserDetailList"][0]["AttachedManagedPolicies"][0][
+        "PolicyArn"
+    ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
 
     result = conn.get_account_authorization_details(Filter=["Group"])
     assert len(result["RoleDetailList"]) == 0
@@ -1418,10 +1582,9 @@ def test_get_account_authorization_details():
         result["GroupDetailList"][0]["AttachedManagedPolicies"][0]["PolicyName"]
         == "testPolicy"
     )
-    assert (
-        result["GroupDetailList"][0]["AttachedManagedPolicies"][0]["PolicyArn"]
-        == "arn:aws:iam::123456789012:policy/testPolicy"
-    )
+    assert result["GroupDetailList"][0]["AttachedManagedPolicies"][0][
+        "PolicyArn"
+    ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
 
     result = conn.get_account_authorization_details(Filter=["LocalManagedPolicy"])
     assert len(result["RoleDetailList"]) == 0
@@ -1518,7 +1681,7 @@ def test_create_saml_provider():
         Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
     )
     response["SAMLProviderArn"].should.equal(
-        "arn:aws:iam::123456789012:saml-provider/TestSAMLProvider"
+        "arn:aws:iam::{}:saml-provider/TestSAMLProvider".format(ACCOUNT_ID)
     )
 
 
@@ -1540,7 +1703,7 @@ def test_list_saml_providers():
     conn.create_saml_provider(Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024)
     response = conn.list_saml_providers()
     response["SAMLProviderList"][0]["Arn"].should.equal(
-        "arn:aws:iam::123456789012:saml-provider/TestSAMLProvider"
+        "arn:aws:iam::{}:saml-provider/TestSAMLProvider".format(ACCOUNT_ID)
     )
 
 
@@ -1568,6 +1731,21 @@ def test_delete_saml_provider():
     # Verify that it's not in the list:
     resp = conn.list_signing_certificates(UserName="testing")
     assert not resp["Certificates"]
+
+
+@mock_iam()
+def test_create_role_defaults():
+    """Tests default values"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="{}",
+    )
+
+    # Get role:
+    role = conn.get_role(RoleName="my-role")["Role"]
+
+    assert role["MaxSessionDuration"] == 3600
+    assert role.get("Description") is None
 
 
 @mock_iam()
@@ -1913,6 +2091,28 @@ def test_update_role():
 
 
 @mock_iam()
+def test_update_role_defaults():
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    with assert_raises(ClientError):
+        conn.delete_role(RoleName="my-role")
+
+    conn.create_role(
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Description="test",
+        Path="/my-path/",
+    )
+    response = conn.update_role(RoleName="my-role")
+    assert len(response.keys()) == 1
+
+    role = conn.get_role(RoleName="my-role")["Role"]
+
+    assert role["MaxSessionDuration"] == 3600
+    assert role.get("Description") is None
+
+
+@mock_iam()
 def test_list_entities_for_policy():
     test_policy = json.dumps(
         {
@@ -1945,10 +2145,12 @@ def test_list_entities_for_policy():
     )
 
     conn.attach_user_policy(
-        UserName="testUser", PolicyArn="arn:aws:iam::123456789012:policy/testPolicy"
+        UserName="testUser",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
     )
     conn.attach_group_policy(
-        GroupName="testGroup", PolicyArn="arn:aws:iam::123456789012:policy/testPolicy"
+        GroupName="testGroup",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
     )
 
     conn.add_user_to_group(UserName="testUser", GroupName="testGroup")
@@ -1967,26 +2169,30 @@ def test_list_entities_for_policy():
         RoleName="my-role", PolicyName="test-policy", PolicyDocument=test_policy
     )
     conn.attach_role_policy(
-        RoleName="my-role", PolicyArn="arn:aws:iam::123456789012:policy/testPolicy"
+        RoleName="my-role",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
     )
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::123456789012:policy/testPolicy", EntityFilter="Role"
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        EntityFilter="Role",
     )
     assert response["PolicyRoles"] == [{"RoleName": "my-role"}]
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::123456789012:policy/testPolicy", EntityFilter="User"
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        EntityFilter="User",
     )
     assert response["PolicyUsers"] == [{"UserName": "testUser"}]
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::123456789012:policy/testPolicy", EntityFilter="Group"
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
+        EntityFilter="Group",
     )
     assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
 
     response = conn.list_entities_for_policy(
-        PolicyArn="arn:aws:iam::123456789012:policy/testPolicy",
+        PolicyArn="arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID),
         EntityFilter="LocalManagedPolicy",
     )
     assert response["PolicyGroups"] == [{"GroupName": "testGroup"}]
@@ -2000,7 +2206,9 @@ def test_create_role_no_path():
     resp = conn.create_role(
         RoleName="my-role", AssumeRolePolicyDocument="some policy", Description="test"
     )
-    resp.get("Role").get("Arn").should.equal("arn:aws:iam::123456789012:role/my-role")
+    resp.get("Role").get("Arn").should.equal(
+        "arn:aws:iam::{}:role/my-role".format(ACCOUNT_ID)
+    )
     resp.get("Role").should_not.have.key("PermissionsBoundary")
     resp.get("Role").get("Description").should.equal("test")
 
@@ -2008,7 +2216,7 @@ def test_create_role_no_path():
 @mock_iam()
 def test_create_role_with_permissions_boundary():
     conn = boto3.client("iam", region_name="us-east-1")
-    boundary = "arn:aws:iam::123456789012:policy/boundary"
+    boundary = "arn:aws:iam::{}:policy/boundary".format(ACCOUNT_ID)
     resp = conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="some policy",
@@ -2036,6 +2244,42 @@ def test_create_role_with_permissions_boundary():
 
 
 @mock_iam
+def test_create_role_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_role_name = str(uuid4())
+    iam.create_role(
+        RoleName=test_role_name, AssumeRolePolicyDocument="policy", Description="test"
+    )
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_role(
+            RoleName=test_role_name,
+            AssumeRolePolicyDocument="policy",
+            Description="test",
+        )
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "Role with name {0} already exists.".format(test_role_name)
+    )
+
+
+@mock_iam
+def test_create_policy_with_same_name_should_fail():
+    iam = boto3.client("iam", region_name="us-east-1")
+    test_policy_name = str(uuid4())
+    policy = iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    # Create the role again, and verify that it fails
+    with assert_raises(ClientError) as err:
+        iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
+    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.exception.response["Error"]["Message"].should.equal(
+        "A policy called {0} already exists. Duplicate names are not allowed.".format(
+            test_policy_name
+        )
+    )
+
+
+@mock_iam
 def test_create_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -2044,7 +2288,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::123456789012:oidc-provider/example.com"
+        "arn:aws:iam::{}:oidc-provider/example.com".format(ACCOUNT_ID)
     )
 
     response = client.create_open_id_connect_provider(
@@ -2052,7 +2296,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::123456789012:oidc-provider/example.org"
+        "arn:aws:iam::{}:oidc-provider/example.org".format(ACCOUNT_ID)
     )
 
     response = client.create_open_id_connect_provider(
@@ -2060,7 +2304,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::123456789012:oidc-provider/example.org/oidc"
+        "arn:aws:iam::{}:oidc-provider/example.org/oidc".format(ACCOUNT_ID)
     )
 
     response = client.create_open_id_connect_provider(
@@ -2068,7 +2312,7 @@ def test_create_open_id_connect_provider():
     )
 
     response["OpenIDConnectProviderArn"].should.equal(
-        "arn:aws:iam::123456789012:oidc-provider/example.org/oidc-query"
+        "arn:aws:iam::{}:oidc-provider/example.org/oidc-query".format(ACCOUNT_ID)
     )
 
 
@@ -2282,7 +2526,7 @@ def test_get_account_password_policy_errors():
 
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
-        "The Password Policy with domain name 123456789012 cannot be found.",
+        "The Password Policy with domain name {} cannot be found.".format(ACCOUNT_ID),
     )
 
 
@@ -2299,7 +2543,7 @@ def test_delete_account_password_policy():
 
     client.get_account_password_policy.when.called_with().should.throw(
         ClientError,
-        "The Password Policy with domain name 123456789012 cannot be found.",
+        "The Password Policy with domain name {} cannot be found.".format(ACCOUNT_ID),
     )
 
 
@@ -2309,4 +2553,122 @@ def test_delete_account_password_policy_errors():
 
     client.delete_account_password_policy.when.called_with().should.throw(
         ClientError, "The account policy with name PasswordPolicy cannot be found."
+    )
+
+
+@mock_iam
+def test_get_account_summary():
+    client = boto3.client("iam", region_name="us-east-1")
+    iam = boto3.resource("iam", region_name="us-east-1")
+
+    account_summary = iam.AccountSummary()
+
+    account_summary.summary_map.should.equal(
+        {
+            "GroupPolicySizeQuota": 5120,
+            "InstanceProfilesQuota": 1000,
+            "Policies": 0,
+            "GroupsPerUserQuota": 10,
+            "InstanceProfiles": 0,
+            "AttachedPoliciesPerUserQuota": 10,
+            "Users": 0,
+            "PoliciesQuota": 1500,
+            "Providers": 0,
+            "AccountMFAEnabled": 0,
+            "AccessKeysPerUserQuota": 2,
+            "AssumeRolePolicySizeQuota": 2048,
+            "PolicyVersionsInUseQuota": 10000,
+            "GlobalEndpointTokenVersion": 1,
+            "VersionsPerPolicyQuota": 5,
+            "AttachedPoliciesPerGroupQuota": 10,
+            "PolicySizeQuota": 6144,
+            "Groups": 0,
+            "AccountSigningCertificatesPresent": 0,
+            "UsersQuota": 5000,
+            "ServerCertificatesQuota": 20,
+            "MFADevices": 0,
+            "UserPolicySizeQuota": 2048,
+            "PolicyVersionsInUse": 0,
+            "ServerCertificates": 0,
+            "Roles": 0,
+            "RolesQuota": 1000,
+            "SigningCertificatesPerUserQuota": 2,
+            "MFADevicesInUse": 0,
+            "RolePolicySizeQuota": 10240,
+            "AttachedPoliciesPerRoleQuota": 10,
+            "AccountAccessKeysPresent": 0,
+            "GroupsQuota": 300,
+        }
+    )
+
+    client.create_instance_profile(InstanceProfileName="test-profile")
+    client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
+    response_policy = client.create_policy(
+        PolicyName="test-policy", PolicyDocument=MOCK_POLICY
+    )
+    client.create_role(RoleName="test-role", AssumeRolePolicyDocument="test policy")
+    client.attach_role_policy(
+        RoleName="test-role", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.create_saml_provider(
+        Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024
+    )
+    client.create_group(GroupName="test-group")
+    client.attach_group_policy(
+        GroupName="test-group", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.create_user(UserName="test-user")
+    client.attach_user_policy(
+        UserName="test-user", PolicyArn=response_policy["Policy"]["Arn"]
+    )
+    client.enable_mfa_device(
+        UserName="test-user",
+        SerialNumber="123456789",
+        AuthenticationCode1="234567",
+        AuthenticationCode2="987654",
+    )
+    client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
+    client.upload_server_certificate(
+        ServerCertificateName="test-cert",
+        CertificateBody="cert-body",
+        PrivateKey="private-key",
+    )
+    account_summary.load()
+
+    account_summary.summary_map.should.equal(
+        {
+            "GroupPolicySizeQuota": 5120,
+            "InstanceProfilesQuota": 1000,
+            "Policies": 1,
+            "GroupsPerUserQuota": 10,
+            "InstanceProfiles": 1,
+            "AttachedPoliciesPerUserQuota": 10,
+            "Users": 1,
+            "PoliciesQuota": 1500,
+            "Providers": 2,
+            "AccountMFAEnabled": 0,
+            "AccessKeysPerUserQuota": 2,
+            "AssumeRolePolicySizeQuota": 2048,
+            "PolicyVersionsInUseQuota": 10000,
+            "GlobalEndpointTokenVersion": 1,
+            "VersionsPerPolicyQuota": 5,
+            "AttachedPoliciesPerGroupQuota": 10,
+            "PolicySizeQuota": 6144,
+            "Groups": 1,
+            "AccountSigningCertificatesPresent": 0,
+            "UsersQuota": 5000,
+            "ServerCertificatesQuota": 20,
+            "MFADevices": 1,
+            "UserPolicySizeQuota": 2048,
+            "PolicyVersionsInUse": 3,
+            "ServerCertificates": 1,
+            "Roles": 1,
+            "RolesQuota": 1000,
+            "SigningCertificatesPerUserQuota": 2,
+            "MFADevicesInUse": 1,
+            "RolePolicySizeQuota": 10240,
+            "AttachedPoliciesPerRoleQuota": 10,
+            "AccountAccessKeysPresent": 0,
+            "GroupsQuota": 300,
+        }
     )

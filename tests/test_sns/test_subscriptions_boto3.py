@@ -8,7 +8,11 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 from moto import mock_sns
-from moto.sns.models import DEFAULT_PAGE_SIZE
+from moto.sns.models import (
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_EFFECTIVE_DELIVERY_POLICY,
+    DEFAULT_ACCOUNT_ID,
+)
 
 
 @mock_sns
@@ -195,21 +199,23 @@ def test_subscribe_attributes():
 
     resp = client.subscribe(TopicArn=arn, Protocol="http", Endpoint="http://test.com")
 
-    attributes = client.get_subscription_attributes(
+    response = client.get_subscription_attributes(
         SubscriptionArn=resp["SubscriptionArn"]
     )
 
-    attributes.should.contain("Attributes")
-    attributes["Attributes"].should.contain("PendingConfirmation")
-    attributes["Attributes"]["PendingConfirmation"].should.equal("false")
-    attributes["Attributes"].should.contain("Endpoint")
-    attributes["Attributes"]["Endpoint"].should.equal("http://test.com")
-    attributes["Attributes"].should.contain("TopicArn")
-    attributes["Attributes"]["TopicArn"].should.equal(arn)
-    attributes["Attributes"].should.contain("Protocol")
-    attributes["Attributes"]["Protocol"].should.equal("http")
-    attributes["Attributes"].should.contain("SubscriptionArn")
-    attributes["Attributes"]["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
+    response.should.contain("Attributes")
+    attributes = response["Attributes"]
+    attributes["PendingConfirmation"].should.equal("false")
+    attributes["ConfirmationWasAuthenticated"].should.equal("true")
+    attributes["Endpoint"].should.equal("http://test.com")
+    attributes["TopicArn"].should.equal(arn)
+    attributes["Protocol"].should.equal("http")
+    attributes["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
+    attributes["Owner"].should.equal(str(DEFAULT_ACCOUNT_ID))
+    attributes["RawMessageDelivery"].should.equal("false")
+    json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
+        DEFAULT_EFFECTIVE_DELIVERY_POLICY
+    )
 
 
 @mock_sns

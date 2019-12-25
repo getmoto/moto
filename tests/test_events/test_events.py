@@ -1,10 +1,12 @@
 import random
 import boto3
 import json
+import sure  # noqa
 
 from moto.events import mock_events
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
+from moto.core import ACCOUNT_ID
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -205,6 +207,53 @@ def test_permissions():
 
 
 @mock_events
+def test_put_permission_errors():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    client.put_permission.when.called_with(
+        EventBusName="non-existing",
+        Action="events:PutEvents",
+        Principal="111111111111",
+        StatementId="test",
+    ).should.throw(ClientError, "Event bus non-existing does not exist.")
+
+    client.put_permission.when.called_with(
+        EventBusName="test-bus",
+        Action="events:PutPermission",
+        Principal="111111111111",
+        StatementId="test",
+    ).should.throw(
+        ClientError, "Provided value in parameter 'action' is not supported."
+    )
+
+
+@mock_events
+def test_remove_permission_errors():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    client.remove_permission.when.called_with(
+        EventBusName="non-existing", StatementId="test"
+    ).should.throw(ClientError, "Event bus non-existing does not exist.")
+
+    client.remove_permission.when.called_with(
+        EventBusName="test-bus", StatementId="test"
+    ).should.throw(ClientError, "EventBus does not have a policy.")
+
+    client.put_permission(
+        EventBusName="test-bus",
+        Action="events:PutEvents",
+        Principal="111111111111",
+        StatementId="test",
+    )
+
+    client.remove_permission.when.called_with(
+        EventBusName="test-bus", StatementId="non-existing"
+    ).should.throw(ClientError, "Statement with the provided id does not exist.")
+
+
+@mock_events
 def test_put_events():
     client = boto3.client("events", "eu-central-1")
 
@@ -220,3 +269,195 @@ def test_put_events():
 
     with assert_raises(ClientError):
         client.put_events(Entries=[event] * 20)
+
+
+@mock_events
+def test_create_event_bus():
+    client = boto3.client("events", "us-east-1")
+    response = client.create_event_bus(Name="test-bus")
+
+    response["EventBusArn"].should.equal(
+        "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(ACCOUNT_ID)
+    )
+
+
+@mock_events
+def test_create_event_bus_errors():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    client.create_event_bus.when.called_with(Name="test-bus").should.throw(
+        ClientError, "Event bus test-bus already exists."
+    )
+
+    # the 'default' name is already used for the account's default event bus.
+    client.create_event_bus.when.called_with(Name="default").should.throw(
+        ClientError, "Event bus default already exists."
+    )
+
+    # non partner event buses can't contain the '/' character
+    client.create_event_bus.when.called_with(Name="test/test-bus").should.throw(
+        ClientError, "Event bus name must not contain '/'."
+    )
+
+    client.create_event_bus.when.called_with(
+        Name="aws.partner/test/test-bus", EventSourceName="aws.partner/test/test-bus"
+    ).should.throw(
+        ClientError, "Event source aws.partner/test/test-bus does not exist."
+    )
+
+
+@mock_events
+def test_describe_event_bus():
+    client = boto3.client("events", "us-east-1")
+
+    response = client.describe_event_bus()
+
+    response["Name"].should.equal("default")
+    response["Arn"].should.equal(
+        "arn:aws:events:us-east-1:{}:event-bus/default".format(ACCOUNT_ID)
+    )
+    response.should_not.have.key("Policy")
+
+    client.create_event_bus(Name="test-bus")
+    client.put_permission(
+        EventBusName="test-bus",
+        Action="events:PutEvents",
+        Principal="111111111111",
+        StatementId="test",
+    )
+
+    response = client.describe_event_bus(Name="test-bus")
+
+    response["Name"].should.equal("test-bus")
+    response["Arn"].should.equal(
+        "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(ACCOUNT_ID)
+    )
+    json.loads(response["Policy"]).should.equal(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "test",
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
+                    "Action": "events:PutEvents",
+                    "Resource": "arn:aws:events:us-east-1:{}:event-bus/test-bus".format(
+                        ACCOUNT_ID
+                    ),
+                }
+            ],
+        }
+    )
+
+
+@mock_events
+def test_describe_event_bus_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.describe_event_bus.when.called_with(Name="non-existing").should.throw(
+        ClientError, "Event bus non-existing does not exist."
+    )
+
+
+@mock_events
+def test_list_event_buses():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus-1")
+    client.create_event_bus(Name="test-bus-2")
+    client.create_event_bus(Name="other-bus-1")
+    client.create_event_bus(Name="other-bus-2")
+
+    response = client.list_event_buses()
+
+    response["EventBuses"].should.have.length_of(5)
+    sorted(response["EventBuses"], key=lambda i: i["Name"]).should.equal(
+        [
+            {
+                "Name": "default",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(
+                    ACCOUNT_ID
+                ),
+            },
+            {
+                "Name": "other-bus-1",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(
+                    ACCOUNT_ID
+                ),
+            },
+            {
+                "Name": "other-bus-2",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(
+                    ACCOUNT_ID
+                ),
+            },
+            {
+                "Name": "test-bus-1",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-1".format(
+                    ACCOUNT_ID
+                ),
+            },
+            {
+                "Name": "test-bus-2",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/test-bus-2".format(
+                    ACCOUNT_ID
+                ),
+            },
+        ]
+    )
+
+    response = client.list_event_buses(NamePrefix="other-bus")
+
+    response["EventBuses"].should.have.length_of(2)
+    sorted(response["EventBuses"], key=lambda i: i["Name"]).should.equal(
+        [
+            {
+                "Name": "other-bus-1",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-1".format(
+                    ACCOUNT_ID
+                ),
+            },
+            {
+                "Name": "other-bus-2",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/other-bus-2".format(
+                    ACCOUNT_ID
+                ),
+            },
+        ]
+    )
+
+
+@mock_events
+def test_delete_event_bus():
+    client = boto3.client("events", "us-east-1")
+    client.create_event_bus(Name="test-bus")
+
+    response = client.list_event_buses()
+    response["EventBuses"].should.have.length_of(2)
+
+    client.delete_event_bus(Name="test-bus")
+
+    response = client.list_event_buses()
+    response["EventBuses"].should.have.length_of(1)
+    response["EventBuses"].should.equal(
+        [
+            {
+                "Name": "default",
+                "Arn": "arn:aws:events:us-east-1:{}:event-bus/default".format(
+                    ACCOUNT_ID
+                ),
+            }
+        ]
+    )
+
+    # deleting non existing event bus should be successful
+    client.delete_event_bus(Name="non-existing")
+
+
+@mock_events
+def test_delete_event_bus_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.delete_event_bus.when.called_with(Name="default").should.throw(
+        ClientError, "Cannot delete event bus default."
+    )

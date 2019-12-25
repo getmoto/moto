@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: python
 services:
 - docker
@@ -35,9 +35,10 @@ install:
   if [ "$TEST_SERVER_MODE" = "true" ]; then
     python wait_for.py
   fi
+before_script:
+- if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then make lint; fi
 script:
 - make test-only
-- if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then make lint; fi
 after_success:
 - coveralls
 before_deploy:
@@ -53,7 +54,7 @@ deploy:
     on:
       branch:
       - master
-    cleanup: false
+    skip_cleanup: true
     skip_existing: true
   # - provider: pypi
   #   distributions: sdist bdist_wheel

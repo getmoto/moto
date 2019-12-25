@@ -65,6 +65,13 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.describe_account(**self.request_params)
         )
 
+    def describe_create_account_status(self):
+        return json.dumps(
+            self.organizations_backend.describe_create_account_status(
+                **self.request_params
+            )
+        )
+
     def list_accounts(self):
         return json.dumps(self.organizations_backend.list_accounts())
 
@@ -111,4 +118,19 @@ class OrganizationsResponse(BaseResponse):
     def list_targets_for_policy(self):
         return json.dumps(
             self.organizations_backend.list_targets_for_policy(**self.request_params)
+        )
+
+    def tag_resource(self):
+        return json.dumps(
+            self.organizations_backend.tag_resource(**self.request_params)
+        )
+
+    def list_tags_for_resource(self):
+        return json.dumps(
+            self.organizations_backend.list_tags_for_resource(**self.request_params)
+        )
+
+    def untag_resource(self):
+        return json.dumps(
+            self.organizations_backend.untag_resource(**self.request_params)
         )

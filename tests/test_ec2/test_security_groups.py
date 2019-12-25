@@ -833,3 +833,33 @@ def test_get_all_security_groups_filter_with_same_vpc_id():
     cm.exception.code.should.equal("InvalidGroup.NotFound")
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_revoke_security_group_egress():
+    ec2 = boto3.resource("ec2", "us-east-1")
+    sg = ec2.create_security_group(Description="Test SG", GroupName="test-sg")
+
+    sg.ip_permissions_egress.should.equal(
+        [
+            {
+                "IpProtocol": "-1",
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+                "UserIdGroupPairs": [],
+            }
+        ]
+    )
+
+    sg.revoke_egress(
+        IpPermissions=[
+            {
+                "FromPort": 0,
+                "IpProtocol": "-1",
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"},],
+                "ToPort": 123,
+            },
+        ]
+    )
+
+    sg.reload()
+    sg.ip_permissions_egress.should.have.length_of(0)

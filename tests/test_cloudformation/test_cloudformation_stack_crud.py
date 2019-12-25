@@ -4,6 +4,7 @@ import os
 import json
 
 import boto
+import boto.iam
 import boto.s3
 import boto.s3.key
 import boto.cloudformation
@@ -13,11 +14,13 @@ import sure  # noqa
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
+from moto.core import ACCOUNT_ID
 
 from moto import (
     mock_cloudformation_deprecated,
     mock_s3_deprecated,
     mock_route53_deprecated,
+    mock_iam_deprecated,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -127,12 +130,12 @@ def test_create_stack_with_notification_arn():
     conn.create_stack(
         "test_stack_with_notifications",
         template_body=dummy_template_json,
-        notification_arns="arn:aws:sns:us-east-1:123456789012:fake-queue",
+        notification_arns="arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID),
     )
 
     stack = conn.describe_stacks()[0]
     [n.value for n in stack.notification_arns].should.contain(
-        "arn:aws:sns:us-east-1:123456789012:fake-queue"
+        "arn:aws:sns:us-east-1:{}:fake-queue".format(ACCOUNT_ID)
     )
 
 
@@ -516,7 +519,7 @@ def test_create_stack_lambda_and_dynamodb():
                     "Code": {"S3Bucket": "bucket_123", "S3Key": "key_123"},
                     "FunctionName": "func1",
                     "Handler": "handler.handler",
-                    "Role": "role1",
+                    "Role": get_role_name(),
                     "Runtime": "python2.7",
                     "Description": "descr",
                     "MemorySize": 12345,
@@ -591,3 +594,12 @@ def test_create_stack_kinesis():
     stack = conn.describe_stacks()[0]
     resources = stack.list_resources()
     assert len(resources) == 1
+
+
+def get_role_name():
+    with mock_iam_deprecated():
+        iam = boto.connect_iam()
+        role = iam.create_role("my-role")["create_role_response"]["create_role_result"][
+            "role"
+        ]["arn"]
+        return role

@@ -31,7 +31,8 @@ from .exceptions import (
 )
 from .utils import make_arn_for_topic, make_arn_for_subscription, is_e164
 
-DEFAULT_ACCOUNT_ID = 123456789012
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
@@ -227,7 +228,7 @@ class Subscription(BaseModel):
                         return False
 
                     for attribute_values in attribute_values:
-                        # Even the offical documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
+                        # Even the official documentation states a 5 digits of accuracy after the decimal point for numerics, in reality it is 6
                         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
                         if int(attribute_values * 1000000) == int(rule * 1000000):
                             return True
@@ -259,7 +260,9 @@ class Subscription(BaseModel):
             "SignatureVersion": "1",
             "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
-            "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
+            "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55".format(
+                DEFAULT_ACCOUNT_ID
+            ),
         }
         if message_attributes:
             post_data["MessageAttributes"] = message_attributes
@@ -275,8 +278,11 @@ class PlatformApplication(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:sns:{region}:123456789012:app/{platform}/{name}".format(
-            region=self.region, platform=self.platform, name=self.name
+        return "arn:aws:sns:{region}:{AccountId}:app/{platform}/{name}".format(
+            region=self.region,
+            platform=self.platform,
+            name=self.name,
+            AccountId=DEFAULT_ACCOUNT_ID,
         )
 
 
@@ -305,8 +311,9 @@ class PlatformEndpoint(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:sns:{region}:123456789012:endpoint/{platform}/{name}/{id}".format(
+        return "arn:aws:sns:{region}:{AccountId}:endpoint/{platform}/{name}/{id}".format(
             region=self.region,
+            AccountId=DEFAULT_ACCOUNT_ID,
             platform=self.application.platform,
             name=self.application.name,
             id=self.id,
@@ -432,11 +439,18 @@ class SNSBackend(BaseBackend):
         subscription = Subscription(topic, endpoint, protocol)
         attributes = {
             "PendingConfirmation": "false",
+            "ConfirmationWasAuthenticated": "true",
             "Endpoint": endpoint,
             "TopicArn": topic_arn,
             "Protocol": protocol,
             "SubscriptionArn": subscription.arn,
+            "Owner": DEFAULT_ACCOUNT_ID,
+            "RawMessageDelivery": "false",
         }
+
+        if protocol in ["http", "https"]:
+            attributes["EffectiveDeliveryPolicy"] = topic.effective_delivery_policy
+
         subscription.attributes = attributes
         self.subscriptions[subscription.arn] = subscription
         return subscription
@@ -573,7 +587,7 @@ class SNSBackend(BaseBackend):
         combinations = 1
         for rules in six.itervalues(value):
             combinations *= len(rules)
-        # Even the offical documentation states the total combination of values must not exceed 100, in reality it is 150
+        # Even the official documentation states the total combination of values must not exceed 100, in reality it is 150
         # https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html#subscription-filter-policy-constraints
         if combinations > 150:
             raise SNSInvalidParameter(
@@ -696,18 +710,18 @@ for region in Session().get_available_regions("sns"):
 
 
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = {
-    "http": {
-        "disableSubscriptionOverrides": False,
-        "defaultHealthyRetryPolicy": {
-            "numNoDelayRetries": 0,
-            "numMinDelayRetries": 0,
-            "minDelayTarget": 20,
-            "maxDelayTarget": 20,
-            "numMaxDelayRetries": 0,
-            "numRetries": 3,
-            "backoffFunction": "linear",
-        },
-    }
+    "defaultHealthyRetryPolicy": {
+        "numNoDelayRetries": 0,
+        "numMinDelayRetries": 0,
+        "minDelayTarget": 20,
+        "maxDelayTarget": 20,
+        "numMaxDelayRetries": 0,
+        "numRetries": 3,
+        "backoffFunction": "linear",
+    },
+    "sicklyRetryPolicy": None,
+    "throttlePolicy": None,
+    "guaranteed": False,
 }
 
 

@@ -13,8 +13,9 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.backends import default_backend
 
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
-DEFAULT_ACCOUNT_ID = 123456789012
+
 GOOGLE_ROOT_CA = b"""-----BEGIN CERTIFICATE-----
 MIIEKDCCAxCgAwIBAgIQAQAhJYiw+lmnd+8Fe2Yn3zANBgkqhkiG9w0BAQsFADBC
 MQswCQYDVQQGEwJVUzEWMBQGA1UEChMNR2VvVHJ1c3QgSW5jLjEbMBkGA1UEAxMS

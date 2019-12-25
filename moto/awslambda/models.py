@@ -26,19 +26,25 @@ import requests.adapters
 import boto.awslambda
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.iam.models import iam_backend
+from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
+from .exceptions import (
+    CrossAccountNotAllowed,
+    InvalidRoleFormat,
+    InvalidParameterValueException,
+)
 from .utils import make_function_arn, make_function_ver_arn
 from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
+from moto.core import ACCOUNT_ID
 
 logger = logging.getLogger(__name__)
-
-ACCOUNT_ID = "123456789012"
 
 
 try:
@@ -46,8 +52,9 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-
-_stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
+# The lambci container is returning a special escape character for the "RequestID" fields. Unicode 033:
+# _stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
+_stderr_regex = re.compile(r"\033\[\d+.*")
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
@@ -213,9 +220,8 @@ class LambdaFunction(BaseModel):
                 key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
-                    raise ValueError(
-                        "InvalidParameterValueException",
-                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist",
+                    raise InvalidParameterValueException(
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist"
                     )
             except MissingKey:
                 if do_validate_s3():
@@ -356,6 +362,8 @@ class LambdaFunction(BaseModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+                self.code["S3Bucket"] = updated_spec["S3Bucket"]
+                self.code["S3Key"] = updated_spec["S3Key"]
 
         return self.get_configuration()
 
@@ -444,7 +452,7 @@ class LambdaFunction(BaseModel):
             if exit_code != 0:
                 raise Exception("lambda invoke failed output: {}".format(output))
 
-            # strip out RequestId lines
+            # strip out RequestId lines (TODO: This will return an additional '\n' in the response)
             output = os.linesep.join(
                 [
                     line
@@ -519,6 +527,15 @@ class LambdaFunction(BaseModel):
             return make_function_arn(self.region, ACCOUNT_ID, self.function_name)
         raise UnformattedGetAttTemplateException()
 
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        updated_props = cloudformation_json["Properties"]
+        original_resource.update_configuration(updated_props)
+        original_resource.update_function_code(updated_props["Code"])
+        return original_resource
+
     @staticmethod
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
@@ -527,6 +544,9 @@ class LambdaFunction(BaseModel):
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
+
+    def delete(self, region):
+        lambda_backends[region].delete_function(self.function_name)
 
 
 class EventSourceMapping(BaseModel):
@@ -667,6 +687,19 @@ class LambdaStorage(object):
         :param fn: Function
         :type fn: LambdaFunction
         """
+        valid_role = re.match(InvalidRoleFormat.pattern, fn.role)
+        if valid_role:
+            account = valid_role.group(2)
+            if account != ACCOUNT_ID:
+                raise CrossAccountNotAllowed()
+            try:
+                iam_backend.get_role_by_arn(fn.role)
+            except IAMNotFoundException:
+                raise InvalidParameterValueException(
+                    "The role defined for the function cannot be assumed by Lambda."
+                )
+        else:
+            raise InvalidRoleFormat(fn.role)
         if fn.function_name in self._functions:
             self._functions[fn.function_name]["latest"] = fn
         else:
@@ -978,6 +1011,32 @@ class LambdaBackend(BaseBackend):
 
     def add_policy(self, function_name, policy):
         self.get_function(function_name).policy = policy
+
+    def update_function_code(self, function_name, qualifier, body):
+        fn = self.get_function(function_name, qualifier)
+
+        if fn:
+            if body.get("Publish", False):
+                fn = self.publish_function(function_name)
+
+            config = fn.update_function_code(body)
+            return config
+        else:
+            return None
+
+    def update_function_configuration(self, function_name, qualifier, body):
+        fn = self.get_function(function_name, qualifier)
+
+        return fn.update_configuration(body) if fn else None
+
+    def invoke(self, function_name, qualifier, body, headers, response_headers):
+        fn = self.get_function(function_name, qualifier)
+        if fn:
+            payload = fn.invoke(body, headers, response_headers)
+            response_headers["Content-Length"] = str(len(payload))
+            return response_headers, payload
+        else:
+            return response_headers, None
 
 
 def do_validate_s3():

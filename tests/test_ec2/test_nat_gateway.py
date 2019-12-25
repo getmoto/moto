@@ -102,3 +102,124 @@ def test_create_and_describe_nat_gateway():
     describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
         "PublicIp"
     ].should.equal(public_ip)
+
+
+@mock_ec2
+def test_describe_nat_gateway_filter_by_net_gateway_id_and_state():
+    conn = boto3.client("ec2", "us-east-1")
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    subnet = conn.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.1.0/27", AvailabilityZone="us-east-1a"
+    )
+    allocation_id = conn.allocate_address(Domain="vpc")["AllocationId"]
+    subnet_id = subnet["Subnet"]["SubnetId"]
+
+    create_response = conn.create_nat_gateway(
+        SubnetId=subnet_id, AllocationId=allocation_id
+    )
+    nat_gateway_id = create_response["NatGateway"]["NatGatewayId"]
+
+    describe_response = conn.describe_nat_gateways(
+        Filters=[
+            {"Name": "nat-gateway-id", "Values": ["non-existent-id"]},
+            {"Name": "state", "Values": ["available"]},
+        ]
+    )
+    describe_response["NatGateways"].should.have.length_of(0)
+
+    describe_response = conn.describe_nat_gateways(
+        Filters=[
+            {"Name": "nat-gateway-id", "Values": [nat_gateway_id]},
+            {"Name": "state", "Values": ["available"]},
+        ]
+    )
+
+    describe_response["NatGateways"].should.have.length_of(1)
+    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id)
+    describe_response["NatGateways"][0]["State"].should.equal("available")
+    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
+    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id)
+    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
+        "AllocationId"
+    ].should.equal(allocation_id)
+
+
+@mock_ec2
+def test_describe_nat_gateway_filter_by_subnet_id():
+    conn = boto3.client("ec2", "us-east-1")
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    subnet_1 = conn.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.1.0/27", AvailabilityZone="us-east-1a"
+    )
+    subnet_2 = conn.create_subnet(
+        VpcId=vpc_id, CidrBlock="10.0.2.0/27", AvailabilityZone="us-east-1a"
+    )
+    allocation_id_1 = conn.allocate_address(Domain="vpc")["AllocationId"]
+    allocation_id_2 = conn.allocate_address(Domain="vpc")["AllocationId"]
+    subnet_id_1 = subnet_1["Subnet"]["SubnetId"]
+    subnet_id_2 = subnet_2["Subnet"]["SubnetId"]
+
+    create_response_1 = conn.create_nat_gateway(
+        SubnetId=subnet_id_1, AllocationId=allocation_id_1
+    )
+    # create_response_2 =
+    conn.create_nat_gateway(SubnetId=subnet_id_2, AllocationId=allocation_id_2)
+    nat_gateway_id_1 = create_response_1["NatGateway"]["NatGatewayId"]
+    # nat_gateway_id_2 = create_response_2["NatGateway"]["NatGatewayId"]
+
+    describe_response = conn.describe_nat_gateways()
+    describe_response["NatGateways"].should.have.length_of(2)
+
+    describe_response = conn.describe_nat_gateways(
+        Filters=[{"Name": "subnet-id", "Values": [subnet_id_1]}]
+    )
+    describe_response["NatGateways"].should.have.length_of(1)
+    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id_1)
+    describe_response["NatGateways"][0]["State"].should.equal("available")
+    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id_1)
+    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id)
+    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
+        "AllocationId"
+    ].should.equal(allocation_id_1)
+
+
+@mock_ec2
+def test_describe_nat_gateway_filter_vpc_id():
+    conn = boto3.client("ec2", "us-east-1")
+    vpc_1 = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id_1 = vpc_1["Vpc"]["VpcId"]
+    vpc_2 = conn.create_vpc(CidrBlock="10.1.0.0/16")
+    vpc_id_2 = vpc_2["Vpc"]["VpcId"]
+    subnet_1 = conn.create_subnet(
+        VpcId=vpc_id_1, CidrBlock="10.0.1.0/27", AvailabilityZone="us-east-1a"
+    )
+    subnet_2 = conn.create_subnet(
+        VpcId=vpc_id_2, CidrBlock="10.1.1.0/27", AvailabilityZone="us-east-1a"
+    )
+    allocation_id_1 = conn.allocate_address(Domain="vpc")["AllocationId"]
+    allocation_id_2 = conn.allocate_address(Domain="vpc")["AllocationId"]
+    subnet_id_1 = subnet_1["Subnet"]["SubnetId"]
+    subnet_id_2 = subnet_2["Subnet"]["SubnetId"]
+
+    create_response_1 = conn.create_nat_gateway(
+        SubnetId=subnet_id_1, AllocationId=allocation_id_1
+    )
+    conn.create_nat_gateway(SubnetId=subnet_id_2, AllocationId=allocation_id_2)
+    nat_gateway_id_1 = create_response_1["NatGateway"]["NatGatewayId"]
+
+    describe_response = conn.describe_nat_gateways()
+    describe_response["NatGateways"].should.have.length_of(2)
+
+    describe_response = conn.describe_nat_gateways(
+        Filters=[{"Name": "vpc-id", "Values": [vpc_id_1]}]
+    )
+    describe_response["NatGateways"].should.have.length_of(1)
+    describe_response["NatGateways"][0]["NatGatewayId"].should.equal(nat_gateway_id_1)
+    describe_response["NatGateways"][0]["State"].should.equal("available")
+    describe_response["NatGateways"][0]["SubnetId"].should.equal(subnet_id_1)
+    describe_response["NatGateways"][0]["VpcId"].should.equal(vpc_id_1)
+    describe_response["NatGateways"][0]["NatGatewayAddresses"][0][
+        "AllocationId"
+    ].should.equal(allocation_id_1)

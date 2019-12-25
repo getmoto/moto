@@ -168,10 +168,10 @@ class LambdaResponse(BaseResponse):
         function_name = self.path.rsplit("/", 2)[-2]
         qualifier = self._get_param("qualifier")
 
-        fn = self.lambda_backend.get_function(function_name, qualifier)
-        if fn:
-            payload = fn.invoke(self.body, self.headers, response_headers)
-            response_headers["Content-Length"] = str(len(payload))
+        response_header, payload = self.lambda_backend.invoke(
+            function_name, qualifier, self.body, self.headers, response_headers
+        )
+        if payload:
             return 202, response_headers, payload
         else:
             return 404, response_headers, "{}"
@@ -211,30 +211,14 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps(result)
 
     def _create_function(self, request, full_url, headers):
-        try:
-            fn = self.lambda_backend.create_function(self.json_body)
-        except ValueError as e:
-            return (
-                400,
-                {},
-                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
-            )
-        else:
-            config = fn.get_configuration()
-            return 201, {}, json.dumps(config)
+        fn = self.lambda_backend.create_function(self.json_body)
+        config = fn.get_configuration()
+        return 201, {}, json.dumps(config)
 
     def _create_event_source_mapping(self, request, full_url, headers):
-        try:
-            fn = self.lambda_backend.create_event_source_mapping(self.json_body)
-        except ValueError as e:
-            return (
-                400,
-                {},
-                json.dumps({"Error": {"Code": e.args[0], "Message": e.args[1]}}),
-            )
-        else:
-            config = fn.get_configuration()
-            return 201, {}, json.dumps(config)
+        fn = self.lambda_backend.create_event_source_mapping(self.json_body)
+        config = fn.get_configuration()
+        return 201, {}, json.dumps(config)
 
     def _list_event_source_mappings(self, event_source_arn, function_name):
         esms = self.lambda_backend.list_event_source_mappings(
@@ -337,26 +321,23 @@ class LambdaResponse(BaseResponse):
     def _put_configuration(self, request):
         function_name = self.path.rsplit("/", 2)[-2]
         qualifier = self._get_param("Qualifier", None)
+        resp = self.lambda_backend.update_function_configuration(
+            function_name, qualifier, body=self.json_body
+        )
 
-        fn = self.lambda_backend.get_function(function_name, qualifier)
-
-        if fn:
-            config = fn.update_configuration(self.json_body)
-            return 200, {}, json.dumps(config)
+        if resp:
+            return 200, {}, json.dumps(resp)
         else:
             return 404, {}, "{}"
 
     def _put_code(self):
         function_name = self.path.rsplit("/", 2)[-2]
         qualifier = self._get_param("Qualifier", None)
+        resp = self.lambda_backend.update_function_code(
+            function_name, qualifier, body=self.json_body
+        )
 
-        fn = self.lambda_backend.get_function(function_name, qualifier)
-
-        if fn:
-            if self.json_body.get("Publish", False):
-                fn = self.lambda_backend.publish_function(function_name)
-
-            config = fn.update_function_code(self.json_body)
-            return 200, {}, json.dumps(config)
+        if resp:
+            return 200, {}, json.dumps(resp)
         else:
             return 404, {}, "{}"

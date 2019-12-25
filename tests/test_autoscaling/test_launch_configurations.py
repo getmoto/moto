@@ -8,6 +8,7 @@ import sure  # noqa
 
 from moto import mock_autoscaling_deprecated
 from moto import mock_autoscaling
+from moto.core import ACCOUNT_ID
 from tests.helpers import requires_boto_gte
 
 
@@ -22,7 +23,9 @@ def test_create_launch_configuration():
         security_groups=["default", "default2"],
         user_data=b"This is some user_data",
         instance_monitoring=True,
-        instance_profile_name="arn:aws:iam::123456789012:instance-profile/testing",
+        instance_profile_name="arn:aws:iam::{}:instance-profile/testing".format(
+            ACCOUNT_ID
+        ),
         spot_price=0.1,
     )
     conn.create_launch_configuration(config)
@@ -36,7 +39,7 @@ def test_create_launch_configuration():
     launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal("true")
     launch_config.instance_profile_name.should.equal(
-        "arn:aws:iam::123456789012:instance-profile/testing"
+        "arn:aws:iam::{}:instance-profile/testing".format(ACCOUNT_ID)
     )
     launch_config.spot_price.should.equal(0.1)
 
@@ -71,7 +74,9 @@ def test_create_launch_configuration_with_block_device_mappings():
         security_groups=["default", "default2"],
         user_data=b"This is some user_data",
         instance_monitoring=True,
-        instance_profile_name="arn:aws:iam::123456789012:instance-profile/testing",
+        instance_profile_name="arn:aws:iam::{}:instance-profile/testing".format(
+            ACCOUNT_ID
+        ),
         spot_price=0.1,
         block_device_mappings=[block_device_mapping],
     )
@@ -86,7 +91,7 @@ def test_create_launch_configuration_with_block_device_mappings():
     launch_config.user_data.should.equal(b"This is some user_data")
     launch_config.instance_monitoring.enabled.should.equal("true")
     launch_config.instance_profile_name.should.equal(
-        "arn:aws:iam::123456789012:instance-profile/testing"
+        "arn:aws:iam::{}:instance-profile/testing".format(ACCOUNT_ID)
     )
     launch_config.spot_price.should.equal(0.1)
     len(launch_config.block_device_mappings).should.equal(3)

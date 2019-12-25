@@ -214,6 +214,7 @@ class NetworkInterface(TaggedEC2Resource):
         ec2_backend,
         subnet,
         private_ip_address,
+        private_ip_addresses=None,
         device_index=0,
         public_ip_auto_assign=True,
         group_ids=None,
@@ -223,6 +224,7 @@ class NetworkInterface(TaggedEC2Resource):
         self.id = random_eni_id()
         self.device_index = device_index
         self.private_ip_address = private_ip_address or random_private_ip()
+        self.private_ip_addresses = private_ip_addresses
         self.subnet = subnet
         self.instance = None
         self.attachment_id = None
@@ -341,12 +343,19 @@ class NetworkInterfaceBackend(object):
         super(NetworkInterfaceBackend, self).__init__()
 
     def create_network_interface(
-        self, subnet, private_ip_address, group_ids=None, description=None, **kwargs
+        self,
+        subnet,
+        private_ip_address,
+        private_ip_addresses=None,
+        group_ids=None,
+        description=None,
+        **kwargs
     ):
         eni = NetworkInterface(
             self,
             subnet,
             private_ip_address,
+            private_ip_addresses,
             group_ids=group_ids,
             description=description,
             **kwargs
@@ -1635,23 +1644,27 @@ class RegionsAndZonesBackend(object):
 class SecurityRule(object):
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
         self.ip_protocol = ip_protocol
-        self.from_port = from_port
-        self.to_port = to_port
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
 
-    @property
-    def unique_representation(self):
-        return "{0}-{1}-{2}-{3}-{4}".format(
-            self.ip_protocol,
-            self.from_port,
-            self.to_port,
-            self.ip_ranges,
-            self.source_groups,
-        )
+        if ip_protocol != "-1":
+            self.from_port = from_port
+            self.to_port = to_port
 
     def __eq__(self, other):
-        return self.unique_representation == other.unique_representation
+        if self.ip_protocol != other.ip_protocol:
+            return False
+        if self.ip_ranges != other.ip_ranges:
+            return False
+        if self.source_groups != other.source_groups:
+            return False
+        if self.ip_protocol != "-1":
+            if self.from_port != other.from_port:
+                return False
+            if self.to_port != other.to_port:
+                return False
+
+        return True
 
 
 class SecurityGroup(TaggedEC2Resource):
@@ -1661,7 +1674,7 @@ class SecurityGroup(TaggedEC2Resource):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = [SecurityRule(-1, None, None, ["0.0.0.0/0"], [])]
+        self.egress_rules = [SecurityRule("-1", None, None, ["0.0.0.0/0"], [])]
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
@@ -2435,6 +2448,8 @@ class VPC(TaggedEC2Resource):
         self.instance_tenancy = instance_tenancy
         self.is_default = "true" if is_default else "false"
         self.enable_dns_support = "true"
+        self.classic_link_enabled = "false"
+        self.classic_link_dns_supported = "false"
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
@@ -2530,6 +2545,32 @@ class VPC(TaggedEC2Resource):
         )
         self.cidr_block_association_set[association_id] = association_set
         return association_set
+
+    def enable_vpc_classic_link(self):
+        # Check if current cidr block doesn't fall within the 10.0.0.0/8 block, excluding 10.0.0.0/16 and 10.1.0.0/16.
+        # Doesn't check any route tables, maybe something for in the future?
+        # See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html#classiclink-limitations
+        network_address = ipaddress.ip_network(self.cidr_block).network_address
+        if (
+            network_address not in ipaddress.ip_network("10.0.0.0/8")
+            or network_address in ipaddress.ip_network("10.0.0.0/16")
+            or network_address in ipaddress.ip_network("10.1.0.0/16")
+        ):
+            self.classic_link_enabled = "true"
+
+        return self.classic_link_enabled
+
+    def disable_vpc_classic_link(self):
+        self.classic_link_enabled = "false"
+        return self.classic_link_enabled
+
+    def enable_vpc_classic_link_dns_support(self):
+        self.classic_link_dns_supported = "true"
+        return self.classic_link_dns_supported
+
+    def disable_vpc_classic_link_dns_support(self):
+        self.classic_link_dns_supported = "false"
+        return self.classic_link_dns_supported
 
     def disassociate_vpc_cidr_block(self, association_id):
         if self.cidr_block == self.cidr_block_association_set.get(
@@ -2660,6 +2701,22 @@ class VPCBackend(object):
             return getattr(vpc, attr_name)
         else:
             raise InvalidParameterValueError(attr_name)
+
+    def enable_vpc_classic_link(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.enable_vpc_classic_link()
+
+    def disable_vpc_classic_link(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.disable_vpc_classic_link()
+
+    def enable_vpc_classic_link_dns_support(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.enable_vpc_classic_link_dns_support()
+
+    def disable_vpc_classic_link_dns_support(self, vpc_id):
+        vpc = self.get_vpc(vpc_id)
+        return vpc.disable_vpc_classic_link_dns_support()
 
     def modify_vpc_attribute(self, vpc_id, attr_name, attr_value):
         vpc = self.get_vpc(vpc_id)
@@ -2819,6 +2876,9 @@ class Subnet(TaggedEC2Resource):
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
         self.cidr = ipaddress.IPv4Network(six.text_type(self.cidr_block), strict=False)
+        self._available_ip_addresses = (
+            ipaddress.IPv4Network(six.text_type(self.cidr_block)).num_addresses - 5
+        )
         self._availability_zone = availability_zone
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
@@ -2853,6 +2913,21 @@ class Subnet(TaggedEC2Resource):
             subnet.add_tag(tag_key, tag_value)
 
         return subnet
+
+    @property
+    def available_ip_addresses(self):
+        enis = [
+            eni
+            for eni in self.ec2_backend.get_all_network_interfaces()
+            if eni.subnet.id == self.id
+        ]
+        addresses_taken = [
+            eni.private_ip_address for eni in enis if eni.private_ip_address
+        ]
+        for eni in enis:
+            if eni.private_ip_addresses:
+                addresses_taken.extend(eni.private_ip_addresses)
+        return str(self._available_ip_addresses - len(addresses_taken))
 
     @property
     def availability_zone(self):
@@ -3232,6 +3307,7 @@ class Route(object):
         local=False,
         gateway=None,
         instance=None,
+        nat_gateway=None,
         interface=None,
         vpc_pcx=None,
     ):
@@ -3241,6 +3317,7 @@ class Route(object):
         self.local = local
         self.gateway = gateway
         self.instance = instance
+        self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
 
@@ -3253,6 +3330,7 @@ class Route(object):
         gateway_id = properties.get("GatewayId")
         instance_id = properties.get("InstanceId")
         interface_id = properties.get("NetworkInterfaceId")
+        nat_gateway_id = properties.get("NatGatewayId")
         pcx_id = properties.get("VpcPeeringConnectionId")
 
         route_table_id = properties["RouteTableId"]
@@ -3262,6 +3340,7 @@ class Route(object):
             destination_cidr_block=properties.get("DestinationCidrBlock"),
             gateway_id=gateway_id,
             instance_id=instance_id,
+            nat_gateway_id=nat_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -3279,6 +3358,7 @@ class RouteBackend(object):
         local=False,
         gateway_id=None,
         instance_id=None,
+        nat_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
@@ -3299,12 +3379,17 @@ class RouteBackend(object):
         except ValueError:
             raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
+        nat_gateway = None
+        if nat_gateway_id is not None:
+            nat_gateway = self.nat_gateways.get(nat_gateway_id)
+
         route = Route(
             route_table,
             destination_cidr_block,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
+            nat_gateway=nat_gateway,
             interface=None,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
@@ -4753,7 +4838,35 @@ class NatGatewayBackend(object):
         super(NatGatewayBackend, self).__init__()
 
     def get_all_nat_gateways(self, filters):
-        return self.nat_gateways.values()
+        nat_gateways = self.nat_gateways.values()
+
+        if filters is not None:
+            if filters.get("nat-gateway-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.id in filters["nat-gateway-id"]
+                ]
+            if filters.get("vpc-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.vpc_id in filters["vpc-id"]
+                ]
+            if filters.get("subnet-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.subnet_id in filters["subnet-id"]
+                ]
+            if filters.get("state") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.state in filters["state"]
+                ]
+
+        return nat_gateways
 
     def create_nat_gateway(self, subnet_id, allocation_id):
         nat_gateway = NatGateway(self, subnet_id, allocation_id)

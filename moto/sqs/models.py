@@ -32,7 +32,8 @@ from .exceptions import (
     InvalidAttributeName,
 )
 
-DEFAULT_ACCOUNT_ID = 123456789012
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
 DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -417,8 +418,8 @@ class Queue(BaseModel):
         return result
 
     def url(self, request_url):
-        return "{0}://{1}/123456789012/{2}".format(
-            request_url.scheme, request_url.netloc, self.name
+        return "{0}://{1}/{2}/{3}".format(
+            request_url.scheme, request_url.netloc, DEFAULT_ACCOUNT_ID, self.name
         )
 
     @property
@@ -761,7 +762,7 @@ class SQSBackend(BaseBackend):
 
         new_messages = []
         for message in queue._messages:
-            # Only delete message if it is not visible and the reciept_handle
+            # Only delete message if it is not visible and the receipt_handle
             # matches.
             if message.receipt_handle == receipt_handle:
                 queue.pending_messages.remove(message)

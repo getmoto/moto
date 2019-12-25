@@ -68,7 +68,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"taskDefinition": task_definition.response_object})
 
     def list_task_definitions(self):
-        task_definition_arns = self.ecs_backend.list_task_definitions()
+        family_prefix = self._get_param("familyPrefix")
+        task_definition_arns = self.ecs_backend.list_task_definitions(family_prefix)
         return json.dumps(
             {
                 "taskDefinitionArns": task_definition_arns

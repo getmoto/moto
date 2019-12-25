@@ -27,7 +27,7 @@ from .exceptions import (
 )
 
 
-ACCOUNT_ID = 123456789012
+from moto.core import ACCOUNT_ID
 
 
 class TaggableResourceMixin(object):

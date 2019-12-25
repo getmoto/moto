@@ -8,7 +8,9 @@ import sure  # noqa
 
 from nose.tools import assert_raises
 from boto.exception import BotoServerError
+from botocore.exceptions import ClientError
 from moto import mock_iam, mock_iam_deprecated
+from moto.core import ACCOUNT_ID
 
 MOCK_POLICY = """
 {
@@ -50,16 +52,15 @@ def test_get_group_current():
     assert result["Group"]["GroupName"] == "my-group"
     assert isinstance(result["Group"]["CreateDate"], datetime)
     assert result["Group"]["GroupId"]
-    assert result["Group"]["Arn"] == "arn:aws:iam::123456789012:group/my-group"
+    assert result["Group"]["Arn"] == "arn:aws:iam::{}:group/my-group".format(ACCOUNT_ID)
     assert not result["Users"]
 
     # Make a group with a different path:
     other_group = conn.create_group(GroupName="my-other-group", Path="some/location")
     assert other_group["Group"]["Path"] == "some/location"
-    assert (
-        other_group["Group"]["Arn"]
-        == "arn:aws:iam::123456789012:group/some/location/my-other-group"
-    )
+    assert other_group["Group"][
+        "Arn"
+    ] == "arn:aws:iam::{}:group/some/location/my-other-group".format(ACCOUNT_ID)
 
 
 @mock_iam_deprecated()
@@ -181,4 +182,26 @@ def test_list_group_policies():
     )
     conn.list_group_policies(GroupName="my-group")["PolicyNames"].should.equal(
         ["my-policy"]
+    )
+
+
+@mock_iam
+def test_delete_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    groups = conn.list_groups()
+    assert groups["Groups"][0]["GroupName"] == "my-group"
+    assert len(groups["Groups"]) == 1
+    conn.delete_group(GroupName="my-group")
+    conn.list_groups()["Groups"].should.be.empty
+
+
+@mock_iam
+def test_delete_unknown_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    with assert_raises(ClientError) as err:
+        conn.delete_group(GroupName="unknown-group")
+    err.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    err.exception.response["Error"]["Message"].should.equal(
+        "The group with name unknown-group cannot be found."
     )

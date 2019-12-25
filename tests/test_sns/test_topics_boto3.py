@@ -8,6 +8,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 from moto import mock_sns
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
+from moto.core import ACCOUNT_ID
 
 
 @mock_sns
@@ -20,8 +21,8 @@ def test_create_and_delete_topic():
         topics = topics_json["Topics"]
         topics.should.have.length_of(1)
         topics[0]["TopicArn"].should.equal(
-            "arn:aws:sns:{0}:123456789012:{1}".format(
-                conn._client_config.region_name, topic_name
+            "arn:aws:sns:{0}:{1}:{2}".format(
+                conn._client_config.region_name, ACCOUNT_ID, topic_name
             )
         )
 
@@ -132,7 +133,9 @@ def test_topic_corresponds_to_region():
         conn.create_topic(Name="some-topic")
         topics_json = conn.list_topics()
         topic_arn = topics_json["Topics"][0]["TopicArn"]
-        topic_arn.should.equal("arn:aws:sns:{0}:123456789012:some-topic".format(region))
+        topic_arn.should.equal(
+            "arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID)
+        )
 
 
 @mock_sns
@@ -145,11 +148,11 @@ def test_topic_attributes():
 
     attributes = conn.get_topic_attributes(TopicArn=topic_arn)["Attributes"]
     attributes["TopicArn"].should.equal(
-        "arn:aws:sns:{0}:123456789012:some-topic".format(
-            conn._client_config.region_name
+        "arn:aws:sns:{0}:{1}:some-topic".format(
+            conn._client_config.region_name, ACCOUNT_ID
         )
     )
-    attributes["Owner"].should.equal("123456789012")
+    attributes["Owner"].should.equal(ACCOUNT_ID)
     json.loads(attributes["Policy"]).should.equal(
         {
             "Version": "2008-10-17",
@@ -170,8 +173,10 @@ def test_topic_attributes():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:123456789012:some-topic",
-                    "Condition": {"StringEquals": {"AWS:SourceOwner": "123456789012"}},
+                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(
+                        ACCOUNT_ID
+                    ),
+                    "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],
         }
@@ -271,15 +276,19 @@ def test_add_remove_permissions():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:123456789012:test-permissions",
-                    "Condition": {"StringEquals": {"AWS:SourceOwner": "123456789012"}},
+                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
+                        ACCOUNT_ID
+                    ),
+                    "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 },
                 {
                     "Sid": "test",
                     "Effect": "Allow",
                     "Principal": {"AWS": "arn:aws:iam::999999999999:root"},
                     "Action": "SNS:Publish",
-                    "Resource": "arn:aws:sns:us-east-1:123456789012:test-permissions",
+                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
+                        ACCOUNT_ID
+                    ),
                 },
             ],
         }
@@ -308,8 +317,10 @@ def test_add_remove_permissions():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:123456789012:test-permissions",
-                    "Condition": {"StringEquals": {"AWS:SourceOwner": "123456789012"}},
+                    "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(
+                        ACCOUNT_ID
+                    ),
+                    "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],
         }
@@ -334,7 +345,7 @@ def test_add_remove_permissions():
                 ]
             },
             "Action": ["SNS:Publish", "SNS:Subscribe"],
-            "Resource": "arn:aws:sns:us-east-1:123456789012:test-permissions",
+            "Resource": "arn:aws:sns:us-east-1:{}:test-permissions".format(ACCOUNT_ID),
         }
     )
 

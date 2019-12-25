@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.iam import iam_backend
 from .exceptions import STSValidationError
 from .models import sts_backend

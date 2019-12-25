@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto3
 import json
 import six
+import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
@@ -157,6 +158,17 @@ def test_create_account():
     ]
     validate_create_account_status(create_status)
     create_status["AccountName"].should.equal(mockname)
+
+
+@mock_organizations
+def test_describe_create_account_status():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")["Organization"]
+    request_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["Id"]
+    response = client.describe_create_account_status(CreateAccountRequestId=request_id)
+    validate_create_account_status(response["CreateAccountStatus"])
 
 
 @mock_organizations
@@ -594,3 +606,110 @@ def test_list_targets_for_policy_exception():
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("InvalidInputException")
+
+
+@mock_organizations
+def test_tag_resource():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+
+    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # adding a tag with an existing key, will update the value
+    client.tag_resource(
+        ResourceId=account_id, Tags=[{"Key": "key", "Value": "new-value"}]
+    )
+
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "new-value"}])
+
+
+@mock_organizations
+def test_tag_resource_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.tag_resource(
+            ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},]
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("TagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You provided a value that does not match the required pattern."
+    )
+
+
+@mock_organizations
+def test_list_tags_for_resource():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+
+    response = client.list_tags_for_resource(ResourceId=account_id)
+
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+
+@mock_organizations
+def test_list_tags_for_resource_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.list_tags_for_resource(ResourceId="000000000000")
+    ex = e.exception
+    ex.operation_name.should.equal("ListTagsForResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You provided a value that does not match the required pattern."
+    )
+
+
+@mock_organizations
+def test_untag_resource():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.tag_resource(ResourceId=account_id, Tags=[{"Key": "key", "Value": "value"}])
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    # removing a non existing tag should not raise any error
+    client.untag_resource(ResourceId=account_id, TagKeys=["not-existing"])
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.equal([{"Key": "key", "Value": "value"}])
+
+    client.untag_resource(ResourceId=account_id, TagKeys=["key"])
+    response = client.list_tags_for_resource(ResourceId=account_id)
+    response["Tags"].should.have.length_of(0)
+
+
+@mock_organizations
+def test_untag_resource_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
+    ex = e.exception
+    ex.operation_name.should.equal("UntagResource")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You provided a value that does not match the required pattern."
+    )

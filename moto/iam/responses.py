@@ -182,6 +182,7 @@ class IamResponse(BaseResponse):
         permissions_boundary = self._get_param("PermissionsBoundary")
         description = self._get_param("Description")
         tags = self._get_multi_param("Tags.member")
+        max_session_duration = self._get_param("MaxSessionDuration", 3600)
 
         role = iam_backend.create_role(
             role_name,
@@ -190,6 +191,7 @@ class IamResponse(BaseResponse):
             permissions_boundary,
             description,
             tags,
+            max_session_duration,
         )
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
@@ -258,7 +260,8 @@ class IamResponse(BaseResponse):
     def update_role(self):
         role_name = self._get_param("RoleName")
         description = self._get_param("Description")
-        role = iam_backend.update_role(role_name, description)
+        max_session_duration = self._get_param("MaxSessionDuration", 3600)
+        role = iam_backend.update_role(role_name, description, max_session_duration)
         template = self.response_template(UPDATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -351,7 +354,7 @@ class IamResponse(BaseResponse):
         private_key = self._get_param("PrivateKey")
         cert_chain = self._get_param("CertificateName")
 
-        cert = iam_backend.upload_server_cert(
+        cert = iam_backend.upload_server_certificate(
             cert_name, cert_body, private_key, cert_chain=cert_chain, path=path
         )
         template = self.response_template(UPLOAD_CERT_TEMPLATE)
@@ -427,6 +430,12 @@ class IamResponse(BaseResponse):
         policy_result = iam_backend.get_group_policy(group_name, policy_name)
         template = self.response_template(GET_GROUP_POLICY_TEMPLATE)
         return template.render(name="GetGroupPolicyResponse", **policy_result)
+
+    def delete_group(self):
+        group_name = self._get_param("GroupName")
+        iam_backend.delete_group(group_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteGroup")
 
     def create_user(self):
         user_name = self._get_param("UserName")
@@ -583,6 +592,46 @@ class IamResponse(BaseResponse):
         iam_backend.delete_access_key(access_key_id, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="DeleteAccessKey")
+
+    def upload_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_body = self._get_param("SSHPublicKeyBody")
+
+        key = iam_backend.upload_ssh_public_key(user_name, ssh_public_key_body)
+        template = self.response_template(UPLOAD_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render(key=key)
+
+    def get_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_id = self._get_param("SSHPublicKeyId")
+
+        key = iam_backend.get_ssh_public_key(user_name, ssh_public_key_id)
+        template = self.response_template(GET_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render(key=key)
+
+    def list_ssh_public_keys(self):
+        user_name = self._get_param("UserName")
+
+        keys = iam_backend.get_all_ssh_public_keys(user_name)
+        template = self.response_template(LIST_SSH_PUBLIC_KEYS_TEMPLATE)
+        return template.render(keys=keys)
+
+    def update_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_id = self._get_param("SSHPublicKeyId")
+        status = self._get_param("Status")
+
+        iam_backend.update_ssh_public_key(user_name, ssh_public_key_id, status)
+        template = self.response_template(UPDATE_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render()
+
+    def delete_ssh_public_key(self):
+        user_name = self._get_param("UserName")
+        ssh_public_key_id = self._get_param("SSHPublicKeyId")
+
+        iam_backend.delete_ssh_public_key(user_name, ssh_public_key_id)
+        template = self.response_template(DELETE_SSH_PUBLIC_KEY_TEMPLATE)
+        return template.render()
 
     def deactivate_mfa_device(self):
         user_name = self._get_param("UserName")
@@ -882,6 +931,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE)
         return template.render()
 
+    def get_account_summary(self):
+        account_summary = iam_backend.get_account_summary()
+
+        template = self.response_template(GET_ACCOUNT_SUMMARY_TEMPLATE)
+        return template.render(summary_map=account_summary.summary_map)
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -1137,9 +1192,12 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description %}
       <Description>{{role.description}}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.permissions_boundary %}
       <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
@@ -1192,6 +1250,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Description>{{role.description}}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}
@@ -1216,9 +1275,12 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description %}
       <Description>{{role.description}}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}
@@ -1683,6 +1745,73 @@ GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
     </GetAccessKeyLastUsedResult>
 </GetAccessKeyLastUsedResponse>
 """
+
+UPLOAD_SSH_PUBLIC_KEY_TEMPLATE = """<UploadSSHPublicKeyResponse>
+   <UploadSSHPublicKeyResult>
+     <SSHPublicKey>
+         <UserName>{{ key.user_name }}</UserName>
+         <SSHPublicKeyBody>{{ key.ssh_public_key_body }}</SSHPublicKeyBody>
+         <SSHPublicKeyId>{{ key.ssh_public_key_id }}</SSHPublicKeyId>
+         <Fingerprint>{{ key.fingerprint }}</Fingerprint>
+         <Status>{{ key.status }}</Status>
+         <UploadDate>{{ key.uploaded_iso_8601 }}</UploadDate>
+      </SSHPublicKey>
+   </UploadSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UploadSSHPublicKeyResponse>"""
+
+GET_SSH_PUBLIC_KEY_TEMPLATE = """<GetSSHPublicKeyResponse>
+   <GetSSHPublicKeyResult>
+     <SSHPublicKey>
+         <UserName>{{ key.user_name }}</UserName>
+         <SSHPublicKeyBody>{{ key.ssh_public_key_body }}</SSHPublicKeyBody>
+         <SSHPublicKeyId>{{ key.ssh_public_key_id }}</SSHPublicKeyId>
+         <Fingerprint>{{ key.fingerprint }}</Fingerprint>
+         <Status>{{ key.status }}</Status>
+         <UploadDate>{{ key.uploaded_iso_8601 }}</UploadDate>
+      </SSHPublicKey>
+   </GetSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetSSHPublicKeyResponse>"""
+
+LIST_SSH_PUBLIC_KEYS_TEMPLATE = """<ListSSHPublicKeysResponse>
+   <ListSSHPublicKeysResult>
+      <SSHPublicKeys>
+        {% for key in keys %}
+            <member>
+                <UserName>{{ key.user_name }}</UserName>
+                <SSHPublicKeyId>{{ key.ssh_public_key_id }}</SSHPublicKeyId>
+                <Status>{{ key.status }}</Status>
+                <UploadDate>{{ key.uploaded_iso_8601 }}</UploadDate>
+            </member>
+        {% endfor %}
+      </SSHPublicKeys>
+      <IsTruncated>false</IsTruncated>
+   </ListSSHPublicKeysResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListSSHPublicKeysResponse>"""
+
+UPDATE_SSH_PUBLIC_KEY_TEMPLATE = """<UpdateSSHPublicKeyResponse>
+   <UpdateSSHPublicKeyResult>
+   </UpdateSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</UpdateSSHPublicKeyResponse>"""
+
+DELETE_SSH_PUBLIC_KEY_TEMPLATE = """<DeleteSSHPublicKeyResponse>
+   <DeleteSSHPublicKeyResult>
+   </DeleteSSHPublicKeyResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</DeleteSSHPublicKeyResponse>"""
 
 CREDENTIAL_REPORT_GENERATING = """
 <GenerateCredentialReportResponse>
@@ -2255,3 +2384,20 @@ DELETE_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<DeleteAccountPasswordPolicyRespons
     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteAccountPasswordPolicyResponse>"""
+
+
+GET_ACCOUNT_SUMMARY_TEMPLATE = """<GetAccountSummaryResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <GetAccountSummaryResult>
+    <SummaryMap>
+      {% for key, value in summary_map.items() %}
+      <entry>
+        <key>{{ key }}</key>
+        <value>{{ value }}</value>
+      </entry>
+      {% endfor %}
+    </SummaryMap>
+  </GetAccountSummaryResult>
+  <ResponseMetadata>
+    <RequestId>85cb9b90-ac28-11e4-a88d-97964EXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccountSummaryResponse>"""

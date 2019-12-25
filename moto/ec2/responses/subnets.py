@@ -53,7 +53,7 @@ CREATE_SUBNET_RESPONSE = """
     <state>pending</state>
     <vpcId>{{ subnet.vpc_id }}</vpcId>
     <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
-    <availableIpAddressCount>251</availableIpAddressCount>
+    <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>
     <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
     <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
     <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
@@ -81,7 +81,7 @@ DESCRIBE_SUBNETS_RESPONSE = """
         <state>available</state>
         <vpcId>{{ subnet.vpc_id }}</vpcId>
         <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
-        <availableIpAddressCount>251</availableIpAddressCount>
+        <availableIpAddressCount>{{ subnet.available_ip_addresses }}</availableIpAddressCount>
         <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
         <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
         <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>

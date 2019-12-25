@@ -63,6 +63,16 @@ class DynamoType(object):
         elif self.is_map():
             self.value = dict((k, DynamoType(v)) for k, v in self.value.items())
 
+    def get(self, key):
+        if not key:
+            return self
+        else:
+            key_head = key.split(".")[0]
+            key_tail = ".".join(key.split(".")[1:])
+            if key_head not in self.value:
+                self.value[key_head] = DynamoType({"NONE": None})
+            return self.value[key_head].get(key_tail)
+
     def set(self, key, new_value, index=None):
         if index:
             index = int(index)
@@ -77,6 +87,7 @@ class DynamoType(object):
             attr, list_index = attribute_is_list(attr)
             if not key:
                 # {'S': value} ==> {'S': new_value}
+                self.type = new_value.type
                 self.value = new_value.value
             else:
                 if attr not in self.value:  # nonexistingattribute
@@ -173,8 +184,13 @@ class DynamoType(object):
 
         Returns DynamoType or None.
         """
-        if isinstance(key, six.string_types) and self.is_map() and key in self.value:
-            return DynamoType(self.value[key])
+        if isinstance(key, six.string_types) and self.is_map():
+            if "." in key and key.split(".")[0] in self.value:
+                return self.value[key.split(".")[0]].child_attr(
+                    ".".join(key.split(".")[1:])
+                )
+            elif "." not in key and key in self.value:
+                return DynamoType(self.value[key])
 
         if isinstance(key, int) and self.is_list():
             idx = key
@@ -382,11 +398,19 @@ class Item(BaseModel):
                     # created with only this value if it doesn't exist yet
                     # New value must be of same set type as previous value
                     elif dyn_value.is_set():
-                        existing = self.attrs.get(key, DynamoType({dyn_value.type: {}}))
-                        if not existing.same_type(dyn_value):
+                        key_head = key.split(".")[0]
+                        key_tail = ".".join(key.split(".")[1:])
+                        if key_head not in self.attrs:
+                            self.attrs[key_head] = DynamoType({dyn_value.type: {}})
+                        existing = self.attrs.get(key_head)
+                        existing = existing.get(key_tail)
+                        if existing.value and not existing.same_type(dyn_value):
                             raise TypeError()
-                        new_set = set(existing.value).union(dyn_value.value)
-                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
+                        new_set = set(existing.value or []).union(dyn_value.value)
+                        existing.set(
+                            key=None,
+                            new_value=DynamoType({dyn_value.type: list(new_set)}),
+                        )
                     else:  # Number and Sets are the only supported types for ADD
                         raise TypeError
 
@@ -401,12 +425,18 @@ class Item(BaseModel):
 
                     if not dyn_value.is_set():
                         raise TypeError
-                    existing = self.attrs.get(key, None)
+                    key_head = key.split(".")[0]
+                    key_tail = ".".join(key.split(".")[1:])
+                    existing = self.attrs.get(key_head)
+                    existing = existing.get(key_tail)
                     if existing:
                         if not existing.same_type(dyn_value):
                             raise TypeError
                         new_set = set(existing.value).difference(dyn_value.value)
-                        self.attrs[key] = DynamoType({existing.type: list(new_set)})
+                        existing.set(
+                            key=None,
+                            new_value=DynamoType({existing.type: list(new_set)}),
+                        )
                 else:
                     raise NotImplementedError(
                         "{} update action not yet supported".format(action)
@@ -417,7 +447,14 @@ class Item(BaseModel):
             list_append_re = re.match("list_append\\((.+),(.+)\\)", value)
             if list_append_re:
                 new_value = expression_attribute_values[list_append_re.group(2).strip()]
-                old_list = self.attrs[list_append_re.group(1)]
+                old_list_key = list_append_re.group(1)
+                # Get the existing value
+                old_list = self.attrs[old_list_key.split(".")[0]]
+                if "." in old_list_key:
+                    # Value is nested inside a map - find the appropriate child attr
+                    old_list = old_list.child_attr(
+                        ".".join(old_list_key.split(".")[1:])
+                    )
                 if not old_list.is_list():
                     raise ParamValidationError
                 old_list.value.extend(new_value["L"])

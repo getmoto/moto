@@ -8,6 +8,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
+from moto.organizations.exceptions import InvalidInputException
 
 
 class FakeOrganization(BaseModel):
@@ -57,6 +58,7 @@ class FakeAccount(BaseModel):
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
         self.attached_policies = []
+        self.tags = {}
 
     @property
     def arn(self):
@@ -269,9 +271,31 @@ class OrganizationsBackend(BaseBackend):
             )
         return account
 
+    def get_account_by_attr(self, attr, value):
+        account = next(
+            (
+                account
+                for account in self.accounts
+                if hasattr(account, attr) and getattr(account, attr) == value
+            ),
+            None,
+        )
+        if account is None:
+            raise RESTError(
+                "AccountNotFoundException",
+                "You specified an account that doesn't exist.",
+            )
+        return account
+
     def describe_account(self, **kwargs):
         account = self.get_account_by_id(kwargs["AccountId"])
         return account.describe()
+
+    def describe_create_account_status(self, **kwargs):
+        account = self.get_account_by_attr(
+            "create_account_status_id", kwargs["CreateAccountRequestId"]
+        )
+        return account.create_account_status
 
     def list_accounts(self):
         return dict(
@@ -419,6 +443,33 @@ class OrganizationsBackend(BaseBackend):
             for obj in policy.attachments
         ]
         return dict(Targets=objects)
+
+    def tag_resource(self, **kwargs):
+        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
+
+        if account is None:
+            raise InvalidInputException
+
+        new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
+        account.tags.update(new_tags)
+
+    def list_tags_for_resource(self, **kwargs):
+        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
+
+        if account is None:
+            raise InvalidInputException
+
+        tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
+        return dict(Tags=tags)
+
+    def untag_resource(self, **kwargs):
+        account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
+
+        if account is None:
+            raise InvalidInputException
+
+        for key in kwargs["TagKeys"]:
+            account.tags.pop(key, None)
 
 
 organizations_backend = OrganizationsBackend()

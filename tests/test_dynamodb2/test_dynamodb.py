@@ -2631,6 +2631,44 @@ def test_scan_by_non_exists_index():
 
 
 @mock_dynamodb2
+def test_query_by_non_exists_index():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_col", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with assert_raises(ClientError) as ex:
+        dynamodb.query(
+            TableName="test",
+            IndexName="non_exists_index",
+            KeyConditionExpression="CarModel=M",
+        )
+
+    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
+    )
+
+
+@mock_dynamodb2
 def test_batch_items_returns_all():
     dynamodb = _create_user_table()
     returned_items = dynamodb.batch_get_item(
@@ -3119,8 +3157,8 @@ def test_sorted_query_with_numerical_sort_key():
 # https://github.com/spulec/moto/issues/1874
 @mock_dynamodb2
 def test_item_size_is_under_400KB():
-    dynamodb = boto3.resource("dynamodb")
-    client = boto3.client("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     dynamodb.create_table(
         TableName="moto-test",
@@ -3172,7 +3210,7 @@ def assert_failure_due_to_item_size(func, **kwargs):
 @mock_dynamodb2
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
@@ -3201,7 +3239,7 @@ def test_hash_key_cannot_use_begins_with_operations():
 
 @mock_dynamodb2
 def test_update_supports_complex_expression_attribute_values():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -3237,7 +3275,8 @@ def test_update_supports_complex_expression_attribute_values():
 
 @mock_dynamodb2
 def test_update_supports_list_append():
-    client = boto3.client("dynamodb")
+    # Verify whether the list_append operation works as expected
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -3271,8 +3310,134 @@ def test_update_supports_list_append():
 
 
 @mock_dynamodb2
+def test_update_supports_nested_list_append():
+    # Verify whether we can append a list that's inside a map
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"L": [{"S": "bar1"}]}}},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "nested_list_append"}},
+        UpdateExpression="SET a.#b = list_append(a.#b, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ExpressionAttributeNames={"#b": "b"},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.get_item(
+        TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
+    )["Item"]
+    result.should.equal(
+        {
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_supports_multiple_levels_nested_list_append():
+    # Verify whether we can append a list that's inside a map that's inside a map  (Inception!)
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}]}}}}},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "nested_list_append"}},
+        UpdateExpression="SET a.#b.c = list_append(a.#b.#c, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ExpressionAttributeNames={"#b": "b", "#c": "c"},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.get_item(
+        TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
+    )["Item"]
+    result.should.equal(
+        {
+            "id": {"S": "nested_list_append"},
+            "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_supports_nested_list_append_onto_another_list():
+    # Verify whether we can take the contents of one list, and use that to fill another list
+    # Note that the contents of the other list is completely overwritten
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        TableName="TestTable",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "list_append_another"},
+            "a": {"M": {"b": {"L": [{"S": "bar1"}]}, "c": {"L": [{"S": "car1"}]}}},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "list_append_another"}},
+        UpdateExpression="SET a.#c = list_append(a.#b, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ExpressionAttributeNames={"#b": "b", "#c": "c"},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.get_item(
+        TableName="TestTable", Key={"id": {"S": "list_append_another"}}
+    )["Item"]
+    result.should.equal(
+        {
+            "id": {"S": "list_append_another"},
+            "a": {
+                "M": {
+                    "b": {"L": [{"S": "bar1"}]},
+                    "c": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
+                }
+            },
+        }
+    )
+
+
+@mock_dynamodb2
 def test_update_catches_invalid_list_append_operation():
-    client = boto3.client("dynamodb")
+    client = boto3.client("dynamodb", region_name="us-east-1")
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "SHA256", "AttributeType": "S"}],
@@ -3319,3 +3484,66 @@ def _create_user_table():
         TableName="users", Item={"username": {"S": "user3"}, "foo": {"S": "bar"}}
     )
     return client
+
+
+@mock_dynamodb2
+def test_update_item_if_original_value_is_none():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_name": None})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.scan()["Items"][0]["job_name"].should.equal("updated")
+
+
+@mock_dynamodb2
+def test_update_nested_item_if_original_value_is_none():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_details": {"job_name": None}})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_details.job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
+
+
+@mock_dynamodb2
+def test_allow_update_to_item_with_different_type():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+    table.put_item(Item={"job_id": "a", "job_details": {"job_name": {"nested": "yes"}}})
+    table.put_item(Item={"job_id": "b", "job_details": {"job_name": {"nested": "yes"}}})
+    table.update_item(
+        Key={"job_id": "a"},
+        UpdateExpression="SET job_details.job_name = :output",
+        ExpressionAttributeValues={":output": "updated"},
+    )
+    table.get_item(Key={"job_id": "a"})["Item"]["job_details"][
+        "job_name"
+    ].should.be.equal("updated")
+    table.get_item(Key={"job_id": "b"})["Item"]["job_details"][
+        "job_name"
+    ].should.be.equal({"nested": "yes"})
