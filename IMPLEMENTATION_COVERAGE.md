@@ -1240,14 +1240,14 @@
 - [ ] create_commit
 - [ ] create_pull_request
 - [ ] create_pull_request_approval_rule
-- [ ] create_repository
+- [X] create_repository
 - [ ] create_unreferenced_merge_commit
 - [ ] delete_approval_rule_template
 - [ ] delete_branch
 - [ ] delete_comment_content
 - [ ] delete_file
 - [ ] delete_pull_request_approval_rule
-- [ ] delete_repository
+- [X] delete_repository
 - [ ] describe_merge_conflicts
 - [ ] describe_pull_request_events
 - [ ] disassociate_approval_rule_template_from_repository
@@ -1268,7 +1268,7 @@
 - [ ] get_pull_request
 - [ ] get_pull_request_approval_states
 - [ ] get_pull_request_override_state
-- [ ] get_repository
+- [X] get_repository
 - [ ] get_repository_triggers
 - [ ] list_approval_rule_templates
 - [ ] list_associated_approval_rule_templates_for_repository
