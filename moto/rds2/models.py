@@ -6,6 +6,7 @@ import os
 
 from collections import defaultdict
 import boto.rds2
+from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -1501,6 +1502,10 @@ class DBParameterGroup(object):
         return db_parameter_group
 
 
-rds2_backends = dict(
-    (region.name, RDS2Backend(region.name)) for region in boto.rds2.regions()
-)
+rds2_backends = {}
+for region in Session().get_available_regions("rds"):
+    rds2_backends[region] = RDS2Backend(region)
+for region in Session().get_available_regions("rds", partition_name="aws-us-gov"):
+    rds2_backends[region] = RDS2Backend(region)
+for region in Session().get_available_regions("rds", partition_name="aws-cn"):
+    rds2_backends[region] = RDS2Backend(region)

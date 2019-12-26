@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import datetime
 import boto.datapipeline
+from boto3 import Session
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
@@ -142,5 +144,11 @@ class DataPipelineBackend(BaseBackend):
 
 
 datapipeline_backends = {}
-for region in boto.datapipeline.regions():
-    datapipeline_backends[region.name] = DataPipelineBackend()
+for region in Session().get_available_regions("datapipeline"):
+    datapipeline_backends[region] = DataPipelineBackend()
+for region in Session().get_available_regions(
+    "datapipeline", partition_name="aws-us-gov"
+):
+    datapipeline_backends[region] = DataPipelineBackend()
+for region in Session().get_available_regions("datapipeline", partition_name="aws-cn"):
+    datapipeline_backends[region] = DataPipelineBackend(region)

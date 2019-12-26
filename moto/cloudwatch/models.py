@@ -1,4 +1,7 @@
 import json
+
+from boto3 import Session
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
@@ -431,5 +434,11 @@ class LogGroup(BaseModel):
 
 
 cloudwatch_backends = {}
-for region in boto.ec2.cloudwatch.regions():
-    cloudwatch_backends[region.name] = CloudWatchBackend()
+for region in Session().get_available_regions("cloudwatch"):
+    cloudwatch_backends[region] = CloudWatchBackend()
+for region in Session().get_available_regions(
+    "cloudwatch", partition_name="aws-us-gov"
+):
+    cloudwatch_backends[region] = CloudWatchBackend()
+for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
+    cloudwatch_backends[region] = CloudWatchBackend()

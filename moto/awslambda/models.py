@@ -24,6 +24,8 @@ import weakref
 import requests.adapters
 
 import boto.awslambda
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
@@ -1043,10 +1045,10 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-# Handle us forgotten regions, unless Lambda truly only runs out of US and
-lambda_backends = {
-    _region.name: LambdaBackend(_region.name) for _region in boto.awslambda.regions()
-}
-
-lambda_backends["ap-southeast-2"] = LambdaBackend("ap-southeast-2")
-lambda_backends["us-gov-west-1"] = LambdaBackend("us-gov-west-1")
+lambda_backends = {}
+for region in Session().get_available_regions("lambda"):
+    lambda_backends[region] = LambdaBackend(region)
+for region in Session().get_available_regions("lambda", partition_name="aws-us-gov"):
+    lambda_backends[region] = LambdaBackend(region)
+for region in Session().get_available_regions("lambda", partition_name="aws-cn"):
+    lambda_backends[region] = LambdaBackend(region)

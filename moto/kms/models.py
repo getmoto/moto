@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 import boto.kms
+from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -284,5 +285,9 @@ class KmsBackend(BaseBackend):
 
 
 kms_backends = {}
-for region in boto.kms.regions():
-    kms_backends[region.name] = KmsBackend()
+for region in Session().get_available_regions("kms"):
+    kms_backends[region] = KmsBackend()
+for region in Session().get_available_regions("kms", partition_name="aws-us-gov"):
+    kms_backends[region] = KmsBackend()
+for region in Session().get_available_regions("kms", partition_name="aws-cn"):
+    kms_backends[region] = KmsBackend()

@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto.swf
+from boto3 import Session
 
 from moto.core import BaseBackend
 
@@ -418,5 +419,9 @@ class SWFBackend(BaseBackend):
 
 
 swf_backends = {}
-for region in boto.swf.regions():
-    swf_backends[region.name] = SWFBackend(region.name)
+for region in Session().get_available_regions("swf"):
+    swf_backends[region] = SWFBackend(region)
+for region in Session().get_available_regions("swf", partition_name="aws-us-gov"):
+    swf_backends[region] = SWFBackend(region)
+for region in Session().get_available_regions("swf", partition_name="aws-cn"):
+    swf_backends[region] = SWFBackend(region)

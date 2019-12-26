@@ -1,3 +1,5 @@
+from boto3 import Session
+
 from moto.core import BaseBackend
 import boto.logs
 from moto.core.utils import unix_time_millis
@@ -558,6 +560,10 @@ class LogsBackend(BaseBackend):
         log_group.untag(tags)
 
 
-logs_backends = {
-    region.name: LogsBackend(region.name) for region in boto.logs.regions()
-}
+logs_backends = {}
+for region in Session().get_available_regions("logs"):
+    logs_backends[region] = LogsBackend(region)
+for region in Session().get_available_regions("logs", partition_name="aws-us-gov"):
+    logs_backends[region] = LogsBackend(region)
+for region in Session().get_available_regions("logs", partition_name="aws-cn"):
+    logs_backends[region] = LogsBackend(region)

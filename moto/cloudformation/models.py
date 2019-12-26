@@ -5,6 +5,8 @@ import yaml
 import uuid
 
 import boto.cloudformation
+from boto3 import Session
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
@@ -717,5 +719,13 @@ class CloudFormationBackend(BaseBackend):
 
 
 cloudformation_backends = {}
-for region in boto.cloudformation.regions():
-    cloudformation_backends[region.name] = CloudFormationBackend()
+for region in Session().get_available_regions("cloudformation"):
+    cloudformation_backends[region] = CloudFormationBackend()
+for region in Session().get_available_regions(
+    "cloudformation", partition_name="aws-us-gov"
+):
+    cloudformation_backends[region] = CloudFormationBackend()
+for region in Session().get_available_regions(
+    "cloudformation", partition_name="aws-cn"
+):
+    cloudformation_backends[region] = CloudFormationBackend()

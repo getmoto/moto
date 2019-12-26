@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 import uuid
-import boto3
 import six
+from boto3 import Session
+
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
 
@@ -636,9 +637,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     #     return failed_resources_map
 
 
-available_regions = boto3.session.Session().get_available_regions(
-    "resourcegroupstaggingapi"
-)
-resourcegroupstaggingapi_backends = {
-    region: ResourceGroupsTaggingAPIBackend(region) for region in available_regions
-}
+resourcegroupstaggingapi_backends = {}
+for region in Session().get_available_regions("resourcegroupstaggingapi"):
+    resourcegroupstaggingapi_backends[region] = ResourceGroupsTaggingAPIBackend(region)
+for region in Session().get_available_regions(
+    "resourcegroupstaggingapi", partition_name="aws-us-gov"
+):
+    resourcegroupstaggingapi_backends[region] = ResourceGroupsTaggingAPIBackend(region)
+for region in Session().get_available_regions(
+    "resourcegroupstaggingapi", partition_name="aws-cn"
+):
+    resourcegroupstaggingapi_backends[region] = ResourceGroupsTaggingAPIBackend(region)

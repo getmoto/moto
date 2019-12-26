@@ -1,6 +1,9 @@
 import boto
 import re
 from datetime import datetime
+
+from boto3 import Session
+
 from moto.core import BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.sts.models import ACCOUNT_ID
@@ -280,7 +283,12 @@ class StepFunctionBackend(BaseBackend):
         return ACCOUNT_ID
 
 
-stepfunction_backends = {
-    _region.name: StepFunctionBackend(_region.name)
-    for _region in boto.awslambda.regions()
-}
+stepfunction_backends = {}
+for region in Session().get_available_regions("stepfunctions"):
+    stepfunction_backends[region] = StepFunctionBackend(region)
+for region in Session().get_available_regions(
+    "stepfunctions", partition_name="aws-us-gov"
+):
+    stepfunction_backends[region] = StepFunctionBackend(region)
+for region in Session().get_available_regions("stepfunctions", partition_name="aws-cn"):
+    stepfunction_backends[region] = StepFunctionBackend(region)

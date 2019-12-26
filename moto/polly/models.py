@@ -3,6 +3,8 @@ from xml.etree import ElementTree as ET
 import datetime
 
 import boto3
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 
 from .resources import VOICE_DATA
@@ -113,7 +115,10 @@ class PollyBackend(BaseBackend):
             self._lexicons[name] = lexicon
 
 
-available_regions = boto3.session.Session().get_available_regions("polly")
-polly_backends = {
-    region: PollyBackend(region_name=region) for region in available_regions
-}
+polly_backends = {}
+for region in Session().get_available_regions("polly"):
+    polly_backends[region] = PollyBackend(region)
+for region in Session().get_available_regions("polly", partition_name="aws-us-gov"):
+    polly_backends[region] = PollyBackend(region)
+for region in Session().get_available_regions("polly", partition_name="aws-cn"):
+    polly_backends[region] = PollyBackend(region)

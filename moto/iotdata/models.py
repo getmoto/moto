@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 import json
 import time
-import boto3
 import jsondiff
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 from moto.iot import iot_backends
 from .exceptions import (
@@ -205,5 +206,10 @@ class IoTDataPlaneBackend(BaseBackend):
         return None
 
 
-available_regions = boto3.session.Session().get_available_regions("iot-data")
-iotdata_backends = {region: IoTDataPlaneBackend(region) for region in available_regions}
+iotdata_backends = {}
+for region in Session().get_available_regions("iot-data"):
+    iotdata_backends[region] = IoTDataPlaneBackend(region)
+for region in Session().get_available_regions("iot-data", partition_name="aws-us-gov"):
+    iotdata_backends[region] = IoTDataPlaneBackend(region)
+for region in Session().get_available_regions("iot-data", partition_name="aws-cn"):
+    iotdata_backends[region] = IoTDataPlaneBackend(region)

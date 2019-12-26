@@ -7,6 +7,7 @@ import uuid
 import datetime
 
 import boto3
+from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
@@ -491,7 +492,14 @@ class SecretsManagerBackend(BaseBackend):
         )
 
 
-available_regions = boto3.session.Session().get_available_regions("secretsmanager")
-secretsmanager_backends = {
-    region: SecretsManagerBackend(region_name=region) for region in available_regions
-}
+secretsmanager_backends = {}
+for region in Session().get_available_regions("secretsmanager"):
+    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
+for region in Session().get_available_regions(
+    "secretsmanager", partition_name="aws-us-gov"
+):
+    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
+for region in Session().get_available_regions(
+    "secretsmanager", partition_name="aws-cn"
+):
+    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)

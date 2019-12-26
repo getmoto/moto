@@ -4,6 +4,7 @@ import copy
 import datetime
 
 import boto.redshift
+from boto3 import Session
 from botocore.exceptions import ClientError
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -897,7 +898,9 @@ class RedshiftBackend(BaseBackend):
 
 
 redshift_backends = {}
-for region in boto.redshift.regions():
-    redshift_backends[region.name] = RedshiftBackend(
-        ec2_backends[region.name], region.name
-    )
+for region in Session().get_available_regions("redshift"):
+    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
+for region in Session().get_available_regions("redshift", partition_name="aws-us-gov"):
+    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
+for region in Session().get_available_regions("redshift", partition_name="aws-cn"):
+    redshift_backends[region] = RedshiftBackend(ec2_backends[region], region)
