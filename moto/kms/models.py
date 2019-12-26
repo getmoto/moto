@@ -4,7 +4,6 @@ import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import boto.kms
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel

@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import datetime
-import boto.datapipeline
 from boto3 import Session
 
 from moto.compat import OrderedDict

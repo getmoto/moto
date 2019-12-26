@@ -5,7 +5,6 @@ import datetime
 import os
 
 from collections import defaultdict
-import boto.rds2
 from boto3 import Session
 from jinja2 import Template
 from re import compile as re_compile

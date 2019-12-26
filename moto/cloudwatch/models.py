@@ -5,7 +5,6 @@ from boto3 import Session
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
-import boto.ec2.cloudwatch
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4

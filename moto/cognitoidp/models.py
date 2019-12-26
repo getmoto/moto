@@ -9,7 +9,6 @@ import os
 import time
 import uuid
 
-import boto.cognito.identity
 from boto3 import Session
 from jose import jws
 

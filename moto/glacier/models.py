@@ -4,8 +4,6 @@ import hashlib
 
 import datetime
 
-
-import boto.glacier
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel

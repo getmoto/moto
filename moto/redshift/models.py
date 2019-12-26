@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import copy
 import datetime
 
-import boto.redshift
 from boto3 import Session
 from botocore.exceptions import ClientError
 from moto.compat import OrderedDict

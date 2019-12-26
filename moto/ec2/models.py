@@ -12,8 +12,6 @@ import warnings
 from boto3 import Session
 from pkg_resources import resource_filename
 
-import boto.ec2
-
 from collections import defaultdict
 import weakref
 from datetime import datetime

@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import datetime
 import json
 
-import boto.cognito.identity
 from boto3 import Session
 
 from moto.compat import OrderedDict

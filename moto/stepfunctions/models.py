@@ -1,4 +1,3 @@
-import boto
 import re
 from datetime import datetime
 

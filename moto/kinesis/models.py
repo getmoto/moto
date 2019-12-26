@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import datetime
 import time
-import boto.kinesis
 import re
 import six
 import itertools

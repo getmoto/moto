@@ -6,7 +6,6 @@ import json
 import uuid
 import datetime
 
-import boto3
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel

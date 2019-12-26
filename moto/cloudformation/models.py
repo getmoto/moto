@@ -4,7 +4,6 @@ import json
 import yaml
 import uuid
 
-import boto.cloudformation
 from boto3 import Session
 
 from moto.compat import OrderedDict

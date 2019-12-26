@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from xml.etree import ElementTree as ET
 import datetime
 
-import boto3
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel

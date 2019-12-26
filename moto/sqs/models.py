@@ -8,7 +8,6 @@ import six
 import struct
 from xml.sax.saxutils import escape
 
-import boto.sqs
 from boto3 import Session
 
 from moto.core.exceptions import RESTError

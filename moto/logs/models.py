@@ -1,7 +1,6 @@
 from boto3 import Session
 
 from moto.core import BaseBackend
-import boto.logs
 from moto.core.utils import unix_time_millis
 from .exceptions import (
     ResourceNotFoundException,

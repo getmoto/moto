@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import boto.swf
 from boto3 import Session
 
 from moto.core import BaseBackend

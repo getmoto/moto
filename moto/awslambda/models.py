@@ -23,7 +23,6 @@ import traceback
 import weakref
 import requests.adapters
 
-import boto.awslambda
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel

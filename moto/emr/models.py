@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
 
-import boto.emr
 import pytz
 from boto3 import Session
 from dateutil.parser import parse as dtparse
