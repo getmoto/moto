@@ -12,10 +12,14 @@ class CodeCommit(BaseModel):
         current_date = iso_8601_datetime_with_milliseconds(datetime.utcnow())
         self.repository_metadata = dict()
         self.repository_metadata["repositoryName"] = repository_name
-        self.repository_metadata["cloneUrlSsh"] = "ssh://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
+        self.repository_metadata[
+            "cloneUrlSsh"
+        ] = "ssh://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
             region, repository_name
         )
-        self.repository_metadata["cloneUrlHttp"] = "https://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
+        self.repository_metadata[
+            "cloneUrlHttp"
+        ] = "https://git-codecommit.{0}.amazonaws.com/v1/repos/{1}".format(
             region, repository_name
         )
         self.repository_metadata["creationDate"] = current_date
@@ -37,7 +41,9 @@ class CodeCommitBackend(BaseBackend):
         if repository:
             raise RepositoryNameExistsException(repository_name)
 
-        self.repositories[repository_name] = CodeCommit(region, repository_description, repository_name)
+        self.repositories[repository_name] = CodeCommit(
+            region, repository_description, repository_name
+        )
 
         return self.repositories[repository_name].repository_metadata
 

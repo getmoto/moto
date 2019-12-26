@@ -9,7 +9,7 @@ from .batch import mock_batch  # noqa
 from .cloudformation import mock_cloudformation  # noqa
 from .cloudformation import mock_cloudformation_deprecated  # noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # noqa
-from .codecommit import mock_codecommit
+from .codecommit import mock_codecommit  # noqa
 from .codepipeline import mock_codepipeline  # noqa
 from .cognitoidentity import mock_cognitoidentity  # noqa
 from .cognitoidentity import mock_cognitoidentity_deprecated  # noqa

@@ -16,7 +16,9 @@ class CodeCommitResponse(BaseResponse):
             raise InvalidRepositoryNameException()
 
         repository_metadata = self.codecommit_backend.create_repository(
-            self.region, self._get_param("repositoryName"), self._get_param("repositoryDescription")
+            self.region,
+            self._get_param("repositoryName"),
+            self._get_param("repositoryDescription"),
         )
 
         return json.dumps({"repositoryMetadata": repository_metadata})
@@ -25,7 +27,9 @@ class CodeCommitResponse(BaseResponse):
         if not self._is_repository_name_valid(self._get_param("repositoryName")):
             raise InvalidRepositoryNameException()
 
-        repository_metadata = self.codecommit_backend.get_repository(self._get_param("repositoryName"))
+        repository_metadata = self.codecommit_backend.get_repository(
+            self._get_param("repositoryName")
+        )
 
         return json.dumps({"repositoryMetadata": repository_metadata})
 
@@ -33,7 +37,9 @@ class CodeCommitResponse(BaseResponse):
         if not self._is_repository_name_valid(self._get_param("repositoryName")):
             raise InvalidRepositoryNameException()
 
-        repository_id = self.codecommit_backend.delete_repository(self._get_param("repositoryName"))
+        repository_id = self.codecommit_backend.delete_repository(
+            self._get_param("repositoryName")
+        )
 
         if repository_id:
             return json.dumps({"repositoryId": repository_id})
