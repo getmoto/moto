@@ -6,13 +6,23 @@ from .models import codecommit_backends
 from .exceptions import InvalidRepositoryNameException
 
 
+def _is_repository_name_valid(repository_name):
+    name_regex = re.compile(r"[\w\.-]+")
+    result = name_regex.split(repository_name)
+    if len(result) > 0:
+        for match in result:
+            if len(match) > 0:
+                return False
+    return True
+
+
 class CodeCommitResponse(BaseResponse):
     @property
     def codecommit_backend(self):
         return codecommit_backends[self.region]
 
     def create_repository(self):
-        if not self._is_repository_name_valid(self._get_param("repositoryName")):
+        if not _is_repository_name_valid(self._get_param("repositoryName")):
             raise InvalidRepositoryNameException()
 
         repository_metadata = self.codecommit_backend.create_repository(
@@ -24,7 +34,7 @@ class CodeCommitResponse(BaseResponse):
         return json.dumps({"repositoryMetadata": repository_metadata})
 
     def get_repository(self):
-        if not self._is_repository_name_valid(self._get_param("repositoryName")):
+        if not _is_repository_name_valid(self._get_param("repositoryName")):
             raise InvalidRepositoryNameException()
 
         repository_metadata = self.codecommit_backend.get_repository(
@@ -34,7 +44,7 @@ class CodeCommitResponse(BaseResponse):
         return json.dumps({"repositoryMetadata": repository_metadata})
 
     def delete_repository(self):
-        if not self._is_repository_name_valid(self._get_param("repositoryName")):
+        if not _is_repository_name_valid(self._get_param("repositoryName")):
             raise InvalidRepositoryNameException()
 
         repository_id = self.codecommit_backend.delete_repository(
@@ -45,8 +55,3 @@ class CodeCommitResponse(BaseResponse):
             return json.dumps({"repositoryId": repository_id})
 
         return json.dumps({})
-
-    def _is_repository_name_valid(self, repository_name):
-        name_regex = re.compile(r"[\w\.-]+")
-        result = name_regex.fullmatch(repository_name)
-        return result
