@@ -397,10 +397,6 @@ class SNSBackend(BaseBackend):
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic(self, arn):
-        topic = self.get_topic(arn)
-        subscriptions = self._get_topic_subscriptions(topic)
-        for sub in subscriptions:
-            self.unsubscribe(sub.arn)
         self.topics.pop(arn)
 
     def get_topic(self, arn):
@@ -466,7 +462,7 @@ class SNSBackend(BaseBackend):
         return None
 
     def unsubscribe(self, subscription_arn):
-        self.subscriptions.pop(subscription_arn)
+        self.subscriptions.pop(subscription_arn, None)
 
     def list_subscriptions(self, topic_arn=None, next_token=None):
         if topic_arn:
