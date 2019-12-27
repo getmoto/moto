@@ -543,7 +543,7 @@ class Group(BaseModel):
 
 
 class User(BaseModel):
-    def __init__(self, name, path=None):
+    def __init__(self, name, path=None, tags=None):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
@@ -556,6 +556,7 @@ class User(BaseModel):
         self.password = None
         self.password_reset_required = False
         self.signing_certificates = {}
+        self.tags = tags
 
     @property
     def arn(self):
@@ -1421,13 +1422,13 @@ class IAMBackend(BaseBackend):
                 "The group with name {0} cannot be found.".format(group_name)
             )
 
-    def create_user(self, user_name, path="/"):
+    def create_user(self, user_name, path="/", tags=None):
         if user_name in self.users:
             raise IAMConflictException(
                 "EntityAlreadyExists", "User {0} already exists".format(user_name)
             )
 
-        user = User(user_name, path)
+        user = User(user_name, path, tags)
         self.users[user_name] = user
         return user
 
@@ -1582,6 +1583,10 @@ class IAMBackend(BaseBackend):
     def list_user_policies(self, user_name):
         user = self.get_user(user_name)
         return user.policies.keys()
+
+    def list_user_tags(self, user_name):
+        user = self.get_user(user_name)
+        return user.tags
 
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)

@@ -1737,9 +1737,7 @@ def test_delete_saml_provider():
 def test_create_role_defaults():
     """Tests default values"""
     conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="{}",
-    )
+    conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
 
     # Get role:
     role = conn.get_role(RoleName="my-role")["Role"]
@@ -2672,3 +2670,33 @@ def test_get_account_summary():
             "GroupsQuota": 300,
         }
     )
+
+
+@mock_iam()
+def test_list_user_tags():
+    """Tests both setting a tags on a user in create_user and list_user_tags"""
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="kenny-bania")
+    conn.create_user(
+        UserName="jackie-chiles", Tags=[{"Key": "Sue-Allen", "Value": "Oh-Henry"}]
+    )
+    conn.create_user(
+        UserName="cosmo",
+        Tags=[
+            {"Key": "Stan", "Value": "The Caddy"},
+            {"Key": "like-a", "Value": "glove"},
+        ],
+    )
+    response = conn.list_user_tags(UserName="kenny-bania")
+    response["Tags"].should.equal([])
+    response["IsTruncated"].should_not.be.ok
+
+    response = conn.list_user_tags(UserName="jackie-chiles")
+    response["Tags"].should.equal([{"Key": "Sue-Allen", "Value": "Oh-Henry"}])
+    response["IsTruncated"].should_not.be.ok
+
+    response = conn.list_user_tags(UserName="cosmo")
+    response["Tags"].should.equal(
+        [{"Key": "Stan", "Value": "The Caddy"}, {"Key": "like-a", "Value": "glove"}]
+    )
+    response["IsTruncated"].should_not.be.ok

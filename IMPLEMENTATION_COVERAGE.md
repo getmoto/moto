@@ -3763,7 +3763,7 @@
 - [X] list_signing_certificates
 - [ ] list_ssh_public_keys
 - [X] list_user_policies
-- [ ] list_user_tags
+- [X] list_user_tags
 - [X] list_users
 - [X] list_virtual_mfa_devices
 - [X] put_group_policy
