@@ -862,6 +862,8 @@ def test_list_resource_record_sets_name_type_filters():
         StartRecordName=all_records[start_with][1],
     )
 
+    response["IsTruncated"].should.equal(False)
+
     returned_records = [
         (record["Type"], record["Name"]) for record in response["ResourceRecordSets"]
     ]
