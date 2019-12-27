@@ -54,9 +54,10 @@ def test_deleting_subscriptions_by_deleting_topic():
     ]["Subscriptions"]
     subscriptions.should.have.length_of(1)
     subscription = subscriptions[0]
+    subscription_arn = subscription["SubscriptionArn"]
     subscription["TopicArn"].should.equal(topic_arn)
     subscription["Protocol"].should.equal("http")
-    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription_arn.should.contain(topic_arn)
     subscription["Endpoint"].should.equal("http://example.com/")
 
     # Now delete the topic
@@ -67,11 +68,24 @@ def test_deleting_subscriptions_by_deleting_topic():
     topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
     topics.should.have.length_of(0)
 
-    # And there should be zero subscriptions left
+    # And the subscription should still be left
+    subscriptions = conn.get_all_subscriptions()["ListSubscriptionsResponse"][
+        "ListSubscriptionsResult"
+    ]["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["SubscriptionArn"].should.equal(subscription_arn)
+
+    # Now delete hanging subscription
+    conn.unsubscribe(subscription_arn)
+
     subscriptions = conn.get_all_subscriptions()["ListSubscriptionsResponse"][
         "ListSubscriptionsResult"
     ]["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
+    # Deleting it again should not result in any error
+    conn.unsubscribe(subscription_arn)
 
 
 @mock_sns_deprecated
