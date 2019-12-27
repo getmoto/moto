@@ -39,3 +39,24 @@ class CodePipelineResponse(BaseResponse):
         self.codepipeline_backend.delete_pipeline(self._get_param("name"))
 
         return ""
+
+    def list_tags_for_resource(self):
+        tags = self.codepipeline_backend.list_tags_for_resource(
+            self._get_param("resourceArn")
+        )
+
+        return json.dumps({"tags": tags})
+
+    def tag_resource(self):
+        self.codepipeline_backend.tag_resource(
+            self._get_param("resourceArn"), self._get_param("tags")
+        )
+
+        return ""
+
+    def untag_resource(self):
+        self.codepipeline_backend.untag_resource(
+            self._get_param("resourceArn"), self._get_param("tagKeys")
+        )
+
+        return ""
