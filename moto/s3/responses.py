@@ -1491,7 +1491,9 @@ S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2
 S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>{{ bucket.name }}</Name>
+  {% if prefix != None %}
   <Prefix>{{ prefix }}</Prefix>
+  {% endif %}
   <MaxKeys>{{ max_keys }}</MaxKeys>
   <Delimiter>{{ delimiter }}</Delimiter>
   <IsTruncated>{{ is_truncated }}</IsTruncated>
@@ -1523,7 +1525,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>{{ bucket.name }}</Name>
+{% if prefix != None %}
   <Prefix>{{ prefix }}</Prefix>
+{% endif %}
   <MaxKeys>{{ max_keys }}</MaxKeys>
   <KeyCount>{{ key_count }}</KeyCount>
 {% if delimiter %}
@@ -1684,7 +1688,9 @@ S3_BUCKET_GET_VERSIONING = """<?xml version="1.0" encoding="UTF-8"?>
 S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
 <ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
     <Name>{{ bucket.name }}</Name>
+    {% if prefix != None %}
     <Prefix>{{ prefix }}</Prefix>
+    {% endif %}
     <KeyMarker>{{ key_marker }}</KeyMarker>
     <MaxKeys>{{ max_keys }}</MaxKeys>
     <IsTruncated>{{ is_truncated }}</IsTruncated>
