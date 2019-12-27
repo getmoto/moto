@@ -1144,7 +1144,15 @@ def test_api_key_value_min_length():
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
-    client.create_api_key.when.called_with(**payload).should.throw(ClientError)
+    with assert_raises(ClientError) as e:
+        client.create_api_key(**payload)
+    ex = e.exception
+    ex.operation_name.should.equal("CreateApiKey")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("BadRequestException")
+    ex.response["Error"]["Message"].should.equal(
+        "API Key value should be at least 20 characters"
+    )
 
 
 @mock_apigateway

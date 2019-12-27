@@ -764,7 +764,7 @@ class APIGatewayBackend(BaseBackend):
 
     def create_apikey(self, payload):
         if payload.get("value") is not None:
-            if len(payload.get("value")) < 20:
+            if len(payload.get("value", [])) < 20:
                 raise ApiKeyValueMinLength()
             for api_key in self.get_apikeys(include_values=True):
                 if api_key.get("value") == payload["value"]:
