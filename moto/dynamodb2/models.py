@@ -586,7 +586,9 @@ class StreamRecord(BaseModel):
             self.record["dynamodb"]["OldImage"] = old_a
 
         # This is a substantial overestimate but it's the easiest to do now
-        self.record["dynamodb"]["SizeBytes"] = len(json.dumps(self.record["dynamodb"]))
+        self.record["dynamodb"]["SizeBytes"] = len(
+            dynamo_json_dump(self.record["dynamodb"])
+        )
 
     def to_json(self):
         return self.record

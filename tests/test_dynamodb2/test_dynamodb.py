@@ -9,7 +9,7 @@ from boto3.dynamodb.conditions import Attr, Key
 import sure  # noqa
 import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
-from moto.dynamodb2 import dynamodb_backend2
+from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError, ParamValidationError
 from tests.helpers import requires_boto_gte
@@ -348,6 +348,60 @@ def test_put_item_with_special_chars():
             '"': {"S": "foo"},
         },
     )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_put_item_with_streams():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        StreamSpecification={
+            "StreamEnabled": True,
+            "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        },
+    )
+
+    result = conn.get_item(TableName=name, Key={"forum_name": {"S": "LOLCat Forum"}})
+
+    result["Item"].should.be.equal(
+        {
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        }
+    )
+    table = dynamodb_backends2["us-west-2"].get_table(name)
+    if not table:
+        # There is no way to access stream data over the API, so this part can't run in server-tests mode.
+        return
+    len(table.stream_shard.items).should.be.equal(1)
+    stream_record = table.stream_shard.items[0].record
+    stream_record["eventName"].should.be.equal("INSERT")
+    stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
 
 @requires_boto_gte("2.9")
