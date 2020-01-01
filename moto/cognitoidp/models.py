@@ -644,7 +644,7 @@ class CognitoIdpBackend(BaseBackend):
         if not client:
             raise ResourceNotFoundError(client_id)
 
-        if auth_flow == "ADMIN_NO_SRP_AUTH":
+        if auth_flow == "ADMIN_NO_SRP_AUTH" or auth_flow == "ADMIN_USER_PASSWORD_AUTH":
             username = auth_parameters.get("USERNAME")
             password = auth_parameters.get("PASSWORD")
             user = user_pool.users.get(username)
