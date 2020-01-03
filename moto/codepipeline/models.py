@@ -210,3 +210,9 @@ class CodePipelineBackend(BaseBackend):
 codepipeline_backends = {}
 for region in Session().get_available_regions("codepipeline"):
     codepipeline_backends[region] = CodePipelineBackend()
+for region in Session().get_available_regions(
+    "codepipeline", partition_name="aws-us-gov"
+):
+    codepipeline_backends[region] = CodePipelineBackend()
+for region in Session().get_available_regions("codepipeline", partition_name="aws-cn"):
+    codepipeline_backends[region] = CodePipelineBackend()

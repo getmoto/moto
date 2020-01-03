@@ -847,3 +847,11 @@ class APIGatewayBackend(BaseBackend):
 apigateway_backends = {}
 for region_name in Session().get_available_regions("apigateway"):
     apigateway_backends[region_name] = APIGatewayBackend(region_name)
+for region_name in Session().get_available_regions(
+    "apigateway", partition_name="aws-us-gov"
+):
+    apigateway_backends[region_name] = APIGatewayBackend(region_name)
+for region_name in Session().get_available_regions(
+    "apigateway", partition_name="aws-cn"
+):
+    apigateway_backends[region_name] = APIGatewayBackend(region_name)

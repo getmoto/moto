@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
 from builtins import str
 
-import boto3
 import json
 import re
+
+from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from moto.core import ACCOUNT_ID
@@ -350,7 +351,14 @@ class ResourceGroupsBackend(BaseBackend):
         return self.groups.by_name[group_name]
 
 
-available_regions = boto3.session.Session().get_available_regions("resource-groups")
-resourcegroups_backends = {
-    region: ResourceGroupsBackend(region_name=region) for region in available_regions
-}
+resourcegroups_backends = {}
+for region in Session().get_available_regions("resource-groups"):
+    resourcegroups_backends[region] = ResourceGroupsBackend(region)
+for region in Session().get_available_regions(
+    "resource-groups", partition_name="aws-us-gov"
+):
+    resourcegroups_backends[region] = ResourceGroupsBackend(region)
+for region in Session().get_available_regions(
+    "resource-groups", partition_name="aws-cn"
+):
+    resourcegroups_backends[region] = ResourceGroupsBackend(region)

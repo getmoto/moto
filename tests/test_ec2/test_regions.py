@@ -3,13 +3,21 @@ import boto.ec2
 import boto.ec2.autoscale
 import boto.ec2.elb
 import sure
+from boto3 import Session
+
 from moto import mock_ec2_deprecated, mock_autoscaling_deprecated, mock_elb_deprecated
 
 from moto.ec2 import ec2_backends
 
 
 def test_use_boto_regions():
-    boto_regions = {r.name for r in boto.ec2.regions()}
+    boto_regions = set()
+    for region in Session().get_available_regions("ec2"):
+        boto_regions.add(region)
+    for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
+        boto_regions.add(region)
+    for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
+        boto_regions.add(region)
     moto_regions = set(ec2_backends)
 
     moto_regions.should.equal(boto_regions)

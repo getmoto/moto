@@ -703,6 +703,10 @@ class SNSBackend(BaseBackend):
 sns_backends = {}
 for region in Session().get_available_regions("sns"):
     sns_backends[region] = SNSBackend(region)
+for region in Session().get_available_regions("sns", partition_name="aws-us-gov"):
+    sns_backends[region] = SNSBackend(region)
+for region in Session().get_available_regions("sns", partition_name="aws-cn"):
+    sns_backends[region] = SNSBackend(region)
 
 
 DEFAULT_EFFECTIVE_DELIVERY_POLICY = {

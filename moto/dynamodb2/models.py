@@ -8,7 +8,7 @@ import re
 import uuid
 import six
 
-import boto3
+from boto3 import Session
 from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -1486,7 +1486,10 @@ class DynamoDBBackend(BaseBackend):
         return table.ttl
 
 
-available_regions = boto3.session.Session().get_available_regions("dynamodb")
-dynamodb_backends = {
-    region: DynamoDBBackend(region_name=region) for region in available_regions
-}
+dynamodb_backends = {}
+for region in Session().get_available_regions("dynamodb"):
+    dynamodb_backends[region] = DynamoDBBackend(region)
+for region in Session().get_available_regions("dynamodb", partition_name="aws-us-gov"):
+    dynamodb_backends[region] = DynamoDBBackend(region)
+for region in Session().get_available_regions("dynamodb", partition_name="aws-cn"):
+    dynamodb_backends[region] = DynamoDBBackend(region)

@@ -3,9 +3,10 @@ import re
 import uuid
 from datetime import datetime
 from random import random, randint
-import boto3
 
 import pytz
+from boto3 import Session
+
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -1302,7 +1303,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         raise NotImplementedError()
 
 
-available_regions = boto3.session.Session().get_available_regions("ecs")
-ecs_backends = {
-    region: EC2ContainerServiceBackend(region) for region in available_regions
-}
+ecs_backends = {}
+for region in Session().get_available_regions("ecs"):
+    ecs_backends[region] = EC2ContainerServiceBackend(region)
+for region in Session().get_available_regions("ecs", partition_name="aws-us-gov"):
+    ecs_backends[region] = EC2ContainerServiceBackend(region)
+for region in Session().get_available_regions("ecs", partition_name="aws-cn"):
+    ecs_backends[region] = EC2ContainerServiceBackend(region)

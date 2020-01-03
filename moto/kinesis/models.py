@@ -2,13 +2,14 @@ from __future__ import unicode_literals
 
 import datetime
 import time
-import boto.kinesis
 import re
 import six
 import itertools
 
 from operator import attrgetter
 from hashlib import md5
+
+from boto3 import Session
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -530,5 +531,9 @@ class KinesisBackend(BaseBackend):
 
 
 kinesis_backends = {}
-for region in boto.kinesis.regions():
-    kinesis_backends[region.name] = KinesisBackend()
+for region in Session().get_available_regions("kinesis"):
+    kinesis_backends[region] = KinesisBackend()
+for region in Session().get_available_regions("kinesis", partition_name="aws-us-gov"):
+    kinesis_backends[region] = KinesisBackend()
+for region in Session().get_available_regions("kinesis", partition_name="aws-cn"):
+    kinesis_backends[region] = KinesisBackend()

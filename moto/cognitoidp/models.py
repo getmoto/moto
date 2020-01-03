@@ -9,7 +9,7 @@ import os
 import time
 import uuid
 
-import boto.cognito.identity
+from boto3 import Session
 from jose import jws
 
 from moto.compat import OrderedDict
@@ -749,8 +749,14 @@ class CognitoIdpBackend(BaseBackend):
 
 
 cognitoidp_backends = {}
-for region in boto.cognito.identity.regions():
-    cognitoidp_backends[region.name] = CognitoIdpBackend(region.name)
+for region in Session().get_available_regions("cognito-idp"):
+    cognitoidp_backends[region] = CognitoIdpBackend(region)
+for region in Session().get_available_regions(
+    "cognito-idp", partition_name="aws-us-gov"
+):
+    cognitoidp_backends[region] = CognitoIdpBackend(region)
+for region in Session().get_available_regions("cognito-idp", partition_name="aws-cn"):
+    cognitoidp_backends[region] = CognitoIdpBackend(region)
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't

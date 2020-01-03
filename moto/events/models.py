@@ -1,7 +1,7 @@
 import os
 import re
 import json
-import boto3
+from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
@@ -362,5 +362,10 @@ class EventsBackend(BaseBackend):
         self.event_buses.pop(name, None)
 
 
-available_regions = boto3.session.Session().get_available_regions("events")
-events_backends = {region: EventsBackend(region) for region in available_regions}
+events_backends = {}
+for region in Session().get_available_regions("events"):
+    events_backends[region] = EventsBackend(region)
+for region in Session().get_available_regions("events", partition_name="aws-us-gov"):
+    events_backends[region] = EventsBackend(region)
+for region in Session().get_available_regions("events", partition_name="aws-cn"):
+    events_backends[region] = EventsBackend(region)

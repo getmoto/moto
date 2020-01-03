@@ -8,9 +8,9 @@ import os
 import re
 import six
 import warnings
-from pkg_resources import resource_filename
 
-import boto.ec2
+from boto3 import Session
+from pkg_resources import resource_filename
 
 from collections import defaultdict
 import weakref
@@ -1473,7 +1473,13 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
-    regions = [Region(ri.name, ri.endpoint) for ri in boto.ec2.regions()]
+    regions = []
+    for region in Session().get_available_regions("ec2"):
+        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+    for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
+        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+    for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
+        regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region)))
 
     zones = {
         "ap-south-1": [
@@ -1535,6 +1541,11 @@ class RegionsAndZonesBackend(object):
                 name="ap-northeast-1d",
                 zone_id="apne1-az2",
             ),
+        ],
+        "ap-east-1": [
+            Zone(region_name="ap-east-1", name="ap-east-1a", zone_id="ape1-az1"),
+            Zone(region_name="ap-east-1", name="ap-east-1b", zone_id="ape1-az2"),
+            Zone(region_name="ap-east-1", name="ap-east-1c", zone_id="ape1-az3"),
         ],
         "sa-east-1": [
             Zone(region_name="sa-east-1", name="sa-east-1a", zone_id="sae1-az1"),
@@ -1605,9 +1616,31 @@ class RegionsAndZonesBackend(object):
             Zone(region_name="us-west-2", name="us-west-2b", zone_id="usw2-az1"),
             Zone(region_name="us-west-2", name="us-west-2c", zone_id="usw2-az3"),
         ],
+        "me-south-1": [
+            Zone(region_name="me-south-1", name="me-south-1a", zone_id="mes1-az1"),
+            Zone(region_name="me-south-1", name="me-south-1b", zone_id="mes1-az2"),
+            Zone(region_name="me-south-1", name="me-south-1c", zone_id="mes1-az3"),
+        ],
         "cn-north-1": [
             Zone(region_name="cn-north-1", name="cn-north-1a", zone_id="cnn1-az1"),
             Zone(region_name="cn-north-1", name="cn-north-1b", zone_id="cnn1-az2"),
+        ],
+        "cn-northwest-1": [
+            Zone(
+                region_name="cn-northwest-1",
+                name="cn-northwest-1a",
+                zone_id="cnnw1-az1",
+            ),
+            Zone(
+                region_name="cn-northwest-1",
+                name="cn-northwest-1b",
+                zone_id="cnnw1-az2",
+            ),
+            Zone(
+                region_name="cn-northwest-1",
+                name="cn-northwest-1c",
+                zone_id="cnnw1-az3",
+            ),
         ],
         "us-gov-west-1": [
             Zone(
@@ -1618,6 +1651,17 @@ class RegionsAndZonesBackend(object):
             ),
             Zone(
                 region_name="us-gov-west-1", name="us-gov-west-1c", zone_id="usgw1-az3"
+            ),
+        ],
+        "us-gov-east-1": [
+            Zone(
+                region_name="us-gov-east-1", name="us-gov-east-1a", zone_id="usge1-az1"
+            ),
+            Zone(
+                region_name="us-gov-east-1", name="us-gov-east-1b", zone_id="usge1-az2"
+            ),
+            Zone(
+                region_name="us-gov-east-1", name="us-gov-east-1c", zone_id="usge1-az3"
             ),
         ],
     }
