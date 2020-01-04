@@ -10,7 +10,7 @@ from nose.tools import assert_raises
 
 from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds2
 from moto.core import set_initial_no_auth_action_count
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from uuid import uuid4
 
 

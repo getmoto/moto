@@ -8,7 +8,11 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 from moto import mock_sns
-from moto.sns.models import DEFAULT_PAGE_SIZE
+from moto.sns.models import (
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_EFFECTIVE_DELIVERY_POLICY,
+    DEFAULT_ACCOUNT_ID,
+)
 
 
 @mock_sns
@@ -93,33 +97,47 @@ def test_creating_subscription():
 
 
 @mock_sns
-def test_deleting_subscriptions_by_deleting_topic():
-    conn = boto3.client("sns", region_name="us-east-1")
-    conn.create_topic(Name="some-topic")
-    response = conn.list_topics()
+def test_unsubscribe_from_deleted_topic():
+    client = boto3.client("sns", region_name="us-east-1")
+    client.create_topic(Name="some-topic")
+    response = client.list_topics()
     topic_arn = response["Topics"][0]["TopicArn"]
 
-    conn.subscribe(TopicArn=topic_arn, Protocol="http", Endpoint="http://example.com/")
+    client.subscribe(
+        TopicArn=topic_arn, Protocol="http", Endpoint="http://example.com/"
+    )
 
-    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions = client.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(1)
     subscription = subscriptions[0]
+    subscription_arn = subscription["SubscriptionArn"]
     subscription["TopicArn"].should.equal(topic_arn)
     subscription["Protocol"].should.equal("http")
-    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription_arn.should.contain(topic_arn)
     subscription["Endpoint"].should.equal("http://example.com/")
 
     # Now delete the topic
-    conn.delete_topic(TopicArn=topic_arn)
+    client.delete_topic(TopicArn=topic_arn)
 
     # And there should now be 0 topics
-    topics_json = conn.list_topics()
+    topics_json = client.list_topics()
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
-    # And there should be zero subscriptions left
-    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    # And the subscription should still be left
+    subscriptions = client.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["SubscriptionArn"].should.equal(subscription_arn)
+
+    # Now delete hanging subscription
+    client.unsubscribe(SubscriptionArn=subscription_arn)
+
+    subscriptions = client.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
+    # Deleting it again should not result in any error
+    client.unsubscribe(SubscriptionArn=subscription_arn)
 
 
 @mock_sns
@@ -195,21 +213,23 @@ def test_subscribe_attributes():
 
     resp = client.subscribe(TopicArn=arn, Protocol="http", Endpoint="http://test.com")
 
-    attributes = client.get_subscription_attributes(
+    response = client.get_subscription_attributes(
         SubscriptionArn=resp["SubscriptionArn"]
     )
 
-    attributes.should.contain("Attributes")
-    attributes["Attributes"].should.contain("PendingConfirmation")
-    attributes["Attributes"]["PendingConfirmation"].should.equal("false")
-    attributes["Attributes"].should.contain("Endpoint")
-    attributes["Attributes"]["Endpoint"].should.equal("http://test.com")
-    attributes["Attributes"].should.contain("TopicArn")
-    attributes["Attributes"]["TopicArn"].should.equal(arn)
-    attributes["Attributes"].should.contain("Protocol")
-    attributes["Attributes"]["Protocol"].should.equal("http")
-    attributes["Attributes"].should.contain("SubscriptionArn")
-    attributes["Attributes"]["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
+    response.should.contain("Attributes")
+    attributes = response["Attributes"]
+    attributes["PendingConfirmation"].should.equal("false")
+    attributes["ConfirmationWasAuthenticated"].should.equal("true")
+    attributes["Endpoint"].should.equal("http://test.com")
+    attributes["TopicArn"].should.equal(arn)
+    attributes["Protocol"].should.equal("http")
+    attributes["SubscriptionArn"].should.equal(resp["SubscriptionArn"])
+    attributes["Owner"].should.equal(str(DEFAULT_ACCOUNT_ID))
+    attributes["RawMessageDelivery"].should.equal("false")
+    json.loads(attributes["EffectiveDeliveryPolicy"]).should.equal(
+        DEFAULT_EFFECTIVE_DELIVERY_POLICY
+    )
 
 
 @mock_sns

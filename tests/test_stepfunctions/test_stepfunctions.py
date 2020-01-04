@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 from moto import mock_sts, mock_stepfunctions
-
+from moto.core import ACCOUNT_ID
 
 region = "us-east-1"
 simple_definition = (
@@ -34,7 +34,7 @@ def test_state_machine_creation_succeeds():
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     response["creationDate"].should.be.a(datetime)
     response["stateMachineArn"].should.equal(
-        "arn:aws:states:" + region + ":123456789012:stateMachine:" + name
+        "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:" + name
     )
 
 
@@ -286,7 +286,7 @@ def test_state_machine_can_deleted_nonexisting_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
     unknown_state_machine = (
-        "arn:aws:states:" + region + ":123456789012:stateMachine:unknown"
+        "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:unknown"
     )
     response = client.delete_state_machine(stateMachineArn=unknown_state_machine)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)

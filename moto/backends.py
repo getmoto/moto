@@ -8,6 +8,8 @@ from moto.awslambda import lambda_backends
 from moto.batch import batch_backends
 from moto.cloudformation import cloudformation_backends
 from moto.cloudwatch import cloudwatch_backends
+from moto.codecommit import codecommit_backends
+from moto.codepipeline import codepipeline_backends
 from moto.cognitoidentity import cognitoidentity_backends
 from moto.cognitoidp import cognitoidp_backends
 from moto.config import config_backends
@@ -18,6 +20,7 @@ from moto.dynamodb import dynamodb_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.ec2 import ec2_backends
+from moto.ec2_instance_connect import ec2_instance_connect_backends
 from moto.ecr import ecr_backends
 from moto.ecs import ecs_backends
 from moto.elb import elb_backends
@@ -60,6 +63,8 @@ BACKENDS = {
     "batch": batch_backends,
     "cloudformation": cloudformation_backends,
     "cloudwatch": cloudwatch_backends,
+    "codecommit": codecommit_backends,
+    "codepipeline": codepipeline_backends,
     "cognito-identity": cognitoidentity_backends,
     "cognito-idp": cognitoidp_backends,
     "config": config_backends,
@@ -69,6 +74,7 @@ BACKENDS = {
     "dynamodb2": dynamodb_backends2,
     "dynamodbstreams": dynamodbstreams_backends,
     "ec2": ec2_backends,
+    "ec2_instance_connect": ec2_instance_connect_backends,
     "ecr": ecr_backends,
     "ecs": ecs_backends,
     "elb": elb_backends,

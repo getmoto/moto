@@ -8,6 +8,7 @@ import sure  # noqa
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
+from moto.core import ACCOUNT_ID
 
 
 @mock_sns_deprecated
@@ -19,7 +20,7 @@ def test_create_and_delete_topic():
     topics = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"]
     topics.should.have.length_of(1)
     topics[0]["TopicArn"].should.equal(
-        "arn:aws:sns:{0}:123456789012:some-topic".format(conn.region.name)
+        "arn:aws:sns:{0}:{1}:some-topic".format(conn.region.name, ACCOUNT_ID)
     )
 
     # Delete the topic
@@ -58,7 +59,9 @@ def test_topic_corresponds_to_region():
         topic_arn = topics_json["ListTopicsResponse"]["ListTopicsResult"]["Topics"][0][
             "TopicArn"
         ]
-        topic_arn.should.equal("arn:aws:sns:{0}:123456789012:some-topic".format(region))
+        topic_arn.should.equal(
+            "arn:aws:sns:{0}:{1}:some-topic".format(region, ACCOUNT_ID)
+        )
 
 
 @mock_sns_deprecated
@@ -75,9 +78,9 @@ def test_topic_attributes():
         "GetTopicAttributesResult"
     ]["Attributes"]
     attributes["TopicArn"].should.equal(
-        "arn:aws:sns:{0}:123456789012:some-topic".format(conn.region.name)
+        "arn:aws:sns:{0}:{1}:some-topic".format(conn.region.name, ACCOUNT_ID)
     )
-    attributes["Owner"].should.equal(123456789012)
+    attributes["Owner"].should.equal(ACCOUNT_ID)
     json.loads(attributes["Policy"]).should.equal(
         {
             "Version": "2008-10-17",
@@ -98,8 +101,10 @@ def test_topic_attributes():
                         "SNS:Publish",
                         "SNS:Receive",
                     ],
-                    "Resource": "arn:aws:sns:us-east-1:123456789012:some-topic",
-                    "Condition": {"StringEquals": {"AWS:SourceOwner": "123456789012"}},
+                    "Resource": "arn:aws:sns:us-east-1:{}:some-topic".format(
+                        ACCOUNT_ID
+                    ),
+                    "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
                 }
             ],
         }

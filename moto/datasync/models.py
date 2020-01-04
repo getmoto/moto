@@ -1,4 +1,5 @@
-import boto3
+from boto3 import Session
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 
@@ -226,5 +227,9 @@ class DataSyncBackend(BaseBackend):
 
 
 datasync_backends = {}
-for region in boto3.Session().get_available_regions("datasync"):
-    datasync_backends[region] = DataSyncBackend(region_name=region)
+for region in Session().get_available_regions("datasync"):
+    datasync_backends[region] = DataSyncBackend(region)
+for region in Session().get_available_regions("datasync", partition_name="aws-us-gov"):
+    datasync_backends[region] = DataSyncBackend(region)
+for region in Session().get_available_regions("datasync", partition_name="aws-cn"):
+    datasync_backends[region] = DataSyncBackend(region)

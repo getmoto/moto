@@ -45,7 +45,8 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_config_query
 
-DEFAULT_ACCOUNT_ID = "123456789012"
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
 POP_STRINGS = [
     "capitalizeStart",
     "CapitalizeStart",
@@ -1083,6 +1084,9 @@ class ConfigBackend(BaseBackend):
 
 
 config_backends = {}
-boto3_session = Session()
-for region in boto3_session.get_available_regions("config"):
+for region in Session().get_available_regions("config"):
+    config_backends[region] = ConfigBackend()
+for region in Session().get_available_regions("config", partition_name="aws-us-gov"):
+    config_backends[region] = ConfigBackend()
+for region in Session().get_available_regions("config", partition_name="aws-cn"):
     config_backends[region] = ConfigBackend()

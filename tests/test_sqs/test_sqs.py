@@ -21,6 +21,7 @@ from moto import mock_sqs, mock_sqs_deprecated, settings
 from nose import SkipTest
 from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
+from moto.core import ACCOUNT_ID
 
 
 @mock_sqs
@@ -283,7 +284,7 @@ def test_create_queues_in_multiple_region():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     west1_conn.list_queues()["QueueUrls"][0].should.equal(
-        "{base_url}/123456789012/blah".format(base_url=base_url)
+        "{base_url}/{AccountId}/blah".format(base_url=base_url, AccountId=ACCOUNT_ID)
     )
 
 
@@ -305,7 +306,9 @@ def test_get_queue_with_prefix():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     queue[0].should.equal(
-        "{base_url}/123456789012/test-queue".format(base_url=base_url)
+        "{base_url}/{AccountId}/test-queue".format(
+            base_url=base_url, AccountId=ACCOUNT_ID
+        )
     )
 
 
@@ -342,7 +345,7 @@ def test_get_queue_attributes():
     response["Attributes"]["MaximumMessageSize"].should.equal("65536")
     response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
     response["Attributes"]["QueueArn"].should.equal(
-        "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID)
     )
     response["Attributes"]["ReceiveMessageWaitTimeSeconds"].should.equal("0")
     response["Attributes"]["VisibilityTimeout"].should.equal("30")
@@ -361,7 +364,7 @@ def test_get_queue_attributes():
         {
             "ApproximateNumberOfMessages": "0",
             "MaximumMessageSize": "65536",
-            "QueueArn": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+            "QueueArn": "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
             "VisibilityTimeout": "30",
         }
     )
@@ -851,7 +854,9 @@ def test_queue_attributes():
     attributes = queue.get_attributes()
 
     attributes["QueueArn"].should.look_like(
-        "arn:aws:sqs:us-east-1:123456789012:%s" % queue_name
+        "arn:aws:sqs:us-east-1:{AccountId}:{name}".format(
+            AccountId=ACCOUNT_ID, name=queue_name
+        )
     )
 
     attributes["VisibilityTimeout"].should.look_like(str(visibility_timeout))
@@ -1402,7 +1407,7 @@ def test_redrive_policy_available():
 def test_redrive_policy_non_existent_queue():
     sqs = boto3.client("sqs", region_name="us-east-1")
     redrive_policy = {
-        "deadLetterTargetArn": "arn:aws:sqs:us-east-1:123456789012:no-queue",
+        "deadLetterTargetArn": "arn:aws:sqs:us-east-1:{}:no-queue".format(ACCOUNT_ID),
         "maxReceiveCount": 1,
     }
 

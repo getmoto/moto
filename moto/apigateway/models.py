@@ -32,6 +32,7 @@ from .exceptions import (
     RoleNotSpecified,
     NoIntegrationDefined,
     NoMethodDefined,
+    ApiKeyAlreadyExists,
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -759,6 +760,10 @@ class APIGatewayBackend(BaseBackend):
         return api.delete_deployment(deployment_id)
 
     def create_apikey(self, payload):
+        if payload.get("value") is not None:
+            for api_key in self.get_apikeys():
+                if api_key.get("value") == payload["value"]:
+                    raise ApiKeyAlreadyExists()
         key = ApiKey(**payload)
         self.keys[key["id"]] = key
         return key
@@ -841,4 +846,12 @@ class APIGatewayBackend(BaseBackend):
 
 apigateway_backends = {}
 for region_name in Session().get_available_regions("apigateway"):
+    apigateway_backends[region_name] = APIGatewayBackend(region_name)
+for region_name in Session().get_available_regions(
+    "apigateway", partition_name="aws-us-gov"
+):
+    apigateway_backends[region_name] = APIGatewayBackend(region_name)
+for region_name in Session().get_available_regions(
+    "apigateway", partition_name="aws-cn"
+):
     apigateway_backends[region_name] = APIGatewayBackend(region_name)

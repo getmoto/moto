@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import collections
 import functools
 import logging
 import copy
@@ -11,6 +10,7 @@ from moto.awslambda import models as lambda_models
 from moto.batch import models as batch_models
 from moto.cloudwatch import models as cloudwatch_models
 from moto.cognitoidentity import models as cognitoidentity_models
+from moto.compat import collections_abc
 from moto.datapipeline import models as datapipeline_models
 from moto.dynamodb2 import models as dynamodb2_models
 from moto.ec2 import models as ec2_models
@@ -27,6 +27,7 @@ from moto.route53 import models as route53_models
 from moto.s3 import models as s3_models
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
+from moto.core import ACCOUNT_ID
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,
@@ -404,7 +405,7 @@ def parse_output(output_logical_id, output_json, resources_map):
     return output
 
 
-class ResourceMap(collections.Mapping):
+class ResourceMap(collections_abc.Mapping):
     """
     This is a lazy loading map for resources. This allows us to create resources
     without needing to create a full dependency tree. Upon creation, each
@@ -431,7 +432,7 @@ class ResourceMap(collections.Mapping):
 
         # Create the default resources
         self._parsed_resources = {
-            "AWS::AccountId": "123456789012",
+            "AWS::AccountId": ACCOUNT_ID,
             "AWS::Region": self._region_name,
             "AWS::StackId": stack_id,
             "AWS::StackName": stack_name,
@@ -633,7 +634,7 @@ class ResourceMap(collections.Mapping):
             raise last_exception
 
 
-class OutputMap(collections.Mapping):
+class OutputMap(collections_abc.Mapping):
     def __init__(self, resources, template, stack_id):
         self._template = template
         self._stack_id = stack_id

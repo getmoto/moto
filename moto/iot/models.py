@@ -9,7 +9,7 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime
 
-import boto3
+from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
@@ -825,5 +825,10 @@ class IoTBackend(BaseBackend):
         return self.jobs[job_id]
 
 
-available_regions = boto3.session.Session().get_available_regions("iot")
-iot_backends = {region: IoTBackend(region) for region in available_regions}
+iot_backends = {}
+for region in Session().get_available_regions("iot"):
+    iot_backends[region] = IoTBackend(region)
+for region in Session().get_available_regions("iot", partition_name="aws-us-gov"):
+    iot_backends[region] = IoTBackend(region)
+for region in Session().get_available_regions("iot", partition_name="aws-cn"):
+    iot_backends[region] = IoTBackend(region)

@@ -10,6 +10,7 @@ import sure  # noqa
 
 from moto import mock_elbv2, mock_ec2, mock_acm, mock_cloudformation
 from moto.elbv2 import elbv2_backends
+from moto.core import ACCOUNT_ID
 
 
 @mock_elbv2
@@ -346,7 +347,11 @@ def test_create_target_group_and_listeners():
         Protocol="HTTPS",
         Port=443,
         Certificates=[
-            {"CertificateArn": "arn:aws:iam:123456789012:server-certificate/test-cert"}
+            {
+                "CertificateArn": "arn:aws:iam:{}:server-certificate/test-cert".format(
+                    ACCOUNT_ID
+                )
+            }
         ],
         DefaultActions=[
             {"Type": "forward", "TargetGroupArn": target_group.get("TargetGroupArn")}
@@ -356,7 +361,13 @@ def test_create_target_group_and_listeners():
     listener.get("Port").should.equal(443)
     listener.get("Protocol").should.equal("HTTPS")
     listener.get("Certificates").should.equal(
-        [{"CertificateArn": "arn:aws:iam:123456789012:server-certificate/test-cert"}]
+        [
+            {
+                "CertificateArn": "arn:aws:iam:{}:server-certificate/test-cert".format(
+                    ACCOUNT_ID
+                )
+            }
+        ]
     )
     listener.get("DefaultActions").should.equal(
         [{"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}]
@@ -1902,7 +1913,9 @@ def test_cognito_action_listener_rule():
     action = {
         "Type": "authenticate-cognito",
         "AuthenticateCognitoConfig": {
-            "UserPoolArn": "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_ABCD1234",
+            "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
+                ACCOUNT_ID
+            ),
             "UserPoolClientId": "abcd1234abcd",
             "UserPoolDomain": "testpool",
         },
@@ -1977,7 +1990,9 @@ def test_cognito_action_listener_rule_cloudformation():
                         {
                             "Type": "authenticate-cognito",
                             "AuthenticateCognitoConfig": {
-                                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_ABCD1234",
+                                "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
+                                    ACCOUNT_ID
+                                ),
                                 "UserPoolClientId": "abcd1234abcd",
                                 "UserPoolDomain": "testpool",
                             },
@@ -2006,7 +2021,9 @@ def test_cognito_action_listener_rule_cloudformation():
             {
                 "Type": "authenticate-cognito",
                 "AuthenticateCognitoConfig": {
-                    "UserPoolArn": "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_ABCD1234",
+                    "UserPoolArn": "arn:aws:cognito-idp:us-east-1:{}:userpool/us-east-1_ABCD1234".format(
+                        ACCOUNT_ID
+                    ),
                     "UserPoolClientId": "abcd1234abcd",
                     "UserPoolDomain": "testpool",
                 },

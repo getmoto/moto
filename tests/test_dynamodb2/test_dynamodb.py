@@ -9,7 +9,7 @@ from boto3.dynamodb.conditions import Attr, Key
 import sure  # noqa
 import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
-from moto.dynamodb2 import dynamodb_backend2
+from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError, ParamValidationError
 from tests.helpers import requires_boto_gte
@@ -348,6 +348,60 @@ def test_put_item_with_special_chars():
             '"': {"S": "foo"},
         },
     )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_put_item_with_streams():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        StreamSpecification={
+            "StreamEnabled": True,
+            "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        },
+    )
+
+    result = conn.get_item(TableName=name, Key={"forum_name": {"S": "LOLCat Forum"}})
+
+    result["Item"].should.be.equal(
+        {
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        }
+    )
+    table = dynamodb_backends2["us-west-2"].get_table(name)
+    if not table:
+        # There is no way to access stream data over the API, so this part can't run in server-tests mode.
+        return
+    len(table.stream_shard.items).should.be.equal(1)
+    stream_record = table.stream_shard.items[0].record
+    stream_record["eventName"].should.be.equal("INSERT")
+    stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
 
 @requires_boto_gte("2.9")
@@ -2627,6 +2681,44 @@ def test_scan_by_non_exists_index():
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.exception.response["Error"]["Message"].should.equal(
         "The table does not have the specified index: non_exists_index"
+    )
+
+
+@mock_dynamodb2
+def test_query_by_non_exists_index():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_col", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with assert_raises(ClientError) as ex:
+        dynamodb.query(
+            TableName="test",
+            IndexName="non_exists_index",
+            KeyConditionExpression="CarModel=M",
+        )
+
+    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
     )
 
 

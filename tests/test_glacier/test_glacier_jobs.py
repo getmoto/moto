@@ -44,7 +44,7 @@ def test_describe_job():
     joboutput.should.have.key("Tier").which.should.equal("Standard")
     joboutput.should.have.key("StatusCode").which.should.equal("InProgress")
     joboutput.should.have.key("VaultARN").which.should.equal(
-        "arn:aws:glacier:RegionInfo:us-west-2:012345678901:vaults/my_vault"
+        "arn:aws:glacier:us-west-2:012345678901:vaults/my_vault"
     )
 
 

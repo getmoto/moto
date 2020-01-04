@@ -13,6 +13,7 @@ import time
 import uuid
 import itertools
 
+from .utils import parameter_arn
 from .exceptions import (
     ValidationException,
     InvalidFilterValue,
@@ -60,19 +61,23 @@ class Parameter(BaseModel):
         if value.startswith(prefix):
             return value[len(prefix) :]
 
-    def response_object(self, decrypt=False):
+    def response_object(self, decrypt=False, region=None):
         r = {
             "Name": self.name,
             "Type": self.type,
             "Value": self.decrypt(self.value) if decrypt else self.value,
             "Version": self.version,
+            "LastModifiedDate": round(self.last_modified_date, 3),
         }
+
+        if region:
+            r["ARN"] = parameter_arn(region, self.name)
 
         return r
 
     def describe_response_object(self, decrypt=False):
         r = self.response_object(decrypt)
-        r["LastModifiedDate"] = int(self.last_modified_date)
+        r["LastModifiedDate"] = round(self.last_modified_date, 3)
         r["LastModifiedUser"] = "N/A"
 
         if self.description:
@@ -510,7 +515,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                 result.append(self.get_parameter(name, with_decryption))
         return result
 
-    def get_parameters_by_path(self, path, with_decryption, recursive, filters=None):
+    def get_parameters_by_path(
+        self,
+        path,
+        with_decryption,
+        recursive,
+        filters=None,
+        next_token=None,
+        max_results=10,
+    ):
         """Implement the get-parameters-by-path-API in the backend."""
         result = []
         # path could be with or without a trailing /. we handle this
@@ -527,7 +540,19 @@ class SimpleSystemManagerBackend(BaseBackend):
                 continue
             result.append(self.get_parameter(param_name, with_decryption))
 
-        return result
+        return self._get_values_nexttoken(result, max_results, next_token)
+
+    def _get_values_nexttoken(self, values_list, max_results, next_token=None):
+        if next_token is None:
+            next_token = 0
+        next_token = int(next_token)
+        max_results = int(max_results)
+        values = values_list[next_token : next_token + max_results]
+        if len(values) == max_results:
+            next_token = str(next_token + max_results)
+        else:
+            next_token = None
+        return values, next_token
 
     def get_parameter_history(self, name, with_decryption):
         if name in self._parameters:

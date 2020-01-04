@@ -9,6 +9,8 @@ from .batch import mock_batch  # noqa
 from .cloudformation import mock_cloudformation  # noqa
 from .cloudformation import mock_cloudformation_deprecated  # noqa
 from .cloudwatch import mock_cloudwatch, mock_cloudwatch_deprecated  # noqa
+from .codecommit import mock_codecommit  # noqa
+from .codepipeline import mock_codepipeline  # noqa
 from .cognitoidentity import mock_cognitoidentity  # noqa
 from .cognitoidentity import mock_cognitoidentity_deprecated  # noqa
 from .cognitoidp import mock_cognitoidp, mock_cognitoidp_deprecated  # noqa
@@ -20,6 +22,7 @@ from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # noqa
 from .dynamodbstreams import mock_dynamodbstreams  # noqa
 from .ec2 import mock_ec2, mock_ec2_deprecated  # noqa
+from .ec2_instance_connect import mock_ec2_instance_connect  # noqa
 from .ecr import mock_ecr, mock_ecr_deprecated  # noqa
 from .ecs import mock_ecs, mock_ecs_deprecated  # noqa
 from .elb import mock_elb, mock_elb_deprecated  # noqa
