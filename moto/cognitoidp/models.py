@@ -108,7 +108,9 @@ class CognitoIdpUserPool(BaseModel):
 
         return user_pool_json
 
-    def create_jwt(self, client_id, username, token_use, expires_in=60 * 60, extra_data={}):
+    def create_jwt(
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+    ):
         now = int(time.time())
         payload = {
             "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(

@@ -1150,6 +1150,7 @@ def test_token_legitimacy():
         access_claims[k].should.equal(v)
     access_claims["token_use"].should.equal("access")
 
+
 @mock_cognitoidp
 def test_change_password():
     conn = boto3.client("cognito-idp", "us-west-2")
