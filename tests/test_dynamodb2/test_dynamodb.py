@@ -3490,6 +3490,58 @@ def test_update_supports_nested_list_append_onto_another_list():
 
 
 @mock_dynamodb2
+def test_update_supports_list_append_maps():
+    client = boto3.client("dynamodb", region_name="us-west-1")
+    client.create_table(
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "rid", "AttributeType": "S"},
+        ],
+        TableName="TestTable",
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "rid", "KeyType": "RANGE"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "nested_list_append"},
+            "rid": {"S": "range_key"},
+            "a": {"L": [{"M": {"b": {"S": "bar1"}}}]},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "nested_list_append"}, "rid": {"S": "range_key"}},
+        UpdateExpression="SET a = list_append(a, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"M": {"b": {"S": "bar2"}}}]}},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.query(
+        TableName="TestTable",
+        KeyConditionExpression="id = :i AND begins_with(rid, :r)",
+        ExpressionAttributeValues={
+            ":i": {"S": "nested_list_append"},
+            ":r": {"S": "range_key"},
+        },
+    )["Items"]
+    result.should.equal(
+        [
+            {
+                "a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]},
+                "rid": {"S": "range_key"},
+                "id": {"S": "nested_list_append"},
+            }
+        ]
+    )
+
+
+@mock_dynamodb2
 def test_update_catches_invalid_list_append_operation():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
