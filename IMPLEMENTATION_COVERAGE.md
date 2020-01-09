@@ -7521,6 +7521,9 @@
 - [ ] list_objects
 - [ ] list_objects_v2
 - [ ] list_parts
+- [X] list_objects
+- [X] list_objects_v2
+- [X] list_parts
 - [X] put_bucket_accelerate_configuration
 - [ ] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
