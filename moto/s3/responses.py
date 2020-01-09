@@ -26,6 +26,7 @@ from .exceptions import (
     S3ClientError,
     MissingBucket,
     MissingKey,
+    InvalidArgumentError,
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
@@ -944,7 +945,22 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         response_headers = {}
         if query.get("uploadId"):
             upload_id = query["uploadId"][0]
-            parts = self.backend.list_multipart(bucket_name, upload_id)
+
+            # 0 <= PartNumberMarker <= 2,147,483,647
+            part_number_marker = int(query.get("part-number-marker", [0])[0])
+            if not (0 <= part_number_marker <= 2147483647):
+                raise InvalidArgumentError("part-number-marker", 0, 2147483647)
+
+            # 0 <= MaxParts <= 2,147,483,647 (default is 1,000)
+            max_parts = int(query.get("max-parts", [1000])[0])
+            if not (0 <= max_parts <= 2147483647):
+                raise InvalidArgumentError("max-parts", 0, 2147483647)
+
+            parts = self.backend.list_multipart(
+                bucket_name, upload_id, part_number_marker=part_number_marker, max_parts=max_parts)
+            next_part_number_marker = parts[-1].name + 1 if parts else 0
+            is_truncated = parts and self.backend.is_truncated(bucket_name, upload_id, next_part_number_marker)
+
             template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
             return (
                 200,
@@ -953,8 +969,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name=bucket_name,
                     key_name=key_name,
                     upload_id=upload_id,
-                    count=len(parts),
+                    is_truncated=str(is_truncated).lower(),
+                    max_parts=max_parts,
+                    next_part_number_marker=next_part_number_marker,
                     parts=parts,
+                    part_number_marker=part_number_marker,
                 ),
             )
         version_id = query.get("versionId", [None])[0]
@@ -1870,10 +1889,10 @@ S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <DisplayName>webfile</DisplayName>
   </Owner>
   <StorageClass>STANDARD</StorageClass>
-  <PartNumberMarker>1</PartNumberMarker>
-  <NextPartNumberMarker>{{ count }}</NextPartNumberMarker>
-  <MaxParts>{{ count }}</MaxParts>
-  <IsTruncated>false</IsTruncated>
+  <PartNumberMarker>{{ part_number_marker }}</PartNumberMarker>
+  <NextPartNumberMarker>{{ next_part_number_marker }}</NextPartNumberMarker>
+  <MaxParts>{{ max_parts }}</MaxParts>
+  <IsTruncated>{{ is_truncated }}</IsTruncated>
   {% for part in parts %}
   <Part>
     <PartNumber>{{ part.name }}</PartNumber>
