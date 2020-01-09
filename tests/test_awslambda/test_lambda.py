@@ -58,7 +58,7 @@ def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     vol = ec2.Volume(volume_id)
 
-    return {'id': vol.id, 'state': vol.state, 'size': vol.size}
+    return {{'id': vol.id, 'state': vol.state, 'size': vol.size}}
 """.format(
         base_url="motoserver:5000"
         if settings.TEST_SERVER_MODE
