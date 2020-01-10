@@ -134,7 +134,7 @@ class TaskDefinition(BaseObject):
         else:
             self.volumes = volumes
         if network_mode is None:
-            self.network_mode = 'bridge'
+            self.network_mode = "bridge"
         else:
             self.network_mode = network_mode
 
@@ -567,7 +567,13 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.task_definitions[family] = {}
             revision = 1
         task_definition = TaskDefinition(
-            family, revision, container_definitions, self.region_name, volumes=volumes, network_mode=network_mode, tags=tags
+            family,
+            revision,
+            container_definitions,
+            self.region_name,
+            volumes=volumes,
+            network_mode=network_mode,
+            tags=tags,
         )
         self.task_definitions[family][revision] = task_definition
 
