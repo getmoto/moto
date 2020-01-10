@@ -1866,7 +1866,7 @@ def test_boto3_multipart_list_parts_invalid_argument():
         )
 
         with assert_raises(ClientError) as err:
-            get_parts(PartNumberMarker=value)
+            get_parts(**{"PartNumberMarker": value})
         e = err.exception
         e.response["Error"]["Code"].should.equal("InvalidArgument")
         e.response["Error"]["Message"].should.equal(
