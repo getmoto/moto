@@ -1854,12 +1854,7 @@ def test_boto3_multipart_list_parts_invalid_argument():
     mpu_id = mpu["UploadId"]
 
     def get_parts(**kwarg):
-        s3.list_parts(
-            Bucket="mybucket",
-            Key="the-key",
-            UploadId=mpu_id,
-            **kwarg,
-        )
+        s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id, **kwarg)
 
     for value in [-42, 2147483647 + 42]:
         with assert_raises(ClientError) as err:
@@ -1895,11 +1890,7 @@ def test_boto3_multipart_list_parts():
         # Get uploaded parts using default values
         uploaded_parts = []
 
-        uploaded = s3.list_parts(
-            Bucket="mybucket",
-            Key="the-key",
-            UploadId=mpu_id,
-        )
+        uploaded = s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id)
 
         assert uploaded["PartNumberMarker"] == 0
 

@@ -1410,9 +1410,13 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         del bucket.multiparts[multipart_id]
 
-    def list_multipart(self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000):
+    def list_multipart(
+        self, bucket_name, multipart_id, part_number_marker=0, max_parts=1000
+    ):
         bucket = self.get_bucket(bucket_name)
-        return list(bucket.multiparts[multipart_id].list_parts(part_number_marker, max_parts))
+        return list(
+            bucket.multiparts[multipart_id].list_parts(part_number_marker, max_parts)
+        )
 
     def is_truncated(self, bucket_name, multipart_id, next_part_number_marker):
         bucket = self.get_bucket(bucket_name)
