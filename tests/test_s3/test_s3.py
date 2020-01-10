@@ -2954,6 +2954,38 @@ def test_boto3_multipart_list_parts():
         UploadId=mpu_id,
         MultipartUpload={"Parts": parts},
     )
+    # we should get both parts as the key contents
+    resp = s3.get_object(Bucket="mybucket", Key="the-key")
+    resp["ETag"].should.equal(EXPECTED_ETAG)
+
+
+@mock_s3
+def test_boto3_multipart_list_parts_invalid_argument():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="mybucket")
+
+    mpu = s3.create_multipart_upload(Bucket="mybucket", Key="the-key")
+    mpu_id = mpu["UploadId"]
+
+    def get_parts(**kwarg):
+        s3.list_parts(Bucket="mybucket", Key="the-key", UploadId=mpu_id, **kwarg)
+
+    for value in [-42, 2147483647 + 42]:
+        with assert_raises(ClientError) as err:
+            get_parts(**{"MaxParts": value})
+        e = err.exception
+        e.response["Error"]["Code"].should.equal("InvalidArgument")
+        e.response["Error"]["Message"].should.equal(
+            "Argument max-parts must be an integer between 0 and 2147483647"
+        )
+
+        with assert_raises(ClientError) as err:
+            get_parts(**{"PartNumberMarker": value})
+        e = err.exception
+        e.response["Error"]["Code"].should.equal("InvalidArgument")
+        e.response["Error"]["Message"].should.equal(
+            "Argument part-number-marker must be an integer between 0 and 2147483647"
+        )
 
 
 @mock_s3
