@@ -1858,7 +1858,7 @@ def test_boto3_multipart_list_parts_invalid_argument():
 
     for value in [-42, 2147483647 + 42]:
         with assert_raises(ClientError) as err:
-            get_parts(MaxParts=value)
+            get_parts(**{"MaxParts": value})
         e = err.exception
         e.response["Error"]["Code"].should.equal("InvalidArgument")
         e.response["Error"]["Message"].should.equal(
