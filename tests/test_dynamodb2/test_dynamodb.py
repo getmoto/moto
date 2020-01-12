@@ -1720,6 +1720,32 @@ def test_scan_filter4():
 
 
 @mock_dynamodb2
+def test_scan_filter_should_not_return_non_existing_attributes():
+    table_name = "my-table"
+    item = {"partitionKey": "pk-2", "my-attr": 42}
+    # Create table
+    res = boto3.resource("dynamodb")
+    res.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = res.Table(table_name)
+    # Insert items
+    table.put_item(Item={"partitionKey": "pk-1"})
+    table.put_item(Item=item)
+    # Verify a few operations
+    # Assert we only find the item that has this attribute
+    table.scan(FilterExpression=Attr("my-attr").lt(43))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").lte(42))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").gte(42))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").gt(41))["Items"].should.equal([item])
+    # Sanity check that we can't find the item if the FE is wrong
+    table.scan(FilterExpression=Attr("my-attr").gt(43))["Items"].should.equal([])
+
+
+@mock_dynamodb2
 def test_bad_scan_filter():
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
