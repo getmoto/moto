@@ -1724,7 +1724,7 @@ def test_scan_filter_should_not_return_non_existing_attributes():
     table_name = "my-table"
     item = {"partitionKey": "pk-2", "my-attr": 42}
     # Create table
-    res = boto3.resource("dynamodb")
+    res = boto3.resource("dynamodb", region_name="us-east-1")
     res.create_table(
         TableName=table_name,
         KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
