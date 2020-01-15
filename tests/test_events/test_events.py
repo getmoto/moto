@@ -5,8 +5,10 @@ import sure  # noqa
 
 from moto.events import mock_events
 from botocore.exceptions import ClientError
+from moto.core.exceptions import JsonRESTError
 from nose.tools import assert_raises
 from moto.core import ACCOUNT_ID
+from moto.events.models import EventsBackend
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -134,14 +136,6 @@ def test_list_rule_names_by_target():
     assert len(rules["RuleNames"]) == len(test_2_target["Rules"])
     for rule in rules["RuleNames"]:
         assert rule in test_2_target["Rules"]
-
-
-@mock_events
-def test_list_rules():
-    client = generate_environment()
-
-    rules = client.list_rules()
-    assert len(rules["Rules"]) == len(RULES)
 
 
 @mock_events
@@ -461,3 +455,43 @@ def test_delete_event_bus_errors():
     client.delete_event_bus.when.called_with(Name="default").should.throw(
         ClientError, "Cannot delete event bus default."
     )
+
+@mock_events
+def test_rule_tagging_happy():
+    client = generate_environment()
+    rule_name = get_random_rule()["Name"]
+    rule_arn = client.describe_rule(Name=rule_name).get("Arn")
+
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    client.tag_resource(ResourceARN=rule_arn, Tags=tags)
+
+    actual = client.list_tags_for_resource(ResourceARN=rule_arn).get("Tags")
+    assert tags == actual
+
+    client.untag_resource(ResourceARN=rule_arn, TagKeys=["key1"])
+
+    actual = client.list_tags_for_resource(ResourceARN=rule_arn).get("Tags")
+    expected = [{"Key": "key2", "Value": "value2"}]
+    assert expected == actual
+
+@mock_events
+def test_rule_tagging_sad():
+    b = EventsBackend("us-west-2")
+
+    try:
+        b.tag_resource('unknown', [])
+        raise 'tag_resource should fail if ResourceARN is not known'
+    except JsonRESTError:
+        pass
+
+    try:
+        b.untag_resource('unknown', [])
+        raise 'untag_resource should fail if ResourceARN is not known'
+    except JsonRESTError:
+        pass
+
+    try:
+        b.list_tags_for_resource('unknown')
+        raise 'list_tags_for_resource should fail if ResourceARN is not known'
+    except JsonRESTError:
+        pass
