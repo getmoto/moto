@@ -128,7 +128,9 @@ class CognitoIdpUserPool(BaseModel):
 
     def create_id_token(self, client_id, username):
         extra_data = self.get_user_extra_data_by_client_id(client_id, username)
-        id_token, expires_in = self.create_jwt(client_id, username, "id", extra_data=extra_data)
+        id_token, expires_in = self.create_jwt(
+            client_id, username, "id", extra_data=extra_data
+        )
         self.id_tokens[id_token] = (client_id, username)
         return id_token, expires_in
 
@@ -138,9 +140,7 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token
 
     def create_access_token(self, client_id, username):
-        access_token, expires_in = self.create_jwt(
-            client_id, username, "access"
-        )
+        access_token, expires_in = self.create_jwt(client_id, username, "access")
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
