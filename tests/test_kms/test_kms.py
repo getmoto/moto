@@ -17,7 +17,8 @@ from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 from freezegun import freeze_time
 from nose.tools import assert_raises
 from parameterized import parameterized
-
+from moto.core.exceptions import JsonRESTError
+from moto.kms.models import KmsBackend
 from moto.kms.exceptions import NotFoundException as MotoNotFoundException
 from moto import mock_kms, mock_kms_deprecated
 
@@ -910,36 +911,46 @@ def test_update_key_description():
     result = client.update_key_description(KeyId=key_id, Description="new_description")
     assert "ResponseMetadata" in result
 
+@mock_kms
+def test_key_tagging_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="test-key-tagging")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    tags = [{"TagKey": "key1", "TagValue": "value1"}, {"TagKey": "key2", "TagValue": "value2"}]
+    client.tag_resource(KeyId=key_id, Tags=tags)
+
+    result = client.list_resource_tags(KeyId=key_id)
+    actual = result.get("Tags", [])
+    assert tags == actual
+
+    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+
+    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
+    expected = [{"TagKey": "key2", "TagValue": "value2"}]
+    assert expected == actual
 
 @mock_kms
-def test_tag_resource():
-    client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="cancel-key-deletion")
-    response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
+def test_key_tagging_sad():
+    b = KmsBackend()
 
-    keyid = response["KeyId"]
-    response = client.tag_resource(
-        KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}]
-    )
+    try:
+        b.tag_resource('unknown', [])
+        raise 'tag_resource should fail if KeyId is not known'
+    except JsonRESTError:
+        pass
 
-    # Shouldn't have any data, just header
-    assert len(response.keys()) == 1
+    try:
+        b.untag_resource('unknown', [])
+        raise 'untag_resource should fail if KeyId is not known'
+    except JsonRESTError:
+        pass
 
-
-@mock_kms
-def test_list_resource_tags():
-    client = boto3.client("kms", region_name="us-east-1")
-    key = client.create_key(Description="cancel-key-deletion")
-    response = client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
-
-    keyid = response["KeyId"]
-    response = client.tag_resource(
-        KeyId=keyid, Tags=[{"TagKey": "string", "TagValue": "string"}]
-    )
-
-    response = client.list_resource_tags(KeyId=keyid)
-    assert response["Tags"][0]["TagKey"] == "string"
-    assert response["Tags"][0]["TagValue"] == "string"
+    try:
+        b.list_resource_tags('unknown')
+        raise 'list_resource_tags should fail if KeyId is not known'
+    except JsonRESTError:
+        pass
 
 
 @parameterized(
