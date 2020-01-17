@@ -482,14 +482,6 @@ def test_rule_tagging_happy():
     assert expected == actual
 
 
-def freeze_dict(obj):
-    if isinstance(obj, dict):
-        dict_items = list(obj.items())
-        dict_items.append(("__frozen__", True))
-        return tuple([(k, freeze_dict(v)) for k, v in dict_items])
-    return obj
-
-
 @mock_events
 def test_rule_tagging_sad():
     b = EventsBackend("us-west-2")
