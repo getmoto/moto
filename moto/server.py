@@ -15,7 +15,7 @@ from six.moves.urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
-from moto.backends import BACKENDS
+import moto.backends as backends
 from moto.core.utils import convert_flask_to_httpretty_response
 
 
@@ -52,13 +52,15 @@ class DomainDispatcherApplication(object):
         if self.service:
             return self.service
 
-        if host in BACKENDS:
+        if host in backends.BACKENDS:
             return host
 
-        for backend_name, backend in BACKENDS.items():
-            for url_base in list(backend.values())[0].url_bases:
-                if re.match(url_base, "http://%s" % host):
-                    return backend_name
+        return backends.search_backend(
+            lambda backend: any(
+                re.match(url_base, "http://%s" % host)
+                for url_base in list(backend.values())[0].url_bases
+            )
+        )
 
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
@@ -204,7 +206,7 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters["regex"] = RegexConverter
-    backend = list(BACKENDS[service].values())[0]
+    backend = list(backends.get_backend(service).values())[0]
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_flask_to_httpretty_response(handler)
         if handler.__name__ == "dispatch":
