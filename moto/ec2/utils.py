@@ -10,8 +10,6 @@ import six
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-import sshpubkeys.exceptions
-from sshpubkeys.keys import SSHKey
 
 
 EC2_RESOURCE_TO_PREFIX = {
@@ -544,6 +542,10 @@ def generate_instance_identity_document(instance):
 
 
 def rsa_public_key_parse(key_material):
+    # These imports take ~.5s; let's keep them local
+    import sshpubkeys.exceptions
+    from sshpubkeys.keys import SSHKey
+
     try:
         if not isinstance(key_material, six.binary_type):
             key_material = key_material.encode("ascii")
