@@ -223,7 +223,7 @@ def test_create_stream_without_redshift():
 
 
 @mock_kinesis
-def test_deescribe_non_existant_stream():
+def test_deescribe_non_existent_stream():
     client = boto3.client("firehose", region_name="us-east-1")
 
     client.describe_delivery_stream.when.called_with(

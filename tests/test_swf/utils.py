@@ -5,7 +5,7 @@ from moto.swf.models import ActivityType, Domain, WorkflowType, WorkflowExecutio
 
 # Some useful constants
 # Here are some activity timeouts we use in moto/swf tests ; they're extracted
-# from semi-real world example, the goal is mostly to have predictible and
+# from semi-real world example, the goal is mostly to have predictable and
 # intuitive behaviour in moto/swf own tests...
 ACTIVITY_TASK_TIMEOUTS = {
     "heartbeatTimeout": "300",  # 5 mins

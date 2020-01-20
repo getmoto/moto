@@ -726,7 +726,7 @@ def test_delete_service():
 
 
 @mock_ecs
-def test_update_non_existant_service():
+def test_update_non_existent_service():
     client = boto3.client("ecs", region_name="us-east-1")
     try:
         client.update_service(

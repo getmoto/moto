@@ -103,7 +103,7 @@ class LogsResponse(BaseResponse):
         (
             events,
             next_backward_token,
-            next_foward_token,
+            next_forward_token,
         ) = self.logs_backend.get_log_events(
             log_group_name,
             log_stream_name,
@@ -117,7 +117,7 @@ class LogsResponse(BaseResponse):
             {
                 "events": events,
                 "nextBackwardToken": next_backward_token,
-                "nextForwardToken": next_foward_token,
+                "nextForwardToken": next_forward_token,
             }
         )
 

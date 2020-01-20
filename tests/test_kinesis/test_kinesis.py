@@ -32,7 +32,7 @@ def test_create_cluster():
 
 
 @mock_kinesis_deprecated
-def test_describe_non_existant_stream():
+def test_describe_non_existent_stream():
     conn = boto.kinesis.connect_to_region("us-east-1")
     conn.describe_stream.when.called_with("not-a-stream").should.throw(
         ResourceNotFoundException
