@@ -58,8 +58,7 @@ def lambda_handler(event, context):
     volume_id = event.get('volume_id')
     vol = ec2.Volume(volume_id)
 
-    print('get volume details for %s\\nVolume - %s  state=%s, size=%s' % (volume_id, volume_id, vol.state, vol.size))
-    return event
+    return {{'id': vol.id, 'state': vol.state, 'size': vol.size}}
 """.format(
         base_url="motoserver:5000"
         if settings.TEST_SERVER_MODE
@@ -181,27 +180,9 @@ if settings.TEST_SERVER_MODE:
             Payload=json.dumps(in_data),
         )
         result["StatusCode"].should.equal(202)
-        msg = "get volume details for %s\nVolume - %s  state=%s, size=%s\n%s" % (
-            vol.id,
-            vol.id,
-            vol.state,
-            vol.size,
-            json.dumps(in_data).replace(
-                " ", ""
-            ),  # Makes the tests pass as the result is missing the whitespace
-        )
-
-        log_result = base64.b64decode(result["LogResult"]).decode("utf-8")
-
-        # The Docker lambda invocation will return an additional '\n', so need to replace it:
-        log_result = log_result.replace("\n\n", "\n")
-        log_result.should.equal(msg)
-
-        payload = result["Payload"].read().decode("utf-8")
-
-        # The Docker lambda invocation will return an additional '\n', so need to replace it:
-        payload = payload.replace("\n\n", "\n")
-        payload.should.equal(msg)
+        actual_payload = json.loads(result["Payload"].read().decode("utf-8"))
+        expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
+        actual_payload.should.equal(expected_payload)
 
 
 @mock_logs
