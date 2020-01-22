@@ -2533,7 +2533,7 @@ def test_condition_expressions():
 
 @mock_dynamodb2
 def test_condition_expression_numerical_attribute():
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
         TableName="my-table",
         KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
