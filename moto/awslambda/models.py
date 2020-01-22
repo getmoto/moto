@@ -237,6 +237,7 @@ class LambdaFunction(BaseModel):
         )
 
         self.tags = dict()
+        self.state = "Active"
 
     def set_version(self, version):
         self.function_arn = make_function_ver_arn(
@@ -274,7 +275,7 @@ class LambdaFunction(BaseModel):
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,
-            "State": "Active",
+            "State": self.state,
         }
 
         if self.environment_vars:

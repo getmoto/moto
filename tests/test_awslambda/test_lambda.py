@@ -968,6 +968,7 @@ def test_create_function_with_already_exists():
     )
 
     assert response["FunctionName"] == "testFunction"
+    assert response["Status"] == "Active"
 
 
 @mock_lambda
