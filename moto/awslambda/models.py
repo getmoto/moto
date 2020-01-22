@@ -274,6 +274,7 @@ class LambdaFunction(BaseModel):
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,
+            "State": "Active",
         }
 
         if self.environment_vars:
