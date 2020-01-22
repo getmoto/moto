@@ -977,7 +977,7 @@ class OpLessThan(Op):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
-        if lhs and rhs:
+        if lhs is not None and rhs is not None:
             return lhs < rhs
         else:
             return False
@@ -990,7 +990,7 @@ class OpGreaterThan(Op):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
-        if lhs and rhs:
+        if lhs is not None and rhs is not None:
             return lhs > rhs
         else:
             return False
@@ -1021,7 +1021,7 @@ class OpLessThanOrEqual(Op):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
-        if lhs and rhs:
+        if lhs is not None and rhs is not None:
             return lhs <= rhs
         else:
             return False
@@ -1034,7 +1034,7 @@ class OpGreaterThanOrEqual(Op):
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
-        if lhs and rhs:
+        if lhs is not None and rhs is not None:
             return lhs >= rhs
         else:
             return False

@@ -2532,6 +2532,48 @@ def test_condition_expressions():
 
 
 @mock_dynamodb2
+def test_condition_expression_numerical_attribute():
+    dynamodb = boto3.resource("dynamodb")
+    dynamodb.create_table(
+        TableName="my-table",
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+    )
+    table = dynamodb.Table("my-table")
+    table.put_item(Item={"partitionKey": "pk-pos", "myAttr": 5})
+    table.put_item(Item={"partitionKey": "pk-neg", "myAttr": -5})
+
+    # try to update the item we put in the table using numerical condition expression
+    # Specifically, verify that we can compare with a zero-value
+    # First verify that > and >= work on positive numbers
+    update_numerical_con_expr(
+        key="pk-pos", con_expr="myAttr > :zero", res="6", table=table
+    )
+    update_numerical_con_expr(
+        key="pk-pos", con_expr="myAttr >= :zero", res="7", table=table
+    )
+    # Second verify that < and <= work on negative numbers
+    update_numerical_con_expr(
+        key="pk-neg", con_expr="myAttr < :zero", res="-4", table=table
+    )
+    update_numerical_con_expr(
+        key="pk-neg", con_expr="myAttr <= :zero", res="-3", table=table
+    )
+
+
+def update_numerical_con_expr(key, con_expr, res, table):
+    table.update_item(
+        Key={"partitionKey": key},
+        UpdateExpression="ADD myAttr :one",
+        ExpressionAttributeValues={":zero": 0, ":one": 1},
+        ConditionExpression=con_expr,
+    )
+    table.get_item(Key={"partitionKey": key})["Item"]["myAttr"].should.equal(
+        Decimal(res)
+    )
+
+
+@mock_dynamodb2
 def test_condition_expression__attr_doesnt_exist():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
