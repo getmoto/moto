@@ -1720,6 +1720,32 @@ def test_scan_filter4():
 
 
 @mock_dynamodb2
+def test_scan_filter_should_not_return_non_existing_attributes():
+    table_name = "my-table"
+    item = {"partitionKey": "pk-2", "my-attr": 42}
+    # Create table
+    res = boto3.resource("dynamodb", region_name="us-east-1")
+    res.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = res.Table(table_name)
+    # Insert items
+    table.put_item(Item={"partitionKey": "pk-1"})
+    table.put_item(Item=item)
+    # Verify a few operations
+    # Assert we only find the item that has this attribute
+    table.scan(FilterExpression=Attr("my-attr").lt(43))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").lte(42))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").gte(42))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").gt(41))["Items"].should.equal([item])
+    # Sanity check that we can't find the item if the FE is wrong
+    table.scan(FilterExpression=Attr("my-attr").gt(43))["Items"].should.equal([])
+
+
+@mock_dynamodb2
 def test_bad_scan_filter():
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2503,6 +2529,48 @@ def test_condition_expressions():
             ExpressionAttributeValues={":match": {"S": "match"}},
             ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
         )
+
+
+@mock_dynamodb2
+def test_condition_expression_numerical_attribute():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="my-table",
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+    )
+    table = dynamodb.Table("my-table")
+    table.put_item(Item={"partitionKey": "pk-pos", "myAttr": 5})
+    table.put_item(Item={"partitionKey": "pk-neg", "myAttr": -5})
+
+    # try to update the item we put in the table using numerical condition expression
+    # Specifically, verify that we can compare with a zero-value
+    # First verify that > and >= work on positive numbers
+    update_numerical_con_expr(
+        key="pk-pos", con_expr="myAttr > :zero", res="6", table=table
+    )
+    update_numerical_con_expr(
+        key="pk-pos", con_expr="myAttr >= :zero", res="7", table=table
+    )
+    # Second verify that < and <= work on negative numbers
+    update_numerical_con_expr(
+        key="pk-neg", con_expr="myAttr < :zero", res="-4", table=table
+    )
+    update_numerical_con_expr(
+        key="pk-neg", con_expr="myAttr <= :zero", res="-3", table=table
+    )
+
+
+def update_numerical_con_expr(key, con_expr, res, table):
+    table.update_item(
+        Key={"partitionKey": key},
+        UpdateExpression="ADD myAttr :one",
+        ExpressionAttributeValues={":zero": 0, ":one": 1},
+        ConditionExpression=con_expr,
+    )
+    table.get_item(Key={"partitionKey": key})["Item"]["myAttr"].should.equal(
+        Decimal(res)
+    )
 
 
 @mock_dynamodb2
