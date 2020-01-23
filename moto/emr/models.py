@@ -2,8 +2,8 @@ from __future__ import unicode_literals
 from datetime import datetime
 from datetime import timedelta
 
-import boto.emr
 import pytz
+from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
 from moto.emr.exceptions import EmrError
@@ -460,5 +460,9 @@ class ElasticMapReduceBackend(BaseBackend):
 
 
 emr_backends = {}
-for region in boto.emr.regions():
-    emr_backends[region.name] = ElasticMapReduceBackend(region.name)
+for region in Session().get_available_regions("emr"):
+    emr_backends[region] = ElasticMapReduceBackend(region)
+for region in Session().get_available_regions("emr", partition_name="aws-us-gov"):
+    emr_backends[region] = ElasticMapReduceBackend(region)
+for region in Session().get_available_regions("emr", partition_name="aws-cn"):
+    emr_backends[region] = ElasticMapReduceBackend(region)

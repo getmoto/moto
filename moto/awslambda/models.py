@@ -23,7 +23,8 @@ import traceback
 import weakref
 import requests.adapters
 
-import boto.awslambda
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
@@ -52,9 +53,6 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-# The lambci container is returning a special escape character for the "RequestID" fields. Unicode 033:
-# _stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
-_stderr_regex = re.compile(r"\033\[\d+.*")
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
@@ -384,7 +382,7 @@ class LambdaFunction(BaseModel):
         try:
             # TODO: I believe we can keep the container running and feed events as needed
             #       also need to hook it up to the other services so it can make kws/s3 etc calls
-            #  Should get invoke_id /RequestId from invovation
+            #  Should get invoke_id /RequestId from invocation
             env_vars = {
                 "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
                 "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
@@ -452,14 +450,9 @@ class LambdaFunction(BaseModel):
             if exit_code != 0:
                 raise Exception("lambda invoke failed output: {}".format(output))
 
-            # strip out RequestId lines (TODO: This will return an additional '\n' in the response)
-            output = os.linesep.join(
-                [
-                    line
-                    for line in self.convert(output).splitlines()
-                    if not _stderr_regex.match(line)
-                ]
-            )
+            # We only care about the response from the lambda
+            # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
+            output = output.splitlines()[-1]
             return output, False
         except BaseException as e:
             traceback.print_exc()
@@ -1043,10 +1036,10 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-# Handle us forgotten regions, unless Lambda truly only runs out of US and
-lambda_backends = {
-    _region.name: LambdaBackend(_region.name) for _region in boto.awslambda.regions()
-}
-
-lambda_backends["ap-southeast-2"] = LambdaBackend("ap-southeast-2")
-lambda_backends["us-gov-west-1"] = LambdaBackend("us-gov-west-1")
+lambda_backends = {}
+for region in Session().get_available_regions("lambda"):
+    lambda_backends[region] = LambdaBackend(region)
+for region in Session().get_available_regions("lambda", partition_name="aws-us-gov"):
+    lambda_backends[region] = LambdaBackend(region)
+for region in Session().get_available_regions("lambda", partition_name="aws-cn"):
+    lambda_backends[region] = LambdaBackend(region)

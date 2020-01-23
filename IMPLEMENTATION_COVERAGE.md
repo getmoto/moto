@@ -1240,14 +1240,14 @@
 - [ ] create_commit
 - [ ] create_pull_request
 - [ ] create_pull_request_approval_rule
-- [ ] create_repository
+- [X] create_repository
 - [ ] create_unreferenced_merge_commit
 - [ ] delete_approval_rule_template
 - [ ] delete_branch
 - [ ] delete_comment_content
 - [ ] delete_file
 - [ ] delete_pull_request_approval_rule
-- [ ] delete_repository
+- [X] delete_repository
 - [ ] describe_merge_conflicts
 - [ ] describe_pull_request_events
 - [ ] disassociate_approval_rule_template_from_repository
@@ -1268,7 +1268,7 @@
 - [ ] get_pull_request
 - [ ] get_pull_request_approval_states
 - [ ] get_pull_request_override_state
-- [ ] get_repository
+- [X] get_repository
 - [ ] get_repository_triggers
 - [ ] list_approval_rule_templates
 - [ ] list_associated_approval_rule_templates_for_repository
@@ -1374,7 +1374,7 @@
 - [ ] update_profiling_group
 
 ## codepipeline
-13% implemented
+22% implemented
 - [ ] acknowledge_job
 - [ ] acknowledge_third_party_job
 - [ ] create_custom_action_type
@@ -1394,7 +1394,7 @@
 - [ ] list_action_types
 - [ ] list_pipeline_executions
 - [X] list_pipelines
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_webhooks
 - [ ] poll_for_jobs
 - [ ] poll_for_third_party_jobs
@@ -1408,8 +1408,8 @@
 - [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
 - [ ] start_pipeline_execution
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_pipeline
 
 ## codestar
@@ -2694,7 +2694,7 @@
 
 ## ec2-instance-connect
 0% implemented
-- [ ] send_ssh_public_key
+- [x] send_ssh_public_key
 
 ## ecr
 27% implemented
@@ -3763,7 +3763,7 @@
 - [X] list_signing_certificates
 - [ ] list_ssh_public_keys
 - [X] list_user_policies
-- [ ] list_user_tags
+- [X] list_user_tags
 - [X] list_users
 - [X] list_virtual_mfa_devices
 - [X] put_group_policy

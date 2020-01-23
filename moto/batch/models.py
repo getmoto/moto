@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import boto3
 import re
 import requests.adapters
 from itertools import cycle
@@ -12,6 +11,8 @@ import docker
 import functools
 import threading
 import dateutil.parser
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
@@ -1317,7 +1318,10 @@ class BatchBackend(BaseBackend):
         job.terminate(reason)
 
 
-available_regions = boto3.session.Session().get_available_regions("batch")
-batch_backends = {
-    region: BatchBackend(region_name=region) for region in available_regions
-}
+batch_backends = {}
+for region in Session().get_available_regions("batch"):
+    batch_backends[region] = BatchBackend(region)
+for region in Session().get_available_regions("batch", partition_name="aws-us-gov"):
+    batch_backends[region] = BatchBackend(region)
+for region in Session().get_available_regions("batch", partition_name="aws-cn"):
+    batch_backends[region] = BatchBackend(region)

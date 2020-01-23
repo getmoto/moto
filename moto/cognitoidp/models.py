@@ -9,7 +9,7 @@ import os
 import time
 import uuid
 
-import boto.cognito.identity
+from boto3 import Session
 from jose import jws
 
 from moto.compat import OrderedDict
@@ -108,7 +108,9 @@ class CognitoIdpUserPool(BaseModel):
 
         return user_pool_json
 
-    def create_jwt(self, client_id, username, expires_in=60 * 60, extra_data={}):
+    def create_jwt(
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+    ):
         now = int(time.time())
         payload = {
             "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(
@@ -116,7 +118,7 @@ class CognitoIdpUserPool(BaseModel):
             ),
             "sub": self.users[username].id,
             "aud": client_id,
-            "token_use": "id",
+            "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
         }
@@ -125,7 +127,10 @@ class CognitoIdpUserPool(BaseModel):
         return jws.sign(payload, self.json_web_key, algorithm="RS256"), expires_in
 
     def create_id_token(self, client_id, username):
-        id_token, expires_in = self.create_jwt(client_id, username)
+        extra_data = self.get_user_extra_data_by_client_id(client_id, username)
+        id_token, expires_in = self.create_jwt(
+            client_id, username, "id", extra_data=extra_data
+        )
         self.id_tokens[id_token] = (client_id, username)
         return id_token, expires_in
 
@@ -135,10 +140,7 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token
 
     def create_access_token(self, client_id, username):
-        extra_data = self.get_user_extra_data_by_client_id(client_id, username)
-        access_token, expires_in = self.create_jwt(
-            client_id, username, extra_data=extra_data
-        )
+        access_token, expires_in = self.create_jwt(client_id, username, "access")
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
@@ -749,8 +751,14 @@ class CognitoIdpBackend(BaseBackend):
 
 
 cognitoidp_backends = {}
-for region in boto.cognito.identity.regions():
-    cognitoidp_backends[region.name] = CognitoIdpBackend(region.name)
+for region in Session().get_available_regions("cognito-idp"):
+    cognitoidp_backends[region] = CognitoIdpBackend(region)
+for region in Session().get_available_regions(
+    "cognito-idp", partition_name="aws-us-gov"
+):
+    cognitoidp_backends[region] = CognitoIdpBackend(region)
+for region in Session().get_available_regions("cognito-idp", partition_name="aws-cn"):
+    cognitoidp_backends[region] = CognitoIdpBackend(region)
 
 
 # Hack to help moto-server process requests on localhost, where the region isn't

@@ -97,33 +97,47 @@ def test_creating_subscription():
 
 
 @mock_sns
-def test_deleting_subscriptions_by_deleting_topic():
-    conn = boto3.client("sns", region_name="us-east-1")
-    conn.create_topic(Name="some-topic")
-    response = conn.list_topics()
+def test_unsubscribe_from_deleted_topic():
+    client = boto3.client("sns", region_name="us-east-1")
+    client.create_topic(Name="some-topic")
+    response = client.list_topics()
     topic_arn = response["Topics"][0]["TopicArn"]
 
-    conn.subscribe(TopicArn=topic_arn, Protocol="http", Endpoint="http://example.com/")
+    client.subscribe(
+        TopicArn=topic_arn, Protocol="http", Endpoint="http://example.com/"
+    )
 
-    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    subscriptions = client.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(1)
     subscription = subscriptions[0]
+    subscription_arn = subscription["SubscriptionArn"]
     subscription["TopicArn"].should.equal(topic_arn)
     subscription["Protocol"].should.equal("http")
-    subscription["SubscriptionArn"].should.contain(topic_arn)
+    subscription_arn.should.contain(topic_arn)
     subscription["Endpoint"].should.equal("http://example.com/")
 
     # Now delete the topic
-    conn.delete_topic(TopicArn=topic_arn)
+    client.delete_topic(TopicArn=topic_arn)
 
     # And there should now be 0 topics
-    topics_json = conn.list_topics()
+    topics_json = client.list_topics()
     topics = topics_json["Topics"]
     topics.should.have.length_of(0)
 
-    # And there should be zero subscriptions left
-    subscriptions = conn.list_subscriptions()["Subscriptions"]
+    # And the subscription should still be left
+    subscriptions = client.list_subscriptions()["Subscriptions"]
+    subscriptions.should.have.length_of(1)
+    subscription = subscriptions[0]
+    subscription["SubscriptionArn"].should.equal(subscription_arn)
+
+    # Now delete hanging subscription
+    client.unsubscribe(SubscriptionArn=subscription_arn)
+
+    subscriptions = client.list_subscriptions()["Subscriptions"]
     subscriptions.should.have.length_of(0)
+
+    # Deleting it again should not result in any error
+    client.unsubscribe(SubscriptionArn=subscription_arn)
 
 
 @mock_sns

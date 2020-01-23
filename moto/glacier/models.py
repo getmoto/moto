@@ -4,8 +4,8 @@ import hashlib
 
 import datetime
 
+from boto3 import Session
 
-import boto.glacier
 from moto.core import BaseBackend, BaseModel
 
 from .utils import get_job_id
@@ -221,5 +221,9 @@ class GlacierBackend(BaseBackend):
 
 
 glacier_backends = {}
-for region in boto.glacier.regions():
-    glacier_backends[region.name] = GlacierBackend(region)
+for region in Session().get_available_regions("glacier"):
+    glacier_backends[region] = GlacierBackend(region)
+for region in Session().get_available_regions("glacier", partition_name="aws-us-gov"):
+    glacier_backends[region] = GlacierBackend(region)
+for region in Session().get_available_regions("glacier", partition_name="aws-cn"):
+    glacier_backends[region] = GlacierBackend(region)

@@ -9,7 +9,7 @@ from boto3.dynamodb.conditions import Attr, Key
 import sure  # noqa
 import requests
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
-from moto.dynamodb2 import dynamodb_backend2
+from moto.dynamodb2 import dynamodb_backend2, dynamodb_backends2
 from boto.exception import JSONResponseError
 from botocore.exceptions import ClientError, ParamValidationError
 from tests.helpers import requires_boto_gte
@@ -348,6 +348,60 @@ def test_put_item_with_special_chars():
             '"': {"S": "foo"},
         },
     )
+
+
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_put_item_with_streams():
+    name = "TestTable"
+    conn = boto3.client(
+        "dynamodb",
+        region_name="us-west-2",
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+
+    conn.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        StreamSpecification={
+            "StreamEnabled": True,
+            "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    conn.put_item(
+        TableName=name,
+        Item={
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        },
+    )
+
+    result = conn.get_item(TableName=name, Key={"forum_name": {"S": "LOLCat Forum"}})
+
+    result["Item"].should.be.equal(
+        {
+            "forum_name": {"S": "LOLCat Forum"},
+            "subject": {"S": "Check this out!"},
+            "Body": {"S": "http://url_to_lolcat.gif"},
+            "SentBy": {"S": "test"},
+            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+        }
+    )
+    table = dynamodb_backends2["us-west-2"].get_table(name)
+    if not table:
+        # There is no way to access stream data over the API, so this part can't run in server-tests mode.
+        return
+    len(table.stream_shard.items).should.be.equal(1)
+    stream_record = table.stream_shard.items[0].record
+    stream_record["eventName"].should.be.equal("INSERT")
+    stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
 
 
 @requires_boto_gte("2.9")
@@ -1666,6 +1720,32 @@ def test_scan_filter4():
 
 
 @mock_dynamodb2
+def test_scan_filter_should_not_return_non_existing_attributes():
+    table_name = "my-table"
+    item = {"partitionKey": "pk-2", "my-attr": 42}
+    # Create table
+    res = boto3.resource("dynamodb", region_name="us-east-1")
+    res.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = res.Table(table_name)
+    # Insert items
+    table.put_item(Item={"partitionKey": "pk-1"})
+    table.put_item(Item=item)
+    # Verify a few operations
+    # Assert we only find the item that has this attribute
+    table.scan(FilterExpression=Attr("my-attr").lt(43))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").lte(42))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").gte(42))["Items"].should.equal([item])
+    table.scan(FilterExpression=Attr("my-attr").gt(41))["Items"].should.equal([item])
+    # Sanity check that we can't find the item if the FE is wrong
+    table.scan(FilterExpression=Attr("my-attr").gt(43))["Items"].should.equal([])
+
+
+@mock_dynamodb2
 def test_bad_scan_filter():
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -2449,6 +2529,48 @@ def test_condition_expressions():
             ExpressionAttributeValues={":match": {"S": "match"}},
             ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
         )
+
+
+@mock_dynamodb2
+def test_condition_expression_numerical_attribute():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="my-table",
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+    )
+    table = dynamodb.Table("my-table")
+    table.put_item(Item={"partitionKey": "pk-pos", "myAttr": 5})
+    table.put_item(Item={"partitionKey": "pk-neg", "myAttr": -5})
+
+    # try to update the item we put in the table using numerical condition expression
+    # Specifically, verify that we can compare with a zero-value
+    # First verify that > and >= work on positive numbers
+    update_numerical_con_expr(
+        key="pk-pos", con_expr="myAttr > :zero", res="6", table=table
+    )
+    update_numerical_con_expr(
+        key="pk-pos", con_expr="myAttr >= :zero", res="7", table=table
+    )
+    # Second verify that < and <= work on negative numbers
+    update_numerical_con_expr(
+        key="pk-neg", con_expr="myAttr < :zero", res="-4", table=table
+    )
+    update_numerical_con_expr(
+        key="pk-neg", con_expr="myAttr <= :zero", res="-3", table=table
+    )
+
+
+def update_numerical_con_expr(key, con_expr, res, table):
+    table.update_item(
+        Key={"partitionKey": key},
+        UpdateExpression="ADD myAttr :one",
+        ExpressionAttributeValues={":zero": 0, ":one": 1},
+        ConditionExpression=con_expr,
+    )
+    table.get_item(Key={"partitionKey": key})["Item"]["myAttr"].should.equal(
+        Decimal(res)
+    )
 
 
 @mock_dynamodb2
@@ -3432,6 +3554,58 @@ def test_update_supports_nested_list_append_onto_another_list():
                 }
             },
         }
+    )
+
+
+@mock_dynamodb2
+def test_update_supports_list_append_maps():
+    client = boto3.client("dynamodb", region_name="us-west-1")
+    client.create_table(
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "rid", "AttributeType": "S"},
+        ],
+        TableName="TestTable",
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "rid", "KeyType": "RANGE"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    client.put_item(
+        TableName="TestTable",
+        Item={
+            "id": {"S": "nested_list_append"},
+            "rid": {"S": "range_key"},
+            "a": {"L": [{"M": {"b": {"S": "bar1"}}}]},
+        },
+    )
+
+    # Update item using list_append expression
+    client.update_item(
+        TableName="TestTable",
+        Key={"id": {"S": "nested_list_append"}, "rid": {"S": "range_key"}},
+        UpdateExpression="SET a = list_append(a, :i)",
+        ExpressionAttributeValues={":i": {"L": [{"M": {"b": {"S": "bar2"}}}]}},
+    )
+
+    # Verify item is appended to the existing list
+    result = client.query(
+        TableName="TestTable",
+        KeyConditionExpression="id = :i AND begins_with(rid, :r)",
+        ExpressionAttributeValues={
+            ":i": {"S": "nested_list_append"},
+            ":r": {"S": "range_key"},
+        },
+    )["Items"]
+    result.should.equal(
+        [
+            {
+                "a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]},
+                "rid": {"S": "range_key"},
+                "id": {"S": "nested_list_append"},
+            }
+        ]
     )
 
 

@@ -8,7 +8,7 @@ import six
 import struct
 from xml.sax.saxutils import escape
 
-import boto.sqs
+from boto3 import Session
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel
@@ -183,6 +183,7 @@ class Queue(BaseModel):
         "MaximumMessageSize",
         "MessageRetentionPeriod",
         "QueueArn",
+        "RedrivePolicy",
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
     ]
@@ -857,5 +858,9 @@ class SQSBackend(BaseBackend):
 
 
 sqs_backends = {}
-for region in boto.sqs.regions():
-    sqs_backends[region.name] = SQSBackend(region.name)
+for region in Session().get_available_regions("sqs"):
+    sqs_backends[region] = SQSBackend(region)
+for region in Session().get_available_regions("sqs", partition_name="aws-us-gov"):
+    sqs_backends[region] = SQSBackend(region)
+for region in Session().get_available_regions("sqs", partition_name="aws-cn"):
+    sqs_backends[region] = SQSBackend(region)
