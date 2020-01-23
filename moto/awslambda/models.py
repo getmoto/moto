@@ -409,6 +409,7 @@ class LambdaFunction(BaseModel):
                         volumes=["{}:/var/task".format(data_vol.name)],
                         environment=env_vars,
                         detach=True,
+                        log_config=docker.types.LogConfig(type=docker.types.LogConfig.types.JSON),
                         **run_kwargs
                     )
                 finally:
