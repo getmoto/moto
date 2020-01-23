@@ -97,7 +97,7 @@ class FakeThingGroup(BaseModel):
                     break
             # if parent arn found (should always be found)
             if parent_thing_group_structure:
-                # copy parent"s rootToParentThingGroups
+                # copy parent's rootToParentThingGroups
                 if "rootToParentThingGroups" in parent_thing_group_structure.metadata:
                     self.metadata["rootToParentThingGroups"].extend(
                         parent_thing_group_structure.metadata["rootToParentThingGroups"]
@@ -424,7 +424,7 @@ class IoTBackend(BaseBackend):
 
     def list_thing_types(self, thing_type_name=None):
         if thing_type_name:
-            # It"s weird but thing_type_name is filtered by forward match, not complete match
+            # It's weird but thing_type_name is filtered by forward match, not complete match
             return [
                 _
                 for _ in self.thing_types.values()
