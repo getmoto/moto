@@ -208,7 +208,7 @@ def test_message_with_complex_attributes():
             "ccc": {"StringValue": "testjunk", "DataType": "String"},
             "aaa": {"BinaryValue": b"\x02\x03\x04", "DataType": "Binary"},
             "zzz": {"DataType": "Number", "StringValue": "0230.01"},
-            "öthere_encodings": {"DataType": "String", "StringValue": "T\xFCst"},
+            "öther_encodings": {"DataType": "String", "StringValue": "T\xFCst"},
         },
     )
     msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
