@@ -20,8 +20,8 @@ import jinja2
 from prompt_toolkit import (
     prompt
 )
-from prompt_toolkit.contrib.completers import WordCompleter
-from prompt_toolkit.shortcuts import print_tokens
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.shortcuts import print_formatted_text
 
 from botocore import xform_name
 from botocore.session import Session
@@ -149,12 +149,12 @@ def append_mock_dict_to_backends_py(service):
     with open(path) as f:
         lines = [_.replace('\n', '') for _ in f.readlines()]
 
-    if any(_ for _ in lines if re.match(".*'{}': {}_backends.*".format(service, service), _)):
+    if any(_ for _ in lines if re.match(".*\"{}\": {}_backends.*".format(service, service), _)):
         return
-    filtered_lines = [_ for _ in lines if re.match(".*'.*':.*_backends.*", _)]
+    filtered_lines = [_ for _ in lines if re.match(".*\".*\":.*_backends.*", _)]
     last_elem_line_index = lines.index(filtered_lines[-1])
 
-    new_line = "    '{}': {}_backends,".format(service, get_escaped_service(service))
+    new_line = "    \"{}\": {}_backends,".format(service, get_escaped_service(service))
     prev_line = lines[last_elem_line_index]
     if not prev_line.endswith('{') and not prev_line.endswith(','):
         lines[last_elem_line_index] += ','
