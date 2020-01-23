@@ -1,4 +1,5 @@
 from botocore.client import ClientError
+from moto.core.exceptions import JsonRESTError
 
 
 class LambdaClientError(ClientError):
@@ -29,3 +30,12 @@ class InvalidRoleFormat(LambdaClientError):
             role, InvalidRoleFormat.pattern
         )
         super(InvalidRoleFormat, self).__init__("ValidationException", message)
+
+
+class PreconditionFailedException(JsonRESTError):
+    code = 412
+
+    def __init__(self, message):
+        super(PreconditionFailedException, self).__init__(
+            "PreconditionFailedException", message
+        )

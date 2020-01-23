@@ -120,8 +120,12 @@ class LambdaResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self._get_policy(request, full_url, headers)
-        if request.method == "POST":
+        elif request.method == "POST":
             return self._add_policy(request, full_url, headers)
+        elif request.method == "DELETE":
+            return self._del_policy(request, full_url, headers, self.querystring)
+        else:
+            raise ValueError("Cannot handle {0} request".format(request.method))
 
     def configuration(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -141,9 +145,9 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
-            policy = self.body
-            self.lambda_backend.add_policy(function_name, policy)
-            return 200, {}, json.dumps(dict(Statement=policy))
+            statement = self.body
+            self.lambda_backend.add_policy_statement(function_name, statement)
+            return 200, {}, json.dumps({"Statement": statement})
         else:
             return 404, {}, "{}"
 
@@ -151,14 +155,21 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
-            lambda_function = self.lambda_backend.get_function(function_name)
-            return (
-                200,
-                {},
-                json.dumps(
-                    dict(Policy='{"Statement":[' + lambda_function.policy + "]}")
-                ),
+            out = self.lambda_backend.get_policy_wire_format(function_name)
+            return 200, {}, out
+        else:
+            return 404, {}, "{}"
+
+    def _del_policy(self, request, full_url, headers, querystring):
+        path = request.path if hasattr(request, "path") else path_url(request.url)
+        function_name = path.split("/")[-3]
+        statement_id = path.split("/")[-1].split("?")[0]
+        revision = querystring.get("RevisionId", "")
+        if self.lambda_backend.get_function(function_name):
+            self.lambda_backend.del_policy_statement(
+                function_name, statement_id, revision
             )
+            return 204, {}, "{}"
         else:
             return 404, {}, "{}"
 
