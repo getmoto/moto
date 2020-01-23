@@ -331,7 +331,20 @@ def test_delete_queue():
 @mock_sqs
 def test_get_queue_attributes():
     client = boto3.client("sqs", region_name="us-east-1")
-    response = client.create_queue(QueueName="test-queue")
+
+    dlq_resp = client.create_queue(QueueName="test-dlr-queue")
+    dlq_arn1 = client.get_queue_attributes(QueueUrl=dlq_resp["QueueUrl"])["Attributes"][
+        "QueueArn"
+    ]
+
+    response = client.create_queue(
+        QueueName="test-queue",
+        Attributes={
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 2}
+            ),
+        },
+    )
     queue_url = response["QueueUrl"]
 
     response = client.get_queue_attributes(QueueUrl=queue_url)
@@ -356,6 +369,7 @@ def test_get_queue_attributes():
             "ApproximateNumberOfMessages",
             "MaximumMessageSize",
             "QueueArn",
+            "RedrivePolicy",
             "VisibilityTimeout",
         ],
     )
@@ -366,6 +380,9 @@ def test_get_queue_attributes():
             "MaximumMessageSize": "65536",
             "QueueArn": "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
             "VisibilityTimeout": "30",
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 2}
+            ),
         }
     )
 

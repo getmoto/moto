@@ -183,6 +183,7 @@ class Queue(BaseModel):
         "MaximumMessageSize",
         "MessageRetentionPeriod",
         "QueueArn",
+        "RedrivePolicy",
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
     ]
