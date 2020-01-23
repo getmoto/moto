@@ -457,7 +457,7 @@ class Item(BaseModel):
                     )
                 if not old_list.is_list():
                     raise ParamValidationError
-                old_list.value.extend(new_value["L"])
+                old_list.value.extend([DynamoType(v) for v in new_value["L"]])
                 value = old_list
         return value
 
