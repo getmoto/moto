@@ -172,9 +172,9 @@ class LambdaResponse(BaseResponse):
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
-            if request.headers['X-Amz-Invocation-Type'] == 'Event':
+            if request.headers["X-Amz-Invocation-Type"] == "Event":
                 status_code = 202
-            elif request.headers['X-Amz-Invocation-Type'] == 'DryRun':
+            elif request.headers["X-Amz-Invocation-Type"] == "DryRun":
                 status_code = 204
             else:
                 status_code = 200

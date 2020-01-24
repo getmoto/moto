@@ -153,33 +153,31 @@ def test_invoke_event_function():
 
 @mock_lambda
 def test_invoke_dryrun_function():
-    conn = boto3.client('lambda', 'us-west-2')
+    conn = boto3.client("lambda", "us-west-2")
     conn.create_function(
-        FunctionName='testFunction',
-        Runtime='python2.7',
+        FunctionName="testFunction",
+        Runtime="python2.7",
         Role=get_role_name(),
-        Handler='lambda_function.lambda_handler',
-        Code={
-            'ZipFile': get_test_zip_file1(),
-        },
-        Description='test lambda function',
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1(),},
+        Description="test lambda function",
         Timeout=3,
         MemorySize=128,
         Publish=True,
     )
 
     conn.invoke.when.called_with(
-        FunctionName='notAFunction',
-        InvocationType='Event',
-        Payload='{}'
+        FunctionName="notAFunction", InvocationType="Event", Payload="{}"
     ).should.throw(botocore.client.ClientError)
 
-    in_data = {'msg': 'So long and thanks for all the fish'}
+    in_data = {"msg": "So long and thanks for all the fish"}
     success_result = conn.invoke(
-        FunctionName='testFunction', InvocationType='DryRun', Payload=json.dumps(in_data))
+        FunctionName="testFunction",
+        InvocationType="DryRun",
+        Payload=json.dumps(in_data),
+    )
     success_result["StatusCode"].should.equal(204)
-    json.loads(success_result['Payload'].read().decode(
-        'utf-8')).should.equal({})
+    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal({})
 
 
 if settings.TEST_SERVER_MODE:
