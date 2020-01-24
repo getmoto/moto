@@ -1775,21 +1775,7 @@
 - [ ] delete_anomaly_detector
 >>>>>>> fix handling of encoding errors
 - [X] delete_dashboards
-<<<<<<< HEAD
-<<<<<<< HEAD
 - [ ] delete_insight_rules
-=======
-=======
-- [ ] delete_dashboards
->>>>>>> Updating implementation coverage
-<<<<<<< HEAD
-=======
-=======
-- [X] delete_dashboards
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
-=======
->>>>>>> fix handling of encoding errors
 - [ ] describe_alarm_history
 - [ ] describe_alarms
 - [ ] describe_alarms_for_metric
@@ -1806,6 +1792,7 @@
 - [ ] get_metric_widget_image
 - [X] list_dashboards
 - [X] list_metrics
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 =======
@@ -1829,6 +1816,8 @@
 =======
 =======
 >>>>>>> fix handling of encoding errors
+=======
+>>>>>>> bump version
 - [ ] list_tags_for_resource
 - [ ] put_anomaly_detector
 >>>>>>> fix handling of encoding errors
@@ -4053,6 +4042,7 @@
 - [ ] put_account_setting
 - [ ] put_account_setting_default
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 =======
@@ -4061,35 +4051,10 @@
 - [X] list_tasks
 >>>>>>> Updating implementation coverage
 >>>>>>> fix handling of encoding errors
+=======
+>>>>>>> bump version
 - [X] put_attributes
-<<<<<<< HEAD
 - [ ] put_cluster_capacity_providers
-=======
-=======
-- [ ] list_attributes
-- [X] list_clusters
-- [X] list_container_instances
-=======
-- [X] list_attributes
-- [X] list_clusters
-- [X] list_container_instances
->>>>>>> Updating implementation coverage
-- [X] list_services
-- [X] list_task_definition_families
-- [X] list_task_definitions
-- [X] list_tasks
-<<<<<<< HEAD
-- [ ] put_attributes
->>>>>>> Updating implementation coverage
-<<<<<<< HEAD
-=======
-=======
-- [X] put_attributes
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
-=======
-- [X] put_attributes
->>>>>>> fix handling of encoding errors
 - [X] register_container_instance
 - [X] register_task_definition
 - [X] run_task
@@ -8877,29 +8842,18 @@
 
 ## resourcegroupstaggingapi
 <<<<<<< HEAD
+<<<<<<< HEAD
 <details>
 <summary>37% implemented</summary>
 
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> bump version
 37% implemented
 >>>>>>> Updating implementation coverage
 - [ ] describe_report_creation
 - [ ] get_compliance_summary
-=======
-60% implemented
-<<<<<<< HEAD
-=======
-- [ ] tag
-- [ ] untag
-- [ ] update_group
-- [ ] update_group_query
-
-## resourcegroupstaggingapi - 60% implemented
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
-=======
->>>>>>> fix handling of encoding errors
 - [X] get_resources
 - [X] get_tag_keys
 - [X] get_tag_values
