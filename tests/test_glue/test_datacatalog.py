@@ -132,7 +132,7 @@ def test_get_table_versions():
     helpers.update_table(client, database_name, table_name, table_input)
     version_inputs["2"] = table_input
 
-    # Updateing with an indentical input should still create a new version
+    # Updateing with an identical input should still create a new version
     helpers.update_table(client, database_name, table_name, table_input)
     version_inputs["3"] = table_input
 

@@ -566,7 +566,7 @@ def test_bucket_deletion():
     # Get non-existing bucket
     conn.get_bucket.when.called_with("foobar").should.throw(S3ResponseError)
 
-    # Delete non-existant bucket
+    # Delete non-existent bucket
     conn.delete_bucket.when.called_with("foobar").should.throw(S3ResponseError)
 
 

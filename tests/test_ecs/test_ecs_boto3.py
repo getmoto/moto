@@ -94,6 +94,7 @@ def test_register_task_definition():
                 "logConfiguration": {"logDriver": "json-file"},
             }
         ],
+        networkMode="bridge",
         tags=[
             {"key": "createdBy", "value": "moto-unittest"},
             {"key": "foo", "value": "bar"},
@@ -124,6 +125,7 @@ def test_register_task_definition():
     response["taskDefinition"]["containerDefinitions"][0]["logConfiguration"][
         "logDriver"
     ].should.equal("json-file")
+    response["taskDefinition"]["networkMode"].should.equal("bridge")
 
 
 @mock_ecs
@@ -724,7 +726,7 @@ def test_delete_service():
 
 
 @mock_ecs
-def test_update_non_existant_service():
+def test_update_non_existent_service():
     client = boto3.client("ecs", region_name="us-east-1")
     try:
         client.update_service(

@@ -76,7 +76,7 @@ Currently implemented Services:
 +---------------------------+-----------------------+------------------------------------+
 | Logs                      | @mock_logs            | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
-| Organizations             | @mock_organizations   | some core edpoints done            |
+| Organizations             | @mock_organizations   | some core endpoints done           |
 +---------------------------+-----------------------+------------------------------------+
 | Polly                     | @mock_polly           | all endpoints done                 |
 +---------------------------+-----------------------+------------------------------------+
