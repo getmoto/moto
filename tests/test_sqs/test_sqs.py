@@ -1197,7 +1197,7 @@ def test_permissions():
     client.remove_permission(QueueUrl=queue_url, Label="account2")
 
     with assert_raises(ClientError):
-        client.remove_permission(QueueUrl=queue_url, Label="non_existant")
+        client.remove_permission(QueueUrl=queue_url, Label="non_existent")
 
 
 @mock_sqs

@@ -1391,7 +1391,7 @@ def test_set_security_groups():
     len(resp["LoadBalancers"][0]["SecurityGroups"]).should.equal(2)
 
     with assert_raises(ClientError):
-        client.set_security_groups(LoadBalancerArn=arn, SecurityGroups=["non_existant"])
+        client.set_security_groups(LoadBalancerArn=arn, SecurityGroups=["non_existent"])
 
 
 @mock_elbv2

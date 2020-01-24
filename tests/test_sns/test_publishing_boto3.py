@@ -806,7 +806,7 @@ def test_filtering_string_array_with_string_no_array_no_match():
     topic.publish(
         Message="no_match",
         MessageAttributes={
-            "price": {"DataType": "String.Array", "StringValue": "one hundread"}
+            "price": {"DataType": "String.Array", "StringValue": "one hundred"}
         },
     )
 
