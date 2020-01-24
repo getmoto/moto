@@ -177,7 +177,6 @@ def test_invoke_dryrun_function():
         Payload=json.dumps(in_data),
     )
     success_result["StatusCode"].should.equal(204)
-    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal({})
 
 
 if settings.TEST_SERVER_MODE:
