@@ -88,8 +88,8 @@ def test_list_platform_applications():
     conn.create_platform_application(name="application1", platform="APNS")
     conn.create_platform_application(name="application2", platform="APNS")
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["ListPlatformApplicationsResponse"][
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["ListPlatformApplicationsResponse"][
         "ListPlatformApplicationsResult"
     ]["PlatformApplications"]
     applications.should.have.length_of(2)
@@ -101,8 +101,8 @@ def test_delete_platform_application():
     conn.create_platform_application(name="application1", platform="APNS")
     conn.create_platform_application(name="application2", platform="APNS")
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["ListPlatformApplicationsResponse"][
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["ListPlatformApplicationsResponse"][
         "ListPlatformApplicationsResult"
     ]["PlatformApplications"]
     applications.should.have.length_of(2)
@@ -110,8 +110,8 @@ def test_delete_platform_application():
     application_arn = applications[0]["PlatformApplicationArn"]
     conn.delete_platform_application(application_arn)
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["ListPlatformApplicationsResponse"][
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["ListPlatformApplicationsResponse"][
         "ListPlatformApplicationsResult"
     ]["PlatformApplications"]
     applications.should.have.length_of(1)

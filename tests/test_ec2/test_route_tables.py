@@ -236,8 +236,8 @@ def test_route_table_associations():
 @mock_ec2_deprecated
 def test_route_table_replace_route_table_association():
     """
-      Note: Boto has deprecated replace_route_table_assocation (which returns status)
-        and now uses replace_route_table_assocation_with_assoc (which returns association ID).
+      Note: Boto has deprecated replace_route_table_association (which returns status)
+        and now uses replace_route_table_association_with_assoc (which returns association ID).
     """
     conn = boto.connect_vpc("the_key", "the_secret")
     vpc = conn.create_vpc("10.0.0.0/16")

@@ -986,7 +986,7 @@ class RDS2Backend(BaseBackend):
             )
         if option_group_kwargs["engine_name"] not in valid_option_group_engines.keys():
             raise RDSClientError(
-                "InvalidParameterValue", "Invalid DB engine: non-existant"
+                "InvalidParameterValue", "Invalid DB engine: non-existent"
             )
         if (
             option_group_kwargs["major_engine_version"]
