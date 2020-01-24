@@ -148,7 +148,7 @@ def test_invoke_event_function():
         FunctionName="testFunction", InvocationType="Event", Payload=json.dumps(in_data)
     )
     success_result["StatusCode"].should.equal(202)
-    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal({})
+    json.loads(success_result["Payload"].read().decode("utf-8")).should.equal(in_data)
 
 
 if settings.TEST_SERVER_MODE:
