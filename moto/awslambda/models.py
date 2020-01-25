@@ -472,7 +472,7 @@ class LambdaFunction(BaseModel):
             payload["result"] = response_headers["x-amz-log-result"]
             result = res.encode("utf-8")
         else:
-            result = json.dumps(payload)
+            result = res
         if errored:
             response_headers["x-amz-function-error"] = "Handled"
 
