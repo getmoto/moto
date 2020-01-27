@@ -14,22 +14,10 @@ class Policy:
         self.statements = []
         self.parent = parent
 
-    def __repr__(self):
-        return json.dumps(self.get_policy())
-
     def wire_format(self):
-        return json.dumps(
-            {
-                "Policy": json.dumps(
-                    {
-                        "Version": "2012-10-17",
-                        "Id": "default",
-                        "Statement": self.statements,
-                    }
-                ),
-                "RevisionId": self.revision,
-            }
-        )
+        p = self.get_policy()
+        p["Policy"] = json.dumps(p["Policy"])
+        return json.dumps(p)
 
     def get_policy(self):
         return {
@@ -81,6 +69,7 @@ class Policy:
         # transform field names and values
         self.transform_property(obj, "StatementId", "Sid", self.nop_formatter)
         self.transform_property(obj, "Principal", "Principal", self.principal_formatter)
+
         self.transform_property(
             obj, "SourceArn", "SourceArn", self.source_arn_formatter
         )
