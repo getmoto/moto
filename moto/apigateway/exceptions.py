@@ -39,7 +39,7 @@ class InvalidResourcePathException(BadRequestException):
     def __init__(self):
         super(InvalidResourcePathException, self).__init__(
             "BadRequestException",
-            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end.",
+            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace.",
         )
 
 
