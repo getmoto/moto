@@ -58,15 +58,15 @@ def test_create_resource__validate_name():
         0
     ]["id"]
 
-    invalid_names = ["/users", "users/", "users/{user_id}", "us{er"]
-    valid_names = ["users", "{user_id}", "user_09", "good-dog"]
+    invalid_names = ["/users", "users/", "users/{user_id}", "us{er", "us+er"]
+    valid_names = ["users", "{user_id}", "{proxy+}", "user_09", "good-dog"]
     # All invalid names should throw an exception
     for name in invalid_names:
         with assert_raises(ClientError) as ex:
             client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
         ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
         ex.exception.response["Error"]["Message"].should.equal(
-            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end."
+            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace."
         )
     # All valid names  should go through
     for name in valid_names:
