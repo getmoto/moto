@@ -305,6 +305,7 @@ def test_create_function_from_aws_bucket():
                 "VpcId": "vpc-123abc",
             },
             "ResponseMetadata": {"HTTPStatusCode": 201},
+            "State": "Active",
         }
     )
 
@@ -348,6 +349,7 @@ def test_create_function_from_zipfile():
             "Version": "1",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "ResponseMetadata": {"HTTPStatusCode": 201},
+            "State": "Active",
         }
     )
 
@@ -612,6 +614,7 @@ def test_list_create_list_get_delete_list():
             "Timeout": 3,
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
+            "State": "Active",
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
@@ -808,6 +811,7 @@ def test_get_function_created_with_zipfile():
             "Timeout": 3,
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
+            "State": "Active",
         }
     )
 
@@ -1417,6 +1421,7 @@ def test_update_function_zip():
             "Timeout": 3,
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
+            "State": "Active",
         }
     )
 
@@ -1479,6 +1484,7 @@ def test_update_function_s3():
             "Timeout": 3,
             "Version": "2",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
+            "State": "Active",
         }
     )
 
