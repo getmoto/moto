@@ -10,8 +10,7 @@ class ResourceNotFoundException(IoTDataPlaneClientError):
     def __init__(self):
         self.code = 404
         super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException",
-            "The specified resource does not exist"
+            "ResourceNotFoundException", "The specified resource does not exist"
         )
 
 
@@ -21,3 +20,9 @@ class InvalidRequestException(IoTDataPlaneClientError):
         super(InvalidRequestException, self).__init__(
             "InvalidRequestException", message
         )
+
+
+class ConflictException(IoTDataPlaneClientError):
+    def __init__(self, message):
+        self.code = 409
+        super(ConflictException, self).__init__("ConflictException", message)

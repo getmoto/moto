@@ -9,14 +9,13 @@ from moto import mock_sqs_deprecated, mock_ec2_deprecated
 
 
 class TestNestedDecorators(unittest.TestCase):
-
     @mock_sqs_deprecated
     def setup_sqs_queue(self):
         conn = SQSConnection()
-        q = conn.create_queue('some-queue')
+        q = conn.create_queue("some-queue")
 
         m = Message()
-        m.set_body('This is my first message.')
+        m.set_body("This is my first message.")
         q.write(m)
 
         self.assertEqual(q.count(), 1)
@@ -26,4 +25,4 @@ class TestNestedDecorators(unittest.TestCase):
         self.setup_sqs_queue()
 
         conn = EC2Connection()
-        conn.run_instances('ami-123456')
+        conn.run_instances("ami-123456")

@@ -4,8 +4,8 @@ import hashlib
 
 import datetime
 
+from boto3 import Session
 
-import boto.glacier
 from moto.core import BaseBackend, BaseModel
 
 from .utils import get_job_id
@@ -25,7 +25,6 @@ class Job(BaseModel):
 
 
 class ArchiveJob(Job):
-
     def __init__(self, job_id, tier, arn, archive_id):
         self.job_id = job_id
         self.tier = tier
@@ -50,7 +49,7 @@ class ArchiveJob(Job):
             "StatusCode": "InProgress",
             "StatusMessage": None,
             "VaultARN": self.arn,
-            "Tier": self.tier
+            "Tier": self.tier,
         }
         if datetime.datetime.now() > self.et:
             d["Completed"] = True
@@ -61,7 +60,6 @@ class ArchiveJob(Job):
 
 
 class InventoryJob(Job):
-
     def __init__(self, job_id, tier, arn):
         self.job_id = job_id
         self.tier = tier
@@ -83,7 +81,7 @@ class InventoryJob(Job):
             "StatusCode": "InProgress",
             "StatusMessage": None,
             "VaultARN": self.arn,
-            "Tier": self.tier
+            "Tier": self.tier,
         }
         if datetime.datetime.now() > self.et:
             d["Completed"] = True
@@ -94,7 +92,6 @@ class InventoryJob(Job):
 
 
 class Vault(BaseModel):
-
     def __init__(self, vault_name, region):
         self.st = datetime.datetime.now()
         self.vault_name = vault_name
@@ -104,7 +101,9 @@ class Vault(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:glacier:{0}:012345678901:vaults/{1}".format(self.region, self.vault_name)
+        return "arn:aws:glacier:{0}:012345678901:vaults/{1}".format(
+            self.region, self.vault_name
+        )
 
     def to_dict(self):
         archives_size = 0
@@ -126,7 +125,9 @@ class Vault(BaseModel):
         self.archives[archive_id]["body"] = body
         self.archives[archive_id]["size"] = len(body)
         self.archives[archive_id]["sha256"] = hashlib.sha256(body).hexdigest()
-        self.archives[archive_id]["creation_date"] = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        self.archives[archive_id]["creation_date"] = datetime.datetime.now().strftime(
+            "%Y-%m-%dT%H:%M:%S.000Z"
+        )
         self.archives[archive_id]["description"] = description
         return archive_id
 
@@ -142,7 +143,7 @@ class Vault(BaseModel):
                 "ArchiveDescription": archive["description"],
                 "CreationDate": archive["creation_date"],
                 "Size": archive["size"],
-                "SHA256TreeHash": archive["sha256"]
+                "SHA256TreeHash": archive["sha256"],
             }
             archive_list.append(aobj)
         return archive_list
@@ -180,7 +181,7 @@ class Vault(BaseModel):
             return {
                 "VaultARN": self.arn,
                 "InventoryDate": jobj["CompletionDate"],
-                "ArchiveList": archives
+                "ArchiveList": archives,
             }
         else:
             archive_body = self.get_archive_body(job.archive_id)
@@ -188,7 +189,6 @@ class Vault(BaseModel):
 
 
 class GlacierBackend(BaseBackend):
-
     def __init__(self, region_name):
         self.vaults = {}
         self.region_name = region_name
@@ -221,5 +221,9 @@ class GlacierBackend(BaseBackend):
 
 
 glacier_backends = {}
-for region in boto.glacier.regions():
-    glacier_backends[region.name] = GlacierBackend(region)
+for region in Session().get_available_regions("glacier"):
+    glacier_backends[region] = GlacierBackend(region)
+for region in Session().get_available_regions("glacier", partition_name="aws-us-gov"):
+    glacier_backends[region] = GlacierBackend(region)
+for region in Session().get_available_regions("glacier", partition_name="aws-cn"):
+    glacier_backends[region] = GlacierBackend(region)

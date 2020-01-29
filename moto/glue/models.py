@@ -4,7 +4,7 @@ import time
 
 from moto.core import BaseBackend, BaseModel
 from moto.compat import OrderedDict
-from.exceptions import (
+from .exceptions import (
     JsonRESTError,
     DatabaseAlreadyExistsException,
     DatabaseNotFoundException,
@@ -17,7 +17,6 @@ from.exceptions import (
 
 
 class GlueBackend(BaseBackend):
-
     def __init__(self):
         self.databases = OrderedDict()
 
@@ -56,16 +55,22 @@ class GlueBackend(BaseBackend):
         database = self.get_database(database_name)
         return [table for table_name, table in database.tables.items()]
 
+    def delete_table(self, database_name, table_name):
+        database = self.get_database(database_name)
+        try:
+            del database.tables[table_name]
+        except KeyError:
+            raise TableNotFoundException(table_name)
+        return {}
+
 
 class FakeDatabase(BaseModel):
-
     def __init__(self, database_name):
         self.name = database_name
         self.tables = OrderedDict()
 
 
 class FakeTable(BaseModel):
-
     def __init__(self, database_name, table_name, table_input):
         self.database_name = database_name
         self.name = table_name
@@ -90,10 +95,7 @@ class FakeTable(BaseModel):
             raise VersionNotFoundException()
 
     def as_dict(self, version=-1):
-        obj = {
-            'DatabaseName': self.database_name,
-            'Name': self.name,
-        }
+        obj = {"DatabaseName": self.database_name, "Name": self.name}
         obj.update(self.get_version(version))
         return obj
 
@@ -116,7 +118,7 @@ class FakeTable(BaseModel):
     def update_partition(self, old_values, partiton_input):
         partition = FakePartition(self.database_name, self.name, partiton_input)
         key = str(partition.values)
-        if old_values == partiton_input['Values']:
+        if old_values == partiton_input["Values"]:
             # Altering a partition in place. Don't remove it so the order of
             # returned partitions doesn't change
             if key not in self.partitions:
@@ -130,6 +132,12 @@ class FakeTable(BaseModel):
                 raise PartitionAlreadyExistsException()
         self.partitions[key] = partition
 
+    def delete_partition(self, values):
+        try:
+            del self.partitions[str(values)]
+        except KeyError:
+            raise PartitionNotFoundException()
+
 
 class FakePartition(BaseModel):
     def __init__(self, database_name, table_name, partiton_input):
@@ -137,13 +145,13 @@ class FakePartition(BaseModel):
         self.database_name = database_name
         self.table_name = table_name
         self.partition_input = partiton_input
-        self.values = self.partition_input.get('Values', [])
+        self.values = self.partition_input.get("Values", [])
 
     def as_dict(self):
         obj = {
-            'DatabaseName': self.database_name,
-            'TableName': self.table_name,
-            'CreationTime': self.creation_time,
+            "DatabaseName": self.database_name,
+            "TableName": self.table_name,
+            "CreationTime": self.creation_time,
         }
         obj.update(self.partition_input)
         return obj

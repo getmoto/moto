@@ -10,8 +10,11 @@ class MockEmitter(UDPEmitter):
     """
     Replaces the code that sends UDP to local X-Ray daemon
     """
-    def __init__(self, daemon_address='127.0.0.1:2000'):
-        address = os.getenv('AWS_XRAY_DAEMON_ADDRESS_YEAH_NOT_TODAY_MATE', daemon_address)
+
+    def __init__(self, daemon_address="127.0.0.1:2000"):
+        address = os.getenv(
+            "AWS_XRAY_DAEMON_ADDRESS_YEAH_NOT_TODAY_MATE", daemon_address
+        )
         self._ip, self._port = self._parse_address(address)
 
     def _xray_backend(self, region):
@@ -26,7 +29,7 @@ class MockEmitter(UDPEmitter):
         pass
 
     def _send_data(self, data):
-        raise RuntimeError('Should not be running this')
+        raise RuntimeError("Should not be running this")
 
 
 def mock_xray_client(f):
@@ -39,12 +42,13 @@ def mock_xray_client(f):
     We also patch the Emitter by subclassing the UDPEmitter class replacing its methods and pushing
     that itno the recorder instance.
     """
+
     @wraps(f)
     def _wrapped(*args, **kwargs):
         print("Starting X-Ray Patch")
 
-        old_xray_context_var = os.environ.get('AWS_XRAY_CONTEXT_MISSING')
-        os.environ['AWS_XRAY_CONTEXT_MISSING'] = 'LOG_ERROR'
+        old_xray_context_var = os.environ.get("AWS_XRAY_CONTEXT_MISSING")
+        os.environ["AWS_XRAY_CONTEXT_MISSING"] = "LOG_ERROR"
         old_xray_context = aws_xray_sdk.core.xray_recorder._context
         old_xray_emitter = aws_xray_sdk.core.xray_recorder._emitter
         aws_xray_sdk.core.xray_recorder._context = AWSContext()
@@ -55,9 +59,9 @@ def mock_xray_client(f):
         finally:
 
             if old_xray_context_var is None:
-                del os.environ['AWS_XRAY_CONTEXT_MISSING']
+                del os.environ["AWS_XRAY_CONTEXT_MISSING"]
             else:
-                os.environ['AWS_XRAY_CONTEXT_MISSING'] = old_xray_context_var
+                os.environ["AWS_XRAY_CONTEXT_MISSING"] = old_xray_context_var
 
             aws_xray_sdk.core.xray_recorder._emitter = old_xray_emitter
             aws_xray_sdk.core.xray_recorder._context = old_xray_context
@@ -74,8 +78,11 @@ class XRaySegment(object):
 
     During testing we're going to have to control the start and end of a segment via context managers.
     """
+
     def __enter__(self):
-        aws_xray_sdk.core.xray_recorder.begin_segment(name='moto_mock', traceid=None, parent_id=None, sampling=1)
+        aws_xray_sdk.core.xray_recorder.begin_segment(
+            name="moto_mock", traceid=None, parent_id=None, sampling=1
+        )
 
         return self
 

@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import boto3
+from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 
 
@@ -16,5 +16,10 @@ class {{ service_class }}Backend(BaseBackend):
     # add methods from here
 
 
-available_regions = boto3.session.Session().get_available_regions("{{ service }}")
-{{ escaped_service }}_backends = {region: {{ service_class }}Backend(region) for region in available_regions}
+{{ escaped_service }}_backends = {}
+for region in Session().get_available_regions("{{ service }}"):
+    {{ escaped_service }}_backends[region] = {{ service_class }}Backend()
+for region in Session().get_available_regions("{{ service }}", partition_name="aws-us-gov"):
+    {{ escaped_service }}_backends[region] = {{ service_class }}Backend()
+for region in Session().get_available_regions("{{ service }}", partition_name="aws-cn"):
+    {{ escaped_service }}_backends[region] = {{ service_class }}Backend()
