@@ -554,12 +554,14 @@ class Instance(TaggedEC2Resource, BotoInstance):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
         size = 8
-        volume_type = 'standard'
+        volume_type = "standard"
         if self.image_id in self.ec2_backend.amis:
             image = self.ec2_backend.amis[self.image_id]
             size = image.ebs_snapshot.volume.size
             volume_type = image.ebs_snapshot.volume.volume_type
-        volume = self.ec2_backend.create_volume(size, 'us-east-1a', volume_type=volume_type)
+        volume = self.ec2_backend.create_volume(
+            size, "us-east-1a", volume_type=volume_type
+        )
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1")
 
     def teardown_defaults(self):
@@ -1259,19 +1261,23 @@ class Ami(TaggedEC2Resource):
             self.architecture = instance.architecture
             self.kernel_id = instance.kernel
             self.platform = instance.platform
-            volume = self.ec2_backend.get_volume(self.instance.block_device_mapping[root_device_name].volume_id)
+            volume = self.ec2_backend.get_volume(
+                self.instance.block_device_mapping[root_device_name].volume_id
+            )
             if not self.block_device_mapping:
-                self.block_device_mapping.append({
-                    'device_name': root_device_name,
-                    'virtual_name': None,
-                    'ebs': {
-                               'delete': True,
-                               'iops': volume.iops,
-                               'volume_id': None,
-                               'volume_size': volume.size,
-                               'volume_type': volume.volume_type
+                self.block_device_mapping.append(
+                    {
+                        "device_name": root_device_name,
+                        "virtual_name": None,
+                        "ebs": {
+                            "delete": True,
+                            "iops": volume.iops,
+                            "volume_id": None,
+                            "volume_size": volume.size,
+                            "volume_type": volume.volume_type,
+                        },
                     }
-                })
+                )
         elif source_ami:
             """
               http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html
@@ -1344,7 +1350,14 @@ class AmiBackend(object):
             ami_id = ami["ami_id"]
             self.amis[ami_id] = Ami(self, **ami)
 
-    def create_image(self, instance_id, name=None, description=None, context=None, block_device_mapping=None):
+    def create_image(
+        self,
+        instance_id,
+        name=None,
+        description=None,
+        context=None,
+        block_device_mapping=None,
+    ):
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
         instance = self.get_instance(instance_id)
@@ -1357,7 +1370,7 @@ class AmiBackend(object):
             name=name,
             description=description,
             owner_id=context.get_current_user() if context else OWNER_ID,
-            block_device_mapping=block_device_mapping
+            block_device_mapping=block_device_mapping,
         )
         self.amis[ami_id] = ami
         return ami
@@ -2172,14 +2185,10 @@ class VolumeAttachment(object):
         self.status = status
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
+    def create_from_cloudformation_json(cls, cloudformation_json, region_name):
         properties = cloudformation_json["Properties"]
-
         instance_id = properties["InstanceId"]
         volume_id = properties["VolumeId"]
-
         ec2_backend = ec2_backends[region_name]
         attachment = ec2_backend.attach_volume(
             volume_id=volume_id,
@@ -2191,13 +2200,21 @@ class VolumeAttachment(object):
 
 class Volume(TaggedEC2Resource):
     def __init__(
-        self, ec2_backend, volume_id, size, zone, volume_type='standard', encrypted=False, snapshot_id=None,
-        iops=None, tags=None
+        self,
+        ec2_backend,
+        volume_id,
+        size,
+        zone,
+        encrypted=False,
+        iops=None,
+        snapshot_id=None,
+        tags=None,
+        volume_type=None,
     ):
         self.id = volume_id
         self.size = size
         self.zone = zone
-        self.volume_type = volume_type
+        self.volume_type = volume_type or "standard"
         self.iops = iops
         self.create_time = utc_date_and_time()
         self.attachment = None
@@ -2209,11 +2226,8 @@ class Volume(TaggedEC2Resource):
                 self.add_tag(key, value)
 
     @classmethod
-    def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
-    ):
+    def create_from_cloudformation_json(cls, cloudformation_json, region_name):
         properties = cloudformation_json["Properties"]
-
         ec2_backend = ec2_backends[region_name]
         volume = ec2_backend.create_volume(
             size=properties.get("Size"), zone_name=properties.get("AvailabilityZone")
@@ -2310,8 +2324,16 @@ class EBSBackend(object):
         self.snapshots = {}
         super(EBSBackend, self).__init__()
 
-    def create_volume(self, size, zone_name, volume_type='standard', encrypted=False, snapshot_id=None,
-                      iops=None, tags=None):
+    def create_volume(
+        self,
+        size,
+        zone_name,
+        encrypted=False,
+        iops=None,
+        snapshot_id=None,
+        tags=None,
+        volume_type=None,
+    ):
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)
         if snapshot_id:
@@ -2320,7 +2342,9 @@ class EBSBackend(object):
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
-        volume = Volume(self, volume_id, size, zone, volume_type, encrypted, snapshot_id, iops, tags)
+        volume = Volume(
+            self, volume_id, size, zone, encrypted, iops, snapshot_id, tags, volume_type
+        )
         self.volumes[volume_id] = volume
         return volume
 
