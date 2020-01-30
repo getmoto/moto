@@ -2262,7 +2262,7 @@ class Volume(TaggedEC2Resource):
         self.id = volume_id
         self.size = size
         self.zone = zone
-        self.volume_type = volume_type or "standard"
+        self.volume_type = volume_type
         self.iops = iops
         self.create_time = utc_date_and_time()
         self.attachment = None
@@ -2383,7 +2383,9 @@ class EBSBackend(object):
         volume_type=None,
     ):
         volume_id = random_volume_id()
+        volume_type = volume_type or "standard"
         zone = self.get_zone_by_name(zone_name)
+
         if snapshot_id:
             snapshot = self.get_snapshot(snapshot_id)
             if size is None:
