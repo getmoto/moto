@@ -8,9 +8,9 @@ import os
 import re
 import six
 import warnings
-from pkg_resources import resource_filename
 
-import boto.ec2
+from boto3 import Session
+from pkg_resources import resource_filename
 
 from collections import defaultdict
 import weakref
@@ -1507,7 +1507,13 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
-    regions = [Region(ri.name, ri.endpoint) for ri in boto.ec2.regions()]
+    regions = []
+    for region in Session().get_available_regions("ec2"):
+        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+    for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
+        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+    for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
+        regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region)))
 
     zones = {
         "ap-south-1": [
@@ -1569,6 +1575,11 @@ class RegionsAndZonesBackend(object):
                 name="ap-northeast-1d",
                 zone_id="apne1-az2",
             ),
+        ],
+        "ap-east-1": [
+            Zone(region_name="ap-east-1", name="ap-east-1a", zone_id="ape1-az1"),
+            Zone(region_name="ap-east-1", name="ap-east-1b", zone_id="ape1-az2"),
+            Zone(region_name="ap-east-1", name="ap-east-1c", zone_id="ape1-az3"),
         ],
         "sa-east-1": [
             Zone(region_name="sa-east-1", name="sa-east-1a", zone_id="sae1-az1"),
@@ -1639,9 +1650,31 @@ class RegionsAndZonesBackend(object):
             Zone(region_name="us-west-2", name="us-west-2b", zone_id="usw2-az1"),
             Zone(region_name="us-west-2", name="us-west-2c", zone_id="usw2-az3"),
         ],
+        "me-south-1": [
+            Zone(region_name="me-south-1", name="me-south-1a", zone_id="mes1-az1"),
+            Zone(region_name="me-south-1", name="me-south-1b", zone_id="mes1-az2"),
+            Zone(region_name="me-south-1", name="me-south-1c", zone_id="mes1-az3"),
+        ],
         "cn-north-1": [
             Zone(region_name="cn-north-1", name="cn-north-1a", zone_id="cnn1-az1"),
             Zone(region_name="cn-north-1", name="cn-north-1b", zone_id="cnn1-az2"),
+        ],
+        "cn-northwest-1": [
+            Zone(
+                region_name="cn-northwest-1",
+                name="cn-northwest-1a",
+                zone_id="cnnw1-az1",
+            ),
+            Zone(
+                region_name="cn-northwest-1",
+                name="cn-northwest-1b",
+                zone_id="cnnw1-az2",
+            ),
+            Zone(
+                region_name="cn-northwest-1",
+                name="cn-northwest-1c",
+                zone_id="cnnw1-az3",
+            ),
         ],
         "us-gov-west-1": [
             Zone(
@@ -1652,6 +1685,17 @@ class RegionsAndZonesBackend(object):
             ),
             Zone(
                 region_name="us-gov-west-1", name="us-gov-west-1c", zone_id="usgw1-az3"
+            ),
+        ],
+        "us-gov-east-1": [
+            Zone(
+                region_name="us-gov-east-1", name="us-gov-east-1a", zone_id="usge1-az1"
+            ),
+            Zone(
+                region_name="us-gov-east-1", name="us-gov-east-1b", zone_id="usge1-az2"
+            ),
+            Zone(
+                region_name="us-gov-east-1", name="us-gov-east-1c", zone_id="usge1-az3"
             ),
         ],
     }
@@ -1678,23 +1722,27 @@ class RegionsAndZonesBackend(object):
 class SecurityRule(object):
     def __init__(self, ip_protocol, from_port, to_port, ip_ranges, source_groups):
         self.ip_protocol = ip_protocol
-        self.from_port = from_port
-        self.to_port = to_port
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups
 
-    @property
-    def unique_representation(self):
-        return "{0}-{1}-{2}-{3}-{4}".format(
-            self.ip_protocol,
-            self.from_port,
-            self.to_port,
-            self.ip_ranges,
-            self.source_groups,
-        )
+        if ip_protocol != "-1":
+            self.from_port = from_port
+            self.to_port = to_port
 
     def __eq__(self, other):
-        return self.unique_representation == other.unique_representation
+        if self.ip_protocol != other.ip_protocol:
+            return False
+        if self.ip_ranges != other.ip_ranges:
+            return False
+        if self.source_groups != other.source_groups:
+            return False
+        if self.ip_protocol != "-1":
+            if self.from_port != other.from_port:
+                return False
+            if self.to_port != other.to_port:
+                return False
+
+        return True
 
 
 class SecurityGroup(TaggedEC2Resource):
@@ -1704,7 +1752,7 @@ class SecurityGroup(TaggedEC2Resource):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = [SecurityRule(-1, None, None, ["0.0.0.0/0"], [])]
+        self.egress_rules = [SecurityRule("-1", None, None, ["0.0.0.0/0"], [])]
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
@@ -2497,6 +2545,7 @@ class VPC(TaggedEC2Resource):
         self.is_default = "true" if is_default else "false"
         self.enable_dns_support = "true"
         self.classic_link_enabled = "false"
+        self.classic_link_dns_supported = "false"
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
         self.enable_dns_hostnames = "true" if is_default else "false"
@@ -3354,6 +3403,7 @@ class Route(object):
         local=False,
         gateway=None,
         instance=None,
+        nat_gateway=None,
         interface=None,
         vpc_pcx=None,
     ):
@@ -3363,6 +3413,7 @@ class Route(object):
         self.local = local
         self.gateway = gateway
         self.instance = instance
+        self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
 
@@ -3375,6 +3426,7 @@ class Route(object):
         gateway_id = properties.get("GatewayId")
         instance_id = properties.get("InstanceId")
         interface_id = properties.get("NetworkInterfaceId")
+        nat_gateway_id = properties.get("NatGatewayId")
         pcx_id = properties.get("VpcPeeringConnectionId")
 
         route_table_id = properties["RouteTableId"]
@@ -3384,6 +3436,7 @@ class Route(object):
             destination_cidr_block=properties.get("DestinationCidrBlock"),
             gateway_id=gateway_id,
             instance_id=instance_id,
+            nat_gateway_id=nat_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -3401,6 +3454,7 @@ class RouteBackend(object):
         local=False,
         gateway_id=None,
         instance_id=None,
+        nat_gateway_id=None,
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
@@ -3421,12 +3475,17 @@ class RouteBackend(object):
         except ValueError:
             raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
+        nat_gateway = None
+        if nat_gateway_id is not None:
+            nat_gateway = self.nat_gateways.get(nat_gateway_id)
+
         route = Route(
             route_table,
             destination_cidr_block,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
+            nat_gateway=nat_gateway,
             interface=None,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)
             if vpc_peering_connection_id
@@ -4875,7 +4934,35 @@ class NatGatewayBackend(object):
         super(NatGatewayBackend, self).__init__()
 
     def get_all_nat_gateways(self, filters):
-        return self.nat_gateways.values()
+        nat_gateways = self.nat_gateways.values()
+
+        if filters is not None:
+            if filters.get("nat-gateway-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.id in filters["nat-gateway-id"]
+                ]
+            if filters.get("vpc-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.vpc_id in filters["vpc-id"]
+                ]
+            if filters.get("subnet-id") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.subnet_id in filters["subnet-id"]
+                ]
+            if filters.get("state") is not None:
+                nat_gateways = [
+                    nat_gateway
+                    for nat_gateway in nat_gateways
+                    if nat_gateway.state in filters["state"]
+                ]
+
+        return nat_gateways
 
     def create_nat_gateway(self, subnet_id, allocation_id):
         nat_gateway = NatGateway(self, subnet_id, allocation_id)

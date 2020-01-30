@@ -312,7 +312,7 @@ def test_get_databases_paginated():
 
 
 @mock_rds2
-def test_describe_non_existant_database():
+def test_describe_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.describe_db_instances.when.called_with(
         DBInstanceIdentifier="not-a-db"
@@ -378,7 +378,7 @@ def test_rename_db_instance():
 
 
 @mock_rds2
-def test_modify_non_existant_database():
+def test_modify_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.modify_db_instance.when.called_with(
         DBInstanceIdentifier="not-a-db", AllocatedStorage=20, ApplyImmediately=True
@@ -403,7 +403,7 @@ def test_reboot_db_instance():
 
 
 @mock_rds2
-def test_reboot_non_existant_database():
+def test_reboot_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.reboot_db_instance.when.called_with(
         DBInstanceIdentifier="not-a-db"
@@ -444,7 +444,7 @@ def test_delete_database():
 
 
 @mock_rds2
-def test_delete_non_existant_database():
+def test_delete_non_existent_database():
     conn = boto3.client("rds2", region_name="us-west-2")
     conn.delete_db_instance.when.called_with(
         DBInstanceIdentifier="not-a-db"
@@ -663,7 +663,7 @@ def test_describe_option_group():
 
 
 @mock_rds2
-def test_describe_non_existant_option_group():
+def test_describe_non_existent_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.describe_option_groups.when.called_with(
         OptionGroupName="not-a-option-group"
@@ -688,10 +688,10 @@ def test_delete_option_group():
 
 
 @mock_rds2
-def test_delete_non_existant_option_group():
+def test_delete_non_existent_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.delete_option_group.when.called_with(
-        OptionGroupName="non-existant"
+        OptionGroupName="non-existent"
     ).should.throw(ClientError)
 
 
@@ -754,10 +754,10 @@ def test_modify_option_group_no_options():
 
 
 @mock_rds2
-def test_modify_non_existant_option_group():
+def test_modify_non_existent_option_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.modify_option_group.when.called_with(
-        OptionGroupName="non-existant",
+        OptionGroupName="non-existent",
         OptionsToInclude=[
             (
                 "OptionName",
@@ -771,7 +771,7 @@ def test_modify_non_existant_option_group():
 
 
 @mock_rds2
-def test_delete_non_existant_database():
+def test_delete_non_existent_database():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.delete_db_instance.when.called_with(
         DBInstanceIdentifier="not-a-db"
@@ -1053,7 +1053,7 @@ def test_get_security_groups():
 
 
 @mock_rds2
-def test_get_non_existant_security_group():
+def test_get_non_existent_security_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.describe_db_security_groups.when.called_with(
         DBSecurityGroupName="not-a-sg"
@@ -1076,7 +1076,7 @@ def test_delete_database_security_group():
 
 
 @mock_rds2
-def test_delete_non_existant_security_group():
+def test_delete_non_existent_security_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.delete_db_security_group.when.called_with(
         DBSecurityGroupName="not-a-db"
@@ -1615,7 +1615,7 @@ def test_describe_db_parameter_group():
 
 
 @mock_rds2
-def test_describe_non_existant_db_parameter_group():
+def test_describe_non_existent_db_parameter_group():
     conn = boto3.client("rds", region_name="us-west-2")
     db_parameter_groups = conn.describe_db_parameter_groups(DBParameterGroupName="test")
     len(db_parameter_groups["DBParameterGroups"]).should.equal(0)
@@ -1669,10 +1669,10 @@ def test_modify_db_parameter_group():
 
 
 @mock_rds2
-def test_delete_non_existant_db_parameter_group():
+def test_delete_non_existent_db_parameter_group():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.delete_db_parameter_group.when.called_with(
-        DBParameterGroupName="non-existant"
+        DBParameterGroupName="non-existent"
     ).should.throw(ClientError)
 
 

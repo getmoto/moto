@@ -586,6 +586,29 @@ def test_can_list_secret_version_ids():
     ].sort() == returned_version_ids.sort()
 
 
+@mock_secretsmanager
+def test_get_resource_policy_secret():
+
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    create_secret = test_client.post(
+        "/",
+        data={"Name": "test-secret", "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+    describe_secret = test_client.post(
+        "/",
+        data={"SecretId": "test-secret"},
+        headers={"X-Amz-Target": "secretsmanager.GetResourcePolicy"},
+    )
+
+    json_data = json.loads(describe_secret.data.decode("utf-8"))
+    assert json_data  # Returned dict is not empty
+    assert json_data["ARN"] != ""
+    assert json_data["Name"] == "test-secret"
+
+
 #
 # The following tests should work, but fail on the embedded dict in
 # RotationRules. The error message suggests a problem deeper in the code, which

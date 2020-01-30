@@ -3,9 +3,10 @@ import re
 import uuid
 from datetime import datetime
 from random import random, randint
-import boto3
 
 import pytz
+from boto3 import Session
+
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -117,6 +118,7 @@ class TaskDefinition(BaseObject):
         revision,
         container_definitions,
         region_name,
+        network_mode=None,
         volumes=None,
         tags=None,
     ):
@@ -131,6 +133,10 @@ class TaskDefinition(BaseObject):
             self.volumes = []
         else:
             self.volumes = volumes
+        if network_mode is None:
+            self.network_mode = "bridge"
+        else:
+            self.network_mode = network_mode
 
     @property
     def response_object(self):
@@ -552,7 +558,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a cluster".format(cluster_name))
 
     def register_task_definition(
-        self, family, container_definitions, volumes, tags=None
+        self, family, container_definitions, volumes=None, network_mode=None, tags=None
     ):
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -561,22 +567,26 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.task_definitions[family] = {}
             revision = 1
         task_definition = TaskDefinition(
-            family, revision, container_definitions, self.region_name, volumes, tags
+            family,
+            revision,
+            container_definitions,
+            self.region_name,
+            volumes=volumes,
+            network_mode=network_mode,
+            tags=tags,
         )
         self.task_definitions[family][revision] = task_definition
 
         return task_definition
 
-    def list_task_definitions(self):
-        """
-        Filtering not implemented
-        """
+    def list_task_definitions(self, family_prefix):
         task_arns = []
         for task_definition_list in self.task_definitions.values():
             task_arns.extend(
                 [
                     task_definition.arn
                     for task_definition in task_definition_list.values()
+                    if family_prefix is None or task_definition.family == family_prefix
                 ]
             )
         return task_arns
@@ -1304,7 +1314,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         raise NotImplementedError()
 
 
-available_regions = boto3.session.Session().get_available_regions("ecs")
-ecs_backends = {
-    region: EC2ContainerServiceBackend(region) for region in available_regions
-}
+ecs_backends = {}
+for region in Session().get_available_regions("ecs"):
+    ecs_backends[region] = EC2ContainerServiceBackend(region)
+for region in Session().get_available_regions("ecs", partition_name="aws-us-gov"):
+    ecs_backends[region] = EC2ContainerServiceBackend(region)
+for region in Session().get_available_regions("ecs", partition_name="aws-cn"):
+    ecs_backends[region] = EC2ContainerServiceBackend(region)

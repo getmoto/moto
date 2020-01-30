@@ -8,6 +8,7 @@ import boto3
 from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentException
 
 from moto import mock_kinesis, mock_kinesis_deprecated
+from moto.core import ACCOUNT_ID
 
 
 @mock_kinesis_deprecated
@@ -21,7 +22,9 @@ def test_create_cluster():
     stream = stream_response["StreamDescription"]
     stream["StreamName"].should.equal("my_stream")
     stream["HasMoreShards"].should.equal(False)
-    stream["StreamARN"].should.equal("arn:aws:kinesis:us-west-2:123456789012:my_stream")
+    stream["StreamARN"].should.equal(
+        "arn:aws:kinesis:us-west-2:{}:my_stream".format(ACCOUNT_ID)
+    )
     stream["StreamStatus"].should.equal("ACTIVE")
 
     shards = stream["Shards"]
@@ -29,7 +32,7 @@ def test_create_cluster():
 
 
 @mock_kinesis_deprecated
-def test_describe_non_existant_stream():
+def test_describe_non_existent_stream():
     conn = boto.kinesis.connect_to_region("us-east-1")
     conn.describe_stream.when.called_with("not-a-stream").should.throw(
         ResourceNotFoundException
@@ -87,7 +90,7 @@ def test_describe_stream_summary():
     stream["StreamName"].should.equal(stream_name)
     stream["OpenShardCount"].should.equal(shard_count)
     stream["StreamARN"].should.equal(
-        "arn:aws:kinesis:us-west-2:123456789012:{}".format(stream_name)
+        "arn:aws:kinesis:us-west-2:{}:{}".format(ACCOUNT_ID, stream_name)
     )
     stream["StreamStatus"].should.equal("ACTIVE")
 

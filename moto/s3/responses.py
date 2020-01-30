@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 
 import re
+import sys
 
 import six
 
-from moto.core.utils import str_to_rfc_1123_datetime
+from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
 from six.moves.urllib.parse import parse_qs, urlparse, unquote
 
 import xmltodict
@@ -12,6 +13,7 @@ import xmltodict
 from moto.packages.httpretty.core import HTTPrettyRequest
 from moto.core.responses import _TemplateEnvironmentMixin, ActionAuthenticatorMixin
 from moto.core.utils import path_url
+from moto.core import ACCOUNT_ID
 
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
@@ -70,6 +72,7 @@ ACTION_MAP = {
             "notification": "GetBucketNotification",
             "accelerate": "GetAccelerateConfiguration",
             "versions": "ListBucketVersions",
+            "public_access_block": "GetPublicAccessBlock",
             "DEFAULT": "ListBucket",
         },
         "PUT": {
@@ -83,6 +86,7 @@ ACTION_MAP = {
             "cors": "PutBucketCORS",
             "notification": "PutBucketNotification",
             "accelerate": "PutAccelerateConfiguration",
+            "public_access_block": "PutPublicAccessBlock",
             "DEFAULT": "CreateBucket",
         },
         "DELETE": {
@@ -90,6 +94,7 @@ ACTION_MAP = {
             "policy": "DeleteBucketPolicy",
             "tagging": "PutBucketTagging",
             "cors": "PutBucketCORS",
+            "public_access_block": "DeletePublicAccessBlock",
             "DEFAULT": "DeleteBucket",
         },
     },
@@ -399,6 +404,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return 200, {}, template.render()
             template = self.response_template(S3_BUCKET_ACCELERATE)
             return template.render(bucket=bucket)
+        elif "publicAccessBlock" in querystring:
+            public_block_config = self.backend.get_bucket_public_access_block(
+                bucket_name
+            )
+            template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
+            return template.render(public_block_config=public_block_config)
 
         elif "versions" in querystring:
             delimiter = querystring.get("delimiter", [None])[0]
@@ -651,6 +662,23 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             except Exception as e:
                 raise e
 
+        elif "publicAccessBlock" in querystring:
+            parsed_xml = xmltodict.parse(body)
+            parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
+
+            # If Python 2, fix the unicode strings:
+            if sys.version_info[0] < 3:
+                parsed_xml = {
+                    "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
+                        dict(parsed_xml["PublicAccessBlockConfiguration"])
+                    )
+                }
+
+            self.backend.put_bucket_public_access_block(
+                bucket_name, parsed_xml["PublicAccessBlockConfiguration"]
+            )
+            return ""
+
         else:
             if body:
                 # us-east-1, the default AWS region behaves a bit differently
@@ -705,6 +733,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         elif "lifecycle" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             bucket.delete_lifecycle()
+            return 204, {}, ""
+        elif "publicAccessBlock" in querystring:
+            self.backend.delete_bucket_public_access_block(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -1451,7 +1482,7 @@ S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2
     {% for bucket in buckets %}
       <Bucket>
         <Name>{{ bucket.name }}</Name>
-        <CreationDate>{{ bucket.creation_date }}</CreationDate>
+        <CreationDate>{{ bucket.creation_date.isoformat() }}</CreationDate>
       </Bucket>
     {% endfor %}
  </Buckets>
@@ -1460,7 +1491,9 @@ S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2
 S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>{{ bucket.name }}</Name>
+  {% if prefix != None %}
   <Prefix>{{ prefix }}</Prefix>
+  {% endif %}
   <MaxKeys>{{ max_keys }}</MaxKeys>
   <Delimiter>{{ delimiter }}</Delimiter>
   <IsTruncated>{{ is_truncated }}</IsTruncated>
@@ -1492,7 +1525,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 S3_BUCKET_GET_RESPONSE_V2 = """<?xml version="1.0" encoding="UTF-8"?>
 <ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Name>{{ bucket.name }}</Name>
+{% if prefix != None %}
   <Prefix>{{ prefix }}</Prefix>
+{% endif %}
   <MaxKeys>{{ max_keys }}</MaxKeys>
   <KeyCount>{{ key_count }}</KeyCount>
 {% if delimiter %}
@@ -1653,7 +1688,9 @@ S3_BUCKET_GET_VERSIONING = """<?xml version="1.0" encoding="UTF-8"?>
 S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
 <ListVersionsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
     <Name>{{ bucket.name }}</Name>
+    {% if prefix != None %}
     <Prefix>{{ prefix }}</Prefix>
+    {% endif %}
     <KeyMarker>{{ key_marker }}</KeyMarker>
     <MaxKeys>{{ max_keys }}</MaxKeys>
     <IsTruncated>{{ is_truncated }}</IsTruncated>
@@ -1832,7 +1869,6 @@ S3_MULTIPART_LIST_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
     <DisplayName>webfile</DisplayName>
   </Owner>
-  <StorageClass>STANDARD</StorageClass>
   <PartNumberMarker>1</PartNumberMarker>
   <NextPartNumberMarker>{{ count }}</NextPartNumberMarker>
   <MaxParts>{{ count }}</MaxParts>
@@ -1856,7 +1892,8 @@ S3_MULTIPART_COMPLETE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </CompleteMultipartUploadResult>
 """
 
-S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
+S3_ALL_MULTIPARTS = (
+    """<?xml version="1.0" encoding="UTF-8"?>
 <ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <Bucket>{{ bucket_name }}</Bucket>
   <KeyMarker></KeyMarker>
@@ -1868,7 +1905,9 @@ S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
     <Key>{{ upload.key_name }}</Key>
     <UploadId>{{ upload.id }}</UploadId>
     <Initiator>
-      <ID>arn:aws:iam::123456789012:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
+      <ID>arn:aws:iam::"""
+    + ACCOUNT_ID
+    + """:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
       <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
     </Initiator>
     <Owner>
@@ -1881,6 +1920,7 @@ S3_ALL_MULTIPARTS = """<?xml version="1.0" encoding="UTF-8"?>
   {% endfor %}
 </ListMultipartUploadsResult>
 """
+)
 
 S3_NO_POLICY = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
@@ -2052,4 +2092,13 @@ S3_BUCKET_ACCELERATE = """
 
 S3_BUCKET_ACCELERATE_NOT_SET = """
 <AccelerateConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"/>
+"""
+
+S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
+<PublicAccessBlockConfiguration>
+  <BlockPublicAcls>{{public_block_config.block_public_acls}}</BlockPublicAcls>
+  <IgnorePublicAcls>{{public_block_config.ignore_public_acls}}</IgnorePublicAcls>
+  <BlockPublicPolicy>{{public_block_config.block_public_policy}}</BlockPublicPolicy>
+  <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets}}</RestrictPublicBuckets>
+</PublicAccessBlockConfiguration>
 """

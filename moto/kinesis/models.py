@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import datetime
 import time
-import boto.kinesis
 import re
 import six
 import itertools
@@ -10,9 +9,12 @@ import itertools
 from operator import attrgetter
 from hashlib import md5
 
+from boto3 import Session
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
+from moto.core import ACCOUNT_ID
 from .exceptions import (
     StreamNotFoundError,
     ShardNotFoundError,
@@ -133,7 +135,7 @@ class Stream(BaseModel):
         self.shard_count = shard_count
         self.creation_datetime = datetime.datetime.now()
         self.region = region
-        self.account_number = "123456789012"
+        self.account_number = ACCOUNT_ID
         self.shards = {}
         self.tags = {}
         self.status = "ACTIVE"
@@ -259,8 +261,8 @@ class DeliveryStream(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:firehose:us-east-1:123456789012:deliverystream/{0}".format(
-            self.name
+        return "arn:aws:firehose:us-east-1:{1}:deliverystream/{0}".format(
+            self.name, ACCOUNT_ID
         )
 
     def destinations_to_dict(self):
@@ -529,5 +531,9 @@ class KinesisBackend(BaseBackend):
 
 
 kinesis_backends = {}
-for region in boto.kinesis.regions():
-    kinesis_backends[region.name] = KinesisBackend()
+for region in Session().get_available_regions("kinesis"):
+    kinesis_backends[region] = KinesisBackend()
+for region in Session().get_available_regions("kinesis", partition_name="aws-us-gov"):
+    kinesis_backends[region] = KinesisBackend()
+for region in Session().get_available_regions("kinesis", partition_name="aws-cn"):
+    kinesis_backends[region] = KinesisBackend()

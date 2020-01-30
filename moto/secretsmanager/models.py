@@ -6,7 +6,7 @@ import json
 import uuid
 import datetime
 
-import boto3
+from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import (
@@ -17,7 +17,7 @@ from .exceptions import (
     InvalidRequestException,
     ClientError,
 )
-from .utils import random_password, secret_arn
+from .utils import random_password, secret_arn, get_secret_name_from_arn
 
 
 class SecretsManager(BaseModel):
@@ -25,11 +25,25 @@ class SecretsManager(BaseModel):
         self.region = region_name
 
 
+class SecretsStore(dict):
+    def __setitem__(self, key, value):
+        new_key = get_secret_name_from_arn(key)
+        super(SecretsStore, self).__setitem__(new_key, value)
+
+    def __getitem__(self, key):
+        new_key = get_secret_name_from_arn(key)
+        return super(SecretsStore, self).__getitem__(new_key)
+
+    def __contains__(self, key):
+        new_key = get_secret_name_from_arn(key)
+        return dict.__contains__(self, new_key)
+
+
 class SecretsManagerBackend(BaseBackend):
     def __init__(self, region_name=None, **kwargs):
         super(SecretsManagerBackend, self).__init__()
         self.region = region_name
-        self.secrets = {}
+        self.secrets = SecretsStore()
 
     def reset(self):
         region_name = self.region
@@ -44,7 +58,6 @@ class SecretsManagerBackend(BaseBackend):
         return (dt - epoch).total_seconds()
 
     def get_secret_value(self, secret_id, version_id, version_stage):
-
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -453,8 +466,39 @@ class SecretsManagerBackend(BaseBackend):
 
         return arn, name
 
+    @staticmethod
+    def get_resource_policy(secret_id):
+        resource_policy = {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": [
+                        "arn:aws:iam::111122223333:root",
+                        "arn:aws:iam::444455556666:root",
+                    ]
+                },
+                "Action": ["secretsmanager:GetSecretValue"],
+                "Resource": "*",
+            },
+        }
+        return json.dumps(
+            {
+                "ARN": secret_id,
+                "Name": secret_id,
+                "ResourcePolicy": json.dumps(resource_policy),
+            }
+        )
 
-available_regions = boto3.session.Session().get_available_regions("secretsmanager")
-secretsmanager_backends = {
-    region: SecretsManagerBackend(region_name=region) for region in available_regions
-}
+
+secretsmanager_backends = {}
+for region in Session().get_available_regions("secretsmanager"):
+    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
+for region in Session().get_available_regions(
+    "secretsmanager", partition_name="aws-us-gov"
+):
+    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)
+for region in Session().get_available_regions(
+    "secretsmanager", partition_name="aws-cn"
+):
+    secretsmanager_backends[region] = SecretsManagerBackend(region_name=region)

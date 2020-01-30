@@ -6,6 +6,7 @@ from nose.tools import assert_raises
 
 from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
+from moto.core import ACCOUNT_ID
 
 
 @mock_cognitoidentity
@@ -17,7 +18,9 @@ def test_create_identity_pool():
         AllowUnauthenticatedIdentities=False,
         SupportedLoginProviders={"graph.facebook.com": "123456789012345"},
         DeveloperProviderName="devname",
-        OpenIdConnectProviderARNs=["arn:aws:rds:eu-west-2:123456789012:db:mysql-db"],
+        OpenIdConnectProviderARNs=[
+            "arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)
+        ],
         CognitoIdentityProviders=[
             {
                 "ProviderName": "testprovider",
@@ -25,7 +28,7 @@ def test_create_identity_pool():
                 "ServerSideTokenCheck": True,
             }
         ],
-        SamlProviderARNs=["arn:aws:rds:eu-west-2:123456789012:db:mysql-db"],
+        SamlProviderARNs=["arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)],
     )
     assert result["IdentityPoolId"] != ""
 
@@ -39,7 +42,9 @@ def test_describe_identity_pool():
         AllowUnauthenticatedIdentities=False,
         SupportedLoginProviders={"graph.facebook.com": "123456789012345"},
         DeveloperProviderName="devname",
-        OpenIdConnectProviderARNs=["arn:aws:rds:eu-west-2:123456789012:db:mysql-db"],
+        OpenIdConnectProviderARNs=[
+            "arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)
+        ],
         CognitoIdentityProviders=[
             {
                 "ProviderName": "testprovider",
@@ -47,7 +52,7 @@ def test_describe_identity_pool():
                 "ServerSideTokenCheck": True,
             }
         ],
-        SamlProviderARNs=["arn:aws:rds:eu-west-2:123456789012:db:mysql-db"],
+        SamlProviderARNs=["arn:aws:rds:eu-west-2:{}:db:mysql-db".format(ACCOUNT_ID)],
     )
 
     result = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])

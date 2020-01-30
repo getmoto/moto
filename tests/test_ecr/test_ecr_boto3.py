@@ -77,7 +77,7 @@ def test_describe_repositories():
     response = client.describe_repositories()
     len(response["repositories"]).should.equal(2)
 
-    respository_arns = [
+    repository_arns = [
         "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1",
         "arn:aws:ecr:us-east-1:012345678910:repository/test_repository0",
     ]
@@ -86,9 +86,9 @@ def test_describe_repositories():
             response["repositories"][0]["repositoryArn"],
             response["repositories"][1]["repositoryArn"],
         ]
-    ).should.equal(set(respository_arns))
+    ).should.equal(set(repository_arns))
 
-    respository_uris = [
+    repository_uris = [
         "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
         "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
     ]
@@ -97,7 +97,7 @@ def test_describe_repositories():
             response["repositories"][0]["repositoryUri"],
             response["repositories"][1]["repositoryUri"],
         ]
-    ).should.equal(set(respository_uris))
+    ).should.equal(set(repository_uris))
 
 
 @mock_ecr
@@ -108,7 +108,7 @@ def test_describe_repositories_1():
     response = client.describe_repositories(registryId="012345678910")
     len(response["repositories"]).should.equal(2)
 
-    respository_arns = [
+    repository_arns = [
         "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1",
         "arn:aws:ecr:us-east-1:012345678910:repository/test_repository0",
     ]
@@ -117,9 +117,9 @@ def test_describe_repositories_1():
             response["repositories"][0]["repositoryArn"],
             response["repositories"][1]["repositoryArn"],
         ]
-    ).should.equal(set(respository_arns))
+    ).should.equal(set(repository_arns))
 
-    respository_uris = [
+    repository_uris = [
         "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
         "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
     ]
@@ -128,7 +128,7 @@ def test_describe_repositories_1():
             response["repositories"][0]["repositoryUri"],
             response["repositories"][1]["repositoryUri"],
         ]
-    ).should.equal(set(respository_uris))
+    ).should.equal(set(repository_uris))
 
 
 @mock_ecr
@@ -147,11 +147,11 @@ def test_describe_repositories_3():
     _ = client.create_repository(repositoryName="test_repository0")
     response = client.describe_repositories(repositoryNames=["test_repository1"])
     len(response["repositories"]).should.equal(1)
-    respository_arn = "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1"
-    response["repositories"][0]["repositoryArn"].should.equal(respository_arn)
+    repository_arn = "arn:aws:ecr:us-east-1:012345678910:repository/test_repository1"
+    response["repositories"][0]["repositoryArn"].should.equal(repository_arn)
 
-    respository_uri = "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1"
-    response["repositories"][0]["repositoryUri"].should.equal(respository_uri)
+    repository_uri = "012345678910.dkr.ecr.us-east-1.amazonaws.com/test_repository1"
+    response["repositories"][0]["repositoryUri"].should.equal(repository_uri)
 
 
 @mock_ecr

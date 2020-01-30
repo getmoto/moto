@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import boto3
 import re
 import requests.adapters
 from itertools import cycle
@@ -12,6 +11,8 @@ import docker
 import functools
 import threading
 import dateutil.parser
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
@@ -28,11 +29,10 @@ from .utils import (
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.iam.exceptions import IAMNotFoundException
-
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 logger = logging.getLogger(__name__)
-DEFAULT_ACCOUNT_ID = 123456789012
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
     r"^[A-Za-z0-9][A-Za-z0-9_-]{1,126}[A-Za-z0-9]$"
 )
@@ -182,7 +182,7 @@ class JobDefinition(BaseModel):
         self._region = region_name
         self.container_properties = container_properties
         self.arn = None
-        self.status = "INACTIVE"
+        self.status = "ACTIVE"
 
         if parameters is None:
             parameters = {}
@@ -285,7 +285,7 @@ class JobDefinition(BaseModel):
 
 
 class Job(threading.Thread, BaseModel):
-    def __init__(self, name, job_def, job_queue, log_backend):
+    def __init__(self, name, job_def, job_queue, log_backend, container_overrides):
         """
         Docker Job
 
@@ -301,6 +301,7 @@ class Job(threading.Thread, BaseModel):
         self.job_name = name
         self.job_id = str(uuid.uuid4())
         self.job_definition = job_def
+        self.container_overrides = container_overrides
         self.job_queue = job_queue
         self.job_state = "SUBMITTED"  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
         self.job_queue.jobs.append(self)
@@ -357,6 +358,11 @@ class Job(threading.Thread, BaseModel):
             result["statusReason"] = self.job_stopped_reason
         return result
 
+    def _get_container_property(self, p, default):
+        return self.container_overrides.get(
+            p, self.job_definition.container_properties.get(p, default)
+        )
+
     def run(self):
         """
         Run the container.
@@ -375,8 +381,33 @@ class Job(threading.Thread, BaseModel):
             self.job_state = "PENDING"
             time.sleep(1)
 
-            image = "alpine:latest"
-            cmd = '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"'
+            image = self.job_definition.container_properties.get(
+                "image", "alpine:latest"
+            )
+            privileged = self.job_definition.container_properties.get(
+                "privileged", False
+            )
+            cmd = self._get_container_property(
+                "command",
+                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+            )
+            environment = {
+                e["name"]: e["value"]
+                for e in self._get_container_property("environment", [])
+            }
+            volumes = {
+                v["name"]: v["host"]
+                for v in self._get_container_property("volumes", [])
+            }
+            mounts = [
+                docker.types.Mount(
+                    m["containerPath"],
+                    volumes[m["sourceVolume"]]["sourcePath"],
+                    type="bind",
+                    read_only=m["readOnly"],
+                )
+                for m in self._get_container_property("mountPoints", [])
+            ]
             name = "{0}-{1}".format(self.job_name, self.job_id)
 
             self.job_state = "RUNNABLE"
@@ -384,8 +415,16 @@ class Job(threading.Thread, BaseModel):
             time.sleep(1)
 
             self.job_state = "STARTING"
+            log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             container = self.docker_client.containers.run(
-                image, cmd, detach=True, name=name
+                image,
+                cmd,
+                detach=True,
+                name=name,
+                log_config=log_config,
+                environment=environment,
+                mounts=mounts,
+                privileged=privileged,
             )
             self.job_state = "RUNNING"
             self.job_started_at = datetime.datetime.now()
@@ -815,8 +854,10 @@ class BatchBackend(BaseBackend):
                 raise InvalidParameterValueException(
                     "computeResources must contain {0}".format(param)
                 )
-
-        if self.iam_backend.get_role_by_arn(cr["instanceRole"]) is None:
+        for profile in self.iam_backend.get_instance_profiles():
+            if profile.arn == cr["instanceRole"]:
+                break
+        else:
             raise InvalidParameterValueException(
                 "could not find instanceRole {0}".format(cr["instanceRole"])
             )
@@ -1208,7 +1249,13 @@ class BatchBackend(BaseBackend):
         if queue is None:
             raise ClientException("Job queue {0} does not exist".format(job_queue))
 
-        job = Job(job_name, job_def, queue, log_backend=self.logs_backend)
+        job = Job(
+            job_name,
+            job_def,
+            queue,
+            log_backend=self.logs_backend,
+            container_overrides=container_overrides,
+        )
         self._jobs[job.job_id] = job
 
         # Here comes the fun
@@ -1271,7 +1318,10 @@ class BatchBackend(BaseBackend):
         job.terminate(reason)
 
 
-available_regions = boto3.session.Session().get_available_regions("batch")
-batch_backends = {
-    region: BatchBackend(region_name=region) for region in available_regions
-}
+batch_backends = {}
+for region in Session().get_available_regions("batch"):
+    batch_backends[region] = BatchBackend(region)
+for region in Session().get_available_regions("batch", partition_name="aws-us-gov"):
+    batch_backends[region] = BatchBackend(region)
+for region in Session().get_available_regions("batch", partition_name="aws-cn"):
+    batch_backends[region] = BatchBackend(region)

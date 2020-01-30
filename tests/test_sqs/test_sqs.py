@@ -21,6 +21,7 @@ from moto import mock_sqs, mock_sqs_deprecated, settings
 from nose import SkipTest
 from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
+from moto.core import ACCOUNT_ID
 
 
 @mock_sqs
@@ -283,7 +284,7 @@ def test_create_queues_in_multiple_region():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     west1_conn.list_queues()["QueueUrls"][0].should.equal(
-        "{base_url}/123456789012/blah".format(base_url=base_url)
+        "{base_url}/{AccountId}/blah".format(base_url=base_url, AccountId=ACCOUNT_ID)
     )
 
 
@@ -305,7 +306,9 @@ def test_get_queue_with_prefix():
         base_url = "https://us-west-1.queue.amazonaws.com"
 
     queue[0].should.equal(
-        "{base_url}/123456789012/test-queue".format(base_url=base_url)
+        "{base_url}/{AccountId}/test-queue".format(
+            base_url=base_url, AccountId=ACCOUNT_ID
+        )
     )
 
 
@@ -328,7 +331,20 @@ def test_delete_queue():
 @mock_sqs
 def test_get_queue_attributes():
     client = boto3.client("sqs", region_name="us-east-1")
-    response = client.create_queue(QueueName="test-queue")
+
+    dlq_resp = client.create_queue(QueueName="test-dlr-queue")
+    dlq_arn1 = client.get_queue_attributes(QueueUrl=dlq_resp["QueueUrl"])["Attributes"][
+        "QueueArn"
+    ]
+
+    response = client.create_queue(
+        QueueName="test-queue",
+        Attributes={
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 2}
+            ),
+        },
+    )
     queue_url = response["QueueUrl"]
 
     response = client.get_queue_attributes(QueueUrl=queue_url)
@@ -342,7 +358,7 @@ def test_get_queue_attributes():
     response["Attributes"]["MaximumMessageSize"].should.equal("65536")
     response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
     response["Attributes"]["QueueArn"].should.equal(
-        "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID)
     )
     response["Attributes"]["ReceiveMessageWaitTimeSeconds"].should.equal("0")
     response["Attributes"]["VisibilityTimeout"].should.equal("30")
@@ -353,6 +369,7 @@ def test_get_queue_attributes():
             "ApproximateNumberOfMessages",
             "MaximumMessageSize",
             "QueueArn",
+            "RedrivePolicy",
             "VisibilityTimeout",
         ],
     )
@@ -361,8 +378,11 @@ def test_get_queue_attributes():
         {
             "ApproximateNumberOfMessages": "0",
             "MaximumMessageSize": "65536",
-            "QueueArn": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+            "QueueArn": "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
             "VisibilityTimeout": "30",
+            "RedrivePolicy": json.dumps(
+                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 2}
+            ),
         }
     )
 
@@ -851,7 +871,9 @@ def test_queue_attributes():
     attributes = queue.get_attributes()
 
     attributes["QueueArn"].should.look_like(
-        "arn:aws:sqs:us-east-1:123456789012:%s" % queue_name
+        "arn:aws:sqs:us-east-1:{AccountId}:{name}".format(
+            AccountId=ACCOUNT_ID, name=queue_name
+        )
     )
 
     attributes["VisibilityTimeout"].should.look_like(str(visibility_timeout))
@@ -1175,7 +1197,7 @@ def test_permissions():
     client.remove_permission(QueueUrl=queue_url, Label="account2")
 
     with assert_raises(ClientError):
-        client.remove_permission(QueueUrl=queue_url, Label="non_existant")
+        client.remove_permission(QueueUrl=queue_url, Label="non_existent")
 
 
 @mock_sqs
@@ -1402,7 +1424,7 @@ def test_redrive_policy_available():
 def test_redrive_policy_non_existent_queue():
     sqs = boto3.client("sqs", region_name="us-east-1")
     redrive_policy = {
-        "deadLetterTargetArn": "arn:aws:sqs:us-east-1:123456789012:no-queue",
+        "deadLetterTargetArn": "arn:aws:sqs:us-east-1:{}:no-queue".format(ACCOUNT_ID),
         "maxReceiveCount": 1,
     }
 

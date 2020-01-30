@@ -10,6 +10,7 @@ import sure  # noqa
 from nose import tools
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
+from moto.core import ACCOUNT_ID
 
 
 @mock_ses
@@ -35,7 +36,7 @@ def __setup_feedback_env__(
     sns_conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:%s:123456789012:%s" % (region, queue),
+        Endpoint="arn:aws:sqs:%s:%s:%s" % (region, ACCOUNT_ID, queue),
     )
     # Verify SES domain
     ses_conn.verify_domain_identity(Domain=domain)

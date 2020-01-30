@@ -23,32 +23,36 @@ import traceback
 import weakref
 import requests.adapters
 
-import boto.awslambda
+from boto3 import Session
+
+from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.iam.models import iam_backend
+from moto.iam.exceptions import IAMNotFoundException
 from moto.core.utils import unix_time_millis
 from moto.s3.models import s3_backend
 from moto.logs.models import logs_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
+from .exceptions import (
+    CrossAccountNotAllowed,
+    InvalidRoleFormat,
+    InvalidParameterValueException,
+)
 from .utils import make_function_arn, make_function_ver_arn
 from moto.sqs import sqs_backends
 from moto.dynamodb2 import dynamodb_backends2
 from moto.dynamodbstreams import dynamodbstreams_backends
+from moto.core import ACCOUNT_ID
 
 logger = logging.getLogger(__name__)
-
-ACCOUNT_ID = "123456789012"
-
 
 try:
     from tempfile import TemporaryDirectory
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
-# The lambci container is returning a special escape character for the "RequestID" fields. Unicode 033:
-# _stderr_regex = re.compile(r"START|END|REPORT RequestId: .*")
-_stderr_regex = re.compile(r"\033\[\d+.*")
 _orig_adapter_send = requests.adapters.HTTPAdapter.send
 docker_3 = docker.__version__[0] >= "3"
 
@@ -157,7 +161,8 @@ class LambdaFunction(BaseModel):
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.docker_client = docker.from_env()
-        self.policy = ""
+        self.policy = None
+        self.state = "Active"
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -214,9 +219,8 @@ class LambdaFunction(BaseModel):
                 key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
-                    raise ValueError(
-                        "InvalidParameterValueException",
-                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist",
+                    raise InvalidParameterValueException(
+                        "Error occurred while GetObject. S3 Error Code: NoSuchBucket. S3 Error Message: The specified bucket does not exist"
                     )
             except MissingKey:
                 if do_validate_s3():
@@ -268,11 +272,11 @@ class LambdaFunction(BaseModel):
             "MemorySize": self.memory_size,
             "Role": self.role,
             "Runtime": self.run_time,
+            "State": self.state,
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,
         }
-
         if self.environment_vars:
             config["Environment"] = {"Variables": self.environment_vars}
 
@@ -357,6 +361,8 @@ class LambdaFunction(BaseModel):
                 self.code_bytes = key.value
                 self.code_size = key.size
                 self.code_sha_256 = hashlib.sha256(key.value).hexdigest()
+                self.code["S3Bucket"] = updated_spec["S3Bucket"]
+                self.code["S3Key"] = updated_spec["S3Key"]
 
         return self.get_configuration()
 
@@ -377,7 +383,7 @@ class LambdaFunction(BaseModel):
         try:
             # TODO: I believe we can keep the container running and feed events as needed
             #       also need to hook it up to the other services so it can make kws/s3 etc calls
-            #  Should get invoke_id /RequestId from invovation
+            #  Should get invoke_id /RequestId from invocation
             env_vars = {
                 "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
                 "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
@@ -389,6 +395,7 @@ class LambdaFunction(BaseModel):
             env_vars.update(self.environment_vars)
 
             container = output = exit_code = None
+            log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
                     run_kwargs = (
@@ -404,6 +411,7 @@ class LambdaFunction(BaseModel):
                         volumes=["{}:/var/task".format(data_vol.name)],
                         environment=env_vars,
                         detach=True,
+                        log_config=log_config,
                         **run_kwargs
                     )
                 finally:
@@ -445,14 +453,9 @@ class LambdaFunction(BaseModel):
             if exit_code != 0:
                 raise Exception("lambda invoke failed output: {}".format(output))
 
-            # strip out RequestId lines (TODO: This will return an additional '\n' in the response)
-            output = os.linesep.join(
-                [
-                    line
-                    for line in self.convert(output).splitlines()
-                    if not _stderr_regex.match(line)
-                ]
-            )
+            # We only care about the response from the lambda
+            # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
+            output = output.splitlines()[-1]
             return output, False
         except BaseException as e:
             traceback.print_exc()
@@ -472,7 +475,7 @@ class LambdaFunction(BaseModel):
             payload["result"] = response_headers["x-amz-log-result"]
             result = res.encode("utf-8")
         else:
-            result = json.dumps(payload)
+            result = res
         if errored:
             response_headers["x-amz-function-error"] = "Handled"
 
@@ -520,6 +523,15 @@ class LambdaFunction(BaseModel):
             return make_function_arn(self.region, ACCOUNT_ID, self.function_name)
         raise UnformattedGetAttTemplateException()
 
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        updated_props = cloudformation_json["Properties"]
+        original_resource.update_configuration(updated_props)
+        original_resource.update_function_code(updated_props["Code"])
+        return original_resource
+
     @staticmethod
     def _create_zipfile_from_plaintext_code(code):
         zip_output = io.BytesIO()
@@ -528,6 +540,9 @@ class LambdaFunction(BaseModel):
         zip_file.close()
         zip_output.seek(0)
         return zip_output.read()
+
+    def delete(self, region):
+        lambda_backends[region].delete_function(self.function_name)
 
 
 class EventSourceMapping(BaseModel):
@@ -668,6 +683,19 @@ class LambdaStorage(object):
         :param fn: Function
         :type fn: LambdaFunction
         """
+        valid_role = re.match(InvalidRoleFormat.pattern, fn.role)
+        if valid_role:
+            account = valid_role.group(2)
+            if account != ACCOUNT_ID:
+                raise CrossAccountNotAllowed()
+            try:
+                iam_backend.get_role_by_arn(fn.role)
+            except IAMNotFoundException:
+                raise InvalidParameterValueException(
+                    "The role defined for the function cannot be assumed by Lambda."
+                )
+        else:
+            raise InvalidRoleFormat(fn.role)
         if fn.function_name in self._functions:
             self._functions[fn.function_name]["latest"] = fn
         else:
@@ -676,7 +704,8 @@ class LambdaStorage(object):
                 "versions": [],
                 "alias": weakref.WeakValueDictionary(),
             }
-
+        # instantiate a new policy for this version of the lambda
+        fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
     def publish_function(self, name):
@@ -977,8 +1006,21 @@ class LambdaBackend(BaseBackend):
             return True
         return False
 
-    def add_policy(self, function_name, policy):
-        self.get_function(function_name).policy = policy
+    def add_policy_statement(self, function_name, raw):
+        fn = self.get_function(function_name)
+        fn.policy.add_statement(raw)
+
+    def del_policy_statement(self, function_name, sid, revision=""):
+        fn = self.get_function(function_name)
+        fn.policy.del_statement(sid, revision)
+
+    def get_policy(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.policy.get_policy()
+
+    def get_policy_wire_format(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.policy.wire_format()
 
     def update_function_code(self, function_name, qualifier, body):
         fn = self.get_function(function_name, qualifier)
@@ -1011,10 +1053,10 @@ def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
 
 
-# Handle us forgotten regions, unless Lambda truly only runs out of US and
-lambda_backends = {
-    _region.name: LambdaBackend(_region.name) for _region in boto.awslambda.regions()
-}
-
-lambda_backends["ap-southeast-2"] = LambdaBackend("ap-southeast-2")
-lambda_backends["us-gov-west-1"] = LambdaBackend("us-gov-west-1")
+lambda_backends = {}
+for region in Session().get_available_regions("lambda"):
+    lambda_backends[region] = LambdaBackend(region)
+for region in Session().get_available_regions("lambda", partition_name="aws-us-gov"):
+    lambda_backends[region] = LambdaBackend(region)
+for region in Session().get_available_regions("lambda", partition_name="aws-cn"):
+    lambda_backends[region] = LambdaBackend(region)

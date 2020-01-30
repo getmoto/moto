@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import datetime
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.sts.utils import (
     random_access_key_id,
     random_secret_access_key,

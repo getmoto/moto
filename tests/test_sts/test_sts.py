@@ -10,7 +10,7 @@ import sure  # noqa
 
 
 from moto import mock_sts, mock_sts_deprecated, mock_iam, settings
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 

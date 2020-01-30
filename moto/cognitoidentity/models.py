@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import datetime
 import json
 
-import boto.cognito.identity
+from boto3 import Session
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
@@ -136,5 +136,13 @@ class CognitoIdentityBackend(BaseBackend):
 
 
 cognitoidentity_backends = {}
-for region in boto.cognito.identity.regions():
-    cognitoidentity_backends[region.name] = CognitoIdentityBackend(region.name)
+for region in Session().get_available_regions("cognito-identity"):
+    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
+for region in Session().get_available_regions(
+    "cognito-identity", partition_name="aws-us-gov"
+):
+    cognitoidentity_backends[region] = CognitoIdentityBackend(region)
+for region in Session().get_available_regions(
+    "cognito-identity", partition_name="aws-cn"
+):
+    cognitoidentity_backends[region] = CognitoIdentityBackend(region)

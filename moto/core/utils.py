@@ -8,6 +8,7 @@ import random
 import re
 import six
 import string
+from botocore.exceptions import ClientError
 from six.moves.urllib.parse import urlparse
 
 
@@ -141,7 +142,10 @@ class convert_flask_to_httpretty_response(object):
     def __call__(self, args=None, **kwargs):
         from flask import request, Response
 
-        result = self.callback(request, request.url, {})
+        try:
+            result = self.callback(request, request.url, {})
+        except ClientError as exc:
+            result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
         if len(result) == 3:
             status, headers, content = result
@@ -300,3 +304,27 @@ def path_url(url):
     if parsed_url.query:
         path = path + "?" + parsed_url.query
     return path
+
+
+def py2_strip_unicode_keys(blob):
+    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
+    if type(blob) == unicode:  # noqa
+        return str(blob)
+
+    elif type(blob) == dict:
+        for key in list(blob.keys()):
+            value = blob.pop(key)
+            blob[str(key)] = py2_strip_unicode_keys(value)
+
+    elif type(blob) == list:
+        for i in range(0, len(blob)):
+            blob[i] = py2_strip_unicode_keys(blob[i])
+
+    elif type(blob) == set:
+        new_set = set()
+        for value in blob:
+            new_set.add(py2_strip_unicode_keys(value))
+
+        blob = new_set
+
+    return blob

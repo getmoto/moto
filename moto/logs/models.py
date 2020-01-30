@@ -1,7 +1,12 @@
+from boto3 import Session
+
 from moto.core import BaseBackend
-import boto.logs
 from moto.core.utils import unix_time_millis
-from .exceptions import ResourceNotFoundException, ResourceAlreadyExistsException
+from .exceptions import (
+    ResourceNotFoundException,
+    ResourceAlreadyExistsException,
+    InvalidParameterException,
+)
 
 
 class LogEvent:
@@ -118,41 +123,66 @@ class LogStream:
 
             return True
 
-        def get_paging_token_from_index(index, back=False):
-            if index is not None:
-                return "b/{:056d}".format(index) if back else "f/{:056d}".format(index)
-            return 0
-
-        def get_index_from_paging_token(token):
+        def get_index_and_direction_from_token(token):
             if token is not None:
-                return int(token[2:])
-            return 0
+                try:
+                    return token[0], int(token[2:])
+                except Exception:
+                    raise InvalidParameterException(
+                        "The specified nextToken is invalid."
+                    )
+            return None, 0
 
         events = sorted(
-            filter(filter_func, self.events),
-            key=lambda event: event.timestamp,
-            reverse=start_from_head,
+            filter(filter_func, self.events), key=lambda event: event.timestamp,
         )
-        next_index = get_index_from_paging_token(next_token)
-        back_index = next_index
+
+        direction, index = get_index_and_direction_from_token(next_token)
+        limit_index = limit - 1
+        final_index = len(events) - 1
+
+        if direction is None:
+            if start_from_head:
+                start_index = 0
+                end_index = start_index + limit_index
+            else:
+                end_index = final_index
+                start_index = end_index - limit_index
+        elif direction == "f":
+            start_index = index + 1
+            end_index = start_index + limit_index
+        elif direction == "b":
+            end_index = index - 1
+            start_index = end_index - limit_index
+        else:
+            raise InvalidParameterException("The specified nextToken is invalid.")
+
+        if start_index < 0:
+            start_index = 0
+        elif start_index > final_index:
+            return (
+                [],
+                "b/{:056d}".format(final_index),
+                "f/{:056d}".format(final_index),
+            )
+
+        if end_index > final_index:
+            end_index = final_index
+        elif end_index < 0:
+            return (
+                [],
+                "b/{:056d}".format(0),
+                "f/{:056d}".format(0),
+            )
 
         events_page = [
-            event.to_response_dict()
-            for event in events[next_index : next_index + limit]
+            event.to_response_dict() for event in events[start_index : end_index + 1]
         ]
-        if next_index + limit < len(self.events):
-            next_index += limit
-        else:
-            next_index = len(self.events)
-
-        back_index -= limit
-        if back_index <= 0:
-            back_index = 0
 
         return (
             events_page,
-            get_paging_token_from_index(back_index, True),
-            get_paging_token_from_index(next_index),
+            "b/{:056d}".format(start_index),
+            "f/{:056d}".format(end_index),
         )
 
     def filter_log_events(
@@ -529,6 +559,10 @@ class LogsBackend(BaseBackend):
         log_group.untag(tags)
 
 
-logs_backends = {
-    region.name: LogsBackend(region.name) for region in boto.logs.regions()
-}
+logs_backends = {}
+for region in Session().get_available_regions("logs"):
+    logs_backends[region] = LogsBackend(region)
+for region in Session().get_available_regions("logs", partition_name="aws-us-gov"):
+    logs_backends[region] = LogsBackend(region)
+for region in Session().get_available_regions("logs", partition_name="aws-cn"):
+    logs_backends[region] = LogsBackend(region)

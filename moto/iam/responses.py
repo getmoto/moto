@@ -182,6 +182,7 @@ class IamResponse(BaseResponse):
         permissions_boundary = self._get_param("PermissionsBoundary")
         description = self._get_param("Description")
         tags = self._get_multi_param("Tags.member")
+        max_session_duration = self._get_param("MaxSessionDuration", 3600)
 
         role = iam_backend.create_role(
             role_name,
@@ -190,6 +191,7 @@ class IamResponse(BaseResponse):
             permissions_boundary,
             description,
             tags,
+            max_session_duration,
         )
         template = self.response_template(CREATE_ROLE_TEMPLATE)
         return template.render(role=role)
@@ -258,7 +260,8 @@ class IamResponse(BaseResponse):
     def update_role(self):
         role_name = self._get_param("RoleName")
         description = self._get_param("Description")
-        role = iam_backend.update_role(role_name, description)
+        max_session_duration = self._get_param("MaxSessionDuration", 3600)
+        role = iam_backend.update_role(role_name, description, max_session_duration)
         template = self.response_template(UPDATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
@@ -437,8 +440,8 @@ class IamResponse(BaseResponse):
     def create_user(self):
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
-
-        user = iam_backend.create_user(user_name, path)
+        tags = self._get_multi_param("Tags.member")
+        user = iam_backend.create_user(user_name, path, tags)
         template = self.response_template(USER_TEMPLATE)
         return template.render(action="Create", user=user)
 
@@ -535,6 +538,12 @@ class IamResponse(BaseResponse):
         template = self.response_template(LIST_USER_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
+    def list_user_tags(self):
+        user_name = self._get_param("UserName")
+        tags = iam_backend.list_user_tags(user_name)
+        template = self.response_template(LIST_USER_TAGS_TEMPLATE)
+        return template.render(user_tags=tags or [])
+
     def put_user_policy(self):
         user_name = self._get_param("UserName")
         policy_name = self._get_param("PolicyName")
@@ -554,6 +563,10 @@ class IamResponse(BaseResponse):
 
     def create_access_key(self):
         user_name = self._get_param("UserName")
+        if not user_name:
+            access_key_id = self.get_current_user()
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
 
         key = iam_backend.create_access_key(user_name)
         template = self.response_template(CREATE_ACCESS_KEY_TEMPLATE)
@@ -563,6 +576,10 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         access_key_id = self._get_param("AccessKeyId")
         status = self._get_param("Status")
+        if not user_name:
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
+
         iam_backend.update_access_key(user_name, access_key_id, status)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAccessKey")
@@ -578,6 +595,11 @@ class IamResponse(BaseResponse):
 
     def list_access_keys(self):
         user_name = self._get_param("UserName")
+        if not user_name:
+            access_key_id = self.get_current_user()
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
+
         keys = iam_backend.get_all_access_keys(user_name)
         template = self.response_template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
@@ -585,6 +607,9 @@ class IamResponse(BaseResponse):
     def delete_access_key(self):
         user_name = self._get_param("UserName")
         access_key_id = self._get_param("AccessKeyId")
+        if not user_name:
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
 
         iam_backend.delete_access_key(access_key_id, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
@@ -1189,9 +1214,12 @@ CREATE_ROLE_TEMPLATE = """<CreateRoleResponse xmlns="https://iam.amazonaws.com/d
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description %}
       <Description>{{role.description}}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.permissions_boundary %}
       <PermissionsBoundary>
           <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
@@ -1244,6 +1272,7 @@ UPDATE_ROLE_DESCRIPTION_TEMPLATE = """<UpdateRoleDescriptionResponse xmlns="http
       <Description>{{role.description}}</Description>
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}
@@ -1268,9 +1297,12 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
       <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      {% if role.description %}
       <Description>{{role.description}}</Description>
+      {% endif %}
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
+      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}
@@ -1688,6 +1720,23 @@ LIST_USER_POLICIES_TEMPLATE = """<ListUserPoliciesResponse>
       <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
    </ResponseMetadata>
 </ListUserPoliciesResponse>"""
+
+LIST_USER_TAGS_TEMPLATE = """<ListUserTagsResponse>
+   <ListUserTagsResult>
+      <Tags>
+        {% for tag in user_tags %}
+          <item>
+            <Key>{{ tag.Key }}</Key>
+            <Value>{{ tag.Value }}</Value>
+          </item>
+        {% endfor %}
+       </Tags>
+      <IsTruncated>false</IsTruncated>
+   </ListUserTagsResult>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListUserTagsResponse>"""
 
 CREATE_ACCESS_KEY_TEMPLATE = """<CreateAccessKeyResponse>
    <CreateAccessKeyResult>

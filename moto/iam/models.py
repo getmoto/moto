@@ -14,7 +14,7 @@ from cryptography.hazmat.backends import default_backend
 from six.moves.urllib.parse import urlparse
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
@@ -44,8 +44,6 @@ from .utils import (
     random_resource_id,
     random_policy_id,
 )
-
-ACCOUNT_ID = 123456789012
 
 
 class MFADevice(object):
@@ -309,6 +307,7 @@ class Role(BaseModel):
         permissions_boundary,
         description,
         tags,
+        max_session_duration,
     ):
         self.id = role_id
         self.name = name
@@ -320,6 +319,7 @@ class Role(BaseModel):
         self.tags = tags
         self.description = description
         self.permissions_boundary = permissions_boundary
+        self.max_session_duration = max_session_duration
 
     @property
     def created_iso_8601(self):
@@ -338,6 +338,7 @@ class Role(BaseModel):
             permissions_boundary=properties.get("PermissionsBoundary", ""),
             description=properties.get("Description", ""),
             tags=properties.get("Tags", {}),
+            max_session_duration=properties.get("MaxSessionDuration", 3600),
         )
 
         policies = properties.get("Policies", [])
@@ -371,7 +372,7 @@ class Role(BaseModel):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
     def get_tags(self):
@@ -542,7 +543,7 @@ class Group(BaseModel):
 
 
 class User(BaseModel):
-    def __init__(self, name, path=None):
+    def __init__(self, name, path=None, tags=None):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
@@ -555,6 +556,7 @@ class User(BaseModel):
         self.password = None
         self.password_reset_required = False
         self.signing_certificates = {}
+        self.tags = tags
 
     @property
     def arn(self):
@@ -938,9 +940,10 @@ class IAMBackend(BaseBackend):
         role.description = role_description
         return role
 
-    def update_role(self, role_name, role_description):
+    def update_role(self, role_name, role_description, max_session_duration):
         role = self.get_role(role_name)
         role.description = role_description
+        role.max_session_duration = max_session_duration
         return role
 
     def detach_role_policy(self, policy_arn, role_name):
@@ -1059,6 +1062,7 @@ class IAMBackend(BaseBackend):
         permissions_boundary,
         description,
         tags,
+        max_session_duration,
     ):
         role_id = random_resource_id()
         if permissions_boundary and not self.policy_arn_regex.match(
@@ -1084,6 +1088,7 @@ class IAMBackend(BaseBackend):
             permissions_boundary,
             description,
             clean_tags,
+            max_session_duration,
         )
         self.roles[role_id] = role
         return role
@@ -1417,13 +1422,13 @@ class IAMBackend(BaseBackend):
                 "The group with name {0} cannot be found.".format(group_name)
             )
 
-    def create_user(self, user_name, path="/"):
+    def create_user(self, user_name, path="/", tags=None):
         if user_name in self.users:
             raise IAMConflictException(
                 "EntityAlreadyExists", "User {0} already exists".format(user_name)
             )
 
-        user = User(user_name, path)
+        user = User(user_name, path, tags)
         self.users[user_name] = user
         return user
 
@@ -1578,6 +1583,10 @@ class IAMBackend(BaseBackend):
     def list_user_policies(self, user_name):
         user = self.get_user(user_name)
         return user.policies.keys()
+
+    def list_user_tags(self, user_name):
+        user = self.get_user(user_name)
+        return user.tags
 
     def put_user_policy(self, user_name, policy_name, policy_json):
         user = self.get_user(user_name)

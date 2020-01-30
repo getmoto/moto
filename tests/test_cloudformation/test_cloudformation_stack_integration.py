@@ -43,6 +43,7 @@ from moto import (
     mock_sqs_deprecated,
     mock_elbv2,
 )
+from moto.core import ACCOUNT_ID
 from moto.dynamodb2.models import Table
 
 from .fixtures import (
@@ -1773,11 +1774,25 @@ def lambda_handler(event, context):
                     "Handler": "lambda_function.handler",
                     "Description": "Test function",
                     "MemorySize": 128,
-                    "Role": "test-role",
+                    "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
                     "Runtime": "python2.7",
                     "Environment": {"Variables": {"TEST_ENV_KEY": "test-env-val"}},
                 },
-            }
+            },
+            "MyRole": {
+                "Type": "AWS::IAM::Role",
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["sts:AssumeRole"],
+                                "Effect": "Allow",
+                                "Principal": {"Service": ["ec2.amazonaws.com"]},
+                            }
+                        ]
+                    }
+                },
+            },
         },
     }
 
@@ -1791,7 +1806,6 @@ def lambda_handler(event, context):
     result["Functions"][0]["Description"].should.equal("Test function")
     result["Functions"][0]["Handler"].should.equal("lambda_function.handler")
     result["Functions"][0]["MemorySize"].should.equal(128)
-    result["Functions"][0]["Role"].should.equal("test-role")
     result["Functions"][0]["Runtime"].should.equal("python2.7")
     result["Functions"][0]["Environment"].should.equal(
         {"Variables": {"TEST_ENV_KEY": "test-env-val"}}
@@ -1899,7 +1913,7 @@ def test_stack_spot_fleet():
                 "Type": "AWS::EC2::SpotFleet",
                 "Properties": {
                     "SpotFleetRequestConfigData": {
-                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
                         "SpotPrice": "0.12",
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
@@ -1920,7 +1934,9 @@ def test_stack_spot_fleet():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::123456789012:role/fleet"
+                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
+                                        ACCOUNT_ID
+                                    )
                                 },
                                 "WeightedCapacity": "4",
                                 "SpotPrice": "10.00",
@@ -1953,7 +1969,7 @@ def test_stack_spot_fleet():
     spot_fleet_config["SpotPrice"].should.equal("0.12")
     spot_fleet_config["TargetCapacity"].should.equal(6)
     spot_fleet_config["IamFleetRole"].should.equal(
-        "arn:aws:iam::123456789012:role/fleet"
+        "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID)
     )
     spot_fleet_config["AllocationStrategy"].should.equal("diversified")
     spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
@@ -1986,7 +2002,7 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                 "Type": "AWS::EC2::SpotFleet",
                 "Properties": {
                     "SpotFleetRequestConfigData": {
-                        "IamFleetRole": "arn:aws:iam::123456789012:role/fleet",
+                        "IamFleetRole": "arn:aws:iam::{}:role/fleet".format(ACCOUNT_ID),
                         "TargetCapacity": 6,
                         "AllocationStrategy": "diversified",
                         "LaunchSpecifications": [
@@ -2005,7 +2021,9 @@ def test_stack_spot_fleet_should_figure_out_default_price():
                                 "SecurityGroups": [{"GroupId": "sg-123"}],
                                 "SubnetId": subnet_id,
                                 "IamInstanceProfile": {
-                                    "Arn": "arn:aws:iam::123456789012:role/fleet"
+                                    "Arn": "arn:aws:iam::{}:role/fleet".format(
+                                        ACCOUNT_ID
+                                    )
                                 },
                                 "WeightedCapacity": "4",
                             },

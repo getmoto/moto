@@ -120,9 +120,14 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def list_metrics(self):
-        metrics = self.cloudwatch_backend.get_all_metrics()
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        next_token = self._get_param("NextToken")
+        next_token, metrics = self.cloudwatch_backend.list_metrics(
+            next_token, namespace, metric_name
+        )
         template = self.response_template(LIST_METRICS_TEMPLATE)
-        return template.render(metrics=metrics)
+        return template.render(metrics=metrics, next_token=next_token)
 
     @amzn_request_id
     def delete_dashboards(self):
@@ -340,9 +345,11 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
             </member>
             {% endfor %}
         </Metrics>
+        {% if next_token is not none %}
         <NextToken>
-            96e88479-4662-450b-8a13-239ded6ce9fe
+            {{ next_token }}
         </NextToken>
+        {% endif %}
     </ListMetricsResult>
 </ListMetricsResponse>"""
 

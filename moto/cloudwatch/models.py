@@ -1,13 +1,16 @@
 import json
+
+from boto3 import Session
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
-import boto.ec2.cloudwatch
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
+from uuid import uuid4
 from .utils import make_arn_for_dashboard
 
-DEFAULT_ACCOUNT_ID = 123456789012
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 _EMPTY_LIST = tuple()
 
@@ -193,6 +196,7 @@ class CloudWatchBackend(BaseBackend):
         self.alarms = {}
         self.dashboards = {}
         self.metric_data = []
+        self.paged_metric_data = {}
 
     def put_metric_alarm(
         self,
@@ -377,6 +381,36 @@ class CloudWatchBackend(BaseBackend):
 
         self.alarms[alarm_name].update_state(reason, reason_data, state_value)
 
+    def list_metrics(self, next_token, namespace, metric_name):
+        if next_token:
+            if next_token not in self.paged_metric_data:
+                raise RESTError(
+                    "PaginationException", "Request parameter NextToken is invalid"
+                )
+            else:
+                metrics = self.paged_metric_data[next_token]
+                del self.paged_metric_data[next_token]  # Cant reuse same token twice
+                return self._get_paginated(metrics)
+        else:
+            metrics = self.get_filtered_metrics(metric_name, namespace)
+            return self._get_paginated(metrics)
+
+    def get_filtered_metrics(self, metric_name, namespace):
+        metrics = self.get_all_metrics()
+        if namespace:
+            metrics = [md for md in metrics if md.namespace == namespace]
+        if metric_name:
+            metrics = [md for md in metrics if md.name == metric_name]
+        return metrics
+
+    def _get_paginated(self, metrics):
+        if len(metrics) > 500:
+            next_token = str(uuid4())
+            self.paged_metric_data[next_token] = metrics[500:]
+            return next_token, metrics[0:500]
+        else:
+            return None, metrics
+
 
 class LogGroup(BaseModel):
     def __init__(self, spec):
@@ -399,5 +433,11 @@ class LogGroup(BaseModel):
 
 
 cloudwatch_backends = {}
-for region in boto.ec2.cloudwatch.regions():
-    cloudwatch_backends[region.name] = CloudWatchBackend()
+for region in Session().get_available_regions("cloudwatch"):
+    cloudwatch_backends[region] = CloudWatchBackend()
+for region in Session().get_available_regions(
+    "cloudwatch", partition_name="aws-us-gov"
+):
+    cloudwatch_backends[region] = CloudWatchBackend()
+for region in Session().get_available_regions("cloudwatch", partition_name="aws-cn"):
+    cloudwatch_backends[region] = CloudWatchBackend()

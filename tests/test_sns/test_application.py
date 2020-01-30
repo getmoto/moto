@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import boto
 from boto.exception import BotoServerError
 from moto import mock_sns_deprecated
+from moto.core import ACCOUNT_ID
 import sure  # noqa
 
 
@@ -21,7 +22,7 @@ def test_create_platform_application():
         "CreatePlatformApplicationResult"
     ]["PlatformApplicationArn"]
     application_arn.should.equal(
-        "arn:aws:sns:us-east-1:123456789012:app/APNS/my-application"
+        "arn:aws:sns:us-east-1:{}:app/APNS/my-application".format(ACCOUNT_ID)
     )
 
 
@@ -87,8 +88,8 @@ def test_list_platform_applications():
     conn.create_platform_application(name="application1", platform="APNS")
     conn.create_platform_application(name="application2", platform="APNS")
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["ListPlatformApplicationsResponse"][
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["ListPlatformApplicationsResponse"][
         "ListPlatformApplicationsResult"
     ]["PlatformApplications"]
     applications.should.have.length_of(2)
@@ -100,8 +101,8 @@ def test_delete_platform_application():
     conn.create_platform_application(name="application1", platform="APNS")
     conn.create_platform_application(name="application2", platform="APNS")
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["ListPlatformApplicationsResponse"][
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["ListPlatformApplicationsResponse"][
         "ListPlatformApplicationsResult"
     ]["PlatformApplications"]
     applications.should.have.length_of(2)
@@ -109,8 +110,8 @@ def test_delete_platform_application():
     application_arn = applications[0]["PlatformApplicationArn"]
     conn.delete_platform_application(application_arn)
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["ListPlatformApplicationsResponse"][
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["ListPlatformApplicationsResponse"][
         "ListPlatformApplicationsResult"
     ]["PlatformApplications"]
     applications.should.have.length_of(1)
@@ -137,7 +138,7 @@ def test_create_platform_endpoint():
         "CreatePlatformEndpointResult"
     ]["EndpointArn"]
     endpoint_arn.should.contain(
-        "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/"
+        "arn:aws:sns:us-east-1:{}:endpoint/APNS/my-application/".format(ACCOUNT_ID)
     )
 
 

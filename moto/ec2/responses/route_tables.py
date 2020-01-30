@@ -18,6 +18,7 @@ class RouteTables(BaseResponse):
         destination_cidr_block = self._get_param("DestinationCidrBlock")
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
+        nat_gateway_id = self._get_param("NatGatewayId")
         interface_id = self._get_param("NetworkInterfaceId")
         pcx_id = self._get_param("VpcPeeringConnectionId")
 
@@ -26,6 +27,7 @@ class RouteTables(BaseResponse):
             destination_cidr_block,
             gateway_id=gateway_id,
             instance_id=instance_id,
+            nat_gateway_id=nat_gateway_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
         )
@@ -172,6 +174,10 @@ DESCRIBE_ROUTE_TABLES_RESPONSE = """
                   <vpcPeeringConnectionId>{{ route.vpc_pcx.id }}</vpcPeeringConnectionId>
                   <origin>CreateRoute</origin>
                   <state>blackhole</state>
+                {% endif %}
+                {% if route.nat_gateway %}
+                  <natGatewayId>{{ route.nat_gateway.id }}</natGatewayId>
+                  <state>active</state>
                 {% endif %}
               </item>
             {% endfor %}

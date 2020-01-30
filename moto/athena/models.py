@@ -1,10 +1,11 @@
 from __future__ import unicode_literals
 import time
 
-import boto3
+from boto3 import Session
+
 from moto.core import BaseBackend, BaseModel
 
-ACCOUNT_ID = 123456789012
+from moto.core import ACCOUNT_ID
 
 
 class TaggableResourceMixin(object):
@@ -77,5 +78,9 @@ class AthenaBackend(BaseBackend):
 
 
 athena_backends = {}
-for region in boto3.Session().get_available_regions("athena"):
+for region in Session().get_available_regions("athena"):
+    athena_backends[region] = AthenaBackend(region)
+for region in Session().get_available_regions("athena", partition_name="aws-us-gov"):
+    athena_backends[region] = AthenaBackend(region)
+for region in Session().get_available_regions("athena", partition_name="aws-cn"):
     athena_backends[region] = AthenaBackend(region)

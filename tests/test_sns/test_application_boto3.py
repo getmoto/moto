@@ -4,6 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from moto import mock_sns
 import sure  # noqa
+from moto.core import ACCOUNT_ID
 
 
 @mock_sns
@@ -19,7 +20,7 @@ def test_create_platform_application():
     )
     application_arn = response["PlatformApplicationArn"]
     application_arn.should.equal(
-        "arn:aws:sns:us-east-1:123456789012:app/APNS/my-application"
+        "arn:aws:sns:us-east-1:{}:app/APNS/my-application".format(ACCOUNT_ID)
     )
 
 
@@ -87,8 +88,8 @@ def test_list_platform_applications():
         Name="application2", Platform="APNS", Attributes={}
     )
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["PlatformApplications"]
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["PlatformApplications"]
     applications.should.have.length_of(2)
 
 
@@ -102,15 +103,15 @@ def test_delete_platform_application():
         Name="application2", Platform="APNS", Attributes={}
     )
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["PlatformApplications"]
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["PlatformApplications"]
     applications.should.have.length_of(2)
 
     application_arn = applications[0]["PlatformApplicationArn"]
     conn.delete_platform_application(PlatformApplicationArn=application_arn)
 
-    applications_repsonse = conn.list_platform_applications()
-    applications = applications_repsonse["PlatformApplications"]
+    applications_response = conn.list_platform_applications()
+    applications = applications_response["PlatformApplications"]
     applications.should.have.length_of(1)
 
 
@@ -131,7 +132,7 @@ def test_create_platform_endpoint():
 
     endpoint_arn = endpoint["EndpointArn"]
     endpoint_arn.should.contain(
-        "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/"
+        "arn:aws:sns:us-east-1:{}:endpoint/APNS/my-application/".format(ACCOUNT_ID)
     )
 
 
