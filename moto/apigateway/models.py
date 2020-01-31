@@ -556,7 +556,7 @@ class APIGatewayBackend(BaseBackend):
         return resource
 
     def create_resource(self, function_id, parent_resource_id, path_part):
-        if not re.match("^\\{?[a-zA-Z0-9._-]+\\}?$", path_part):
+        if not re.match("^\\{?[a-zA-Z0-9._-]+\\+?\\}?$", path_part):
             raise InvalidResourcePathException()
         api = self.get_rest_api(function_id)
         child = api.add_child(path=path_part, parent_id=parent_resource_id)
