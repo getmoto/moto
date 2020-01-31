@@ -9,6 +9,8 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
+from moto.iam.models import ACCOUNT_ID
+
 from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 
@@ -21,11 +23,16 @@ class Key(BaseModel):
         self.description = description
         self.enabled = True
         self.region = region
-        self.account_id = "012345678912"
+        self.account_id = ACCOUNT_ID
         self.key_rotation_status = False
         self.deletion_date = None
         self.tags = tags or {}
         self.key_material = generate_master_key()
+        self.origin = "AWS_KMS"
+        self.key_manager = "CUSTOMER"
+        self.customer_master_key_spec = "SYMMETRIC_DEFAULT"
+        self.encryption_algorithms = ["SYMMETRIC_DEFAULT"]
+        self.signing_algorithms = None
 
     @property
     def physical_resource_id(self):
@@ -43,11 +50,16 @@ class Key(BaseModel):
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
                 "CreationDate": iso_8601_datetime_without_milliseconds(datetime.now()),
+                "CustomerMasterKeySpec": self.customer_master_key_spec,
                 "Description": self.description,
                 "Enabled": self.enabled,
+                "EncryptionAlgorithms": self.encryption_algorithms,
                 "KeyId": self.id,
+                "KeyManager": self.key_manager,
                 "KeyUsage": self.key_usage,
                 "KeyState": self.key_state,
+                "Origin": self.origin,
+                "SigningAlgorithms": self.signing_algorithms,
             }
         }
         if self.key_state == "PendingDeletion":

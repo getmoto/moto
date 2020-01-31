@@ -46,10 +46,23 @@ def test_create_key():
             Tags=[{"TagKey": "project", "TagValue": "moto"}],
         )
 
+        key["KeyMetadata"]["Arn"].should.equal(
+            "arn:aws:kms:us-east-1:123456789012:key/{}".format(
+                key["KeyMetadata"]["KeyId"]
+            )
+        )
+        key["KeyMetadata"]["AWSAccountId"].should.equal("123456789012")
+        key["KeyMetadata"]["CreationDate"].should.be.a(datetime)
+        key["KeyMetadata"]["CustomerMasterKeySpec"].should.equal("SYMMETRIC_DEFAULT")
         key["KeyMetadata"]["Description"].should.equal("my key")
+        key["KeyMetadata"]["Enabled"].should.be.ok
+        key["KeyMetadata"]["EncryptionAlgorithms"].should.equal(["SYMMETRIC_DEFAULT"])
+        key["KeyMetadata"]["KeyId"].should_not.be.empty
+        key["KeyMetadata"]["KeyManager"].should.equal("CUSTOMER")
+        key["KeyMetadata"]["KeyState"].should.equal("Enabled")
         key["KeyMetadata"]["KeyUsage"].should.equal("ENCRYPT_DECRYPT")
-        key["KeyMetadata"]["Enabled"].should.equal(True)
-        key["KeyMetadata"]["CreationDate"].should.be.a(date)
+        key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
+        key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
 
 @mock_kms_deprecated
