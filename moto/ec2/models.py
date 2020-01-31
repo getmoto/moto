@@ -560,7 +560,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
             size = image.ebs_snapshot.volume.size
             volume_type = image.ebs_snapshot.volume.volume_type
         volume = self.ec2_backend.create_volume(
-            size, "us-east-1a", volume_type=volume_type
+            size=size, zone_name="us-east-1a", volume_type=volume_type
         )
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1")
 
@@ -1299,7 +1299,9 @@ class Ami(TaggedEC2Resource):
         if public:
             self.launch_permission_groups.add("all")
 
-        volume = volume or self.ec2_backend.create_volume(15, region_name)
+        volume = volume or self.ec2_backend.create_volume(
+            size=15, zone_name=region_name
+        )
         self.ebs_snapshot = self.ec2_backend.create_snapshot(
             volume.id, "Auto-created snapshot for AMI %s" % self.id, owner_id
         )
@@ -2253,22 +2255,22 @@ class Volume(TaggedEC2Resource):
         volume_id,
         size,
         zone,
+        snapshot_id=None,
         encrypted=False,
         iops=None,
-        snapshot_id=None,
         tags=None,
         volume_type=None,
     ):
+        self.ec2_backend = ec2_backend
         self.id = volume_id
         self.size = size
         self.zone = zone
-        self.volume_type = volume_type
+        self.snapshot_id = snapshot_id
+        self.encrypted = encrypted
         self.iops = iops
+        self.volume_type = volume_type
         self.create_time = utc_date_and_time()
         self.attachment = None
-        self.snapshot_id = snapshot_id
-        self.ec2_backend = ec2_backend
-        self.encrypted = encrypted
         if tags is not None:
             for key, value in tags.items():
                 self.add_tag(key, value)
@@ -2376,9 +2378,9 @@ class EBSBackend(object):
         self,
         size,
         zone_name,
+        snapshot_id=None,
         encrypted=False,
         iops=None,
-        snapshot_id=None,
         tags=None,
         volume_type=None,
     ):
@@ -2393,7 +2395,15 @@ class EBSBackend(object):
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
         volume = Volume(
-            self, volume_id, size, zone, encrypted, iops, snapshot_id, tags, volume_type
+            ec2_backend=self,
+            volume_id=volume_id,
+            size=size,
+            zone=zone,
+            snapshot_id=snapshot_id,
+            encrypted=encrypted,
+            iops=iops,
+            tags=tags,
+            volume_type=volume_type,
         )
         self.volumes[volume_id] = volume
         return volume

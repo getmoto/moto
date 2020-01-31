@@ -44,10 +44,17 @@ class ElasticBlockStore(BaseResponse):
         tags = self._parse_tag_specification("TagSpecification")
         volume_tags = tags.get("volume", {})
         encrypted = self._get_param("Encrypted", if_none=False)
-        volume_type = self._get_param('VolumeType')
-        iops = self._get_param('Iops')
+        volume_type = self._get_param("VolumeType")
+        iops = self._get_param("Iops")
         if self.is_not_dryrun("CreateVolume"):
-            volume = self.ec2_backend.create_volume(size, zone, volume_type, encrypted, snapshot_id, iops)
+            volume = self.ec2_backend.create_volume(
+                size=size,
+                zone_name=zone,
+                snapshot_id=snapshot_id,
+                encrypted=encrypted,
+                iops=iops,
+                volume_type=volume_type,
+            )
             volume.add_tags(volume_tags)
             template = self.response_template(CREATE_VOLUME_RESPONSE)
             return template.render(volume=volume)
