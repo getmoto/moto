@@ -236,6 +236,7 @@ class FakeStack(BaseModel):
             self._add_stack_event(
                 "REVIEW_IN_PROGRESS", resource_status_reason="User Initiated"
             )
+            self.status = "REVIEW_IN_PROGRESS"
         else:
             self._add_stack_event(
                 "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
@@ -247,10 +248,14 @@ class FakeStack(BaseModel):
         if create_change_set:
             self.status = "CREATE_COMPLETE"
             self.execution_status = "AVAILABLE"
-        else:
-            self.create_resources()
-            self._add_stack_event("CREATE_COMPLETE")
         self.creation_time = datetime.utcnow()
+
+    def initialize_resources(self):
+        self.resource_map.load()
+        self.resource_map.create()
+        self.output_map.create()
+        self._add_stack_event("CREATE_COMPLETE")
+        self.status = "CREATE_COMPLETE"
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
@@ -262,12 +267,15 @@ class FakeStack(BaseModel):
             self.template_dict,
             self.cross_stack_resources,
         )
-        resource_map.load()
+        # Note: resource initialization removed from here and moved into initialize_resources() instead
+        # resource_map.load()
+        # resource_map.create()
         return resource_map
 
     def _create_output_map(self):
         output_map = OutputMap(self.resource_map, self.template_dict, self.stack_id)
-        output_map.create()
+        # Note: resource initialization removed from here and moved into initialize_resources() instead
+        # output_map.create()
         return output_map
 
     @property
@@ -607,6 +615,10 @@ class CloudFormationBackend(BaseBackend):
             create_change_set=create_change_set,
         )
         self.stacks[stack_id] = new_stack
+
+        # Note: we're first adding the new stack to self.stacks, then initialize its resources
+        new_stack.initialize_resources()
+
         self._validate_export_uniqueness(new_stack)
         for export in new_stack.exports:
             self.exports[export.name] = export
