@@ -254,7 +254,7 @@ class FakeStack(BaseModel):
 
     def initialize_resources(self):
         self.resource_map.load()
-        self.resource_map.create(self.template_dict)
+        self.resource_map.create()
         self.output_map.create()
         self._add_stack_event("CREATE_COMPLETE")
         self.status = "CREATE_COMPLETE"
