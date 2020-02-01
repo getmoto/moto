@@ -563,6 +563,10 @@ class IamResponse(BaseResponse):
 
     def create_access_key(self):
         user_name = self._get_param("UserName")
+        if not user_name:
+            access_key_id = self.get_current_user()
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
 
         key = iam_backend.create_access_key(user_name)
         template = self.response_template(CREATE_ACCESS_KEY_TEMPLATE)
@@ -572,6 +576,10 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         access_key_id = self._get_param("AccessKeyId")
         status = self._get_param("Status")
+        if not user_name:
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
+
         iam_backend.update_access_key(user_name, access_key_id, status)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)
         return template.render(name="UpdateAccessKey")
@@ -587,6 +595,11 @@ class IamResponse(BaseResponse):
 
     def list_access_keys(self):
         user_name = self._get_param("UserName")
+        if not user_name:
+            access_key_id = self.get_current_user()
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
+
         keys = iam_backend.get_all_access_keys(user_name)
         template = self.response_template(LIST_ACCESS_KEYS_TEMPLATE)
         return template.render(user_name=user_name, keys=keys)
@@ -594,6 +607,9 @@ class IamResponse(BaseResponse):
     def delete_access_key(self):
         user_name = self._get_param("UserName")
         access_key_id = self._get_param("AccessKeyId")
+        if not user_name:
+            access_key = iam_backend.get_access_key_last_used(access_key_id)
+            user_name = access_key["user_name"]
 
         iam_backend.delete_access_key(access_key_id, user_name)
         template = self.response_template(GENERIC_EMPTY_TEMPLATE)

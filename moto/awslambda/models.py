@@ -25,6 +25,7 @@ import requests.adapters
 
 from boto3 import Session
 
+from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
@@ -46,7 +47,6 @@ from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.core import ACCOUNT_ID
 
 logger = logging.getLogger(__name__)
-
 
 try:
     from tempfile import TemporaryDirectory
@@ -161,7 +161,8 @@ class LambdaFunction(BaseModel):
         self.logs_backend = logs_backends[self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.docker_client = docker.from_env()
-        self.policy = ""
+        self.policy = None
+        self.state = "Active"
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -271,11 +272,11 @@ class LambdaFunction(BaseModel):
             "MemorySize": self.memory_size,
             "Role": self.role,
             "Runtime": self.run_time,
+            "State": self.state,
             "Timeout": self.timeout,
             "Version": str(self.version),
             "VpcConfig": self.vpc_config,
         }
-
         if self.environment_vars:
             config["Environment"] = {"Variables": self.environment_vars}
 
@@ -394,6 +395,7 @@ class LambdaFunction(BaseModel):
             env_vars.update(self.environment_vars)
 
             container = output = exit_code = None
+            log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
                     run_kwargs = (
@@ -409,6 +411,7 @@ class LambdaFunction(BaseModel):
                         volumes=["{}:/var/task".format(data_vol.name)],
                         environment=env_vars,
                         detach=True,
+                        log_config=log_config,
                         **run_kwargs
                     )
                 finally:
@@ -472,7 +475,7 @@ class LambdaFunction(BaseModel):
             payload["result"] = response_headers["x-amz-log-result"]
             result = res.encode("utf-8")
         else:
-            result = json.dumps(payload)
+            result = res
         if errored:
             response_headers["x-amz-function-error"] = "Handled"
 
@@ -701,7 +704,8 @@ class LambdaStorage(object):
                 "versions": [],
                 "alias": weakref.WeakValueDictionary(),
             }
-
+        # instantiate a new policy for this version of the lambda
+        fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
     def publish_function(self, name):
@@ -1002,8 +1006,21 @@ class LambdaBackend(BaseBackend):
             return True
         return False
 
-    def add_policy(self, function_name, policy):
-        self.get_function(function_name).policy = policy
+    def add_policy_statement(self, function_name, raw):
+        fn = self.get_function(function_name)
+        fn.policy.add_statement(raw)
+
+    def del_policy_statement(self, function_name, sid, revision=""):
+        fn = self.get_function(function_name)
+        fn.policy.del_statement(sid, revision)
+
+    def get_policy(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.policy.get_policy()
+
+    def get_policy_wire_format(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.policy.wire_format()
 
     def update_function_code(self, function_name, qualifier, body):
         fn = self.get_function(function_name, qualifier)
