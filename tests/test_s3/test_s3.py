@@ -1118,17 +1118,22 @@ def test_bucket_location_nondefault():
     )
 
 
-@mock_s3
-def test_s3_location_should_error_outside_useast1():
-    s3 = boto3.client("s3", region_name="eu-west-1")
+# Test uses current Region to determine whether to throw an error
+# Region is retrieved based on current URL
+# URL will always be localhost in Server Mode, so can't run it there
+if not settings.TEST_SERVER_MODE:
 
-    bucket_name = "asdfasdfsdfdsfasda"
+    @mock_s3
+    def test_s3_location_should_error_outside_useast1():
+        s3 = boto3.client("s3", region_name="eu-west-1")
 
-    with assert_raises(ClientError) as e:
-        s3.create_bucket(Bucket=bucket_name)
-    e.exception.response["Error"]["Message"].should.equal(
-        "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
-    )
+        bucket_name = "asdfasdfsdfdsfasda"
+
+        with assert_raises(ClientError) as e:
+            s3.create_bucket(Bucket=bucket_name)
+        e.exception.response["Error"]["Message"].should.equal(
+            "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to."
+        )
 
 
 @mock_s3_deprecated
