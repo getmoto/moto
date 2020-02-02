@@ -153,7 +153,7 @@ def test_invoke_event_function():
 
 @mock_lambda
 def test_invoke_dryrun_function():
-    conn = boto3.client("lambda", "us-west-2")
+    conn = boto3.client("lambda", _lambda_region)
     conn.create_function(
         FunctionName="testFunction",
         Runtime="python2.7",
