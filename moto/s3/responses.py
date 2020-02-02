@@ -29,6 +29,7 @@ from .exceptions import (
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
+    IllegalLocationConstraintException,
     InvalidNotificationARN,
     InvalidNotificationEvent,
     ObjectNotInActiveTierError,
@@ -585,6 +586,15 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             next_continuation_token = None
         return result_keys, is_truncated, next_continuation_token
 
+    def _body_contains_location_constraint(self, body):
+        if body:
+            try:
+                xmltodict.parse(body)["CreateBucketConfiguration"]["LocationConstraint"]
+                return True
+            except KeyError:
+                pass
+        return False
+
     def _bucket_response_put(
         self, request, body, region_name, bucket_name, querystring
     ):
@@ -680,10 +690,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return ""
 
         else:
+            # us-east-1, the default AWS region behaves a bit differently
+            # - you should not use it as a location constraint --> it fails
+            # - querying the location constraint returns None
+            # - LocationConstraint has to be specified if outside us-east-1
+            if (
+                region_name != DEFAULT_REGION_NAME
+                and not self._body_contains_location_constraint(body)
+            ):
+                raise IllegalLocationConstraintException()
             if body:
-                # us-east-1, the default AWS region behaves a bit differently
-                # - you should not use it as a location constraint --> it fails
-                # - querying the location constraint returns None
                 try:
                     forced_region = xmltodict.parse(body)["CreateBucketConfiguration"][
                         "LocationConstraint"
