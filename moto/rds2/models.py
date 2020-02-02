@@ -130,7 +130,9 @@ class Database(BaseModel):
         if not self.option_group_name and self.engine in self.default_option_groups:
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get("character_set_name", None)
-        self.iam_database_authentication_enabled = False
+        self.enable_iam_database_authentication = kwargs.get(
+            "enable_iam_database_authentication", False
+        )
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get("tags", [])
 
