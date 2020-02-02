@@ -1692,7 +1692,7 @@ def test_create_parameter_group_with_tags():
 
 
 @mock_rds2
-def test_create_database_with_iam_authentication():
+def test_create_db_with_iam_authentication():
     conn = boto3.client("rds", region_name="us-west-2")
 
     database = conn.create_db_instance(
