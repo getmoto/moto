@@ -1546,7 +1546,8 @@ def test_bucket_create_force_us_east_1():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     with assert_raises(ClientError) as exc:
         s3.create_bucket(
-            Bucket="blah", CreateBucketConfiguration={"LocationConstraint": DEFAULT_REGION_NAME}
+            Bucket="blah",
+            CreateBucketConfiguration={"LocationConstraint": DEFAULT_REGION_NAME},
         )
     exc.exception.response["Error"]["Code"].should.equal("InvalidLocationConstraint")
 
