@@ -544,7 +544,7 @@ class Snapshot(BaseModel):
               <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
               <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
               <Timezone></Timezone>
-              <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
             </DBSnapshot>"""
         )
         return template.render(snapshot=self, database=self.database)
