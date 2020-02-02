@@ -130,7 +130,9 @@ class Database(BaseModel):
         if not self.option_group_name and self.engine in self.default_option_groups:
             self.option_group_name = self.default_option_groups[self.engine]
         self.character_set_name = kwargs.get("character_set_name", None)
-        self.iam_database_authentication_enabled = False
+        self.enable_iam_database_authentication = kwargs.get(
+            "enable_iam_database_authentication", False
+        )
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get("tags", [])
 
@@ -214,7 +216,7 @@ class Database(BaseModel):
               <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
               {% endif %}
               <Engine>{{ database.engine }}</Engine>
-              <IAMDatabaseAuthenticationEnabled>{{database.iam_database_authentication_enabled }}</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
               <LicenseModel>{{ database.license_model }}</LicenseModel>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <OptionGroupMemberships>
@@ -542,7 +544,7 @@ class Snapshot(BaseModel):
               <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
               <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
               <Timezone></Timezone>
-              <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
             </DBSnapshot>"""
         )
         return template.render(snapshot=self, database=self.database)

@@ -27,6 +27,9 @@ class RDS2Response(BaseResponse):
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
             "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
