@@ -1,8 +1,11 @@
 from __future__ import unicode_literals
-import itertools
+
+import copy
 import json
-import six
 import re
+
+import itertools
+import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
@@ -710,7 +713,8 @@ class DynamoHandler(BaseResponse):
         attribute_updates = self.body.get("AttributeUpdates")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
-        existing_item = self.dynamodb_backend.get_item(name, key)
+        # We need to copy the item in order to avoid it being modified by the update_item operation
+        existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
         if existing_item:
             existing_attributes = existing_item.to_json()["Attributes"]
         else:
@@ -796,13 +800,36 @@ class DynamoHandler(BaseResponse):
                 k: v for k, v in existing_attributes.items() if k in changed_attributes
             }
         elif return_values == "UPDATED_NEW":
-            item_dict["Attributes"] = {
-                k: v
-                for k, v in item_dict["Attributes"].items()
-                if k in changed_attributes
-            }
+            item_dict["Attributes"] = self._build_updated_new_attributes(
+                existing_attributes, item_dict["Attributes"]
+            )
 
         return dynamo_json_dump(item_dict)
+
+    def _build_updated_new_attributes(self, original, changed):
+        if type(changed) != type(original):
+            return changed
+        else:
+            if type(changed) is dict:
+                return {
+                    key: self._build_updated_new_attributes(
+                        original.get(key, None), changed[key]
+                    )
+                    for key in changed.keys()
+                    if changed[key] != original.get(key, None)
+                }
+            elif type(changed) in (set, list):
+                if len(changed) != len(original):
+                    return changed
+                else:
+                    return [
+                        self._build_updated_new_attributes(original[index], changed[index])
+                        for index in range(len(changed))
+                    ]
+            elif changed != original:
+                return changed
+            else:
+                return None
 
     def describe_limits(self):
         return json.dumps(

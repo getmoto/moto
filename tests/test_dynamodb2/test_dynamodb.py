@@ -3412,13 +3412,18 @@ def test_update_supports_list_append():
     )
 
     # Update item using list_append expression
-    client.update_item(
+    updated_item = client.update_item(
         TableName="TestTable",
         Key={"SHA256": {"S": "sha-of-file"}},
         UpdateExpression="SET crontab = list_append(crontab, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
+        ReturnValues="UPDATED_NEW",
     )
 
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"crontab": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}
+    )
     # Verify item is appended to the existing list
     result = client.get_item(
         TableName="TestTable", Key={"SHA256": {"S": "sha-of-file"}}
@@ -3451,15 +3456,19 @@ def test_update_supports_nested_list_append():
     )
 
     # Update item using list_append expression
-    client.update_item(
+    updated_item = client.update_item(
         TableName="TestTable",
         Key={"id": {"S": "nested_list_append"}},
         UpdateExpression="SET a.#b = list_append(a.#b, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
         ExpressionAttributeNames={"#b": "b"},
+        ReturnValues="UPDATED_NEW",
     )
 
-    # Verify item is appended to the existing list
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}
+    )
     result = client.get_item(
         TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
     )["Item"]
@@ -3491,14 +3500,19 @@ def test_update_supports_multiple_levels_nested_list_append():
     )
 
     # Update item using list_append expression
-    client.update_item(
+    updated_item = client.update_item(
         TableName="TestTable",
         Key={"id": {"S": "nested_list_append"}},
         UpdateExpression="SET a.#b.c = list_append(a.#b.#c, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
         ExpressionAttributeNames={"#b": "b", "#c": "c"},
+        ReturnValues="UPDATED_NEW",
     )
 
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}}}
+    )
     # Verify item is appended to the existing list
     result = client.get_item(
         TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
@@ -3532,14 +3546,19 @@ def test_update_supports_nested_list_append_onto_another_list():
     )
 
     # Update item using list_append expression
-    client.update_item(
+    updated_item = client.update_item(
         TableName="TestTable",
         Key={"id": {"S": "list_append_another"}},
         UpdateExpression="SET a.#c = list_append(a.#b, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
         ExpressionAttributeNames={"#b": "b", "#c": "c"},
+        ReturnValues="UPDATED_NEW",
     )
 
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"a": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}
+    )
     # Verify item is appended to the existing list
     result = client.get_item(
         TableName="TestTable", Key={"id": {"S": "list_append_another"}}
@@ -3582,13 +3601,18 @@ def test_update_supports_list_append_maps():
     )
 
     # Update item using list_append expression
-    client.update_item(
+    updated_item = client.update_item(
         TableName="TestTable",
         Key={"id": {"S": "nested_list_append"}, "rid": {"S": "range_key"}},
         UpdateExpression="SET a = list_append(a, :i)",
         ExpressionAttributeValues={":i": {"L": [{"M": {"b": {"S": "bar2"}}}]}},
+        ReturnValues="UPDATED_NEW",
     )
 
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]}}
+    )
     # Verify item is appended to the existing list
     result = client.query(
         TableName="TestTable",
