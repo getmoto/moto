@@ -48,7 +48,7 @@ class DBSnapshot(TaggableRDSResource, EventMixin, BaseRDSModel):
             is_valid = False
         if db_snapshot_identifier.find('--') != -1:
             is_valid = False
-        valid_chars = ''.join([string.digits, string.lowercase, string.uppercase, '-'])
+        valid_chars = ''.join([string.digits, string.ascii_letters, '-'])
         if not all(char in valid_chars for char in db_snapshot_identifier):
             is_valid = False
         return is_valid
