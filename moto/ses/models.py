@@ -148,11 +148,15 @@ class SESBackend(BaseBackend):
     def __type_of_message__(self, destinations):
         """Checks the destination for any special address that could indicate delivery,
         complaint or bounce like in SES simulator"""
-        alladdress = (
-            destinations.get("ToAddresses", [])
-            + destinations.get("CcAddresses", [])
-            + destinations.get("BccAddresses", [])
-        )
+        if isinstance(destinations, list):
+            alladdress = destinations
+        else:
+            alladdress = (
+                destinations.get("ToAddresses", [])
+                + destinations.get("CcAddresses", [])
+                + destinations.get("BccAddresses", [])
+            )
+
         for addr in alladdress:
             if SESFeedback.SUCCESS_ADDR in addr:
                 return SESFeedback.DELIVERY
