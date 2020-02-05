@@ -40,6 +40,8 @@ def __setup_feedback_env__(
     )
     # Verify SES domain
     ses_conn.verify_domain_identity(Domain=domain)
+    # Specify email address to allow for raw e-mails to be processed
+    ses_conn.verify_email_identity(EmailAddress="test@example.com")
     # Setup SES notification topic
     if expected_msg is not None:
         ses_conn.set_identity_notification_topic(
@@ -47,7 +49,7 @@ def __setup_feedback_env__(
         )
 
 
-def __test_sns_feedback__(addr, expected_msg):
+def __test_sns_feedback__(addr, expected_msg, raw_email=False):
     region_name = "us-east-1"
     ses_conn = boto3.client("ses", region_name=region_name)
     sns_conn = boto3.client("sns", region_name=region_name)
@@ -73,7 +75,18 @@ def __test_sns_feedback__(addr, expected_msg):
             "Body": {"Text": {"Data": "test body"}},
         },
     )
-    ses_conn.send_email(**kwargs)
+    if raw_email:
+        kwargs.pop("Message")
+        kwargs.pop("Destination")
+        kwargs.update(
+            {
+                "Destinations": [addr + "@" + domain],
+                "RawMessage": {"Data": bytearray("raw_email", "utf-8")},
+            }
+        )
+        ses_conn.send_raw_email(**kwargs)
+    else:
+        ses_conn.send_email(**kwargs)
 
     # Wait for messages in the queues
     queue = sqs_conn.get_queue_by_name(QueueName=queue)
@@ -112,3 +125,12 @@ def test_sns_feedback_complaint():
 @mock_ses
 def test_sns_feedback_delivery():
     __test_sns_feedback__(SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY)
+
+
+@mock_sqs
+@mock_sns
+@mock_ses
+def test_sns_feedback_delivery_raw_email():
+    __test_sns_feedback__(
+        SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY, raw_email=True
+    )
