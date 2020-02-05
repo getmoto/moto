@@ -176,7 +176,8 @@ class LambdaResponse(BaseResponse):
     def _invoke(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit("/", 2)[-2]
+        # URL Decode in case it's a ARN:
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("qualifier")
 
         response_header, payload = self.lambda_backend.invoke(

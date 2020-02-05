@@ -125,6 +125,43 @@ def test_invoke_requestresponse_function():
 
 
 @mock_lambda
+def test_invoke_requestresponse_function_with_arn():
+    from moto.awslambda.models import ACCOUNT_ID
+
+    conn = boto3.client("lambda", "us-west-2")
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    in_data = {"msg": "So long and thanks for all the fish"}
+    success_result = conn.invoke(
+        FunctionName="arn:aws:lambda:us-west-2:{}:function:testFunction".format(
+            ACCOUNT_ID
+        ),
+        InvocationType="RequestResponse",
+        Payload=json.dumps(in_data),
+    )
+
+    success_result["StatusCode"].should.equal(202)
+    result_obj = json.loads(
+        base64.b64decode(success_result["LogResult"]).decode("utf-8")
+    )
+
+    result_obj.should.equal(in_data)
+
+    payload = success_result["Payload"].read().decode("utf-8")
+    json.loads(payload).should.equal(in_data)
+
+
+@mock_lambda
 def test_invoke_event_function():
     conn = boto3.client("lambda", "us-west-2")
     conn.create_function(
