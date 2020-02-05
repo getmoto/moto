@@ -284,8 +284,13 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, limit=limit, pagination_token=token
         )
         if filt:
-            name, value = filt.replace('"', '').split('=')
-            users = [user for user in users for attribute in user.attributes if attribute['Name'] == name and attribute['Value'] == value]
+            name, value = filt.replace('"', "").split("=")
+            users = [
+                user
+                for user in users
+                for attribute in user.attributes
+                if attribute["Name"] == name and attribute["Value"] == value
+            ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
         if token:
             response["PaginationToken"] = str(token)
