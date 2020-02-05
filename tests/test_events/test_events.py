@@ -484,22 +484,22 @@ def test_rule_tagging_happy():
 
 @mock_events
 def test_rule_tagging_sad():
-    b = EventsBackend("us-west-2")
+    back_end = EventsBackend("us-west-2")
 
     try:
-        b.tag_resource("unknown", [])
+        back_end.tag_resource("unknown", [])
         raise "tag_resource should fail if ResourceARN is not known"
     except JsonRESTError:
         pass
 
     try:
-        b.untag_resource("unknown", [])
+        back_end.untag_resource("unknown", [])
         raise "untag_resource should fail if ResourceARN is not known"
     except JsonRESTError:
         pass
 
     try:
-        b.list_tags_for_resource("unknown")
+        back_end.list_tags_for_resource("unknown")
         raise "list_tags_for_resource should fail if ResourceARN is not known"
     except JsonRESTError:
         pass
