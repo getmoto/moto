@@ -15,6 +15,9 @@ class TaggingService:
     def delete_all_tags_for_resource(self, arn):
         del self.tags[arn]
 
+    def has_tags(self, arn):
+        return arn in self.tags
+
     def tag_resource(self, arn, tags):
         if arn not in self.tags:
             self.tags[arn] = {}
