@@ -76,7 +76,7 @@ def method_names_from_class(clazz):
         predicate = inspect.ismethod
     else:
         predicate = inspect.isfunction
-    return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
+    return [x[0] for x in inspect.getmembers(clazz)] #, predicate=predicate)]
 
 
 def get_random_hex(length=8):
