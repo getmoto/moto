@@ -12,6 +12,9 @@ class TaggingService:
                 result.append({self.keyName: k, self.valueName: v})
         return {self.tagName: result}
 
+    def delete_all_tags_for_resource(self, arn):
+        del self.tags[arn]
+
     def tag_resource(self, arn, tags):
         if arn not in self.tags:
             self.tags[arn] = {}

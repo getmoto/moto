@@ -143,6 +143,8 @@ class EventsBackend(BaseBackend):
 
     def delete_rule(self, name):
         self.rules_order.pop(self.rules_order.index(name))
+        arn = self.rules.get(name).arn
+        self.tagger.delete_all_tags_for_resource(arn)
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):

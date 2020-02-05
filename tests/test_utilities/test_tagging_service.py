@@ -19,6 +19,7 @@ def test_create_tag():
 
     expected.should.be.equal(actual)
 
+
 def test_create_tag_without_value():
     svc = TaggingService()
     tags = [{"Key": "key_key"}]
@@ -27,6 +28,7 @@ def test_create_tag_without_value():
     expected = {"Tags": [{"Key": "key_key", "Value": None}]}
 
     expected.should.be.equal(actual)
+
 
 def test_delete_tag_using_names():
     svc = TaggingService()
@@ -37,12 +39,26 @@ def test_delete_tag_using_names():
 
     {"Tags": []}.should.be.equal(result)
 
+
+def test_delete_all_tags_for_resource():
+    svc = TaggingService()
+    tags = [{"Key": "key_key", "Value": "value_value"}]
+    tags2 = [{"Key": "key_key2", "Value": "value_value2"}]
+    svc.tag_resource("arn", tags)
+    svc.tag_resource("arn", tags2)
+    svc.delete_all_tags_for_resource("arn")
+    result = svc.list_tags_for_resource("arn")
+
+    {"Tags": []}.should.be.equal(result)
+
+
 def test_list_empty_delete():
     svc = TaggingService()
     svc.untag_resource_using_names("arn", ["key_key"])
     result = svc.list_tags_for_resource("arn")
 
     {"Tags": []}.should.be.equal(result)
+
 
 def test_delete_tag_using_tags():
     svc = TaggingService()
@@ -61,4 +77,3 @@ def test_extract_tag_names():
     expected = ["key1", "key2"]
 
     expected.should.be.equal(actual)
-
