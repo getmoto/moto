@@ -295,7 +295,7 @@ class LambdaResponse(BaseResponse):
                 code["Configuration"]["FunctionArn"] += ":$LATEST"
             return 200, {}, json.dumps(code)
         else:
-            return 404, {}, "{}"
+            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
 
     def _get_aws_region(self, full_url):
         region = self.region_regex.search(full_url)
