@@ -222,6 +222,11 @@ class OrganizationsBackend(BaseBackend):
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_ou.id)
         return new_ou.describe()
 
+    def update_organizational_unit(self, **kwargs):
+        ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
+        ou.name = kwargs["Name"]
+        return ou.describe()
+
     def get_organizational_unit_by_id(self, ou_id):
         ou = next((ou for ou in self.ou if ou.id == ou_id), None)
         if ou is None:
