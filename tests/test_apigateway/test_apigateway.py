@@ -26,7 +26,14 @@ def test_create_and_get_rest_api():
     response.pop("ResponseMetadata")
     response.pop("createdDate")
     response.should.equal(
-        {"id": api_id, "name": "my_api", "description": "this is my api"}
+        {
+            "id": api_id,
+            "name": "my_api",
+            "description": "this is my api",
+            "apiKeySource": "HEADER",
+            "endpointConfiguration": {"types": ["EDGE"]},
+            "tags": {},
+        }
     )
 
 
@@ -45,6 +52,114 @@ def test_list_and_delete_apis():
 
     response = client.get_rest_apis()
     len(response["items"]).should.equal(1)
+
+
+@mock_apigateway
+def test_create_rest_api_with_tags():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", tags={"MY_TAG1": "MY_VALUE1"}
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+
+    assert "tags" in response
+    response["tags"].should.equal({"MY_TAG1": "MY_VALUE1"})
+
+
+@mock_apigateway
+def test_create_rest_api_invalid_apikeysource():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with assert_raises(ClientError) as ex:
+        client.create_rest_api(
+            name="my_api",
+            description="this is my api",
+            apiKeySource="not a valid api key source",
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+
+
+@mock_apigateway
+def test_create_rest_api_valid_apikeysources():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    # 1. test creating rest api with HEADER apiKeySource
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", apiKeySource="HEADER",
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["apiKeySource"].should.equal("HEADER")
+
+    # 2. test creating rest api with AUTHORIZER apiKeySource
+    response = client.create_rest_api(
+        name="my_api2", description="this is my api", apiKeySource="AUTHORIZER",
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["apiKeySource"].should.equal("AUTHORIZER")
+
+
+@mock_apigateway
+def test_create_rest_api_invalid_endpointconfiguration():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with assert_raises(ClientError) as ex:
+        client.create_rest_api(
+            name="my_api",
+            description="this is my api",
+            endpointConfiguration={"types": ["INVALID"]},
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+
+
+@mock_apigateway
+def test_create_rest_api_valid_endpointconfigurations():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    # 1. test creating rest api with PRIVATE endpointConfiguration
+    response = client.create_rest_api(
+        name="my_api",
+        description="this is my api",
+        endpointConfiguration={"types": ["PRIVATE"]},
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["endpointConfiguration"].should.equal(
+        {"types": ["PRIVATE"],}
+    )
+
+    # 2. test creating rest api with REGIONAL endpointConfiguration
+    response = client.create_rest_api(
+        name="my_api2",
+        description="this is my api",
+        endpointConfiguration={"types": ["REGIONAL"]},
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["endpointConfiguration"].should.equal(
+        {"types": ["REGIONAL"],}
+    )
+
+    # 3. test creating rest api with EDGE endpointConfiguration
+    response = client.create_rest_api(
+        name="my_api3",
+        description="this is my api",
+        endpointConfiguration={"types": ["EDGE"]},
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["endpointConfiguration"].should.equal(
+        {"types": ["EDGE"],}
+    )
 
 
 @mock_apigateway
