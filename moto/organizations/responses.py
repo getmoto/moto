@@ -36,6 +36,11 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.create_organizational_unit(**self.request_params)
         )
 
+    def update_organizational_unit(self):
+        return json.dumps(
+            self.organizations_backend.update_organizational_unit(**self.request_params)
+        )
+
     def describe_organizational_unit(self):
         return json.dumps(
             self.organizations_backend.describe_organizational_unit(
