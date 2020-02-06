@@ -15,7 +15,7 @@ from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 
 class Key(BaseModel):
-    def __init__(self, policy, key_usage, description, tags, region):
+    def __init__(self, policy, key_usage, customer_master_key_spec, description, tags, region):
         self.id = generate_key_id()
         self.policy = policy
         self.key_usage = key_usage
@@ -30,9 +30,7 @@ class Key(BaseModel):
         self.key_material = generate_master_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
-        self.customer_master_key_spec = "SYMMETRIC_DEFAULT"
-        self.encryption_algorithms = ["SYMMETRIC_DEFAULT"]
-        self.signing_algorithms = None
+        self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
 
     @property
     def physical_resource_id(self):
@@ -43,6 +41,38 @@ class Key(BaseModel):
         return "arn:aws:kms:{0}:{1}:key/{2}".format(
             self.region, self.account_id, self.id
         )
+
+    @property
+    def encryption_algorithms(self):
+        if self.key_usage == "SIGN_VERIFY":
+            return None
+        elif self.customer_master_key_spec == "SYMMETRIC_DEFAULT":
+            return ["SYMMETRIC_DEFAULT"]
+        else:
+            return [
+                "RSAES_OAEP_SHA_1",
+                "RSAES_OAEP_SHA_256"
+            ]
+
+    @property
+    def signing_algorithms(self):
+        if self.key_usage == "ENCRYPT_DECRYPT":
+            return None
+        elif self.customer_master_key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
+            return ["ECDSA_SHA_256"]
+        elif self.customer_master_key_spec == "ECC_NIST_P384":
+            return ["ECDSA_SHA_384"]
+        elif self.customer_master_key_spec == "ECC_NIST_P521":
+            return ["ECDSA_SHA_512"]
+        else:
+            return [
+                "RSASSA_PKCS1_V1_5_SHA_256",
+                "RSASSA_PKCS1_V1_5_SHA_384",
+                "RSASSA_PKCS1_V1_5_SHA_512",
+                "RSASSA_PSS_SHA_256",
+                "RSASSA_PSS_SHA_384",
+                "RSASSA_PSS_SHA_512"
+            ]
 
     def to_dict(self):
         key_dict = {
@@ -81,6 +111,7 @@ class Key(BaseModel):
         key = kms_backend.create_key(
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
+            customer_master_key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags"),
             region=region_name,
@@ -102,8 +133,8 @@ class KmsBackend(BaseBackend):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
 
-    def create_key(self, policy, key_usage, description, tags, region):
-        key = Key(policy, key_usage, description, tags, region)
+    def create_key(self, policy, key_usage, customer_master_key_spec, description, tags, region):
+        key = Key(policy, key_usage, customer_master_key_spec, description, tags, region)
         self.keys[key.id] = key
         return key
 
