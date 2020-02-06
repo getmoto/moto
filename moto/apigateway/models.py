@@ -205,10 +205,11 @@ class Resource(BaseModel):
         return method
 
     def add_integration(
-        self, method_type, integration_type, uri, request_templates=None
+        self, method_type, integration_type, uri, request_templates=None, integration_method=None
     ):
+        integration_method = integration_method or method_type
         integration = Integration(
-            integration_type, uri, method_type, request_templates=request_templates
+            integration_type, uri, integration_method, request_templates=request_templates
         )
         self.resource_methods[method_type]["methodIntegration"] = integration
         return integration
@@ -916,7 +917,7 @@ class APIGatewayBackend(BaseBackend):
         ):
             raise InvalidIntegrationArn()
         integration = resource.add_integration(
-            method_type, integration_type, uri, request_templates=request_templates
+            method_type, integration_type, uri, integration_method=integration_method, request_templates=request_templates
         )
         return integration
 
