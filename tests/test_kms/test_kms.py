@@ -65,47 +65,44 @@ def test_create_key():
         key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
         key = conn.create_key(
-            KeyUsage = "ENCRYPT_DECRYPT",
-            CustomerMasterKeySpec = 'RSA_2048',
+            KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048",
         )
 
-        sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"])
+        sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
+            ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
+        )
         key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-        key = conn.create_key(
-            KeyUsage = "SIGN_VERIFY",
-            CustomerMasterKeySpec = 'RSA_2048',
-        )
+        key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048",)
 
         key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
-        sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal([
-            "RSASSA_PKCS1_V1_5_SHA_256",
-            "RSASSA_PKCS1_V1_5_SHA_384",
-            "RSASSA_PKCS1_V1_5_SHA_512",
-            "RSASSA_PSS_SHA_256",
-            "RSASSA_PSS_SHA_384",
-            "RSASSA_PSS_SHA_512"
-        ])
+        sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
+            [
+                "RSASSA_PKCS1_V1_5_SHA_256",
+                "RSASSA_PKCS1_V1_5_SHA_384",
+                "RSASSA_PKCS1_V1_5_SHA_512",
+                "RSASSA_PSS_SHA_256",
+                "RSASSA_PSS_SHA_384",
+                "RSASSA_PSS_SHA_512",
+            ]
+        )
 
         key = conn.create_key(
-            KeyUsage = "SIGN_VERIFY",
-            CustomerMasterKeySpec = 'ECC_SECG_P256K1',
+            KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_SECG_P256K1",
         )
 
         key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
         key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_256"])
 
         key = conn.create_key(
-            KeyUsage = "SIGN_VERIFY",
-            CustomerMasterKeySpec = 'ECC_NIST_P384',
+            KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P384",
         )
 
         key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
         key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_384"])
 
         key = conn.create_key(
-            KeyUsage = "SIGN_VERIFY",
-            CustomerMasterKeySpec = 'ECC_NIST_P521',
+            KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521",
         )
 
         key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
@@ -123,6 +120,28 @@ def test_describe_key():
     key = conn.describe_key(key_id)
     key["KeyMetadata"]["Description"].should.equal("my key")
     key["KeyMetadata"]["KeyUsage"].should.equal("ENCRYPT_DECRYPT")
+
+
+@mock_kms
+def test_boto3_describe_key():
+    client = boto3.client("kms", region_name="us-east-1")
+    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
+    key_id = response["KeyMetadata"]["KeyId"]
+
+    response = client.describe_key(KeyId=key_id)
+
+    response["KeyMetadata"]["AWSAccountId"].should.equal("123456789012")
+    response["KeyMetadata"]["CreationDate"].should.be.a(datetime)
+    response["KeyMetadata"]["CustomerMasterKeySpec"].should.equal("SYMMETRIC_DEFAULT")
+    response["KeyMetadata"]["Description"].should.equal("my key")
+    response["KeyMetadata"]["Enabled"].should.be.ok
+    response["KeyMetadata"]["EncryptionAlgorithms"].should.equal(["SYMMETRIC_DEFAULT"])
+    response["KeyMetadata"]["KeyId"].should_not.be.empty
+    response["KeyMetadata"]["KeyManager"].should.equal("CUSTOMER")
+    response["KeyMetadata"]["KeyState"].should.equal("Enabled")
+    response["KeyMetadata"]["KeyUsage"].should.equal("ENCRYPT_DECRYPT")
+    response["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
+    response["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
 
 @mock_kms_deprecated

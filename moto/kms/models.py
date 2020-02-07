@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import unix_time
 
 from moto.iam.models import ACCOUNT_ID
 
@@ -15,8 +15,11 @@ from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 
 class Key(BaseModel):
-    def __init__(self, policy, key_usage, customer_master_key_spec, description, tags, region):
+    def __init__(
+        self, policy, key_usage, customer_master_key_spec, description, tags, region
+    ):
         self.id = generate_key_id()
+        self.creation_date = unix_time()
         self.policy = policy
         self.key_usage = key_usage
         self.key_state = "Enabled"
@@ -49,10 +52,7 @@ class Key(BaseModel):
         elif self.customer_master_key_spec == "SYMMETRIC_DEFAULT":
             return ["SYMMETRIC_DEFAULT"]
         else:
-            return [
-                "RSAES_OAEP_SHA_1",
-                "RSAES_OAEP_SHA_256"
-            ]
+            return ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
 
     @property
     def signing_algorithms(self):
@@ -71,7 +71,7 @@ class Key(BaseModel):
                 "RSASSA_PKCS1_V1_5_SHA_512",
                 "RSASSA_PSS_SHA_256",
                 "RSASSA_PSS_SHA_384",
-                "RSASSA_PSS_SHA_512"
+                "RSASSA_PSS_SHA_512",
             ]
 
     def to_dict(self):
@@ -79,7 +79,7 @@ class Key(BaseModel):
             "KeyMetadata": {
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
-                "CreationDate": iso_8601_datetime_without_milliseconds(datetime.now()),
+                "CreationDate": self.creation_date,
                 "CustomerMasterKeySpec": self.customer_master_key_spec,
                 "Description": self.description,
                 "Enabled": self.enabled,
@@ -93,9 +93,7 @@ class Key(BaseModel):
             }
         }
         if self.key_state == "PendingDeletion":
-            key_dict["KeyMetadata"][
-                "DeletionDate"
-            ] = iso_8601_datetime_without_milliseconds(self.deletion_date)
+            key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
 
     def delete(self, region_name):
@@ -133,8 +131,12 @@ class KmsBackend(BaseBackend):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
 
-    def create_key(self, policy, key_usage, customer_master_key_spec, description, tags, region):
-        key = Key(policy, key_usage, customer_master_key_spec, description, tags, region)
+    def create_key(
+        self, policy, key_usage, customer_master_key_spec, description, tags, region
+    ):
+        key = Key(
+            policy, key_usage, customer_master_key_spec, description, tags, region
+        )
         self.keys[key.id] = key
         return key
 
@@ -258,9 +260,7 @@ class KmsBackend(BaseBackend):
             self.keys[key_id].deletion_date = datetime.now() + timedelta(
                 days=pending_window_in_days
             )
-            return iso_8601_datetime_without_milliseconds(
-                self.keys[key_id].deletion_date
-            )
+            return unix_time(self.keys[key_id].deletion_date)
 
     def encrypt(self, key_id, plaintext, encryption_context):
         key_id = self.any_id_to_key_id(key_id)
