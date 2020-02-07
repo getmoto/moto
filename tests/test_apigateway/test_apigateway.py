@@ -39,6 +39,50 @@ def test_create_and_get_rest_api():
 
 
 @mock_apigateway
+def test_put_json_rest_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    with open("./resources/test_api.json", "rb") as api_json:
+        response = client.put_rest_api(
+            restApiId=api_id,
+            mode="overwrite",
+            failOnWarnings=True,
+            body=api_json.read()
+        )
+
+    response.pop("ResponseMetadata")
+    response.pop("createdDate")
+    response.should.equal(
+        {"id": api_id, "name": "my_api", "description": "this is my api"}
+    )
+
+
+@mock_apigateway
+def test_put_yaml_rest_api():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    with open("./resources/test_api.yaml", "rb") as api_yaml:
+        response = client.put_rest_api(
+            restApiId=api_id,
+            mode="overwrite",
+            failOnWarnings=True,
+            body=api_yaml.read()
+        )
+
+    response.pop("ResponseMetadata")
+    response.pop("createdDate")
+    response.should.equal(
+        {"id": api_id, "name": "my_api", "description": "this is my api"}
+    )
+
+
+@mock_apigateway
 def test_list_and_delete_apis():
     client = boto3.client("apigateway", region_name="us-west-2")
 

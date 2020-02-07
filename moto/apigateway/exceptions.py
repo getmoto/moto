@@ -35,6 +35,37 @@ class IntegrationMethodNotDefined(BadRequestException):
         )
 
 
+class InvalidOpenAPIDocumentException(BadRequestException):
+    def __init__(self, cause=None):
+        if cause is None:
+            super(InvalidOpenAPIDocumentException, self).__init__(
+                "BadRequestException",
+                "Failed to parse the uploaded OpenAPI document, only OpenAPI 3.x.x are currently supported",
+            )
+        else:
+            super(InvalidOpenAPIDocumentException, self).__init__(
+                "BadRequestException",
+                "Failed to parse the uploaded OpenAPI document due to: %s",
+                "error",
+                cause.message,
+            )
+
+
+class InvalidOpenApiDocVersionException(BadRequestException):
+    def __init__(self):
+        super(InvalidOpenApiDocVersionException, self).__init__(
+            "BadRequestException", "Only OpenAPI 3.x.x are currently supported"
+        )
+
+
+class InvalidOpenApiModeException(BadRequestException):
+    def __init__(self):
+        super(InvalidOpenApiModeException, self).__init__(
+            "BadRequestException",
+            'Enumeration value of OpenAPI import mode must be "overwrite" or "merge"',
+        )
+
+
 class InvalidResourcePathException(BadRequestException):
     def __init__(self):
         super(InvalidResourcePathException, self).__init__(

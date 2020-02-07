@@ -8,6 +8,7 @@ import requests
 import time
 
 from boto3.session import Session
+from openapi_spec_validator import validate_spec
 
 try:
     from urlparse import urlparse
@@ -18,6 +19,13 @@ from moto.core import BaseBackend, BaseModel
 from .utils import create_id
 from moto.core.utils import path_url
 from moto.sts.models import ACCOUNT_ID
+
+from openapi_spec_validator.exceptions import (
+    ParameterDuplicateError,
+    ExtraParametersError,
+    UnresolvableParameterError,
+    OpenAPIValidationError,
+)
 from .exceptions import (
     ApiKeyNotFoundException,
     UsagePlanNotFoundException,
@@ -27,6 +35,9 @@ from .exceptions import (
     InvalidArn,
     InvalidIntegrationArn,
     InvalidHttpEndpoint,
+    InvalidOpenAPIDocumentException,
+    InvalidOpenApiDocVersionException,
+    InvalidOpenApiModeException,
     InvalidResourcePathException,
     InvalidRequestInput,
     AuthorizerNotFoundException,
@@ -753,6 +764,84 @@ class APIGatewayBackend(BaseBackend):
         if rest_api is None:
             raise RestAPINotFound()
         return rest_api
+
+    def put_rest_api(self, function_id, api_doc, mode="merge", fail_on_warnings=False):
+        if mode not in ["merge", "overwrite"]:
+            raise InvalidOpenApiModeException()
+
+        if api_doc["swagger"] is not None or (
+            api_doc["openapi"] is not None and api_doc["openapi"][0] != "3"
+        ):
+            raise InvalidOpenApiDocVersionException()
+
+        if mode == "overwrite":
+            self.resources = {}
+            self.add_child("/")  # Add default child
+
+        try:
+            if fail_on_warnings:
+                validate_spec(api_doc)
+            for (path, resource_doc) in (
+                api_doc["paths"].items().sort(key=lambda path, value: path)
+            ):
+                parent_path_part = path[0 : path.rfind("/")] or "/"
+                parent_resource_id = self.get_resource_for_path(parent_path_part)
+                resource = self.create_resource(
+                    function_id=function_id,
+                    parent_resource_id=parent_resource_id,
+                    path_part=path[: path.rfind("/")],
+                )
+
+                for (method_type, method_doc) in resource_doc.items():
+                    if method_doc["x-amazon-apigateway-integration"] is None:
+                        self.create_method(function_id, resource.id, method_type, None)
+                        for (response_code, response_doc) in method_doc[
+                            "responses"
+                        ].items():
+                            self.create_method_response(
+                                function_id, resource.id, method_type, response_code
+                            )
+                    else:
+                        self.create_integration(
+                            function_id=function_id,
+                            resource_id=resource.id,
+                            method_type=method_type,
+                            integration_type=method_doc[
+                                "x-amazon-apigateway-integration"
+                            ]["type"],
+                            uri=method_doc["x-amazon-apigateway-integration"]["uri"],
+                            integration_method=method_doc[
+                                "x-amazon-apigateway-integration"
+                            ].get("httpMethod", None),
+                            credentials=method_doc[
+                                "x-amazon-apigateway-integration"
+                            ].get("credentials", None),
+                            request_templates=method_doc[
+                                "x-amazon-apigateway-integration"
+                            ].get("requestTemplates", None),
+                        )
+                        for (response_code, response_doc) in method_doc[
+                            "responses"
+                        ].items():
+                            self.create_integration_response(
+                                function_id,
+                                resource.id,
+                                method_type,
+                                response_code,
+                                response_code,
+                            )
+            
+        except (
+            ParameterDuplicateError,
+            ExtraParametersError,
+            UnresolvableParameterError,
+            OpenAPIValidationError,
+        ) as e:
+            raise InvalidOpenAPIDocumentException(e)
+        except KeyError:
+            raise InvalidOpenAPIDocumentException()
+
+        return self.get_rest_api(function_id)
 
     def list_apis(self):
         return self.apis.values()

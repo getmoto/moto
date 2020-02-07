@@ -36,6 +36,7 @@ install_requires = [
     "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
+    "openapi-spec-validator>=0.2.8",
     "six>1.9",
     "werkzeug",
     "PyYAML>=5.1",
