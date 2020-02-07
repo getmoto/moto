@@ -1759,3 +1759,23 @@ def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
     )
 
     queue.receive_messages()
+
+
+@mock_sqs
+def test_list_queues_limits_to_1000_queues():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    for i in range(1001):
+        client.create_queue(QueueName="test-queue-{0}".format(i))
+
+    client.list_queues()["QueueUrls"].should.have.length_of(1000)
+    client.list_queues(QueueNamePrefix="test-queue")["QueueUrls"].should.have.length_of(
+        1000
+    )
+
+    resource = boto3.resource("sqs", region_name="us-east-1")
+
+    list(resource.queues.all()).should.have.length_of(1000)
+    list(resource.queues.filter(QueueNamePrefix="test-queue")).should.have.length_of(
+        1000
+    )
