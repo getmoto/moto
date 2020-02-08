@@ -508,6 +508,13 @@ class DynamoHandler(BaseResponse):
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
             key_conditions = self.body.get("KeyConditions")
             query_filters = self.body.get("QueryFilter")
+
+            if not (key_conditions or query_filters):
+                return self.error(
+                    "com.amazonaws.dynamodb.v20111205#ValidationException",
+                    "Either KeyConditions or QueryFilter should be present",
+                )
+
             if key_conditions:
                 (
                     hash_key_name,
