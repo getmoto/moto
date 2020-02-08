@@ -3721,3 +3721,24 @@ def test_allow_update_to_item_with_different_type():
     table.get_item(Key={"job_id": "b"})["Item"]["job_details"][
         "job_name"
     ].should.be.equal({"nested": "yes"})
+
+
+@mock_dynamodb2
+def test_query_catches_when_no_filters():
+    dynamo = boto3.resource("dynamodb", region_name="eu-central-1")
+    dynamo.create_table(
+        AttributeDefinitions=[{"AttributeName": "job_id", "AttributeType": "S"}],
+        TableName="origin-rbu-dev",
+        KeySchema=[{"AttributeName": "job_id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+    )
+    table = dynamo.Table("origin-rbu-dev")
+
+    with assert_raises(ClientError) as ex:
+        table.query(TableName="original-rbu-dev")
+
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Either KeyConditions or QueryFilter should be present"
+    )

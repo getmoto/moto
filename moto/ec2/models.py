@@ -139,16 +139,21 @@ from .utils import (
     rsa_public_key_fingerprint,
 )
 
-INSTANCE_TYPES = json.load(
-    open(resource_filename(__name__, "resources/instance_types.json"), "r")
+
+def _load_resource(filename):
+    with open(filename, "r") as f:
+        return json.load(f)
+
+
+INSTANCE_TYPES = _load_resource(
+    resource_filename(__name__, "resources/instance_types.json")
 )
-AMIS = json.load(
-    open(
-        os.environ.get("MOTO_AMIS_PATH")
-        or resource_filename(__name__, "resources/amis.json"),
-        "r",
-    )
+
+AMIS = _load_resource(
+    os.environ.get("MOTO_AMIS_PATH")
+    or resource_filename(__name__, "resources/amis.json"),
 )
+
 
 OWNER_ID = "111122223333"
 

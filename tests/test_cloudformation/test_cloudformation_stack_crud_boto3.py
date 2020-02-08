@@ -523,6 +523,13 @@ def test_boto3_list_stack_set_operations():
 
 
 @mock_cloudformation
+def test_boto3_bad_list_stack_resources():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    with assert_raises(ClientError):
+        cf_conn.list_stack_resources(StackName="test_stack_set")
+
+
+@mock_cloudformation
 def test_boto3_delete_stack_set():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack_set(

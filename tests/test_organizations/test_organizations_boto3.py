@@ -713,3 +713,41 @@ def test_untag_resource_errors():
     ex.response["Error"]["Message"].should.equal(
         "You provided a value that does not match the required pattern."
     )
+
+
+@mock_organizations
+def test_update_organizational_unit():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_name = "ou01"
+    response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
+    validate_organizational_unit(org, response)
+    response["OrganizationalUnit"]["Name"].should.equal(ou_name)
+    new_ou_name = "ou02"
+    response = client.update_organizational_unit(
+        OrganizationalUnitId=response["OrganizationalUnit"]["Id"], Name=new_ou_name
+    )
+    validate_organizational_unit(org, response)
+    response["OrganizationalUnit"]["Name"].should.equal(new_ou_name)
+
+
+@mock_organizations
+def test_update_organizational_unit_duplicate_error():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_name = "ou01"
+    response = client.create_organizational_unit(ParentId=root_id, Name=ou_name)
+    validate_organizational_unit(org, response)
+    response["OrganizationalUnit"]["Name"].should.equal(ou_name)
+    with assert_raises(ClientError) as e:
+        client.update_organizational_unit(
+            OrganizationalUnitId=response["OrganizationalUnit"]["Id"], Name=ou_name
+        )
+    exc = e.exception
+    exc.operation_name.should.equal("UpdateOrganizationalUnit")
+    exc.response["Error"]["Code"].should.contain("DuplicateOrganizationalUnitException")
+    exc.response["Error"]["Message"].should.equal(
+        "An OU with the same name already exists."
+    )
