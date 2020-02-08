@@ -12,6 +12,7 @@ import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
+from moto.iam.models import ACCOUNT_ID
 from tests.helpers import requires_boto_gte
 
 
@@ -249,6 +250,19 @@ def test_ami_pulls_attributes_from_instance():
     image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
     image = conn.get_image(image_id)
     image.kernel_id.should.equal("test-kernel")
+
+
+@mock_ec2_deprecated
+def test_ami_uses_account_id_if_valid_access_key_is_supplied():
+    access_key = "AKIAXXXXXXXXXXXXXXXX"
+    conn = boto.connect_ec2(access_key, "the_secret")
+    reservation = conn.run_instances("ami-1234abcd")
+    instance = reservation.instances[0]
+    instance.modify_attribute("kernel", "test-kernel")
+
+    image_id = conn.create_image(instance.id, "test-ami", "this is a test ami")
+    images = conn.get_all_images(owners=["self"])
+    [(ami.id, ami.owner_id) for ami in images].should.equal([(image_id, ACCOUNT_ID)])
 
 
 @mock_ec2_deprecated
@@ -773,7 +787,7 @@ def test_ami_filter_wildcard():
     instance.create_image(Name="not-matching-image")
 
     my_images = ec2_client.describe_images(
-        Owners=["111122223333"], Filters=[{"Name": "name", "Values": ["test*"]}]
+        Owners=[ACCOUNT_ID], Filters=[{"Name": "name", "Values": ["test*"]}]
     )["Images"]
     my_images.should.have.length_of(1)
 
