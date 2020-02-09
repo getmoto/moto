@@ -3611,7 +3611,7 @@ def test_update_supports_list_append_maps():
 
 @mock_dynamodb2
 def test_update_supports_list_append_with_nested_if_not_exists_operation():
-    dynamo = boto3.resource("dynamodb")
+    dynamo = boto3.resource("dynamodb", region_name="us-west-1")
     table_name = "test"
 
     dynamo.create_table(
