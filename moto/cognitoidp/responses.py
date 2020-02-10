@@ -259,10 +259,12 @@ class CognitoIdpResponse(BaseResponse):
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
+        message_action = self._get_param("MessageAction")
         temporary_password = self._get_param("TemporaryPassword")
         user = cognitoidp_backends[self.region].admin_create_user(
             user_pool_id,
             username,
+            message_action,
             temporary_password,
             self._get_param("UserAttributes", []),
         )
