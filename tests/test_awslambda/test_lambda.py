@@ -78,7 +78,7 @@ def lambda_handler(event, context):
 
 def get_test_zip_file4():
     pfunc = """
-def lambda_handler(event, context):    
+def lambda_handler(event, context):
     raise Exception('I failed!')
 """
     return _process_lambda(pfunc)
@@ -455,7 +455,7 @@ def test_get_function():
     )
 
     # Test get function when can't find function name
-    with assert_raises(ClientError):
+    with assert_raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
 
 

@@ -94,7 +94,7 @@ def test_lambda_can_be_deleted_by_cloudformation():
     # Verify function was deleted
     with assert_raises(ClientError) as e:
         lmbda.get_function(FunctionName=created_fn_name)
-    e.exception.response["Error"]["Code"].should.equal("404")
+    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 def create_stack(cf, s3):
