@@ -233,11 +233,13 @@ class FakeStack(BaseModel):
         self.tags = tags if tags else {}
         self.events = []
         if create_change_set:
+            self.status = "REVIEW_IN_PROGRESS"
             self._add_stack_event(
                 "REVIEW_IN_PROGRESS", resource_status_reason="User Initiated"
             )
             self.status = "REVIEW_IN_PROGRESS"
         else:
+            self.status = "CREATE_IN_PROGRESS"
             self._add_stack_event(
                 "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
             )
