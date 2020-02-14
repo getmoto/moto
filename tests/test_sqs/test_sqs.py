@@ -133,6 +133,35 @@ def test_create_queue_with_tags():
 
 
 @mock_sqs
+def test_create_queue_with_policy():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName="test-queue",
+        Attributes={
+            "Policy": json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Id": "test",
+                    "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
+                }
+            )
+        },
+    )
+    queue_url = response["QueueUrl"]
+
+    response = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["Policy"]
+    )
+    json.loads(response["Attributes"]["Policy"]).should.equal(
+        {
+            "Version": "2012-10-17",
+            "Id": "test",
+            "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
+        }
+    )
+
+
+@mock_sqs
 def test_get_queue_url():
     client = boto3.client("sqs", region_name="us-east-1")
     client.create_queue(QueueName="test-queue")
@@ -1186,18 +1215,169 @@ def test_permissions():
         Actions=["SendMessage"],
     )
 
-    with assert_raises(ClientError):
-        client.add_permission(
-            QueueUrl=queue_url,
-            Label="account2",
-            AWSAccountIds=["222211111111"],
-            Actions=["SomeRubbish"],
-        )
+    response = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["Policy"]
+    )
+    policy = json.loads(response["Attributes"]["Policy"])
+    policy["Version"].should.equal("2012-10-17")
+    policy["Id"].should.equal(
+        "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue.fifo/SQSDefaultPolicy"
+    )
+    sorted(policy["Statement"], key=lambda x: x["Sid"]).should.equal(
+        [
+            {
+                "Sid": "account1",
+                "Effect": "Allow",
+                "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
+                "Action": "SQS:*",
+                "Resource": "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue.fifo",
+            },
+            {
+                "Sid": "account2",
+                "Effect": "Allow",
+                "Principal": {"AWS": "arn:aws:iam::222211111111:root"},
+                "Action": "SQS:SendMessage",
+                "Resource": "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue.fifo",
+            },
+        ]
+    )
 
     client.remove_permission(QueueUrl=queue_url, Label="account2")
 
-    with assert_raises(ClientError):
-        client.remove_permission(QueueUrl=queue_url, Label="non_existent")
+    response = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["Policy"]
+    )
+    json.loads(response["Attributes"]["Policy"]).should.equal(
+        {
+            "Version": "2012-10-17",
+            "Id": "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue.fifo/SQSDefaultPolicy",
+            "Statement": [
+                {
+                    "Sid": "account1",
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
+                    "Action": "SQS:*",
+                    "Resource": "arn:aws:sqs:us-east-1:123456789012:test-dlr-queue.fifo",
+                },
+            ],
+        }
+    )
+
+
+@mock_sqs
+def test_add_permission_errors():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+    client.add_permission(
+        QueueUrl=queue_url,
+        Label="test",
+        AWSAccountIds=["111111111111"],
+        Actions=["ReceiveMessage"],
+    )
+
+    with assert_raises(ClientError) as e:
+        client.add_permission(
+            QueueUrl=queue_url,
+            Label="test",
+            AWSAccountIds=["111111111111"],
+            Actions=["ReceiveMessage", "SendMessage"],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("AddPermission")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "Value test for parameter Label is invalid. " "Reason: Already exists."
+    )
+
+    with assert_raises(ClientError) as e:
+        client.add_permission(
+            QueueUrl=queue_url,
+            Label="test-2",
+            AWSAccountIds=["111111111111"],
+            Actions=["RemovePermission"],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("AddPermission")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "Value SQS:RemovePermission for parameter ActionName is invalid. "
+        "Reason: Only the queue owner is allowed to invoke this action."
+    )
+
+    with assert_raises(ClientError) as e:
+        client.add_permission(
+            QueueUrl=queue_url,
+            Label="test-2",
+            AWSAccountIds=["111111111111"],
+            Actions=[],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("AddPermission")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("MissingParameter")
+    ex.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter Actions."
+    )
+
+    with assert_raises(ClientError) as e:
+        client.add_permission(
+            QueueUrl=queue_url,
+            Label="test-2",
+            AWSAccountIds=[],
+            Actions=["ReceiveMessage"],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("AddPermission")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "Value [] for parameter PrincipalId is invalid. Reason: Unable to verify."
+    )
+
+    with assert_raises(ClientError) as e:
+        client.add_permission(
+            QueueUrl=queue_url,
+            Label="test-2",
+            AWSAccountIds=["111111111111"],
+            Actions=[
+                "ChangeMessageVisibility",
+                "DeleteMessage",
+                "GetQueueAttributes",
+                "GetQueueUrl",
+                "ListDeadLetterSourceQueues",
+                "PurgeQueue",
+                "ReceiveMessage",
+                "SendMessage",
+            ],
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("AddPermission")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
+    ex.response["Error"]["Code"].should.contain("OverLimit")
+    ex.response["Error"]["Message"].should.equal(
+        "8 Actions were found, maximum allowed is 7."
+    )
+
+
+@mock_sqs
+def test_remove_permission_errors():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+
+    with assert_raises(ClientError) as e:
+        client.remove_permission(QueueUrl=queue_url, Label="test")
+    ex = e.exception
+    ex.operation_name.should.equal("RemovePermission")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+    ex.response["Error"]["Message"].should.equal(
+        "Value test for parameter Label is invalid. "
+        "Reason: can't find label on existing policy."
+    )
 
 
 @mock_sqs
@@ -1579,3 +1759,23 @@ def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
     )
 
     queue.receive_messages()
+
+
+@mock_sqs
+def test_list_queues_limits_to_1000_queues():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    for i in range(1001):
+        client.create_queue(QueueName="test-queue-{0}".format(i))
+
+    client.list_queues()["QueueUrls"].should.have.length_of(1000)
+    client.list_queues(QueueNamePrefix="test-queue")["QueueUrls"].should.have.length_of(
+        1000
+    )
+
+    resource = boto3.resource("sqs", region_name="us-east-1")
+
+    list(resource.queues.all()).should.have.length_of(1000)
+    list(resource.queues.filter(QueueNamePrefix="test-queue")).should.have.length_of(
+        1000
+    )

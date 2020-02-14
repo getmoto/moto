@@ -394,12 +394,17 @@ class UsagePlanKey(BaseModel, dict):
 
 
 class RestAPI(BaseModel):
-    def __init__(self, id, region_name, name, description):
+    def __init__(self, id, region_name, name, description, **kwargs):
         self.id = id
         self.region_name = region_name
         self.name = name
         self.description = description
         self.create_date = int(time.time())
+        self.api_key_source = kwargs.get("api_key_source") or "HEADER"
+        self.endpoint_configuration = kwargs.get("endpoint_configuration") or {
+            "types": ["EDGE"]
+        }
+        self.tags = kwargs.get("tags") or {}
 
         self.deployments = {}
         self.stages = {}
@@ -416,6 +421,9 @@ class RestAPI(BaseModel):
             "name": self.name,
             "description": self.description,
             "createdDate": int(time.time()),
+            "apiKeySource": self.api_key_source,
+            "endpointConfiguration": self.endpoint_configuration,
+            "tags": self.tags,
         }
 
     def add_child(self, path, parent_id=None):
@@ -529,9 +537,24 @@ class APIGatewayBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_rest_api(self, name, description):
+    def create_rest_api(
+        self,
+        name,
+        description,
+        api_key_source=None,
+        endpoint_configuration=None,
+        tags=None,
+    ):
         api_id = create_id()
-        rest_api = RestAPI(api_id, self.region_name, name, description)
+        rest_api = RestAPI(
+            api_id,
+            self.region_name,
+            name,
+            description,
+            api_key_source=api_key_source,
+            endpoint_configuration=endpoint_configuration,
+            tags=tags,
+        )
         self.apis[api_id] = rest_api
         return rest_api
 
@@ -556,7 +579,7 @@ class APIGatewayBackend(BaseBackend):
         return resource
 
     def create_resource(self, function_id, parent_resource_id, path_part):
-        if not re.match("^\\{?[a-zA-Z0-9._-]+\\}?$", path_part):
+        if not re.match("^\\{?[a-zA-Z0-9._-]+\\+?\\}?$", path_part):
             raise InvalidResourcePathException()
         api = self.get_rest_api(function_id)
         child = api.add_child(path=path_part, parent_id=parent_resource_id)

@@ -1689,3 +1689,36 @@ def test_create_parameter_group_with_tags():
         ResourceName="arn:aws:rds:us-west-2:1234567890:pg:test"
     )
     result["TagList"].should.equal([{"Value": "bar", "Key": "foo"}])
+
+
+@mock_rds2
+def test_create_db_with_iam_authentication():
+    conn = boto3.client("rds", region_name="us-west-2")
+
+    database = conn.create_db_instance(
+        DBInstanceIdentifier="rds",
+        DBInstanceClass="db.t1.micro",
+        Engine="postgres",
+        EnableIAMDatabaseAuthentication=True,
+    )
+
+    db_instance = database["DBInstance"]
+    db_instance["IAMDatabaseAuthenticationEnabled"].should.equal(True)
+
+
+@mock_rds2
+def test_create_db_snapshot_with_iam_authentication():
+    conn = boto3.client("rds", region_name="us-west-2")
+
+    conn.create_db_instance(
+        DBInstanceIdentifier="rds",
+        DBInstanceClass="db.t1.micro",
+        Engine="postgres",
+        EnableIAMDatabaseAuthentication=True,
+    )
+
+    snapshot = conn.create_db_snapshot(
+        DBInstanceIdentifier="rds", DBSnapshotIdentifier="snapshot"
+    ).get("DBSnapshot")
+
+    snapshot.get("IAMDatabaseAuthenticationEnabled").should.equal(True)

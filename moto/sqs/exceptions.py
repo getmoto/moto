@@ -99,3 +99,28 @@ class InvalidAttributeName(RESTError):
         super(InvalidAttributeName, self).__init__(
             "InvalidAttributeName", "Unknown Attribute {}.".format(attribute_name)
         )
+
+
+class InvalidParameterValue(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(InvalidParameterValue, self).__init__("InvalidParameterValue", message)
+
+
+class MissingParameter(RESTError):
+    code = 400
+
+    def __init__(self):
+        super(MissingParameter, self).__init__(
+            "MissingParameter", "The request must contain the parameter Actions."
+        )
+
+
+class OverLimit(RESTError):
+    code = 403
+
+    def __init__(self, count):
+        super(OverLimit, self).__init__(
+            "OverLimit", "{} Actions were found, maximum allowed is 7.".format(count)
+        )

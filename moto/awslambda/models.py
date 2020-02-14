@@ -395,6 +395,7 @@ class LambdaFunction(BaseModel):
             env_vars.update(self.environment_vars)
 
             container = output = exit_code = None
+            log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
                     run_kwargs = (
@@ -410,6 +411,7 @@ class LambdaFunction(BaseModel):
                         volumes=["{}:/var/task".format(data_vol.name)],
                         environment=env_vars,
                         detach=True,
+                        log_config=log_config,
                         **run_kwargs
                     )
                 finally:
