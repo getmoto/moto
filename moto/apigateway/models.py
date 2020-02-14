@@ -83,14 +83,14 @@ class MethodResponse(BaseModel, dict):
 
 
 class Method(BaseModel, dict):
-    def __init__(self, method_type, authorization_type):
+    def __init__(self, method_type, authorization_type, **kwargs):
         super(Method, self).__init__()
         self.update(
             dict(
                 httpMethod=method_type,
                 authorizationType=authorization_type,
                 authorizerId=None,
-                apiKeyRequired=None,
+                apiKeyRequired=kwargs.get("api_key_required") or False,
                 requestParameters=None,
                 requestModels=None,
                 methodIntegration=None,
@@ -158,8 +158,12 @@ class Resource(BaseModel):
             )
         return response.status_code, response.text
 
-    def add_method(self, method_type, authorization_type):
-        method = Method(method_type=method_type, authorization_type=authorization_type)
+    def add_method(self, method_type, authorization_type, api_key_required):
+        method = Method(
+            method_type=method_type,
+            authorization_type=authorization_type,
+            api_key_required=api_key_required,
+        )
         self.resource_methods[method_type] = method
         return method
 
@@ -594,9 +598,18 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         return resource.get_method(method_type)
 
-    def create_method(self, function_id, resource_id, method_type, authorization_type):
+    def create_method(
+        self,
+        function_id,
+        resource_id,
+        method_type,
+        authorization_type,
+        api_key_required=None,
+    ):
         resource = self.get_resource(function_id, resource_id)
-        method = resource.add_method(method_type, authorization_type)
+        method = resource.add_method(
+            method_type, authorization_type, api_key_required=api_key_required
+        )
         return method
 
     def get_stage(self, function_id, stage_name):
