@@ -37,7 +37,7 @@ def bucket_name_from_url(url):
 
 REGION_URL_REGEX = re.compile(
     r"^https?://(s3[-\.](?P<region1>.+)\.amazonaws\.com/(.+)|"
-    r"(.+)\.s3-(?P<region2>.+)\.amazonaws\.com)/?"
+    r"(.+)\.s3[-\.](?P<region2>.+)\.amazonaws\.com)/?"
 )
 
 

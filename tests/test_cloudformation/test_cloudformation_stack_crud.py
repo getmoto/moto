@@ -143,7 +143,7 @@ def test_create_stack_with_notification_arn():
 @mock_s3_deprecated
 def test_create_stack_from_s3_url():
     s3_conn = boto.s3.connect_to_region("us-west-1")
-    bucket = s3_conn.create_bucket("foobar")
+    bucket = s3_conn.create_bucket("foobar", location="us-west-1")
     key = boto.s3.key.Key(bucket)
     key.key = "template-key"
     key.set_contents_from_string(dummy_template_json)
