@@ -448,13 +448,18 @@ class Item(BaseModel):
             if list_append_re:
                 new_value = expression_attribute_values[list_append_re.group(2).strip()]
                 old_list_key = list_append_re.group(1)
-                # Get the existing value
-                old_list = self.attrs[old_list_key.split(".")[0]]
-                if "." in old_list_key:
-                    # Value is nested inside a map - find the appropriate child attr
-                    old_list = old_list.child_attr(
-                        ".".join(old_list_key.split(".")[1:])
+                # old_key could be a function itself (if_not_exists)
+                if old_list_key.startswith("if_not_exists"):
+                    old_list = DynamoType(
+                        expression_attribute_values[self._get_default(old_list_key)]
                     )
+                else:
+                    old_list = self.attrs[old_list_key.split(".")[0]]
+                    if "." in old_list_key:
+                        # Value is nested inside a map - find the appropriate child attr
+                        old_list = old_list.child_attr(
+                            ".".join(old_list_key.split(".")[1:])
+                        )
                 if not old_list.is_list():
                     raise ParamValidationError
                 old_list.value.extend([DynamoType(v) for v in new_value["L"]])
