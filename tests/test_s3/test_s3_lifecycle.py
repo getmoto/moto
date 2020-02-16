@@ -16,7 +16,7 @@ from moto import mock_s3_deprecated, mock_s3
 @mock_s3_deprecated
 def test_lifecycle_create():
     conn = boto.s3.connect_to_region("us-west-1")
-    bucket = conn.create_bucket("foobar")
+    bucket = conn.create_bucket("foobar", location="us-west-1")
 
     lifecycle = Lifecycle()
     lifecycle.add_rule("myid", "", "Enabled", 30)
@@ -33,7 +33,9 @@ def test_lifecycle_create():
 @mock_s3
 def test_lifecycle_with_filters():
     client = boto3.client("s3")
-    client.create_bucket(Bucket="bucket")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     # Create a lifecycle rule with a Filter (no tags):
     lfc = {
@@ -245,7 +247,9 @@ def test_lifecycle_with_filters():
 @mock_s3
 def test_lifecycle_with_eodm():
     client = boto3.client("s3")
-    client.create_bucket(Bucket="bucket")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     lfc = {
         "Rules": [
@@ -293,7 +297,9 @@ def test_lifecycle_with_eodm():
 @mock_s3
 def test_lifecycle_with_nve():
     client = boto3.client("s3")
-    client.create_bucket(Bucket="bucket")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     lfc = {
         "Rules": [
@@ -327,7 +333,9 @@ def test_lifecycle_with_nve():
 @mock_s3
 def test_lifecycle_with_nvt():
     client = boto3.client("s3")
-    client.create_bucket(Bucket="bucket")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     lfc = {
         "Rules": [
@@ -393,7 +401,9 @@ def test_lifecycle_with_nvt():
 @mock_s3
 def test_lifecycle_with_aimu():
     client = boto3.client("s3")
-    client.create_bucket(Bucket="bucket")
+    client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     lfc = {
         "Rules": [
@@ -432,7 +442,7 @@ def test_lifecycle_with_aimu():
 @mock_s3_deprecated
 def test_lifecycle_with_glacier_transition():
     conn = boto.s3.connect_to_region("us-west-1")
-    bucket = conn.create_bucket("foobar")
+    bucket = conn.create_bucket("foobar", location="us-west-1")
 
     lifecycle = Lifecycle()
     transition = Transition(days=30, storage_class="GLACIER")
@@ -451,7 +461,7 @@ def test_lifecycle_with_glacier_transition():
 @mock_s3_deprecated
 def test_lifecycle_multi():
     conn = boto.s3.connect_to_region("us-west-1")
-    bucket = conn.create_bucket("foobar")
+    bucket = conn.create_bucket("foobar", location="us-west-1")
 
     date = "2022-10-12T00:00:00.000Z"
     sc = "GLACIER"
@@ -493,7 +503,7 @@ def test_lifecycle_multi():
 @mock_s3_deprecated
 def test_lifecycle_delete():
     conn = boto.s3.connect_to_region("us-west-1")
-    bucket = conn.create_bucket("foobar")
+    bucket = conn.create_bucket("foobar", location="us-west-1")
 
     lifecycle = Lifecycle()
     lifecycle.add_rule(expiration=30)

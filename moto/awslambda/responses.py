@@ -184,7 +184,13 @@ class LambdaResponse(BaseResponse):
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
-            return 202, response_headers, payload
+            if request.headers["X-Amz-Invocation-Type"] == "Event":
+                status_code = 202
+            elif request.headers["X-Amz-Invocation-Type"] == "DryRun":
+                status_code = 204
+            else:
+                status_code = 200
+            return status_code, response_headers, payload
         else:
             return 404, response_headers, "{}"
 
@@ -295,7 +301,7 @@ class LambdaResponse(BaseResponse):
                 code["Configuration"]["FunctionArn"] += ":$LATEST"
             return 200, {}, json.dumps(code)
         else:
-            return 404, {}, "{}"
+            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
 
     def _get_aws_region(self, full_url):
         region = self.region_regex.search(full_url)
