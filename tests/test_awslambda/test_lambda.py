@@ -150,7 +150,7 @@ def test_invoke_requestresponse_function_with_arn():
         Payload=json.dumps(in_data),
     )
 
-    success_result["StatusCode"].should.equal(202)
+    success_result["StatusCode"].should.equal(200)
     result_obj = json.loads(
         base64.b64decode(success_result["LogResult"]).decode("utf-8")
     )
