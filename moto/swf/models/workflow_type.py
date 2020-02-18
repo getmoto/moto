@@ -8,6 +8,8 @@ class WorkflowType(GenericType):
             "defaultChildPolicy",
             "defaultExecutionStartToCloseTimeout",
             "defaultTaskStartToCloseTimeout",
+            "defaultTaskPriority",
+            "defaultLambdaRole",
         ]
 
     @property
