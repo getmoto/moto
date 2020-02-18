@@ -117,14 +117,15 @@ class Resource(BaseModel):
         self.api_id = api_id
         self.path_part = path_part
         self.parent_id = parent_id
-        self.resource_methods = {"GET": {}}
+        self.resource_methods = {}
 
     def to_dict(self):
         response = {
             "path": self.get_path(),
             "id": self.id,
-            "resourceMethods": self.resource_methods,
         }
+        if self.resource_methods:
+            response["resourceMethods"] = self.resource_methods
         if self.parent_id:
             response["parentId"] = self.parent_id
             response["pathPart"] = self.path_part

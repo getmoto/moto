@@ -208,7 +208,6 @@ def test_create_resource():
             "path": "/",
             "id": root_id,
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "resourceMethods": {"GET": {}},
         }
     )
 
@@ -257,7 +256,6 @@ def test_child_resource():
             "parentId": users_id,
             "id": tags_id,
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "resourceMethods": {"GET": {}},
         }
     )
 
