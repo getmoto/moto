@@ -111,11 +111,11 @@ class Key(BaseModel):
             key_usage="ENCRYPT_DECRYPT",
             customer_master_key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
+            tags=properties["Tags"],
             region=region_name,
         )
         key.key_rotation_status = properties["EnableKeyRotation"]
         key.enabled = properties["Enabled"]
-        kms_backend.tag_resource(key.id, properties.get("Tags"))
 
         return key
 
