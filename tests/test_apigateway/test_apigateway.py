@@ -204,11 +204,7 @@ def test_create_resource():
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
     root_resource.should.equal(
-        {
-            "path": "/",
-            "id": root_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-        }
+        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200},}
     )
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
