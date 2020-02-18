@@ -26,11 +26,12 @@ install:
     fi
     docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${PYTHON_DOCKER_TAG} /moto/travis_moto_server.sh &
   fi
+  travis_retry pip install -r requirements-dev.txt
   travis_retry pip install boto==2.45.0
   travis_retry pip install boto3
   travis_retry pip install dist/moto*.gz
   travis_retry pip install coveralls==1.1
-  travis_retry pip install -r requirements-dev.txt
+  travis_retry pip install coverage==4.5.4
 
   if [ "$TEST_SERVER_MODE" = "true" ]; then
     python wait_for.py

@@ -3610,6 +3610,31 @@ def test_update_supports_list_append_maps():
 
 
 @mock_dynamodb2
+def test_update_supports_list_append_with_nested_if_not_exists_operation():
+    dynamo = boto3.resource("dynamodb", region_name="us-west-1")
+    table_name = "test"
+
+    dynamo.create_table(
+        TableName=table_name,
+        AttributeDefinitions=[{"AttributeName": "Id", "AttributeType": "S"}],
+        KeySchema=[{"AttributeName": "Id", "KeyType": "HASH"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 20, "WriteCapacityUnits": 20},
+    )
+
+    table = dynamo.Table(table_name)
+
+    table.put_item(Item={"Id": "item-id", "nest1": {"nest2": {}}})
+    table.update_item(
+        Key={"Id": "item-id"},
+        UpdateExpression="SET nest1.nest2.event_history = list_append(if_not_exists(nest1.nest2.event_history, :empty_list), :new_value)",
+        ExpressionAttributeValues={":empty_list": [], ":new_value": ["some_value"]},
+    )
+    table.get_item(Key={"Id": "item-id"})["Item"].should.equal(
+        {"Id": "item-id", "nest1": {"nest2": {"event_history": ["some_value"]}}}
+    )
+
+
+@mock_dynamodb2
 def test_update_catches_invalid_list_append_operation():
     client = boto3.client("dynamodb", region_name="us-east-1")
 

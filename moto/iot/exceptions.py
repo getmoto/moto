@@ -22,6 +22,15 @@ class InvalidRequestException(IoTClientError):
         )
 
 
+class InvalidStateTransitionException(IoTClientError):
+    def __init__(self, msg=None):
+        self.code = 409
+        super(InvalidStateTransitionException, self).__init__(
+            "InvalidStateTransitionException",
+            msg or "An attempt was made to change to an invalid state.",
+        )
+
+
 class VersionConflictException(IoTClientError):
     def __init__(self, name):
         self.code = 409

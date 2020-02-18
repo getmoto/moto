@@ -145,8 +145,13 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps(method)
         elif self.method == "PUT":
             authorization_type = self._get_param("authorizationType")
+            api_key_required = self._get_param("apiKeyRequired")
             method = self.backend.create_method(
-                function_id, resource_id, method_type, authorization_type
+                function_id,
+                resource_id,
+                method_type,
+                authorization_type,
+                api_key_required,
             )
             return 200, {}, json.dumps(method)
 

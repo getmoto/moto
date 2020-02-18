@@ -19,7 +19,7 @@ import uuid
 import six
 
 from bisect import insort
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
 from .exceptions import (
     BucketAlreadyExists,
@@ -37,6 +37,7 @@ from .exceptions import (
     CrossLocationLoggingProhibitted,
     NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
+    WrongPublicAccessBlockAccountIdError,
 )
 from .utils import clean_key_name, _VersionedKeyStore
 
@@ -56,6 +57,13 @@ STORAGE_CLASS = [
 DEFAULT_KEY_BUFFER_SIZE = 16 * 1024 * 1024
 DEFAULT_TEXT_ENCODING = sys.getdefaultencoding()
 OWNER = "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
+
+
+def get_moto_s3_account_id():
+    """This makes it easy for mocking AWS Account IDs when using AWS Config
+       -- Simply mock.patch the ACCOUNT_ID here, and Config gets it for free.
+    """
+    return ACCOUNT_ID
 
 
 class FakeDeleteMarker(BaseModel):
@@ -1163,6 +1171,7 @@ class FakeBucket(BaseModel):
 class S3Backend(BaseBackend):
     def __init__(self):
         self.buckets = {}
+        self.account_public_access_block = None
 
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
@@ -1264,6 +1273,16 @@ class S3Backend(BaseBackend):
 
         return bucket.public_access_block
 
+    def get_account_public_access_block(self, account_id):
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != ACCOUNT_ID:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        if not self.account_public_access_block:
+            raise NoSuchPublicAccessBlockConfiguration()
+
+        return self.account_public_access_block
+
     def set_key(
         self, bucket_name, key_name, value, storage=None, etag=None, multipart=None
     ):
@@ -1356,6 +1375,13 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.public_access_block = None
 
+    def delete_account_public_access_block(self, account_id):
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != ACCOUNT_ID:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        self.account_public_access_block = None
+
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -1378,6 +1404,21 @@ class S3Backend(BaseBackend):
             raise InvalidPublicAccessBlockConfiguration()
 
         bucket.public_access_block = PublicAccessBlock(
+            pub_block_config.get("BlockPublicAcls"),
+            pub_block_config.get("IgnorePublicAcls"),
+            pub_block_config.get("BlockPublicPolicy"),
+            pub_block_config.get("RestrictPublicBuckets"),
+        )
+
+    def put_account_public_access_block(self, account_id, pub_block_config):
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != ACCOUNT_ID:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        if not pub_block_config:
+            raise InvalidPublicAccessBlockConfiguration()
+
+        self.account_public_access_block = PublicAccessBlock(
             pub_block_config.get("BlockPublicAcls"),
             pub_block_config.get("IgnorePublicAcls"),
             pub_block_config.get("BlockPublicPolicy"),

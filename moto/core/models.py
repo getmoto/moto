@@ -606,12 +606,13 @@ class ConfigQueryModel(object):
         As such, the proper way to implement is to first obtain a full list of results from all the region backends, and then filter
         from there. It may be valuable to make this a concatenation of the region and resource name.
 
-        :param resource_region:
-        :param resource_ids:
-        :param resource_name:
-        :param limit:
-        :param next_token:
+        :param resource_ids:  A list of resource IDs
+        :param resource_name: The individual name of a resource
+        :param limit: How many per page
+        :param next_token: The item that will page on
         :param backend_region: The region for the backend to pull results from. Set to `None` if this is an aggregated query.
+        :param resource_region: The region for where the resources reside to pull results from. Set to `None` if this is a
+                                non-aggregated query.
         :return: This should return a list of Dicts that have the following fields:
             [
                 {
