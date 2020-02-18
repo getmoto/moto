@@ -27,6 +27,7 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
 )
+from moto.iam.models import ACCOUNT_ID
 from .exceptions import (
     CidrLimitExceeded,
     DependencyViolationError,
@@ -155,7 +156,7 @@ AMIS = _load_resource(
 )
 
 
-OWNER_ID = "111122223333"
+OWNER_ID = ACCOUNT_ID
 
 
 def utc_date_and_time():
@@ -1341,7 +1342,7 @@ class AmiBackend(object):
             source_ami=None,
             name=name,
             description=description,
-            owner_id=context.get_current_user() if context else OWNER_ID,
+            owner_id=OWNER_ID,
         )
         self.amis[ami_id] = ami
         return ami
@@ -1392,14 +1393,7 @@ class AmiBackend(object):
             # Limit by owner ids
             if owners:
                 # support filtering by Owners=['self']
-                owners = list(
-                    map(
-                        lambda o: context.get_current_user()
-                        if context and o == "self"
-                        else o,
-                        owners,
-                    )
-                )
+                owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
                 images = [ami for ami in images if ami.owner_id in owners]
 
             # Generic filters

@@ -21,7 +21,10 @@ def test_get_resources_s3():
     # Create 4 buckets
     for i in range(1, 5):
         i_str = str(i)
-        s3_client.create_bucket(Bucket="test_bucket" + i_str)
+        s3_client.create_bucket(
+            Bucket="test_bucket" + i_str,
+            CreateBucketConfiguration={"LocationConstraint": "eu-central-1"},
+        )
         s3_client.put_bucket_tagging(
             Bucket="test_bucket" + i_str,
             Tagging={"TagSet": [{"Key": "key" + i_str, "Value": "value" + i_str}]},

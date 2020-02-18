@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import json
+from six.moves.urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import iot_backends
@@ -141,6 +142,8 @@ class IoTResponse(BaseResponse):
                     createdAt=job.created_at,
                     description=job.description,
                     documentParameters=job.document_parameters,
+                    forceCanceled=job.force,
+                    reasonCode=job.reason_code,
                     jobArn=job.job_arn,
                     jobExecutionsRolloutConfig=job.job_executions_rollout_config,
                     jobId=job.job_id,
@@ -153,6 +156,127 @@ class IoTResponse(BaseResponse):
                 ),
             )
         )
+
+    def delete_job(self):
+        job_id = self._get_param("jobId")
+        force = self._get_bool_param("force")
+
+        self.iot_backend.delete_job(job_id=job_id, force=force)
+
+        return json.dumps(dict())
+
+    def cancel_job(self):
+        job_id = self._get_param("jobId")
+        reason_code = self._get_param("reasonCode")
+        comment = self._get_param("comment")
+        force = self._get_bool_param("force")
+
+        job = self.iot_backend.cancel_job(
+            job_id=job_id, reason_code=reason_code, comment=comment, force=force
+        )
+
+        return json.dumps(job.to_dict())
+
+    def get_job_document(self):
+        job = self.iot_backend.get_job_document(job_id=self._get_param("jobId"))
+
+        if job.document is not None:
+            return json.dumps({"document": job.document})
+        else:
+            # job.document_source is not None:
+            # TODO: needs to be implemented to get document_source's content from S3
+            return json.dumps({"document": ""})
+
+    def list_jobs(self):
+        status = (self._get_param("status"),)
+        target_selection = (self._get_param("targetSelection"),)
+        max_results = self._get_int_param(
+            "maxResults", 50
+        )  # not the default, but makes testing easier
+        previous_next_token = self._get_param("nextToken")
+        thing_group_name = (self._get_param("thingGroupName"),)
+        thing_group_id = self._get_param("thingGroupId")
+        jobs, next_token = self.iot_backend.list_jobs(
+            status=status,
+            target_selection=target_selection,
+            max_results=max_results,
+            token=previous_next_token,
+            thing_group_name=thing_group_name,
+            thing_group_id=thing_group_id,
+        )
+
+        return json.dumps(dict(jobs=jobs, nextToken=next_token))
+
+    def describe_job_execution(self):
+        job_id = self._get_param("jobId")
+        thing_name = self._get_param("thingName")
+        execution_number = self._get_int_param("executionNumber")
+        job_execution = self.iot_backend.describe_job_execution(
+            job_id=job_id, thing_name=thing_name, execution_number=execution_number
+        )
+
+        return json.dumps(dict(execution=job_execution.to_get_dict()))
+
+    def cancel_job_execution(self):
+        job_id = self._get_param("jobId")
+        thing_name = self._get_param("thingName")
+        force = self._get_bool_param("force")
+        expected_version = self._get_int_param("expectedVersion")
+        status_details = self._get_param("statusDetails")
+
+        self.iot_backend.cancel_job_execution(
+            job_id=job_id,
+            thing_name=thing_name,
+            force=force,
+            expected_version=expected_version,
+            status_details=status_details,
+        )
+
+        return json.dumps(dict())
+
+    def delete_job_execution(self):
+        job_id = self._get_param("jobId")
+        thing_name = self._get_param("thingName")
+        execution_number = self._get_int_param("executionNumber")
+        force = self._get_bool_param("force")
+
+        self.iot_backend.delete_job_execution(
+            job_id=job_id,
+            thing_name=thing_name,
+            execution_number=execution_number,
+            force=force,
+        )
+
+        return json.dumps(dict())
+
+    def list_job_executions_for_job(self):
+        job_id = self._get_param("jobId")
+        status = self._get_param("status")
+        max_results = self._get_int_param(
+            "maxResults", 50
+        )  # not the default, but makes testing easier
+        next_token = self._get_param("nextToken")
+        job_executions, next_token = self.iot_backend.list_job_executions_for_job(
+            job_id=job_id, status=status, max_results=max_results, next_token=next_token
+        )
+
+        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
+
+    def list_job_executions_for_thing(self):
+        thing_name = self._get_param("thingName")
+        status = self._get_param("status")
+        max_results = self._get_int_param(
+            "maxResults", 50
+        )  # not the default, but makes testing easier
+        next_token = self._get_param("nextToken")
+        job_executions, next_token = self.iot_backend.list_job_executions_for_thing(
+            thing_name=thing_name,
+            status=status,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
 
     def create_keys_and_certificate(self):
         set_as_active = self._get_bool_param("setAsActive")
@@ -241,11 +365,60 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_policy(policy_name=policy_name)
         return json.dumps(dict())
 
+    def create_policy_version(self):
+        policy_name = self._get_param("policyName")
+        policy_document = self._get_param("policyDocument")
+        set_as_default = self._get_bool_param("setAsDefault")
+        policy_version = self.iot_backend.create_policy_version(
+            policy_name, policy_document, set_as_default
+        )
+
+        return json.dumps(dict(policy_version.to_dict_at_creation()))
+
+    def set_default_policy_version(self):
+        policy_name = self._get_param("policyName")
+        version_id = self._get_param("policyVersionId")
+        self.iot_backend.set_default_policy_version(policy_name, version_id)
+
+        return json.dumps(dict())
+
+    def get_policy_version(self):
+        policy_name = self._get_param("policyName")
+        version_id = self._get_param("policyVersionId")
+        policy_version = self.iot_backend.get_policy_version(policy_name, version_id)
+        return json.dumps(dict(policy_version.to_get_dict()))
+
+    def list_policy_versions(self):
+        policy_name = self._get_param("policyName")
+        policiy_versions = self.iot_backend.list_policy_versions(
+            policy_name=policy_name
+        )
+
+        return json.dumps(dict(policyVersions=[_.to_dict() for _ in policiy_versions]))
+
+    def delete_policy_version(self):
+        policy_name = self._get_param("policyName")
+        version_id = self._get_param("policyVersionId")
+        self.iot_backend.delete_policy_version(policy_name, version_id)
+
+        return json.dumps(dict())
+
     def attach_policy(self):
         policy_name = self._get_param("policyName")
         target = self._get_param("target")
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
         return json.dumps(dict())
+
+    def list_attached_policies(self):
+        principal = unquote(self._get_param("target"))
+        # marker = self._get_param("marker")
+        # page_size = self._get_int_param("pageSize")
+        policies = self.iot_backend.list_attached_policies(target=principal)
+        # TODO: implement pagination in the future
+        next_marker = None
+        return json.dumps(
+            dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker)
+        )
 
     def attach_principal_policy(self):
         policy_name = self._get_param("policyName")

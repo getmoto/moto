@@ -127,6 +127,18 @@ class InvalidRequest(S3ClientError):
         )
 
 
+class IllegalLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self, *args, **kwargs):
+        super(IllegalLocationConstraintException, self).__init__(
+            "IllegalLocationConstraintException",
+            "The unspecified location constraint is incompatible for the region specific endpoint this request was sent to.",
+            *args,
+            **kwargs
+        )
+
+
 class MalformedXML(S3ClientError):
     code = 400
 
@@ -346,4 +358,13 @@ class InvalidPublicAccessBlockConfiguration(S3ClientError):
             "Must specify at least one configuration.",
             *args,
             **kwargs
+        )
+
+
+class WrongPublicAccessBlockAccountIdError(S3ClientError):
+    code = 403
+
+    def __init__(self):
+        super(WrongPublicAccessBlockAccountIdError, self).__init__(
+            "AccessDenied", "Access Denied"
         )

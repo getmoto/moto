@@ -43,7 +43,7 @@ from moto.config.exceptions import (
 )
 
 from moto.core import BaseBackend, BaseModel
-from moto.s3.config import s3_config_query
+from moto.s3.config import s3_account_public_access_block_query, s3_config_query
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
@@ -58,7 +58,10 @@ POP_STRINGS = [
 DEFAULT_PAGE_SIZE = 100
 
 # Map the Config resource type to a backend:
-RESOURCE_MAP = {"AWS::S3::Bucket": s3_config_query}
+RESOURCE_MAP = {
+    "AWS::S3::Bucket": s3_config_query,
+    "AWS::S3::AccountPublicAccessBlock": s3_account_public_access_block_query,
+}
 
 
 def datetime2int(date):
@@ -867,16 +870,17 @@ class ConfigBackend(BaseBackend):
                     backend_region=backend_query_region,
                 )
 
-        result = {
-            "resourceIdentifiers": [
-                {
-                    "resourceType": identifier["type"],
-                    "resourceId": identifier["id"],
-                    "resourceName": identifier["name"],
-                }
-                for identifier in identifiers
-            ]
-        }
+        resource_identifiers = []
+        for identifier in identifiers:
+            item = {"resourceType": identifier["type"], "resourceId": identifier["id"]}
+
+            # Some resource types lack names:
+            if identifier.get("name"):
+                item["resourceName"] = identifier["name"]
+
+            resource_identifiers.append(item)
+
+        result = {"resourceIdentifiers": resource_identifiers}
 
         if new_token:
             result["nextToken"] = new_token
@@ -927,18 +931,21 @@ class ConfigBackend(BaseBackend):
                 resource_region=resource_region,
             )
 
-        result = {
-            "ResourceIdentifiers": [
-                {
-                    "SourceAccountId": DEFAULT_ACCOUNT_ID,
-                    "SourceRegion": identifier["region"],
-                    "ResourceType": identifier["type"],
-                    "ResourceId": identifier["id"],
-                    "ResourceName": identifier["name"],
-                }
-                for identifier in identifiers
-            ]
-        }
+        resource_identifiers = []
+        for identifier in identifiers:
+            item = {
+                "SourceAccountId": DEFAULT_ACCOUNT_ID,
+                "SourceRegion": identifier["region"],
+                "ResourceType": identifier["type"],
+                "ResourceId": identifier["id"],
+            }
+
+            if identifier.get("name"):
+                item["ResourceName"] = identifier["name"]
+
+            resource_identifiers.append(item)
+
+        result = {"ResourceIdentifiers": resource_identifiers}
 
         if new_token:
             result["NextToken"] = new_token

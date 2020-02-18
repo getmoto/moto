@@ -4,6 +4,7 @@ import re
 import sys
 
 import six
+from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
 from six.moves.urllib.parse import parse_qs, urlparse, unquote
@@ -29,6 +30,7 @@ from .exceptions import (
     InvalidPartOrder,
     MalformedXML,
     MalformedACLError,
+    IllegalLocationConstraintException,
     InvalidNotificationARN,
     InvalidNotificationEvent,
     ObjectNotInActiveTierError,
@@ -122,6 +124,11 @@ ACTION_MAP = {
             "uploadId": "PutObject",
         },
     },
+    "CONTROL": {
+        "GET": {"publicAccessBlock": "GetPublicAccessBlock"},
+        "PUT": {"publicAccessBlock": "PutPublicAccessBlock"},
+        "DELETE": {"publicAccessBlock": "DeletePublicAccessBlock"},
+    },
 }
 
 
@@ -167,7 +174,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             or host.startswith("localhost")
             or host.startswith("localstack")
             or re.match(r"^[^.]+$", host)
-            or re.match(r"^.*\.svc\.cluster\.local$", host)
+            or re.match(r"^.*\.svc\.cluster\.local:?\d*$", host)
         ):
             # Default to path-based buckets for (1) localhost, (2) localstack hosts (e.g. localstack.dev),
             # (3) local host names that do not contain a "." (e.g., Docker container host names), or
@@ -219,7 +226,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # Depending on which calling format the client is using, we don't know
         # if this is a bucket or key request so we have to check
         if self.subdomain_based_buckets(request):
-            return self.key_response(request, full_url, headers)
+            return self.key_or_control_response(request, full_url, headers)
         else:
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
@@ -286,7 +293,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return self._bucket_response_post(request, body, bucket_name)
         else:
             raise NotImplementedError(
-                "Method {0} has not been impelemented in the S3 backend yet".format(
+                "Method {0} has not been implemented in the S3 backend yet".format(
                     method
                 )
             )
@@ -585,6 +592,29 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             next_continuation_token = None
         return result_keys, is_truncated, next_continuation_token
 
+    def _body_contains_location_constraint(self, body):
+        if body:
+            try:
+                xmltodict.parse(body)["CreateBucketConfiguration"]["LocationConstraint"]
+                return True
+            except KeyError:
+                pass
+        return False
+
+    def _parse_pab_config(self, body):
+        parsed_xml = xmltodict.parse(body)
+        parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
+
+        # If Python 2, fix the unicode strings:
+        if sys.version_info[0] < 3:
+            parsed_xml = {
+                "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
+                    dict(parsed_xml["PublicAccessBlockConfiguration"])
+                )
+            }
+
+        return parsed_xml
+
     def _bucket_response_put(
         self, request, body, region_name, bucket_name, querystring
     ):
@@ -663,27 +693,23 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 raise e
 
         elif "publicAccessBlock" in querystring:
-            parsed_xml = xmltodict.parse(body)
-            parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
-
-            # If Python 2, fix the unicode strings:
-            if sys.version_info[0] < 3:
-                parsed_xml = {
-                    "PublicAccessBlockConfiguration": py2_strip_unicode_keys(
-                        dict(parsed_xml["PublicAccessBlockConfiguration"])
-                    )
-                }
-
+            pab_config = self._parse_pab_config(body)
             self.backend.put_bucket_public_access_block(
-                bucket_name, parsed_xml["PublicAccessBlockConfiguration"]
+                bucket_name, pab_config["PublicAccessBlockConfiguration"]
             )
             return ""
 
         else:
+            # us-east-1, the default AWS region behaves a bit differently
+            # - you should not use it as a location constraint --> it fails
+            # - querying the location constraint returns None
+            # - LocationConstraint has to be specified if outside us-east-1
+            if (
+                region_name != DEFAULT_REGION_NAME
+                and not self._body_contains_location_constraint(body)
+            ):
+                raise IllegalLocationConstraintException()
             if body:
-                # us-east-1, the default AWS region behaves a bit differently
-                # - you should not use it as a location constraint --> it fails
-                # - querying the location constraint returns None
                 try:
                     forced_region = xmltodict.parse(body)["CreateBucketConfiguration"][
                         "LocationConstraint"
@@ -854,15 +880,21 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )
         return 206, response_headers, response_content[begin : end + 1]
 
-    def key_response(self, request, full_url, headers):
+    def key_or_control_response(self, request, full_url, headers):
+        # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.method = request.method
         self.path = self._get_path(request)
         self.headers = request.headers
         if "host" not in self.headers:
             self.headers["host"] = urlparse(full_url).netloc
         response_headers = {}
+
         try:
-            response = self._key_response(request, full_url, headers)
+            # Is this an S3 control response?
+            if isinstance(request, AWSPreparedRequest) and "s3-control" in request.url:
+                response = self._control_response(request, full_url, headers)
+            else:
+                response = self._key_response(request, full_url, headers)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
@@ -877,6 +909,94 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 request, response_headers, response_content
             )
         return status_code, response_headers, response_content
+
+    def _control_response(self, request, full_url, headers):
+        parsed_url = urlparse(full_url)
+        query = parse_qs(parsed_url.query, keep_blank_values=True)
+        method = request.method
+
+        if hasattr(request, "body"):
+            # Boto
+            body = request.body
+            if hasattr(body, "read"):
+                body = body.read()
+        else:
+            # Flask server
+            body = request.data
+        if body is None:
+            body = b""
+
+        if method == "GET":
+            return self._control_response_get(request, query, headers)
+        elif method == "PUT":
+            return self._control_response_put(request, body, query, headers)
+        elif method == "DELETE":
+            return self._control_response_delete(request, query, headers)
+        else:
+            raise NotImplementedError(
+                "Method {0} has not been implemented in the S3 backend yet".format(
+                    method
+                )
+            )
+
+    def _control_response_get(self, request, query, headers):
+        action = self.path.split("?")[0].split("/")[
+            -1
+        ]  # Gets the action out of the URL sans query params.
+        self._set_action("CONTROL", "GET", action)
+        self._authenticate_and_authorize_s3_action()
+
+        response_headers = {}
+        if "publicAccessBlock" in action:
+            public_block_config = self.backend.get_account_public_access_block(
+                headers["x-amz-account-id"]
+            )
+            template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
+            return (
+                200,
+                response_headers,
+                template.render(public_block_config=public_block_config),
+            )
+
+        raise NotImplementedError(
+            "Method {0} has not been implemented in the S3 backend yet".format(action)
+        )
+
+    def _control_response_put(self, request, body, query, headers):
+        action = self.path.split("?")[0].split("/")[
+            -1
+        ]  # Gets the action out of the URL sans query params.
+        self._set_action("CONTROL", "PUT", action)
+        self._authenticate_and_authorize_s3_action()
+
+        response_headers = {}
+        if "publicAccessBlock" in action:
+            pab_config = self._parse_pab_config(body)
+            self.backend.put_account_public_access_block(
+                headers["x-amz-account-id"],
+                pab_config["PublicAccessBlockConfiguration"],
+            )
+            return 200, response_headers, ""
+
+        raise NotImplementedError(
+            "Method {0} has not been implemented in the S3 backend yet".format(action)
+        )
+
+    def _control_response_delete(self, request, query, headers):
+        action = self.path.split("?")[0].split("/")[
+            -1
+        ]  # Gets the action out of the URL sans query params.
+        self._set_action("CONTROL", "DELETE", action)
+        self._authenticate_and_authorize_s3_action()
+
+        response_headers = {}
+        if "publicAccessBlock" in action:
+            self.backend.delete_account_public_access_block(headers["x-amz-account-id"])
+            return 200, response_headers, ""
+
+        raise NotImplementedError(
+            "Method {0} has not been implemented in the S3 backend yet".format(action)
+        )
 
     def _key_response(self, request, full_url, headers):
         parsed_url = urlparse(full_url)
@@ -1082,6 +1202,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if mdirective is not None and mdirective == "REPLACE":
                 metadata = metadata_from_headers(request.headers)
                 new_key.set_metadata(metadata, replace=True)
+            tdirective = request.headers.get("x-amz-tagging-directive")
+            if tdirective == "REPLACE":
+                tagging = self._tagging_from_headers(request.headers)
+                new_key.set_tagging(tagging)
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)

@@ -148,6 +148,39 @@ def test_workflow_execution_full_dict_representation():
     )
 
 
+def test_closed_workflow_execution_full_dict_representation():
+    domain = get_basic_domain()
+    wf_type = WorkflowType(
+        "test-workflow",
+        "v1.0",
+        task_list="queue",
+        default_child_policy="ABANDON",
+        default_execution_start_to_close_timeout="300",
+        default_task_start_to_close_timeout="300",
+    )
+    wfe = WorkflowExecution(domain, wf_type, "ab1234")
+    wfe.execution_status = "CLOSED"
+    wfe.close_status = "CANCELED"
+    wfe.close_timestamp = 1420066801.123
+
+    fd = wfe.to_full_dict()
+    medium_dict = wfe.to_medium_dict()
+    medium_dict["closeStatus"] = "CANCELED"
+    medium_dict["closeTimestamp"] = 1420066801.123
+    fd["executionInfo"].should.equal(medium_dict)
+    fd["openCounts"]["openTimers"].should.equal(0)
+    fd["openCounts"]["openDecisionTasks"].should.equal(0)
+    fd["openCounts"]["openActivityTasks"].should.equal(0)
+    fd["executionConfiguration"].should.equal(
+        {
+            "childPolicy": "ABANDON",
+            "executionStartToCloseTimeout": "300",
+            "taskList": {"name": "queue"},
+            "taskStartToCloseTimeout": "300",
+        }
+    )
+
+
 def test_workflow_execution_list_dict_representation():
     domain = get_basic_domain()
     wf_type = WorkflowType(

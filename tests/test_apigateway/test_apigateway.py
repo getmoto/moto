@@ -204,12 +204,7 @@ def test_create_resource():
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
     root_resource.should.equal(
-        {
-            "path": "/",
-            "id": root_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "resourceMethods": {"GET": {}},
-        }
+        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200},}
     )
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
@@ -257,7 +252,6 @@ def test_child_resource():
             "parentId": users_id,
             "id": tags_id,
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "resourceMethods": {"GET": {}},
         }
     )
 
@@ -286,6 +280,41 @@ def test_create_method():
         {
             "httpMethod": "GET",
             "authorizationType": "none",
+            "apiKeyRequired": False,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
+    )
+
+
+@mock_apigateway
+def test_create_method_apikeyrequired():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        authorizationType="none",
+        apiKeyRequired=True,
+    )
+
+    response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "httpMethod": "GET",
+            "authorizationType": "none",
+            "apiKeyRequired": True,
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )
