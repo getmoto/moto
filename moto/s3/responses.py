@@ -168,7 +168,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             or host.startswith("localhost")
             or host.startswith("localstack")
             or re.match(r"^[^.]+$", host)
-            or re.match(r"^.*\.svc\.cluster\.local$", host)
+            or re.match(r"^.*\.svc\.cluster\.local:?\d*$", host)
         ):
             # Default to path-based buckets for (1) localhost, (2) localstack hosts (e.g. localstack.dev),
             # (3) local host names that do not contain a "." (e.g., Docker container host names), or
