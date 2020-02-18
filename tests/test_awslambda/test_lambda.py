@@ -1256,11 +1256,13 @@ def test_invoke_function_from_dynamodb_update():
 
     assert response["EventSourceArn"] == table["TableDescription"]["LatestStreamArn"]
     assert response["State"] == "Enabled"
-    dynamodb.update_item(TableName=table_name,
-                         Key={'id': {'S': 'item 1'}},
-                         UpdateExpression="set #attr = :val",
-                         ExpressionAttributeNames={'#attr': 'new_attr'},
-                         ExpressionAttributeValues={':val': {'S': 'new_val'}})
+    dynamodb.update_item(
+        TableName=table_name,
+        Key={"id": {"S": "item 1"}},
+        UpdateExpression="set #attr = :val",
+        ExpressionAttributeNames={"#attr": "new_attr"},
+        ExpressionAttributeValues={":val": {"S": "new_val"}},
+    )
     start = time.time()
     while (time.time() - start) < 30:
         result = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
