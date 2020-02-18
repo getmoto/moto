@@ -374,14 +374,6 @@ class EventsBackend(BaseBackend):
             "ResourceNotFoundException", "An entity that you specified does not exist."
         )
 
-    def list_tags_for_resource(self, arn):
-        name = arn.split("/")[-1]
-        if name in self.rules:
-            return self.tagger.list_tags_for_resource(self.rules[name].arn)
-        raise JsonRESTError(
-            "ResourceNotFoundException", "An entity that you specified does not exist."
-        )
-
     def tag_resource(self, arn, tags):
         name = arn.split("/")[-1]
         if name in self.rules:
