@@ -300,12 +300,8 @@ class SWFResponse(BaseResponse):
         default_execution_start_to_close_timeout = self._params.get(
             "defaultExecutionStartToCloseTimeout"
         )
-        default_task_priority = self._params.get(
-            "defaultTaskPriority"
-        )
-        default_lambda_role = self._params.get(
-            "defaultLambdaRole"
-        )
+        default_task_priority = self._params.get("defaultTaskPriority")
+        default_lambda_role = self._params.get("defaultLambdaRole")
         description = self._params.get("description")
 
         self._check_string(domain)
