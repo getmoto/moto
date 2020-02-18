@@ -569,12 +569,17 @@ class CognitoIdpBackend(BaseBackend):
         user.groups.discard(group)
 
     # User
-    def admin_create_user(self, user_pool_id, username, temporary_password, attributes):
+    def admin_create_user(
+        self, user_pool_id, username, message_action, temporary_password, attributes
+    ):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        if username in user_pool.users:
+        if message_action and message_action == "RESEND":
+            if username not in user_pool.users:
+                raise UserNotFoundError(username)
+        elif username in user_pool.users:
             raise UsernameExistsException(username)
 
         user = CognitoIdpUser(
