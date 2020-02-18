@@ -28,6 +28,7 @@ from .exceptions import (
     InvalidHttpEndpoint,
     InvalidResourcePathException,
     InvalidRequestInput,
+    AuthorizerNotFoundException,
     StageNotFoundException,
     RoleNotSpecified,
     NoIntegrationDefined,
@@ -180,6 +181,54 @@ class Resource(BaseModel):
 
     def delete_integration(self, method_type):
         return self.resource_methods[method_type].pop("methodIntegration")
+
+
+class Authorizer(BaseModel, dict):
+    def __init__(self, id, name, authorizer_type, **kwargs):
+        super(Authorizer, self).__init__()
+        self["id"] = id
+        self["name"] = name
+        self["type"] = authorizer_type
+        if kwargs.get("provider_arns"):
+            self["providerARNs"] = kwargs.get("provider_arns")
+        if kwargs.get("auth_type"):
+            self["authType"] = kwargs.get("auth_type")
+        if kwargs.get("authorizer_uri"):
+            self["authorizerUri"] = kwargs.get("authorizer_uri")
+        if kwargs.get("authorizer_credentials"):
+            self["authorizerCredentials"] = kwargs.get("authorizer_credentials")
+        if kwargs.get("identity_source"):
+            self["identitySource"] = kwargs.get("identity_source")
+        if kwargs.get("identity_validation_expression"):
+            self["identityValidationExpression"] = kwargs.get(
+                "identity_validation_expression"
+            )
+        self["authorizerResultTtlInSeconds"] = kwargs.get("authorizer_result_ttl")
+
+    def apply_operations(self, patch_operations):
+        for op in patch_operations:
+            if "/authorizerUri" in op["path"]:
+                self["authorizerUri"] = op["value"]
+            elif "/authorizerCredentials" in op["path"]:
+                self["authorizerCredentials"] = op["value"]
+            elif "/authorizerResultTtlInSeconds" in op["path"]:
+                self["authorizerResultTtlInSeconds"] = int(op["value"])
+            elif "/authType" in op["path"]:
+                self["authType"] = op["value"]
+            elif "/identitySource" in op["path"]:
+                self["identitySource"] = op["value"]
+            elif "/identityValidationExpression" in op["path"]:
+                self["identityValidationExpression"] = op["value"]
+            elif "/name" in op["path"]:
+                self["name"] = op["value"]
+            elif "/providerARNs" in op["path"]:
+                # TODO: add and remove
+                raise Exception('Patch operation for "%s" not implemented' % op["path"])
+            elif "/type" in op["path"]:
+                self["type"] = op["value"]
+            else:
+                raise Exception('Patch operation "%s" not implemented' % op["op"])
+        return self
 
 
 class Stage(BaseModel, dict):
@@ -407,6 +456,7 @@ class RestAPI(BaseModel):
         self.tags = kwargs.get("tags") or {}
 
         self.deployments = {}
+        self.authorizers = {}
         self.stages = {}
 
         self.resources = {}
@@ -474,6 +524,34 @@ class RestAPI(BaseModel):
                 ),
             )
 
+    def create_authorizer(
+        self,
+        id,
+        name,
+        authorizer_type,
+        provider_arns=None,
+        auth_type=None,
+        authorizer_uri=None,
+        authorizer_credentials=None,
+        identity_source=None,
+        identiy_validation_expression=None,
+        authorizer_result_ttl=None,
+    ):
+        authorizer = Authorizer(
+            id=id,
+            name=name,
+            authorizer_type=authorizer_type,
+            provider_arns=provider_arns,
+            auth_type=auth_type,
+            authorizer_uri=authorizer_uri,
+            authorizer_credentials=authorizer_credentials,
+            identity_source=identity_source,
+            identiy_validation_expression=identiy_validation_expression,
+            authorizer_result_ttl=authorizer_result_ttl,
+        )
+        self.authorizers[id] = authorizer
+        return authorizer
+
     def create_stage(
         self,
         name,
@@ -512,6 +590,9 @@ class RestAPI(BaseModel):
 
     def get_deployment(self, deployment_id):
         return self.deployments[deployment_id]
+
+    def get_authorizers(self):
+        return list(self.authorizers.values())
 
     def get_stages(self):
         return list(self.stages.values())
@@ -598,6 +679,46 @@ class APIGatewayBackend(BaseBackend):
         resource = self.get_resource(function_id, resource_id)
         method = resource.add_method(method_type, authorization_type)
         return method
+
+    def get_authorizer(self, restapi_id, authorizer_id):
+        api = self.get_rest_api(restapi_id)
+        authorizer = api.authorizers.get(authorizer_id)
+        if authorizer is None:
+            raise AuthorizerNotFoundException()
+        else:
+            return authorizer
+
+    def get_authorizers(self, restapi_id):
+        api = self.get_rest_api(restapi_id)
+        return api.get_authorizers()
+
+    def create_authorizer(self, restapi_id, name, authorizer_type, **kwargs):
+        api = self.get_rest_api(restapi_id)
+        authorizer_id = create_id()
+        authorizer = api.create_authorizer(
+            authorizer_id,
+            name,
+            authorizer_type,
+            provider_arns=kwargs.get("provider_arns"),
+            auth_type=kwargs.get("auth_type"),
+            authorizer_uri=kwargs.get("authorizer_uri"),
+            authorizer_credentials=kwargs.get("authorizer_credentials"),
+            identity_source=kwargs.get("identity_source"),
+            identiy_validation_expression=kwargs.get("identiy_validation_expression"),
+            authorizer_result_ttl=kwargs.get("authorizer_result_ttl"),
+        )
+        return api.authorizers.get(authorizer["id"])
+
+    def update_authorizer(self, restapi_id, authorizer_id, patch_operations):
+        authorizer = self.get_authorizer(restapi_id, authorizer_id)
+        if not authorizer:
+            api = self.get_rest_api(restapi_id)
+            authorizer = api.authorizers[authorizer_id] = Authorizer()
+        return authorizer.apply_operations(patch_operations)
+
+    def delete_authorizer(self, restapi_id, authorizer_id):
+        api = self.get_rest_api(restapi_id)
+        del api.authorizers[authorizer_id]
 
     def get_stage(self, function_id, stage_name):
         api = self.get_rest_api(function_id)
