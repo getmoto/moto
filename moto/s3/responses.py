@@ -1202,6 +1202,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if mdirective is not None and mdirective == "REPLACE":
                 metadata = metadata_from_headers(request.headers)
                 new_key.set_metadata(metadata, replace=True)
+            tdirective = request.headers.get("x-amz-tagging-directive")
+            if tdirective == "REPLACE":
+                tagging = self._tagging_from_headers(request.headers)
+                new_key.set_tagging(tagging)
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)
