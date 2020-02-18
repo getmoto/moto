@@ -1,14 +1,18 @@
-import random
-import boto3
-import json
-import sure  # noqa
-
+from moto.events.models import EventsBackend
 from moto.events import mock_events
+import json
+import random
+import unittest
+
+import boto3
 from botocore.exceptions import ClientError
 from moto.core.exceptions import JsonRESTError
 from nose.tools import assert_raises
+
 from moto.core import ACCOUNT_ID
-from moto.events.models import EventsBackend
+<< << << < HEAD
+== == == =
+>>>>>> > 100dbd529f174f18d579a1dcc066d55409f2e38f
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -456,6 +460,11 @@ def test_delete_event_bus_errors():
         ClientError, "Cannot delete event bus default."
     )
 
+
+<< << << < HEAD
+== == == =
+
+>>>>>> > 100dbd529f174f18d579a1dcc066d55409f2e38f
 @mock_events
 def test_rule_tagging_happy():
     client = generate_environment()
@@ -466,7 +475,12 @@ def test_rule_tagging_happy():
     client.tag_resource(ResourceARN=rule_arn, Tags=tags)
 
     actual = client.list_tags_for_resource(ResourceARN=rule_arn).get("Tags")
-    assert tags == actual
+    tc = unittest.TestCase("__init__")
+    expected = [{"Value": "value1", "Key": "key1"}, {"Value": "value2", "Key": "key2"}]
+    tc.assertTrue(
+        (expected[0] == actual[0] and expected[1] == actual[1])
+        or (expected[1] == actual[0] and expected[0] == actual[1])
+    )
 
     client.untag_resource(ResourceARN=rule_arn, TagKeys=["key1"])
 
@@ -474,24 +488,25 @@ def test_rule_tagging_happy():
     expected = [{"Key": "key2", "Value": "value2"}]
     assert expected == actual
 
+
 @mock_events
 def test_rule_tagging_sad():
-    b = EventsBackend("us-west-2")
+    back_end = EventsBackend("us-west-2")
 
     try:
-        b.tag_resource('unknown', [])
-        raise 'tag_resource should fail if ResourceARN is not known'
+        back_end.tag_resource("unknown", [])
+        raise "tag_resource should fail if ResourceARN is not known"
     except JsonRESTError:
         pass
 
     try:
-        b.untag_resource('unknown', [])
-        raise 'untag_resource should fail if ResourceARN is not known'
+        back_end.untag_resource("unknown", [])
+        raise "untag_resource should fail if ResourceARN is not known"
     except JsonRESTError:
         pass
 
     try:
-        b.list_tags_for_resource('unknown')
-        raise 'list_tags_for_resource should fail if ResourceARN is not known'
+        back_end.list_tags_for_resource("unknown")
+        raise "list_tags_for_resource should fail if ResourceARN is not known"
     except JsonRESTError:
         pass

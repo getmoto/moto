@@ -11,7 +11,7 @@ from moto import mock_s3
 
 @mock_s3
 def test_s3_storage_class_standard():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3.create_bucket(Bucket="Bucket")
 
     # add an object to the bucket with standard storage
@@ -26,7 +26,9 @@ def test_s3_storage_class_standard():
 @mock_s3
 def test_s3_storage_class_infrequent_access():
     s3 = boto3.client("s3")
-    s3.create_bucket(Bucket="Bucket")
+    s3.create_bucket(
+        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
+    )
 
     # add an object to the bucket with standard storage
 
@@ -46,7 +48,9 @@ def test_s3_storage_class_infrequent_access():
 def test_s3_storage_class_intelligent_tiering():
     s3 = boto3.client("s3")
 
-    s3.create_bucket(Bucket="Bucket")
+    s3.create_bucket(
+        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-east-2"}
+    )
     s3.put_object(
         Bucket="Bucket",
         Key="my_key_infrequent",
@@ -61,7 +65,7 @@ def test_s3_storage_class_intelligent_tiering():
 
 @mock_s3
 def test_s3_storage_class_copy():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3.create_bucket(Bucket="Bucket")
     s3.put_object(
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARD"
@@ -86,7 +90,7 @@ def test_s3_storage_class_copy():
 
 @mock_s3
 def test_s3_invalid_copied_storage_class():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3.create_bucket(Bucket="Bucket")
     s3.put_object(
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARD"
@@ -119,7 +123,9 @@ def test_s3_invalid_copied_storage_class():
 @mock_s3
 def test_s3_invalid_storage_class():
     s3 = boto3.client("s3")
-    s3.create_bucket(Bucket="Bucket")
+    s3.create_bucket(
+        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     # Try to add an object with an invalid storage class
     with assert_raises(ClientError) as err:
@@ -137,7 +143,9 @@ def test_s3_invalid_storage_class():
 @mock_s3
 def test_s3_default_storage_class():
     s3 = boto3.client("s3")
-    s3.create_bucket(Bucket="Bucket")
+    s3.create_bucket(
+        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     s3.put_object(Bucket="Bucket", Key="First_Object", Body="Body")
 
@@ -150,7 +158,9 @@ def test_s3_default_storage_class():
 @mock_s3
 def test_s3_copy_object_error_for_glacier_storage_class():
     s3 = boto3.client("s3")
-    s3.create_bucket(Bucket="Bucket")
+    s3.create_bucket(
+        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     s3.put_object(
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="GLACIER"
@@ -169,7 +179,9 @@ def test_s3_copy_object_error_for_glacier_storage_class():
 @mock_s3
 def test_s3_copy_object_error_for_deep_archive_storage_class():
     s3 = boto3.client("s3")
-    s3.create_bucket(Bucket="Bucket")
+    s3.create_bucket(
+        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
 
     s3.put_object(
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="DEEP_ARCHIVE"

@@ -14,6 +14,7 @@ from jose import jws
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 from .exceptions import (
     GroupExistsException,
     NotAuthorizedError,
@@ -69,6 +70,9 @@ class CognitoIdpUserPool(BaseModel):
     def __init__(self, region, name, extended_config):
         self.region = region
         self.id = "{}_{}".format(self.region, str(uuid.uuid4().hex))
+        self.arn = "arn:aws:cognito-idp:{}:{}:userpool/{}".format(
+            self.region, DEFAULT_ACCOUNT_ID, self.id
+        )
         self.name = name
         self.status = None
         self.extended_config = extended_config or {}
@@ -91,6 +95,7 @@ class CognitoIdpUserPool(BaseModel):
     def _base_json(self):
         return {
             "Id": self.id,
+            "Arn": self.arn,
             "Name": self.name,
             "Status": self.status,
             "CreationDate": time.mktime(self.creation_date.timetuple()),
@@ -108,7 +113,9 @@ class CognitoIdpUserPool(BaseModel):
 
         return user_pool_json
 
-    def create_jwt(self, client_id, username, expires_in=60 * 60, extra_data={}):
+    def create_jwt(
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+    ):
         now = int(time.time())
         payload = {
             "iss": "https://cognito-idp.{}.amazonaws.com/{}".format(
@@ -116,7 +123,7 @@ class CognitoIdpUserPool(BaseModel):
             ),
             "sub": self.users[username].id,
             "aud": client_id,
-            "token_use": "id",
+            "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
         }
@@ -125,7 +132,10 @@ class CognitoIdpUserPool(BaseModel):
         return jws.sign(payload, self.json_web_key, algorithm="RS256"), expires_in
 
     def create_id_token(self, client_id, username):
-        id_token, expires_in = self.create_jwt(client_id, username)
+        extra_data = self.get_user_extra_data_by_client_id(client_id, username)
+        id_token, expires_in = self.create_jwt(
+            client_id, username, "id", extra_data=extra_data
+        )
         self.id_tokens[id_token] = (client_id, username)
         return id_token, expires_in
 
@@ -135,10 +145,7 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token
 
     def create_access_token(self, client_id, username):
-        extra_data = self.get_user_extra_data_by_client_id(client_id, username)
-        access_token, expires_in = self.create_jwt(
-            client_id, username, extra_data=extra_data
-        )
+        access_token, expires_in = self.create_jwt(client_id, username, "access")
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
@@ -562,12 +569,17 @@ class CognitoIdpBackend(BaseBackend):
         user.groups.discard(group)
 
     # User
-    def admin_create_user(self, user_pool_id, username, temporary_password, attributes):
+    def admin_create_user(
+        self, user_pool_id, username, message_action, temporary_password, attributes
+    ):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        if username in user_pool.users:
+        if message_action and message_action == "RESEND":
+            if username not in user_pool.users:
+                raise UserNotFoundError(username)
+        elif username in user_pool.users:
             raise UsernameExistsException(username)
 
         user = CognitoIdpUser(

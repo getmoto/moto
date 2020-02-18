@@ -27,6 +27,9 @@ class RDS2Response(BaseResponse):
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
             "engine": self._get_param("Engine"),
             "engine_version": self._get_param("EngineVersion"),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
             "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
@@ -367,14 +370,14 @@ class RDS2Response(BaseResponse):
 
     def modify_db_parameter_group(self):
         db_parameter_group_name = self._get_param("DBParameterGroupName")
-        db_parameter_group_parameters = self._get_db_parameter_group_paramters()
+        db_parameter_group_parameters = self._get_db_parameter_group_parameters()
         db_parameter_group = self.backend.modify_db_parameter_group(
             db_parameter_group_name, db_parameter_group_parameters
         )
         template = self.response_template(MODIFY_DB_PARAMETER_GROUP_TEMPLATE)
         return template.render(db_parameter_group=db_parameter_group)
 
-    def _get_db_parameter_group_paramters(self):
+    def _get_db_parameter_group_parameters(self):
         parameter_group_parameters = defaultdict(dict)
         for param_name, value in self.querystring.items():
             if not param_name.startswith("Parameters.Parameter"):

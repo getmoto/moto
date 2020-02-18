@@ -143,6 +143,9 @@ class EventsBackend(BaseBackend):
 
     def delete_rule(self, name):
         self.rules_order.pop(self.rules_order.index(name))
+        arn = self.rules.get(name).arn
+        if self.tagger.has_tags(arn):
+            self.tagger.delete_all_tags_for_resource(arn)
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):
@@ -362,32 +365,41 @@ class EventsBackend(BaseBackend):
             )
 
         self.event_buses.pop(name, None)
-    
+
     def list_tags_for_resource(self, arn):
         name = arn.split('/')[-1]
         if name in self.rules:
             return self.tagger.list_tags_for_resource(self.rules[name].arn)
         raise JsonRESTError(
-                "ResourceNotFoundException", "An entity that you specified does not exist."
-            )
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
+
+    def list_tags_for_resource(self, arn):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            return self.tagger.list_tags_for_resource(self.rules[name].arn)
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
 
     def tag_resource(self, arn, tags):
-        name = arn.split('/')[-1]
+        name = arn.split("/")[-1]
         if name in self.rules:
             self.tagger.tag_resource(self.rules[name].arn, tags)
             return {}
         raise JsonRESTError(
-                "ResourceNotFoundException", "An entity that you specified does not exist."
-            )
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
 
     def untag_resource(self, arn, tag_names):
-        name = arn.split('/')[-1]
+        name = arn.split("/")[-1]
         if name in self.rules:
             self.tagger.untag_resource_using_names(self.rules[name].arn, tag_names)
             return {}
         raise JsonRESTError(
-                "ResourceNotFoundException", "An entity that you specified does not exist."
-            )
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
+
 
 events_backends = {}
 for region in Session().get_available_regions("events"):

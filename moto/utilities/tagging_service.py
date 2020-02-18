@@ -1,5 +1,5 @@
 class TaggingService:
-    def __init__(self, tagName='Tags', keyName='Key', valueName='Value'):
+    def __init__(self, tagName="Tags", keyName="Key", valueName="Value"):
         self.tagName = tagName
         self.keyName = keyName
         self.valueName = valueName
@@ -11,6 +11,12 @@ class TaggingService:
             for k, v in self.tags[arn].items():
                 result.append({self.keyName: k, self.valueName: v})
         return {self.tagName: result}
+
+    def delete_all_tags_for_resource(self, arn):
+        del self.tags[arn]
+
+    def has_tags(self, arn):
+        return arn in self.tags
 
     def tag_resource(self, arn, tags):
         if arn not in self.tags:

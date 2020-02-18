@@ -271,6 +271,7 @@ LIST_RRSET_RESPONSE = """<ListResourceRecordSetsResponse xmlns="https://route53.
       {{ record_set.to_xml() }}
    {% endfor %}
    </ResourceRecordSets>
+   <IsTruncated>false</IsTruncated>
 </ListResourceRecordSetsResponse>"""
 
 CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">

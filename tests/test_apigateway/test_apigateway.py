@@ -26,7 +26,14 @@ def test_create_and_get_rest_api():
     response.pop("ResponseMetadata")
     response.pop("createdDate")
     response.should.equal(
-        {"id": api_id, "name": "my_api", "description": "this is my api"}
+        {
+            "id": api_id,
+            "name": "my_api",
+            "description": "this is my api",
+            "apiKeySource": "HEADER",
+            "endpointConfiguration": {"types": ["EDGE"]},
+            "tags": {},
+        }
     )
 
 
@@ -48,6 +55,114 @@ def test_list_and_delete_apis():
 
 
 @mock_apigateway
+def test_create_rest_api_with_tags():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", tags={"MY_TAG1": "MY_VALUE1"}
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+
+    assert "tags" in response
+    response["tags"].should.equal({"MY_TAG1": "MY_VALUE1"})
+
+
+@mock_apigateway
+def test_create_rest_api_invalid_apikeysource():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with assert_raises(ClientError) as ex:
+        client.create_rest_api(
+            name="my_api",
+            description="this is my api",
+            apiKeySource="not a valid api key source",
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+
+
+@mock_apigateway
+def test_create_rest_api_valid_apikeysources():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    # 1. test creating rest api with HEADER apiKeySource
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", apiKeySource="HEADER",
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["apiKeySource"].should.equal("HEADER")
+
+    # 2. test creating rest api with AUTHORIZER apiKeySource
+    response = client.create_rest_api(
+        name="my_api2", description="this is my api", apiKeySource="AUTHORIZER",
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["apiKeySource"].should.equal("AUTHORIZER")
+
+
+@mock_apigateway
+def test_create_rest_api_invalid_endpointconfiguration():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    with assert_raises(ClientError) as ex:
+        client.create_rest_api(
+            name="my_api",
+            description="this is my api",
+            endpointConfiguration={"types": ["INVALID"]},
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+
+
+@mock_apigateway
+def test_create_rest_api_valid_endpointconfigurations():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    # 1. test creating rest api with PRIVATE endpointConfiguration
+    response = client.create_rest_api(
+        name="my_api",
+        description="this is my api",
+        endpointConfiguration={"types": ["PRIVATE"]},
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["endpointConfiguration"].should.equal(
+        {"types": ["PRIVATE"],}
+    )
+
+    # 2. test creating rest api with REGIONAL endpointConfiguration
+    response = client.create_rest_api(
+        name="my_api2",
+        description="this is my api",
+        endpointConfiguration={"types": ["REGIONAL"]},
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["endpointConfiguration"].should.equal(
+        {"types": ["REGIONAL"],}
+    )
+
+    # 3. test creating rest api with EDGE endpointConfiguration
+    response = client.create_rest_api(
+        name="my_api3",
+        description="this is my api",
+        endpointConfiguration={"types": ["EDGE"]},
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+    response["endpointConfiguration"].should.equal(
+        {"types": ["EDGE"],}
+    )
+
+
+@mock_apigateway
 def test_create_resource__validate_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -58,15 +173,15 @@ def test_create_resource__validate_name():
         0
     ]["id"]
 
-    invalid_names = ["/users", "users/", "users/{user_id}", "us{er"]
-    valid_names = ["users", "{user_id}", "user_09", "good-dog"]
+    invalid_names = ["/users", "users/", "users/{user_id}", "us{er", "us+er"]
+    valid_names = ["users", "{user_id}", "{proxy+}", "user_09", "good-dog"]
     # All invalid names should throw an exception
     for name in invalid_names:
         with assert_raises(ClientError) as ex:
             client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
         ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
         ex.exception.response["Error"]["Message"].should.equal(
-            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end."
+            "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace."
         )
     # All valid names  should go through
     for name in valid_names:
@@ -89,12 +204,7 @@ def test_create_resource():
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
     root_resource.should.equal(
-        {
-            "path": "/",
-            "id": root_id,
-            "ResponseMetadata": {"HTTPStatusCode": 200},
-            "resourceMethods": {"GET": {}},
-        }
+        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200},}
     )
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
@@ -142,7 +252,6 @@ def test_child_resource():
             "parentId": users_id,
             "id": tags_id,
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "resourceMethods": {"GET": {}},
         }
     )
 
@@ -171,6 +280,41 @@ def test_create_method():
         {
             "httpMethod": "GET",
             "authorizationType": "none",
+            "apiKeyRequired": False,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
+    )
+
+
+@mock_apigateway
+def test_create_method_apikeyrequired():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        authorizationType="none",
+        apiKeyRequired=True,
+    )
+
+    response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "httpMethod": "GET",
+            "authorizationType": "none",
+            "apiKeyRequired": True,
             "ResponseMetadata": {"HTTPStatusCode": 200},
         }
     )

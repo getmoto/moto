@@ -27,6 +27,11 @@ def test_create_user_pool():
 
     result["UserPool"]["Id"].should_not.be.none
     result["UserPool"]["Id"].should.match(r"[\w-]+_[0-9a-zA-Z]+")
+    result["UserPool"]["Arn"].should.equal(
+        "arn:aws:cognito-idp:us-west-2:{}:userpool/{}".format(
+            ACCOUNT_ID, result["UserPool"]["Id"]
+        )
+    )
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
 
@@ -912,6 +917,55 @@ def test_admin_create_existing_user():
 
 
 @mock_cognitoidp
+def test_admin_resend_invitation_existing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "thing", "Value": value}],
+    )
+
+    caught = False
+    try:
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+            MessageAction="RESEND",
+        )
+    except conn.exceptions.UsernameExistsException:
+        caught = True
+
+    caught.should.be.false
+
+
+@mock_cognitoidp
+def test_admin_resend_invitation_missing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    caught = False
+    try:
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+            MessageAction="RESEND",
+        )
+    except conn.exceptions.UserNotFoundException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
 def test_admin_get_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -957,6 +1011,18 @@ def test_list_users():
     result = conn.list_users(UserPoolId=user_pool_id)
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username)
+
+    username_bis = str(uuid.uuid4())
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username_bis,
+        UserAttributes=[{"Name": "phone_number", "Value": "+33666666666"}],
+    )
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='phone_number="+33666666666'
+    )
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username_bis)
 
 
 @mock_cognitoidp
@@ -1142,11 +1208,13 @@ def test_token_legitimacy():
     id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
     id_claims["iss"].should.equal(issuer)
     id_claims["aud"].should.equal(client_id)
+    id_claims["token_use"].should.equal("id")
+    for k, v in outputs["additional_fields"].items():
+        id_claims[k].should.equal(v)
     access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
     access_claims["iss"].should.equal(issuer)
     access_claims["aud"].should.equal(client_id)
-    for k, v in outputs["additional_fields"].items():
-        access_claims[k].should.equal(v)
+    access_claims["token_use"].should.equal("access")
 
 
 @mock_cognitoidp

@@ -62,8 +62,13 @@ class EC2ContainerServiceResponse(BaseResponse):
         container_definitions = self._get_param("containerDefinitions")
         volumes = self._get_param("volumes")
         tags = self._get_param("tags")
+        network_mode = self._get_param("networkMode")
         task_definition = self.ecs_backend.register_task_definition(
-            family, container_definitions, volumes, tags
+            family,
+            container_definitions,
+            volumes=volumes,
+            network_mode=network_mode,
+            tags=tags,
         )
         return json.dumps({"taskDefinition": task_definition.response_object})
 

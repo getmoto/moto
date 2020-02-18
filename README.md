@@ -283,14 +283,14 @@ def test_describe_instances_allowed():
         ]
     }
     access_key = ...
-    # create access key for an IAM user/assumed role that has the policy above. 
+    # create access key for an IAM user/assumed role that has the policy above.
     # this part should call __exactly__ 4 AWS actions, so that authentication and authorization starts exactly after this
-    
+
     client = boto3.client('ec2', region_name='us-east-1',
                           aws_access_key_id=access_key['AccessKeyId'],
                           aws_secret_access_key=access_key['SecretAccessKey'])
-                          
-    # if the IAM principal whose access key is used, does not have the permission to describe instances, this will fail 
+
+    # if the IAM principal whose access key is used, does not have the permission to describe instances, this will fail
     instances = client.describe_instances()['Reservations'][0]['Instances']
     assert len(instances) == 0
 ```
@@ -310,16 +310,16 @@ You need to ensure that the mocks are actually in place. Changes made to recent 
 have altered some of the mock behavior. In short, you need to ensure that you _always_ do the following:
 
 1. Ensure that your tests have dummy environment variables set up:
-    
+
         export AWS_ACCESS_KEY_ID='testing'
         export AWS_SECRET_ACCESS_KEY='testing'
         export AWS_SECURITY_TOKEN='testing'
         export AWS_SESSION_TOKEN='testing'
-   
-1. __VERY IMPORTANT__: ensure that you have your mocks set up __BEFORE__ your `boto3` client is established. 
+
+1. __VERY IMPORTANT__: ensure that you have your mocks set up __BEFORE__ your `boto3` client is established.
    This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
    See the pesky imports section below on how to work around this.
-  
+
 ### Example on usage?
 If you are a user of [pytest](https://pytest.org/en/latest/), you can leverage [pytest fixtures](https://pytest.org/en/latest/fixture.html#fixture)
 to help set up your mocks and other AWS resources that you would need.
@@ -354,7 +354,7 @@ def cloudwatch(aws_credentials):
 ... etc.
 ```
 
-In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`, 
+In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`,
 which sets the proper fake environment variables. The fake environment variables are used so that `botocore` doesn't try to locate real
 credentials on your system.
 
@@ -364,7 +364,7 @@ def test_create_bucket(s3):
     # s3 is a fixture defined above that yields a boto3 s3 client.
     # Feel free to instantiate another boto3 S3 client -- Keep note of the region though.
     s3.create_bucket(Bucket="somebucket")
-   
+
     result = s3.list_buckets()
     assert len(result['Buckets']) == 1
     assert result['Buckets'][0]['Name'] == 'somebucket'
@@ -373,7 +373,7 @@ def test_create_bucket(s3):
 ### What about those pesky imports?
 Recall earlier, it was mentioned that mocks should be established __BEFORE__ the clients are set up. One way
 to avoid import issues is to make use of local Python imports -- i.e. import the module inside of the unit
-test you want to run vs. importing at the top of the file. 
+test you want to run vs. importing at the top of the file.
 
 Example:
 ```python
@@ -381,12 +381,12 @@ def test_something(s3):
    from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
    # ^^ Importing here ensures that the mock has been established.      
 
-   sume_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
+   some_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
                 # a package-level S3 client will properly use the mock and not reach out to AWS.
 ```
 
 ### Other caveats
-For Tox, Travis CI, and other build systems, you might need to also perform a `touch ~/.aws/credentials` 
+For Tox, Travis CI, and other build systems, you might need to also perform a `touch ~/.aws/credentials`
 command before running the tests. As long as that file is present (empty preferably) and the environment
 variables above are set, you should be good to go.
 
@@ -449,6 +449,16 @@ boto3.resource(
     endpoint_url='http://localhost:5000',
 )
 ```
+
+### Caveats
+The standalone server has some caveats with some services. The following services
+require that you update your hosts file for your code to work properly:
+
+1. `s3-control`
+
+For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
+As a result, you need to add that entry to your host file for your tests to function properly.
+
 
 ## Install
 

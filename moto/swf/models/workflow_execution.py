@@ -127,6 +127,10 @@ class WorkflowExecution(BaseModel):
             "executionInfo": self.to_medium_dict(),
             "executionConfiguration": {"taskList": {"name": self.task_list}},
         }
+        # info
+        if self.execution_status == "CLOSED":
+            hsh["executionInfo"]["closeStatus"] = self.close_status
+            hsh["executionInfo"]["closeTimestamp"] = self.close_timestamp
         # configuration
         for key in self._configuration_keys:
             attr = camelcase_to_underscores(key)

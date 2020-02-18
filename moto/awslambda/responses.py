@@ -120,8 +120,12 @@ class LambdaResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self._get_policy(request, full_url, headers)
-        if request.method == "POST":
+        elif request.method == "POST":
             return self._add_policy(request, full_url, headers)
+        elif request.method == "DELETE":
+            return self._del_policy(request, full_url, headers, self.querystring)
+        else:
+            raise ValueError("Cannot handle {0} request".format(request.method))
 
     def configuration(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -141,9 +145,9 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
-            policy = self.body
-            self.lambda_backend.add_policy(function_name, policy)
-            return 200, {}, json.dumps(dict(Statement=policy))
+            statement = self.body
+            self.lambda_backend.add_policy_statement(function_name, statement)
+            return 200, {}, json.dumps({"Statement": statement})
         else:
             return 404, {}, "{}"
 
@@ -151,28 +155,42 @@ class LambdaResponse(BaseResponse):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
-            lambda_function = self.lambda_backend.get_function(function_name)
-            return (
-                200,
-                {},
-                json.dumps(
-                    dict(Policy='{"Statement":[' + lambda_function.policy + "]}")
-                ),
+            out = self.lambda_backend.get_policy_wire_format(function_name)
+            return 200, {}, out
+        else:
+            return 404, {}, "{}"
+
+    def _del_policy(self, request, full_url, headers, querystring):
+        path = request.path if hasattr(request, "path") else path_url(request.url)
+        function_name = path.split("/")[-3]
+        statement_id = path.split("/")[-1].split("?")[0]
+        revision = querystring.get("RevisionId", "")
+        if self.lambda_backend.get_function(function_name):
+            self.lambda_backend.del_policy_statement(
+                function_name, statement_id, revision
             )
+            return 204, {}, "{}"
         else:
             return 404, {}, "{}"
 
     def _invoke(self, request, full_url):
         response_headers = {}
 
-        function_name = self.path.rsplit("/", 2)[-2]
+        # URL Decode in case it's a ARN:
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("qualifier")
 
         response_header, payload = self.lambda_backend.invoke(
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
-            return 202, response_headers, payload
+            if request.headers["X-Amz-Invocation-Type"] == "Event":
+                status_code = 202
+            elif request.headers["X-Amz-Invocation-Type"] == "DryRun":
+                status_code = 204
+            else:
+                status_code = 200
+            return status_code, response_headers, payload
         else:
             return 404, response_headers, "{}"
 
@@ -283,7 +301,7 @@ class LambdaResponse(BaseResponse):
                 code["Configuration"]["FunctionArn"] += ":$LATEST"
             return 200, {}, json.dumps(code)
         else:
-            return 404, {}, "{}"
+            return 404, {"x-amzn-ErrorType": "ResourceNotFoundException"}, "{}"
 
     def _get_aws_region(self, full_url):
         region = self.region_regex.search(full_url)

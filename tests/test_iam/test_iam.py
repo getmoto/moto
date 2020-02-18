@@ -785,13 +785,26 @@ def test_delete_login_profile():
     conn.delete_login_profile("my-user")
 
 
-@mock_iam()
+@mock_iam
 def test_create_access_key():
     conn = boto3.client("iam", region_name="us-east-1")
     with assert_raises(ClientError):
         conn.create_access_key(UserName="my-user")
     conn.create_user(UserName="my-user")
     access_key = conn.create_access_key(UserName="my-user")["AccessKey"]
+    (
+        datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)
+    ).seconds.should.be.within(0, 10)
+    access_key["AccessKeyId"].should.have.length_of(20)
+    access_key["SecretAccessKey"].should.have.length_of(40)
+    assert access_key["AccessKeyId"].startswith("AKIA")
+    conn = boto3.client(
+        "iam",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+    access_key = conn.create_access_key()["AccessKey"]
     (
         datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)
     ).seconds.should.be.within(0, 10)
@@ -825,14 +838,51 @@ def test_get_all_access_keys():
     )
 
 
+@mock_iam
+def test_list_access_keys():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="my-user")
+    response = conn.list_access_keys(UserName="my-user")
+    assert_equals(
+        response["AccessKeyMetadata"], [],
+    )
+    access_key = conn.create_access_key(UserName="my-user")["AccessKey"]
+    response = conn.list_access_keys(UserName="my-user")
+    assert_equals(
+        sorted(response["AccessKeyMetadata"][0].keys()),
+        sorted(["Status", "CreateDate", "UserName", "AccessKeyId"]),
+    )
+    conn = boto3.client(
+        "iam",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+    response = conn.list_access_keys()
+    assert_equals(
+        sorted(response["AccessKeyMetadata"][0].keys()),
+        sorted(["Status", "CreateDate", "UserName", "AccessKeyId"]),
+    )
+
+
 @mock_iam_deprecated()
-def test_delete_access_key():
+def test_delete_access_key_deprecated():
     conn = boto.connect_iam()
     conn.create_user("my-user")
     access_key_id = conn.create_access_key("my-user")["create_access_key_response"][
         "create_access_key_result"
     ]["access_key"]["access_key_id"]
     conn.delete_access_key(access_key_id, "my-user")
+
+
+@mock_iam
+def test_delete_access_key():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_user(UserName="my-user")
+    key = conn.create_access_key(UserName="my-user")["AccessKey"]
+    conn.delete_access_key(AccessKeyId=key["AccessKeyId"], UserName="my-user")
+    key = conn.create_access_key(UserName="my-user")["AccessKey"]
+    conn.delete_access_key(AccessKeyId=key["AccessKeyId"])
 
 
 @mock_iam()
@@ -1326,6 +1376,9 @@ def test_update_access_key():
     )
     resp = client.list_access_keys(UserName=username)
     resp["AccessKeyMetadata"][0]["Status"].should.equal("Inactive")
+    client.update_access_key(AccessKeyId=key["AccessKeyId"], Status="Active")
+    resp = client.list_access_keys(UserName=username)
+    resp["AccessKeyMetadata"][0]["Status"].should.equal("Active")
 
 
 @mock_iam

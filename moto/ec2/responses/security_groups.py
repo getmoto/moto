@@ -104,7 +104,7 @@ class SecurityGroups(BaseResponse):
         if self.is_not_dryrun("GrantSecurityGroupIngress"):
             for args in self._process_rules_from_querystring():
                 self.ec2_backend.authorize_security_group_ingress(*args)
-            return AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE
+            return AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE
 
     def create_security_group(self):
         name = self._get_param("GroupName")
@@ -158,7 +158,7 @@ class SecurityGroups(BaseResponse):
         if self.is_not_dryrun("RevokeSecurityGroupIngress"):
             for args in self._process_rules_from_querystring():
                 self.ec2_backend.revoke_security_group_ingress(*args)
-            return REVOKE_SECURITY_GROUP_INGRESS_REPONSE
+            return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
 
 
 CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -265,12 +265,12 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
 </DescribeSecurityGroupsResponse>"""
 )
 
-AUTHORIZE_SECURITY_GROUP_INGRESS_REPONSE = """<AuthorizeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </AuthorizeSecurityGroupIngressResponse>"""
 
-REVOKE_SECURITY_GROUP_INGRESS_REPONSE = """<RevokeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+REVOKE_SECURITY_GROUP_INGRESS_RESPONSE = """<RevokeSecurityGroupIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RevokeSecurityGroupIngressResponse>"""

@@ -12,6 +12,9 @@ from .exceptions import (
     ApiKeyAlreadyExists,
 )
 
+API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
+ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
+
 
 class APIGatewayResponse(BaseResponse):
     def error(self, type_, message, status=400):
@@ -45,7 +48,45 @@ class APIGatewayResponse(BaseResponse):
         elif self.method == "POST":
             name = self._get_param("name")
             description = self._get_param("description")
-            rest_api = self.backend.create_rest_api(name, description)
+            api_key_source = self._get_param("apiKeySource")
+            endpoint_configuration = self._get_param("endpointConfiguration")
+            tags = self._get_param("tags")
+
+            # Param validation
+            if api_key_source and api_key_source not in API_KEY_SOURCES:
+                return self.error(
+                    "ValidationException",
+                    (
+                        "1 validation error detected: "
+                        "Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
+                        "to satisfy constraint: Member must satisfy enum value set: "
+                        "[AUTHORIZER, HEADER]"
+                    ).format(api_key_source=api_key_source),
+                )
+
+            if endpoint_configuration and "types" in endpoint_configuration:
+                invalid_types = list(
+                    set(endpoint_configuration["types"])
+                    - set(ENDPOINT_CONFIGURATION_TYPES)
+                )
+                if invalid_types:
+                    return self.error(
+                        "ValidationException",
+                        (
+                            "1 validation error detected: Value '{endpoint_type}' "
+                            "at 'createRestApiInput.endpointConfiguration.types' failed "
+                            "to satisfy constraint: Member must satisfy enum value set: "
+                            "[PRIVATE, EDGE, REGIONAL]"
+                        ).format(endpoint_type=invalid_types[0]),
+                    )
+
+            rest_api = self.backend.create_rest_api(
+                name,
+                description,
+                api_key_source=api_key_source,
+                endpoint_configuration=endpoint_configuration,
+                tags=tags,
+            )
             return 200, {}, json.dumps(rest_api.to_dict())
 
     def restapis_individual(self, request, full_url, headers):
@@ -104,8 +145,13 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps(method)
         elif self.method == "PUT":
             authorization_type = self._get_param("authorizationType")
+            api_key_required = self._get_param("apiKeyRequired")
             method = self.backend.create_method(
-                function_id, resource_id, method_type, authorization_type
+                function_id,
+                resource_id,
+                method_type,
+                authorization_type,
+                api_key_required,
             )
             return 200, {}, json.dumps(method)
 

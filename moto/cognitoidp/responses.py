@@ -259,10 +259,12 @@ class CognitoIdpResponse(BaseResponse):
     def admin_create_user(self):
         user_pool_id = self._get_param("UserPoolId")
         username = self._get_param("Username")
+        message_action = self._get_param("MessageAction")
         temporary_password = self._get_param("TemporaryPassword")
         user = cognitoidp_backends[self.region].admin_create_user(
             user_pool_id,
             username,
+            message_action,
             temporary_password,
             self._get_param("UserAttributes", []),
         )
@@ -279,9 +281,18 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_id = self._get_param("UserPoolId")
         limit = self._get_param("Limit")
         token = self._get_param("PaginationToken")
+        filt = self._get_param("Filter")
         users, token = cognitoidp_backends[self.region].list_users(
             user_pool_id, limit=limit, pagination_token=token
         )
+        if filt:
+            name, value = filt.replace('"', "").split("=")
+            users = [
+                user
+                for user in users
+                for attribute in user.attributes
+                if attribute["Name"] == name and attribute["Value"] == value
+            ]
         response = {"Users": [user.to_json(extended=True) for user in users]}
         if token:
             response["PaginationToken"] = str(token)

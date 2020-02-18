@@ -68,7 +68,7 @@ def test_get_databases_paginated():
 
 
 @mock_rds_deprecated
-def test_describe_non_existant_database():
+def test_describe_non_existent_database():
     conn = boto.rds.connect_to_region("us-west-2")
     conn.get_all_dbinstances.when.called_with("not-a-db").should.throw(BotoServerError)
 
@@ -86,7 +86,7 @@ def test_delete_database():
 
 
 @mock_rds_deprecated
-def test_delete_non_existant_database():
+def test_delete_non_existent_database():
     conn = boto.rds.connect_to_region("us-west-2")
     conn.delete_dbinstance.when.called_with("not-a-db").should.throw(BotoServerError)
 
@@ -119,7 +119,7 @@ def test_get_security_groups():
 
 
 @mock_rds_deprecated
-def test_get_non_existant_security_group():
+def test_get_non_existent_security_group():
     conn = boto.rds.connect_to_region("us-west-2")
     conn.get_all_dbsecurity_groups.when.called_with("not-a-sg").should.throw(
         BotoServerError
@@ -138,7 +138,7 @@ def test_delete_database_security_group():
 
 
 @mock_rds_deprecated
-def test_delete_non_existant_security_group():
+def test_delete_non_existent_security_group():
     conn = boto.rds.connect_to_region("us-west-2")
     conn.delete_dbsecurity_group.when.called_with("not-a-db").should.throw(
         BotoServerError

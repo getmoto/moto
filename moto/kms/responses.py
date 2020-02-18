@@ -118,11 +118,12 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
         policy = self.parameters.get("Policy")
         key_usage = self.parameters.get("KeyUsage")
+        customer_master_key_spec = self.parameters.get("CustomerMasterKeySpec")
         description = self.parameters.get("Description")
         tags = self.parameters.get("Tags")
 
         key = self.kms_backend.create_key(
-            policy, key_usage, description, tags, self.region
+            policy, key_usage, customer_master_key_spec, description, tags, self.region
         )
         return json.dumps(key.to_dict())
 
