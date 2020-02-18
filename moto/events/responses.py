@@ -297,3 +297,26 @@ class EventsHandler(BaseResponse):
         self.events_backend.delete_event_bus(name)
 
         return "", self.response_headers
+
+    def list_tags_for_resource(self):
+        arn = self._get_param("ResourceARN")
+
+        result = self.events_backend.list_tags_for_resource(arn)
+
+        return json.dumps(result), self.response_headers
+
+    def tag_resource(self):
+        arn = self._get_param("ResourceARN")
+        tags = self._get_param("Tags")
+
+        result = self.events_backend.tag_resource(arn, tags)
+
+        return json.dumps(result), self.response_headers
+
+    def untag_resource(self):
+        arn = self._get_param("ResourceARN")
+        tags = self._get_param("TagKeys")
+
+        result = self.events_backend.untag_resource(arn, tags)
+
+        return json.dumps(result), self.response_headers
