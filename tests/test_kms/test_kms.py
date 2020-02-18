@@ -680,3 +680,46 @@ def test__assert_default_policy():
     _assert_default_policy.when.called_with("default").should_not.throw(
         MotoNotFoundException
     )
+
+
+@mock_kms
+def test_key_tagging_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(Description="test-key-tagging")
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    tags = [{"TagKey": "key1", "TagValue": "value1"}, {"TagKey": "key2", "TagValue": "value2"}]
+    client.tag_resource(KeyId=key_id, Tags=tags)
+
+    result = client.list_resource_tags(KeyId=key_id)
+    actual = result.get("Tags", [])
+    assert tags == actual
+
+    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+
+    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
+    expected = [{"TagKey": "key2", "TagValue": "value2"}]
+    assert expected == actual
+
+
+@mock_kms
+def test_key_tagging_sad():
+    b = KmsBackend()
+
+    try:
+        b.tag_resource('unknown', [])
+        raise 'tag_resource should fail if KeyId is not known'
+    except JsonRESTError:
+        pass
+
+    try:
+        b.untag_resource('unknown', [])
+        raise 'untag_resource should fail if KeyId is not known'
+    except JsonRESTError:
+        pass
+
+    try:
+        b.list_resource_tags('unknown')
+        raise 'list_resource_tags should fail if KeyId is not known'
+    except JsonRESTError:
+        pass

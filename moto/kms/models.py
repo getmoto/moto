@@ -7,27 +7,18 @@ from datetime import datetime, timedelta
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-<<<<<<< HEAD
-from moto.core.exceptions import JsonRESTError
-from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.utilities.tagging_service import TaggingService
-=======
 from moto.core.utils import unix_time
-
+from moto.utilities.tagging_service import TaggingService
+from moto.core.exceptions import JsonRESTError
 from moto.iam.models import ACCOUNT_ID
 
->>>>>>> 100dbd529f174f18d579a1dcc066d55409f2e38f
 from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 
 class Key(BaseModel):
-<<<<<<< HEAD
-    def __init__(self, policy, key_usage, description, region):
-=======
     def __init__(
-        self, policy, key_usage, customer_master_key_spec, description, tags, region
+        self, policy, key_usage, customer_master_key_spec, description, region
     ):
->>>>>>> 100dbd529f174f18d579a1dcc066d55409f2e38f
         self.id = generate_key_id()
         self.creation_date = unix_time()
         self.policy = policy
@@ -142,19 +133,14 @@ class KmsBackend(BaseBackend):
         self.key_to_aliases = defaultdict(set)
         self.tagger = TaggingService(keyName='TagKey', valueName='TagValue')
 
-<<<<<<< HEAD
-    def create_key(self, policy, key_usage, description, tags, region):
-        key = Key(policy, key_usage, description, region)
-=======
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region
     ):
         key = Key(
-            policy, key_usage, customer_master_key_spec, description, tags, region
+            policy, key_usage, customer_master_key_spec, description, region
         )
->>>>>>> 100dbd529f174f18d579a1dcc066d55409f2e38f
         self.keys[key.id] = key
-        if tags != None and len(tags) > 0:
+        if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
         return key
 
@@ -166,6 +152,7 @@ class KmsBackend(BaseBackend):
         if key_id in self.keys:
             if key_id in self.key_to_aliases:
                 self.key_to_aliases.pop(key_id)
+            self.tagger.delete_all_tags_for_resource(key_id)
 
             return self.keys.pop(key_id)
 
