@@ -318,7 +318,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # KMS
         def get_kms_tags(kms_key_id):
             result = []
-            for tag in self.kms_backend.list_resource_tags(kms_key_id):
+            for tag in self.kms_backend.list_resource_tags(kms_key_id).get("Tags",[]):
                 result.append({"Key": tag["TagKey"], "Value": tag["TagValue"]})
             return result
 

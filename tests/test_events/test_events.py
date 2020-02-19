@@ -10,9 +10,6 @@ from moto.core.exceptions import JsonRESTError
 from nose.tools import assert_raises
 
 from moto.core import ACCOUNT_ID
-<< << << < HEAD
-== == == =
->>>>>> > 100dbd529f174f18d579a1dcc066d55409f2e38f
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -461,10 +458,6 @@ def test_delete_event_bus_errors():
     )
 
 
-<< << << < HEAD
-== == == =
-
->>>>>> > 100dbd529f174f18d579a1dcc066d55409f2e38f
 @mock_events
 def test_rule_tagging_happy():
     client = generate_environment()

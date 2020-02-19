@@ -682,7 +682,7 @@ def test__assert_default_policy():
     )
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_key_tagging_happy():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="test-key-tagging")
@@ -702,7 +702,7 @@ def test_key_tagging_happy():
     assert expected == actual
 
 
-@mock_kms
+@mock_kms_deprecated
 def test_key_tagging_sad():
     b = KmsBackend()
 
