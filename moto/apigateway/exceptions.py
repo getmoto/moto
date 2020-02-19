@@ -85,6 +85,15 @@ class NoMethodDefined(BadRequestException):
         )
 
 
+class AuthorizerNotFoundException(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(AuthorizerNotFoundException, self).__init__(
+            "NotFoundException", "Invalid Authorizer identifier specified"
+        )
+
+
 class StageNotFoundException(RESTError):
     code = 404
 
