@@ -367,7 +367,7 @@ class EventsBackend(BaseBackend):
         self.event_buses.pop(name, None)
 
     def list_tags_for_resource(self, arn):
-        name = arn.split('/')[-1]
+        name = arn.split("/")[-1]
         if name in self.rules:
             return self.tagger.list_tags_for_resource(self.rules[name].arn)
         raise JsonRESTError(

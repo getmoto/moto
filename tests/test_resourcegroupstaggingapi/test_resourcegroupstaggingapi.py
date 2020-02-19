@@ -248,26 +248,3 @@ def test_get_many_resources():
     )
 
     # TODO test pagenation
-
-
-@mock_kms
-def test_get_kms_tags():
-    kms = boto3.client("kms", region_name="us-east-1")
-    key = kms.create_key(
-        KeyUsage="ENCRYPT_DECRYPT",
-        Tags=[
-            {"TagKey": "key_name", "TagValue": "a_value"},
-            {"TagKey": "key_2", "TagValue": "val2"},
-        ],
-    )
-    key_id = key["KeyMetadata"]["KeyId"]
-
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["kms"],
-        TagFilters=[{"Key": "key_name"}],
-    )
-    resp["ResourceTagMappingList"].should.have.length_of(1)
-    resp["ResourceTagMappingList"][0]["Tags"].should.contain(
-        {"Key": "key_name", "Value": "a_value"}
-    )

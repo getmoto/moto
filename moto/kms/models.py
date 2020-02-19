@@ -111,7 +111,7 @@ class Key(BaseModel):
             key_usage="ENCRYPT_DECRYPT",
             customer_master_key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
-            tags=properties["Tags"],
+            tags=properties.get("Tags", []),
             region=region_name,
         )
         key.key_rotation_status = properties["EnableKeyRotation"]
@@ -131,14 +131,12 @@ class KmsBackend(BaseBackend):
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
-        self.tagger = TaggingService(keyName='TagKey', valueName='TagValue')
+        self.tagger = TaggingService(keyName="TagKey", valueName="TagValue")
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region
     ):
-        key = Key(
-            policy, key_usage, customer_master_key_spec, description, region
-        )
+        key = Key(policy, key_usage, customer_master_key_spec, description, region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
@@ -326,7 +324,8 @@ class KmsBackend(BaseBackend):
         if key_id in self.keys:
             return self.tagger.list_tags_for_resource(key_id)
         raise JsonRESTError(
-            "NotFoundException", "The request was rejected because the specified entity or resource could not be found."
+            "NotFoundException",
+            "The request was rejected because the specified entity or resource could not be found.",
         )
 
     def tag_resource(self, key_id, tags):
@@ -334,7 +333,8 @@ class KmsBackend(BaseBackend):
             self.tagger.tag_resource(key_id, tags)
             return {}
         raise JsonRESTError(
-            "NotFoundException", "The request was rejected because the specified entity or resource could not be found."
+            "NotFoundException",
+            "The request was rejected because the specified entity or resource could not be found.",
         )
 
     def untag_resource(self, key_id, tag_names):
@@ -342,7 +342,8 @@ class KmsBackend(BaseBackend):
             self.tagger.untag_resource_using_names(key_id, tag_names)
             return {}
         raise JsonRESTError(
-            "NotFoundException", "The request was rejected because the specified entity or resource could not be found."
+            "NotFoundException",
+            "The request was rejected because the specified entity or resource could not be found.",
         )
 
 
