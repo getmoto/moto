@@ -300,6 +300,8 @@ class SWFResponse(BaseResponse):
         default_execution_start_to_close_timeout = self._params.get(
             "defaultExecutionStartToCloseTimeout"
         )
+        default_task_priority = self._params.get("defaultTaskPriority")
+        default_lambda_role = self._params.get("defaultLambdaRole")
         description = self._params.get("description")
 
         self._check_string(domain)
@@ -309,10 +311,10 @@ class SWFResponse(BaseResponse):
         self._check_none_or_string(default_child_policy)
         self._check_none_or_string(default_task_start_to_close_timeout)
         self._check_none_or_string(default_execution_start_to_close_timeout)
+        self._check_none_or_string(default_task_priority)
+        self._check_none_or_string(default_lambda_role)
         self._check_none_or_string(description)
 
-        # TODO: add defaultTaskPriority when boto gets to support it
-        # TODO: add defaultLambdaRole when boto gets to support it
         self.swf_backend.register_type(
             "workflow",
             domain,
@@ -322,6 +324,8 @@ class SWFResponse(BaseResponse):
             default_child_policy=default_child_policy,
             default_task_start_to_close_timeout=default_task_start_to_close_timeout,
             default_execution_start_to_close_timeout=default_execution_start_to_close_timeout,
+            default_task_priority=default_task_priority,
+            default_lambda_role=default_lambda_role,
             description=description,
         )
         return ""

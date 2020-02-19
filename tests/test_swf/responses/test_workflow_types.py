@@ -1,7 +1,9 @@
 import sure
 import boto
+import boto3
 
 from moto import mock_swf_deprecated
+from moto import mock_swf
 from boto.swf.exceptions import SWFResponseError
 
 
@@ -131,6 +133,41 @@ def test_describe_workflow_type():
     infos["workflowType"]["name"].should.equal("test-workflow")
     infos["workflowType"]["version"].should.equal("v1.0")
     infos["status"].should.equal("REGISTERED")
+
+
+@mock_swf
+def test_describe_workflow_type_full_boto3():
+    # boto3 required as boto doesn't support all of the arguments
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="2"
+    )
+    client.register_workflow_type(
+        domain="test-domain",
+        name="test-workflow",
+        version="v1.0",
+        description="Test workflow.",
+        defaultTaskStartToCloseTimeout="20",
+        defaultExecutionStartToCloseTimeout="60",
+        defaultTaskList={"name": "foo"},
+        defaultTaskPriority="-2",
+        defaultChildPolicy="ABANDON",
+        defaultLambdaRole="arn:bar",
+    )
+
+    resp = client.describe_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+    resp["typeInfo"]["workflowType"]["name"].should.equal("test-workflow")
+    resp["typeInfo"]["workflowType"]["version"].should.equal("v1.0")
+    resp["typeInfo"]["status"].should.equal("REGISTERED")
+    resp["typeInfo"]["description"].should.equal("Test workflow.")
+    resp["configuration"]["defaultTaskStartToCloseTimeout"].should.equal("20")
+    resp["configuration"]["defaultExecutionStartToCloseTimeout"].should.equal("60")
+    resp["configuration"]["defaultTaskList"]["name"].should.equal("foo")
+    resp["configuration"]["defaultTaskPriority"].should.equal("-2")
+    resp["configuration"]["defaultChildPolicy"].should.equal("ABANDON")
+    resp["configuration"]["defaultLambdaRole"].should.equal("arn:bar")
 
 
 @mock_swf_deprecated
