@@ -752,7 +752,9 @@ def test_steps():
         # StateChangeReason
         x["Status"]["Timeline"]["CreationDateTime"].should.be.a("datetime.datetime")
         # x['Status']['Timeline']['EndDateTime'].should.be.a('datetime.datetime')
-        # x['Status']['Timeline']['StartDateTime'].should.be.a('datetime.datetime')
+        # Only the first step will have started - we don't know anything about when it finishes, so the second step never starts
+        if x["Name"] == "My wordcount example":
+            x["Status"]["Timeline"]["StartDateTime"].should.be.a("datetime.datetime")
 
         x = client.describe_step(ClusterId=cluster_id, StepId=x["Id"])["Step"]
         x["ActionOnFailure"].should.equal("TERMINATE_CLUSTER")
