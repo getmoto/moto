@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 import base64
 import re
-from collections import OrderedDict
 
 import boto.kms
 import boto3
