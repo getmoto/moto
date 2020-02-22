@@ -1,15 +1,15 @@
+from moto.events.models import EventsBackend
+from moto.events import mock_events
 import json
 import random
 import unittest
 
 import boto3
 from botocore.exceptions import ClientError
+from moto.core.exceptions import JsonRESTError
 from nose.tools import assert_raises
 
 from moto.core import ACCOUNT_ID
-from moto.core.exceptions import JsonRESTError
-from moto.events import mock_events
-from moto.events.models import EventsBackend
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
