@@ -86,6 +86,9 @@ class FakeStep(BaseModel):
         self.start_datetime = None
         self.state = state
 
+    def start(self):
+        self.start_datetime = datetime.now(pytz.utc)
+
 
 class FakeCluster(BaseModel):
     def __init__(
@@ -204,6 +207,8 @@ class FakeCluster(BaseModel):
 
         self.start_cluster()
         self.run_bootstrap_actions()
+        if self.steps:
+            self.steps[0].start()
 
     @property
     def instance_groups(self):
