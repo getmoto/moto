@@ -1172,12 +1172,12 @@ def test_describe_instance_status_with_instance_filter():
 
     # We want to filter based on this one
     reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=3, MaxCount=3)
-    instance1 = reservation['Instances'][0]
-    instance2 = reservation['Instances'][1]
-    instance3 = reservation['Instances'][2]
-    conn.stop_instances(InstanceIds=[instance1['InstanceId']])
-    stopped_instance_ids = [instance1['InstanceId']]
-    running_instance_ids = sorted([instance2['InstanceId'], instance3['InstanceId']])
+    instance1 = reservation["Instances"][0]
+    instance2 = reservation["Instances"][1]
+    instance3 = reservation["Instances"][2]
+    conn.stop_instances(InstanceIds=[instance1["InstanceId"]])
+    stopped_instance_ids = [instance1["InstanceId"]]
+    running_instance_ids = sorted([instance2["InstanceId"], instance3["InstanceId"]])
     all_instance_ids = sorted(stopped_instance_ids + running_instance_ids)
 
     # Filter instance using the state name
@@ -1189,16 +1189,22 @@ def test_describe_instance_status_with_instance_filter():
         "stopped": [{"Name": "instance-state-name", "Values": ["stopped"]}],
     }
 
-    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_name_filter["running_and_stopped"])['InstanceStatuses']
-    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_name_filter["running_and_stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
     sorted(found_instance_ids).should.equal(all_instance_ids)
 
-    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_name_filter["running"])['InstanceStatuses']
-    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_name_filter["running"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
     sorted(found_instance_ids).should.equal(running_instance_ids)
 
-    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_name_filter["stopped"])['InstanceStatuses']
-    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_name_filter["stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
     sorted(found_instance_ids).should.equal(stopped_instance_ids)
 
     # Filter instance using the state code
@@ -1210,16 +1216,22 @@ def test_describe_instance_status_with_instance_filter():
         "stopped": [{"Name": "instance-state-code", "Values": ["80"]}],
     }
 
-    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"])['InstanceStatuses']
-    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
     sorted(found_instance_ids).should.equal(all_instance_ids)
 
-    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_code_filter["running"])['InstanceStatuses']
-    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
     sorted(found_instance_ids).should.equal(running_instance_ids)
 
-    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_code_filter["stopped"])['InstanceStatuses']
-    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
     sorted(found_instance_ids).should.equal(stopped_instance_ids)
 
 

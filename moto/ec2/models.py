@@ -826,11 +826,11 @@ class Instance(TaggedEC2Resource, BotoInstance):
         if filters:
             applicable = False
             for f in filters:
-                acceptable_values = f['values']
-                if f['name'] == "instance-state-name":
+                acceptable_values = f["values"]
+                if f["name"] == "instance-state-name":
                     if self._state.name in acceptable_values:
                         applicable = True
-                if f['name'] == "instance-state-code":
+                if f["name"] == "instance-state-code":
                     if str(self._state.code) in acceptable_values:
                         applicable = True
             return applicable

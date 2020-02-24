@@ -128,10 +128,15 @@ class InstanceResponse(BaseResponse):
         instance_ids = self._get_multi_param("InstanceId")
         include_all_instances = self._get_param("IncludeAllInstances") == "true"
         filters = self._get_list_prefix("Filter")
-        filters = [{'name': f['name'], 'values': self._get_list_of_dict_params("value.", f)} for f in filters]
+        filters = [
+            {"name": f["name"], "values": self._get_list_of_dict_params("value.", f)}
+            for f in filters
+        ]
 
         if instance_ids:
-            instances = self.ec2_backend.get_multi_instances_by_id(instance_ids, filters)
+            instances = self.ec2_backend.get_multi_instances_by_id(
+                instance_ids, filters
+            )
         elif include_all_instances:
             instances = self.ec2_backend.all_instances(filters)
         else:
