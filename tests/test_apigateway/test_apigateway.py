@@ -8,7 +8,7 @@ import sure  # noqa
 from botocore.exceptions import ClientError
 
 import responses
-from moto import mock_apigateway, settings
+from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import ACCOUNT_ID
 from nose.tools import assert_raises
 
@@ -574,6 +574,254 @@ def test_integration_response():
 
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
     response["methodIntegration"]["integrationResponses"].should.equal({})
+
+
+@mock_apigateway
+@mock_cognitoidp
+def test_update_authorizer_configuration():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    authorizer_name = "my_authorizer"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    cognito_client = boto3.client("cognito-idp", region_name="us-west-2")
+    user_pool_arn = cognito_client.create_user_pool(PoolName="my_cognito_pool")[
+        "UserPool"
+    ]["Arn"]
+
+    response = client.create_authorizer(
+        restApiId=api_id,
+        name=authorizer_name,
+        type="COGNITO_USER_POOLS",
+        providerARNs=[user_pool_arn],
+        identitySource="method.request.header.Authorization",
+    )
+    authorizer_id = response["id"]
+
+    response = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
+    # createdDate is hard to match against, remove it
+    response.pop("createdDate", None)
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "id": authorizer_id,
+            "name": authorizer_name,
+            "type": "COGNITO_USER_POOLS",
+            "providerARNs": [user_pool_arn],
+            "identitySource": "method.request.header.Authorization",
+            "authorizerResultTtlInSeconds": 300,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
+    )
+
+    client.update_authorizer(
+        restApiId=api_id,
+        authorizerId=authorizer_id,
+        patchOperations=[{"op": "replace", "path": "/type", "value": "TOKEN"}],
+    )
+
+    authorizer = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
+
+    authorizer.should.have.key("type").which.should.equal("TOKEN")
+
+    client.update_authorizer(
+        restApiId=api_id,
+        authorizerId=authorizer_id,
+        patchOperations=[{"op": "replace", "path": "/type", "value": "REQUEST"}],
+    )
+
+    authorizer = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
+
+    authorizer.should.have.key("type").which.should.equal("REQUEST")
+
+    # TODO: implement mult-update tests
+
+    try:
+        client.update_authorizer(
+            restApiId=api_id,
+            authorizerId=authorizer_id,
+            patchOperations=[
+                {"op": "add", "path": "/notasetting", "value": "eu-west-1"}
+            ],
+        )
+        assert False.should.be.ok  # Fail, should not be here
+    except Exception:
+        assert True.should.be.ok
+
+
+@mock_apigateway
+def test_non_existent_authorizer():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    client.get_authorizer.when.called_with(
+        restApiId=api_id, authorizerId="xxx"
+    ).should.throw(ClientError)
+
+
+@mock_apigateway
+@mock_cognitoidp
+def test_create_authorizer():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    authorizer_name = "my_authorizer"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    cognito_client = boto3.client("cognito-idp", region_name="us-west-2")
+    user_pool_arn = cognito_client.create_user_pool(PoolName="my_cognito_pool")[
+        "UserPool"
+    ]["Arn"]
+
+    response = client.create_authorizer(
+        restApiId=api_id,
+        name=authorizer_name,
+        type="COGNITO_USER_POOLS",
+        providerARNs=[user_pool_arn],
+        identitySource="method.request.header.Authorization",
+    )
+    authorizer_id = response["id"]
+
+    response = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
+    # createdDate is hard to match against, remove it
+    response.pop("createdDate", None)
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "id": authorizer_id,
+            "name": authorizer_name,
+            "type": "COGNITO_USER_POOLS",
+            "providerARNs": [user_pool_arn],
+            "identitySource": "method.request.header.Authorization",
+            "authorizerResultTtlInSeconds": 300,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
+    )
+
+    authorizer_name2 = "my_authorizer2"
+    response = client.create_authorizer(
+        restApiId=api_id,
+        name=authorizer_name2,
+        type="COGNITO_USER_POOLS",
+        providerARNs=[user_pool_arn],
+        identitySource="method.request.header.Authorization",
+    )
+    authorizer_id2 = response["id"]
+
+    response = client.get_authorizers(restApiId=api_id)
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+
+    response["items"][0]["id"].should.match(
+        r"{0}|{1}".format(authorizer_id2, authorizer_id)
+    )
+    response["items"][1]["id"].should.match(
+        r"{0}|{1}".format(authorizer_id2, authorizer_id)
+    )
+
+    new_authorizer_name_with_vars = "authorizer_with_vars"
+    response = client.create_authorizer(
+        restApiId=api_id,
+        name=new_authorizer_name_with_vars,
+        type="COGNITO_USER_POOLS",
+        providerARNs=[user_pool_arn],
+        identitySource="method.request.header.Authorization",
+    )
+    authorizer_id3 = response["id"]
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+
+    response.should.equal(
+        {
+            "name": new_authorizer_name_with_vars,
+            "id": authorizer_id3,
+            "type": "COGNITO_USER_POOLS",
+            "providerARNs": [user_pool_arn],
+            "identitySource": "method.request.header.Authorization",
+            "authorizerResultTtlInSeconds": 300,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
+    )
+
+    stage = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id3)
+    stage["name"].should.equal(new_authorizer_name_with_vars)
+    stage["id"].should.equal(authorizer_id3)
+    stage["type"].should.equal("COGNITO_USER_POOLS")
+    stage["providerARNs"].should.equal([user_pool_arn])
+    stage["identitySource"].should.equal("method.request.header.Authorization")
+    stage["authorizerResultTtlInSeconds"].should.equal(300)
+
+
+@mock_apigateway
+@mock_cognitoidp
+def test_delete_authorizer():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    authorizer_name = "my_authorizer"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    cognito_client = boto3.client("cognito-idp", region_name="us-west-2")
+    user_pool_arn = cognito_client.create_user_pool(PoolName="my_cognito_pool")[
+        "UserPool"
+    ]["Arn"]
+
+    response = client.create_authorizer(
+        restApiId=api_id,
+        name=authorizer_name,
+        type="COGNITO_USER_POOLS",
+        providerARNs=[user_pool_arn],
+        identitySource="method.request.header.Authorization",
+    )
+    authorizer_id = response["id"]
+
+    response = client.get_authorizer(restApiId=api_id, authorizerId=authorizer_id)
+    # createdDate is hard to match against, remove it
+    response.pop("createdDate", None)
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "id": authorizer_id,
+            "name": authorizer_name,
+            "type": "COGNITO_USER_POOLS",
+            "providerARNs": [user_pool_arn],
+            "identitySource": "method.request.header.Authorization",
+            "authorizerResultTtlInSeconds": 300,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
+    )
+
+    authorizer_name2 = "my_authorizer2"
+    response = client.create_authorizer(
+        restApiId=api_id,
+        name=authorizer_name2,
+        type="COGNITO_USER_POOLS",
+        providerARNs=[user_pool_arn],
+        identitySource="method.request.header.Authorization",
+    )
+    authorizer_id2 = response["id"]
+
+    authorizers = client.get_authorizers(restApiId=api_id)["items"]
+    sorted([authorizer["name"] for authorizer in authorizers]).should.equal(
+        sorted([authorizer_name2, authorizer_name])
+    )
+    # delete stage
+    response = client.delete_authorizer(restApiId=api_id, authorizerId=authorizer_id2)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
+    # verify other stage still exists
+    authorizers = client.get_authorizers(restApiId=api_id)["items"]
+    sorted([authorizer["name"] for authorizer in authorizers]).should.equal(
+        sorted([authorizer_name])
+    )
 
 
 @mock_apigateway

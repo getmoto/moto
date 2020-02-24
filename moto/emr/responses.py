@@ -835,7 +835,7 @@ LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazo
             {% if step.end_datetime is not none %}
             <EndDateTime>{{ step.end_datetime.isoformat() }}</EndDateTime>
             {% endif %}
-            {% if step.ready_datetime is not none %}
+            {% if step.start_datetime is not none %}
             <StartDateTime>{{ step.start_datetime.isoformat() }}</StartDateTime>
             {% endif %}
           </Timeline>
