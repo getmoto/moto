@@ -822,6 +822,21 @@ class Instance(TaggedEC2Resource, BotoInstance):
             return self.public_ip
         raise UnformattedGetAttTemplateException()
 
+    def applies(self, filters):
+        if filters:
+            applicable = False
+            for f in filters:
+                acceptable_values = f['values']
+                if f['name'] == "instance-state-name":
+                    if self._state.name in acceptable_values:
+                        applicable = True
+                if f['name'] == "instance-state-code":
+                    if str(self._state.code) in acceptable_values:
+                        applicable = True
+            return applicable
+        # If there are no filters, all instances are valid
+        return True
+
 
 class InstanceBackend(object):
     def __init__(self):
@@ -921,22 +936,23 @@ class InstanceBackend(object):
         value = getattr(instance, key)
         return instance, value
 
-    def all_instances(self):
+    def all_instances(self, filters=None):
         instances = []
         for reservation in self.all_reservations():
             for instance in reservation.instances:
-                instances.append(instance)
-        return instances
-
-    def all_running_instances(self):
-        instances = []
-        for reservation in self.all_reservations():
-            for instance in reservation.instances:
-                if instance.state_code == 16:
+                if instance.applies(filters):
                     instances.append(instance)
         return instances
 
-    def get_multi_instances_by_id(self, instance_ids):
+    def all_running_instances(self, filters=None):
+        instances = []
+        for reservation in self.all_reservations():
+            for instance in reservation.instances:
+                if instance.state_code == 16 and instance.applies(filters):
+                    instances.append(instance)
+        return instances
+
+    def get_multi_instances_by_id(self, instance_ids, filters=None):
         """
         :param instance_ids: A string list with instance ids
         :return: A list with instance objects
@@ -946,7 +962,8 @@ class InstanceBackend(object):
         for reservation in self.all_reservations():
             for instance in reservation.instances:
                 if instance.id in instance_ids:
-                    result.append(instance)
+                    if instance.applies(filters):
+                        result.append(instance)
 
         # TODO: Trim error message down to specific invalid id.
         if instance_ids and len(instance_ids) > len(result):

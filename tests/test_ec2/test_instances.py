@@ -1144,7 +1144,7 @@ def test_describe_instance_status_with_instances():
 
 
 @mock_ec2_deprecated
-def test_describe_instance_status_with_instance_filter():
+def test_describe_instance_status_with_instance_filter_deprecated():
     conn = boto.connect_ec2("the_key", "the_secret")
 
     # We want to filter based on this one
@@ -1164,6 +1164,63 @@ def test_describe_instance_status_with_instance_filter():
     cm.exception.code.should.equal("InvalidInstanceID.NotFound")
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_describe_instance_status_with_instance_filter():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    # We want to filter based on this one
+    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=3, MaxCount=3)
+    instance1 = reservation['Instances'][0]
+    instance2 = reservation['Instances'][1]
+    instance3 = reservation['Instances'][2]
+    conn.stop_instances(InstanceIds=[instance1['InstanceId']])
+    stopped_instance_ids = [instance1['InstanceId']]
+    running_instance_ids = sorted([instance2['InstanceId'], instance3['InstanceId']])
+    all_instance_ids = sorted(stopped_instance_ids + running_instance_ids)
+
+    # Filter instance using the state name
+    state_name_filter = {
+        "running_and_stopped": [
+            {"Name": "instance-state-name", "Values": ["running", "stopped"]}
+        ],
+        "running": [{"Name": "instance-state-name", "Values": ["running"]}],
+        "stopped": [{"Name": "instance-state-name", "Values": ["stopped"]}],
+    }
+
+    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_name_filter["running_and_stopped"])['InstanceStatuses']
+    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(all_instance_ids)
+
+    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_name_filter["running"])['InstanceStatuses']
+    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(running_instance_ids)
+
+    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_name_filter["stopped"])['InstanceStatuses']
+    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(stopped_instance_ids)
+
+    # Filter instance using the state code
+    state_code_filter = {
+        "running_and_stopped": [
+            {"Name": "instance-state-code", "Values": ["16", "80"]}
+        ],
+        "running": [{"Name": "instance-state-code", "Values": ["16"]}],
+        "stopped": [{"Name": "instance-state-code", "Values": ["80"]}],
+    }
+
+    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"])['InstanceStatuses']
+    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(all_instance_ids)
+
+    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_code_filter["running"])['InstanceStatuses']
+    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(running_instance_ids)
+
+    found_statuses = conn.describe_instance_status(IncludeAllInstances=True, Filters=state_code_filter["stopped"])['InstanceStatuses']
+    found_instance_ids = [status['InstanceId'] for status in found_statuses]
+    sorted(found_instance_ids).should.equal(stopped_instance_ids)
 
 
 @requires_boto_gte("2.32.0")
