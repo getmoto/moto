@@ -359,3 +359,12 @@ class InvalidPublicAccessBlockConfiguration(S3ClientError):
             *args,
             **kwargs
         )
+
+
+class WrongPublicAccessBlockAccountIdError(S3ClientError):
+    code = 403
+
+    def __init__(self):
+        super(WrongPublicAccessBlockAccountIdError, self).__init__(
+            "AccessDenied", "Access Denied"
+        )

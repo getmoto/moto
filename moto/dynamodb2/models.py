@@ -1406,6 +1406,7 @@ class DynamoDBBackend(BaseBackend):
             range_value = None
 
         item = table.get_item(hash_value, range_value)
+        orig_item = copy.deepcopy(item)
 
         if not expected:
             expected = {}
@@ -1439,6 +1440,8 @@ class DynamoDBBackend(BaseBackend):
             )
         else:
             item.update_with_attribute_updates(attribute_updates)
+        if table.stream_shard is not None:
+            table.stream_shard.add(orig_item, item)
         return item
 
     def delete_item(

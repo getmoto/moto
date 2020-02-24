@@ -450,6 +450,16 @@ boto3.resource(
 )
 ```
 
+### Caveats
+The standalone server has some caveats with some services. The following services
+require that you update your hosts file for your code to work properly:
+
+1. `s3-control`
+
+For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
+As a result, you need to add that entry to your host file for your tests to function properly.
+
+
 ## Install
 
 

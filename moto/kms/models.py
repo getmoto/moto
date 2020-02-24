@@ -8,7 +8,8 @@ from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
-
+from moto.utilities.tagging_service import TaggingService
+from moto.core.exceptions import JsonRESTError
 from moto.iam.models import ACCOUNT_ID
 
 from .utils import decrypt, encrypt, generate_key_id, generate_master_key
@@ -16,7 +17,7 @@ from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 class Key(BaseModel):
     def __init__(
-        self, policy, key_usage, customer_master_key_spec, description, tags, region
+        self, policy, key_usage, customer_master_key_spec, description, region
     ):
         self.id = generate_key_id()
         self.creation_date = unix_time()
@@ -29,7 +30,6 @@ class Key(BaseModel):
         self.account_id = ACCOUNT_ID
         self.key_rotation_status = False
         self.deletion_date = None
-        self.tags = tags or {}
         self.key_material = generate_master_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
@@ -111,11 +111,12 @@ class Key(BaseModel):
             key_usage="ENCRYPT_DECRYPT",
             customer_master_key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
-            tags=properties.get("Tags"),
+            tags=properties.get("Tags", []),
             region=region_name,
         )
         key.key_rotation_status = properties["EnableKeyRotation"]
         key.enabled = properties["Enabled"]
+
         return key
 
     def get_cfn_attribute(self, attribute_name):
@@ -130,32 +131,26 @@ class KmsBackend(BaseBackend):
     def __init__(self):
         self.keys = {}
         self.key_to_aliases = defaultdict(set)
+        self.tagger = TaggingService(keyName="TagKey", valueName="TagValue")
 
     def create_key(
         self, policy, key_usage, customer_master_key_spec, description, tags, region
     ):
-        key = Key(
-            policy, key_usage, customer_master_key_spec, description, tags, region
-        )
+        key = Key(policy, key_usage, customer_master_key_spec, description, region)
         self.keys[key.id] = key
+        if tags is not None and len(tags) > 0:
+            self.tag_resource(key.id, tags)
         return key
 
     def update_key_description(self, key_id, description):
         key = self.keys[self.get_key_id(key_id)]
         key.description = description
 
-    def tag_resource(self, key_id, tags):
-        key = self.keys[self.get_key_id(key_id)]
-        key.tags = tags
-
-    def list_resource_tags(self, key_id):
-        key = self.keys[self.get_key_id(key_id)]
-        return key.tags
-
     def delete_key(self, key_id):
         if key_id in self.keys:
             if key_id in self.key_to_aliases:
                 self.key_to_aliases.pop(key_id)
+            self.tagger.delete_all_tags_for_resource(key_id)
 
             return self.keys.pop(key_id)
 
@@ -324,6 +319,32 @@ class KmsBackend(BaseBackend):
         )
 
         return plaintext, ciphertext_blob, arn
+
+    def list_resource_tags(self, key_id):
+        if key_id in self.keys:
+            return self.tagger.list_tags_for_resource(key_id)
+        raise JsonRESTError(
+            "NotFoundException",
+            "The request was rejected because the specified entity or resource could not be found.",
+        )
+
+    def tag_resource(self, key_id, tags):
+        if key_id in self.keys:
+            self.tagger.tag_resource(key_id, tags)
+            return {}
+        raise JsonRESTError(
+            "NotFoundException",
+            "The request was rejected because the specified entity or resource could not be found.",
+        )
+
+    def untag_resource(self, key_id, tag_names):
+        if key_id in self.keys:
+            self.tagger.untag_resource_using_names(key_id, tag_names)
+            return {}
+        raise JsonRESTError(
+            "NotFoundException",
+            "The request was rejected because the specified entity or resource could not be found.",
+        )
 
 
 kms_backends = {}

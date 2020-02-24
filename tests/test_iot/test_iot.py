@@ -10,6 +10,173 @@ from nose.tools import assert_raises
 
 
 @mock_iot
+def test_attach_policy():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    policy_name = "my-policy"
+    doc = "{}"
+
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert["certificateArn"]
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal("my-policy")
+
+
+@mock_iot
+def test_detach_policy():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    policy_name = "my-policy"
+    doc = "{}"
+
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    cert_arn = cert["certificateArn"]
+    client.create_policy(policyName=policy_name, policyDocument=doc)
+    client.attach_policy(policyName=policy_name, target=cert_arn)
+
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.have.length_of(1)
+    res["policies"][0]["policyName"].should.equal("my-policy")
+
+    client.detach_policy(policyName=policy_name, target=cert_arn)
+    res = client.list_attached_policies(target=cert_arn)
+    res.should.have.key("policies").which.should.be.empty
+
+
+@mock_iot
+def test_list_attached_policies():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    cert = client.create_keys_and_certificate(setAsActive=True)
+    policies = client.list_attached_policies(target=cert["certificateArn"])
+    policies["policies"].should.be.empty
+
+
+@mock_iot
+def test_policy_versions():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    policy_name = "my-policy"
+    doc = "{}"
+
+    policy = client.create_policy(policyName=policy_name, policyDocument=doc)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(json.dumps({}))
+    policy.should.have.key("policyVersionId").which.should.equal("1")
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(json.dumps({}))
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy["defaultVersionId"]
+    )
+
+    policy1 = client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_1"}),
+        setAsDefault=True,
+    )
+    policy1.should.have.key("policyArn").which.should_not.be.none
+    policy1.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_1"})
+    )
+    policy1.should.have.key("policyVersionId").which.should.equal("2")
+    policy1.should.have.key("isDefaultVersion").which.should.equal(True)
+
+    policy2 = client.create_policy_version(
+        policyName=policy_name,
+        policyDocument=json.dumps({"version": "version_2"}),
+        setAsDefault=False,
+    )
+    policy2.should.have.key("policyArn").which.should_not.be.none
+    policy2.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_2"})
+    )
+    policy2.should.have.key("policyVersionId").which.should.equal("3")
+    policy2.should.have.key("isDefaultVersion").which.should.equal(False)
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_1"})
+    )
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy1["policyVersionId"]
+    )
+
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    list(
+        map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    ).count(True).should.equal(1)
+    default_policy = list(
+        filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    )
+    default_policy[0].should.have.key("versionId").should.equal(
+        policy1["policyVersionId"]
+    )
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_1"})
+    )
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy1["policyVersionId"]
+    )
+
+    client.set_default_policy_version(
+        policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+    )
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    list(
+        map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    ).count(True).should.equal(1)
+    default_policy = list(
+        filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+    )
+    default_policy[0].should.have.key("versionId").should.equal(
+        policy2["policyVersionId"]
+    )
+
+    policy = client.get_policy(policyName=policy_name)
+    policy.should.have.key("policyName").which.should.equal(policy_name)
+    policy.should.have.key("policyArn").which.should_not.be.none
+    policy.should.have.key("policyDocument").which.should.equal(
+        json.dumps({"version": "version_2"})
+    )
+    policy.should.have.key("defaultVersionId").which.should.equal(
+        policy2["policyVersionId"]
+    )
+
+    client.delete_policy_version(policyName=policy_name, policyVersionId="1")
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(2)
+
+    client.delete_policy_version(
+        policyName=policy_name, policyVersionId=policy1["policyVersionId"]
+    )
+    policy_versions = client.list_policy_versions(policyName=policy_name)
+    policy_versions.should.have.key("policyVersions").which.should.have.length_of(1)
+
+    # should fail as it"s the default policy. Should use delete_policy instead
+    try:
+        client.delete_policy_version(
+            policyName=policy_name, policyVersionId=policy2["policyVersionId"]
+        )
+        assert False, "Should have failed in previous call"
+    except Exception as exception:
+        exception.response["Error"]["Message"].should.equal(
+            "Cannot delete the default version of a policy"
+        )
+
+
+@mock_iot
 def test_things():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -994,7 +1161,10 @@ def test_create_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
     job_id = "TestJob"
-    # thing
+    # thing# job document
+    #     job_document = {
+    #         "field": "value"
+    #     }
     thing = client.create_thing(thingName=name)
     thing.should.have.key("thingName").which.should.equal(name)
     thing.should.have.key("thingArn")
@@ -1018,6 +1188,63 @@ def test_create_job():
     job.should.have.key("jobId").which.should.equal(job_id)
     job.should.have.key("jobArn")
     job.should.have.key("description")
+
+
+@mock_iot
+def test_list_jobs():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing# job document
+    #     job_document = {
+    #         "field": "value"
+    #     }
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job1 = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job1.should.have.key("jobId").which.should.equal(job_id)
+    job1.should.have.key("jobArn")
+    job1.should.have.key("description")
+
+    job2 = client.create_job(
+        jobId=job_id + "1",
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job2.should.have.key("jobId").which.should.equal(job_id + "1")
+    job2.should.have.key("jobArn")
+    job2.should.have.key("description")
+
+    jobs = client.list_jobs()
+    jobs.should.have.key("jobs")
+    jobs.should_not.have.key("nextToken")
+    jobs["jobs"][0].should.have.key("jobId").which.should.equal(job_id)
+    jobs["jobs"][1].should.have.key("jobId").which.should.equal(job_id + "1")
 
 
 @mock_iot
@@ -1124,3 +1351,387 @@ def test_describe_job_1():
     job.should.have.key("job").which.should.have.key(
         "jobExecutionsRolloutConfig"
     ).which.should.have.key("maximumPerMinute").which.should.equal(10)
+
+
+@mock_iot
+def test_delete_job():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key("job")
+    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+
+    client.delete_job(jobId=job_id)
+
+    client.list_jobs()["jobs"].should.have.length_of(0)
+
+
+@mock_iot
+def test_cancel_job():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key("job")
+    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+
+    job = client.cancel_job(jobId=job_id, reasonCode="Because", comment="You are")
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job = client.describe_job(jobId=job_id)
+    job.should.have.key("job")
+    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("job").which.should.have.key("status").which.should.equal(
+        "CANCELED"
+    )
+    job.should.have.key("job").which.should.have.key(
+        "forceCanceled"
+    ).which.should.equal(False)
+    job.should.have.key("job").which.should.have.key("reasonCode").which.should.equal(
+        "Because"
+    )
+    job.should.have.key("job").which.should.have.key("comment").which.should.equal(
+        "You are"
+    )
+
+
+@mock_iot
+def test_get_job_document_with_document_source():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        documentSource="https://s3-eu-west-1.amazonaws.com/bucket-name/job_document.json",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job_document = client.get_job_document(jobId=job_id)
+    job_document.should.have.key("document").which.should.equal("")
+
+
+@mock_iot
+def test_get_job_document_with_document():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+
+    job_document = client.get_job_document(jobId=job_id)
+    job_document.should.have.key("document").which.should.equal('{"field": "value"}')
+
+
+@mock_iot
+def test_describe_job_execution():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
+    job_execution.should.have.key("execution")
+    job_execution["execution"].should.have.key("jobId").which.should.equal(job_id)
+    job_execution["execution"].should.have.key("status").which.should.equal("QUEUED")
+    job_execution["execution"].should.have.key("forceCanceled").which.should.equal(
+        False
+    )
+    job_execution["execution"].should.have.key("statusDetails").which.should.equal(
+        {"detailsMap": {}}
+    )
+    job_execution["execution"].should.have.key("thingArn").which.should.equal(
+        thing["thingArn"]
+    )
+    job_execution["execution"].should.have.key("queuedAt")
+    job_execution["execution"].should.have.key("startedAt")
+    job_execution["execution"].should.have.key("lastUpdatedAt")
+    job_execution["execution"].should.have.key("executionNumber").which.should.equal(
+        123
+    )
+    job_execution["execution"].should.have.key("versionNumber").which.should.equal(123)
+    job_execution["execution"].should.have.key(
+        "approximateSecondsBeforeTimedOut"
+    ).which.should.equal(123)
+
+    job_execution = client.describe_job_execution(
+        jobId=job_id, thingName=name, executionNumber=123
+    )
+    job_execution.should.have.key("execution")
+    job_execution["execution"].should.have.key("jobId").which.should.equal(job_id)
+    job_execution["execution"].should.have.key("status").which.should.equal("QUEUED")
+    job_execution["execution"].should.have.key("forceCanceled").which.should.equal(
+        False
+    )
+    job_execution["execution"].should.have.key("statusDetails").which.should.equal(
+        {"detailsMap": {}}
+    )
+    job_execution["execution"].should.have.key("thingArn").which.should.equal(
+        thing["thingArn"]
+    )
+    job_execution["execution"].should.have.key("queuedAt")
+    job_execution["execution"].should.have.key("startedAt")
+    job_execution["execution"].should.have.key("lastUpdatedAt")
+    job_execution["execution"].should.have.key("executionNumber").which.should.equal(
+        123
+    )
+    job_execution["execution"].should.have.key("versionNumber").which.should.equal(123)
+    job_execution["execution"].should.have.key(
+        "approximateSecondsBeforeTimedOut"
+    ).which.should.equal(123)
+
+    try:
+        client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=456)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_cancel_job_execution():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    client.cancel_job_execution(jobId=job_id, thingName=name)
+    job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
+    job_execution.should.have.key("execution")
+    job_execution["execution"].should.have.key("status").which.should.equal("CANCELED")
+
+
+@mock_iot
+def test_delete_job_execution():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    client.delete_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    try:
+        client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=123)
+    except ClientError as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
+def test_list_job_executions_for_job():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    job_execution = client.list_job_executions_for_job(jobId=job_id)
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key(
+        "thingArn"
+    ).which.should.equal(thing["thingArn"])
+
+
+@mock_iot
+def test_list_job_executions_for_thing():
+    client = boto3.client("iot", region_name="eu-west-1")
+    name = "my-thing"
+    job_id = "TestJob"
+    # thing
+    thing = client.create_thing(thingName=name)
+    thing.should.have.key("thingName").which.should.equal(name)
+    thing.should.have.key("thingArn")
+
+    # job document
+    job_document = {"field": "value"}
+
+    job = client.create_job(
+        jobId=job_id,
+        targets=[thing["thingArn"]],
+        document=json.dumps(job_document),
+        description="Description",
+        presignedUrlConfig={
+            "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+            "expiresInSec": 123,
+        },
+        targetSelection="CONTINUOUS",
+        jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+    )
+
+    job.should.have.key("jobId").which.should.equal(job_id)
+    job.should.have.key("jobArn")
+    job.should.have.key("description")
+
+    job_execution = client.list_job_executions_for_thing(thingName=name)
+    job_execution.should.have.key("executionSummaries")
+    job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
+        job_id
+    )

@@ -4,15 +4,17 @@ import base64
 import re
 
 import boto.kms
+import boto3
 import six
 import sure  # noqa
 from boto.exception import JSONResponseError
 from boto.kms.exceptions import AlreadyExistsException, NotFoundException
 from nose.tools import assert_raises
 from parameterized import parameterized
-
+from moto.core.exceptions import JsonRESTError
+from moto.kms.models import KmsBackend
 from moto.kms.exceptions import NotFoundException as MotoNotFoundException
-from moto import mock_kms_deprecated
+from moto import mock_kms_deprecated, mock_kms
 
 PLAINTEXT_VECTORS = (
     (b"some encodeable plaintext",),
@@ -679,3 +681,77 @@ def test__assert_default_policy():
     _assert_default_policy.when.called_with("default").should_not.throw(
         MotoNotFoundException
     )
+
+
+if six.PY2:
+    sort = sorted
+else:
+    sort = lambda l: sorted(l, key=lambda d: d.keys())
+
+
+@mock_kms
+def test_key_tag_on_create_key_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    key = client.create_key(Description="test-key-tagging", Tags=tags)
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    result = client.list_resource_tags(KeyId=key_id)
+    actual = result.get("Tags", [])
+    assert sort(tags) == sort(actual)
+
+    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+
+    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
+    expected = [{"TagKey": "key2", "TagValue": "value2"}]
+    assert sort(expected) == sort(actual)
+
+
+@mock_kms
+def test_key_tag_added_happy():
+    client = boto3.client("kms", region_name="us-east-1")
+
+    key = client.create_key(Description="test-key-tagging")
+    key_id = key["KeyMetadata"]["KeyId"]
+    tags = [
+        {"TagKey": "key1", "TagValue": "value1"},
+        {"TagKey": "key2", "TagValue": "value2"},
+    ]
+    client.tag_resource(KeyId=key_id, Tags=tags)
+
+    result = client.list_resource_tags(KeyId=key_id)
+    actual = result.get("Tags", [])
+    assert sort(tags) == sort(actual)
+
+    client.untag_resource(KeyId=key_id, TagKeys=["key1"])
+
+    actual = client.list_resource_tags(KeyId=key_id).get("Tags", [])
+    expected = [{"TagKey": "key2", "TagValue": "value2"}]
+    assert sort(expected) == sort(actual)
+
+
+@mock_kms_deprecated
+def test_key_tagging_sad():
+    b = KmsBackend()
+
+    try:
+        b.tag_resource("unknown", [])
+        raise "tag_resource should fail if KeyId is not known"
+    except JsonRESTError:
+        pass
+
+    try:
+        b.untag_resource("unknown", [])
+        raise "untag_resource should fail if KeyId is not known"
+    except JsonRESTError:
+        pass
+
+    try:
+        b.list_resource_tags("unknown")
+        raise "list_resource_tags should fail if KeyId is not known"
+    except JsonRESTError:
+        pass

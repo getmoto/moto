@@ -8,11 +8,13 @@ from .exceptions import (
     ApiKeyNotFoundException,
     BadRequestException,
     CrossAccountNotAllowed,
+    AuthorizerNotFoundException,
     StageNotFoundException,
     ApiKeyAlreadyExists,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
+AUTHORIZER_TYPES = ["TOKEN", "REQUEST", "COGNITO_USER_POOLS"]
 ENDPOINT_CONFIGURATION_TYPES = ["PRIVATE", "EDGE", "REGIONAL"]
 
 
@@ -176,6 +178,88 @@ class APIGatewayResponse(BaseResponse):
                 function_id, resource_id, method_type, response_code
             )
         return 200, {}, json.dumps(method_response)
+
+    def restapis_authorizers(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+
+        if self.method == "POST":
+            name = self._get_param("name")
+            authorizer_type = self._get_param("type")
+
+            provider_arns = self._get_param_with_default_value("providerARNs", None)
+            auth_type = self._get_param_with_default_value("authType", None)
+            authorizer_uri = self._get_param_with_default_value("authorizerUri", None)
+            authorizer_credentials = self._get_param_with_default_value(
+                "authorizerCredentials", None
+            )
+            identity_source = self._get_param_with_default_value("identitySource", None)
+            identiy_validation_expression = self._get_param_with_default_value(
+                "identityValidationExpression", None
+            )
+            authorizer_result_ttl = self._get_param_with_default_value(
+                "authorizerResultTtlInSeconds", 300
+            )
+
+            # Param validation
+            if authorizer_type and authorizer_type not in AUTHORIZER_TYPES:
+                return self.error(
+                    "ValidationException",
+                    (
+                        "1 validation error detected: "
+                        "Value '{authorizer_type}' at 'createAuthorizerInput.type' failed "
+                        "to satisfy constraint: Member must satisfy enum value set: "
+                        "[TOKEN, REQUEST, COGNITO_USER_POOLS]"
+                    ).format(authorizer_type=authorizer_type),
+                )
+
+            authorizer_response = self.backend.create_authorizer(
+                restapi_id,
+                name,
+                authorizer_type,
+                provider_arns=provider_arns,
+                auth_type=auth_type,
+                authorizer_uri=authorizer_uri,
+                authorizer_credentials=authorizer_credentials,
+                identity_source=identity_source,
+                identiy_validation_expression=identiy_validation_expression,
+                authorizer_result_ttl=authorizer_result_ttl,
+            )
+        elif self.method == "GET":
+            authorizers = self.backend.get_authorizers(restapi_id)
+            return 200, {}, json.dumps({"item": authorizers})
+
+        return 200, {}, json.dumps(authorizer_response)
+
+    def authorizers(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        url_path_parts = self.path.split("/")
+        restapi_id = url_path_parts[2]
+        authorizer_id = url_path_parts[4]
+
+        if self.method == "GET":
+            try:
+                authorizer_response = self.backend.get_authorizer(
+                    restapi_id, authorizer_id
+                )
+            except AuthorizerNotFoundException as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
+        elif self.method == "PATCH":
+            patch_operations = self._get_param("patchOperations")
+            authorizer_response = self.backend.update_authorizer(
+                restapi_id, authorizer_id, patch_operations
+            )
+        elif self.method == "DELETE":
+            self.backend.delete_authorizer(restapi_id, authorizer_id)
+            return 202, {}, "{}"
+        return 200, {}, json.dumps(authorizer_response)
 
     def restapis_stages(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

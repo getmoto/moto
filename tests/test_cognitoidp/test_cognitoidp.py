@@ -27,6 +27,11 @@ def test_create_user_pool():
 
     result["UserPool"]["Id"].should_not.be.none
     result["UserPool"]["Id"].should.match(r"[\w-]+_[0-9a-zA-Z]+")
+    result["UserPool"]["Arn"].should.equal(
+        "arn:aws:cognito-idp:us-west-2:{}:userpool/{}".format(
+            ACCOUNT_ID, result["UserPool"]["Id"]
+        )
+    )
     result["UserPool"]["Name"].should.equal(name)
     result["UserPool"]["LambdaConfig"]["PreSignUp"].should.equal(value)
 
@@ -906,6 +911,55 @@ def test_admin_create_existing_user():
             UserAttributes=[{"Name": "thing", "Value": value}],
         )
     except conn.exceptions.UsernameExistsException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
+def test_admin_resend_invitation_existing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "thing", "Value": value}],
+    )
+
+    caught = False
+    try:
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+            MessageAction="RESEND",
+        )
+    except conn.exceptions.UsernameExistsException:
+        caught = True
+
+    caught.should.be.false
+
+
+@mock_cognitoidp
+def test_admin_resend_invitation_missing_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    caught = False
+    try:
+        conn.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            UserAttributes=[{"Name": "thing", "Value": value}],
+            MessageAction="RESEND",
+        )
+    except conn.exceptions.UserNotFoundException:
         caught = True
 
     caught.should.be.true

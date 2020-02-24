@@ -6,6 +6,7 @@ from boto3 import Session
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel
 from moto.sts.models import ACCOUNT_ID
+from moto.utilities.tagging_service import TaggingService
 
 
 class Rule(BaseModel):
@@ -104,6 +105,7 @@ class EventsBackend(BaseBackend):
         self.region_name = region_name
         self.event_buses = {}
         self.event_sources = {}
+        self.tagger = TaggingService()
 
         self._add_default_event_bus()
 
@@ -141,6 +143,9 @@ class EventsBackend(BaseBackend):
 
     def delete_rule(self, name):
         self.rules_order.pop(self.rules_order.index(name))
+        arn = self.rules.get(name).arn
+        if self.tagger.has_tags(arn):
+            self.tagger.delete_all_tags_for_resource(arn)
         return self.rules.pop(name) is not None
 
     def describe_rule(self, name):
@@ -360,6 +365,32 @@ class EventsBackend(BaseBackend):
             )
 
         self.event_buses.pop(name, None)
+
+    def list_tags_for_resource(self, arn):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            return self.tagger.list_tags_for_resource(self.rules[name].arn)
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
+
+    def tag_resource(self, arn, tags):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            self.tagger.tag_resource(self.rules[name].arn, tags)
+            return {}
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
+
+    def untag_resource(self, arn, tag_names):
+        name = arn.split("/")[-1]
+        if name in self.rules:
+            self.tagger.untag_resource_using_names(self.rules[name].arn, tag_names)
+            return {}
+        raise JsonRESTError(
+            "ResourceNotFoundException", "An entity that you specified does not exist."
+        )
 
 
 events_backends = {}
