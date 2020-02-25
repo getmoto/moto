@@ -35,14 +35,14 @@ def test_poll_for_activity_task_when_one():
 def test_poll_for_activity_task_when_none():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "activity-task-list")
-    resp.should.equal({"startedEventId": 0})
+    resp.should.equal({"startedEventId": 0, "taskToken": ""})
 
 
 @mock_swf_deprecated
 def test_poll_for_activity_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_activity_task("test-domain", "non-existent-queue")
-    resp.should.equal({"startedEventId": 0})
+    resp.should.equal({"startedEventId": 0, "taskToken": ""})
 
 
 # CountPendingActivityTasks endpoint

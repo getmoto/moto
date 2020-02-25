@@ -423,7 +423,9 @@ class SWFResponse(BaseResponse):
         if decision:
             return json.dumps(decision.to_full_dict(reverse_order=reverse_order))
         else:
-            return json.dumps({"previousStartedEventId": 0, "startedEventId": 0})
+            return json.dumps(
+                {"previousStartedEventId": 0, "startedEventId": 0, "taskToken": ""}
+            )
 
     def count_pending_decision_tasks(self):
         domain_name = self._params["domain"]
@@ -457,7 +459,7 @@ class SWFResponse(BaseResponse):
         if activity_task:
             return json.dumps(activity_task.to_full_dict())
         else:
-            return json.dumps({"startedEventId": 0})
+            return json.dumps({"startedEventId": 0, "taskToken": ""})
 
     def count_pending_activity_tasks(self):
         domain_name = self._params["domain"]
