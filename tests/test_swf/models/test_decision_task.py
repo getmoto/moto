@@ -24,7 +24,7 @@ def test_decision_task_full_dict_representation():
 
     fd = dt.to_full_dict()
     fd["events"].should.be.a("list")
-    fd["previousStartedEventId"].should.equal(0)
+    fd.should_not.contain("previousStartedEventId")
     fd.should_not.contain("startedEventId")
     fd.should.contain("taskToken")
     fd["workflowExecution"].should.equal(wfe.to_short_dict())
