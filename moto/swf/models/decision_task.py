@@ -49,10 +49,11 @@ class DecisionTask(BaseModel):
             hsh["startedEventId"] = self.started_event_id
         return hsh
 
-    def start(self, started_event_id):
+    def start(self, started_event_id, previous_started_event_id=None):
         self.state = "STARTED"
         self.started_timestamp = unix_time()
         self.started_event_id = started_event_id
+        self.previous_started_event_id = previous_started_event_id
 
     def complete(self):
         self._check_workflow_execution_open()
