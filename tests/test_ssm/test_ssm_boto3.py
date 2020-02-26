@@ -31,6 +31,20 @@ def test_delete_parameter():
 
 
 @mock_ssm
+def test_delete_nonexistent_parameter():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    try:
+        client.delete_parameter(Name="test_noexist")
+        raise RuntimeError("Should of failed")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("DeleteParameter")
+        err.response["Error"]["Message"].should.equal(
+            "Parameter test_noexist not found."
+        )
+
+
+@mock_ssm
 def test_delete_parameters():
     client = boto3.client("ssm", region_name="us-east-1")
 
