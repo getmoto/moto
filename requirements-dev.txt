@@ -1,5 +1,5 @@
 -r requirements.txt
-mock
+mock==3.0.5   # Last version compatible with Python 2.7
 nose
 black; python_version >= '3.6'
 regex==2019.11.1; python_version >= '3.6'   # Needed for black
