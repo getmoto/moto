@@ -132,6 +132,7 @@ def test_create_two_security_groups_in_vpc_with_ipv6_enabled():
         GroupName="sg01", Description="Test security group sg01", VpcId=vpc.id
     )
 
+    # The security group must have two defaul egress rules (one for ipv4 and aonther for ipv6)
     security_group.ip_permissions_egress.should.have.length_of(2)
 
 
