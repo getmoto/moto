@@ -756,9 +756,7 @@ def test_change_weighted_resource_record_sets():
 @mock_route53
 def test_failover_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
-    conn.create_hosted_zone(
-        Name="test.zone.", CallerReference=str(hash("test"))
-    )
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
     zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
     hosted_zone_id = zones["HostedZones"][0]["Id"]
 
@@ -774,11 +772,11 @@ def test_failover_record_sets():
                         "Type": "A",
                         "TTL": 10,
                         "ResourceRecords": [{"Value": "127.0.0.1"}],
-                        "Failover": "PRIMARY"
-                    }
+                        "Failover": "PRIMARY",
+                    },
                 }
             ]
-        }
+        },
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
@@ -789,9 +787,7 @@ def test_failover_record_sets():
 @mock_route53
 def test_geolocation_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
-    conn.create_hosted_zone(
-        Name="test.zone.", CallerReference=str(hash("test"))
-    )
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
     zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
     hosted_zone_id = zones["HostedZones"][0]["Id"]
 
@@ -807,10 +803,8 @@ def test_geolocation_record_sets():
                         "Type": "A",
                         "TTL": 10,
                         "ResourceRecords": [{"Value": "127.0.0.1"}],
-                        "GeoLocation": {
-                          "ContinentCode": "EU"
-                        }
-                    }
+                        "GeoLocation": {"ContinentCode": "EU"},
+                    },
                 },
                 {
                     "Action": "CREATE",
@@ -819,14 +813,11 @@ def test_geolocation_record_sets():
                         "Type": "A",
                         "TTL": 10,
                         "ResourceRecords": [{"Value": "127.0.0.2"}],
-                        "GeoLocation": {
-                          "CountryCode": "US",
-                          "SubdivisionCode": "NY"
-                        }
-                    }
-                }
+                        "GeoLocation": {"CountryCode": "US", "SubdivisionCode": "NY"},
+                    },
+                },
             ]
-        }
+        },
     )
 
     response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
