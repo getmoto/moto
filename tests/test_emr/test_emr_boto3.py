@@ -61,6 +61,23 @@ input_instance_groups = [
         "Name": "task-2",
         "BidPrice": "0.05",
     },
+    {
+        "InstanceCount": 10,    
+        "InstanceRole": "TASK",
+        "InstanceType": "c1.xlarge",
+        "Market": "SPOT",
+        "Name": "task-3",
+        "BidPrice": "0.05",
+        "EbsConfiguration": {
+            "EbsBlockDeviceConfigs": [
+                {
+                    "VolumeSpecification": {"VolumeType": "gp2", "SizeInGB": 800},
+                    "VolumesPerInstance": 6,
+                },
+            ],
+            "EbsOptimized": True,
+        },
+    },
 ]
 
 
@@ -447,6 +464,8 @@ def test_run_job_flow_with_instance_groups():
         x["Market"].should.equal(y["Market"])
         if "BidPrice" in y:
             x["BidPrice"].should.equal(y["BidPrice"])
+        if "EbsConfiguration" in y:
+            x["EbsConfiguration"].should.equal(y["EbsConfiguration"])
 
 
 @mock_emr
@@ -604,6 +623,8 @@ def test_instance_groups():
         y = input_groups[x["Name"]]
         if hasattr(y, "BidPrice"):
             x["BidPrice"].should.equal("BidPrice")
+        if "EbsConfiguration" in y:
+            x["EbsConfiguration"].should.equal(y["EbsConfiguration"])
         x["CreationDateTime"].should.be.a("datetime.datetime")
         # x['EndDateTime'].should.be.a('datetime.datetime')
         x.should.have.key("InstanceGroupId")
@@ -623,6 +644,8 @@ def test_instance_groups():
         y = input_groups[x["Name"]]
         if hasattr(y, "BidPrice"):
             x["BidPrice"].should.equal("BidPrice")
+        if "EbsConfiguration" in y:
+            x["EbsConfiguration"].should.equal(y["EbsConfiguration"])
         # Configurations
         # EbsBlockDevices
         # EbsOptimized
