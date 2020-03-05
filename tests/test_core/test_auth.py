@@ -274,9 +274,7 @@ def test_access_denied_with_not_allowing_policy():
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",
-        "Statement": [
-            {"Effect": "Allow", "Action": ["ec2:Run*"], "Resource": "*"}
-        ],
+        "Statement": [{"Effect": "Allow", "Action": ["ec2:Run*"], "Resource": "*"}],
     }
     access_key = create_user_with_access_key_and_inline_policy(
         user_name, inline_policy_document
@@ -293,7 +291,9 @@ def test_access_denied_with_not_allowing_policy():
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.exception.response["Error"]["Message"].should.equal(
         "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
-            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:DescribeInstances"
+            account_id=ACCOUNT_ID,
+            user_name=user_name,
+            operation="ec2:DescribeInstances",
         )
     )
 
