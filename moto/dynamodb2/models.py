@@ -452,9 +452,7 @@ class Item(BaseModel):
                 if old_list_key.startswith("if_not_exists"):
                     old_list = self._get_default(old_list_key)
                     if not isinstance(old_list, DynamoType):
-                        old_list = DynamoType(
-                            expression_attribute_values[old_list]
-                        )
+                        old_list = DynamoType(expression_attribute_values[old_list])
                 else:
                     old_list = self.attrs[old_list_key.split(".")[0]]
                     if "." in old_list_key:

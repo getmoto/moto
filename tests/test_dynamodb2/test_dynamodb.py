@@ -3648,7 +3648,7 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation_and_pro
 
     table = dynamo.Table(table_name)
 
-    table.put_item(Item={"Id": "item-id", "event_history":["other_value"]})
+    table.put_item(Item={"Id": "item-id", "event_history": ["other_value"]})
     table.update_item(
         Key={"Id": "item-id"},
         UpdateExpression="SET event_history = list_append(if_not_exists(event_history, :empty_list), :new_value)",
