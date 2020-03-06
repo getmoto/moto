@@ -5,6 +5,7 @@ import boto3
 from moto import mock_swf_deprecated
 from moto import mock_swf
 from boto.swf.exceptions import SWFResponseError
+from botocore.exceptions import ClientError
 
 
 # RegisterWorkflowType endpoint
@@ -110,6 +111,77 @@ def test_deprecate_non_existent_workflow_type():
     conn.deprecate_workflow_type.when.called_with(
         "test-domain", "non-existent", "v1.0"
     ).should.throw(SWFResponseError)
+
+
+# UndeprecateWorkflowType endpoint
+@mock_swf
+def test_undeprecate_workflow_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+    client.deprecate_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+    client.undeprecate_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+
+    resp = client.describe_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+    resp["typeInfo"]["status"].should.equal("REGISTERED")
+
+
+@mock_swf
+def test_undeprecate_already_undeprecated_workflow_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+    client.deprecate_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+    client.undeprecate_workflow_type(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    )
+
+    client.undeprecate_workflow_type.when.called_with(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    ).should.throw(ClientError)
+
+
+@mock_swf
+def test_undeprecate_never_deprecated_workflow_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.register_workflow_type(
+        domain="test-domain", name="test-workflow", version="v1.0"
+    )
+
+    client.undeprecate_workflow_type.when.called_with(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    ).should.throw(ClientError)
+
+
+@mock_swf
+def test_undeprecate_non_existent_workflow_type():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+
+    client.undeprecate_workflow_type.when.called_with(
+        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
+    ).should.throw(ClientError)
 
 
 # DescribeWorkflowType endpoint

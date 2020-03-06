@@ -22,7 +22,13 @@ class SimpleSystemManagerResponse(BaseResponse):
 
     def delete_parameter(self):
         name = self._get_param("Name")
-        self.ssm_backend.delete_parameter(name)
+        result = self.ssm_backend.delete_parameter(name)
+        if result is None:
+            error = {
+                "__type": "ParameterNotFound",
+                "message": "Parameter {0} not found.".format(name),
+            }
+            return json.dumps(error), dict(status=400)
         return json.dumps({})
 
     def delete_parameters(self):

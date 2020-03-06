@@ -121,6 +121,12 @@ class SWFBackend(BaseBackend):
             raise SWFDomainDeprecatedFault(name)
         domain.status = "DEPRECATED"
 
+    def undeprecate_domain(self, name):
+        domain = self._get_domain(name)
+        if domain.status == "REGISTERED":
+            raise SWFDomainAlreadyExistsFault(name)
+        domain.status = "REGISTERED"
+
     def describe_domain(self, name):
         return self._get_domain(name)
 
@@ -147,6 +153,13 @@ class SWFBackend(BaseBackend):
         if _type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(_type)
         _type.status = "DEPRECATED"
+
+    def undeprecate_type(self, kind, domain_name, name, version):
+        domain = self._get_domain(domain_name)
+        _type = domain.get_type(kind, name, version)
+        if _type.status == "REGISTERED":
+            raise SWFTypeAlreadyExistsFault(_type)
+        _type.status = "REGISTERED"
 
     def describe_type(self, kind, domain_name, name, version):
         domain = self._get_domain(domain_name)
