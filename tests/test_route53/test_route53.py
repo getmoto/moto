@@ -754,6 +754,79 @@ def test_change_weighted_resource_record_sets():
 
 
 @mock_route53
+def test_failover_record_sets():
+    conn = boto3.client("route53", region_name="us-east-2")
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
+    zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create geolocation record
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "failover.test.zone.",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.1"}],
+                        "Failover": "PRIMARY",
+                    },
+                }
+            ]
+        },
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    record = response["ResourceRecordSets"][0]
+    record["Failover"].should.equal("PRIMARY")
+
+
+@mock_route53
+def test_geolocation_record_sets():
+    conn = boto3.client("route53", region_name="us-east-2")
+    conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
+    zones = conn.list_hosted_zones_by_name(DNSName="test.zone.")
+    hosted_zone_id = zones["HostedZones"][0]["Id"]
+
+    # Create geolocation record
+    conn.change_resource_record_sets(
+        HostedZoneId=hosted_zone_id,
+        ChangeBatch={
+            "Changes": [
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "georecord1.test.zone.",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.1"}],
+                        "GeoLocation": {"ContinentCode": "EU"},
+                    },
+                },
+                {
+                    "Action": "CREATE",
+                    "ResourceRecordSet": {
+                        "Name": "georecord2.test.zone.",
+                        "Type": "A",
+                        "TTL": 10,
+                        "ResourceRecords": [{"Value": "127.0.0.2"}],
+                        "GeoLocation": {"CountryCode": "US", "SubdivisionCode": "NY"},
+                    },
+                },
+            ]
+        },
+    )
+
+    response = conn.list_resource_record_sets(HostedZoneId=hosted_zone_id)
+    rrs = response["ResourceRecordSets"]
+    rrs[0]["GeoLocation"].should.equal({"ContinentCode": "EU"})
+    rrs[1]["GeoLocation"].should.equal({"CountryCode": "US", "SubdivisionCode": "NY"})
+
+
+@mock_route53
 def test_change_resource_record_invalid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
