@@ -60,14 +60,6 @@ input_instance_groups = [
         "Market": "SPOT",
         "Name": "task-2",
         "BidPrice": "0.05",
-    },
-    {
-        "InstanceCount": 10,    
-        "InstanceRole": "TASK",
-        "InstanceType": "c1.xlarge",
-        "Market": "SPOT",
-        "Name": "task-3",
-        "BidPrice": "0.05",
         "EbsConfiguration": {
             "EbsBlockDeviceConfigs": [
                 {
@@ -623,8 +615,6 @@ def test_instance_groups():
         y = input_groups[x["Name"]]
         if hasattr(y, "BidPrice"):
             x["BidPrice"].should.equal("BidPrice")
-        if "EbsConfiguration" in y:
-            x["EbsConfiguration"].should.equal(y["EbsConfiguration"])
         x["CreationDateTime"].should.be.a("datetime.datetime")
         # x['EndDateTime'].should.be.a('datetime.datetime')
         x.should.have.key("InstanceGroupId")
@@ -645,7 +635,18 @@ def test_instance_groups():
         if hasattr(y, "BidPrice"):
             x["BidPrice"].should.equal("BidPrice")
         if "EbsConfiguration" in y:
-            x["EbsConfiguration"].should.equal(y["EbsConfiguration"])
+            total_volumes = 0
+            total_size = 0
+            for ebs_block in y["EbsConfiguration"]["EbsBlockDeviceConfigs"]:
+                total_volumes += ebs_block["VolumesPerInstance"]
+                total_size += ebs_block["VolumeSpecification"]["SizeInGB"]
+            # Multiply by total volumes
+            total_size = total_size * total_volumes
+            comp_total_size = 0
+            for ebs_block in x["EbsBlockDevices"]:
+                comp_total_size += ebs_block["VolumeSpecification"]["SizeInGB"]
+            len(x["EbsBlockDevices"]).should.equal(total_volumes)
+            comp_total_size.should.equal(comp_total_size)
         # Configurations
         # EbsBlockDevices
         # EbsOptimized
