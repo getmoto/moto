@@ -438,6 +438,7 @@ def test_run_job_flow_with_visible_to_all_users():
         resp = client.describe_cluster(ClusterId=cluster_id)
         resp["Cluster"]["VisibleToAllUsers"].should.equal(expected)
 
+
 def _do_assertion_ebs_configuration(x, y):
     total_volumes = 0
     total_size = 0
@@ -451,6 +452,7 @@ def _do_assertion_ebs_configuration(x, y):
         comp_total_size += ebs_block["VolumeSpecification"]["SizeInGB"]
     len(x["EbsBlockDevices"]).should.equal(total_volumes)
     comp_total_size.should.equal(comp_total_size)
+
 
 @mock_emr
 def test_run_job_flow_with_instance_groups():
