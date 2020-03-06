@@ -31,6 +31,30 @@ def test_poll_for_decision_task_when_one():
 
 
 @mock_swf_deprecated
+def test_poll_for_decision_task_previous_started_event_id():
+    conn = setup_workflow()
+
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    assert resp["workflowExecution"]["runId"] == conn.run_id
+    assert "previousStartedEventId" not in resp
+
+    # Require a failing decision, in this case a non-existant activity type
+    attrs = {
+        "activityId": "spam",
+        "activityType": {"name": "test-activity", "version": "v1.42"},
+        "taskList": "eggs",
+    }
+    decision = {
+        "decisionType": "ScheduleActivityTask",
+        "scheduleActivityTaskDecisionAttributes": attrs,
+    }
+    conn.respond_decision_task_completed(resp["taskToken"], decisions=[decision])
+    resp = conn.poll_for_decision_task("test-domain", "queue")
+    assert resp["workflowExecution"]["runId"] == conn.run_id
+    assert resp["previousStartedEventId"] == 3
+
+
+@mock_swf_deprecated
 def test_poll_for_decision_task_when_none():
     conn = setup_workflow()
     conn.poll_for_decision_task("test-domain", "queue")
@@ -38,14 +62,18 @@ def test_poll_for_decision_task_when_none():
     resp = conn.poll_for_decision_task("test-domain", "queue")
     # this is the DecisionTask representation you get from the real SWF
     # after waiting 60s when there's no decision to be taken
-    resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
+    resp.should.equal(
+        {"previousStartedEventId": 0, "startedEventId": 0, "taskToken": ""}
+    )
 
 
 @mock_swf_deprecated
 def test_poll_for_decision_task_on_non_existent_queue():
     conn = setup_workflow()
     resp = conn.poll_for_decision_task("test-domain", "non-existent-queue")
-    resp.should.equal({"previousStartedEventId": 0, "startedEventId": 0})
+    resp.should.equal(
+        {"previousStartedEventId": 0, "startedEventId": 0, "taskToken": ""}
+    )
 
 
 @mock_swf_deprecated
