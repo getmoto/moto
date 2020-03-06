@@ -88,6 +88,8 @@ class RecordSet(BaseModel):
         self.hosted_zone_name = kwargs.get("HostedZoneName")
         self.hosted_zone_id = kwargs.get("HostedZoneId")
         self.alias_target = kwargs.get("AliasTarget")
+        self.failover = kwargs.get("Failover")
+        self.geo_location = kwargs.get("GeoLocation")
 
     @classmethod
     def create_from_cloudformation_json(
@@ -153,6 +155,16 @@ class RecordSet(BaseModel):
                 {% endif %}
                 {% if record_set.ttl %}
                     <TTL>{{ record_set.ttl }}</TTL>
+                {% endif %}
+                {% if record_set.failover %}
+                    <Failover>{{ record_set.failover }}</Failover>
+                {% endif %}
+                {% if record_set.geo_location %}
+                <GeoLocation>
+                {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
+                  {% if record_set.geo_location[geo_key] %}<{{ geo_key }}>{{ record_set.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
+                {% endfor %}
+                </GeoLocation>
                 {% endif %}
                 {% if record_set.alias_target %}
                 <AliasTarget>

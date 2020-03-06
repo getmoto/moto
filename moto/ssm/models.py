@@ -278,10 +278,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 self._region = region
 
     def delete_parameter(self, name):
-        try:
-            del self._parameters[name]
-        except KeyError:
-            pass
+        return self._parameters.pop(name, None)
 
     def delete_parameters(self, names):
         result = []

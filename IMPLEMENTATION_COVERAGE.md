@@ -7272,9 +7272,9 @@
 - [X] start_workflow_execution
 - [ ] tag_resource
 - [X] terminate_workflow_execution
-- [ ] undeprecate_activity_type
-- [ ] undeprecate_domain
-- [ ] undeprecate_workflow_type
+- [X] undeprecate_activity_type
+- [X] undeprecate_domain
+- [X] undeprecate_workflow_type
 - [ ] untag_resource
 
 ## textract
