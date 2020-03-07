@@ -363,7 +363,7 @@ class ElasticMapReduceResponse(BaseResponse):
             iops = "iops"
             volumes_per_instance = "volumes_per_instance"
 
-            key_ebs_optimized = f"{key_ebs_config}._{ebs_optimized}"
+            key_ebs_optimized = "{0}._{1}".format(key_ebs_config, ebs_optimized)
             # EbsOptimized config
             if key_ebs_optimized in ebs_configuration:
                 instance_group.pop(key_ebs_optimized)
@@ -374,10 +374,10 @@ class ElasticMapReduceResponse(BaseResponse):
             # Ebs Blocks
             ebs_blocks = []
             idx = 1
-            keyfmt = f"{key_ebs_config}._{ebs_block_device_configs}.member.{{}}"
+            keyfmt = "{0}._{1}.member.{{}}".format(key_ebs_config, ebs_block_device_configs)
             key = keyfmt.format(idx)
             while self._has_key_prefix(key, ebs_configuration):
-                vlespc_keyfmt = f"{key}._{volume_specification}._{{}}"
+                vlespc_keyfmt = "{0}._{1}._{{}}".format(key, volume_specification)
                 vol_size = vlespc_keyfmt.format(size_in_gb)
                 vol_iops = vlespc_keyfmt.format(iops)
                 vol_type = vlespc_keyfmt.format(volume_type)
@@ -400,7 +400,7 @@ class ElasticMapReduceResponse(BaseResponse):
                         volume_type
                     ] = ebs_configuration.pop(vol_type)
 
-                per_instance = f"{key}._{volumes_per_instance}"
+                per_instance = "{0}._{1}".format(key, volumes_per_instance)
                 if per_instance in ebs_configuration:
                     instance_group.pop(per_instance)
                     ebs_block[volumes_per_instance] = int(
