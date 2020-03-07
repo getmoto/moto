@@ -981,7 +981,7 @@ class LambdaBackend(BaseBackend):
             ]
         }
         func = self._lambdas.get_arn(function_arn)
-        func.invoke(json.dumps(event), {}, {})
+        return func.invoke(json.dumps(event), {}, {})
 
     def list_tags(self, resource):
         return self.get_function_by_arn(resource).tags
