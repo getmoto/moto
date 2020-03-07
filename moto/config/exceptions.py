@@ -366,3 +366,13 @@ class TooManyResourceKeys(JsonRESTError):
         message = str(message)
 
         super(TooManyResourceKeys, self).__init__("ValidationException", message)
+
+
+class InvalidResultTokenException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        message = "The resultToken provided is invalid"
+        super(InvalidResultTokenException, self).__init__(
+            "InvalidResultTokenException", message
+        )

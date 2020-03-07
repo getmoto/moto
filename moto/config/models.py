@@ -40,6 +40,7 @@ from moto.config.exceptions import (
     TooManyResourceIds,
     ResourceNotDiscoveredException,
     TooManyResourceKeys,
+    InvalidResultTokenException,
 )
 
 from moto.core import BaseBackend, BaseModel
@@ -1088,6 +1089,26 @@ class ConfigBackend(BaseBackend):
             "BaseConfigurationItems": found,
             "UnprocessedResourceIdentifiers": not_found,
         }
+
+    def put_evaluations(self, evaluations=None, result_token=None, test_mode=False):
+        if not evaluations:
+            raise InvalidParameterValueException(
+                "The Evaluations object in your request cannot be null."
+                "Add the required parameters and try again."
+            )
+
+        if not result_token:
+            raise InvalidResultTokenException()
+
+        # Moto only supports PutEvaluations with test mode currently (missing rule and token support)
+        if not test_mode:
+            raise NotImplementedError(
+                "PutEvaluations without TestMode is not yet implemented"
+            )
+
+        return {
+            "FailedEvaluations": [],
+        }  # At this time, moto is not adding failed evaluations.
 
 
 config_backends = {}
