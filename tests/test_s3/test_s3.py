@@ -39,6 +39,7 @@ import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
 
+
 if settings.TEST_SERVER_MODE:
     REDUCED_PART_SIZE = s3model.UPLOAD_PART_MIN_SIZE
     EXPECTED_ETAG = '"140f92a6df9f9e415f74a1463bcee9bb-2"'
@@ -1018,12 +1019,23 @@ def test_s3_object_in_public_bucket():
         s3_anonymous.Object(key="file.txt", bucket_name="test-bucket").get()
     exc.exception.response["Error"]["Code"].should.equal("403")
 
+
+@mock_s3
+def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
+    s3 = boto3.resource("s3")
+    bucket = s3.Bucket("test-bucket")
+    bucket.create(
+        ACL="public-read", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+    )
+    bucket.put_object(Body=b"ABCD", Key="file.txt")
+
     params = {"Bucket": "test-bucket", "Key": "file.txt"}
     presigned_url = boto3.client("s3").generate_presigned_url(
         "get_object", params, ExpiresIn=900
     )
-    response = requests.get(presigned_url)
-    assert response.status_code == 200
+    for i in range(1, 10):
+        response = requests.get(presigned_url)
+        assert response.status_code == 200, "Failed on req number {}".format(i)
 
 
 @mock_s3
