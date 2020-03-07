@@ -35,6 +35,7 @@ class FakeInstanceGroup(BaseModel):
         name=None,
         id=None,
         bid_price=None,
+        ebs_configuration=None,
     ):
         self.id = id or random_instance_group_id()
 
@@ -51,6 +52,7 @@ class FakeInstanceGroup(BaseModel):
         self.num_instances = instance_count
         self.role = instance_role
         self.type = instance_type
+        self.ebs_configuration = ebs_configuration
 
         self.creation_datetime = datetime.now(pytz.utc)
         self.start_datetime = datetime.now(pytz.utc)
