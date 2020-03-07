@@ -374,7 +374,9 @@ class ElasticMapReduceResponse(BaseResponse):
             # Ebs Blocks
             ebs_blocks = []
             idx = 1
-            keyfmt = "{0}._{1}.member.{{}}".format(key_ebs_config, ebs_block_device_configs)
+            keyfmt = "{0}._{1}.member.{{}}".format(
+                key_ebs_config, ebs_block_device_configs
+            )
             key = keyfmt.format(idx)
             while self._has_key_prefix(key, ebs_configuration):
                 vlespc_keyfmt = "{0}._{1}._{{}}".format(key, volume_specification)
