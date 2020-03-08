@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, JsonRESTError
 
 
 class RepositoryNotFoundException(RESTError):
@@ -13,7 +13,7 @@ class RepositoryNotFoundException(RESTError):
         )
 
 
-class ImageNotFoundException(RESTError):
+class ImageNotFoundException(JsonRESTError):
     code = 400
 
     def __init__(self, image_id, repository_name, registry_id):
