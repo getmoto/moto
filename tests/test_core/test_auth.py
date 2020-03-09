@@ -300,6 +300,40 @@ def test_access_denied_with_not_allowing_policy():
 
 @set_initial_no_auth_action_count(3)
 @mock_ec2
+def test_access_denied_for_run_instances():
+    # https://github.com/spulec/moto/issues/2774
+    # The run-instances method was broken between botocore versions 1.15.8 and 1.15.12
+    # This was due to the inclusion of '"idempotencyToken":true' in the response, somehow altering the signature and breaking the authentication
+    # Keeping this test in place in case botocore decides to break again
+    user_name = "test-user"
+    inline_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Effect": "Allow", "Action": ["ec2:Describe*"], "Resource": "*"}
+        ],
+    }
+    access_key = create_user_with_access_key_and_inline_policy(
+        user_name, inline_policy_document
+    )
+    client = boto3.client(
+        "ec2",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+    with assert_raises(ClientError) as ex:
+        client.run_instances(MaxCount=1, MinCount=1)
+    ex.exception.response["Error"]["Code"].should.equal("AccessDenied")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "User: arn:aws:iam::{account_id}:user/{user_name} is not authorized to perform: {operation}".format(
+            account_id=ACCOUNT_ID, user_name=user_name, operation="ec2:RunInstances",
+        )
+    )
+
+
+@set_initial_no_auth_action_count(3)
+@mock_ec2
 def test_access_denied_with_denying_policy():
     user_name = "test-user"
     inline_policy_document = {
