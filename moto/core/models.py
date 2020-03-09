@@ -7,6 +7,7 @@ import inspect
 import os
 import re
 import six
+import types
 from io import BytesIO
 from collections import defaultdict
 from botocore.handlers import BUILTIN_HANDLERS
@@ -217,10 +218,27 @@ botocore_mock = responses.RequestsMock(
     assert_all_requests_are_fired=False,
     target="botocore.vendored.requests.adapters.HTTPAdapter.send",
 )
+
 responses_mock = responses._default_mock
 # Add passthrough to allow any other requests to work
 # Since this uses .startswith, it applies to http and https requests.
 responses_mock.add_passthru("http")
+
+
+def _find_first_match(self, request):
+    for i, match in enumerate(self._matches):
+        if match.matches(request):
+            return match
+
+    return None
+
+
+# Modify behaviour of the matcher to only/always return the first match
+# Default behaviour is to return subsequent matches for subsequent requests, which leads to https://github.com/spulec/moto/issues/2567
+#  - First request matches on the appropriate S3 URL
+#  - Same request, executed again, will be matched on the subsequent match, which happens to be the catch-all, not-yet-implemented, callback
+# Fix: Always return the first match
+responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)
 
 
 BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]

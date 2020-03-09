@@ -123,6 +123,19 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
     set(group_names).should.equal(set(["default", "test security group"]))
 
 
+@mock_ec2
+def test_create_two_security_groups_in_vpc_with_ipv6_enabled():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", AmazonProvidedIpv6CidrBlock=True)
+
+    security_group = ec2.create_security_group(
+        GroupName="sg01", Description="Test security group sg01", VpcId=vpc.id
+    )
+
+    # The security group must have two defaul egress rules (one for ipv4 and aonther for ipv6)
+    security_group.ip_permissions_egress.should.have.length_of(2)
+
+
 @mock_ec2_deprecated
 def test_deleting_security_groups():
     conn = boto.connect_ec2("the_key", "the_secret")

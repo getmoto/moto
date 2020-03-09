@@ -538,7 +538,7 @@ def test_describe_image_that_doesnt_exist():
         repositoryName="test_repository",
         imageIds=[{"imageTag": "testtag"}],
         registryId="123",
-    ).should.throw(ClientError, error_msg1)
+    ).should.throw(client.exceptions.ImageNotFoundException, error_msg1)
 
     error_msg2 = re.compile(
         r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",

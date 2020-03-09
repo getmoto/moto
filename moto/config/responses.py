@@ -151,3 +151,11 @@ class ConfigResponse(BaseResponse):
             self._get_param("ResourceIdentifiers"),
         )
         return json.dumps(schema)
+
+    def put_evaluations(self):
+        evaluations = self.config_backend.put_evaluations(
+            self._get_param("Evaluations"),
+            self._get_param("ResultToken"),
+            self._get_param("TestMode"),
+        )
+        return json.dumps(evaluations)

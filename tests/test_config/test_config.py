@@ -1,8 +1,10 @@
 import json
+import os
 from datetime import datetime, timedelta
 
 import boto3
 from botocore.exceptions import ClientError
+from nose import SkipTest
 from nose.tools import assert_raises
 
 from moto import mock_s3
@@ -1801,4 +1803,72 @@ def test_batch_get_aggregate_resource_config():
     assert (
         len(result["UnprocessedResourceIdentifiers"]) == 1
         and result["UnprocessedResourceIdentifiers"][0]["SourceRegion"] == "eu-west-1"
+    )
+
+
+@mock_config
+def test_put_evaluations():
+    client = boto3.client("config", region_name="us-west-2")
+
+    # Try without Evaluations supplied:
+    with assert_raises(ClientError) as ce:
+        client.put_evaluations(Evaluations=[], ResultToken="test", TestMode=True)
+    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert (
+        "The Evaluations object in your request cannot be null"
+        in ce.exception.response["Error"]["Message"]
+    )
+
+    # Try without a ResultToken supplied:
+    with assert_raises(ClientError) as ce:
+        client.put_evaluations(
+            Evaluations=[
+                {
+                    "ComplianceResourceType": "AWS::ApiGateway::RestApi",
+                    "ComplianceResourceId": "test-api",
+                    "ComplianceType": "INSUFFICIENT_DATA",
+                    "OrderingTimestamp": datetime(2015, 1, 1),
+                }
+            ],
+            ResultToken="",
+            TestMode=True,
+        )
+    assert ce.exception.response["Error"]["Code"] == "InvalidResultTokenException"
+
+    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
+        raise SkipTest("Does not work in server mode due to error in Workzeug")
+    else:
+        # Try without TestMode supplied:
+        with assert_raises(NotImplementedError):
+            client.put_evaluations(
+                Evaluations=[
+                    {
+                        "ComplianceResourceType": "AWS::ApiGateway::RestApi",
+                        "ComplianceResourceId": "test-api",
+                        "ComplianceType": "INSUFFICIENT_DATA",
+                        "OrderingTimestamp": datetime(2015, 1, 1),
+                    }
+                ],
+                ResultToken="test",
+            )
+
+    # Now with proper params:
+    response = client.put_evaluations(
+        Evaluations=[
+            {
+                "ComplianceResourceType": "AWS::ApiGateway::RestApi",
+                "ComplianceResourceId": "test-api",
+                "ComplianceType": "INSUFFICIENT_DATA",
+                "OrderingTimestamp": datetime(2015, 1, 1),
+            }
+        ],
+        TestMode=True,
+        ResultToken="test",
+    )
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200,},}
     )
