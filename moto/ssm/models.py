@@ -19,6 +19,9 @@ from .exceptions import (
     InvalidFilterValue,
     InvalidFilterOption,
     InvalidFilterKey,
+    ParameterVersionLabelLimitExceeded,
+    ParameterVersionNotFound,
+    ParameterNotFound
 )
 
 
@@ -32,7 +35,7 @@ class Parameter(BaseModel):
         allowed_pattern,
         keyid,
         last_modified_date,
-        version,
+        version
     ):
         self.name = name
         self.type = type
@@ -41,6 +44,7 @@ class Parameter(BaseModel):
         self.keyid = keyid
         self.last_modified_date = last_modified_date
         self.version = version
+        self.labels = []
 
         if self.type == "SecureString":
             if not self.keyid:
@@ -75,7 +79,7 @@ class Parameter(BaseModel):
 
         return r
 
-    def describe_response_object(self, decrypt=False):
+    def describe_response_object(self, decrypt=False, include_labels=False):
         r = self.response_object(decrypt)
         r["LastModifiedDate"] = round(self.last_modified_date, 3)
         r["LastModifiedUser"] = "N/A"
@@ -88,6 +92,9 @@ class Parameter(BaseModel):
 
         if self.allowed_pattern:
             r["AllowedPattern"] = self.allowed_pattern
+
+        if include_labels:
+            r["Labels"] = self.labels
 
         return r
 
@@ -613,6 +620,61 @@ class SimpleSystemManagerBackend(BaseBackend):
         if name in self._parameters:
             return self._parameters[name][-1]
         return None
+
+    def label_parameter_version(self, name, version, labels):
+        previous_parameter_versions = self._parameters[name]
+        if not previous_parameter_versions:
+            raise ParameterNotFound(
+                "Parameter %s not found." % name
+        )
+        found_parameter = None
+        labels_needing_removal = []
+        if not version:
+            version = 1
+            for parameter in previous_parameter_versions:
+                if parameter.version >= version:
+                    version = parameter.version
+        for parameter in previous_parameter_versions:
+            if parameter.version == version:
+                found_parameter = parameter
+            else:
+                for label in labels:
+                    if label in parameter.labels:
+                        labels_needing_removal.append(label)
+        if not found_parameter:
+            raise ParameterVersionNotFound(
+                "Systems Manager could not find version %s of %s. "
+                "Verify the version and try again." % (version, name)
+        )
+        labels_to_append = []
+        invalid_labels = []
+        for label in labels:
+            if label.startswith("aws") or label.startswith("ssm") or label[:1].isdigit() or not re.match("^[a-zA-z0-9_\.\-]*$", label):
+                invalid_labels.append(label)
+                continue
+            if len(label) > 100:
+                raise ValidationException(
+                    "1 validation error detected: "
+                    "Value '[%s]' at 'labels' failed to satisfy constraint: "
+                    "Member must satisfy constraint: "
+                    "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]" % label
+                )
+                continue
+            if label not in found_parameter.labels:
+                labels_to_append.append(label)
+        if (len(found_parameter.labels) + len(labels_to_append)) > 10:
+            raise ParameterVersionLabelLimitExceeded(
+                "An error occurred (ParameterVersionLabelLimitExceeded) when calling the LabelParameterVersion operation: "
+                "A parameter version can have maximum 10 labels."
+                "Move one or more labels to another version and try again."
+            )
+        found_parameter.labels = found_parameter.labels + labels_to_append
+        for parameter in previous_parameter_versions:
+            if parameter.version != version:
+                for label in parameter.labels[:]:
+                    if label in labels_needing_removal:
+                        parameter.labels.remove(label)
+        return [invalid_labels, version]
 
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite
