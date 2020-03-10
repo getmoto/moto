@@ -253,7 +253,7 @@ def dhcp_configuration_from_querystring(querystring, option="DhcpConfiguration")
 def filters_from_querystring(querystring_dict):
     response_values = {}
     last_tag_key = None
-    for key, value in querystring_dict.items():
+    for key, value in sorted(querystring_dict.items()):
         match = re.search(r"Filter.(\d).Name", key)
         if match:
             filter_index = match.groups()[0]
