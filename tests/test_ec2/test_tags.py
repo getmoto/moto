@@ -472,7 +472,7 @@ def test_delete_tag_empty_resource():
 
 @mock_ec2
 def test_retrieve_resource_with_multiple_tags():
-    ec2 = boto3.resource("ec2")
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
     blue, green = ec2.create_instances(ImageId="ANY_ID", MinCount=2, MaxCount=2)
     ec2.create_tags(
         Resources=[blue.instance_id],
