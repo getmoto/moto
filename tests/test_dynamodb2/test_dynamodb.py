@@ -1346,7 +1346,7 @@ def test_get_item_returns_consumed_capacity():
 
 @mock_dynamodb2
 def test_put_item_nonexisting_hash_key():
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
         AttributeDefinitions=[{"AttributeName": "structure_id", "AttributeType": "S"},],
         TableName="test",
