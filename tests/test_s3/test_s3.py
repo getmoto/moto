@@ -2030,17 +2030,15 @@ def test_boto3_s3_content_type():
     s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     my_bucket = s3.Bucket("my-cool-bucket")
     my_bucket.create()
-    local_path = "test_s3.py"
-    s3_path = local_path
+    s3_path = "test_s3.py"
     s3 = boto3.resource("s3", verify=False)
 
-    with open(local_path, "rb") as _file:
-        content_type = mimetypes.guess_type(local_path)
-        s3.Object(my_bucket.name, s3_path).put(
-            ContentType=content_type[0], Body=_file, ACL="public-read"
-        )
+    content_type = "text/python-x"
+    s3.Object(my_bucket.name, s3_path).put(
+        ContentType=content_type, Body=b"some python code", ACL="public-read"
+    )
 
-        s3.Object(my_bucket.name, s3_path).content_type.should.equal(content_type[0])
+    s3.Object(my_bucket.name, s3_path).content_type.should.equal(content_type)
 
 
 @mock_s3
