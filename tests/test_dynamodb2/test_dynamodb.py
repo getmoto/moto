@@ -1344,6 +1344,24 @@ def test_get_item_returns_consumed_capacity():
     assert "TableName" in response["ConsumedCapacity"]
 
 
+@mock_dynamodb2
+def test_put_item_nonexisting_hash_key():
+    dynamodb = boto3.resource("dynamodb")
+    dynamodb.create_table(
+        AttributeDefinitions=[{"AttributeName": "structure_id", "AttributeType": "S"},],
+        TableName="test",
+        KeySchema=[{"AttributeName": "structure_id", "KeyType": "HASH"},],
+        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
+    )
+    table = dynamodb.Table("test")
+
+    with assert_raises(ClientError) as ex:
+        table.put_item(Item={"a_terribly_misguided_id_attribute": "abcdef"})
+    ex.exception.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Missing the key structure_id in the item"
+    )
+
+
 def test_filter_expression():
     row1 = moto.dynamodb2.models.Item(
         None,
