@@ -22,3 +22,4 @@ tests/file.tmp
 .eggs/
 .mypy_cache/
 *.tmp
+.venv/
