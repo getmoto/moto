@@ -21,7 +21,7 @@ from .exceptions import (
     InvalidFilterKey,
     ParameterVersionLabelLimitExceeded,
     ParameterVersionNotFound,
-    ParameterNotFound
+    ParameterNotFound,
 )
 
 
@@ -35,7 +35,7 @@ class Parameter(BaseModel):
         allowed_pattern,
         keyid,
         last_modified_date,
-        version
+        version,
     ):
         self.name = name
         self.type = type
@@ -624,9 +624,7 @@ class SimpleSystemManagerBackend(BaseBackend):
     def label_parameter_version(self, name, version, labels):
         previous_parameter_versions = self._parameters[name]
         if not previous_parameter_versions:
-            raise ParameterNotFound(
-                "Parameter %s not found." % name
-        )
+            raise ParameterNotFound("Parameter %s not found." % name)
         found_parameter = None
         labels_needing_removal = []
         if not version:
@@ -645,11 +643,16 @@ class SimpleSystemManagerBackend(BaseBackend):
             raise ParameterVersionNotFound(
                 "Systems Manager could not find version %s of %s. "
                 "Verify the version and try again." % (version, name)
-        )
+            )
         labels_to_append = []
         invalid_labels = []
         for label in labels:
-            if label.startswith("aws") or label.startswith("ssm") or label[:1].isdigit() or not re.match("^[a-zA-z0-9_\.\-]*$", label):
+            if (
+                label.startswith("aws")
+                or label.startswith("ssm")
+                or label[:1].isdigit()
+                or not re.match("^[a-zA-z0-9_\.\-]*$", label)
+            ):
                 invalid_labels.append(label)
                 continue
             if len(label) > 100:
@@ -657,7 +660,8 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "1 validation error detected: "
                     "Value '[%s]' at 'labels' failed to satisfy constraint: "
                     "Member must satisfy constraint: "
-                    "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]" % label
+                    "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]"
+                    % label
                 )
                 continue
             if label not in found_parameter.labels:

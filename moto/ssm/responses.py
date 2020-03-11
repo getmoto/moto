@@ -168,8 +168,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Parameters": []}
         for parameter_version in result:
             param_data = parameter_version.describe_response_object(
-                decrypt=with_decryption,
-                include_labels=True
+                decrypt=with_decryption, include_labels=True
             )
             response["Parameters"].append(param_data)
 
@@ -180,7 +179,9 @@ class SimpleSystemManagerResponse(BaseResponse):
         version = self._get_param("ParameterVersion")
         labels = self._get_param("Labels")
 
-        invalid_labels, version = self.ssm_backend.label_parameter_version(name, version, labels)
+        invalid_labels, version = self.ssm_backend.label_parameter_version(
+            name, version, labels
+        )
 
         response = {"InvalidLabels": invalid_labels, "ParameterVersion": version}
         return json.dumps(response)

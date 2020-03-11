@@ -938,27 +938,44 @@ def test_get_parameter_history_with_secure_string():
 
         len(parameters_response).should.equal(3)
 
+
 @mock_ssm
 def test_label_parameter_version():
     client = boto3.client("ssm", region_name="us-east-1")
 
     test_parameter_name = "test"
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
 
-    response = client.label_parameter_version(Name=test_parameter_name, Labels=["test-label"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name, Labels=["test-label"]
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(1)
+
 
 @mock_ssm
 def test_label_parameter_version_with_specific_version():
     client = boto3.client("ssm", region_name="us-east-1")
 
     test_parameter_name = "test"
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["test-label"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["test-label"]
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(1)
+
 
 @mock_ssm
 def test_label_parameter_version_twice():
@@ -966,18 +983,28 @@ def test_label_parameter_version_twice():
 
     test_parameter_name = "test"
     test_labels = ["test-label"]
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=test_labels)
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(1)
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=test_labels)
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(1)
 
     response = client.get_parameter_history(Name=test_parameter_name)
     len(response["Parameters"]).should.equal(1)
     response["Parameters"][0]["Labels"].should.equal(test_labels)
+
 
 @mock_ssm
 def test_label_parameter_moving_versions():
@@ -992,13 +1019,17 @@ def test_label_parameter_moving_versions():
             Description="A test parameter version %d" % i,
             Value="value-%d" % i,
             Type="String",
-            Overwrite=True
+            Overwrite=True,
         )
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=test_labels)
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(1)
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=2, Labels=test_labels)
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=2, Labels=test_labels
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(2)
 
@@ -1016,6 +1047,7 @@ def test_label_parameter_moving_versions():
 
     len(parameters_response).should.equal(3)
 
+
 @mock_ssm
 def test_label_parameter_moving_versions_complex():
     client = boto3.client("ssm", region_name="us-east-1")
@@ -1028,13 +1060,21 @@ def test_label_parameter_moving_versions_complex():
             Description="A test parameter version %d" % i,
             Value="value-%d" % i,
             Type="String",
-            Overwrite=True
+            Overwrite=True,
         )
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["test-label1", "test-label2", "test-label3"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name,
+        ParameterVersion=1,
+        Labels=["test-label1", "test-label2", "test-label3"],
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(1)
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=2, Labels=["test-label2", "test-label3"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name,
+        ParameterVersion=2,
+        Labels=["test-label2", "test-label3"],
+    )
     response["InvalidLabels"].should.equal([])
     response["ParameterVersion"].should.equal(2)
 
@@ -1047,27 +1087,50 @@ def test_label_parameter_moving_versions_complex():
         param["Value"].should.equal("value-%d" % index)
         param["Version"].should.equal(index + 1)
         param["Description"].should.equal("A test parameter version %d" % index)
-        labels = ["test-label2", "test-label3"] if param["Version"] == 2 else (["test-label1"] if param["Version"] == 1 else [])
+        labels = (
+            ["test-label2", "test-label3"]
+            if param["Version"] == 2
+            else (["test-label1"] if param["Version"] == 1 else [])
+        )
         param["Labels"].should.equal(labels)
 
     len(parameters_response).should.equal(3)
+
 
 @mock_ssm
 def test_label_parameter_version_exception_ten_labels_at_once():
     client = boto3.client("ssm", region_name="us-east-1")
 
     test_parameter_name = "test"
-    test_labels = ["test-label1", "test-label2", "test-label3", "test-label4", "test-label5", "test-label6", "test-label7", "test-label8", "test-label9", "test-label10", "test-label11"]
+    test_labels = [
+        "test-label1",
+        "test-label2",
+        "test-label3",
+        "test-label4",
+        "test-label5",
+        "test-label6",
+        "test-label7",
+        "test-label8",
+        "test-label9",
+        "test-label10",
+        "test-label11",
+    ]
 
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
     client.label_parameter_version.when.called_with(
         Name="test", ParameterVersion=1, Labels=test_labels
     ).should.throw(
         ClientError,
         "An error occurred (ParameterVersionLabelLimitExceeded) when calling the LabelParameterVersion operation: "
         "A parameter version can have maximum 10 labels."
-        "Move one or more labels to another version and try again."
+        "Move one or more labels to another version and try again.",
     )
+
 
 @mock_ssm
 def test_label_parameter_version_exception_ten_labels_over_multiple_calls():
@@ -1075,16 +1138,41 @@ def test_label_parameter_version_exception_ten_labels_over_multiple_calls():
 
     test_parameter_name = "test"
 
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
-    client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["test-label1", "test-label2", "test-label3", "test-label4", "test-label5"])
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+    client.label_parameter_version(
+        Name=test_parameter_name,
+        ParameterVersion=1,
+        Labels=[
+            "test-label1",
+            "test-label2",
+            "test-label3",
+            "test-label4",
+            "test-label5",
+        ],
+    )
     client.label_parameter_version.when.called_with(
-        Name="test", ParameterVersion=1, Labels=["test-label6", "test-label7", "test-label8", "test-label9", "test-label10", "test-label11"]
+        Name="test",
+        ParameterVersion=1,
+        Labels=[
+            "test-label6",
+            "test-label7",
+            "test-label8",
+            "test-label9",
+            "test-label10",
+            "test-label11",
+        ],
     ).should.throw(
         ClientError,
         "An error occurred (ParameterVersionLabelLimitExceeded) when calling the LabelParameterVersion operation: "
         "A parameter version can have maximum 10 labels."
-        "Move one or more labels to another version and try again."
+        "Move one or more labels to another version and try again.",
     )
+
 
 @mock_ssm
 def test_label_parameter_version_invalid_name():
@@ -1097,15 +1185,21 @@ def test_label_parameter_version_invalid_name():
     ).should.throw(
         ClientError,
         "An error occurred (ParameterNotFound) when calling the LabelParameterVersion operation: "
-        "Parameter test not found."
+        "Parameter test not found.",
     )
+
 
 @mock_ssm
 def test_label_parameter_version_invalid_parameter_version():
     client = boto3.client("ssm", region_name="us-east-1")
 
     test_parameter_name = "test"
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
 
     response = client.label_parameter_version.when.called_with(
         Name=test_parameter_name, Labels=["test-label"], ParameterVersion=5
@@ -1113,37 +1207,52 @@ def test_label_parameter_version_invalid_parameter_version():
         ClientError,
         "An error occurred (ParameterVersionNotFound) when calling the LabelParameterVersion operation: "
         "Systems Manager could not find version 5 of test. "
-        "Verify the version and try again."
+        "Verify the version and try again.",
     )
+
 
 @mock_ssm
 def test_label_parameter_version_invalid_label():
     client = boto3.client("ssm", region_name="us-east-1")
 
     test_parameter_name = "test"
-    client.put_parameter(Name=test_parameter_name, Description="A test parameter", Value="value", Type="String")
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["awsabc"])
+    client.put_parameter(
+        Name=test_parameter_name,
+        Description="A test parameter",
+        Value="value",
+        Type="String",
+    )
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["awsabc"]
+    )
     response["InvalidLabels"].should.equal(["awsabc"])
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["ssmabc"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["ssmabc"]
+    )
     response["InvalidLabels"].should.equal(["ssmabc"])
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["9abc"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["9abc"]
+    )
     response["InvalidLabels"].should.equal(["9abc"])
 
-    response = client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=["abc/123"])
+    response = client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=["abc/123"]
+    )
     response["InvalidLabels"].should.equal(["abc/123"])
 
     client.label_parameter_version.when.called_with(
-        Name=test_parameter_name, ParameterVersion=1, Labels=["a"*101]
+        Name=test_parameter_name, ParameterVersion=1, Labels=["a" * 101]
     ).should.throw(
         ClientError,
         "1 validation error detected: "
         "Value '[%s]' at 'labels' failed to satisfy constraint: "
         "Member must satisfy constraint: "
-        "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]" % ("a"*101)
+        "[Member must have length less than or equal to 100, Member must have length greater than or equal to 1]"
+        % ("a" * 101),
     )
-    
+
 
 @mock_ssm
 def test_get_parameter_history_with_label():
@@ -1161,7 +1270,9 @@ def test_get_parameter_history_with_label():
             Overwrite=True,
         )
 
-    client.label_parameter_version(Name=test_parameter_name, ParameterVersion=1, Labels=test_labels)
+    client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=1, Labels=test_labels
+    )
 
     response = client.get_parameter_history(Name=test_parameter_name)
     parameters_response = response["Parameters"]
@@ -1176,6 +1287,7 @@ def test_get_parameter_history_with_label():
         param["Labels"].should.equal(labels)
 
     len(parameters_response).should.equal(3)
+
 
 @mock_ssm
 def test_get_parameter_history_with_label_non_latest():
@@ -1193,7 +1305,9 @@ def test_get_parameter_history_with_label_non_latest():
             Overwrite=True,
         )
 
-    client.label_parameter_version(Name=test_parameter_name, ParameterVersion=2, Labels=test_labels)
+    client.label_parameter_version(
+        Name=test_parameter_name, ParameterVersion=2, Labels=test_labels
+    )
 
     response = client.get_parameter_history(Name=test_parameter_name)
     parameters_response = response["Parameters"]
@@ -1208,6 +1322,7 @@ def test_get_parameter_history_with_label_non_latest():
         param["Labels"].should.equal(labels)
 
     len(parameters_response).should.equal(3)
+
 
 @mock_ssm
 def test_get_parameter_history_with_label_latest_assumed():
@@ -1240,6 +1355,7 @@ def test_get_parameter_history_with_label_latest_assumed():
         param["Labels"].should.equal(labels)
 
     len(parameters_response).should.equal(3)
+
 
 @mock_ssm
 def test_get_parameter_history_missing_parameter():
