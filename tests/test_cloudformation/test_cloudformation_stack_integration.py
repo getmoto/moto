@@ -918,7 +918,7 @@ def test_iam_roles():
                                 "Principal": {"Service": ["ec2.amazonaws.com"]},
                             }
                         ]
-                    }
+                    },
                 },
                 "Type": "AWS::IAM::Role",
             },
@@ -940,7 +940,9 @@ def test_iam_roles():
         if "my-role" not in role.role_name:
             role_name_to_id["with-path"] = role.role_id
             role.path.should.equal("my-path")
-            len(role.role_name).should.equal(5)  # Role name is not specified, so randomly generated - can't check exact name
+            len(role.role_name).should.equal(
+                5
+            )  # Role name is not specified, so randomly generated - can't check exact name
         else:
             role_name_to_id["no-path"] = role.role_id
             role.role_name.should.equal("my-role-no-path-name")

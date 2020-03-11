@@ -331,7 +331,9 @@ class Role(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        role_name = properties['RoleName'] if 'RoleName' in properties else str(uuid4())[0:5]
+        role_name = (
+            properties["RoleName"] if "RoleName" in properties else str(uuid4())[0:5]
+        )
 
         role = iam_backend.create_role(
             role_name=role_name,
