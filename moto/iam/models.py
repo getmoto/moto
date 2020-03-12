@@ -676,20 +676,23 @@ class User(BaseModel):
         if len(self.access_keys) == 0:
             access_key_1_active = "false"
             access_key_1_last_rotated = "N/A"
+            access_key_1_last_used = "N/A"
             access_key_2_active = "false"
             access_key_2_last_rotated = "N/A"
+            access_key_2_last_used = "N/A"
         elif len(self.access_keys) == 1:
             access_key_1_active = "true"
             access_key_1_last_rotated = self.access_keys[0].create_date.strftime(
                 date_format
             )
-            access_key_2_last_rotated = (
+            access_key_1_last_used = (
                 "N/A"
-                if self.access_key[0].last_used is None
-                else self.access_key[0].last_used.strftime(date_format)
+                if self.access_keys[0].last_used is None
+                else self.access_keys[0].last_used.strftime(date_format)
             )
             access_key_2_active = "false"
             access_key_2_last_rotated = "N/A"
+            access_key_2_last_used = "N/A"
         else:
             access_key_1_active = "true"
             access_key_1_last_rotated = self.access_keys[0].create_date.strftime(
