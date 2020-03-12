@@ -682,6 +682,7 @@ def test_submit_job_by_name():
 
 # SLOW TESTS
 
+
 @mock_logs
 @mock_ec2
 @mock_ecs
@@ -745,7 +746,7 @@ def test_submit_job():
     resp = logs_client.get_log_events(
         logGroupName="/aws/batch/job", logStreamName=ls_name
     )
-    [event['message'] for event in resp["events"]].should.equal(['hello'])
+    [event["message"] for event in resp["events"]].should.equal(["hello"])
 
 
 @mock_logs

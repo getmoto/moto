@@ -342,8 +342,8 @@ class Job(threading.Thread, BaseModel):
             "status": self.job_state,
             "dependsOn": [],
         }
-        if result['status'] not in ['SUBMITTED', 'PENDING', 'RUNNABLE', 'STARTING']:
-            result['startedAt'] = datetime2int(self.job_started_at)
+        if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
+            result["startedAt"] = datetime2int(self.job_started_at)
         if self.job_stopped:
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
@@ -506,7 +506,9 @@ class Job(threading.Thread, BaseModel):
                     date, line = line.split(" ", 1)
                     date = dateutil.parser.parse(date)
                     # TODO: Replace with int(date.timestamp()) once we yeet Python2 out of the window
-                    date = int((time.mktime(date.timetuple()) + date.microsecond / 1000000.0))
+                    date = int(
+                        (time.mktime(date.timetuple()) + date.microsecond / 1000000.0)
+                    )
                     logs.append({"timestamp": date, "message": line.strip()})
 
                 # Send to cloudwatch
