@@ -47,7 +47,7 @@ install_requires = [
     "jsondiff>=1.1.2",
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
-    "idna<2.9,>=2.5",
+    "idna<3,>=2.5",
     "cfn-lint>=0.4.0",
     "sshpubkeys>=3.1.0,<4.0",
     "zipp==0.6.0",
