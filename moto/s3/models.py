@@ -12,6 +12,7 @@ import codecs
 import random
 import string
 import tempfile
+import threading
 import sys
 import time
 import uuid
@@ -110,6 +111,7 @@ class FakeKey(BaseModel):
         self._value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
         self._max_buffer_size = max_buffer_size
         self.value = value
+        self.lock = threading.Lock()
 
     @property
     def version_id(self):
@@ -117,8 +119,14 @@ class FakeKey(BaseModel):
 
     @property
     def value(self):
+        self.lock.acquire()
+        print("===>value")
         self._value_buffer.seek(0)
-        return self._value_buffer.read()
+        print("===>seek")
+        r = self._value_buffer.read()
+        print("===>read")
+        self.lock.release()
+        return r
 
     @value.setter
     def value(self, new_value):
@@ -1319,6 +1327,7 @@ class S3Backend(BaseBackend):
         return key
 
     def get_key(self, bucket_name, key_name, version_id=None, part_number=None):
+        print("get_key("+str(bucket_name)+","+str(key_name)+","+str(version_id)+","+str(part_number)+")")
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None

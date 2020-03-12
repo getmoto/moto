@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import sys
+import threading
 
 import six
 from botocore.awsrequest import AWSPreparedRequest
@@ -150,6 +151,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.path = ""
         self.data = {}
         self.headers = {}
+        self.lock = threading.Lock()
 
     @property
     def should_autoescape(self):
@@ -857,6 +859,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _handle_range_header(self, request, headers, response_content):
         response_headers = {}
         length = len(response_content)
+        print("Length: " + str(length) + " Range: " + str(request.headers.get("range")))
         last = length - 1
         _, rspec = request.headers.get("range").split("=")
         if "," in rspec:
@@ -874,6 +877,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             return 400, response_headers, ""
         if begin < 0 or end > last or begin > min(end, last):
+            print(str(begin)+ " < 0 or " + str(end) + " > " + str(last) + " or " + str(begin) + " > min("+str(end)+","+str(last)+")")
             return 416, response_headers, ""
         response_headers["content-range"] = "bytes {0}-{1}/{2}".format(
             begin, end, length
@@ -903,14 +907,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             response_content = response
         else:
             status_code, response_headers, response_content = response
+            print("response received: " + str(len(response_content)))
+            print(request.headers)
 
         if status_code == 200 and "range" in request.headers:
-            return self._handle_range_header(
+            self.lock.acquire()
+            r = self._handle_range_header(
                 request, response_headers, response_content
             )
+            self.lock.release()
+            return r
         return status_code, response_headers, response_content
 
     def _control_response(self, request, full_url, headers):
+        print("_control_response")
         parsed_url = urlparse(full_url)
         query = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
@@ -1058,12 +1068,14 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
 
     def _key_response_get(self, bucket_name, query, key_name, headers):
+        print("_key_response_get("+str(key_name)+","+str(headers)+")")
         self._set_action("KEY", "GET", query)
         self._authenticate_and_authorize_s3_action()
 
         response_headers = {}
         if query.get("uploadId"):
             upload_id = query["uploadId"][0]
+            print("UploadID: " + str(upload_id))
             parts = self.backend.list_multipart(bucket_name, upload_id)
             template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
             return (
@@ -1095,6 +1107,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
+        print("returning 200, " + str(headers) + ", " + str(len(key.value)) + " ( " + str(key_name) + ")")
         return 200, response_headers, key.value
 
     def _key_response_put(self, request, body, bucket_name, query, key_name, headers):
