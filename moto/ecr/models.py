@@ -403,7 +403,7 @@ class ECRBackend(BaseBackend):
 
             # If we have a digest, is it valid?
             if "imageDigest" in image_id:
-                pattern = re.compile("^[0-9a-zA-Z_+\.-]+:[0-9a-fA-F]{64}")
+                pattern = re.compile(r"^[0-9a-zA-Z_+\.-]+:[0-9a-fA-F]{64}")
                 if not pattern.match(image_id.get("imageDigest")):
                     response["failures"].append(
                         {

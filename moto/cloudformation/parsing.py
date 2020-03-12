@@ -196,13 +196,13 @@ def clean_json(resource_json, resources_map):
                 )
             else:
                 fn_sub_value = clean_json(resource_json["Fn::Sub"], resources_map)
-                to_sub = re.findall('(?=\${)[^!^"]*?}', fn_sub_value)
-                literals = re.findall('(?=\${!)[^"]*?}', fn_sub_value)
+                to_sub = re.findall(r'(?=\${)[^!^"]*?}', fn_sub_value)
+                literals = re.findall(r'(?=\${!)[^"]*?}', fn_sub_value)
                 for sub in to_sub:
                     if "." in sub:
                         cleaned_ref = clean_json(
                             {
-                                "Fn::GetAtt": re.findall('(?<=\${)[^"]*?(?=})', sub)[
+                                "Fn::GetAtt": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[
                                     0
                                 ].split(".")
                             },
@@ -210,7 +210,7 @@ def clean_json(resource_json, resources_map):
                         )
                     else:
                         cleaned_ref = clean_json(
-                            {"Ref": re.findall('(?<=\${)[^"]*?(?=})', sub)[0]},
+                            {"Ref": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[0]},
                             resources_map,
                         )
                     fn_sub_value = fn_sub_value.replace(sub, cleaned_ref)

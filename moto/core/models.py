@@ -347,7 +347,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
             responses_mock.add(
                 CallbackResponse(
                     method=method,
-                    url=re.compile("https?://.+.amazonaws.com/.*"),
+                    url=re.compile(r"https?://.+.amazonaws.com/.*"),
                     callback=not_implemented_callback,
                     stream=True,
                     match_querystring=False,
@@ -356,7 +356,7 @@ class BotocoreEventMockAWS(BaseMockAWS):
             botocore_mock.add(
                 CallbackResponse(
                     method=method,
-                    url=re.compile("https?://.+.amazonaws.com/.*"),
+                    url=re.compile(r"https?://.+.amazonaws.com/.*"),
                     callback=not_implemented_callback,
                     stream=True,
                     match_querystring=False,
