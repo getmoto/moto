@@ -29,7 +29,7 @@ def get_version():
 
 install_requires = [
     "setuptools==44.0.0",
-    "Jinja2==2.11.0",
+    "Jinja2<3.0.0,>=2.10.1",
     "boto>=2.36.0",
     "boto3>=1.9.201",
     "botocore>=1.12.201",
