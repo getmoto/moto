@@ -10,7 +10,7 @@ from .exceptions import InvalidIndexNameError, InvalidUpdateExpression, ItemSize
 from .models import dynamodb_backends, dynamo_json_dump
 
 
-TRANSACTION_MAX_ITEMS = 10
+TRANSACTION_MAX_ITEMS = 25
 
 
 def has_empty_keys_or_values(_dict):
@@ -849,11 +849,6 @@ class DynamoHandler(BaseResponse):
                    "Member must have length less than or equal to %s" % TRANSACTION_MAX_ITEMS
 
             return self.error('ValidationException', msg)
-
-        dedup_list = [i for n, i in enumerate(transact_items) if i not in transact_items[n + 1:]]
-        if len(transact_items) != len(dedup_list):
-            er = 'com.amazon.coral.validate#ValidationException'
-            return self.error(er, 'Transaction request cannot include multiple operations on one item')
 
         ret_consumed_capacity = self.body.get('ReturnConsumedCapacity', 'NONE')
         consumed_capacity = dict()

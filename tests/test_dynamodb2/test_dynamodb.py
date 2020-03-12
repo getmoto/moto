@@ -3820,48 +3820,12 @@ def test_invalid_transact_get_items():
 
     with assert_raises(ClientError) as ex:
         client.transact_get_items(TransactItems=[
-            {
-                'Get': {
-                    'Key': {
-                        'id': {'S': '1'},
-                    },
-                    'TableName': 'test1'
-                }
-            },
-            {
-                'Get': {
-                    'Key': {
-                        'id': {'S': '1'},
-                    },
-                    'TableName': 'test1'
-                }
-            }
-        ])
-
-    ex.exception.response['Error']['Code'].should.equal('ValidationException')
-    ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
-    ex.exception.response['Error']['Message'].should.equal(
-        'Transaction request cannot include multiple operations on one item'
-    )
-
-    with assert_raises(ClientError) as ex:
-        client.transact_get_items(TransactItems=[
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
-            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}},
+            {'Get': {'Key': {'id': {'S': '1'}}, 'TableName': 'test1'}} for i in range(26)
         ])
 
     ex.exception.response['ResponseMetadata']['HTTPStatusCode'].should.equal(400)
     ex.exception.response['Error']['Message'].should.match(
-        r'failed to satisfy constraint: Member must have length less than or equal to 10', re.I
+        r'failed to satisfy constraint: Member must have length less than or equal to 25', re.I
     )
 
     with assert_raises(ClientError) as ex:
