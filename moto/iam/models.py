@@ -710,7 +710,7 @@ class User(BaseModel):
                 else self.access_keys[1].last_used.strftime(date_format)
             )
 
-        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},not_supported,not_supported,{9},{10},{11},false,N/A,false,N/A".format(
+        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},not_supported,not_supported,{9},{10},{11},false,N/A,false,N/A\n".format(
             self.name,
             self.arn,
             date_created.strftime(date_format),
