@@ -3648,11 +3648,18 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation():
     table = dynamo.Table(table_name)
 
     table.put_item(Item={"Id": "item-id", "nest1": {"nest2": {}}})
-    table.update_item(
+    updated_item = table.update_item(
         Key={"Id": "item-id"},
         UpdateExpression="SET nest1.nest2.event_history = list_append(if_not_exists(nest1.nest2.event_history, :empty_list), :new_value)",
         ExpressionAttributeValues={":empty_list": [], ":new_value": ["some_value"]},
+        ReturnValues="UPDATED_NEW",
     )
+
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"nest1": {"nest2": {"event_history": ["some_value"]}}}
+    )
+
     table.get_item(Key={"Id": "item-id"})["Item"].should.equal(
         {"Id": "item-id", "nest1": {"nest2": {"event_history": ["some_value"]}}}
     )
@@ -3673,11 +3680,18 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation_and_pro
     table = dynamo.Table(table_name)
 
     table.put_item(Item={"Id": "item-id", "event_history": ["other_value"]})
-    table.update_item(
+    updated_item = table.update_item(
         Key={"Id": "item-id"},
         UpdateExpression="SET event_history = list_append(if_not_exists(event_history, :empty_list), :new_value)",
         ExpressionAttributeValues={":empty_list": [], ":new_value": ["some_value"]},
+        ReturnValues="UPDATED_NEW",
     )
+
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal(
+        {"event_history": ["other_value", "some_value"]}
+    )
+
     table.get_item(Key={"Id": "item-id"})["Item"].should.equal(
         {"Id": "item-id", "event_history": ["other_value", "some_value"]}
     )
@@ -3764,11 +3778,16 @@ def test_update_nested_item_if_original_value_is_none():
     )
     table = dynamo.Table("origin-rbu-dev")
     table.put_item(Item={"job_id": "a", "job_details": {"job_name": None}})
-    table.update_item(
+    updated_item = table.update_item(
         Key={"job_id": "a"},
         UpdateExpression="SET job_details.job_name = :output",
         ExpressionAttributeValues={":output": "updated"},
+        ReturnValues="UPDATED_NEW",
     )
+
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal({"job_details": {"job_name": "updated"}})
+
     table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
 
 
@@ -3784,11 +3803,16 @@ def test_allow_update_to_item_with_different_type():
     table = dynamo.Table("origin-rbu-dev")
     table.put_item(Item={"job_id": "a", "job_details": {"job_name": {"nested": "yes"}}})
     table.put_item(Item={"job_id": "b", "job_details": {"job_name": {"nested": "yes"}}})
-    table.update_item(
+    updated_item = table.update_item(
         Key={"job_id": "a"},
         UpdateExpression="SET job_details.job_name = :output",
         ExpressionAttributeValues={":output": "updated"},
+        ReturnValues="UPDATED_NEW",
     )
+
+    # Verify updated item is correct
+    updated_item["Attributes"].should.equal({"job_details": {"job_name": "updated"}})
+
     table.get_item(Key={"job_id": "a"})["Item"]["job_details"][
         "job_name"
     ].should.be.equal("updated")

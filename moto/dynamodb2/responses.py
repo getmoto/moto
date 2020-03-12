@@ -823,7 +823,9 @@ class DynamoHandler(BaseResponse):
                     return changed
                 else:
                     return [
-                        self._build_updated_new_attributes(original[index], changed[index])
+                        self._build_updated_new_attributes(
+                            original[index], changed[index]
+                        )
                         for index in range(len(changed))
                     ]
             elif changed != original:
