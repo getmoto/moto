@@ -697,8 +697,8 @@ class User(BaseModel):
             )
             access_key_1_last_used = (
                 "N/A"
-                if self.access_key[0].last_used is None
-                else self.access_key[0].last_used.strftime(date_format)
+                if self.access_keys[0].last_used is None
+                else self.access_keys[0].last_used.strftime(date_format)
             )
             access_key_2_active = "true"
             access_key_2_last_rotated = self.access_keys[1].create_date.strftime(
@@ -706,8 +706,8 @@ class User(BaseModel):
             )
             access_key_2_last_used = (
                 "N/A"
-                if self.access_key[1].last_used is None
-                else self.access_key[1].last_used.strftime(date_format)
+                if self.access_keys[1].last_used is None
+                else self.access_keys[1].last_used.strftime(date_format)
             )
 
         return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},not_supported,not_supported,{9},{10},{11},false,N/A,false,N/A".format(
