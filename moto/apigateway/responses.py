@@ -151,11 +151,11 @@ class APIGatewayResponse(BaseResponse):
         resource_id = url_path_parts[4]
         method_type = url_path_parts[6]
 
-        if self.method == "GET":
+        if self.method == 'GET':
             method = self.backend.get_method(function_id, resource_id, method_type)
             return 200, {}, json.dumps(method)
-        elif self.method == "PUT":
-            authorization_type = self._get_param("authorizationType")
+        elif self.method == 'PUT':
+            authorization_type = self._get_param('authorizationType')
             api_key_required = self._get_param("apiKeyRequired")
             method = self.backend.create_method(
                 function_id,
@@ -165,6 +165,15 @@ class APIGatewayResponse(BaseResponse):
                 api_key_required,
             )
             return 200, {}, json.dumps(method)
+
+        elif self.method == 'DELETE':
+            self.backend.delete_method(
+                function_id, resource_id, method_type
+            )
+
+            return 200, {}, ""
+
+        return 200, {}, ""
 
     def resource_method_responses(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -337,23 +346,28 @@ class APIGatewayResponse(BaseResponse):
         method_type = url_path_parts[6]
 
         try:
+            integration_response = {}
+
             if self.method == "GET":
                 integration_response = self.backend.get_integration(
                     function_id, resource_id, method_type
                 )
             elif self.method == "PUT":
-                integration_type = self._get_param("type")
-                uri = self._get_param("uri")
-                integration_http_method = self._get_param("httpMethod")
-                creds = self._get_param("credentials")
-                request_templates = self._get_param("requestTemplates")
+                integration_type = self._get_param('type')
+                uri = self._get_param('uri')
+                credentials = self._get_param('credentials')
+                request_templates = self._get_param('requestTemplates')
+                method = self.backend.get_method(function_id, resource_id, method_type)
+
+                integration_http_method = method['httpMethod']
+
                 integration_response = self.backend.create_integration(
                     function_id,
                     resource_id,
                     method_type,
                     integration_type,
                     uri,
-                    credentials=creds,
+                    credentials=credentials,
                     integration_method=integration_http_method,
                     request_templates=request_templates,
                 )
@@ -361,7 +375,9 @@ class APIGatewayResponse(BaseResponse):
                 integration_response = self.backend.delete_integration(
                     function_id, resource_id, method_type
                 )
+
             return 200, {}, json.dumps(integration_response)
+
         except BadRequestException as e:
             return self.error(
                 "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
