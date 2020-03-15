@@ -2237,7 +2237,7 @@
 - [ ] verify_trust
 
 ## dynamodb
-17% implemented
+24% implemented
 - [ ] batch_get_item
 - [ ] batch_write_item
 - [ ] create_backup
@@ -2268,7 +2268,7 @@
 - [ ] restore_table_to_point_in_time
 - [X] scan
 - [ ] tag_resource
-- [ ] transact_get_items
+- [X] transact_get_items
 - [ ] transact_write_items
 - [ ] untag_resource
 - [ ] update_continuous_backups
