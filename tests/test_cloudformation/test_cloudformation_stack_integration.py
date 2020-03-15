@@ -909,6 +909,7 @@ def test_iam_roles():
             },
             "my-role-no-path": {
                 "Properties": {
+                    "RoleName": "my-role-no-path-name",
                     "AssumeRolePolicyDocument": {
                         "Statement": [
                             {
@@ -917,7 +918,7 @@ def test_iam_roles():
                                 "Principal": {"Service": ["ec2.amazonaws.com"]},
                             }
                         ]
-                    }
+                    },
                 },
                 "Type": "AWS::IAM::Role",
             },
@@ -936,13 +937,15 @@ def test_iam_roles():
     role_name_to_id = {}
     for role_result in role_results:
         role = iam_conn.get_role(role_result.role_name)
-        role.role_name.should.contain("my-role")
-        if "with-path" in role.role_name:
+        if "my-role" not in role.role_name:
             role_name_to_id["with-path"] = role.role_id
             role.path.should.equal("my-path")
+            len(role.role_name).should.equal(
+                5
+            )  # Role name is not specified, so randomly generated - can't check exact name
         else:
             role_name_to_id["no-path"] = role.role_id
-            role.role_name.should.contain("no-path")
+            role.role_name.should.equal("my-role-no-path-name")
             role.path.should.equal("/")
 
     instance_profile_responses = iam_conn.list_instance_profiles()[
