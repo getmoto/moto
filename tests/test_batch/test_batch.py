@@ -10,17 +10,6 @@ import functools
 import nose
 
 
-def expected_failure(test):
-    @functools.wraps(test)
-    def inner(*args, **kwargs):
-        try:
-            test(*args, **kwargs)
-        except Exception as err:
-            raise nose.SkipTest
-
-    return inner
-
-
 DEFAULT_REGION = "eu-central-1"
 
 
@@ -692,7 +681,8 @@ def test_submit_job_by_name():
 
 
 # SLOW TESTS
-@expected_failure
+
+
 @mock_logs
 @mock_ec2
 @mock_ecs
@@ -720,13 +710,13 @@ def test_submit_job():
     queue_arn = resp["jobQueueArn"]
 
     resp = batch_client.register_job_definition(
-        jobDefinitionName="sleep10",
+        jobDefinitionName="sayhellotomylittlefriend",
         type="container",
         containerProperties={
-            "image": "busybox",
+            "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
-            "command": ["sleep", "10"],
+            "command": ["echo", "hello"],
         },
     )
     job_def_arn = resp["jobDefinitionArn"]
@@ -740,13 +730,6 @@ def test_submit_job():
 
     while datetime.datetime.now() < future:
         resp = batch_client.describe_jobs(jobs=[job_id])
-        print(
-            "{0}:{1} {2}".format(
-                resp["jobs"][0]["jobName"],
-                resp["jobs"][0]["jobId"],
-                resp["jobs"][0]["status"],
-            )
-        )
 
         if resp["jobs"][0]["status"] == "FAILED":
             raise RuntimeError("Batch job failed")
@@ -763,10 +746,9 @@ def test_submit_job():
     resp = logs_client.get_log_events(
         logGroupName="/aws/batch/job", logStreamName=ls_name
     )
-    len(resp["events"]).should.be.greater_than(5)
+    [event["message"] for event in resp["events"]].should.equal(["hello"])
 
 
-@expected_failure
 @mock_logs
 @mock_ec2
 @mock_ecs
@@ -794,13 +776,13 @@ def test_list_jobs():
     queue_arn = resp["jobQueueArn"]
 
     resp = batch_client.register_job_definition(
-        jobDefinitionName="sleep10",
+        jobDefinitionName="sleep5",
         type="container",
         containerProperties={
-            "image": "busybox",
+            "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
-            "command": ["sleep", "10"],
+            "command": ["sleep", "5"],
         },
     )
     job_def_arn = resp["jobDefinitionArn"]
@@ -843,7 +825,6 @@ def test_list_jobs():
     len(resp_finished_jobs2["jobSummaryList"]).should.equal(2)
 
 
-@expected_failure
 @mock_logs
 @mock_ec2
 @mock_ecs
@@ -874,7 +855,7 @@ def test_terminate_job():
         jobDefinitionName="sleep10",
         type="container",
         containerProperties={
-            "image": "busybox",
+            "image": "busybox:latest",
             "vcpus": 1,
             "memory": 128,
             "command": ["sleep", "10"],
