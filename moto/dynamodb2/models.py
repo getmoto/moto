@@ -792,6 +792,12 @@ class Table(BaseModel):
         expression_attribute_values=None,
         overwrite=False,
     ):
+        if self.hash_key_attr not in item_attrs.keys():
+            raise ValueError(
+                "One or more parameter values were invalid: Missing the key "
+                + self.hash_key_attr
+                + " in the item"
+            )
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))
         if self.has_range_key:
             range_value = DynamoType(item_attrs.get(self.range_key_attr))
@@ -808,7 +814,6 @@ class Table(BaseModel):
             else:
                 lookup_range_value = DynamoType(expected_range_value)
         current = self.get_item(hash_value, lookup_range_value)
-
         item = Item(
             hash_value, self.hash_key_type, range_value, self.range_key_type, item_attrs
         )

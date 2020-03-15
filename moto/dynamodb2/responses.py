@@ -293,11 +293,9 @@ class DynamoHandler(BaseResponse):
         except ItemSizeTooLarge:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ItemSizeTooLarge.message)
-        except ValueError:
+        except ValueError as ve:
             er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
-            return self.error(
-                er, "A condition specified in the operation could not be evaluated."
-            )
+            return self.error(er, str(ve))
 
         if result:
             item_dict = result.to_json()
