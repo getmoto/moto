@@ -67,6 +67,7 @@ class FakeAlarm(BaseModel):
         ok_actions,
         insufficient_data_actions,
         unit,
+        actions_enabled,
     ):
         self.name = name
         self.namespace = namespace
@@ -80,6 +81,7 @@ class FakeAlarm(BaseModel):
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
         ]
+        self.actions_enabled = actions_enabled
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -215,6 +217,7 @@ class CloudWatchBackend(BaseBackend):
         ok_actions,
         insufficient_data_actions,
         unit,
+        actions_enabled,
     ):
         alarm = FakeAlarm(
             name,
@@ -231,6 +234,7 @@ class CloudWatchBackend(BaseBackend):
             ok_actions,
             insufficient_data_actions,
             unit,
+            actions_enabled,
         )
         self.alarms[name] = alarm
         return alarm
