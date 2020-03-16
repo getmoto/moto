@@ -28,7 +28,7 @@ class CloudWatchResponse(BaseResponse):
         dimensions = self._get_list_prefix("Dimensions.member")
         alarm_actions = self._get_multi_param("AlarmActions.member")
         ok_actions = self._get_multi_param("OKActions.member")
-        actions_enabled = self._get_multi_param("ActionsEnabled")
+        actions_enabled = self._get_param("ActionsEnabled")
         insufficient_data_actions = self._get_multi_param(
             "InsufficientDataActions.member"
         )
