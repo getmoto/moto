@@ -101,11 +101,11 @@ def test_describe_alarms():
     conn.create_alarm(alarm_fixture(name="nfoobaz", action="afoobaz"))
     conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
     conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
-    
+
     enabled = alarm_fixture(name="enabled1", action=["abarfoo"])
     enabled.add_alarm_action("arn:alarm")
     conn.create_alarm(enabled)
-    
+
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(5)
     alarms = conn.describe_alarms(alarm_name_prefix="nfoo")
@@ -123,6 +123,7 @@ def test_describe_alarms():
 
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
+
 
 @mock_cloudwatch_deprecated
 def test_get_metric_statistics():

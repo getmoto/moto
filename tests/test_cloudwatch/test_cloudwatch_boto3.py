@@ -141,6 +141,7 @@ def test_alarm_state():
     resp = client.describe_alarms()
     len(resp["MetricAlarms"]).should.equal(2)
 
+
 @mock_cloudwatch
 def test_put_metric_data_no_dimensions():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
