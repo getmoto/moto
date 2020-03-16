@@ -128,11 +128,13 @@ def test_alarm_state():
     len(resp["MetricAlarms"]).should.equal(1)
     resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm1")
     resp["MetricAlarms"][0]["StateValue"].should.equal("ALARM")
+    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal("True")
 
     resp = client.describe_alarms(StateValue="OK")
     len(resp["MetricAlarms"]).should.equal(1)
     resp["MetricAlarms"][0]["AlarmName"].should.equal("testalarm2")
     resp["MetricAlarms"][0]["StateValue"].should.equal("OK")
+    resp["MetricAlarms"][0]["ActionsEnabled"].should.equal("True")
 
     # Just for sanity
     resp = client.describe_alarms()
