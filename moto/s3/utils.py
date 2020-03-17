@@ -104,9 +104,7 @@ class _VersionedKeyStore(dict):
     def get(self, key, default=None):
         try:
             return self[key]
-        except (KeyError, IndexError) as e:
-            print("Error retrieving " + str(key))
-            print(e)
+        except (KeyError, IndexError):
             pass
         return default
 
