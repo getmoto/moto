@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import re
 import sys
-import threading
 
 import six
 from botocore.awsrequest import AWSPreparedRequest
@@ -151,7 +150,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.path = ""
         self.data = {}
         self.headers = {}
-        self.lock = threading.Lock()
 
     @property
     def should_autoescape(self):
@@ -907,12 +905,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             status_code, response_headers, response_content = response
 
         if status_code == 200 and "range" in request.headers:
-            self.lock.acquire()
-            r = self._handle_range_header(
+            return self._handle_range_header(
                 request, response_headers, response_content
             )
-            self.lock.release()
-            return r
         return status_code, response_headers, response_content
 
     def _control_response(self, request, full_url, headers):
