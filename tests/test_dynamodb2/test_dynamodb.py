@@ -4067,7 +4067,7 @@ def test_gsi_verify_negative_number_order():
         "gsiK1SortKey": Decimal("0.7"),
     }
 
-    dynamodb = boto3.resource("dynamodb")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
