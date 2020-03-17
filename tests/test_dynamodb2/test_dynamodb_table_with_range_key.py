@@ -574,6 +574,7 @@ def test_create_with_global_indexes():
                     "ReadCapacityUnits": 6,
                     "WriteCapacityUnits": 1,
                 },
+                "IndexStatus": "ACTIVE",
             }
         ]
     )
