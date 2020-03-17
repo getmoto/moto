@@ -120,11 +120,9 @@ class FakeKey(BaseModel):
     @property
     def value(self):
         self.lock.acquire()
-        print("===>value")
         self._value_buffer.seek(0)
-        print("===>seek")
         r = self._value_buffer.read()
-        print("===>read")
+        r = copy.copy(r)
         self.lock.release()
         return r
 
@@ -138,6 +136,7 @@ class FakeKey(BaseModel):
         if isinstance(new_value, six.text_type):
             new_value = new_value.encode(DEFAULT_TEXT_ENCODING)
         self._value_buffer.write(new_value)
+        self.contentsize = len(new_value)
 
     def copy(self, new_name=None, new_is_versioned=None):
         r = copy.deepcopy(self)
@@ -165,6 +164,7 @@ class FakeKey(BaseModel):
         self.acl = acl
 
     def append_to_value(self, value):
+        self.contentsize += len(value)
         self._value_buffer.seek(0, os.SEEK_END)
         self._value_buffer.write(value)
 
@@ -237,8 +237,7 @@ class FakeKey(BaseModel):
 
     @property
     def size(self):
-        self._value_buffer.seek(0, os.SEEK_END)
-        return self._value_buffer.tell()
+        return self.contentsize
 
     @property
     def storage_class(self):
@@ -257,6 +256,7 @@ class FakeKey(BaseModel):
         state = self.__dict__.copy()
         state["value"] = self.value
         del state["_value_buffer"]
+        del state["lock"]
         return state
 
     def __setstate__(self, state):
@@ -266,6 +266,7 @@ class FakeKey(BaseModel):
             max_size=self._max_buffer_size
         )
         self.value = state["value"]
+        self.lock = threading.Lock()
 
 
 class FakeMultipart(BaseModel):
@@ -292,7 +293,7 @@ class FakeMultipart(BaseModel):
                 etag = etag.replace('"', "")
             if part is None or part_etag != etag:
                 raise InvalidPart()
-            if last is not None and len(last.value) < UPLOAD_PART_MIN_SIZE:
+            if last is not None and last.contentsize < UPLOAD_PART_MIN_SIZE:
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])
             total.extend(part.value)
@@ -1327,7 +1328,6 @@ class S3Backend(BaseBackend):
         return key
 
     def get_key(self, bucket_name, key_name, version_id=None, part_number=None):
-        print("get_key("+str(bucket_name)+","+str(key_name)+","+str(version_id)+","+str(part_number)+")")
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None

@@ -4398,23 +4398,16 @@ def test_s3_config_dict():
 @mock_s3
 def test_delete_downloaded_file():
     # SET  UP
-    filename = '...'
+    filename = 'some_large_file.pdf'
     file = open(filename, 'rb')
     uploader = PdfFileUploader(file)
     boto3.client('s3').create_bucket(Bucket=uploader.bucket_name())
     uploader.upload()
-    print("================\nUPLOADED\n=================")
-    # DOWNLOAD
-    # the following two lines are basically
-    # boto3.client('s3').download_file(bucket_name, file_name, local_path)
-    # where bucket_name, file_name and local_path are retrieved from PdfFileUploader
-    # e.g. boto3.client('s3').download_file("bucket_name", "asdf.pdf", "/tmp/asdf.pdf")
+
     downloader = PdfFileDownloader(uploader.full_bucket_file_name())
     downloader.download()
 
     downloader.delete_downloaded_file()
-
-    print("Done!")
 
 
 from pathlib import Path
@@ -4431,8 +4424,6 @@ class PdfFileDownloader:
 
             return self.local_path()
         except ClientError as exc:
-            print("=======")
-            print(exc)
             raise exc
 
     def local_path(self):
