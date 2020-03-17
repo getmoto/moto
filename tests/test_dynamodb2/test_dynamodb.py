@@ -4026,3 +4026,61 @@ def test_valid_transact_get_items():
             "Table": {"CapacityUnits": 2.0, "ReadCapacityUnits": 2.0,},
         }
     )
+
+
+@mock_dynamodb2
+def test_gsi_verify_negative_number_order():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        "GlobalSecondaryIndexes": [
+            {
+                "IndexName": "GSI-K1",
+                "KeySchema": [
+                    {"AttributeName": "gsiK1PartitionKey", "KeyType": "HASH"},
+                    {"AttributeName": "gsiK1SortKey", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "KEYS_ONLY",},
+            }
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "partitionKey", "AttributeType": "S"},
+            {"AttributeName": "gsiK1PartitionKey", "AttributeType": "S"},
+            {"AttributeName": "gsiK1SortKey", "AttributeType": "N"},
+        ],
+    }
+
+    item1 = {
+        "partitionKey": "pk-1",
+        "gsiK1PartitionKey": "gsi-k1",
+        "gsiK1SortKey": Decimal("-0.6"),
+    }
+
+    item2 = {
+        "partitionKey": "pk-2",
+        "gsiK1PartitionKey": "gsi-k1",
+        "gsiK1SortKey": Decimal("-0.7"),
+    }
+
+    item3 = {
+        "partitionKey": "pk-3",
+        "gsiK1PartitionKey": "gsi-k1",
+        "gsiK1SortKey": Decimal("0.7"),
+    }
+
+    dynamodb = boto3.resource("dynamodb")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    table = dynamodb.Table("test-table")
+    table.put_item(Item=item3)
+    table.put_item(Item=item1)
+    table.put_item(Item=item2)
+
+    resp = table.query(
+        KeyConditionExpression=Key("gsiK1PartitionKey").eq("gsi-k1"),
+        IndexName="GSI-K1",
+    )
+    # Items should be ordered with the lowest number first
+    [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
+        [-0.7, -0.6, 0.7]
+    )

@@ -981,8 +981,13 @@ class Table(BaseModel):
         if index_name:
 
             if index_range_key:
+
+                # Convert to float if necessary to ensure proper ordering
+                def conv(x):
+                    return float(x.value) if x.type == "N" else x.value
+
                 results.sort(
-                    key=lambda item: item.attrs[index_range_key["AttributeName"]].value
+                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])
                     if item.attrs.get(index_range_key["AttributeName"])
                     else None
                 )
