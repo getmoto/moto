@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 import json
 from collections import OrderedDict
+from datetime import datetime, timedelta
+import pytz
 
 import boto3
 from botocore.exceptions import ClientError
@@ -911,6 +913,10 @@ def test_describe_stack_by_name():
 
     stack = cf_conn.describe_stacks(StackName="test_stack")["Stacks"][0]
     stack["StackName"].should.equal("test_stack")
+    two_secs_ago = datetime.now(tz=pytz.UTC) - timedelta(seconds=2)
+    assert (
+        two_secs_ago < stack["CreationTime"] < datetime.now(tz=pytz.UTC)
+    ), "Stack should have been created recently"
 
 
 @mock_cloudformation

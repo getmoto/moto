@@ -8,6 +8,7 @@ from boto3 import Session
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .parsing import ResourceMap, OutputMap
 from .utils import (
@@ -240,6 +241,7 @@ class FakeStack(BaseModel):
         self.output_map = self._create_output_map()
         self._add_stack_event("CREATE_COMPLETE")
         self.status = "CREATE_COMPLETE"
+        self.creation_time = datetime.utcnow()
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
@@ -258,6 +260,10 @@ class FakeStack(BaseModel):
         output_map = OutputMap(self.resource_map, self.template_dict, self.stack_id)
         output_map.create()
         return output_map
+
+    @property
+    def creation_time_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
     def _add_stack_event(
         self, resource_status, resource_status_reason=None, resource_properties=None
