@@ -102,14 +102,21 @@ def test_describe_alarms():
     conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
     conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
 
+    enabled = alarm_fixture(name="enabled1", action=["abarfoo"])
+    enabled.add_alarm_action("arn:alarm")
+    conn.create_alarm(enabled)
+
     alarms = conn.describe_alarms()
-    alarms.should.have.length_of(4)
+    alarms.should.have.length_of(5)
     alarms = conn.describe_alarms(alarm_name_prefix="nfoo")
     alarms.should.have.length_of(2)
     alarms = conn.describe_alarms(alarm_names=["nfoobar", "nbarfoo", "nbazfoo"])
     alarms.should.have.length_of(3)
     alarms = conn.describe_alarms(action_prefix="afoo")
     alarms.should.have.length_of(2)
+    alarms = conn.describe_alarms(alarm_name_prefix="enabled")
+    alarms.should.have.length_of(1)
+    alarms[0].actions_enabled.should.equal("true")
 
     for alarm in conn.describe_alarms():
         alarm.delete()
