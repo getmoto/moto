@@ -1,5 +1,6 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
+from datetime import datetime
 import sure  # noqa
 
 from moto import mock_cloudwatch_deprecated
@@ -101,17 +102,54 @@ def test_describe_alarms():
     conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
     conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
 
+    enabled = alarm_fixture(name="enabled1", action=["abarfoo"])
+    enabled.add_alarm_action("arn:alarm")
+    conn.create_alarm(enabled)
+
     alarms = conn.describe_alarms()
-    alarms.should.have.length_of(4)
+    alarms.should.have.length_of(5)
     alarms = conn.describe_alarms(alarm_name_prefix="nfoo")
     alarms.should.have.length_of(2)
     alarms = conn.describe_alarms(alarm_names=["nfoobar", "nbarfoo", "nbazfoo"])
     alarms.should.have.length_of(3)
     alarms = conn.describe_alarms(action_prefix="afoo")
     alarms.should.have.length_of(2)
+    alarms = conn.describe_alarms(alarm_name_prefix="enabled")
+    alarms.should.have.length_of(1)
+    alarms[0].actions_enabled.should.equal("true")
 
     for alarm in conn.describe_alarms():
         alarm.delete()
 
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
+
+
+@mock_cloudwatch_deprecated
+def test_get_metric_statistics():
+    conn = boto.connect_cloudwatch()
+
+    metric_timestamp = datetime(2018, 4, 9, 13, 0, 0, 0)
+
+    conn.put_metric_data(
+        namespace="tester",
+        name="metric",
+        value=1.5,
+        dimensions={"InstanceId": ["i-0123456,i-0123457"]},
+        timestamp=metric_timestamp,
+    )
+
+    metric_kwargs = dict(
+        namespace="tester",
+        metric_name="metric",
+        start_time=metric_timestamp,
+        end_time=datetime.now(),
+        period=3600,
+        statistics=["Minimum"],
+    )
+
+    datapoints = conn.get_metric_statistics(**metric_kwargs)
+    datapoints.should.have.length_of(1)
+    datapoint = datapoints[0]
+    datapoint.should.have.key("Minimum").which.should.equal(1.5)
+    datapoint.should.have.key("Timestamp").which.should.equal(metric_timestamp)

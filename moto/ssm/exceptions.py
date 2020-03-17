@@ -23,6 +23,31 @@ class InvalidFilterValue(JsonRESTError):
         super(InvalidFilterValue, self).__init__("InvalidFilterValue", message)
 
 
+class ParameterNotFound(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ParameterNotFound, self).__init__("ParameterNotFound", message)
+
+
+class ParameterVersionNotFound(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ParameterVersionNotFound, self).__init__(
+            "ParameterVersionNotFound", message
+        )
+
+
+class ParameterVersionLabelLimitExceeded(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ParameterVersionLabelLimitExceeded, self).__init__(
+            "ParameterVersionLabelLimitExceeded", message
+        )
+
+
 class ValidationException(JsonRESTError):
     code = 400
 

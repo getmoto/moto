@@ -62,7 +62,9 @@ class EventsHandler(BaseResponse):
         rule = self.events_backend.describe_rule(name)
 
         if not rule:
-            return self.error("ResourceNotFoundException", "Rule test does not exist.")
+            return self.error(
+                "ResourceNotFoundException", "Rule " + name + " does not exist."
+            )
 
         rule_dict = self._generate_rule_dict(rule)
         return json.dumps(rule_dict), self.response_headers

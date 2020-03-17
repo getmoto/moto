@@ -251,9 +251,9 @@ class ConditionExpressionParser:
 
     def _lex_one_node(self, remaining_expression):
         # TODO: Handle indexing like [1]
-        attribute_regex = "(:|#)?[A-z0-9\-_]+"
+        attribute_regex = r"(:|#)?[A-z0-9\-_]+"
         patterns = [
-            (self.Nonterminal.WHITESPACE, re.compile("^ +")),
+            (self.Nonterminal.WHITESPACE, re.compile(r"^ +")),
             (
                 self.Nonterminal.COMPARATOR,
                 re.compile(
@@ -270,12 +270,14 @@ class ConditionExpressionParser:
             (
                 self.Nonterminal.OPERAND,
                 re.compile(
-                    "^" + attribute_regex + "(\." + attribute_regex + "|\[[0-9]\])*"
+                    r"^{attribute_regex}(\.{attribute_regex}|\[[0-9]\])*".format(
+                        attribute_regex=attribute_regex
+                    )
                 ),
             ),
-            (self.Nonterminal.COMMA, re.compile("^,")),
-            (self.Nonterminal.LEFT_PAREN, re.compile("^\(")),
-            (self.Nonterminal.RIGHT_PAREN, re.compile("^\)")),
+            (self.Nonterminal.COMMA, re.compile(r"^,")),
+            (self.Nonterminal.LEFT_PAREN, re.compile(r"^\(")),
+            (self.Nonterminal.RIGHT_PAREN, re.compile(r"^\)")),
         ]
 
         for nonterminal, pattern in patterns:
@@ -285,7 +287,7 @@ class ConditionExpressionParser:
                 break
         else:  # pragma: no cover
             raise ValueError(
-                "Cannot parse condition starting at: " + remaining_expression
+                "Cannot parse condition starting at:{}".format(remaining_expression)
             )
 
         node = self.Node(
@@ -318,7 +320,7 @@ class ConditionExpressionParser:
                     for child in children:
                         self._assert(
                             child.nonterminal == self.Nonterminal.IDENTIFIER,
-                            "Cannot use %s in path" % child.text,
+                            "Cannot use {} in path".format(child.text),
                             [node],
                         )
                 output.append(
@@ -392,7 +394,7 @@ class ConditionExpressionParser:
         elif name.startswith("["):
             # e.g. [123]
             if not name.endswith("]"):  # pragma: no cover
-                raise ValueError("Bad path element %s" % name)
+                raise ValueError("Bad path element {}".format(name))
             return self.Node(
                 nonterminal=self.Nonterminal.IDENTIFIER,
                 kind=self.Kind.LITERAL,

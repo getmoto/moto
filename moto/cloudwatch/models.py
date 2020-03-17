@@ -2,13 +2,14 @@ import json
 
 from boto3 import Session
 
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
 from .utils import make_arn_for_dashboard
+from dateutil import parser
 
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
@@ -66,6 +67,7 @@ class FakeAlarm(BaseModel):
         ok_actions,
         insufficient_data_actions,
         unit,
+        actions_enabled,
     ):
         self.name = name
         self.namespace = namespace
@@ -79,6 +81,7 @@ class FakeAlarm(BaseModel):
         self.dimensions = [
             Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
         ]
+        self.actions_enabled = actions_enabled
         self.alarm_actions = alarm_actions
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
@@ -146,7 +149,7 @@ class Dashboard(BaseModel):
 
 class Statistics:
     def __init__(self, stats, dt):
-        self.timestamp = iso_8601_datetime_with_milliseconds(dt)
+        self.timestamp = iso_8601_datetime_without_milliseconds(dt)
         self.values = []
         self.stats = stats
 
@@ -214,6 +217,7 @@ class CloudWatchBackend(BaseBackend):
         ok_actions,
         insufficient_data_actions,
         unit,
+        actions_enabled,
     ):
         alarm = FakeAlarm(
             name,
@@ -230,6 +234,7 @@ class CloudWatchBackend(BaseBackend):
             ok_actions,
             insufficient_data_actions,
             unit,
+            actions_enabled,
         )
         self.alarms[name] = alarm
         return alarm
@@ -278,8 +283,7 @@ class CloudWatchBackend(BaseBackend):
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
             if timestamp is not None and type(timestamp) != datetime:
-                timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-                timestamp = timestamp.replace(tzinfo=tzutc())
+                timestamp = parser.parse(timestamp)
             self.metric_data.append(
                 MetricDatum(
                     namespace,

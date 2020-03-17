@@ -301,7 +301,7 @@ class Job(threading.Thread, BaseModel):
         self.job_name = name
         self.job_id = str(uuid.uuid4())
         self.job_definition = job_def
-        self.container_overrides = container_overrides
+        self.container_overrides = container_overrides or {}
         self.job_queue = job_queue
         self.job_state = "SUBMITTED"  # One of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED
         self.job_queue.jobs.append(self)
@@ -317,6 +317,7 @@ class Job(threading.Thread, BaseModel):
 
         self.docker_client = docker.from_env()
         self._log_backend = log_backend
+        self.log_stream_name = None
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -338,10 +339,11 @@ class Job(threading.Thread, BaseModel):
             "jobId": self.job_id,
             "jobName": self.job_name,
             "jobQueue": self.job_queue.arn,
-            "startedAt": datetime2int(self.job_started_at),
             "status": self.job_state,
             "dependsOn": [],
         }
+        if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
+            result["startedAt"] = datetime2int(self.job_started_at)
         if self.job_stopped:
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
@@ -503,7 +505,10 @@ class Job(threading.Thread, BaseModel):
                 for line in logs_stdout + logs_stderr:
                     date, line = line.split(" ", 1)
                     date = dateutil.parser.parse(date)
-                    date = int(date.timestamp())
+                    # TODO: Replace with int(date.timestamp()) once we yeet Python2 out of the window
+                    date = int(
+                        (time.mktime(date.timetuple()) + date.microsecond / 1000000.0)
+                    )
                     logs.append({"timestamp": date, "message": line.strip()})
 
                 # Send to cloudwatch

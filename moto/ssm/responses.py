@@ -168,10 +168,22 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Parameters": []}
         for parameter_version in result:
             param_data = parameter_version.describe_response_object(
-                decrypt=with_decryption
+                decrypt=with_decryption, include_labels=True
             )
             response["Parameters"].append(param_data)
 
+        return json.dumps(response)
+
+    def label_parameter_version(self):
+        name = self._get_param("Name")
+        version = self._get_param("ParameterVersion")
+        labels = self._get_param("Labels")
+
+        invalid_labels, version = self.ssm_backend.label_parameter_version(
+            name, version, labels
+        )
+
+        response = {"InvalidLabels": invalid_labels, "ParameterVersion": version}
         return json.dumps(response)
 
     def add_tags_to_resource(self):

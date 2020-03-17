@@ -252,7 +252,8 @@ def dhcp_configuration_from_querystring(querystring, option="DhcpConfiguration")
 
 def filters_from_querystring(querystring_dict):
     response_values = {}
-    for key, value in querystring_dict.items():
+    last_tag_key = None
+    for key, value in sorted(querystring_dict.items()):
         match = re.search(r"Filter.(\d).Name", key)
         if match:
             filter_index = match.groups()[0]
@@ -262,6 +263,10 @@ def filters_from_querystring(querystring_dict):
                 for filter_key, filter_value in querystring_dict.items()
                 if filter_key.startswith(value_prefix)
             ]
+            if value[0] == "tag-key":
+                last_tag_key = "tag:" + filter_values[0]
+            elif last_tag_key and value[0] == "tag-value":
+                response_values[last_tag_key] = filter_values
             response_values[value[0]] = filter_values
     return response_values
 
@@ -328,6 +333,8 @@ def tag_filter_matches(obj, filter_name, filter_values):
     if filter_name == "tag-key":
         tag_values = get_obj_tag_names(obj)
     elif filter_name == "tag-value":
+        tag_values = get_obj_tag_values(obj)
+    elif filter_name.startswith("tag:"):
         tag_values = get_obj_tag_values(obj)
     else:
         tag_values = [get_obj_tag(obj, filter_name) or ""]

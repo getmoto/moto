@@ -1,5 +1,5 @@
 -r requirements.txt
-mock==3.0.5   # Last version compatible with Python 2.7
+mock<=3.0.5   # Last version compatible with Python 2.7
 nose
 black; python_version >= '3.6'
 regex==2019.11.1; python_version >= '3.6'   # Needed for black
@@ -10,7 +10,7 @@ freezegun
 flask
 boto>=2.45.0
 boto3>=1.4.4
-botocore>=1.12.13
+botocore>=1.15.13
 six>=1.9
 parameterized>=0.7.0
 prompt-toolkit==1.0.14

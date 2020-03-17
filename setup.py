@@ -29,7 +29,7 @@ def get_version():
 
 install_requires = [
     "setuptools==44.0.0",
-    "Jinja2==2.11.0",
+    "Jinja2<3.0.0,>=2.10.1",
     "boto>=2.36.0",
     "boto3>=1.9.201",
     "botocore>=1.12.201",
@@ -42,12 +42,12 @@ install_requires = [
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "python-jose<4.0.0",
-    "mock==3.0.5",
+    "mock<=3.0.5",
     "docker>=2.5.1",
     "jsondiff>=1.1.2",
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
-    "idna<2.9,>=2.5",
+    "idna<3,>=2.5",
     "cfn-lint>=0.4.0",
     "sshpubkeys>=3.1.0,<4.0",
     "zipp==0.6.0",

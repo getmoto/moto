@@ -468,3 +468,36 @@ def test_delete_tag_empty_resource():
     ex.exception.response["Error"]["Message"].should.equal(
         "The request must contain the parameter resourceIdSet"
     )
+
+
+@mock_ec2
+def test_retrieve_resource_with_multiple_tags():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    blue, green = ec2.create_instances(ImageId="ANY_ID", MinCount=2, MaxCount=2)
+    ec2.create_tags(
+        Resources=[blue.instance_id],
+        Tags=[
+            {"Key": "environment", "Value": "blue"},
+            {"Key": "application", "Value": "api"},
+        ],
+    )
+    ec2.create_tags(
+        Resources=[green.instance_id],
+        Tags=[
+            {"Key": "environment", "Value": "green"},
+            {"Key": "application", "Value": "api"},
+        ],
+    )
+    green_instances = list(ec2.instances.filter(Filters=(get_filter("green"))))
+    green_instances.should.equal([green])
+    blue_instances = list(ec2.instances.filter(Filters=(get_filter("blue"))))
+    blue_instances.should.equal([blue])
+
+
+def get_filter(color):
+    return [
+        {"Name": "tag-key", "Values": ["application"]},
+        {"Name": "tag-value", "Values": ["api"]},
+        {"Name": "tag-key", "Values": ["environment"]},
+        {"Name": "tag-value", "Values": [color]},
+    ]

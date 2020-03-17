@@ -11,6 +11,7 @@ from six.moves.urllib.error import HTTPError
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
+import mimetypes
 import zlib
 import pickle
 
@@ -2022,6 +2023,22 @@ def test_boto3_get_object():
         s3.Object("blah", "hello2.txt").get()
 
     e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+
+
+@mock_s3
+def test_boto3_s3_content_type():
+    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    my_bucket = s3.Bucket("my-cool-bucket")
+    my_bucket.create()
+    s3_path = "test_s3.py"
+    s3 = boto3.resource("s3", verify=False)
+
+    content_type = "text/python-x"
+    s3.Object(my_bucket.name, s3_path).put(
+        ContentType=content_type, Body=b"some python code", ACL="public-read"
+    )
+
+    s3.Object(my_bucket.name, s3_path).content_type.should.equal(content_type)
 
 
 @mock_s3
