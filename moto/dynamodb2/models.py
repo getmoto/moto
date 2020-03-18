@@ -146,6 +146,9 @@ class DynamoType(object):
     def __eq__(self, other):
         return self.type == other.type and self.value == other.value
 
+    def __ne__(self, other):
+        return self.type != other.type or self.value != other.value
+
     def __lt__(self, other):
         return self.cast_value < other.cast_value
 
