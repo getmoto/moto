@@ -8,6 +8,8 @@ from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
 from six.moves.urllib.parse import parse_qs, urlparse, unquote
+import multipart as mp
+from io import BytesIO
 
 import xmltodict
 
@@ -21,6 +23,7 @@ from moto.s3bucket_path.utils import (
     parse_key_name as bucketpath_parse_key_name,
     is_delete_keys as bucketpath_is_delete_keys,
 )
+
 
 from .exceptions import (
     BucketAlreadyExists,
@@ -789,9 +792,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action()
+        http_code = 200
+        headers = {}
 
         # POST to bucket-url should create file from form
-        if hasattr(request, "form"):
+        has_form_data = b'Content-Disposition: form-data; name="file"' in body
+        if has_form_data:
+            # Direct HTTP call using requests-module, uploading a file (potentially using signed URLs)
+            http_code = 204
+            form = {}
+            boundary = body.decode().split("\r")[0][2:]
+            multipart_data = mp.MultipartParser(BytesIO(body), boundary)
+            for part in multipart_data.parts():
+                form[part.name] = part.value
+        elif hasattr(request, "form"):
             # Not HTTPretty
             form = request.form
         else:
@@ -810,12 +824,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             f = request.files["file"].stream.read()
 
         new_key = self.backend.set_key(bucket_name, key, f)
+        headers["Location"] = new_key.full_url
 
         # Metadata
         metadata = metadata_from_headers(form)
         new_key.set_metadata(metadata)
 
-        return 200, {}, ""
+        return http_code, headers, ""
 
     @staticmethod
     def _get_path(request):

@@ -4410,3 +4410,25 @@ def test_s3_config_dict():
     assert not logging_bucket["supplementaryConfiguration"].get(
         "BucketTaggingConfiguration"
     )
+
+
+@mock_s3
+def test_call_presigned_post_using_requests():
+    bucket_name = "your-bucket-name"
+    client = boto3.client("s3", "us-east-1")
+    client.create_bucket(Bucket=bucket_name)
+    response = client.generate_presigned_post(
+        Bucket=bucket_name,
+        Key="asdasadaslkdj",
+        Fields={},
+        Conditions=[],
+        ExpiresIn=1200,
+    )
+
+    object_name = response["fields"]["key"]
+    files = {"file": (object_name, b"sometestdata")}
+    http_response = requests.post(response["url"], data=response["fields"], files=files)
+    http_response.status_code.should.equal(204)
+    http_response.headers["Location"].should.equal(
+        "https://s3.amazonaws.com/your-bucket-name/asdasadaslkdj"
+    )

@@ -35,6 +35,7 @@ install_requires = [
     "botocore>=1.12.201",
     "cryptography>=2.3.0",
     "requests>=2.5",
+    "multipart==0.1",
     "xmltodict",
     "six>1.9",
     "werkzeug",

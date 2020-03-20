@@ -94,6 +94,7 @@ class FakeKey(BaseModel):
         version_id=0,
         max_buffer_size=DEFAULT_KEY_BUFFER_SIZE,
         multipart=None,
+        bucket_name=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -112,6 +113,7 @@ class FakeKey(BaseModel):
         self._max_buffer_size = max_buffer_size
         self.value = value
         self.lock = threading.Lock()
+        self.full_url = "https://s3.amazonaws.com/{}/{}".format(bucket_name, self.name)
 
     @property
     def version_id(self):
@@ -1309,6 +1311,7 @@ class S3Backend(BaseBackend):
             is_versioned=bucket.is_versioned,
             version_id=str(uuid.uuid4()) if bucket.is_versioned else None,
             multipart=multipart,
+            bucket_name=bucket_name,
         )
 
         keys = [
