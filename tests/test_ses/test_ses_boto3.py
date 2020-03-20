@@ -214,3 +214,16 @@ def test_send_raw_email_without_source_or_from():
     kwargs = dict(RawMessage={"Data": message.as_string()})
 
     conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+
+
+@mock_ses
+def test_send_email_notification_with_encoded_sender():
+    sender = "Foo <foo@bar.baz>"
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.verify_email_identity(EmailAddress=sender)
+    response = conn.send_email(
+        Source=sender,
+        Destination={"ToAddresses": ["your.friend@hotmail.com"]},
+        Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}}},
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)

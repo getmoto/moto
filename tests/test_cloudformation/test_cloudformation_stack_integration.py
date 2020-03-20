@@ -32,12 +32,14 @@ from moto import (
     mock_iam_deprecated,
     mock_kms,
     mock_lambda,
+    mock_logs,
     mock_rds_deprecated,
     mock_rds2,
     mock_rds2_deprecated,
     mock_redshift,
     mock_redshift_deprecated,
     mock_route53_deprecated,
+    mock_s3,
     mock_sns_deprecated,
     mock_sqs,
     mock_sqs_deprecated,
@@ -2332,3 +2334,48 @@ def test_stack_dynamodb_resources_integration():
     response["Item"]["Sales"].should.equal(Decimal("10"))
     response["Item"]["NumberOfSongs"].should.equal(Decimal("5"))
     response["Item"]["Album"].should.equal("myAlbum")
+
+
+@mock_cloudformation
+@mock_logs
+@mock_s3
+def test_create_log_group_using_fntransform():
+    s3_resource = boto3.resource("s3")
+    s3_resource.create_bucket(
+        Bucket="owi-common-cf",
+        CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
+    )
+    s3_resource.Object("owi-common-cf", "snippets/test.json").put(
+        Body=json.dumps({"lgname": {"name": "some-log-group"}})
+    )
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Mappings": {
+            "EnvironmentMapping": {
+                "Fn::Transform": {
+                    "Name": "AWS::Include",
+                    "Parameters": {"Location": "s3://owi-common-cf/snippets/test.json"},
+                }
+            }
+        },
+        "Resources": {
+            "LogGroup": {
+                "Properties": {
+                    "LogGroupName": {
+                        "Fn::FindInMap": ["EnvironmentMapping", "lgname", "name"]
+                    },
+                    "RetentionInDays": 90,
+                },
+                "Type": "AWS::Logs::LogGroup",
+            }
+        },
+    }
+
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(template),
+    )
+
+    logs_conn = boto3.client("logs", region_name="us-west-2")
+    log_group = logs_conn.describe_log_groups()["logGroups"][0]
+    log_group["logGroupName"].should.equal("some-log-group")

@@ -5,6 +5,7 @@ from boto3 import Session
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
+from moto.logs import logs_backends
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from uuid import uuid4
@@ -428,12 +429,9 @@ class LogGroup(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        spec = {"LogGroupName": properties["LogGroupName"]}
-        optional_properties = "Tags".split()
-        for prop in optional_properties:
-            if prop in properties:
-                spec[prop] = properties[prop]
-        return LogGroup(spec)
+        log_group_name = properties["LogGroupName"]
+        tags = properties.get("Tags", {})
+        return logs_backends[region_name].create_log_group(log_group_name, tags)
 
 
 cloudwatch_backends = {}

@@ -146,6 +146,9 @@ class DynamoType(object):
     def __eq__(self, other):
         return self.type == other.type and self.value == other.value
 
+    def __ne__(self, other):
+        return self.type != other.type or self.value != other.value
+
     def __lt__(self, other):
         return self.cast_value < other.cast_value
 
@@ -679,6 +682,10 @@ class Table(BaseModel):
         self.throughput["NumberOfDecreasesToday"] = 0
         self.indexes = indexes
         self.global_indexes = global_indexes if global_indexes else []
+        for index in self.global_indexes:
+            index[
+                "IndexStatus"
+            ] = "ACTIVE"  # One of 'CREATING'|'UPDATING'|'DELETING'|'ACTIVE'
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
         self.table_arn = self._generate_arn(table_name)
@@ -981,8 +988,13 @@ class Table(BaseModel):
         if index_name:
 
             if index_range_key:
+
+                # Convert to float if necessary to ensure proper ordering
+                def conv(x):
+                    return float(x.value) if x.type == "N" else x.value
+
                 results.sort(
-                    key=lambda item: item.attrs[index_range_key["AttributeName"]].value
+                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])
                     if item.attrs.get(index_range_key["AttributeName"])
                     else None
                 )
