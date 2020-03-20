@@ -91,9 +91,11 @@ class SESBackend(BaseBackend):
         return host in self.domains
 
     def verify_email_identity(self, address):
+        _, address = parseaddr(address)
         self.addresses.append(address)
 
     def verify_email_address(self, address):
+        _, address = parseaddr(address)
         self.email_addresses.append(address)
 
     def verify_domain(self, domain):
