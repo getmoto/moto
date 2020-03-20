@@ -459,8 +459,10 @@ class DynamoHandler(BaseResponse):
                 for k, v in six.iteritems(self.body.get("ExpressionAttributeNames", {}))
             )
 
-            if " AND " in key_condition_expression:
-                expressions = key_condition_expression.split(" AND ", 1)
+            if " and " in key_condition_expression.lower():
+                expressions = re.split(
+                    " AND ", key_condition_expression, maxsplit=1, flags=re.IGNORECASE
+                )
 
                 index_hash_key = [key for key in index if key["KeyType"] == "HASH"][0]
                 hash_key_var = reverse_attribute_lookup.get(
