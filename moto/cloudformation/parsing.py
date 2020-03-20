@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import functools
+import json
 import logging
 import copy
 import warnings
@@ -24,7 +25,8 @@ from moto.rds import models as rds_models
 from moto.rds2 import models as rds2_models
 from moto.redshift import models as redshift_models
 from moto.route53 import models as route53_models
-from moto.s3 import models as s3_models
+from moto.s3 import models as s3_models, s3_backend
+from moto.s3.utils import bucket_and_name_from_url
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
 from moto.core import ACCOUNT_ID
@@ -150,7 +152,10 @@ def clean_json(resource_json, resources_map):
             map_path = resource_json["Fn::FindInMap"][1:]
             result = resources_map[map_name]
             for path in map_path:
-                result = result[clean_json(path, resources_map)]
+                if "Fn::Transform" in result:
+                    result = resources_map[clean_json(path, resources_map)]
+                else:
+                    result = result[clean_json(path, resources_map)]
             return result
 
         if "Fn::GetAtt" in resource_json:
@@ -470,6 +475,17 @@ class ResourceMap(collections_abc.Mapping):
     def load_mapping(self):
         self._parsed_resources.update(self._template.get("Mappings", {}))
 
+    def transform_mapping(self):
+        for k, v in self._template.get("Mappings", {}).items():
+            if "Fn::Transform" in v:
+                name = v["Fn::Transform"]["Name"]
+                params = v["Fn::Transform"]["Parameters"]
+                if name == "AWS::Include":
+                    location = params["Location"]
+                    bucket_name, name = bucket_and_name_from_url(location)
+                    key = s3_backend.get_key(bucket_name, name)
+                    self._parsed_resources.update(json.loads(key.value))
+
     def load_parameters(self):
         parameter_slots = self._template.get("Parameters", {})
         for parameter_name, parameter in parameter_slots.items():
@@ -515,6 +531,7 @@ class ResourceMap(collections_abc.Mapping):
 
     def create(self):
         self.load_mapping()
+        self.transform_mapping()
         self.load_parameters()
         self.load_conditions()
 

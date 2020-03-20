@@ -405,6 +405,7 @@ class LogsBackend(BaseBackend):
         if log_group_name in self.groups:
             raise ResourceAlreadyExistsException()
         self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
+        return self.groups[log_group_name]
 
     def ensure_log_group(self, log_group_name, tags):
         if log_group_name in self.groups:
