@@ -567,9 +567,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1")
 
     def teardown_defaults(self):
-        volume_id = self.block_device_mapping["/dev/sda1"].volume_id
-        self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
-        self.ec2_backend.delete_volume(volume_id)
+        if "/dev/sda1" in self.block_device_mapping:
+            volume_id = self.block_device_mapping["/dev/sda1"].volume_id
+            self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
+            self.ec2_backend.delete_volume(volume_id)
 
     @property
     def get_block_device_mapping(self):
