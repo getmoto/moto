@@ -682,6 +682,10 @@ class Table(BaseModel):
         self.throughput["NumberOfDecreasesToday"] = 0
         self.indexes = indexes
         self.global_indexes = global_indexes if global_indexes else []
+        for index in self.global_indexes:
+            index[
+                "IndexStatus"
+            ] = "ACTIVE"  # One of 'CREATING'|'UPDATING'|'DELETING'|'ACTIVE'
         self.created_at = datetime.datetime.utcnow()
         self.items = defaultdict(dict)
         self.table_arn = self._generate_arn(table_name)
