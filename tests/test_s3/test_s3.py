@@ -4428,7 +4428,6 @@ def test_call_presigned_post_using_requests():
     object_name = response["fields"]["key"]
     files = {"file": (object_name, b"sometestdata")}
     http_response = requests.post(response["url"], data=response["fields"], files=files)
-    http_response.status_code.should.equal(204)
     http_response.headers["Location"].should.equal(
         "https://s3.amazonaws.com/your-bucket-name/asdasadaslkdj"
     )
