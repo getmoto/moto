@@ -4132,3 +4132,41 @@ def test_gsi_verify_negative_number_order():
     [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
         [-0.7, -0.6, 0.7]
     )
+
+
+@mock_dynamodb2
+def test_dynamodb_max_1mb_limit():
+    ddb = boto3.resource("dynamodb", region_name="eu-west-1")
+
+    table_name = "populated-mock-table"
+    table = ddb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "partition_key", "KeyType": "HASH"},
+            {"AttributeName": "sort_key", "KeyType": "SORT"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "partition_key", "AttributeType": "S"},
+            {"AttributeName": "sort_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    # Populate the table
+    items = [
+        {
+            "partition_key": "partition_key_val",  # size=30
+            "sort_key": "sort_key_value____" + str(i),  # size=30
+        }
+        for i in range(10000, 29999)
+    ]
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=item)
+
+    response = table.query(
+        KeyConditionExpression=Key("partition_key").eq("partition_key_val")
+    )
+    # We shouldn't get everything back - the total result set is well over 1MB
+    assert response["Count"] < len(items)
+    response["LastEvaluatedKey"].shouldnt.be(None)
