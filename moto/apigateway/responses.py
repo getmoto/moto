@@ -359,7 +359,7 @@ class APIGatewayResponse(BaseResponse):
                 request_templates = self._get_param('requestTemplates')
                 method = self.backend.get_method(function_id, resource_id, method_type)
 
-                integration_http_method = method['httpMethod']
+                integration_http_method = self._get_param('httpMethod') or method_type
 
                 integration_response = self.backend.create_integration(
                     function_id,
