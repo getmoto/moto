@@ -250,10 +250,10 @@ class EventsBackend(BaseBackend):
         return return_obj
 
     def put_rule(self, name, **kwargs):
-        rule = Rule(name, self.region_name, **kwargs)
-        self.rules[rule.name] = rule
-        self.rules_order.append(rule.name)
-        return rule.arn
+        new_rule = Rule(name, self.region_name, **kwargs)
+        self.rules[new_rule.name] = new_rule
+        self.rules_order.append(new_rule.name)
+        return new_rule
 
     def put_targets(self, name, targets):
         rule = self.rules.get(name)
