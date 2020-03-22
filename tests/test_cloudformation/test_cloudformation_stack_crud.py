@@ -597,12 +597,10 @@ def test_create_stack_kinesis():
 
 
 @mock_cloudformation_deprecated
-def test_create_stack_events():
+def test_create_stack_events_rule():
     conn = boto.connect_cloudformation()
-    dummy_template = {
+    events_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "Stack Kinesis Test 1",
-        "Parameters": {},
         "Resources": {
             "event": {
                 "Type": "AWS::Events::Rule",
@@ -613,7 +611,7 @@ def test_create_stack_events():
             }
         },
     }
-    conn.create_stack("test_stack_events_1", template_body=json.dumps(dummy_template))
+    conn.create_stack("test_stack_events_1", template_body=json.dumps(events_template))
     stack = conn.describe_stacks()[0]
 
     resources = stack.list_resources()
