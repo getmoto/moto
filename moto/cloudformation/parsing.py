@@ -1,3 +1,4 @@
+
 from __future__ import unicode_literals
 import functools
 import json
@@ -18,6 +19,7 @@ from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
 from moto.elbv2 import models as elbv2_models
+from moto.events import models as events_models
 from moto.iam import models as iam_models
 from moto.kinesis import models as kinesis_models
 from moto.kms import models as kms_models
@@ -94,6 +96,7 @@ MODEL_MAP = {
     "AWS::SNS::Topic": sns_models.Topic,
     "AWS::S3::Bucket": s3_models.FakeBucket,
     "AWS::SQS::Queue": sqs_models.Queue,
+    "AWS::Events::Rule": events_models.Rule,
 }
 
 # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
