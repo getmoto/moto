@@ -22,6 +22,7 @@ import six
 from bisect import insort
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
+from moto.cloudwatch.models import metric_providers, MetricDatum
 from .exceptions import (
     BucketAlreadyExists,
     MissingBucket,
@@ -1181,6 +1182,38 @@ class S3Backend(BaseBackend):
     def __init__(self):
         self.buckets = {}
         self.account_public_access_block = None
+        # Register this class as a CloudWatch Metric Provider
+        # Must provide a method 'get_cloudwatch_metrics' that will return a list of metrics, based on the data available
+        metric_providers["S3"] = self
+
+    def get_cloudwatch_metrics(self):
+        metrics = []
+        for name, bucket in self.buckets.items():
+            metrics.append(
+                MetricDatum(
+                    namespace="AWS/S3",
+                    name="BucketSizeBytes",
+                    value=bucket.keys.item_size(),
+                    dimensions=[
+                        {"Name": "StorageType", "Value": "StandardStorage"},
+                        {"Name": "BucketName", "Value": name},
+                    ],
+                    timestamp=datetime.datetime.now(),
+                )
+            )
+            metrics.append(
+                MetricDatum(
+                    namespace="AWS/S3",
+                    name="NumberOfObjects",
+                    value=len(bucket.keys),
+                    dimensions=[
+                        {"Name": "StorageType", "Value": "AllStorageTypes"},
+                        {"Name": "BucketName", "Value": name},
+                    ],
+                    timestamp=datetime.datetime.now(),
+                )
+            )
+        return metrics
 
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
