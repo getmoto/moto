@@ -681,7 +681,7 @@ class User(BaseModel):
             access_key_2_last_rotated = "N/A"
             access_key_2_last_used = "N/A"
         elif len(self.access_keys) == 1:
-            access_key_1_active = "true"
+            access_key_1_active = "true" if self.access_keys[0].status == "Active" else "false"
             access_key_1_last_rotated = self.access_keys[0].create_date.strftime(
                 date_format
             )
@@ -694,7 +694,7 @@ class User(BaseModel):
             access_key_2_last_rotated = "N/A"
             access_key_2_last_used = "N/A"
         else:
-            access_key_1_active = "true"
+            access_key_1_active = "true" if self.access_keys[0].status == "Active" else "false"
             access_key_1_last_rotated = self.access_keys[0].create_date.strftime(
                 date_format
             )
@@ -703,7 +703,7 @@ class User(BaseModel):
                 if self.access_keys[0].last_used is None
                 else self.access_keys[0].last_used.strftime(date_format)
             )
-            access_key_2_active = "true"
+            access_key_2_active = "true" if self.access_keys[1].status == "Active" else "false"
             access_key_2_last_rotated = self.access_keys[1].create_date.strftime(
                 date_format
             )
