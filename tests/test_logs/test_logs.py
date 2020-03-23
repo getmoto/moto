@@ -38,6 +38,97 @@ def json_policy_doc():
 
 
 @mock_logs
+def test_describe_metric_filters_happy():
+    conn = boto3.client("logs", "us-west-2")
+
+    response = put_metric_filter(conn)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(filterNamePrefix="filter")
+
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+
+@mock_logs
+def test_describe_metric_filters_happy_metric_name():
+    conn = boto3.client("logs", "us-west-2")
+
+    response = put_metric_filter(conn)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(
+        filterNamePrefix="filter",
+        metricName="metricName1",
+        metricNamespace="metricNamespace1",
+    )
+
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+
+@mock_logs
+def test_describe_metric_filters_multiple_happy():
+    conn = boto3.client("logs", "us-west-2")
+
+    response = put_metric_filter(conn, 1)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = put_metric_filter(conn, 2)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(
+        filterNamePrefix="filter", logGroupName="logGroupName1"
+    )
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+    response = conn.describe_metric_filters(filterNamePrefix="filter")
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+    response = conn.describe_metric_filters(logGroupName="logGroupName1")
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+
+@mock_logs
+def test_delete_metric_filter():
+    conn = boto3.client("logs", "us-west-2")
+
+    response = put_metric_filter(conn, 1)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = put_metric_filter(conn, 2)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.delete_metric_filter(
+        filterName="filterName", logGroupName="logGroupName1"
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(
+        filterNamePrefix="filter", logGroupName="logGroupName2"
+    )
+    assert response["metricFilters"][0]["filterName"] == "filterName2"
+
+    response = conn.describe_metric_filters(logGroupName="logGroupName2")
+    assert response["metricFilters"][0]["filterName"] == "filterName2"
+
+
+def put_metric_filter(conn, count=1):
+    count = str(count)
+    return conn.put_metric_filter(
+        filterName="filterName" + count,
+        filterPattern="filterPattern" + count,
+        logGroupName="logGroupName" + count,
+        metricTransformations=[
+            {
+                "defaultValue": int(count),
+                "metricName": "metricName" + count,
+                "metricNamespace": "metricNamespace" + count,
+                "metricValue": "metricValue" + count,
+            },
+        ],
+    )
+
+
+@mock_logs
 @pytest.mark.parametrize(
     "kms_key_id",
     [
