@@ -52,7 +52,7 @@ class InstanceResponse(BaseResponse):
         private_ip = self._get_param("PrivateIpAddress")
         associate_public_ip = self._get_param("AssociatePublicIpAddress")
         key_name = self._get_param("KeyName")
-        ebs_optimized = self._get_param("EbsOptimized")
+        ebs_optimized = self._get_param("EbsOptimized") or False
         instance_initiated_shutdown_behavior = self._get_param(
             "InstanceInitiatedShutdownBehavior"
         )
