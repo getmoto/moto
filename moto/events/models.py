@@ -26,12 +26,6 @@ class Rule(BaseModel):
         self.role_arn = kwargs.get("RoleArn")
         self.targets = []
 
-    def enable(self):
-        self.state = "ENABLED"
-
-    def disable(self):
-        self.state = "DISABLED"
-
     # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
     # with Python 2.6, so tracking it with an array it is.
     def _check_target_exists(self, target_id):
@@ -39,6 +33,16 @@ class Rule(BaseModel):
             if target_id == self.targets[i]["Id"]:
                 return i
         return None
+
+    def enable(self):
+        self.state = "ENABLED"
+
+    def disable(self):
+        self.state = "DISABLED"
+
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
+        event_backend.delete_rule(name=self.name)
 
     def put_targets(self, targets):
         # Not testing for valid ARNs.
