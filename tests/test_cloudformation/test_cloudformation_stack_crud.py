@@ -596,28 +596,6 @@ def test_create_stack_kinesis():
     assert len(resources) == 1
 
 
-@mock_cloudformation_deprecated
-def test_create_stack_events_rule():
-    conn = boto.connect_cloudformation()
-    events_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "event": {
-                "Type": "AWS::Events::Rule",
-                "Properties": {
-                    "State": "ENABLED",
-                    "ScheduleExpression": "rate(5 minutes)",
-                },
-            }
-        },
-    }
-    conn.create_stack("test_stack_events_1", template_body=json.dumps(events_template))
-    stack = conn.describe_stacks()[0]
-
-    resources = stack.list_resources()
-    resources.should.have.length_of(1)
-
-
 def get_role_name():
     with mock_iam_deprecated():
         iam = boto.connect_iam()

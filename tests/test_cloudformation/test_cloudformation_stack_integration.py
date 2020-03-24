@@ -2384,11 +2384,11 @@ def test_create_log_group_using_fntransform():
 
 @mock_cloudformation
 @mock_events
-def test_stack_events_rule_integration():
+def test_stack_events_create_rule_integration():
     events_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
-            "event": {
+            "Event": {
                 "Type": "AWS::Events::Rule",
                 "Properties": {
                     "Name": "quick-fox",
@@ -2403,8 +2403,62 @@ def test_stack_events_rule_integration():
         StackName="test_stack", TemplateBody=json.dumps(events_template),
     )
 
-    result = boto3.client("events", "us-west-2").list_rules()
-    result["Rules"].should.have.length_of(1)
-    result["Rules"][0]["Name"].should.equal("quick-fox")
-    result["Rules"][0]["State"].should.equal("ENABLED")
-    result["Rules"][0]["ScheduleExpression"].should.equal("rate(5 minutes)")
+    rules = boto3.client("events", "us-west-2").list_rules()
+    rules["Rules"].should.have.length_of(1)
+    rules["Rules"][0]["Name"].should.equal("quick-fox")
+    rules["Rules"][0]["State"].should.equal("ENABLED")
+    rules["Rules"][0]["ScheduleExpression"].should.equal("rate(5 minutes)")
+
+
+@mock_cloudformation
+@mock_events
+def test_stack_events_delete_rule_integration():
+    events_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "Event": {
+                "Type": "AWS::Events::Rule",
+                "Properties": {
+                    "Name": "quick-fox",
+                    "State": "ENABLED",
+                    "ScheduleExpression": "rate(5 minutes)",
+                },
+            }
+        },
+    }
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(events_template),
+    )
+
+    rules = boto3.client("events", "us-west-2").list_rules()
+    rules["Rules"].should.have.length_of(1)
+
+    cf_conn.delete_stack(StackName="test_stack")
+
+    rules = boto3.client("events", "us-west-2").list_rules()
+    rules["Rules"].should.have.length_of(0)
+
+
+@mock_cloudformation
+@mock_events
+def test_stack_events_create_rule_without_name_integration():
+    events_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "Event": {
+                "Type": "AWS::Events::Rule",
+                "Properties": {
+                    "State": "ENABLED",
+                    "ScheduleExpression": "rate(5 minutes)",
+                },
+            }
+        },
+    }
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(events_template),
+    )
+
+    rules = boto3.client("events", "us-west-2").list_rules()
+    rules["Rules"][0]["Name"].should.contain("test_stack-Event-")
