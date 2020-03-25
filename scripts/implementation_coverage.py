@@ -7,7 +7,7 @@ import boto3
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-alternative_service_names = {'lambda': 'awslambda'}
+alternative_service_names = {'lambda': 'awslambda', 'dynamodb': 'dynamodb2'}
 
 
 def get_moto_implementation(service_name):
@@ -18,7 +18,10 @@ def get_moto_implementation(service_name):
     module = getattr(moto, alt_service_name)
     if module is None:
         return None
-    mock = getattr(module, "mock_{}".format(service_name))
+    try:
+        mock = getattr(module, "mock_{}".format(service_name))
+    except AttributeError:
+        mock = getattr(module, "mock_{}".format(alt_service_name))
     if mock is None:
         return None
     backends = list(mock().backends.values())
@@ -96,13 +99,15 @@ def write_implementation_coverage_to_file(coverage):
                 percentage_implemented = 0
 
             file.write("\n")
-            file.write("## {}\n".format(service_name))
+            file.write("<details>\n")
+            file.write("<summary>## {}</summary>\n\n".format(service_name))
             file.write("{}% implemented\n".format(percentage_implemented))
             for op in operations:
                 if op in implemented:
                     file.write("- [X] {}\n".format(op))
                 else:
                     file.write("- [ ] {}\n".format(op))
+            file.write("</details>\n")
 
 
 if __name__ == '__main__':

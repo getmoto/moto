@@ -92,7 +92,7 @@ class SWFResponse(BaseResponse):
         self.swf_backend.deprecate_type(kind, domain, name, version)
         return ""
 
-    def _undeprecate_type(self, kind):
+    def _validate_undeprecate_type(self, kind):
         domain = self._params["domain"]
         _type_args = self._params["{0}Type".format(kind)]
         name = _type_args["name"]
@@ -100,8 +100,7 @@ class SWFResponse(BaseResponse):
         self._check_string(domain)
         self._check_string(name)
         self._check_string(version)
-        self.swf_backend.undeprecate_type(kind, domain, name, version)
-        return ""
+        return domain, name, version
 
     # TODO: implement pagination
     def list_domains(self):
@@ -296,7 +295,8 @@ class SWFResponse(BaseResponse):
         return self._deprecate_type("activity")
 
     def undeprecate_activity_type(self):
-        return self._undeprecate_type("activity")
+        domain, name, version = self._validate_undeprecate_type("activity")
+        return self.swf_backend.undeprecate_activity_type(domain, name, version)
 
     def describe_activity_type(self):
         return self._describe_type("activity")
@@ -354,7 +354,8 @@ class SWFResponse(BaseResponse):
         return self._deprecate_type("workflow")
 
     def undeprecate_workflow_type(self):
-        return self._undeprecate_type("workflow")
+        domain, name, version = self._validate_undeprecate_type("workflow")
+        return self.swf_backend.undeprecate_workflow_type(domain, name, version)
 
     def describe_workflow_type(self):
         return self._describe_type("workflow")

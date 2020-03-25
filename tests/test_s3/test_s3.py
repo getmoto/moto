@@ -3870,7 +3870,7 @@ def test_s3_public_access_block_to_config_dict():
         public_access_block = py2_strip_unicode_keys(public_access_block)
 
     # Add a public access block:
-    s3_config_query.backends["global"].put_bucket_public_access_block(
+    s3_config_query.backends["global"].put_public_access_block(
         "bucket1", public_access_block
     )
 
@@ -4029,7 +4029,7 @@ def test_s3_lifecycle_config_dict():
             "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1},
         },
     ]
-    s3_config_query.backends["global"].set_bucket_lifecycle("bucket1", lifecycle)
+    s3_config_query.backends["global"].put_bucket_lifecycle("bucket1", lifecycle)
 
     # Get the rules for this:
     lifecycles = [
@@ -4236,7 +4236,7 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(id=OWNER)], "FULL_CONTROL"),
         ]
     )
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
 
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
     assert acls == {
@@ -4255,7 +4255,7 @@ def test_s3_acl_to_config_dict():
             FakeGrant([FakeGrantee(id=OWNER)], "WRITE_ACP"),
         ]
     )
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
     acls = s3_config_query.backends["global"].buckets["logbucket"].acl.to_config_dict()
     assert acls == {
         "grantSet": None,
@@ -4309,7 +4309,7 @@ def test_s3_config_dict():
         ]
     )
 
-    s3_config_query.backends["global"].set_bucket_acl("logbucket", log_acls)
+    s3_config_query.backends["global"].put_bucket_acl("logbucket", log_acls)
     s3_config_query.backends["global"].put_bucket_logging(
         "bucket1", {"TargetBucket": "logbucket", "TargetPrefix": ""}
     )

@@ -40,7 +40,7 @@ from .exceptions import (
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
 )
-from .utils import clean_key_name, _VersionedKeyStore
+from .utils import clean_key_name, _VersionedKeyStore, undo_clean_key_name
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
@@ -797,10 +797,6 @@ class FakeBucket(BaseModel):
         self.public_access_block = None
 
     @property
-    def location(self):
-        return self.region_name
-
-    @property
     def is_versioned(self):
         return self.versioning_status == "Enabled"
 
@@ -1177,10 +1173,47 @@ class FakeBucket(BaseModel):
         return config_dict
 
 
+class S3Account:
+    def __init__(self):
+        self.public_access_block = None
+
+    def get_public_access_block(self, account_id):
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != ACCOUNT_ID:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        if not self.public_access_block:
+            raise NoSuchPublicAccessBlockConfiguration()
+
+        return self.public_access_block
+
+    def delete_public_access_block(self, account_id):
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != ACCOUNT_ID:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        self.public_access_block = None
+
+    def put_public_access_block(self, account_id, pub_block_config):
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != ACCOUNT_ID:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        if not pub_block_config:
+            raise InvalidPublicAccessBlockConfiguration()
+
+        self.public_access_block = PublicAccessBlock(
+            pub_block_config.get("BlockPublicAcls"),
+            pub_block_config.get("IgnorePublicAcls"),
+            pub_block_config.get("BlockPublicPolicy"),
+            pub_block_config.get("RestrictPublicBuckets"),
+        )
+
+
 class S3Backend(BaseBackend):
     def __init__(self):
         self.buckets = {}
-        self.account_public_access_block = None
+        self.account = S3Account()
 
     def create_bucket(self, bucket_name, region_name):
         if bucket_name in self.buckets:
@@ -1191,7 +1224,7 @@ class S3Backend(BaseBackend):
         self.buckets[bucket_name] = new_bucket
         return new_bucket
 
-    def get_all_buckets(self):
+    def list_buckets(self):
         return self.buckets.values()
 
     def get_bucket(self, bucket_name):
@@ -1199,6 +1232,24 @@ class S3Backend(BaseBackend):
             return self.buckets[bucket_name]
         except KeyError:
             raise MissingBucket(bucket=bucket_name)
+
+    def get_bucket_acl(self, bucket_name):
+        return self.get_bucket(bucket_name).acl
+
+    def get_bucket_cors(self, bucket_name):
+        try:
+            return self.buckets[bucket_name].cors
+        except KeyError:
+            raise MissingBucket(bucket=bucket_name)
+
+    def get_bucket_location(self, bucket_name):
+        return self.get_bucket(bucket_name).region_name
+
+    def get_bucket_logging(self, bucket_name):
+        return self.get_bucket(bucket_name).logging
+
+    def get_bucket_tagging(self, bucket_name):
+        return self.get_bucket(bucket_name).tagging
 
     def delete_bucket(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
@@ -1208,7 +1259,7 @@ class S3Backend(BaseBackend):
         else:
             return self.buckets.pop(bucket_name)
 
-    def set_bucket_versioning(self, bucket_name, status):
+    def put_bucket_versioning(self, bucket_name, status):
         self.get_bucket(bucket_name).versioning_status = status
 
     def get_bucket_versioning(self, bucket_name):
@@ -1262,9 +1313,23 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.policy = None
 
-    def set_bucket_lifecycle(self, bucket_name, rules):
+    def put_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
+
+    def put_bucket_lifecycle_configuration(self, bucket_name, rules):
+        self.put_bucket_lifecycle(bucket_name, rules)
+
+    def delete_bucket_lifecycle(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        bucket.delete_lifecycle()
+
+    def get_bucket_lifecycle(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.rules
+
+    def get_bucket_lifecycle_configuration(self, bucket_name):
+        return self.get_bucket_lifecycle(bucket_name)
 
     def set_bucket_website_configuration(self, bucket_name, website_configuration):
         bucket = self.get_bucket(bucket_name)
@@ -1274,7 +1339,7 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
 
-    def get_bucket_public_access_block(self, bucket_name):
+    def get_public_access_block(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
 
         if not bucket.public_access_block:
@@ -1282,17 +1347,7 @@ class S3Backend(BaseBackend):
 
         return bucket.public_access_block
 
-    def get_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not self.account_public_access_block:
-            raise NoSuchPublicAccessBlockConfiguration()
-
-        return self.account_public_access_block
-
-    def set_key(
+    def put_object(
         self, bucket_name, key_name, value, storage=None, etag=None, multipart=None
     ):
         key_name = clean_key_name(key_name)
@@ -1323,11 +1378,11 @@ class S3Backend(BaseBackend):
     def append_to_key(self, bucket_name, key_name, value):
         key_name = clean_key_name(key_name)
 
-        key = self.get_key(bucket_name, key_name)
+        key = self.get_object(bucket_name, key_name)
         key.append_to_value(value)
         return key
 
-    def get_key(self, bucket_name, key_name, version_id=None, part_number=None):
+    def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None
@@ -1350,8 +1405,11 @@ class S3Backend(BaseBackend):
         else:
             return None
 
+    def get_object_acl(self, bucket_name, key_name, version_id=None, part_number=None):
+        return self.get_object(bucket_name, key_name, version_id, part_number).acl
+
     def set_key_tagging(self, bucket_name, key_name, tagging, version_id=None):
-        key = self.get_key(bucket_name, key_name, version_id)
+        key = self.get_object(bucket_name, key_name, version_id)
         if key is None:
             raise MissingKey(key_name)
         key.set_tagging(tagging)
@@ -1380,16 +1438,9 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_cors()
 
-    def delete_bucket_public_access_block(self, bucket_name):
+    def delete_public_access_block(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         bucket.public_access_block = None
-
-    def delete_account_public_access_block(self, account_id):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        self.account_public_access_block = None
 
     def put_bucket_notification_configuration(self, bucket_name, notification_config):
         bucket = self.get_bucket(bucket_name)
@@ -1406,28 +1457,13 @@ class S3Backend(BaseBackend):
             raise InvalidRequest("PutBucketAccelerateConfiguration")
         bucket.set_accelerate_configuration(accelerate_configuration)
 
-    def put_bucket_public_access_block(self, bucket_name, pub_block_config):
+    def put_public_access_block(self, bucket_name, pub_block_config):
         bucket = self.get_bucket(bucket_name)
 
         if not pub_block_config:
             raise InvalidPublicAccessBlockConfiguration()
 
         bucket.public_access_block = PublicAccessBlock(
-            pub_block_config.get("BlockPublicAcls"),
-            pub_block_config.get("IgnorePublicAcls"),
-            pub_block_config.get("BlockPublicPolicy"),
-            pub_block_config.get("RestrictPublicBuckets"),
-        )
-
-    def put_account_public_access_block(self, account_id, pub_block_config):
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != ACCOUNT_ID:
-            raise WrongPublicAccessBlockAccountIdError()
-
-        if not pub_block_config:
-            raise InvalidPublicAccessBlockConfiguration()
-
-        self.account_public_access_block = PublicAccessBlock(
             pub_block_config.get("BlockPublicAcls"),
             pub_block_config.get("IgnorePublicAcls"),
             pub_block_config.get("BlockPublicPolicy"),
@@ -1449,7 +1485,7 @@ class S3Backend(BaseBackend):
             return
         del bucket.multiparts[multipart_id]
 
-        key = self.set_key(
+        key = self.put_object(
             bucket_name, multipart.key_name, value, etag=etag, multipart=multipart
         )
         key.set_metadata(multipart.metadata)
@@ -1459,7 +1495,7 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         del bucket.multiparts[multipart_id]
 
-    def list_multipart(self, bucket_name, multipart_id):
+    def list_multipart_uploads(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
         return list(bucket.multiparts[multipart_id].list_parts())
 
@@ -1486,7 +1522,7 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
 
-        src_value = self.get_key(
+        src_value = self.get_object(
             src_bucket_name, src_key_name, version_id=src_version_id
         ).value
         if start_byte is not None:
@@ -1530,7 +1566,7 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.keys[key_name] = FakeDeleteMarker(key=bucket.keys[key_name])
 
-    def delete_key(self, bucket_name, key_name, version_id=None):
+    def delete_object(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
@@ -1558,6 +1594,20 @@ class S3Backend(BaseBackend):
         except KeyError:
             return False
 
+    def delete_objects(self, bucket_name, key_names):
+        deleted_names = []
+        error_names = []
+
+        for key_name in key_names:
+            success = self.delete_object(
+                bucket_name, undo_clean_key_name(key_name)
+            )
+            if success:
+                deleted_names.append(key_name)
+            else:
+                error_names.append(key_name)
+        return deleted_names, error_names
+
     def copy_key(
         self,
         src_bucket_name,
@@ -1571,7 +1621,7 @@ class S3Backend(BaseBackend):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
         dest_bucket = self.get_bucket(dest_bucket_name)
-        key = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id)
+        key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
         new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
 
@@ -1582,13 +1632,23 @@ class S3Backend(BaseBackend):
 
         dest_bucket.keys[dest_key_name] = new_key
 
-    def set_bucket_acl(self, bucket_name, acl):
+    def put_bucket_acl(self, bucket_name, acl):
         bucket = self.get_bucket(bucket_name)
         bucket.set_acl(acl)
 
     def get_bucket_acl(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return bucket.acl
+
+    def list_objects(self):
+        # Currently handled in response.py::_bucket_response_get()
+        # Keep method here for Implementation Coverage
+        pass
+
+    def list_objects_v2(self):
+        # Currently handled in response.py::_handle_list_objects_v2()
+        # Keep method here for Implementation Coverage
+        pass
 
 
 s3_backend = S3Backend()

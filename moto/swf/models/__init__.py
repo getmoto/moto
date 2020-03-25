@@ -154,12 +154,19 @@ class SWFBackend(BaseBackend):
             raise SWFTypeDeprecatedFault(_type)
         _type.status = "DEPRECATED"
 
+    def undeprecate_activity_type(self, domain_name, name, version):
+        return self.undeprecate_type('activity', domain_name, name, version)
+
+    def undeprecate_workflow_type(self, domain_name, name, version):
+        return self.undeprecate_type('workflow', domain_name, name, version)
+
     def undeprecate_type(self, kind, domain_name, name, version):
         domain = self._get_domain(domain_name)
         _type = domain.get_type(kind, name, version)
         if _type.status == "REGISTERED":
             raise SWFTypeAlreadyExistsFault(_type)
         _type.status = "REGISTERED"
+        return ""
 
     def describe_type(self, kind, domain_name, name, version):
         domain = self._get_domain(domain_name)

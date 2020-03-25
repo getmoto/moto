@@ -1510,6 +1510,11 @@ class DynamoDBBackend(BaseBackend):
 
         return table.ttl
 
+    def transact_get_items(self):
+        # Noop - implementation is all in responses.py
+        # Method is present to ensure the implementation_coverage script picks this up
+        pass
+
 
 dynamodb_backends = {}
 for region in Session().get_available_regions("dynamodb"):

@@ -148,12 +148,12 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
         if resource_ids:
             for id in resource_ids:
                 if account_id == id:
-                    pab = self.backends["global"].account_public_access_block
+                    pab = self.backends["global"].account.public_access_block
                     break
 
         # Otherwise, just grab the one from the backend:
         if not resource_ids:
-            pab = self.backends["global"].account_public_access_block
+            pab = self.backends["global"].account.public_access_block
 
         # If it's not present, then return nothing
         if not pab:
@@ -210,7 +210,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
         self, resource_id, resource_name=None, backend_region=None, resource_region=None
     ):
         # Do we even have this defined?
-        if not self.backends["global"].account_public_access_block:
+        if not self.backends["global"].account.public_access_block:
             return None
 
         # Resource name can only ever be "" if it's supplied:
@@ -252,7 +252,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
             "availabilityZone": "Not Applicable",
             "configuration": self.backends[
                 "global"
-            ].account_public_access_block.to_config_dict(),
+            ].account.public_access_block.to_config_dict(),
             "supplementaryConfiguration": {},
         }
 
