@@ -1233,9 +1233,6 @@ class S3Backend(BaseBackend):
         except KeyError:
             raise MissingBucket(bucket=bucket_name)
 
-    def get_bucket_acl(self, bucket_name):
-        return self.get_bucket(bucket_name).acl
-
     def get_bucket_cors(self, bucket_name):
         try:
             return self.buckets[bucket_name].cors
@@ -1599,9 +1596,7 @@ class S3Backend(BaseBackend):
         error_names = []
 
         for key_name in key_names:
-            success = self.delete_object(
-                bucket_name, undo_clean_key_name(key_name)
-            )
+            success = self.delete_object(bucket_name, undo_clean_key_name(key_name))
             if success:
                 deleted_names.append(key_name)
             else:

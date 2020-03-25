@@ -410,9 +410,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_BUCKET_ACCELERATE)
             return template.render(bucket=bucket)
         elif "publicAccessBlock" in querystring:
-            public_block_config = self.backend.get_public_access_block(
-                bucket_name
-            )
+            public_block_config = self.backend.get_public_access_block(bucket_name)
             template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
             return template.render(public_block_config=public_block_config)
 
@@ -1076,7 +1074,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 304, response_headers, "Not Modified"
         if "acl" in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
-            acl = self.backend.get_object_acl(bucket_name, key_name, version_id=version_id)
+            acl = self.backend.get_object_acl(
+                bucket_name, key_name, version_id=version_id
+            )
             return 200, response_headers, template.render(acl=acl)
         if "tagging" in query:
             template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
@@ -1113,7 +1113,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 except ValueError:
                     start_byte, end_byte = None, None
 
-                if self.backend.get_object(src_bucket, src_key, version_id=src_version_id):
+                if self.backend.get_object(
+                    src_bucket, src_key, version_id=src_version_id
+                ):
                     key = self.backend.copy_part(
                         bucket_name,
                         upload_id,
@@ -1169,7 +1171,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             src_version_id = parse_qs(src_key_parsed.query).get("versionId", [None])[0]
 
-            key = self.backend.get_object(src_bucket, src_key, version_id=src_version_id)
+            key = self.backend.get_object(
+                src_bucket, src_key, version_id=src_version_id
+            )
 
             if key is not None:
                 if key.storage_class in ["GLACIER", "DEEP_ARCHIVE"]:
