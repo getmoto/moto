@@ -99,9 +99,9 @@ def write_implementation_coverage_to_file(coverage):
                 percentage_implemented = 0
 
             file.write("\n")
+            file.write("## {}\n".format(service_name))
             file.write("<details>\n")
-            file.write("<summary>## {}</summary>\n\n".format(service_name))
-            file.write("{}% implemented\n".format(percentage_implemented))
+            file.write("<summary>{}% implemented</summary>\n".format(percentage_implemented))
             for op in operations:
                 if op in implemented:
                     file.write("- [X] {}\n".format(op))
