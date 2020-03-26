@@ -305,12 +305,12 @@ class EventsBackend(BaseBackend):
 
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
             raise JsonRESTError(
-                "InvalidParameterValue", "Principal must match ^(\d{1,12}|\*)$"
+                "InvalidParameterValue", r"Principal must match ^(\d{1,12}|\*)$"
             )
 
         if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
             raise JsonRESTError(
-                "InvalidParameterValue", "StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
+                "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
         event_bus._permissions[statement_id] = {
