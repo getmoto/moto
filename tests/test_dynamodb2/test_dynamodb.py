@@ -1346,6 +1346,25 @@ def test_get_item_returns_consumed_capacity():
 
 
 @mock_dynamodb2
+def test_put_empty_item():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        AttributeDefinitions=[{"AttributeName": "structure_id", "AttributeType": "S"},],
+        TableName="test",
+        KeySchema=[{"AttributeName": "structure_id", "KeyType": "HASH"},],
+        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
+    )
+    table = dynamodb.Table("test")
+
+    with assert_raises(ClientError) as ex:
+        table.put_item(Item={})
+    ex.exception.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Missing the key structure_id in the item"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+
+
+@mock_dynamodb2
 def test_put_item_nonexisting_hash_key():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -1361,6 +1380,32 @@ def test_put_item_nonexisting_hash_key():
     ex.exception.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+
+
+@mock_dynamodb2
+def test_put_item_nonexisting_range_key():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        AttributeDefinitions=[
+            {"AttributeName": "structure_id", "AttributeType": "S"},
+            {"AttributeName": "added_at", "AttributeType": "N"},
+        ],
+        TableName="test",
+        KeySchema=[
+            {"AttributeName": "structure_id", "KeyType": "HASH"},
+            {"AttributeName": "added_at", "KeyType": "RANGE"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
+    )
+    table = dynamodb.Table("test")
+
+    with assert_raises(ClientError) as ex:
+        table.put_item(Item={"structure_id": "abcdef"})
+    ex.exception.response["Error"]["Message"].should.equal(
+        "One or more parameter values were invalid: Missing the key added_at in the item"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
 
 
 def test_filter_expression():
