@@ -328,3 +328,32 @@ def py2_strip_unicode_keys(blob):
         blob = new_set
 
     return blob
+
+
+def tags_from_query_string(
+        querystring_dict,
+        prefix="Tag",
+        key_suffix="Key",
+        value_suffix="Value"
+):
+    response_values = {}
+    for key, value in querystring_dict.items():
+        if key.startswith(prefix) and key.endswith(key_suffix):
+            tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
+            tag_key = querystring_dict.get(
+                "{prefix}.{index}.{key_suffix}".format(
+                    prefix=prefix,
+                    index=tag_index,
+                    key_suffix=key_suffix,
+                ))[0]
+            tag_value_key = "{prefix}.{index}.{value_suffix}".format(
+                prefix=prefix,
+                index=tag_index,
+                value_suffix=value_suffix,
+            )
+            if tag_value_key in querystring_dict:
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[
+                    0]
+            else:
+                response_values[tag_key] = None
+    return response_values
