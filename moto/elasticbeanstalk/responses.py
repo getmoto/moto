@@ -1,7 +1,7 @@
 from moto.core.responses import BaseResponse
 from moto.core.utils import tags_from_query_string
 from .models import eb_backends
-from .exceptions import InvalidParameterValueError, ResourceNotFoundException
+from .exceptions import InvalidParameterValueError
 
 
 class EBResponse(BaseResponse):
@@ -34,9 +34,10 @@ class EBResponse(BaseResponse):
             )
 
         tags = tags_from_query_string(self.querystring, prefix="Tags.member")
-        env = app.create_environment(
+        env = self.backend.create_environment(
+            app,
             environment_name=self._get_param("EnvironmentName"),
-            solution_stack_name=self._get_param("SolutionStackName"),
+            stack_name=self._get_param("SolutionStackName"),
             tags=tags,
         )
 
@@ -44,11 +45,7 @@ class EBResponse(BaseResponse):
         return template.render(environment=env, region=self.backend.region,)
 
     def describe_environments(self):
-        envs = []
-
-        for app in self.backend.applications.values():
-            for env in app.environments.values():
-                envs.append(env)
+        envs = self.backend.describe_environments()
 
         template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
         return template.render(environments=envs,)
@@ -57,43 +54,19 @@ class EBResponse(BaseResponse):
     def list_available_solution_stacks():
         return EB_LIST_AVAILABLE_SOLUTION_STACKS
 
-    def _find_environment_by_arn(self, arn):
-        for app in self.backend.applications.keys():
-            for env in self.backend.applications[app].environments.values():
-                if env.environment_arn == arn:
-                    return env
-        raise KeyError()
-
     def update_tags_for_resource(self):
         resource_arn = self._get_param("ResourceArn")
-        try:
-            res = self._find_environment_by_arn(resource_arn)
-        except KeyError:
-            raise ResourceNotFoundException(
-                "Resource not found for ARN '{}'.".format(resource_arn)
-            )
-
         tags_to_add = tags_from_query_string(
             self.querystring, prefix="TagsToAdd.member"
         )
-        for key, value in tags_to_add.items():
-            res.tags[key] = value
-
         tags_to_remove = self._get_multi_param("TagsToRemove.member")
-        for key in tags_to_remove:
-            del res.tags[key]
+        self.backend.update_tags_for_resource(resource_arn, tags_to_add, tags_to_remove)
 
         return EB_UPDATE_TAGS_FOR_RESOURCE
 
     def list_tags_for_resource(self):
         resource_arn = self._get_param("ResourceArn")
-        try:
-            res = self._find_environment_by_arn(resource_arn)
-        except KeyError:
-            raise ResourceNotFoundException(
-                "Resource not found for ARN '{}'.".format(resource_arn)
-            )
-        tags = res.tags
+        tags = self.backend.list_tags_for_resource(resource_arn)
 
         template = self.response_template(EB_LIST_TAGS_FOR_RESOURCE)
         return template.render(tags=tags, arn=resource_arn,)

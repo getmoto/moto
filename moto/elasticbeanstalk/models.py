@@ -3,7 +3,7 @@ import weakref
 import boto.beanstalk
 
 from moto.core import BaseBackend, BaseModel
-from .exceptions import InvalidParameterValueError
+from .exceptions import InvalidParameterValueError, ResourceNotFoundException
 
 
 class FakeEnvironment(BaseModel):
@@ -89,6 +89,54 @@ class EBBackend(BaseBackend):
         new_app = FakeApplication(backend=self, application_name=application_name,)
         self.applications[application_name] = new_app
         return new_app
+
+    def create_environment(self, app, environment_name, stack_name, tags):
+        return app.create_environment(
+            environment_name=environment_name,
+            solution_stack_name=stack_name,
+            tags=tags,
+        )
+
+    def describe_environments(self):
+        envs = []
+        for app in self.applications.values():
+            for env in app.environments.values():
+                envs.append(env)
+        return envs
+
+    def list_available_solution_stacks(self):
+        # Implemented in response.py
+        pass
+
+    def update_tags_for_resource(self, resource_arn, tags_to_add, tags_to_remove):
+        try:
+            res = self._find_environment_by_arn(resource_arn)
+        except KeyError:
+            raise ResourceNotFoundException(
+                "Resource not found for ARN '{}'.".format(resource_arn)
+            )
+
+        for key, value in tags_to_add.items():
+            res.tags[key] = value
+
+        for key in tags_to_remove:
+            del res.tags[key]
+
+    def list_tags_for_resource(self, resource_arn):
+        try:
+            res = self._find_environment_by_arn(resource_arn)
+        except KeyError:
+            raise ResourceNotFoundException(
+                "Resource not found for ARN '{}'.".format(resource_arn)
+            )
+        return res.tags
+
+    def _find_environment_by_arn(self, arn):
+        for app in self.applications.keys():
+            for env in self.applications[app].environments.values():
+                if env.environment_arn == arn:
+                    return env
+        raise KeyError()
 
 
 eb_backends = dict(

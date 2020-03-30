@@ -2,10 +2,10 @@ import boto3
 import sure  # noqa
 from botocore.exceptions import ClientError
 
-from moto import mock_eb
+from moto import mock_elasticbeanstalk
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_create_application():
     # Create Elastic Beanstalk Application
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -13,7 +13,7 @@ def test_create_application():
     app["Application"]["ApplicationName"].should.equal("myapp")
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_create_application_dup():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp",)
@@ -22,7 +22,7 @@ def test_create_application_dup():
     )
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_describe_applications():
     # Create Elastic Beanstalk Application
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -33,7 +33,7 @@ def test_describe_applications():
     apps["Applications"][0]["ApplicationName"].should.equal("myapp")
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_create_environment():
     # Create Elastic Beanstalk Environment
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -42,7 +42,7 @@ def test_create_environment():
     env["EnvironmentName"].should.equal("myenv")
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_describe_environments():
     # List Elastic Beanstalk Envs
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -72,7 +72,7 @@ def tags_list_to_dict(tag_list):
     return tag_dict
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_create_environment_tags():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp",)
@@ -88,7 +88,7 @@ def test_create_environment_tags():
     tags_list_to_dict(tags["ResourceTags"]).should.equal(env_tags)
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_update_tags():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp",)
@@ -122,7 +122,7 @@ def test_update_tags():
     tags_list_to_dict(tags["ResourceTags"]).should.equal(total_env_tags)
 
 
-@mock_eb
+@mock_elasticbeanstalk
 def test_list_available_solution_stacks():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     stacks = conn.list_available_solution_stacks()
