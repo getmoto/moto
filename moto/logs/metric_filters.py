@@ -51,7 +51,6 @@ class MetricFilters:
 
     def delete_filter(self, filter_name=None, log_group_name=None):
         for f in self.metric_filters:
-            if f["filterName"] == filter_name:
-                if f["logGroupName"] == log_group_name:
-                    self.metric_filters.remove(f)
+            if f["filterName"] == filter_name and f["logGroupName"] == log_group_name:
+                self.metric_filters.remove(f)
         return self.metric_filters

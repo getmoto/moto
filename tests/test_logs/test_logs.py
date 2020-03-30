@@ -66,6 +66,106 @@ def test_describe_metric_filters_happy_metric_name():
 
 
 @mock_logs
+def test_put_metric_filters_validation():
+    conn = boto3.client("logs", "us-west-2")
+
+    invalid_filter_name = "X" * 513
+    invalid_filter_pattern = "X" * 1025
+    invalid_metric_transformations = [
+        {
+            "defaultValue": 1,
+            "metricName": "metricName",
+            "metricNamespace": "metricNamespace",
+            "metricValue": "metricValue",
+        },
+        {
+            "defaultValue": 1,
+            "metricName": "metricName",
+            "metricNamespace": "metricNamespace",
+            "metricValue": "metricValue",
+        },
+    ]
+
+    test_cases = [
+        build_put_case(
+            name="Invalid filter name",
+            expected=AssertionError,
+            filter_name=invalid_filter_name,
+        ),
+        build_put_case(
+            name="Invalid filter pattern",
+            expected=AssertionError,
+            filter_pattern=invalid_filter_pattern,
+        ),
+        build_put_case(
+            name="Invalid filter metric transformations",
+            expected=AssertionError,
+            metric_transformations=invalid_metric_transformations,
+        ),
+    ]
+
+    for test_case in test_cases:
+        inputs = test_case["input"]
+        conn.put_metric_filter.when.called_with(
+            filterName=inputs["filterName"],
+            filterPattern=inputs["filterPattern"],
+            logGroupName=inputs["logGroupName"],
+            metricTransformations=inputs["metricTransformations"],
+        ).should.throw(test_case["expected"])
+
+
+@mock_logs
+def test_describe_metric_filters_validation():
+    conn = boto3.client("logs", "us-west-2")
+
+    length_over_512 = "X" * 513
+    length_over_255 = "X" * 256
+
+    test_cases = [
+        build_describe_case(
+            name="Invalid filter name prefix",
+            expected=AssertionError,
+            filter_name_prefix=length_over_512,
+        ),
+        build_describe_case(
+            name="Invalid log group name",
+            expected=AssertionError,
+            log_group_name=length_over_512,
+        ),
+        build_describe_case(
+            name="Invalid metric name",
+            expected=AssertionError,
+            metric_name=length_over_255,
+        ),
+        build_describe_case(
+            name="Invalid metric namespace",
+            expected=AssertionError,
+            metric_namespace=length_over_255,
+        ),
+    ]
+
+    for test_case in test_cases:
+        conn.describe_metric_filter.when.called_with(test_case["input"]).should.throw(test_case["expected"])
+
+
+@mock_logs
+def test_describe_metric_filters_validation():
+    conn = boto3.client("logs", "us-west-2")
+    # conn.enable_key_rotation.when.called_with("not-a-key").should.throw(
+    #     NotFoundException
+    # )
+    # assert response["ResponseMetadata"]["HTTPStatusCode"] != 200
+
+    response = conn.describe_metric_filters(
+        filterNamePrefix="filter",
+        metricName="metricName1",
+        metricNamespace="metricNamespace1",
+    )
+
+    # assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+
+@mock_logs
 def test_describe_metric_filters_multiple_happy():
     conn = boto3.client("logs", "us-west-2")
 
@@ -74,7 +174,6 @@ def test_describe_metric_filters_multiple_happy():
 
     response = put_metric_filter(conn, 2)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
     response = conn.describe_metric_filters(
         filterNamePrefix="filter", logGroupName="logGroupName1"
     )
@@ -126,6 +225,53 @@ def put_metric_filter(conn, count=1):
             },
         ],
     )
+
+
+def build_put_case(name, expected, filter_name="filterName", filter_pattern="filterPattern",
+                   log_group_name="logGroupName", metric_transformations=None):
+    return {
+        "name": name,
+        "input":
+            build_put_input(filter_name, filter_pattern, log_group_name, metric_transformations),
+        "expected": expected
+    }
+
+
+def build_put_input(filter_name, filter_pattern, log_group_name, metric_transformations):
+    if metric_transformations is None:
+        metric_transformations = [
+            {
+                "defaultValue": 1,
+                "metricName": "metricName",
+                "metricNamespace": "metricNamespace",
+                "metricValue": "metricValue",
+            },
+        ]
+    return {
+        "filterName": filter_name,
+        "filterPattern": filter_pattern,
+        "logGroupName": log_group_name,
+        "metricTransformations": metric_transformations
+    }
+
+
+def build_describe_input(filter_name_prefix, log_group_name, metric_name, metric_namespace):
+    return {
+        "filterNamePrefix": filter_name_prefix,
+        "logGroupName": log_group_name,
+        "metricName": metric_name,
+        "metricNamespace": metric_namespace
+    }
+
+
+def build_describe_case(name, expected, filter_name_prefix="filterNamePrefix", log_group_name="logGroupName",
+                        metric_name="metricName", metric_namespace="metricNamespace"):
+    return {
+        "name": name,
+        "input":
+            build_describe_input(filter_name_prefix, log_group_name, metric_name, metric_namespace),
+        "expected": expected
+    }
 
 
 @mock_logs
