@@ -9,9 +9,6 @@ import json
 
 
 class LogsResponse(BaseResponse):
-    def __init__(self):
-        super().__init__()
-
     @property
     def logs_backend(self):
         return logs_backends[self.region]
