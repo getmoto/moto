@@ -8,114 +8,94 @@ from moto import mock_eb
 @mock_eb
 def test_create_application():
     # Create Elastic Beanstalk Application
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    app = conn.create_application(
-        ApplicationName="myapp",
-    )
-    app['Application']['ApplicationName'].should.equal("myapp")
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    app = conn.create_application(ApplicationName="myapp",)
+    app["Application"]["ApplicationName"].should.equal("myapp")
 
 
 @mock_eb
 def test_create_application_dup():
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    conn.create_application(
-        ApplicationName="myapp",
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    conn.create_application(ApplicationName="myapp",)
+    conn.create_application.when.called_with(ApplicationName="myapp",).should.throw(
+        ClientError
     )
-    conn.create_application.when.called_with(
-        ApplicationName="myapp",
-    ).should.throw(ClientError)
 
 
 @mock_eb
 def test_describe_applications():
     # Create Elastic Beanstalk Application
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    conn.create_application(
-        ApplicationName="myapp",
-    )
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    conn.create_application(ApplicationName="myapp",)
 
     apps = conn.describe_applications()
-    len(apps['Applications']).should.equal(1)
-    apps['Applications'][0]['ApplicationName'].should.equal('myapp')
+    len(apps["Applications"]).should.equal(1)
+    apps["Applications"][0]["ApplicationName"].should.equal("myapp")
 
 
 @mock_eb
 def test_create_environment():
     # Create Elastic Beanstalk Environment
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    app = conn.create_application(
-        ApplicationName="myapp",
-    )
-    env = conn.create_environment(
-        ApplicationName="myapp",
-        EnvironmentName="myenv",
-    )
-    env['EnvironmentName'].should.equal("myenv")
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    app = conn.create_application(ApplicationName="myapp",)
+    env = conn.create_environment(ApplicationName="myapp", EnvironmentName="myenv",)
+    env["EnvironmentName"].should.equal("myenv")
 
 
 @mock_eb
 def test_describe_environments():
     # List Elastic Beanstalk Envs
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    conn.create_application(
-        ApplicationName="myapp",
-    )
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    conn.create_application(ApplicationName="myapp",)
     conn.create_environment(
-        ApplicationName="myapp",
-        EnvironmentName="myenv",
+        ApplicationName="myapp", EnvironmentName="myenv",
     )
 
     envs = conn.describe_environments()
-    envs = envs['Environments']
+    envs = envs["Environments"]
     len(envs).should.equal(1)
-    envs[0]['ApplicationName'].should.equal('myapp')
-    envs[0]['EnvironmentName'].should.equal('myenv')
+    envs[0]["ApplicationName"].should.equal("myapp")
+    envs[0]["EnvironmentName"].should.equal("myenv")
 
 
 def tags_dict_to_list(tag_dict):
     tag_list = []
     for key, value in tag_dict.items():
-        tag_list.append({'Key': key, 'Value': value})
+        tag_list.append({"Key": key, "Value": value})
     return tag_list
 
 
 def tags_list_to_dict(tag_list):
     tag_dict = {}
     for tag in tag_list:
-        tag_dict[tag['Key']] = tag['Value']
+        tag_dict[tag["Key"]] = tag["Value"]
     return tag_dict
 
 
 @mock_eb
 def test_create_environment_tags():
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    conn.create_application(
-        ApplicationName="myapp",
-    )
-    env_tags = {'initial key': 'initial value'}
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    conn.create_application(ApplicationName="myapp",)
+    env_tags = {"initial key": "initial value"}
     env = conn.create_environment(
         ApplicationName="myapp",
         EnvironmentName="myenv",
         Tags=tags_dict_to_list(env_tags),
     )
 
-    tags = conn.list_tags_for_resource(
-        ResourceArn=env['EnvironmentArn'],
-    )
-    tags['ResourceArn'].should.equal(env['EnvironmentArn'])
-    tags_list_to_dict(tags['ResourceTags']).should.equal(env_tags)
+    tags = conn.list_tags_for_resource(ResourceArn=env["EnvironmentArn"],)
+    tags["ResourceArn"].should.equal(env["EnvironmentArn"])
+    tags_list_to_dict(tags["ResourceTags"]).should.equal(env_tags)
 
 
 @mock_eb
 def test_update_tags():
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
-    conn.create_application(
-        ApplicationName="myapp",
-    )
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+    conn.create_application(ApplicationName="myapp",)
     env_tags = {
-        'initial key': 'initial value',
-        'to remove': 'delete me',
-        'to update': 'original',
+        "initial key": "initial value",
+        "to remove": "delete me",
+        "to update": "original",
     }
     env = conn.create_environment(
         ApplicationName="myapp",
@@ -124,29 +104,27 @@ def test_update_tags():
     )
 
     extra_env_tags = {
-        'to update': 'new',
-        'extra key': 'extra value',
+        "to update": "new",
+        "extra key": "extra value",
     }
     conn.update_tags_for_resource(
-        ResourceArn=env['EnvironmentArn'],
+        ResourceArn=env["EnvironmentArn"],
         TagsToAdd=tags_dict_to_list(extra_env_tags),
-        TagsToRemove=['to remove'],
+        TagsToRemove=["to remove"],
     )
 
     total_env_tags = env_tags.copy()
     total_env_tags.update(extra_env_tags)
-    del total_env_tags['to remove']
+    del total_env_tags["to remove"]
 
-    tags = conn.list_tags_for_resource(
-        ResourceArn=env['EnvironmentArn'],
-    )
-    tags['ResourceArn'].should.equal(env['EnvironmentArn'])
-    tags_list_to_dict(tags['ResourceTags']).should.equal(total_env_tags)
+    tags = conn.list_tags_for_resource(ResourceArn=env["EnvironmentArn"],)
+    tags["ResourceArn"].should.equal(env["EnvironmentArn"])
+    tags_list_to_dict(tags["ResourceTags"]).should.equal(total_env_tags)
 
 
 @mock_eb
 def test_list_available_solution_stacks():
-    conn = boto3.client('elasticbeanstalk', region_name='us-east-1')
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     stacks = conn.list_available_solution_stacks()
-    len(stacks['SolutionStacks']).should.be.greater_than(0)
-    len(stacks['SolutionStacks']).should.be.equal(len(stacks['SolutionStackDetails']))
+    len(stacks["SolutionStacks"]).should.be.greater_than(0)
+    len(stacks["SolutionStacks"]).should.be.equal(len(stacks["SolutionStackDetails"]))

@@ -14,42 +14,34 @@ class EBResponse(BaseResponse):
 
     def create_application(self):
         app = self.backend.create_application(
-            application_name=self._get_param('ApplicationName'),
+            application_name=self._get_param("ApplicationName"),
         )
 
         template = self.response_template(EB_CREATE_APPLICATION)
-        return template.render(
-            region_name=self.backend.region,
-            application=app,
-        )
+        return template.render(region_name=self.backend.region, application=app,)
 
     def describe_applications(self):
         template = self.response_template(EB_DESCRIBE_APPLICATIONS)
-        return template.render(
-            applications=self.backend.applications.values(),
-        )
+        return template.render(applications=self.backend.applications.values(),)
 
     def create_environment(self):
-        application_name = self._get_param('ApplicationName')
+        application_name = self._get_param("ApplicationName")
         try:
             app = self.backend.applications[application_name]
         except KeyError:
             raise InvalidParameterValueError(
-                "No Application named \'{}\' found.".format(application_name)
+                "No Application named '{}' found.".format(application_name)
             )
 
         tags = tags_from_query_string(self.querystring, prefix="Tags.member")
         env = app.create_environment(
-            environment_name=self._get_param('EnvironmentName'),
-            solution_stack_name=self._get_param('SolutionStackName'),
+            environment_name=self._get_param("EnvironmentName"),
+            solution_stack_name=self._get_param("SolutionStackName"),
             tags=tags,
         )
 
         template = self.response_template(EB_CREATE_ENVIRONMENT)
-        return template.render(
-            environment=env,
-            region=self.backend.region,
-        )
+        return template.render(environment=env, region=self.backend.region,)
 
     def describe_environments(self):
         envs = []
@@ -59,9 +51,7 @@ class EBResponse(BaseResponse):
                 envs.append(env)
 
         template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
-        return template.render(
-            environments=envs,
-        )
+        return template.render(environments=envs,)
 
     @staticmethod
     def list_available_solution_stacks():
@@ -75,39 +65,38 @@ class EBResponse(BaseResponse):
         raise KeyError()
 
     def update_tags_for_resource(self):
-        resource_arn = self._get_param('ResourceArn')
+        resource_arn = self._get_param("ResourceArn")
         try:
             res = self._find_environment_by_arn(resource_arn)
         except KeyError:
             raise ResourceNotFoundException(
-                "Resource not found for ARN \'{}\'.".format(resource_arn)
+                "Resource not found for ARN '{}'.".format(resource_arn)
             )
 
-        tags_to_add = tags_from_query_string(self.querystring, prefix="TagsToAdd.member")
+        tags_to_add = tags_from_query_string(
+            self.querystring, prefix="TagsToAdd.member"
+        )
         for key, value in tags_to_add.items():
             res.tags[key] = value
 
-        tags_to_remove = self._get_multi_param('TagsToRemove.member')
+        tags_to_remove = self._get_multi_param("TagsToRemove.member")
         for key in tags_to_remove:
             del res.tags[key]
 
         return EB_UPDATE_TAGS_FOR_RESOURCE
 
     def list_tags_for_resource(self):
-        resource_arn = self._get_param('ResourceArn')
+        resource_arn = self._get_param("ResourceArn")
         try:
             res = self._find_environment_by_arn(resource_arn)
         except KeyError:
             raise ResourceNotFoundException(
-                "Resource not found for ARN \'{}\'.".format(resource_arn)
+                "Resource not found for ARN '{}'.".format(resource_arn)
             )
         tags = res.tags
 
         template = self.response_template(EB_LIST_TAGS_FOR_RESOURCE)
-        return template.render(
-            tags=tags,
-            arn=resource_arn,
-        )
+        return template.render(tags=tags, arn=resource_arn,)
 
 
 EB_CREATE_APPLICATION = """

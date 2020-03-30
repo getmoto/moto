@@ -1,11 +1,4 @@
 from __future__ import unicode_literals
-import logging
-# logging.getLogger('boto').setLevel(logging.CRITICAL)
-
-
-__title__ = "moto"
-__version__ = "1.3.15.dev"
-
 
 from .acm import mock_acm  # noqa
 from .apigateway import mock_apigateway, mock_apigateway_deprecated  # noqa
@@ -28,7 +21,7 @@ from .datasync import mock_datasync  # noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # noqa
 from .dynamodbstreams import mock_dynamodbstreams  # noqa
-from .eb import mock_eb  # flake8: noqa
+from .eb import mock_eb  # noqa
 from .ec2 import mock_ec2, mock_ec2_deprecated  # noqa
 from .ec2_instance_connect import mock_ec2_instance_connect  # noqa
 from .ecr import mock_ecr, mock_ecr_deprecated  # noqa
@@ -64,6 +57,12 @@ from .stepfunctions import mock_stepfunctions  # noqa
 from .sts import mock_sts, mock_sts_deprecated  # noqa
 from .swf import mock_swf, mock_swf_deprecated  # noqa
 from .xray import XRaySegment, mock_xray, mock_xray_client  # noqa
+
+# import logging
+# logging.getLogger('boto').setLevel(logging.CRITICAL)
+
+__title__ = "moto"
+__version__ = "1.3.15.dev"
 
 
 try:

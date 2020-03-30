@@ -7,5 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/$': EBResponse.dispatch,
+    "{0}/$": EBResponse.dispatch,
 }

@@ -8,13 +8,11 @@ from .exceptions import InvalidParameterValueError
 
 class FakeEnvironment(BaseModel):
     def __init__(
-            self,
-            application,
-            environment_name,
-            solution_stack_name,
-            tags,
+        self, application, environment_name, solution_stack_name, tags,
     ):
-        self.application = weakref.proxy(application)  # weakref to break circular dependencies
+        self.application = weakref.proxy(
+            application
+        )  # weakref to break circular dependencies
         self.environment_name = environment_name
         self.solution_stack_name = solution_stack_name
         self.tags = tags
@@ -25,17 +23,19 @@ class FakeEnvironment(BaseModel):
 
     @property
     def environment_arn(self):
-        return 'arn:aws:elasticbeanstalk:{region}:{account_id}:' \
-            'environment/{application_name}/{environment_name}'.format(
+        return (
+            "arn:aws:elasticbeanstalk:{region}:{account_id}:"
+            "environment/{application_name}/{environment_name}".format(
                 region=self.region,
-                account_id='123456789012',
+                account_id="123456789012",
                 application_name=self.application_name,
                 environment_name=self.environment_name,
             )
+        )
 
     @property
     def platform_arn(self):
-        return 'TODO'  # TODO
+        return "TODO"  # TODO
 
     @property
     def region(self):
@@ -49,10 +49,7 @@ class FakeApplication(BaseModel):
         self.environments = dict()
 
     def create_environment(
-            self,
-            environment_name,
-            solution_stack_name,
-            tags,
+        self, environment_name, solution_stack_name, tags,
     ):
         if environment_name in self.environments:
             raise InvalidParameterValueError
@@ -89,13 +86,11 @@ class EBBackend(BaseBackend):
             raise InvalidParameterValueError(
                 "Application {} already exists.".format(application_name)
             )
-        new_app = FakeApplication(
-            backend=self,
-            application_name=application_name,
-        )
+        new_app = FakeApplication(backend=self, application_name=application_name,)
         self.applications[application_name] = new_app
         return new_app
 
 
-eb_backends = dict((region.name, EBBackend(region.name))
-                   for region in boto.beanstalk.regions())
+eb_backends = dict(
+    (region.name, EBBackend(region.name)) for region in boto.beanstalk.regions()
+)
