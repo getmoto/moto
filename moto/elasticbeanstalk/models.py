@@ -1,6 +1,6 @@
 import weakref
 
-import boto.beanstalk
+from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 from .exceptions import InvalidParameterValueError, ResourceNotFoundException
@@ -139,6 +139,14 @@ class EBBackend(BaseBackend):
         raise KeyError()
 
 
-eb_backends = dict(
-    (region.name, EBBackend(region.name)) for region in boto.beanstalk.regions()
-)
+eb_backends = {}
+for region in Session().get_available_regions("elasticbeanstalk"):
+    eb_backends[region] = EBBackend(region)
+for region in Session().get_available_regions(
+    "elasticbeanstalk", partition_name="aws-us-gov"
+):
+    eb_backends[region] = EBBackend(region)
+for region in Session().get_available_regions(
+    "elasticbeanstalk", partition_name="aws-cn"
+):
+    eb_backends[region] = EBBackend(region)

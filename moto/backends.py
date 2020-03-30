@@ -23,6 +23,7 @@ from moto.ec2 import ec2_backends
 from moto.ec2_instance_connect import ec2_instance_connect_backends
 from moto.ecr import ecr_backends
 from moto.ecs import ecs_backends
+from moto.elasticbeanstalk import eb_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
 from moto.emr import emr_backends
@@ -77,6 +78,7 @@ BACKENDS = {
     "ec2_instance_connect": ec2_instance_connect_backends,
     "ecr": ecr_backends,
     "ecs": ecs_backends,
+    "elasticbeanstalk": eb_backends,
     "elb": elb_backends,
     "elbv2": elbv2_backends,
     "events": events_backends,

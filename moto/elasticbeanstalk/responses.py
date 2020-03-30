@@ -50,8 +50,7 @@ class EBResponse(BaseResponse):
         template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
         return template.render(environments=envs,)
 
-    @staticmethod
-    def list_available_solution_stacks():
+    def list_available_solution_stacks(self):
         return EB_LIST_AVAILABLE_SOLUTION_STACKS
 
     def update_tags_for_resource(self):
