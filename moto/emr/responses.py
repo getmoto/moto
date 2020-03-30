@@ -10,9 +10,10 @@ from six.moves.urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
+from moto.core.utils import tags_from_query_string
 from .exceptions import EmrError
 from .models import emr_backends
-from .utils import steps_from_query_string, tags_from_query_string
+from .utils import steps_from_query_string
 
 
 def generate_boto3_response(operation):
@@ -91,7 +92,7 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("AddTags")
     def add_tags(self):
         cluster_id = self._get_param("ResourceId")
-        tags = tags_from_query_string(self.querystring)
+        tags = tags_from_query_string(self.querystring, prefix="Tags")
         self.backend.add_tags(cluster_id, tags)
         template = self.response_template(ADD_TAGS_TEMPLATE)
         return template.render()
