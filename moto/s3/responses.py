@@ -1224,6 +1224,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             request.streaming = True
             metadata = metadata_from_headers(request.headers)
+            metadata.update(metadata_from_headers(query))
             new_key.set_metadata(metadata)
             new_key.set_acl(acl)
             new_key.website_redirect_location = request.headers.get(
@@ -1965,6 +1966,7 @@ S3_OBJECT_COPY_RESPONSE = """\
     <ETag>{{ key.etag }}</ETag>
     <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
 </CopyObjectResult>"""
+
 
 S3_MULTIPART_INITIATE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">

@@ -4410,3 +4410,23 @@ def test_s3_config_dict():
     assert not logging_bucket["supplementaryConfiguration"].get(
         "BucketTaggingConfiguration"
     )
+
+
+@mock_s3
+def test_set_metadata_using_presigned_url():
+    conn = boto3.resource("s3", region_name="us-east-1")
+    conn.create_bucket(Bucket="mybucket")
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    # Create a pre-signed url with some metadata.
+    url = s3.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={"Bucket": "mybucket", "Key": "mykey", "Metadata": {"venue": "123"}},
+    )
+
+    # Use the url to upload data.
+    requests.put(url, data={"Bucket": "mybucket", "Key": "mykey", "Body": "myvalue"})
+
+    # Retrieve metadata
+    metadata = s3.head_object(Bucket="mybucket", Key="mykey").get("Metadata")
+    metadata["venue"].should.equal("123")
