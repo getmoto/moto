@@ -26,12 +26,6 @@ class Rule(BaseModel):
         self.role_arn = kwargs.get("RoleArn")
         self.targets = []
 
-    def enable(self):
-        self.state = "ENABLED"
-
-    def disable(self):
-        self.state = "DISABLED"
-
     # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
     # with Python 2.6, so tracking it with an array it is.
     def _check_target_exists(self, target_id):
@@ -39,6 +33,16 @@ class Rule(BaseModel):
             if target_id == self.targets[i]["Id"]:
                 return i
         return None
+
+    def enable(self):
+        self.state = "ENABLED"
+
+    def disable(self):
+        self.state = "DISABLED"
+
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
+        event_backend.delete_rule(name=self.name)
 
     def put_targets(self, targets):
         # Not testing for valid ARNs.
@@ -54,6 +58,24 @@ class Rule(BaseModel):
             index = self._check_target_exists(target_id)
             if index is not None:
                 self.targets.pop(index)
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_name = properties.get("Name") or resource_name
+        return event_backend.put_rule(name=event_name, **properties)
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_name = properties.get("Name") or resource_name
+        event_backend.delete_rule(name=event_name)
 
 
 class EventBus(BaseModel):
@@ -232,10 +254,10 @@ class EventsBackend(BaseBackend):
         return return_obj
 
     def put_rule(self, name, **kwargs):
-        rule = Rule(name, self.region_name, **kwargs)
-        self.rules[rule.name] = rule
-        self.rules_order.append(rule.name)
-        return rule.arn
+        new_rule = Rule(name, self.region_name, **kwargs)
+        self.rules[new_rule.name] = new_rule
+        self.rules_order.append(new_rule.name)
+        return new_rule
 
     def put_targets(self, name, targets):
         rule = self.rules.get(name)
@@ -283,12 +305,12 @@ class EventsBackend(BaseBackend):
 
         if principal is None or self.ACCOUNT_ID.match(principal) is None:
             raise JsonRESTError(
-                "InvalidParameterValue", "Principal must match ^(\d{1,12}|\*)$"
+                "InvalidParameterValue", r"Principal must match ^(\d{1,12}|\*)$"
             )
 
         if statement_id is None or self.STATEMENT_ID.match(statement_id) is None:
             raise JsonRESTError(
-                "InvalidParameterValue", "StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
+                "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
         event_bus._permissions[statement_id] = {

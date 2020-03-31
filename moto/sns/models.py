@@ -146,20 +146,38 @@ class Subscription(BaseModel):
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
             if self.attributes.get("RawMessageDelivery") != "true":
-                enveloped_message = json.dumps(
-                    self.get_post_data(
-                        message,
-                        message_id,
-                        subject,
-                        message_attributes=message_attributes,
+                sqs_backends[region].send_message(
+                    queue_name,
+                    json.dumps(
+                        self.get_post_data(
+                            message,
+                            message_id,
+                            subject,
+                            message_attributes=message_attributes,
+                        ),
+                        sort_keys=True,
+                        indent=2,
+                        separators=(",", ": "),
                     ),
-                    sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
                 )
             else:
-                enveloped_message = message
-            sqs_backends[region].send_message(queue_name, enveloped_message)
+                raw_message_attributes = {}
+                for key, value in message_attributes.items():
+                    type = "string_value"
+                    type_value = value["Value"]
+                    if value["Type"].startswith("Binary"):
+                        type = "binary_value"
+                    elif value["Type"].startswith("Number"):
+                        type_value = "{0:g}".format(value["Value"])
+
+                    raw_message_attributes[key] = {
+                        "data_type": value["Type"],
+                        type: type_value,
+                    }
+
+                sqs_backends[region].send_message(
+                    queue_name, message, message_attributes=raw_message_attributes
+                )
         elif self.protocol in ["http", "https"]:
             post_data = self.get_post_data(message, message_id, subject)
             requests.post(

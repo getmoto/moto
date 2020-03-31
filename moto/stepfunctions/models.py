@@ -46,7 +46,7 @@ class Execution:
         self.stop_date = None
 
     def stop(self):
-        self.status = "SUCCEEDED"
+        self.status = "ABORTED"
         self.stop_date = iso_8601_datetime_without_milliseconds(datetime.now())
 
 

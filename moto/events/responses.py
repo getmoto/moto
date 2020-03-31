@@ -191,7 +191,7 @@ class EventsHandler(BaseResponse):
                     "ValidationException", "Parameter ScheduleExpression is not valid."
                 )
 
-        rule_arn = self.events_backend.put_rule(
+        rule = self.events_backend.put_rule(
             name,
             ScheduleExpression=sched_exp,
             EventPattern=event_pattern,
@@ -200,7 +200,7 @@ class EventsHandler(BaseResponse):
             RoleArn=role_arn,
         )
 
-        return json.dumps({"RuleArn": rule_arn}), self.response_headers
+        return json.dumps({"RuleArn": rule.arn}), self.response_headers
 
     def put_targets(self):
         rule_name = self._get_param("Rule")

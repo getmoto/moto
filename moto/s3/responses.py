@@ -34,6 +34,7 @@ from .exceptions import (
     InvalidNotificationARN,
     InvalidNotificationEvent,
     ObjectNotInActiveTierError,
+    NoSystemTags,
 )
 from .models import (
     s3_backend,
@@ -1398,6 +1399,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             else:
                 for tag in parsed_xml["Tagging"]["TagSet"]["Tag"]:
                     tags.append(FakeTag(tag["Key"], tag["Value"]))
+
+        # Verify that "aws:" is not in the tags. If so, then this is a problem:
+        for tag in tags:
+            if tag.key.startswith("aws:"):
+                raise NoSystemTags()
 
         tag_set = FakeTagSet(tags)
         tagging = FakeTagging(tag_set)
