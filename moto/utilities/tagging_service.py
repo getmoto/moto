@@ -35,6 +35,12 @@ class TaggingService:
             else:
                 self.tags[arn][t[self.keyName]] = None
 
+    def copy_tags(self, from_arn, to_arn):
+        if self.has_tags(from_arn):
+            self.tag_resource(
+                to_arn, self.list_tags_for_resource(from_arn)[self.tagName]
+            )
+
     def untag_resource_using_names(self, arn, tag_names):
         for name in tag_names:
             if name in self.tags.get(arn, {}):

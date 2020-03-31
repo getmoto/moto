@@ -383,7 +383,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if len(tags) == 0:
                 template = self.response_template(S3_NO_BUCKET_TAGGING)
                 return 404, {}, template.render(bucket_name=bucket_name)
-            template = self.response_template(S3_BUCKET_TAGGING_RESPONSE)
+            template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
             return template.render(tags=tags)
         elif "logging" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
@@ -1091,8 +1091,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
         if "tagging" in query:
+            tags = self.backend.get_key_tags(key)["Tags"]
             template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
-            return 200, response_headers, template.render(obj=key)
+            return 200, response_headers, template.render(tags=tags)
 
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
@@ -1164,8 +1165,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 version_id = query["versionId"][0]
             else:
                 version_id = None
+            key = self.backend.get_key(bucket_name, key_name, version_id=version_id)
             tagging = self._tagging_from_xml(body)
-            self.backend.set_key_tagging(bucket_name, key_name, tagging, version_id)
+            self.backend.set_key_tags(key, tagging, key_name)
             return 200, response_headers, ""
 
         if "x-amz-copy-source" in request.headers:
@@ -1206,7 +1208,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             tdirective = request.headers.get("x-amz-tagging-directive")
             if tdirective == "REPLACE":
                 tagging = self._tagging_from_headers(request.headers)
-                new_key.set_tagging(tagging)
+                self.backend.set_key_tags(new_key, tagging)
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             return 200, response_headers, template.render(key=new_key)
@@ -1230,7 +1232,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             new_key.website_redirect_location = request.headers.get(
                 "x-amz-website-redirect-location"
             )
-            new_key.set_tagging(tagging)
+            self.backend.set_key_tags(new_key, tagging)
 
         template = self.response_template(S3_OBJECT_RESPONSE)
         response_headers.update(new_key.response_dict)
@@ -1917,22 +1919,10 @@ S3_OBJECT_TAGGING_RESPONSE = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <Tagging xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <TagSet>
-    {% for tag in obj.tagging.tag_set.tags %}
-    <Tag>
-      <Key>{{ tag.key }}</Key>
-      <Value>{{ tag.value }}</Value>
-    </Tag>
-    {% endfor %}
-  </TagSet>
-</Tagging>"""
-
-S3_BUCKET_TAGGING_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
-<Tagging>
-  <TagSet>
     {% for tag in tags %}
     <Tag>
-      <Key>{{ tag.key }}</Key>
-      <Value>{{ tag.value }}</Value>
+      <Key>{{ tag.Key }}</Key>
+      <Value>{{ tag.Value }}</Value>
     </Tag>
     {% endfor %}
   </TagSet>

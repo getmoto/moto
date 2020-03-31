@@ -95,6 +95,7 @@ class FakeKey(BaseModel):
         version_id=0,
         max_buffer_size=DEFAULT_KEY_BUFFER_SIZE,
         multipart=None,
+        bucket_name=None,
     ):
         self.name = name
         self.last_modified = datetime.datetime.utcnow()
@@ -106,8 +107,8 @@ class FakeKey(BaseModel):
         self._etag = etag
         self._version_id = version_id
         self._is_versioned = is_versioned
-        self._tagging = FakeTagging()
         self.multipart = multipart
+        self.bucket_name = bucket_name
 
         self._value_buffer = tempfile.SpooledTemporaryFile(max_size=max_buffer_size)
         self._max_buffer_size = max_buffer_size
@@ -126,6 +127,13 @@ class FakeKey(BaseModel):
         r = copy.copy(r)
         self.lock.release()
         return r
+
+    @property
+    def arn(self):
+        # S3 Objects don't have an ARN, but we do need something unique when creating tags against this resource
+        return "arn:aws:s3:::{}/{}/{}".format(
+            self.bucket_name, self.name, self.version_id
+        )
 
     @value.setter
     def value(self, new_value):
@@ -152,9 +160,6 @@ class FakeKey(BaseModel):
         if replace:
             self._metadata = {}
         self._metadata.update(metadata)
-
-    def set_tagging(self, tagging):
-        self._tagging = tagging
 
     def set_storage_class(self, storage):
         if storage is not None and storage not in STORAGE_CLASS:
@@ -210,10 +215,6 @@ class FakeKey(BaseModel):
     @property
     def metadata(self):
         return self._metadata
-
-    @property
-    def tagging(self):
-        return self._tagging
 
     @property
     def response_dict(self):
@@ -1355,11 +1356,17 @@ class S3Backend(BaseBackend):
         else:
             return None
 
-    def set_key_tagging(self, bucket_name, key_name, tagging, version_id=None):
-        key = self.get_key(bucket_name, key_name, version_id)
+    def get_key_tags(self, key):
+        return self.tagger.list_tags_for_resource(key.arn)
+
+    def set_key_tags(self, key, tagging, key_name=None):
         if key is None:
             raise MissingKey(key_name)
-        key.set_tagging(tagging)
+        self.tagger.delete_all_tags_for_resource(key.arn)
+        self.tagger.tag_resource(
+            key.arn,
+            [{"Key": tag.key, "Value": tag.value} for tag in tagging.tag_set.tags],
+        )
         return key
 
     def get_bucket_tags(self, bucket_name):
@@ -1587,6 +1594,7 @@ class S3Backend(BaseBackend):
         key = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id)
 
         new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
+        self.tagger.copy_tags(key.arn, new_key.arn)
 
         if storage is not None:
             new_key.set_storage_class(storage)
