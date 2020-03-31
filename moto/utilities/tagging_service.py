@@ -5,15 +5,23 @@ class TaggingService:
         self.valueName = valueName
         self.tags = {}
 
+    def get_tag_dict_for_resource(self, arn):
+        result = {}
+        if self.has_tags(arn):
+            for k, v in self.tags[arn].items():
+                result[k] = v
+        return result
+
     def list_tags_for_resource(self, arn):
         result = []
-        if arn in self.tags:
+        if self.has_tags(arn):
             for k, v in self.tags[arn].items():
                 result.append({self.keyName: k, self.valueName: v})
         return {self.tagName: result}
 
     def delete_all_tags_for_resource(self, arn):
-        del self.tags[arn]
+        if self.has_tags(arn):
+            del self.tags[arn]
 
     def has_tags(self, arn):
         return arn in self.tags

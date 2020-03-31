@@ -378,13 +378,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return template.render(obj=bucket)
         elif "tagging" in querystring:
-            bucket = self.backend.get_bucket(bucket_name)
+            tags = self.backend.get_bucket_tags(bucket_name)["Tags"]
             # "Special Error" if no tags:
-            if len(bucket.tagging.tag_set.tags) == 0:
+            if len(tags) == 0:
                 template = self.response_template(S3_NO_BUCKET_TAGGING)
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_BUCKET_TAGGING_RESPONSE)
-            return template.render(bucket=bucket)
+            return template.render(tags=tags)
         elif "logging" in querystring:
             bucket = self.backend.get_bucket(bucket_name)
             if not bucket.logging:
@@ -1929,7 +1929,7 @@ S3_OBJECT_TAGGING_RESPONSE = """\
 S3_BUCKET_TAGGING_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Tagging>
   <TagSet>
-    {% for tag in bucket.tagging.tag_set.tags %}
+    {% for tag in tags %}
     <Tag>
       <Key>{{ tag.key }}</Key>
       <Value>{{ tag.value }}</Value>
