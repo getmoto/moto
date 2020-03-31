@@ -2413,6 +2413,24 @@ def test_boto3_put_bucket_tagging():
         "Cannot provide multiple Tags with the same key"
     )
 
+    # Cannot put tags that are "system" tags - i.e. tags that start with "aws:"
+    with assert_raises(ClientError) as ce:
+        s3.put_bucket_tagging(
+            Bucket=bucket_name,
+            Tagging={"TagSet": [{"Key": "aws:sometag", "Value": "nope"}]},
+        )
+    e = ce.exception
+    e.response["Error"]["Code"].should.equal("InvalidTag")
+    e.response["Error"]["Message"].should.equal(
+        "System tags cannot be added/updated by requester"
+    )
+
+    # This is OK though:
+    s3.put_bucket_tagging(
+        Bucket=bucket_name,
+        Tagging={"TagSet": [{"Key": "something:aws:stuff", "Value": "this is fine"}]},
+    )
+
 
 @mock_s3
 def test_boto3_get_bucket_tagging():
