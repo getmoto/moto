@@ -4295,24 +4295,17 @@ def test_s3_config_dict():
         FakeAcl,
         FakeGrant,
         FakeGrantee,
-        FakeTag,
-        FakeTagging,
-        FakeTagSet,
         OWNER,
     )
 
     # Without any buckets:
     assert not s3_config_query.get_config_resource("some_bucket")
 
-    tags = FakeTagging(
-        FakeTagSet(
-            [FakeTag("someTag", "someValue"), FakeTag("someOtherTag", "someOtherValue")]
-        )
-    )
+    tags = {"someTag": "someValue", "someOtherTag": "someOtherValue"}
 
     # With 1 bucket in us-west-2:
     s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-    s3_config_query.backends["global"].put_bucket_tagging("bucket1", tags)
+    s3_config_query.backends["global"].put_bucket_tags("bucket1", tags)
 
     # With a log bucket:
     s3_config_query.backends["global"].create_bucket("logbucket", "us-west-2")

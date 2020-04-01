@@ -35,7 +35,6 @@ from .exceptions import (
     MalformedXML,
     InvalidStorageClass,
     InvalidTargetBucketForLogging,
-    DuplicateTagKeys,
     CrossLocationLoggingProhibitted,
     NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
@@ -473,26 +472,10 @@ def get_canned_acl(acl):
     return FakeAcl(grants=grants)
 
 
-class FakeTagging(BaseModel):
-    def __init__(self, tag_set=None):
-        self.tag_set = tag_set or FakeTagSet()
-
-
-class FakeTagSet(BaseModel):
-    def __init__(self, tags=None):
-        self.tags = tags or []
-
-
-class FakeTag(BaseModel):
-    def __init__(self, key, value=None):
-        self.key = key
-        self.value = value
-
-
 class LifecycleFilter(BaseModel):
     def __init__(self, prefix=None, tag=None, and_filter=None):
         self.prefix = prefix
-        self.tag = tag
+        (self.tag_key, self.tag_value) = tag if tag else (None, None)
         self.and_filter = and_filter
 
     def to_config_dict(self):
@@ -501,11 +484,11 @@ class LifecycleFilter(BaseModel):
                 "predicate": {"type": "LifecyclePrefixPredicate", "prefix": self.prefix}
             }
 
-        elif self.tag:
+        elif self.tag_key:
             return {
                 "predicate": {
                     "type": "LifecycleTagPredicate",
-                    "tag": {"key": self.tag.key, "value": self.tag.value},
+                    "tag": {"key": self.tag_key, "value": self.tag_value},
                 }
             }
 
@@ -529,12 +512,9 @@ class LifecycleAndFilter(BaseModel):
         if self.prefix is not None:
             data.append({"type": "LifecyclePrefixPredicate", "prefix": self.prefix})
 
-        for tag in self.tags:
+        for key, value in self.tags.items():
             data.append(
-                {
-                    "type": "LifecycleTagPredicate",
-                    "tag": {"key": tag.key, "value": tag.value},
-                }
+                {"type": "LifecycleTagPredicate", "tag": {"key": key, "value": value},}
             )
 
         return data
@@ -880,7 +860,7 @@ class FakeBucket(BaseModel):
                 and_filter = None
                 if rule["Filter"].get("And"):
                     filters += 1
-                    and_tags = []
+                    and_tags = {}
                     if rule["Filter"]["And"].get("Tag"):
                         if not isinstance(rule["Filter"]["And"]["Tag"], list):
                             rule["Filter"]["And"]["Tag"] = [
@@ -888,7 +868,7 @@ class FakeBucket(BaseModel):
                             ]
 
                         for t in rule["Filter"]["And"]["Tag"]:
-                            and_tags.append(FakeTag(t["Key"], t.get("Value", "")))
+                            and_tags[t["Key"]] = t.get("Value", "")
 
                     try:
                         and_prefix = (
@@ -902,7 +882,7 @@ class FakeBucket(BaseModel):
                 filter_tag = None
                 if rule["Filter"].get("Tag"):
                     filters += 1
-                    filter_tag = FakeTag(
+                    filter_tag = (
                         rule["Filter"]["Tag"]["Key"],
                         rule["Filter"]["Tag"].get("Value", ""),
                     )
@@ -988,16 +968,6 @@ class FakeBucket(BaseModel):
 
     def delete_cors(self):
         self.cors = []
-
-    def set_tags(self, tagging):
-        self.tags = tagging
-
-    def delete_tags(self):
-        self.tags = FakeTagging()
-
-    @property
-    def tagging(self):
-        return self.tags
 
     def set_logging(self, logging_config, bucket_backend):
         if not logging_config:
@@ -1359,13 +1329,12 @@ class S3Backend(BaseBackend):
     def get_key_tags(self, key):
         return self.tagger.list_tags_for_resource(key.arn)
 
-    def set_key_tags(self, key, tagging, key_name=None):
+    def set_key_tags(self, key, tags, key_name=None):
         if key is None:
             raise MissingKey(key_name)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn,
-            [{"Key": tag.key, "Value": tag.value} for tag in tagging.tag_set.tags],
+            key.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
         )
         return key
 
@@ -1373,15 +1342,11 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         return self.tagger.list_tags_for_resource(bucket.arn)
 
-    def put_bucket_tagging(self, bucket_name, tagging):
-        tag_keys = [tag.key for tag in tagging.tag_set.tags]
-        if len(tag_keys) != len(set(tag_keys)):
-            raise DuplicateTagKeys()
+    def put_bucket_tags(self, bucket_name, tags):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
-            bucket.arn,
-            [{"Key": tag.key, "Value": tag.value} for tag in tagging.tag_set.tags],
+            bucket.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
         )
 
     def delete_bucket_tagging(self, bucket_name):
