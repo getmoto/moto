@@ -145,10 +145,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Do S3, resource type s3
         if not resource_type_filters or "s3" in resource_type_filters:
             for bucket in self.s3_backend.buckets.values():
-                tags = []
-                for tag in bucket.tags.tag_set.tags:
-                    tags.append({"Key": tag.key, "Value": tag.value})
-
+                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
                 if not tags or not tag_filter(
                     tags
                 ):  # Skip if no tags, or invalid filter
@@ -362,8 +359,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Do S3, resource type s3
         for bucket in self.s3_backend.buckets.values():
-            for tag in bucket.tags.tag_set.tags:
-                yield tag.key
+            tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
+            for key, _ in tags.items():
+                yield key
 
         # EC2 tags
         def get_ec2_keys(res_id):
@@ -414,9 +412,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Do S3, resource type s3
         for bucket in self.s3_backend.buckets.values():
-            for tag in bucket.tags.tag_set.tags:
-                if tag.key == tag_key:
-                    yield tag.value
+            tags = self.s3_backend.tagger.get_tag_dict_for_resource(bucket.arn)
+            for key, value in tags.items():
+                if key == tag_key:
+                    yield value
 
         # EC2 tags
         def get_ec2_values(res_id):
