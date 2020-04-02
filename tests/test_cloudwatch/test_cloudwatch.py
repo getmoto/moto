@@ -1,30 +1,28 @@
 import boto
 from boto.ec2.cloudwatch.alarm import MetricAlarm
-import boto3
-from datetime import datetime, timedelta
-import pytz
+from datetime import datetime
 import sure  # noqa
 
 from moto import mock_cloudwatch_deprecated
 
 
 def alarm_fixture(name="tester", action=None):
-    action = action or ['arn:alarm']
+    action = action or ["arn:alarm"]
     return MetricAlarm(
         name=name,
         namespace="{0}_namespace".format(name),
         metric="{0}_metric".format(name),
-        comparison='>=',
+        comparison=">=",
         threshold=2.0,
         period=60,
         evaluation_periods=5,
-        statistic='Average',
-        description='A test',
-        dimensions={'InstanceId': ['i-0123456,i-0123457']},
+        statistic="Average",
+        description="A test",
+        dimensions={"InstanceId": ["i-0123456,i-0123457"]},
         alarm_actions=action,
-        ok_actions=['arn:ok'],
-        insufficient_data_actions=['arn:insufficient'],
-        unit='Seconds',
+        ok_actions=["arn:ok"],
+        insufficient_data_actions=["arn:insufficient"],
+        unit="Seconds",
     )
 
 
@@ -38,21 +36,20 @@ def test_create_alarm():
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(1)
     alarm = alarms[0]
-    alarm.name.should.equal('tester')
-    alarm.namespace.should.equal('tester_namespace')
-    alarm.metric.should.equal('tester_metric')
-    alarm.comparison.should.equal('>=')
+    alarm.name.should.equal("tester")
+    alarm.namespace.should.equal("tester_namespace")
+    alarm.metric.should.equal("tester_metric")
+    alarm.comparison.should.equal(">=")
     alarm.threshold.should.equal(2.0)
     alarm.period.should.equal(60)
     alarm.evaluation_periods.should.equal(5)
-    alarm.statistic.should.equal('Average')
-    alarm.description.should.equal('A test')
-    dict(alarm.dimensions).should.equal(
-        {'InstanceId': ['i-0123456,i-0123457']})
-    list(alarm.alarm_actions).should.equal(['arn:alarm'])
-    list(alarm.ok_actions).should.equal(['arn:ok'])
-    list(alarm.insufficient_data_actions).should.equal(['arn:insufficient'])
-    alarm.unit.should.equal('Seconds')
+    alarm.statistic.should.equal("Average")
+    alarm.description.should.equal("A test")
+    dict(alarm.dimensions).should.equal({"InstanceId": ["i-0123456,i-0123457"]})
+    list(alarm.alarm_actions).should.equal(["arn:alarm"])
+    list(alarm.ok_actions).should.equal(["arn:ok"])
+    list(alarm.insufficient_data_actions).should.equal(["arn:insufficient"])
+    alarm.unit.should.equal("Seconds")
 
 
 @mock_cloudwatch_deprecated
@@ -79,19 +76,18 @@ def test_put_metric_data():
     conn = boto.connect_cloudwatch()
 
     conn.put_metric_data(
-        namespace='tester',
-        name='metric',
+        namespace="tester",
+        name="metric",
         value=1.5,
-        dimensions={'InstanceId': ['i-0123456,i-0123457']},
+        dimensions={"InstanceId": ["i-0123456,i-0123457"]},
     )
 
     metrics = conn.list_metrics()
     metrics.should.have.length_of(1)
     metric = metrics[0]
-    metric.namespace.should.equal('tester')
-    metric.name.should.equal('metric')
-    dict(metric.dimensions).should.equal(
-        {'InstanceId': ['i-0123456,i-0123457']})
+    metric.namespace.should.equal("tester")
+    metric.name.should.equal("metric")
+    dict(metric.dimensions).should.equal({"InstanceId": ["i-0123456,i-0123457"]})
 
 
 @mock_cloudwatch_deprecated
@@ -106,18 +102,54 @@ def test_describe_alarms():
     conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
     conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
 
+    enabled = alarm_fixture(name="enabled1", action=["abarfoo"])
+    enabled.add_alarm_action("arn:alarm")
+    conn.create_alarm(enabled)
+
     alarms = conn.describe_alarms()
-    alarms.should.have.length_of(4)
+    alarms.should.have.length_of(5)
     alarms = conn.describe_alarms(alarm_name_prefix="nfoo")
     alarms.should.have.length_of(2)
-    alarms = conn.describe_alarms(
-        alarm_names=["nfoobar", "nbarfoo", "nbazfoo"])
+    alarms = conn.describe_alarms(alarm_names=["nfoobar", "nbarfoo", "nbazfoo"])
     alarms.should.have.length_of(3)
     alarms = conn.describe_alarms(action_prefix="afoo")
     alarms.should.have.length_of(2)
+    alarms = conn.describe_alarms(alarm_name_prefix="enabled")
+    alarms.should.have.length_of(1)
+    alarms[0].actions_enabled.should.equal("true")
 
     for alarm in conn.describe_alarms():
         alarm.delete()
 
     alarms = conn.describe_alarms()
     alarms.should.have.length_of(0)
+
+
+@mock_cloudwatch_deprecated
+def test_get_metric_statistics():
+    conn = boto.connect_cloudwatch()
+
+    metric_timestamp = datetime(2018, 4, 9, 13, 0, 0, 0)
+
+    conn.put_metric_data(
+        namespace="tester",
+        name="metric",
+        value=1.5,
+        dimensions={"InstanceId": ["i-0123456,i-0123457"]},
+        timestamp=metric_timestamp,
+    )
+
+    metric_kwargs = dict(
+        namespace="tester",
+        metric_name="metric",
+        start_time=metric_timestamp,
+        end_time=datetime.now(),
+        period=3600,
+        statistics=["Minimum"],
+    )
+
+    datapoints = conn.get_metric_statistics(**metric_kwargs)
+    datapoints.should.have.length_of(1)
+    datapoint = datapoints[0]
+    datapoint.should.have.key("Minimum").which.should.equal(1.5)
+    datapoint.should.have.key("Timestamp").which.should.equal(metric_timestamp)

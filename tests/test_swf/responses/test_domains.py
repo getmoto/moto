@@ -1,8 +1,11 @@
 import boto
 from boto.swf.exceptions import SWFResponseError
+import boto3
+from botocore.exceptions import ClientError
 import sure  # noqa
 
 from moto import mock_swf_deprecated
+from moto import mock_swf
 
 
 # RegisterDomain endpoint
@@ -82,18 +85,66 @@ def test_deprecate_already_deprecated_domain():
     conn.register_domain("test-domain", "60", description="A test domain")
     conn.deprecate_domain("test-domain")
 
-    conn.deprecate_domain.when.called_with(
-        "test-domain"
-    ).should.throw(SWFResponseError)
+    conn.deprecate_domain.when.called_with("test-domain").should.throw(SWFResponseError)
 
 
 @mock_swf_deprecated
 def test_deprecate_non_existent_domain():
     conn = boto.connect_swf("the_key", "the_secret")
 
-    conn.deprecate_domain.when.called_with(
-        "non-existent"
-    ).should.throw(SWFResponseError)
+    conn.deprecate_domain.when.called_with("non-existent").should.throw(
+        SWFResponseError
+    )
+
+
+# UndeprecateDomain endpoint
+@mock_swf
+def test_undeprecate_domain():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.deprecate_domain(name="test-domain")
+    client.undeprecate_domain(name="test-domain")
+
+    resp = client.describe_domain(name="test-domain")
+
+    resp["domainInfo"]["status"].should.equal("REGISTERED")
+
+
+@mock_swf
+def test_undeprecate_already_undeprecated_domain():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+    client.deprecate_domain(name="test-domain")
+    client.undeprecate_domain(name="test-domain")
+
+    client.undeprecate_domain.when.called_with(name="test-domain").should.throw(
+        ClientError
+    )
+
+
+@mock_swf
+def test_undeprecate_never_deprecated_domain():
+    client = boto3.client("swf", region_name="us-east-1")
+    client.register_domain(
+        name="test-domain", workflowExecutionRetentionPeriodInDays="60"
+    )
+
+    client.undeprecate_domain.when.called_with(name="test-domain").should.throw(
+        ClientError
+    )
+
+
+@mock_swf
+def test_undeprecate_non_existent_domain():
+    client = boto3.client("swf", region_name="us-east-1")
+
+    client.undeprecate_domain.when.called_with(name="non-existent").should.throw(
+        ClientError
+    )
 
 
 # DescribeDomain endpoint
@@ -103,8 +154,7 @@ def test_describe_domain():
     conn.register_domain("test-domain", "60", description="A test domain")
 
     domain = conn.describe_domain("test-domain")
-    domain["configuration"][
-        "workflowExecutionRetentionPeriodInDays"].should.equal("60")
+    domain["configuration"]["workflowExecutionRetentionPeriodInDays"].should.equal("60")
     domain["domainInfo"]["description"].should.equal("A test domain")
     domain["domainInfo"]["name"].should.equal("test-domain")
     domain["domainInfo"]["status"].should.equal("REGISTERED")
@@ -114,6 +164,4 @@ def test_describe_domain():
 def test_describe_non_existent_domain():
     conn = boto.connect_swf("the_key", "the_secret")
 
-    conn.describe_domain.when.called_with(
-        "non-existent"
-    ).should.throw(SWFResponseError)
+    conn.describe_domain.when.called_with("non-existent").should.throw(SWFResponseError)

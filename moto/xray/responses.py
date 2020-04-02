@@ -10,9 +10,8 @@ from .exceptions import AWSError, BadSegmentException
 
 
 class XRayResponse(BaseResponse):
-
     def _error(self, code, message):
-        return json.dumps({'__type': code, 'message': message}), dict(status=400)
+        return json.dumps({"__type": code, "message": message}), dict(status=400)
 
     @property
     def xray_backend(self):
@@ -32,7 +31,7 @@ class XRayResponse(BaseResponse):
         # Amazon is just calling urls like /TelemetryRecords etc...
         # This uses the value after / as the camalcase action, which then
         # gets converted in call_action to find the following methods
-        return urlsplit(self.uri).path.lstrip('/')
+        return urlsplit(self.uri).path.lstrip("/")
 
     # PutTelemetryRecords
     def telemetry_records(self):
@@ -41,15 +40,18 @@ class XRayResponse(BaseResponse):
         except AWSError as err:
             return err.response()
 
-        return ''
+        return ""
 
     # PutTraceSegments
     def trace_segments(self):
-        docs = self._get_param('TraceSegmentDocuments')
+        docs = self._get_param("TraceSegmentDocuments")
 
         if docs is None:
-            msg = 'Parameter TraceSegmentDocuments is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter TraceSegmentDocuments is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
 
         # Raises an exception that contains info about a bad segment,
         # the object also has a to_dict() method
@@ -60,91 +62,120 @@ class XRayResponse(BaseResponse):
             except BadSegmentException as bad_seg:
                 bad_segments.append(bad_seg)
             except Exception as err:
-                return json.dumps({'__type': 'InternalFailure', 'message': str(err)}), dict(status=500)
+                return (
+                    json.dumps({"__type": "InternalFailure", "message": str(err)}),
+                    dict(status=500),
+                )
 
-        result = {'UnprocessedTraceSegments': [x.to_dict() for x in bad_segments]}
+        result = {"UnprocessedTraceSegments": [x.to_dict() for x in bad_segments]}
         return json.dumps(result)
 
     # GetTraceSummaries
     def trace_summaries(self):
-        start_time = self._get_param('StartTime')
-        end_time = self._get_param('EndTime')
+        start_time = self._get_param("StartTime")
+        end_time = self._get_param("EndTime")
         if start_time is None:
-            msg = 'Parameter StartTime is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter StartTime is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
         if end_time is None:
-            msg = 'Parameter EndTime is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter EndTime is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
 
-        filter_expression = self._get_param('FilterExpression')
-        sampling = self._get_param('Sampling', 'false') == 'true'
+        filter_expression = self._get_param("FilterExpression")
+        sampling = self._get_param("Sampling", "false") == "true"
 
         try:
             start_time = datetime.datetime.fromtimestamp(int(start_time))
             end_time = datetime.datetime.fromtimestamp(int(end_time))
         except ValueError:
-            msg = 'start_time and end_time are not integers'
-            return json.dumps({'__type': 'InvalidParameterValue', 'message': msg}), dict(status=400)
+            msg = "start_time and end_time are not integers"
+            return (
+                json.dumps({"__type": "InvalidParameterValue", "message": msg}),
+                dict(status=400),
+            )
         except Exception as err:
-            return json.dumps({'__type': 'InternalFailure', 'message': str(err)}), dict(status=500)
+            return (
+                json.dumps({"__type": "InternalFailure", "message": str(err)}),
+                dict(status=500),
+            )
 
         try:
-            result = self.xray_backend.get_trace_summary(start_time, end_time, filter_expression, sampling)
+            result = self.xray_backend.get_trace_summary(
+                start_time, end_time, filter_expression, sampling
+            )
         except AWSError as err:
             return err.response()
         except Exception as err:
-            return json.dumps({'__type': 'InternalFailure', 'message': str(err)}), dict(status=500)
+            return (
+                json.dumps({"__type": "InternalFailure", "message": str(err)}),
+                dict(status=500),
+            )
 
         return json.dumps(result)
 
     # BatchGetTraces
     def traces(self):
-        trace_ids = self._get_param('TraceIds')
-        next_token = self._get_param('NextToken')  # not implemented yet
+        trace_ids = self._get_param("TraceIds")
+        next_token = self._get_param("NextToken")  # not implemented yet
 
         if trace_ids is None:
-            msg = 'Parameter TraceIds is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter TraceIds is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
 
         try:
             result = self.xray_backend.get_trace_ids(trace_ids, next_token)
         except AWSError as err:
             return err.response()
         except Exception as err:
-            return json.dumps({'__type': 'InternalFailure', 'message': str(err)}), dict(status=500)
+            return (
+                json.dumps({"__type": "InternalFailure", "message": str(err)}),
+                dict(status=500),
+            )
 
         return json.dumps(result)
 
     # GetServiceGraph - just a dummy response for now
     def service_graph(self):
-        start_time = self._get_param('StartTime')
-        end_time = self._get_param('EndTime')
+        start_time = self._get_param("StartTime")
+        end_time = self._get_param("EndTime")
         # next_token = self._get_param('NextToken')  # not implemented yet
 
         if start_time is None:
-            msg = 'Parameter StartTime is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter StartTime is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
         if end_time is None:
-            msg = 'Parameter EndTime is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter EndTime is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
 
-        result = {
-            'StartTime': start_time,
-            'EndTime': end_time,
-            'Services': []
-        }
+        result = {"StartTime": start_time, "EndTime": end_time, "Services": []}
         return json.dumps(result)
 
     # GetTraceGraph - just a dummy response for now
     def trace_graph(self):
-        trace_ids = self._get_param('TraceIds')
+        trace_ids = self._get_param("TraceIds")
         # next_token = self._get_param('NextToken')  # not implemented yet
 
         if trace_ids is None:
-            msg = 'Parameter TraceIds is missing'
-            return json.dumps({'__type': 'MissingParameter', 'message': msg}), dict(status=400)
+            msg = "Parameter TraceIds is missing"
+            return (
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
 
-        result = {
-            'Services': []
-        }
+        result = {"Services": []}
         return json.dumps(result)

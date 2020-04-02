@@ -76,7 +76,7 @@ Currently implemented Services:
 +---------------------------+-----------------------+------------------------------------+
 | Logs                      | @mock_logs            | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
-| Organizations             | @mock_organizations   | some core edpoints done            |
+| Organizations             | @mock_organizations   | some core endpoints done           |
 +---------------------------+-----------------------+------------------------------------+
 | Polly                     | @mock_polly           | all endpoints done                 |
 +---------------------------+-----------------------+------------------------------------+
@@ -93,6 +93,8 @@ Currently implemented Services:
 | SecretsManager            | @mock_secretsmanager  | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
 | SES                       | @mock_ses             | all endpoints done                 |
++---------------------------+-----------------------+------------------------------------+
+| SFN                       | @mock_stepfunctions   | basic endpoints done               |
 +---------------------------+-----------------------+------------------------------------+
 | SNS                       | @mock_sns             | all endpoints done                 |
 +---------------------------+-----------------------+------------------------------------+

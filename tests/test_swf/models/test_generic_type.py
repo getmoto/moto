@@ -4,7 +4,6 @@ import sure  # noqa
 
 # Tests for GenericType (ActivityType, WorkflowType)
 class FooType(GenericType):
-
     @property
     def kind(self):
         return "foo"
@@ -40,12 +39,12 @@ def test_type_full_dict_representation():
     _type.to_full_dict()["configuration"].should.equal({})
 
     _type.task_list = "foo"
-    _type.to_full_dict()["configuration"][
-        "defaultTaskList"].should.equal({"name": "foo"})
+    _type.to_full_dict()["configuration"]["defaultTaskList"].should.equal(
+        {"name": "foo"}
+    )
 
     _type.just_an_example_timeout = "60"
-    _type.to_full_dict()["configuration"][
-        "justAnExampleTimeout"].should.equal("60")
+    _type.to_full_dict()["configuration"]["justAnExampleTimeout"].should.equal("60")
 
     _type.non_whitelisted_property = "34"
     keys = _type.to_full_dict()["configuration"].keys()
@@ -55,4 +54,5 @@ def test_type_full_dict_representation():
 def test_type_string_representation():
     _type = FooType("test-foo", "v1.0")
     str(_type).should.equal(
-        "FooType(name: test-foo, version: v1.0, status: REGISTERED)")
+        "FooType(name: test-foo, version: v1.0, status: REGISTERED)"
+    )

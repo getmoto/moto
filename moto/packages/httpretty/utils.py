@@ -25,14 +25,12 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 from __future__ import unicode_literals
 
-from .compat import (
-    byte_type, text_type
-)
+from .compat import byte_type, text_type
 
 
 def utf8(s):
     if isinstance(s, text_type):
-        s = s.encode('utf-8')
+        s = s.encode("utf-8")
     elif s is None:
         return byte_type()
 
