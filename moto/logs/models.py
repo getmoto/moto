@@ -134,7 +134,7 @@ class LogStream:
             return None, 0
 
         events = sorted(
-            filter(filter_func, self.events), key=lambda event: event.timestamp,
+            filter(filter_func, self.events), key=lambda event: event.timestamp
         )
 
         direction, index = get_index_and_direction_from_token(next_token)
@@ -169,11 +169,7 @@ class LogStream:
         if end_index > final_index:
             end_index = final_index
         elif end_index < 0:
-            return (
-                [],
-                "b/{:056d}".format(0),
-                "f/{:056d}".format(0),
-            )
+            return ([], "b/{:056d}".format(0), "f/{:056d}".format(0))
 
         events_page = [
             event.to_response_dict() for event in events[start_index : end_index + 1]
@@ -219,7 +215,7 @@ class LogStream:
 
 
 class LogGroup:
-    def __init__(self, region, name, tags):
+    def __init__(self, region, name, tags, **kwargs):
         self.name = name
         self.region = region
         self.arn = "arn:aws:logs:{region}:1:log-group:{log_group}".format(
@@ -228,9 +224,9 @@ class LogGroup:
         self.creationTime = int(unix_time_millis())
         self.tags = tags
         self.streams = dict()  # {name: LogStream}
-        self.retentionInDays = (
-            None  # AWS defaults to Never Expire for log group retention
-        )
+        self.retention_in_days = kwargs.get(
+            "RetentionInDays"
+        )  # AWS defaults to Never Expire for log group retention
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -368,12 +364,12 @@ class LogGroup:
             "storedBytes": sum(s.storedBytes for s in self.streams.values()),
         }
         # AWS only returns retentionInDays if a value is set for the log group (ie. not Never Expire)
-        if self.retentionInDays:
-            log_group["retentionInDays"] = self.retentionInDays
+        if self.retention_in_days:
+            log_group["retentionInDays"] = self.retention_in_days
         return log_group
 
     def set_retention_policy(self, retention_in_days):
-        self.retentionInDays = retention_in_days
+        self.retention_in_days = retention_in_days
 
     def list_tags(self):
         return self.tags if self.tags else {}
@@ -401,10 +397,12 @@ class LogsBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_log_group(self, log_group_name, tags):
+    def create_log_group(self, log_group_name, tags, **kwargs):
         if log_group_name in self.groups:
             raise ResourceAlreadyExistsException()
-        self.groups[log_group_name] = LogGroup(self.region_name, log_group_name, tags)
+        self.groups[log_group_name] = LogGroup(
+            self.region_name, log_group_name, tags, **kwargs
+        )
         return self.groups[log_group_name]
 
     def ensure_log_group(self, log_group_name, tags):

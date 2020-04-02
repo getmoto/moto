@@ -431,7 +431,7 @@ class LogGroup(BaseModel):
         properties = cloudformation_json["Properties"]
         log_group_name = properties["LogGroupName"]
         tags = properties.get("Tags", {})
-        return logs_backends[region_name].create_log_group(log_group_name, tags)
+        return logs_backends[region_name].create_log_group(log_group_name, tags, **properties)
 
 
 cloudwatch_backends = {}

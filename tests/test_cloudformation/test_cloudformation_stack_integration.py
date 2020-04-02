@@ -2380,6 +2380,7 @@ def test_create_log_group_using_fntransform():
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
     log_group["logGroupName"].should.equal("some-log-group")
+    log_group["retentionInDays"].should.be.equal(90)
 
 
 @mock_cloudformation
