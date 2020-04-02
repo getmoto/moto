@@ -59,6 +59,14 @@ class Rule(BaseModel):
             if index is not None:
                 self.targets.pop(index)
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+
+        raise UnformattedGetAttTemplateException()
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
