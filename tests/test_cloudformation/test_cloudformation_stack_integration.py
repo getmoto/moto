@@ -2373,9 +2373,7 @@ def test_create_log_group_using_fntransform():
     }
 
     cf_conn = boto3.client("cloudformation", "us-west-2")
-    cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(template),
-    )
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
 
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
@@ -2401,7 +2399,7 @@ def test_stack_events_create_rule_integration():
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
@@ -2429,7 +2427,7 @@ def test_stack_events_delete_rule_integration():
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
@@ -2458,7 +2456,7 @@ def test_stack_events_create_rule_without_name_integration():
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
@@ -2477,7 +2475,7 @@ def test_stack_events_create_rule_as_target():
                 "Properties": {
                     "LogGroupName": {"Fn::GetAtt": ["Event", "Arn"]},
                     "RetentionInDays": 3,
-                }
+                },
             },
             "Event": {
                 "Type": "AWS::Events::Rule",
@@ -2485,12 +2483,12 @@ def test_stack_events_create_rule_as_target():
                     "State": "ENABLED",
                     "ScheduleExpression": "rate(5 minutes)",
                 },
-            }
+            },
         },
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
