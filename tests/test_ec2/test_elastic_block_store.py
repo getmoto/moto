@@ -13,7 +13,6 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
-from moto.ec2.exceptions import VolumeInUseError
 from moto.ec2.models import OWNER_ID
 
 
@@ -73,11 +72,11 @@ def test_delete_attached_volume():
 
     # attempt to delete volume
     # assert raises VolumeInUseError
-    with assert_raises(VolumeInUseError) as ex:
+    with assert_raises(EC2ResponseError) as ex:
         volume.delete()
     ex.exception.error_code.should.equal("VolumeInUse")
     ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(f"Volume {volume.id} is currently attached to {instance_id}")
+    ex.exception.message.should.equal(f"Volume {volume.id} is currently attached to {instance.id}")
 
     volume.detach()
 
