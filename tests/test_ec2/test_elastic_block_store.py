@@ -77,7 +77,7 @@ def test_delete_attached_volume():
     ex.exception.error_code.should.equal("VolumeInUse")
     ex.exception.status.should.equal(400)
     ex.exception.message.should.equal(
-        f"Volume {volume.id} is currently attached to {instance.id}"
+        "Volume {0} is currently attached to {1}".format(volume.id, instance.id)
     )
 
     volume.detach()
