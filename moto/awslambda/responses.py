@@ -146,7 +146,7 @@ class LambdaResponse(BaseResponse):
         function_name = path.split("/")[-2]
         if self.lambda_backend.get_function(function_name):
             statement = self.body
-            self.lambda_backend.add_policy_statement(function_name, statement)
+            self.lambda_backend.add_permission(function_name, statement)
             return 200, {}, json.dumps({"Statement": statement})
         else:
             return 404, {}, "{}"
@@ -166,9 +166,7 @@ class LambdaResponse(BaseResponse):
         statement_id = path.split("/")[-1].split("?")[0]
         revision = querystring.get("RevisionId", "")
         if self.lambda_backend.get_function(function_name):
-            self.lambda_backend.del_policy_statement(
-                function_name, statement_id, revision
-            )
+            self.lambda_backend.remove_permission(function_name, statement_id, revision)
             return 204, {}, "{}"
         else:
             return 404, {}, "{}"

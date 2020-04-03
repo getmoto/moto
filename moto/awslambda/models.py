@@ -1006,11 +1006,11 @@ class LambdaBackend(BaseBackend):
             return True
         return False
 
-    def add_policy_statement(self, function_name, raw):
+    def add_permission(self, function_name, raw):
         fn = self.get_function(function_name)
         fn.policy.add_statement(raw)
 
-    def del_policy_statement(self, function_name, sid, revision=""):
+    def remove_permission(self, function_name, sid, revision=""):
         fn = self.get_function(function_name)
         fn.policy.del_statement(sid, revision)
 
