@@ -13,6 +13,7 @@ from freezegun import freeze_time
 import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
+from moto.ec2.exceptions import VolumeInUseError
 from moto.ec2.models import OWNER_ID
 
 
@@ -51,6 +52,43 @@ def test_create_and_delete_volume():
     cm.exception.code.should.equal("InvalidVolume.NotFound")
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2_deprecated
+def test_delete_attached_volume():
+    conn = boto.ec2.connect_to_region("us-east-1")
+    reservation = conn.run_instances("ami-1234abcd")
+    # create an instance
+    instance = reservation.instances[0]
+    # create a volume
+    volume = conn.create_volume(80, "us-east-1a")
+    # attach volume to instance
+    volume.attach(instance.id, "/dev/sdh")
+
+    volume.update()
+    volume.volume_state().should.equal("in-use")
+    volume.attachment_state().should.equal("attached")
+
+    volume.attach_data.instance_id.should.equal(instance.id)
+
+    # attempt to delete volume
+    # assert raises VolumeInUseError
+    with assert_raises(VolumeInUseError) as ex:
+        volume.delete()
+    ex.exception.error_code.should.equal("VolumeInUse")
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal(f"Volume {volume.id} is currently attached to {instance_id}")
+
+    volume.detach()
+
+    volume.update()
+    volume.volume_state().should.equal("available")
+
+    volume.delete()
+
+    all_volumes = conn.get_all_volumes()
+    my_volume = [item for item in all_volumes if item.id == volume.id]
+    my_volume.should.have.length_of(0)
 
 
 @mock_ec2_deprecated
