@@ -10,7 +10,7 @@ import json
 from botocore.exceptions import ClientError, ParamValidationError
 from nose.tools import assert_raises
 
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_ssm, mock_cloudformation, mock_ec2
 
 
 @mock_ssm
@@ -1582,3 +1582,30 @@ def test_get_command_invocations_from_stack():
     invocation_response = client.get_command_invocation(
         CommandId=cmd_id, InstanceId=instance_ids[0], PluginName="aws:runShellScript"
     )
+
+
+@mock_ec2
+@mock_ssm
+def test_get_command_invocations_by_instance_tag():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    tag_specifications = [{
+        "ResourceType": "instance",
+        "Tags": [{
+            "Key": "Name",
+            "Value": "test-tag"
+        }]
+    }]
+    ec2_response = ec2_client.run_instances(ImageId="ami-1234abcd", MaxCount=1, MinCount=1,
+                             TagSpecifications=tag_specifications)
+    instance_id = ec2_response["Instances"][0]["InstanceId"]
+
+    ssm_client = boto3.client("ssm", region_name="us-east-1")
+    ssm_response = ssm_client.send_command(DocumentName="AWS-RunShellScript",
+                                           Targets=[{"Key": "tag:Name", "Values": ["test-tag"]}])
+    target_count = ssm_response["Command"]["TargetCount"]
+    assert target_count == 1
+
+    command_id = ssm_response["Command"]["CommandId"]
+    ssm_invocation = ssm_client.get_command_invocation(CommandId=command_id, InstanceId=instance_id)
+    status = ssm_invocation["Status"]
+    assert status == "Success"
