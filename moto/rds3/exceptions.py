@@ -222,7 +222,7 @@ class InvalidAvailabilityZones(RDSClientError):
             'Availability zone{} \'[{}]\' {} unavailable in this region, '
             'please choose another zone set.'.format(
                 's' if len(invalid_zones) > 1 else '',
-                ', '.join(list(invalid_zones)),
+                ', '.join(sorted(list(invalid_zones))),
                 'are' if len(invalid_zones) > 1 else 'is'
             )
         )
