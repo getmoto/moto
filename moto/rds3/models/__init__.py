@@ -49,6 +49,7 @@ class RDS3Backend(DBClusterBackend,
         rds_key = self.kms.create_key(
             policy='',
             key_usage='ENCRYPT_DECRYPT',
+            customer_master_key_spec=None,
             description='Default master key that protects my RDS database volumes when no other key is defined',
             tags=None,
             region=self.region)
