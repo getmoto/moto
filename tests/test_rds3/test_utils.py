@@ -1,3 +1,4 @@
+from __future__ import print_function
 from moto.rds3 import utils
 
 
@@ -11,4 +12,4 @@ from moto.rds3 import utils
 
 def test_walk_parameters():
     params = '' #utils.walk_parameters('CreateDBInstance')
-    print params
+    print(params)

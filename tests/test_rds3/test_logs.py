@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 import boto3
 from sure import this
 
-from . import mock_rds2
+from . import mock_rds
 
 
-@mock_rds2
+@mock_rds
 def test_describe_db_log_files():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance(

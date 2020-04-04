@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto3
 from botocore.exceptions import ClientError
 
-from . import mock_rds2
+from . import mock_rds
 from sure import this
 
 
@@ -19,7 +19,7 @@ test_tags = [
 ]
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster_snapshot():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(
@@ -37,7 +37,7 @@ def test_create_db_cluster_snapshot():
     this(snapshot['DBClusterIdentifier']).should.equal('cluster-1')
 
 
-@mock_rds2
+@mock_rds
 def test_describe_db_cluster_snapshots_paginated():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(
@@ -69,7 +69,7 @@ def test_describe_db_cluster_snapshots_paginated():
     resp3['DBClusterSnapshots'].should.have.length_of(21)
 
 
-@mock_rds2
+@mock_rds
 def test_delete_db_cluster_snapshot():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(
@@ -99,7 +99,7 @@ def test_delete_db_cluster_snapshot():
     snapshots.should.have.length_of(0)
 
 
-@mock_rds2
+@mock_rds
 def test_delete_non_existent_db_cluster_snapshot_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.delete_db_cluster_snapshot.when.called_with(

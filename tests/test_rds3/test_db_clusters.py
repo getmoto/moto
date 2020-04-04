@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto3
 from botocore.exceptions import ClientError
 
-from . import mock_rds2, mock_ec2
+from . import mock_rds, mock_ec2
 from sure import this
 
 
@@ -22,7 +22,7 @@ test_tags = [
 ]
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster_snapshot():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(
@@ -40,7 +40,7 @@ def test_create_db_cluster_snapshot():
     this(snapshot['DBClusterIdentifier']).should.equal('cluster-1')
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster():
     client = boto3.client('rds', region_name='us-west-2')
     cluster = client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -55,7 +55,7 @@ def test_create_db_cluster():
     this(tag_list).should.equal(test_tags)
 
 
-@mock_rds2
+@mock_rds
 def test_modify_db_cluster():
     client = boto3.client('rds', region_name='us-west-2')
     cluster_id = 'cluster-1'
@@ -81,7 +81,7 @@ def test_modify_db_cluster():
     cluster['BackupRetentionPeriod'].should.equal(new_backup_retention)
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster_with_parameters():
     client = boto3.client('rds', region_name='us-west-2')
     parameters = {
@@ -115,7 +115,7 @@ def test_create_db_cluster_with_parameters():
             cluster[attr].should.equal(parameters[attr])
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster_with_invalid_availability_zone_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster.when.called_with(
@@ -134,7 +134,7 @@ def test_create_db_cluster_with_invalid_availability_zone_fails():
     ).should.throw(ClientError, 'zones \'[bad-zone1, bad-zone2]\' are unavailable')
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster_with_invalid_engine_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster.when.called_with(
@@ -145,7 +145,7 @@ def test_create_db_cluster_with_invalid_engine_fails():
     ).should.throw(ClientError, 'Invalid DB engine')
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_cluster_with_invalid_engine_version_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster.when.called_with(
@@ -157,7 +157,7 @@ def test_create_db_cluster_with_invalid_engine_version_fails():
     ).should.throw(ClientError, 'Cannot find version 1.0 for aurora-postgresql')
 
 
-@mock_rds2
+@mock_rds
 def test_add_remove_db_instance_from_db_cluster():
     client = boto3.client('rds', region_name='us-west-2')
     cluster = client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -177,7 +177,7 @@ def test_add_remove_db_instance_from_db_cluster():
     cluster['DBClusterMembers'].should.have.length_of(0)
 
 
-@mock_rds2
+@mock_rds
 def test_db_cluster_writer_promotion():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -203,7 +203,7 @@ def test_db_cluster_writer_promotion():
 
 
 @mock_ec2
-@mock_rds2
+@mock_rds
 def test_db_cluster_multi_az():
     ec2 = boto3.client('ec2', region_name='us-west-2')
     resp = ec2.describe_availability_zones()
@@ -230,7 +230,7 @@ def test_db_cluster_multi_az():
     cluster['MultiAZ'].should.equal(True)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_db_clusters_paginated():
     client = boto3.client('rds', region_name='us-west-2')
     for i in range(21):
@@ -252,7 +252,7 @@ def test_describe_db_clusters_paginated():
     resp3['DBClusters'].should.have.length_of(21)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_db_clusters():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -268,7 +268,7 @@ def test_describe_db_clusters():
     # TODO: check with both supplying an instance id and just a raw dump of all clusters
 
 
-@mock_rds2
+@mock_rds
 def test_delete_db_cluster():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -282,14 +282,14 @@ def test_delete_db_cluster():
     # TODO: skipfinalsnapshot stuff
 
 
-@mock_rds2
+@mock_rds
 def test_delete_non_existent_db_cluster_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.delete_db_cluster.when.called_with(
         DBClusterIdentifier='non-existent').should.throw(ClientError, 'not found')
 
 
-@mock_rds2
+@mock_rds
 def test_delete_db_cluster_with_active_members_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -306,7 +306,7 @@ def test_delete_db_cluster_with_active_members_fails():
         DBClusterIdentifier='cluster-1').should.throw(ClientError, 'Cluster cannot be deleted')
 
 
-@mock_rds2
+@mock_rds
 def test_restore_db_cluster_from_snapshot():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(
@@ -329,7 +329,7 @@ def test_restore_db_cluster_from_snapshot():
     cluster['DatabaseName'].should.equal('db_name')
 
 
-@mock_rds2
+@mock_rds
 def test_restore_db_cluster_from_snapshot_with_parameters():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_cluster(

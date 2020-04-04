@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import boto3
 from botocore.exceptions import ClientError
 
-from . import mock_rds2
+from . import mock_rds
 #import sure  # noqa
 from sure import this
 
@@ -21,7 +21,7 @@ test_tags = [
 ]
 
 
-# @mock_rds2
+# @mock_rds
 # def test_create_db_cluster():
 #     client = boto3.client('rds', region_name='us-west-2')
 #     cluster = client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -36,7 +36,7 @@ test_tags = [
 #     this(tag_list).should.equal(test_tags)
 #
 #
-# @mock_rds2
+# @mock_rds
 # def test_create_db_cluster_with_invalid_engine_fails():
 #     client = boto3.client('rds', region_name='us-west-2')
 #     client.create_db_cluster.when.called_with(
@@ -47,7 +47,7 @@ test_tags = [
 #     ).should.throw(ClientError, 'Invalid DB engine')
 #
 #
-# @mock_rds2
+# @mock_rds
 # def test_create_db_cluster_with_invalid_engine_version_fails():
 #     client = boto3.client('rds', region_name='us-west-2')
 #     client.create_db_cluster.when.called_with(
@@ -59,7 +59,7 @@ test_tags = [
 #     ).should.throw(ClientError, 'Cannot find version 1.0 for aurora-postgresql')
 #
 #
-# @mock_rds2
+# @mock_rds
 # def test_add_remove_db_instance_from_db_cluster():
 #     client = boto3.client('rds', region_name='us-west-2')
 #     cluster = client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -79,7 +79,7 @@ test_tags = [
 #     cluster['DBClusterMembers'].should.have.length_of(0)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_db_cluster_parameter_groups_paginated():
     client = boto3.client('rds', region_name='us-west-2')
     default_groups = client.describe_db_cluster_parameter_groups(MaxRecords=20).get('DBClusterParameterGroups')
@@ -103,23 +103,23 @@ def test_describe_db_cluster_parameter_groups_paginated():
     all_groups.should.have.length_of(21)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_default_db_cluster_parameter_groups():
     client = boto3.client('rds', region_name='us-west-2')
     groups = client.describe_db_cluster_parameter_groups().get('DBClusterParameterGroups')
-    groups.should.be.greater_than(0)
+    len(groups).should.be.greater_than(0)
     for group in groups:
         group['DBClusterParameterGroupName'].should.match(r'^default')
 
 
-@mock_rds2
+@mock_rds
 def test_describe_non_existent_db_cluster_parameter_group_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.describe_db_cluster_parameter_groups.when.called_with(
         DBClusterParameterGroupName='non-existent').should.throw(ClientError, 'not found')
 
 
-# @mock_rds2
+# @mock_rds
 # def test_delete_db_cluster():
 #     client = boto3.client('rds', region_name='us-west-2')
 #     client.create_db_cluster(DBClusterIdentifier='cluster-1',
@@ -133,14 +133,14 @@ def test_describe_non_existent_db_cluster_parameter_group_fails():
 #     # TODO: skipfinalsnapshot stuff
 #
 #
-@mock_rds2
+@mock_rds
 def test_delete_non_existent_db_cluster_parameter_group_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.delete_db_cluster_parameter_group.when.called_with(
         DBClusterParameterGroupName='non-existent').should.throw(ClientError, 'not found')
 #
 #
-# @mock_rds2
+# @mock_rds
 # def test_delete_db_cluster_with_active_members_fails():
 #     client = boto3.client('rds', region_name='us-west-2')
 #     client.create_db_cluster(DBClusterIdentifier='cluster-1',

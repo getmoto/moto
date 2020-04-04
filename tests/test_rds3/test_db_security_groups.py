@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError
 import boto3
 import sure
-from . import mock_rds2
+from . import mock_rds
 
 
-@mock_rds2
+@mock_rds
 def test_create_database_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
 
@@ -18,7 +18,7 @@ def test_create_database_security_group():
     result['DBSecurityGroup']['IPRanges'].should.equal([])
 
 
-@mock_rds2
+@mock_rds
 def test_get_security_groups():
     conn = boto3.client('rds', region_name='us-west-2')
 
@@ -38,14 +38,14 @@ def test_get_security_groups():
     result['DBSecurityGroups'][0]['DBSecurityGroupName'].should.equal("db_sg1")
 
 
-@mock_rds2
+@mock_rds
 def test_get_non_existent_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.describe_db_security_groups.when.called_with(
         DBSecurityGroupName="not-a-sg").should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_delete_database_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_security_group(
@@ -59,14 +59,14 @@ def test_delete_database_security_group():
     result['DBSecurityGroups'].should.have.length_of(0)
 
 
-@mock_rds2
+@mock_rds
 def test_delete_non_existent_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.delete_db_security_group.when.called_with(
         DBSecurityGroupName="not-a-db").should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_security_group_authorize():
     conn = boto3.client('rds', region_name='us-west-2')
     security_group = conn.create_db_security_group(DBSecurityGroupName='db_sg',
@@ -91,7 +91,7 @@ def test_security_group_authorize():
     ])
 
 
-@mock_rds2
+@mock_rds
 def test_add_security_group_to_database():
     conn = boto3.client('rds', region_name='us-west-2')
 
@@ -114,7 +114,7 @@ def test_add_security_group_to_database():
         'DBSecurityGroupName'].should.equal('db_sg')
 
 
-@mock_rds2
+@mock_rds
 def test_list_tags_security_group():
     test_tags = [
         {
@@ -135,7 +135,7 @@ def test_list_tags_security_group():
     result['TagList'].should.equal(test_tags)
 
 
-@mock_rds2
+@mock_rds
 def test_add_tags_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()
@@ -159,7 +159,7 @@ def test_add_tags_security_group():
                                      'Key': 'foo1'}])
 
 
-@mock_rds2
+@mock_rds
 def test_remove_tags_security_group():
     conn = boto3.client('rds', region_name='us-west-2')
     result = conn.describe_db_subnet_groups()

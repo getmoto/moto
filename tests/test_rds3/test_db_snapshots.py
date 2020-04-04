@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 from sure import this  # noqa
-from . import mock_kms, mock_rds2
+from . import mock_kms, mock_rds
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_snapshot():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_snapshot.when.called_with(
@@ -32,7 +32,7 @@ def test_create_db_snapshot():
     snapshot.get('DBSnapshotIdentifier').should.equal('g-1')
 
 
-@mock_rds2
+@mock_rds
 def test_copy_unencrypted_db_snapshot_to_encrypted_db_snapshot():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance(DBInstanceIdentifier='unencrypted-db-instance',
@@ -55,7 +55,7 @@ def test_copy_unencrypted_db_snapshot_to_encrypted_db_snapshot():
     snapshot['Encrypted'].should.equal(True)
 
 
-@mock_rds2
+@mock_rds
 def test_db_snapshot_events():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance(DBInstanceIdentifier='test-instance',
@@ -85,7 +85,7 @@ def test_db_snapshot_events():
     this(len(events)).should.be.greater_than(0)
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_snapshot_with_invalid_identifier_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance(

@@ -4,10 +4,10 @@ import boto3
 from botocore.exceptions import ClientError
 from sure import this
 
-from . import mock_rds2
+from . import mock_rds
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     db_parameter_group = conn.create_db_parameter_group(DBParameterGroupName='test',
@@ -22,7 +22,7 @@ def test_create_db_parameter_group():
         'Description'].should.equal('test parameter group')
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_instance_with_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_parameter_group(DBParameterGroupName='test',
@@ -45,7 +45,7 @@ def test_create_db_instance_with_parameter_group():
         'ParameterApplyStatus'].should.equal('in-sync')
 
 
-@mock_rds2
+@mock_rds
 def test_modify_db_instance_with_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     database = conn.create_db_instance(DBInstanceIdentifier='db-master-1',
@@ -78,7 +78,7 @@ def test_modify_db_instance_with_parameter_group():
         'ParameterApplyStatus'].should.equal('pending-reboot')
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_parameter_group_empty_description():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_parameter_group.when.called_with(DBParameterGroupName='test',
@@ -86,7 +86,7 @@ def test_create_db_parameter_group_empty_description():
                                                     Description='').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_create_db_parameter_group_duplicate():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_parameter_group(DBParameterGroupName='test',
@@ -97,7 +97,7 @@ def test_create_db_parameter_group_duplicate():
                                                     Description='test parameter group').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_parameter_group(DBParameterGroupName='test',
@@ -112,7 +112,7 @@ def test_describe_db_parameter_group():
         'DBParameterGroupName'].should.equal('test')
 
 
-@mock_rds2
+@mock_rds
 def test_describe_non_existent_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.describe_db_parameter_groups.when.called_with(
@@ -120,7 +120,7 @@ def test_describe_non_existent_db_parameter_group():
     ).should.throw(ClientError, 'DBParameterGroup not found: test')
 
 
-@mock_rds2
+@mock_rds
 def test_delete_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_parameter_group(DBParameterGroupName='test',
@@ -136,7 +136,7 @@ def test_delete_db_parameter_group():
     ).should.throw(ClientError, 'DBParameterGroup not found: test')
 
 
-@mock_rds2
+@mock_rds
 def test_modify_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_db_parameter_group(DBParameterGroupName='test',
@@ -161,14 +161,14 @@ def test_modify_db_parameter_group():
     db_parameters['Parameters'][0]['ApplyMethod'].should.equal('immediate')
 
 
-@mock_rds2
+@mock_rds
 def test_delete_non_existent_db_parameter_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.delete_db_parameter_group.when.called_with(
         DBParameterGroupName='non-existent').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_create_parameter_group_with_tags():
     test_tags = [
         {

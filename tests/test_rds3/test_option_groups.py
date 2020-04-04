@@ -3,11 +3,11 @@ from __future__ import unicode_literals
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
 import sure  # noqa
-from . import mock_ec2, mock_kms, mock_rds2
+from . import mock_ec2, mock_kms, mock_rds
 from sure import this
 
 
-@mock_rds2
+@mock_rds
 def test_create_option_group():
     client = boto3.client('rds', region_name='us-west-2')
     option_group = client.create_option_group(
@@ -21,7 +21,7 @@ def test_create_option_group():
     option_group['MajorEngineVersion'].should.equal('5.6')
 
 
-@mock_rds2
+@mock_rds
 def test_create_option_group_bad_engine_name():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group.when.called_with(OptionGroupName='test',
@@ -30,7 +30,7 @@ def test_create_option_group_bad_engine_name():
                                               OptionGroupDescription='test invalid engine').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_create_option_group_bad_engine_major_version():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group.when.called_with(OptionGroupName='test',
@@ -39,7 +39,7 @@ def test_create_option_group_bad_engine_major_version():
                                               OptionGroupDescription='test invalid engine version').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_create_option_group_empty_description():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group.when.called_with(OptionGroupName='test',
@@ -48,7 +48,7 @@ def test_create_option_group_empty_description():
                                               OptionGroupDescription='').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_create_option_group_duplicate():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test',
@@ -61,7 +61,7 @@ def test_create_option_group_duplicate():
                                               OptionGroupDescription='test option group').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test',
@@ -73,14 +73,14 @@ def test_describe_option_group():
         'OptionGroupName'].should.equal('test')
 
 
-@mock_rds2
+@mock_rds
 def test_describe_non_existant_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.describe_option_groups.when.called_with(
         OptionGroupName="not-a-option-group").should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_delete_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test',
@@ -95,14 +95,14 @@ def test_delete_option_group():
         OptionGroupName='test').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_delete_non_existant_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.delete_option_group.when.called_with(
         OptionGroupName='non-existant').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_option_group_options():
     client = boto3.client('rds', region_name='us-west-2')
     option_group_options = client.describe_option_group_options(
@@ -134,7 +134,7 @@ def test_describe_option_group_options():
     this(len(option_group_options)).should.be.greater_than(0)
 
 
-@mock_rds2
+@mock_rds
 def test_describe_option_group_options_paginated():
     client = boto3.client('rds', region_name='us-west-2')
 
@@ -156,7 +156,7 @@ def test_describe_option_group_options_paginated():
     resp3['OptionGroupOptions'].should.have.length_of(23)
 
 
-@mock_rds2
+@mock_rds
 def test_modify_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test', EngineName='mysql',
@@ -171,7 +171,7 @@ def test_modify_option_group():
     result['OptionGroup']['OptionGroupName'].should.equal('test')
 
 
-@mock_rds2
+@mock_rds
 def test_modify_option_group_no_options():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test', EngineName='mysql',
@@ -180,14 +180,14 @@ def test_modify_option_group_no_options():
         OptionGroupName='test').should.throw(ClientError)
 
 
-@mock_rds2
+@mock_rds
 def test_modify_non_existant_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.modify_option_group.when.called_with(OptionGroupName='non-existant', OptionsToInclude=[(
         'OptionName', 'Port', 'DBSecurityGroupMemberships', 'VpcSecurityGroupMemberships', 'OptionSettings')]).should.throw(ParamValidationError)
 
 
-@mock_rds2
+@mock_rds
 def test_add_tags_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test',
@@ -212,7 +212,7 @@ def test_add_tags_option_group():
     list(result['TagList']).should.have.length_of(2)
 
 
-@mock_rds2
+@mock_rds
 def test_remove_tags_option_group():
     conn = boto3.client('rds', region_name='us-west-2')
     conn.create_option_group(OptionGroupName='test',

@@ -3,11 +3,11 @@ from __future__ import unicode_literals
 import boto3
 from botocore.exceptions import ClientError
 
-from . import mock_rds2
+from . import mock_rds
 from sure import this
 
 
-@mock_rds2
+@mock_rds
 def test_specifying_availability_zone_with_multi_az_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance.when.called_with(
@@ -23,7 +23,7 @@ def test_specifying_availability_zone_with_multi_az_fails():
     ).should.throw(ClientError, 'Requesting a specific availability zone is not valid for Multi-AZ instances.')
 
 
-@mock_rds2
+@mock_rds
 def test_create_duplicate_db_instance_fails():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance(
@@ -46,7 +46,7 @@ def test_create_duplicate_db_instance_fails():
     ).should.throw(ClientError, 'DB Instance already exists')
 
 
-@mock_rds2
+@mock_rds
 def test_db_instance_events():
     client = boto3.client('rds', region_name='us-west-2')
     client.create_db_instance(
