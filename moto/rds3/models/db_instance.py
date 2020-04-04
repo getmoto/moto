@@ -46,6 +46,7 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
                  iops=None,
                  master_username=None,
                  master_user_password=None,
+                 max_allocated_storage=None,
                  multi_az=False,
                  license_model='general-public-license',
                  preferred_backup_window='13:14-13:44',
@@ -83,6 +84,10 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.master_user_password = master_user_password
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
         self.allocated_storage = allocated_storage
+        if max_allocated_storage is not None:
+            self.max_allocated_storage = max_allocated_storage
+        else:
+            self.max_allocated_storage = self.allocated_storage
         self.db_cluster_identifier = db_cluster_identifier
         self.is_cluster_writer = False
         if 'character_set_name' in kwargs and kwargs['character_set_name']:
@@ -213,6 +218,16 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
             } for group_id in self.vpc_security_group_ids
         ]
 
+    @property
+    def max_allocated_storage(self):
+        return self._max_allocated_storage if self._max_allocated_storage != self.allocated_storage else None
+
+    @max_allocated_storage.setter
+    def max_allocated_storage(self, value):
+        if value < self.allocated_storage:
+            raise InvalidParameterCombination('Max storage size must be greater than storage size')
+        self._max_allocated_storage = value
+
     # @property
     # def db_subnet_group(self):
     #     return {
@@ -337,6 +352,9 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
         return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.resource_id, self.backend.region)
 
     def update(self, db_kwargs):
+        # TODO: This is all horrible.  Must fix.
+        if 'max_allocated_storage' in db_kwargs:
+            self.max_allocated_storage = db_kwargs.get('max_allocated_storage')
         # TODO: This is all horrible.  Must fix.
         if db_kwargs.get('db_parameter_group_name'):
             db_parameter_group_name = db_kwargs.pop('db_parameter_group_name')
