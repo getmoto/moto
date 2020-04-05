@@ -1868,18 +1868,16 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 {% endfor %}
 </DeleteResult>"""
 
-S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-  <DeleteObjectResponse>
-    <Code>200</Code>
-    <Description>OK</Description>
-  </DeleteObjectResponse>
+S3_DELETE_OBJECT_SUCCESS = """<?xml version="1.0" encoding="UTF-8"?>
+<DeleteObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+  <Code>200</Code>
+  <Description>OK</Description>
 </DeleteObjectResponse>"""
 
-S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-      <PutObjectResponse>
-        <ETag>{{ key.etag }}</ETag>
-        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-      </PutObjectResponse>
+S3_OBJECT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+    <PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+      <ETag>{{ key.etag }}</ETag>
+      <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
     </PutObjectResponse>"""
 
 S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
