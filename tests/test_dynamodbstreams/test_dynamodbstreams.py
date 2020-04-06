@@ -134,6 +134,7 @@ class TestCore:
                 "id": {"S": "entry1"},
                 "first_col": {"S": "bar"},
                 "second_col": {"S": "baz"},
+                "a": {"L": [{"M": {"b": {"S": "bar1"}}}]},
             },
         )
         conn.delete_item(TableName="test-streams", Key={"id": {"S": "entry1"}})
