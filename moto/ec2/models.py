@@ -937,6 +937,12 @@ class InstanceBackend(object):
         value = getattr(instance, key)
         return instance, value
 
+    def describe_instance_credit_specifications(self,instance_ids):
+        queried_instances = []
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            queried_instances.append(instance)
+        return queried_instances
+
     def all_instances(self, filters=None):
         instances = []
         for reservation in self.all_reservations():
