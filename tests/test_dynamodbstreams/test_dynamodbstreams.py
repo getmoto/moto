@@ -121,14 +121,12 @@ class TestCore:
         assert "Records" in resp
         assert len(resp["Records"]) == 0
 
-
     def test_get_records_seq(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")
 
         conn.put_item(
             TableName="test-streams",
             Item={"id": {"S": "entry1"}, "first_col": {"S": "foo"}}
-
         )
         conn.put_item(
             TableName="test-streams",
