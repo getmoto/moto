@@ -170,7 +170,9 @@ class InstanceResponse(BaseResponse):
 
     def describe_instance_credit_specifications(self):
         instance_ids = self._get_multi_param("InstanceId")
-        instance = self.ec2_backend.describe_instance_credit_specifications(instance_ids)
+        instance = self.ec2_backend.describe_instance_credit_specifications(
+            instance_ids
+        )
         template = self.response_template(EC2_DESCRIBE_INSTANCE_CREDIT_SPECIFICATIONS)
         return template.render(instances=instance)
 
