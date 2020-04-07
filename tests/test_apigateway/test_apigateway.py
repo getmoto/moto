@@ -1484,6 +1484,23 @@ def test_deployment():
 
 
 @mock_apigateway
+def test_create_domain_names():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    test_certificate_private_key = "testPrivateKey"
+    response = client.create_domain_name(domainName=domain_name, certificateName=test_certificate_name,
+                                         certificatePrivateKey=test_certificate_private_key)
+
+    response["domainName"].should.equal(domain_name)
+    response["certificateName"].should.equal(test_certificate_name)
+    result = client.get_domain_names()
+    result["items"][0]["domainName"].should.equal(domain_name)
+    result = client.get_domain_name(domainName=domain_name)
+    result["domainName"].should.equal(domain_name)
+
+
+@mock_apigateway
 def test_http_proxying_integration():
     responses.add(
         responses.GET, "http://httpbin.org/robots.txt", body="a fake response"

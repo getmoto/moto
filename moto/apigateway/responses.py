@@ -527,3 +527,62 @@ class APIGatewayResponse(BaseResponse):
                 usage_plan_id, key_id
             )
         return 200, {}, json.dumps(usage_plan_response)
+
+    def domain_names(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        try:
+            if self.method == "GET":
+                domain_names = self.backend.get_domain_names()
+                return 200, {}, json.dumps({"item": domain_names})
+
+            elif self.method == "POST":
+                domain_name = self._get_param("domainName")
+                certificate_name = self._get_param("certificateName")
+                tags = self._get_param("tags")
+                certificate_arn = self._get_param("certificateArn")
+                certificate_body = self._get_param("certificateBody")
+                certificate_private_key = self._get_param(
+                    "certificatePrivateKey"
+                        )
+
+                certificate_chain = self._get_param("certificateChain")
+                regional_certificate_name = self._get_param(
+                    "regionalCertificateName"
+                )
+                regional_certificate_arn = self._get_param(
+                    "regionalCertificateArn"
+                )
+                endpoint_configuration = self._get_param(
+                    "endpointConfiguration"
+                )
+                security_policy = self._get_param("securityPolicy")
+                generate_cli_skeleton = self._get_param(
+                    "generateCliSkeleton"
+                )
+                domain_name_resp = self.backend.create_domain_name(
+                    domain_name, certificate_name, tags, certificate_arn,
+                    certificate_body, certificate_private_key,
+                    certificate_chain, regional_certificate_name,
+                    regional_certificate_arn, endpoint_configuration,
+                    security_policy, generate_cli_skeleton
+                )
+
+                return 200, {}, json.dumps(domain_name_resp)
+        except BadRequestException as e:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
+            )
+
+    def domain_name_induvidual(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+
+        url_path_parts = self.path.split("/")
+        domain_name = url_path_parts[2]
+        domain_names={}
+
+        if self.method == "GET":
+            if domain_name is not None:
+                domain_names = self.backend.get_domain_name(domain_name)
+
+        return 200, {}, json.dumps(domain_names)
