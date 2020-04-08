@@ -11,6 +11,8 @@ from .exceptions import (
     AuthorizerNotFoundException,
     StageNotFoundException,
     ApiKeyAlreadyExists,
+    DomainNameNotFound,
+    InvalidDomainName
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -561,17 +563,22 @@ class APIGatewayResponse(BaseResponse):
                     "generateCliSkeleton"
                 )
                 domain_name_resp = self.backend.create_domain_name(
-                    domain_name, certificate_name, tags, certificate_arn,
-                    certificate_body, certificate_private_key,
-                    certificate_chain, regional_certificate_name,
-                    regional_certificate_arn, endpoint_configuration,
-                    security_policy, generate_cli_skeleton
+                    domain_name, certificate_name,
+                    certificate_private_key,tags, certificate_arn,
+                    certificate_body,  certificate_chain,
+                    regional_certificate_name, regional_certificate_arn,
+                    endpoint_configuration, security_policy,
+                    generate_cli_skeleton
                 )
-
                 return 200, {}, json.dumps(domain_name_resp)
-        except BadRequestException as e:
-            return self.error(
-                "com.amazonaws.dynamodb.v20111205#BadRequestException", e.message
+
+        except InvalidDomainName as error:
+            return (
+                error.code,
+                {},
+                '{{"message":"{0}","code":"{1}"}}'.format(
+                    error.message, error.error_type
+                ),
             )
 
     def domain_name_induvidual(self, request, full_url, headers):
@@ -580,9 +587,19 @@ class APIGatewayResponse(BaseResponse):
         url_path_parts = self.path.split("/")
         domain_name = url_path_parts[2]
         domain_names={}
+        try:
+            if self.method == "GET":
+                if domain_name is not None:
+                    domain_names = self.backend.get_domain_name(domain_name)
+            return 200, {}, json.dumps(domain_names)
 
-        if self.method == "GET":
-            if domain_name is not None:
-                domain_names = self.backend.get_domain_name(domain_name)
+        except DomainNameNotFound as error:
+            return (
+                error.code,
+                {},
+                '{{"message":"{0}","code":"{1}"}}'.format(
+                    error.message, error.error_type
+                ),
+            )
 
-        return 200, {}, json.dumps(domain_names)
+

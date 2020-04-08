@@ -34,7 +34,8 @@ from .exceptions import (
     NoIntegrationDefined,
     NoMethodDefined,
     ApiKeyAlreadyExists,
-    DomainNameNotFound
+    DomainNameNotFound,
+    InvalidDomainName
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -1047,25 +1048,26 @@ class APIGatewayBackend(BaseBackend):
         except Exception:
             return False
 
-    def create_domain_name(self, domain_name,
-                           certificate_name=None, tags=None,
-                           certificate_arn=None, certificate_body=None,
-                           certificate_private_key=None,
+    def create_domain_name(self,domain_name,
+                           certificate_name=None,certificate_private_key=None,
+                           tags=None, certificate_arn=None,
+                           certificate_body=None,
                            certificate_chain=None,
                            regional_certificate_name=None,
                            regional_certificate_arn=None,
                            endpoint_configuration=None,
                            security_policy=None,
                            generate_cli_skeleton=None):
+
         if not domain_name:
-            raise DomainNameNotFound()
+            raise InvalidDomainName()
 
         new_domain_name = DomainName(
             domain_name=domain_name,
             certificate_name=certificate_name,
+            certificate_private_key=certificate_private_key,
             certificate_arn=certificate_arn,
             certificate_body=certificate_body,
-            certificate_private_key=certificate_private_key,
             certificate_chain=certificate_chain,
             regional_certificate_name=regional_certificate_name,
             regional_certificate_arn=regional_certificate_arn,
@@ -1081,7 +1083,11 @@ class APIGatewayBackend(BaseBackend):
         return list(self.domain_names.values())
 
     def get_domain_name(self, domain_name):
-        return self.domain_names[domain_name]
+        domain_info = self.domain_names.get(domain_name)
+        if domain_info is None:
+            raise DomainNameNotFound
+        else:
+            return self.domain_names[domain_name]
 
 
 apigateway_backends = {}
