@@ -546,8 +546,7 @@ class APIGatewayResponse(BaseResponse):
                 certificate_body = self._get_param("certificateBody")
                 certificate_private_key = self._get_param(
                     "certificatePrivateKey"
-                        )
-
+                )
                 certificate_chain = self._get_param("certificateChain")
                 regional_certificate_name = self._get_param(
                     "regionalCertificateName"
@@ -563,12 +562,18 @@ class APIGatewayResponse(BaseResponse):
                     "generateCliSkeleton"
                 )
                 domain_name_resp = self.backend.create_domain_name(
-                    domain_name, certificate_name,
-                    certificate_private_key,tags, certificate_arn,
-                    certificate_body,  certificate_chain,
-                    regional_certificate_name, regional_certificate_arn,
-                    endpoint_configuration, security_policy,
-                    generate_cli_skeleton
+                    domain_name,
+                    certificate_name,
+                    tags,
+                    certificate_arn,
+                    certificate_body,
+                    certificate_private_key,
+                    certificate_chain,
+                    regional_certificate_name,
+                    regional_certificate_arn,
+                    endpoint_configuration,
+                    security_policy,
+                    generate_cli_skeleton,
                 )
                 return 200, {}, json.dumps(domain_name_resp)
 
@@ -592,7 +597,6 @@ class APIGatewayResponse(BaseResponse):
                 if domain_name is not None:
                     domain_names = self.backend.get_domain_name(domain_name)
             return 200, {}, json.dumps(domain_names)
-
         except DomainNameNotFound as error:
             return (
                 error.code,
@@ -601,5 +605,6 @@ class APIGatewayResponse(BaseResponse):
                     error.message, error.error_type
                 ),
             )
+
 
 

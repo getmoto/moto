@@ -1490,10 +1490,11 @@ def test_create_domain_names():
     test_certificate_name = "test.certificate"
     test_certificate_private_key = "testPrivateKey"
     # success case with valid params
-    response = client.create_domain_name(domainName=domain_name,
-                        certificateName=test_certificate_name,
-                        certificatePrivateKey=test_certificate_private_key)
-
+    response = client.create_domain_name(
+        domainName=domain_name,
+        certificateName=test_certificate_name,
+        certificatePrivateKey=test_certificate_private_key,
+    )
     response["domainName"].should.equal(domain_name)
     response["certificateName"].should.equal(test_certificate_name)
     # without domain name it should throw BadRequestException
