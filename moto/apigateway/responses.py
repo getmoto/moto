@@ -542,30 +542,27 @@ class APIGatewayResponse(BaseResponse):
                 tags = self._get_param("tags")
                 certificate_arn = self._get_param("certificateArn")
                 certificate_body = self._get_param("certificateBody")
-                certificate_private_key = self._get_param(
-                    "certificatePrivateKey"
-                        )
+                certificate_private_key = self._get_param("certificatePrivateKey")
 
                 certificate_chain = self._get_param("certificateChain")
-                regional_certificate_name = self._get_param(
-                    "regionalCertificateName"
-                )
-                regional_certificate_arn = self._get_param(
-                    "regionalCertificateArn"
-                )
-                endpoint_configuration = self._get_param(
-                    "endpointConfiguration"
-                )
+                regional_certificate_name = self._get_param("regionalCertificateName")
+                regional_certificate_arn = self._get_param("regionalCertificateArn")
+                endpoint_configuration = self._get_param("endpointConfiguration")
                 security_policy = self._get_param("securityPolicy")
-                generate_cli_skeleton = self._get_param(
-                    "generateCliSkeleton"
-                )
+                generate_cli_skeleton = self._get_param("generateCliSkeleton")
                 domain_name_resp = self.backend.create_domain_name(
-                    domain_name, certificate_name, tags, certificate_arn,
-                    certificate_body, certificate_private_key,
-                    certificate_chain, regional_certificate_name,
-                    regional_certificate_arn, endpoint_configuration,
-                    security_policy, generate_cli_skeleton
+                    domain_name,
+                    certificate_name,
+                    tags,
+                    certificate_arn,
+                    certificate_body,
+                    certificate_private_key,
+                    certificate_chain,
+                    regional_certificate_name,
+                    regional_certificate_arn,
+                    endpoint_configuration,
+                    security_policy,
+                    generate_cli_skeleton,
                 )
 
                 return 200, {}, json.dumps(domain_name_resp)
@@ -579,7 +576,7 @@ class APIGatewayResponse(BaseResponse):
 
         url_path_parts = self.path.split("/")
         domain_name = url_path_parts[2]
-        domain_names={}
+        domain_names = {}
 
         if self.method == "GET":
             if domain_name is not None:

@@ -120,6 +120,7 @@ class ApiKeyAlreadyExists(RESTError):
             "ConflictException", "API Key already exists"
         )
 
+
 class DomainNameNotFound(RESTError):
     code = 404
 

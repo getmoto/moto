@@ -34,7 +34,7 @@ from .exceptions import (
     NoIntegrationDefined,
     NoMethodDefined,
     ApiKeyAlreadyExists,
-    DomainNameNotFound
+    DomainNameNotFound,
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -609,12 +609,12 @@ class RestAPI(BaseModel):
         return self.deployments.pop(deployment_id)
 
 
-class DomainName(BaseModel,dict):
+class DomainName(BaseModel, dict):
     def __init__(self, domain_name, **kwargs):
         super(DomainName, self).__init__()
         self["domainName"] = domain_name
-        self["regionalDomainName"] = domain_name,
-        self["distributionDomainName"] = domain_name,
+        self["regionalDomainName"] = domain_name
+        self["distributionDomainName"] = domain_name
         self["domainNameStatus"] = "AVAILABLE"
         self["domainNameStatusMessage"] = "Domain Name Available"
         self["regionalHostedZoneId"] = "Z2FDTNDATAQYW2"
@@ -627,31 +627,21 @@ class DomainName(BaseModel,dict):
         if kwargs.get("certificate_body"):
             self["certificateBody"] = kwargs.get("certificate_body")
         if kwargs.get("tags"):
-            self["tags"] = kwargs.get("tags" )
+            self["tags"] = kwargs.get("tags")
         if kwargs.get("security_policy"):
             self["securityPolicy"] = kwargs.get("security_policy")
         if kwargs.get("certificate_chain"):
             self["certificateChain"] = kwargs.get("certificate_chain")
         if kwargs.get("regional_certificate_name"):
-            self["regionalCertificateName"] = kwargs.get(
-                "regional_certificate_name"
-            )
+            self["regionalCertificateName"] = kwargs.get("regional_certificate_name")
         if kwargs.get("certificate_private_key"):
-            self["certificatePrivateKey"] = kwargs.get(
-                "certificate_private_key"
-            )
+            self["certificatePrivateKey"] = kwargs.get("certificate_private_key")
         if kwargs.get("regional_certificate_arn"):
-            self["regionalCertificateArn"] = kwargs.get(
-                "regional_certificate_arn"
-            )
+            self["regionalCertificateArn"] = kwargs.get("regional_certificate_arn")
         if kwargs.get("endpoint_configuration"):
-            self["endpointConfiguration"] = kwargs.get(
-                "endpoint_configuration"
-            )
+            self["endpointConfiguration"] = kwargs.get("endpoint_configuration")
         if kwargs.get("generate_cli_skeleton"):
-            self["generateCliSkeleton"] = kwargs.get(
-                "generate_cli_skeleton"
-            )
+            self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
 
 
 class APIGatewayBackend(BaseBackend):
@@ -1047,16 +1037,21 @@ class APIGatewayBackend(BaseBackend):
         except Exception:
             return False
 
-    def create_domain_name(self, domain_name,
-                           certificate_name=None, tags=None,
-                           certificate_arn=None, certificate_body=None,
-                           certificate_private_key=None,
-                           certificate_chain=None,
-                           regional_certificate_name=None,
-                           regional_certificate_arn=None,
-                           endpoint_configuration=None,
-                           security_policy=None,
-                           generate_cli_skeleton=None):
+    def create_domain_name(
+        self,
+        domain_name,
+        certificate_name=None,
+        tags=None,
+        certificate_arn=None,
+        certificate_body=None,
+        certificate_private_key=None,
+        certificate_chain=None,
+        regional_certificate_name=None,
+        regional_certificate_arn=None,
+        endpoint_configuration=None,
+        security_policy=None,
+        generate_cli_skeleton=None,
+    ):
         if not domain_name:
             raise DomainNameNotFound()
 
@@ -1070,7 +1065,8 @@ class APIGatewayBackend(BaseBackend):
             regional_certificate_name=regional_certificate_name,
             regional_certificate_arn=regional_certificate_arn,
             endpoint_configuration=endpoint_configuration,
-            tags=tags, security_policy=security_policy,
+            tags=tags,
+            security_policy=security_policy,
             generate_cli_skeleton=generate_cli_skeleton,
         )
 
