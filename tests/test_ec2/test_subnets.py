@@ -603,46 +603,16 @@ def validate_subnet_details_after_creating_eni(
 
 @mock_ec2
 def test_run_instances_should_attach_to_default_subnet():
+    # https://github.com/spulec/moto/issues/2877
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     ec2.create_security_group(GroupName="sg01", Description="Test security group sg01")
     # run_instances
-    instances = client.run_instances(
-        MinCount=1,
-        MaxCount=1,
-        SecurityGroups=["sg01"],
-        TagSpecifications=[
-            {
-                "ResourceType": "instance",
-                "Tags": [{"Key": "Name", "Value": "test-01"},],
-            }
-        ],
-    )
-    default_subnet_id = client.describe_subnets()["Subnets"][0]["SubnetId"]
+    instances = client.run_instances(MinCount=1, MaxCount=1, SecurityGroups=["sg01"],)
+    # Assert subnet is created appropriately
+    subnets = client.describe_subnets()["Subnets"]
+    default_subnet_id = subnets[0]["SubnetId"]
     instances["Instances"][0]["NetworkInterfaces"][0]["SubnetId"].should.equal(
         default_subnet_id
     )
-
-
-@mock_ec2
-def test_describe_subnets_where_network_interface_has_no_subnets_attached():
-    # https://github.com/spulec/moto/issues/2877
-    # create security groups
-    ec2 = boto3.resource("ec2", region_name="us-west-1")
-    client = boto3.client("ec2", region_name="us-west-1")
-    ec2.create_security_group(GroupName="sg01", Description="Test security group sg01")
-    # run_instances
-    client.run_instances(
-        MinCount=1,
-        MaxCount=1,
-        SecurityGroups=["sg01"],
-        TagSpecifications=[
-            {
-                "ResourceType": "instance",
-                "Tags": [{"Key": "Name", "Value": "test-01"},],
-            }
-        ],
-    )
-    # describe_subnets
-    subnets = client.describe_subnets()["Subnets"]
     subnets[0]["AvailableIpAddressCount"].should.equal(4090)
