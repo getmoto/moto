@@ -591,7 +591,7 @@ class APIGatewayResponse(BaseResponse):
 
         url_path_parts = self.path.split("/")
         domain_name = url_path_parts[2]
-        domain_names={}
+        domain_names = {}
         try:
             if self.method == "GET":
                 if domain_name is not None:
@@ -605,6 +605,3 @@ class APIGatewayResponse(BaseResponse):
                     error.message, error.error_type
                 ),
             )
-
-
-
