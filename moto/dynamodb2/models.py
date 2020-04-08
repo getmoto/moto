@@ -1406,9 +1406,9 @@ class DynamoDBBackend(BaseBackend):
         table_name,
         key,
         update_expression,
-        attribute_updates,
         expression_attribute_names,
         expression_attribute_values,
+        attribute_updates=None,
         expected=None,
         condition_expression=None,
     ):
@@ -1515,6 +1515,94 @@ class DynamoDBBackend(BaseBackend):
             raise JsonRESTError("ResourceNotFound", "Table not found")
 
         return table.ttl
+
+    def transact_write_items(self, transact_items):
+        # Create a backup in case any of the transactions fail
+        original_table_state = copy.deepcopy(self.tables)
+        try:
+            for item in transact_items:
+                if "ConditionCheck" in item:
+                    item = item["ConditionCheck"]
+                    key = item["Key"]
+                    table_name = item["TableName"]
+                    condition_expression = item.get("ConditionExpression", None)
+                    expression_attribute_names = item.get(
+                        "ExpressionAttributeNames", None
+                    )
+                    expression_attribute_values = item.get(
+                        "ExpressionAttributeValues", None
+                    )
+                    current = self.get_item(table_name, key)
+
+                    condition_op = get_filter_expression(
+                        condition_expression,
+                        expression_attribute_names,
+                        expression_attribute_values,
+                    )
+                    if not condition_op.expr(current):
+                        raise ValueError("The conditional request failed")
+                elif "Put" in item:
+                    item = item["Put"]
+                    attrs = item["Item"]
+                    table_name = item["TableName"]
+                    condition_expression = item.get("ConditionExpression", None)
+                    expression_attribute_names = item.get(
+                        "ExpressionAttributeNames", None
+                    )
+                    expression_attribute_values = item.get(
+                        "ExpressionAttributeValues", None
+                    )
+                    self.put_item(
+                        table_name,
+                        attrs,
+                        condition_expression=condition_expression,
+                        expression_attribute_names=expression_attribute_names,
+                        expression_attribute_values=expression_attribute_values,
+                    )
+                elif "Delete" in item:
+                    item = item["Delete"]
+                    key = item["Key"]
+                    table_name = item["TableName"]
+                    condition_expression = item.get("ConditionExpression", None)
+                    expression_attribute_names = item.get(
+                        "ExpressionAttributeNames", None
+                    )
+                    expression_attribute_values = item.get(
+                        "ExpressionAttributeValues", None
+                    )
+                    self.delete_item(
+                        table_name,
+                        key,
+                        condition_expression=condition_expression,
+                        expression_attribute_names=expression_attribute_names,
+                        expression_attribute_values=expression_attribute_values,
+                    )
+                elif "Update" in item:
+                    item = item["Update"]
+                    key = item["Key"]
+                    table_name = item["TableName"]
+                    update_expression = item["UpdateExpression"]
+                    condition_expression = item.get("ConditionExpression", None)
+                    expression_attribute_names = item.get(
+                        "ExpressionAttributeNames", None
+                    )
+                    expression_attribute_values = item.get(
+                        "ExpressionAttributeValues", None
+                    )
+                    self.update_item(
+                        table_name,
+                        key,
+                        update_expression=update_expression,
+                        condition_expression=condition_expression,
+                        expression_attribute_names=expression_attribute_names,
+                        expression_attribute_values=expression_attribute_values,
+                    )
+                else:
+                    raise ValueError
+        except:  # noqa: E722 Do not use bare except
+            # Rollback to the original state, and reraise the error
+            self.tables = original_table_state
+            raise
 
 
 dynamodb_backends = {}

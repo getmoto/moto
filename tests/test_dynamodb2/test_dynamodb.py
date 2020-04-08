@@ -4177,3 +4177,355 @@ def test_gsi_verify_negative_number_order():
     [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
         [-0.7, -0.6, 0.7]
     )
+
+
+@mock_dynamodb2
+def test_transact_write_items_put():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Put multiple items
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {
+                "Put": {
+                    "Item": {"id": {"S": "foo{}".format(str(i))}, "foo": {"S": "bar"},},
+                    "TableName": "test-table",
+                }
+            }
+            for i in range(0, 5)
+        ]
+    )
+    # Assert all are present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(5)
+
+
+@mock_dynamodb2
+def test_transact_write_items_put_conditional_expressions():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    dynamodb.put_item(
+        TableName="test-table", Item={"id": {"S": "foo2"},},
+    )
+    # Put multiple items
+    with assert_raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {
+                            "id": {"S": "foo{}".format(str(i))},
+                            "foo": {"S": "bar"},
+                        },
+                        "TableName": "test-table",
+                        "ConditionExpression": "#i <> :i",
+                        "ExpressionAttributeNames": {"#i": "id"},
+                        "ExpressionAttributeValues": {
+                            ":i": {
+                                "S": "foo2"
+                            }  # This item already exist, so the ConditionExpression should fail
+                        },
+                    }
+                }
+                for i in range(0, 5)
+            ]
+        )
+    # Assert the exception is correct
+    ex.exception.response["Error"]["Code"].should.equal(
+        "ConditionalCheckFailedException"
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "A condition specified in the operation could not be evaluated."
+    )
+    # Assert all are present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"id": {"S": "foo2"}})
+
+
+@mock_dynamodb2
+def test_transact_write_items_conditioncheck_passes():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item without email address
+    dynamodb.put_item(
+        TableName="test-table", Item={"id": {"S": "foo"},},
+    )
+    # Put an email address, after verifying it doesn't exist yet
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {
+                "ConditionCheck": {
+                    "Key": {"id": {"S": "foo"}},
+                    "TableName": "test-table",
+                    "ConditionExpression": "attribute_not_exists(#e)",
+                    "ExpressionAttributeNames": {"#e": "email_address"},
+                }
+            },
+            {
+                "Put": {
+                    "Item": {
+                        "id": {"S": "foo"},
+                        "email_address": {"S": "test@moto.com"},
+                    },
+                    "TableName": "test-table",
+                }
+            },
+        ]
+    )
+    # Assert all are present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+
+
+@mock_dynamodb2
+def test_transact_write_items_conditioncheck_fails():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item with email address
+    dynamodb.put_item(
+        TableName="test-table",
+        Item={"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}},
+    )
+    # Try to put an email address, but verify whether it exists
+    # ConditionCheck should fail
+    with assert_raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "ConditionCheck": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": "test-table",
+                        "ConditionExpression": "attribute_not_exists(#e)",
+                        "ExpressionAttributeNames": {"#e": "email_address"},
+                    }
+                },
+                {
+                    "Put": {
+                        "Item": {
+                            "id": {"S": "foo"},
+                            "email_address": {"S": "update@moto.com"},
+                        },
+                        "TableName": "test-table",
+                    }
+                },
+            ]
+        )
+    # Assert the exception is correct
+    ex.exception.response["Error"]["Code"].should.equal(
+        "ConditionalCheckFailedException"
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "A condition specified in the operation could not be evaluated."
+    )
+
+    # Assert the original email address is still present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+
+
+@mock_dynamodb2
+def test_transact_write_items_delete():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item
+    dynamodb.put_item(
+        TableName="test-table", Item={"id": {"S": "foo"},},
+    )
+    # Delete the item
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {"Delete": {"Key": {"id": {"S": "foo"}}, "TableName": "test-table",}}
+        ]
+    )
+    # Assert the item is deleted
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_transact_write_items_delete_with_successful_condition_expression():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item without email address
+    dynamodb.put_item(
+        TableName="test-table", Item={"id": {"S": "foo"},},
+    )
+    # ConditionExpression will pass - no email address has been specified yet
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {
+                "Delete": {
+                    "Key": {"id": {"S": "foo"},},
+                    "TableName": "test-table",
+                    "ConditionExpression": "attribute_not_exists(#e)",
+                    "ExpressionAttributeNames": {"#e": "email_address"},
+                }
+            }
+        ]
+    )
+    # Assert the item is deleted
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(0)
+
+
+@mock_dynamodb2
+def test_transact_write_items_delete_with_failed_condition_expression():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item with email address
+    dynamodb.put_item(
+        TableName="test-table",
+        Item={"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}},
+    )
+    # Try to delete an item that does not have an email address
+    # ConditionCheck should fail
+    with assert_raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Delete": {
+                        "Key": {"id": {"S": "foo"},},
+                        "TableName": "test-table",
+                        "ConditionExpression": "attribute_not_exists(#e)",
+                        "ExpressionAttributeNames": {"#e": "email_address"},
+                    }
+                }
+            ]
+        )
+    # Assert the exception is correct
+    ex.exception.response["Error"]["Code"].should.equal(
+        "ConditionalCheckFailedException"
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "A condition specified in the operation could not be evaluated."
+    )
+    # Assert the original item is still present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+
+
+@mock_dynamodb2
+def test_transact_write_items_update():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item
+    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    # Update the item
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {
+                "Update": {
+                    "Key": {"id": {"S": "foo"}},
+                    "TableName": "test-table",
+                    "UpdateExpression": "SET #e = :v",
+                    "ExpressionAttributeNames": {"#e": "email_address"},
+                    "ExpressionAttributeValues": {":v": {"S": "test@moto.com"}},
+                }
+            }
+        ]
+    )
+    # Assert the item is updated
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}})
+
+
+@mock_dynamodb2
+def test_transact_write_items_update_with_failed_condition_expression():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert an item with email address
+    dynamodb.put_item(
+        TableName="test-table",
+        Item={"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}},
+    )
+    # Try to update an item that does not have an email address
+    # ConditionCheck should fail
+    with assert_raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": "test-table",
+                        "UpdateExpression": "SET #e = :v",
+                        "ConditionExpression": "attribute_not_exists(#e)",
+                        "ExpressionAttributeNames": {"#e": "email_address"},
+                        "ExpressionAttributeValues": {":v": {"S": "update@moto.com"}},
+                    }
+                }
+            ]
+        )
+    # Assert the exception is correct
+    ex.exception.response["Error"]["Code"].should.equal(
+        "ConditionalCheckFailedException"
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "A condition specified in the operation could not be evaluated."
+    )
+    # Assert the original item is still present
+    items = dynamodb.scan(TableName="test-table")["Items"]
+    items.should.have.length_of(1)
+    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
