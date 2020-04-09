@@ -1501,10 +1501,8 @@ def test_create_domain_names():
     with assert_raises(ClientError) as ex:
         client.create_domain_name(domainName="")
 
-    ex.exception.response["Error"]["Message"].should.equal(
-        "No Domain Name specified")
-    ex.exception.response["Error"]["Code"].should.equal(
-        "BadRequestException")
+    ex.exception.response["Error"]["Message"].should.equal("No Domain Name specified")
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
 
 
 @mock_apigateway
@@ -1515,8 +1513,9 @@ def test_get_domain_names():
     result["items"].should.equal([])
     domain_name = "testDomain"
     test_certificate_name = "test.certificate"
-    response = client.create_domain_name(domainName=domain_name,
-                        certificateName=test_certificate_name)
+    response = client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
 
     response["domainName"].should.equal(domain_name)
     response["certificateName"].should.equal(test_certificate_name)
@@ -1537,9 +1536,9 @@ def test_get_domain_name():
         client.get_domain_name(domainName=domain_name)
 
     ex.exception.response["Error"]["Message"].should.equal(
-        "Invalid Domain Name specified")
-    ex.exception.response["Error"]["Code"].should.equal(
-        "NotFoundException")
+        "Invalid Domain Name specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
     # adding a domain name
     client.create_domain_name(domainName=domain_name)
     # retrieving the data of added domain name.

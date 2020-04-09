@@ -35,7 +35,7 @@ from .exceptions import (
     NoMethodDefined,
     ApiKeyAlreadyExists,
     DomainNameNotFound,
-    InvalidDomainName
+    InvalidDomainName,
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"

@@ -12,7 +12,7 @@ from .exceptions import (
     StageNotFoundException,
     ApiKeyAlreadyExists,
     DomainNameNotFound,
-    InvalidDomainName
+    InvalidDomainName,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -544,23 +544,13 @@ class APIGatewayResponse(BaseResponse):
                 tags = self._get_param("tags")
                 certificate_arn = self._get_param("certificateArn")
                 certificate_body = self._get_param("certificateBody")
-                certificate_private_key = self._get_param(
-                    "certificatePrivateKey"
-                )
+                certificate_private_key = self._get_param("certificatePrivateKey")
                 certificate_chain = self._get_param("certificateChain")
-                regional_certificate_name = self._get_param(
-                    "regionalCertificateName"
-                )
-                regional_certificate_arn = self._get_param(
-                    "regionalCertificateArn"
-                )
-                endpoint_configuration = self._get_param(
-                    "endpointConfiguration"
-                )
+                regional_certificate_name = self._get_param("regionalCertificateName")
+                regional_certificate_arn = self._get_param("regionalCertificateArn")
+                endpoint_configuration = self._get_param("endpointConfiguration")
                 security_policy = self._get_param("securityPolicy")
-                generate_cli_skeleton = self._get_param(
-                    "generateCliSkeleton"
-                )
+                generate_cli_skeleton = self._get_param("generateCliSkeleton")
                 domain_name_resp = self.backend.create_domain_name(
                     domain_name,
                     certificate_name,
