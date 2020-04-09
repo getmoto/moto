@@ -34,6 +34,8 @@ from .exceptions import (
     NoIntegrationDefined,
     NoMethodDefined,
     ApiKeyAlreadyExists,
+    DomainNameNotFound,
+    InvalidDomainName,
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -463,7 +465,6 @@ class RestAPI(BaseModel):
         self.deployments = {}
         self.authorizers = {}
         self.stages = {}
-
         self.resources = {}
         self.add_child("/")  # Add default child
 
@@ -609,6 +610,41 @@ class RestAPI(BaseModel):
         return self.deployments.pop(deployment_id)
 
 
+class DomainName(BaseModel, dict):
+    def __init__(self, domain_name, **kwargs):
+        super(DomainName, self).__init__()
+        self["domainName"] = domain_name
+        self["regionalDomainName"] = domain_name
+        self["distributionDomainName"] = domain_name
+        self["domainNameStatus"] = "AVAILABLE"
+        self["domainNameStatusMessage"] = "Domain Name Available"
+        self["regionalHostedZoneId"] = "Z2FDTNDATAQYW2"
+        self["distributionHostedZoneId"] = "Z2FDTNDATAQYW2"
+        self["certificateUploadDate"] = int(time.time())
+        if kwargs.get("certificate_name"):
+            self["certificateName"] = kwargs.get("certificate_name")
+        if kwargs.get("certificate_arn"):
+            self["certificateArn"] = kwargs.get("certificate_arn")
+        if kwargs.get("certificate_body"):
+            self["certificateBody"] = kwargs.get("certificate_body")
+        if kwargs.get("tags"):
+            self["tags"] = kwargs.get("tags")
+        if kwargs.get("security_policy"):
+            self["securityPolicy"] = kwargs.get("security_policy")
+        if kwargs.get("certificate_chain"):
+            self["certificateChain"] = kwargs.get("certificate_chain")
+        if kwargs.get("regional_certificate_name"):
+            self["regionalCertificateName"] = kwargs.get("regional_certificate_name")
+        if kwargs.get("certificate_private_key"):
+            self["certificatePrivateKey"] = kwargs.get("certificate_private_key")
+        if kwargs.get("regional_certificate_arn"):
+            self["regionalCertificateArn"] = kwargs.get("regional_certificate_arn")
+        if kwargs.get("endpoint_configuration"):
+            self["endpointConfiguration"] = kwargs.get("endpoint_configuration")
+        if kwargs.get("generate_cli_skeleton"):
+            self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
+
+
 class APIGatewayBackend(BaseBackend):
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
@@ -616,6 +652,7 @@ class APIGatewayBackend(BaseBackend):
         self.keys = {}
         self.usage_plans = {}
         self.usage_plan_keys = {}
+        self.domain_names = {}
         self.region_name = region_name
 
     def reset(self):
@@ -1000,6 +1037,53 @@ class APIGatewayBackend(BaseBackend):
             return all([result.scheme, result.netloc, result.path])
         except Exception:
             return False
+
+    def create_domain_name(
+        self,
+        domain_name,
+        certificate_name=None,
+        tags=None,
+        certificate_arn=None,
+        certificate_body=None,
+        certificate_private_key=None,
+        certificate_chain=None,
+        regional_certificate_name=None,
+        regional_certificate_arn=None,
+        endpoint_configuration=None,
+        security_policy=None,
+        generate_cli_skeleton=None,
+    ):
+
+        if not domain_name:
+            raise InvalidDomainName()
+
+        new_domain_name = DomainName(
+            domain_name=domain_name,
+            certificate_name=certificate_name,
+            certificate_private_key=certificate_private_key,
+            certificate_arn=certificate_arn,
+            certificate_body=certificate_body,
+            certificate_chain=certificate_chain,
+            regional_certificate_name=regional_certificate_name,
+            regional_certificate_arn=regional_certificate_arn,
+            endpoint_configuration=endpoint_configuration,
+            tags=tags,
+            security_policy=security_policy,
+            generate_cli_skeleton=generate_cli_skeleton,
+        )
+
+        self.domain_names[domain_name] = new_domain_name
+        return new_domain_name
+
+    def get_domain_names(self):
+        return list(self.domain_names.values())
+
+    def get_domain_name(self, domain_name):
+        domain_info = self.domain_names.get(domain_name)
+        if domain_info is None:
+            raise DomainNameNotFound
+        else:
+            return self.domain_names[domain_name]
 
 
 apigateway_backends = {}

@@ -119,3 +119,21 @@ class ApiKeyAlreadyExists(RESTError):
         super(ApiKeyAlreadyExists, self).__init__(
             "ConflictException", "API Key already exists"
         )
+
+
+class InvalidDomainName(BadRequestException):
+    code = 404
+
+    def __init__(self):
+        super(InvalidDomainName, self).__init__(
+            "BadRequestException", "No Domain Name specified"
+        )
+
+
+class DomainNameNotFound(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(DomainNameNotFound, self).__init__(
+            "NotFoundException", "Invalid Domain Name specified"
+        )
