@@ -125,7 +125,7 @@ class DBParameterGroupBackend(BaseRDSBackend):
     def modify_db_parameter_group(self, db_parameter_group_name, parameters):
         db_parameter_group = self.get_db_parameter_group(db_parameter_group_name)
         db_parameter_group.update_parameters(parameters)
-        return {'db_parameter_group_name': db_parameter_group_name}
+        return db_parameter_group_name
 
     def describe_db_parameters(self, db_parameter_group_name=None, **kwargs):
         db_parameter_group = self.get_db_parameter_group(db_parameter_group_name)
