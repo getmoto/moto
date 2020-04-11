@@ -1,4 +1,5 @@
 import re
+import sys
 
 from moto.dynamodb2.exceptions import (
     InvalidTokenException,
@@ -148,8 +149,16 @@ class ExpressionTokenizer(object):
         self.staged_characters = ""
 
     @classmethod
+    def is_py2(cls):
+        return sys.version_info[0] == 2
+
+    @classmethod
     def make_list(cls, input_expression_str):
-        assert isinstance(input_expression_str, str)
+        if cls.is_py2():
+            pass
+        else:
+            assert isinstance(input_expression_str, str)
+
         return ExpressionTokenizer(input_expression_str)._make_list()
 
     def add_token(self, token_type, token_value):
@@ -159,6 +168,10 @@ class ExpressionTokenizer(object):
         self.add_token(token_type, self.staged_characters)
         self.staged_characters = ""
 
+    @classmethod
+    def is_numeric(cls, input_str):
+        return re.compile("[0-9]+").match(input_str) is not None
+
     def process_staged_characters(self):
         if len(self.staged_characters) == 0:
             return
@@ -167,7 +180,7 @@ class ExpressionTokenizer(object):
                 self.add_token_from_stage(Token.ATTRIBUTE_NAME)
             else:
                 raise InvalidExpressionAttributeNameKey(self.staged_characters)
-        elif self.staged_characters.isnumeric():
+        elif self.is_numeric(self.staged_characters):
             self.add_token_from_stage(Token.NUMBER)
         elif self.is_expression_attribute(self.staged_characters):
             self.add_token_from_stage(Token.ATTRIBUTE)

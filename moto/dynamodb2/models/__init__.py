@@ -14,10 +14,11 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
-from moto.dynamodb2.comparisons import get_expected
-from moto.dynamodb2.exceptions import InvalidIndexNameError, ItemSizeTooLarge
+from moto.dynamodb2.comparisons import get_expected, get_comparison_func
+from moto.dynamodb2.exceptions import InvalidIndexNameError, ItemSizeTooLarge, InvalidUpdateExpression
 from moto.dynamodb2.models.utilities import bytesize, attribute_is_list
 from moto.dynamodb2.models.dynamo_type import DynamoType
+from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -1196,6 +1197,13 @@ class DynamoDBBackend(BaseBackend):
         condition_expression=None,
     ):
         table = self.get_table(table_name)
+
+        # Support spaces between operators in an update expression
+        # E.g. `a = b + c` -> `a=b+c`
+        if update_expression:
+            # Parse expression to get validation errors
+            UpdateExpressionParser.make(update_expression)
+            update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
             # Covers cases where table has hash and range keys, ``key`` param

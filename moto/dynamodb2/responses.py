@@ -748,11 +748,6 @@ class DynamoHandler(BaseResponse):
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
-        # Support spaces between operators in an update expression
-        # E.g. `a = b + c` -> `a=b+c`
-        if update_expression:
-            update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
-
         try:
             item = self.dynamodb_backend.update_item(
                 name,

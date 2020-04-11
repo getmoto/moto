@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+import re
 from decimal import Decimal
 
 import six
@@ -4177,3 +4178,70 @@ def test_gsi_verify_negative_number_order():
     [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
         [-0.7, -0.6, 0.7]
     )
+
+
+def assert_raise_syntax_error(client_error, token, near):
+    """
+    Assert whether a client_error is as expected Syntax error. Syntax error looks like: `syntax_error_template`
+
+    Args:
+        client_error(ClientError): The ClientError exception that was raised
+        token(str): The token that ws unexpected
+        near(str): The part in the expression that shows where the error occurs it generally has the preceding token the
+        optional separation and the problematic token.
+    """
+    syntax_error_template = (
+        'Invalid UpdateExpression: Syntax error; token: "{token}", near: "{near}"'
+    )
+    expected_syntax_error = syntax_error_template.format(token=token, near=near)
+    assert client_error.response["Error"]["Code"] == "ValidationException"
+    assert expected_syntax_error == client_error.response["Error"]["Message"]
+
+
+@mock_dynamodb2
+def test_update_expression_with_numeric_literal_instead_of_value():
+    """
+    DynamoDB requires literals to be passed in as values. If they are put literally in the expression a token error will
+    be raised
+    """
+    dynamodb = boto3.client("dynamodb", region_name="eu-west-1")
+
+    dynamodb.create_table(
+        TableName="moto-test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+    )
+
+    try:
+        dynamodb.update_item(
+            TableName="moto-test",
+            Key={"id": {"S": "1"}},
+            UpdateExpression="SET MyStr = myNum + 1",
+        )
+        assert False, "Validation exception not thrown"
+    except dynamodb.exceptions.ClientError as e:
+        assert_raise_syntax_error(e, "1", "+ 1")
+
+
+@mock_dynamodb2
+def test_update_expression_with_multiple_set_clauses_must_be_comma_separated():
+    """
+    An UpdateExpression can have multiple set clauses but if they are passed in without the separating comma.
+    """
+    dynamodb = boto3.client("dynamodb", region_name="eu-west-1")
+
+    dynamodb.create_table(
+        TableName="moto-test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+    )
+
+    try:
+        dynamodb.update_item(
+            TableName="moto-test",
+            Key={"id": {"S": "1"}},
+            UpdateExpression="SET MyStr = myNum Mystr2 myNum2",
+        )
+        assert False, "Validation exception not thrown"
+    except dynamodb.exceptions.ClientError as e:
+        assert_raise_syntax_error(e, "Mystr2", "myNum Mystr2 myNum2")
