@@ -874,7 +874,9 @@ def test_describe_autoscaling_instances_instanceid_filter():
         for instance in response["AutoScalingGroups"][0]["Instances"]
     ]
 
-    response = client.describe_auto_scaling_instances(InstanceIds=instance_ids[0:2])  # Filter by first 2 of 5
+    response = client.describe_auto_scaling_instances(
+        InstanceIds=instance_ids[0:2]
+    )  # Filter by first 2 of 5
     len(response["AutoScalingInstances"]).should.equal(2)
     for instance in response["AutoScalingInstances"]:
         instance["AutoScalingGroupName"].should.equal("test_asg")

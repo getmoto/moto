@@ -659,7 +659,11 @@ class AutoScalingBackend(BaseBackend):
         instance_states = []
         for group in self.autoscaling_groups.values():
             instance_states.extend(
-                [x for x in group.instance_states if not instance_ids or x.instance.id in instance_ids]
+                [
+                    x
+                    for x in group.instance_states
+                    if not instance_ids or x.instance.id in instance_ids
+                ]
             )
         return instance_states
 
