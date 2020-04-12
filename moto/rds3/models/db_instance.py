@@ -36,6 +36,7 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
                  port,
                  allocated_storage=10,
                  backup_retention_period=1,
+                 character_set_name=None,
                  auto_minor_version_upgrade=True,
                  db_name=None,
                  db_security_groups=None,
@@ -60,50 +61,20 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
                  vpc_security_group_ids=None,
                  **kwargs):
         super(DBInstance, self).__init__(backend)
-        # TODO: If cluster identifier is passed in a lot of the settings have to come
-        # from the cluster...not the kwargs
+
         self.db_instance_identifier = identifier
         self.status = "available"
 
         self.engine = engine
-        self.engine_version = engine_version
 
         self.port = port
         self.db_name = db_name
 
         self.iops = iops
-        self.storage_type = 'io1' if self.iops else storage_type
 
-        self.storage_encrypted = storage_encrypted
-        if self.storage_encrypted:
-            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
-        else:
-            self.kms_key_id = kwargs.get("kms_key_id")
-
-        self.master_username = master_username
-        self.master_user_password = master_user_password
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
-        self.allocated_storage = allocated_storage
-        if max_allocated_storage is not None:
-            self.max_allocated_storage = max_allocated_storage
-        else:
-            self.max_allocated_storage = self.allocated_storage
-        self.db_cluster_identifier = db_cluster_identifier
-        self.is_cluster_writer = False
-        if 'character_set_name' in kwargs and kwargs['character_set_name']:
-            self.character_set_name = kwargs.get('character_set_name')
-        # TODO: I think we need to move this up and rethink some
-        # of this stuff that's not applicable for Aurora.
-        if self.db_cluster_identifier:
-            cluster = self.backend.get_db_cluster(self.db_cluster_identifier)
-            if not cluster.members:
-                self.is_cluster_writer = True
-            self.db_name = cluster.database_name
-            self.storage_encrypted = cluster.storage_encrypted
-            self.engine_version = cluster.engine_version
-            if hasattr(cluster, 'character_set_name'):
-                self.character_set_name = cluster.character_set_name
 
+        self.preferred_maintenance_window = preferred_maintenance_window
         self.promotion_tier = promotion_tier
         self.read_replica_source_db_instance_identifier = source_db_instance_identifier
         self.db_instance_class = db_instance_class
@@ -112,7 +83,6 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
         if self.publicly_accessible is None:
             self.publicly_accessible = False if db_subnet_group else True
 
-        self.backup_retention_period = backup_retention_period
         self.availability_zone = availability_zone
 
         self.multi_az = multi_az
@@ -120,16 +90,14 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.db_subnet_group = db_subnet_group
 
         self._db_security_groups = db_security_groups or []
-        self.vpc_security_group_ids = vpc_security_group_ids or []
-        self.preferred_maintenance_window = preferred_maintenance_window
 
         if db_parameter_group_name is None:
-            self.db_parameter_group_name = utils.default_db_parameter_group_name(self.engine, self.engine_version)
+            self.db_parameter_group_name = utils.default_db_parameter_group_name(self.engine, engine_version)
         else:
             self.db_parameter_group_name = db_parameter_group_name
 
         self._db_parameter_groups = [{'name': self.db_parameter_group_name, 'status': 'in-sync'}]
-        self.preferred_backup_window = preferred_backup_window
+
         self.license_model = license_model
 
         self.option_group_name = option_group_name
@@ -140,6 +108,29 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
             self.add_tags(tags)
 
         self.log_file_manager = LogFileManager(self.engine)
+
+        self.db_cluster_identifier = db_cluster_identifier
+        if self.db_cluster_identifier is None:
+            self.allocated_storage = allocated_storage
+            if max_allocated_storage is not None:
+                self.max_allocated_storage = max_allocated_storage
+            else:
+                self.max_allocated_storage = self.allocated_storage
+            self.storage_type = 'io1' if self.iops else storage_type
+            self.storage_encrypted = storage_encrypted
+            if self.storage_encrypted:
+                self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+            else:
+                self.kms_key_id = kwargs.get("kms_key_id")
+            self.backup_retention_period = backup_retention_period
+            self.character_set_name = character_set_name
+            self.engine_version = engine_version
+            self.master_username = master_username
+            self.master_user_password = master_user_password
+            self.preferred_backup_window = preferred_backup_window
+            self.vpc_security_group_ids = vpc_security_group_ids or []
+        # else:
+        # TODO: Raise errors if any of these values are passed to clustered instance?
 
     @property
     def resource_id(self):
@@ -228,125 +219,6 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
             raise InvalidParameterCombination('Max storage size must be greater than storage size')
         self._max_allocated_storage = value
 
-    # @property
-    # def db_subnet_group(self):
-    #     return {
-    #         'db_subnet_group_name': self.db_subnet_group.subnet_name,
-    #         'db_subnet_group_description': self.db_subnet_group.description,
-    #         'SubnetGroupStatus': self.db_subnet_group.status,
-    #         'Subnets': {
-    #             'Subnet': [
-    #                 {
-    #                     'SubnetStatus': 'Active',
-    #                     'SubnetIdentifier': subnet.id,
-    #                     'SubnetAvailabilityZone': {
-    #                         'Name': subnet.availability_zone,
-    #                         'ProvisionedIopsCapable': False
-    #                     }
-    #                 } for subnet in self.db_subnet_group.subnets
-    #                 ]
-    #         },
-    #         'VpcId': self.db_subnet_group.vpc_id
-    #     }
-
-    def to_dict(self):
-        data = {
-            'BackupRetentionPeriod': self.backup_retention_period,
-            'DBInstanceStatus': self.status,
-            'DBName': self.db_name,  # TODO: Maybe this is optional?
-            'MultiAZ': self.multi_az,
-            'VpcSecurityGroups': {
-                'VpcSecurityGroup': [
-                    {
-
-                        'Status': 'active',
-                        'VpcSecurityGroupId': group_id
-                    } for group_id in self.vpc_security_group_ids
-                ]
-            },
-            'DBInstanceIdentifier': self.resource_id,
-            'PreferredBackupWindow': '03:50-04:20',
-            'PreferredMaintenanceWindow': 'wed:06:38-wed:07:08',
-            'ReadReplicaDBInstanceIdentifiers': {
-                'ReadReplicaDBInstanceIdentifier': [replica for replica in self.read_replicas]
-            },
-            'Engine': self.engine,
-            'LicenseModel': self.license_model,
-            'EngineVersion': self.engine_version,
-            # TODO: Return OptionGroupMemberships
-            'OptionGroupMemberships': {'OptionGroupMembership': []},
-            'DBParameterGroups': {
-                'DBParameterGroup': [
-                    {
-                        'ParameterApplyStatus': db_parameter_group['status'],
-                        'DBParameterGroupName': db_parameter_group['name']
-                    } for db_parameter_group in self.db_parameter_groups
-                ]
-            },
-            'DBSecurityGroups': {
-                'DBSecurityGroup': [
-                    {
-                        'Status': 'active',
-                        'DBSecurityGroupName': security_group
-                    } for security_group in self.security_groups
-                ]
-            },
-            'PubliclyAccessible': self.publicly_accessible,
-            'AutoMinorVersionUpgrade': self.auto_minor_version_upgrade,
-            'AllocatedStorage': self.allocated_storage,
-            'StorageEncrypted': self.storage_encrypted,
-
-            'KmsKeyId': self.kms_key_id,
-
-            'DBInstanceClass': self.db_instance_class,
-            'MasterUsername': self.master_username,
-            'Endpoint': {
-                'Address': self.address,
-                'Port': self.port
-            },
-            'DBInstanceArn': self.arn,
-            'CopyTagsToSnapshot': self.copy_tags_to_snapshot,
-            'StorageType': self.storage_type,
-            'PendingModifiedValues': {}
-        }
-        if self.db_cluster_identifier:
-            data['PromotionTier'] = self.promotion_tier
-        if self.iops:
-            data['Iops'] = self.iops
-        if self.db_subnet_group:
-            data['DBSubnetGroup'] = {
-                'DBSubnetGroupName': self.db_subnet_group.subnet_name,
-                'DBSubnetGroupDescription': self.db_subnet_group.description,
-                'SubnetGroupStatus': self.db_subnet_group.status,
-                'Subnets': {
-                    'Subnet': [
-                        {
-                            'SubnetStatus': 'Active',
-                            'SubnetIdentifier': subnet.id,
-                            'SubnetAvailabilityZone': {
-                                'Name': subnet.availability_zone,
-                                'ProvisionedIopsCapable': False
-                            }
-                        } for subnet in self.db_subnet_group.subnets
-                    ]
-                },
-                'VpcId': self.db_subnet_group.vpc_id}
-        if self.is_replica:
-            data['ReadReplicaSourceDBInstanceIdentifier'] = self.source_db_identifier
-            data['StatusInfos'] = {
-                'DBInstanceStatusInfo': [
-                    {
-                        'StatusType': 'read replication',
-                        'Status': 'replicating',
-                        'Normal': True,
-                        'Message': None
-                    }
-                ]
-            }
-        if self.db_cluster_identifier:
-            data['DBClusterIdentifier'] = self.db_cluster_identifier
-        return data
-
     @property
     def address(self):
         return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.resource_id, self.backend.region)
@@ -420,6 +292,37 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
         return replicas
 
 
+class ClusteredDBInstance(DBInstance):
+
+    def __init__(self, backend, db_instance_identifier, **kwargs):
+        super(ClusteredDBInstance, self).__init__(backend, db_instance_identifier, **kwargs)
+        cluster_id = kwargs.get('db_cluster_identifier')
+        self.cluster = self.backend.get_db_cluster(cluster_id)
+        self.is_cluster_writer = True if not self.cluster.members else False
+
+    def __getattr__(self, name):
+        if name.startswith('__'):
+            raise AttributeError(name)
+        if hasattr(self.cluster, name):
+            return getattr(self.cluster, name)
+        return super(ClusteredDBInstance, self).__getattr__(name)
+
+    # TODO: Need to understand better how this works with Aurora instances.
+    # According to the boto3 documentation, `db_name` is valid:
+    # "The name of the database to create when the primary instance
+    # of the DB cluster is created. If this parameter isn't specified,
+    # no database is created in the DB instance."
+    # So does that mean the cluster.database_name and the instance.db_name
+    # can differ?
+    @property
+    def db_name(self):
+        return self._db_name or self.cluster.database_name
+
+    @db_name.setter
+    def db_name(self, value):
+        self._db_name = value
+
+
 class DBInstanceBackend(BaseRDSBackend):
 
     def __init__(self):
@@ -443,9 +346,12 @@ class DBInstanceBackend(BaseRDSBackend):
 
     def create_db_instance(self, db_instance_identifier, **kwargs):
         if db_instance_identifier in self.db_instances:
-            raise DBInstanceAlreadyExists()
+            raise DBInstanceAlreadyExists(db_instance_identifier)
         instance_kwargs = self._validate_create_instance_args(kwargs)
-        db_instance = DBInstance(self, db_instance_identifier, **instance_kwargs)
+        if 'db_cluster_identifier' in instance_kwargs:
+            db_instance = ClusteredDBInstance(self, db_instance_identifier, **instance_kwargs)
+        else:
+            db_instance = DBInstance(self, db_instance_identifier, **instance_kwargs)
         self.db_instances[db_instance_identifier] = db_instance
         db_instance.add_event('DB_INSTANCE_CREATE')
         # snapshot_id = '{}-{}'.format(db_instance_identifier, datetime.datetime.utcnow().strftime('%Y-%m-%d-%H-%M'))
@@ -527,14 +433,27 @@ class DBInstanceBackend(BaseRDSBackend):
         return database
 
     def find_db_from_id(self, db_id):
-        if self.arn_regex.match(db_id):
-            arn_breakdown = db_id.split(':')
-            region = arn_breakdown[3]
+        # I wanted to use the botocore helper, but I think maybe it was only
+        # for S3 and it doesn't split resource type from id...
+        from botocore.utils import ArnParser, InvalidArnException
+        parser = ArnParser()
+        try:
+            arn_details = parser.parse_arn(db_id)
+            region = arn_details['region']
             backend = self.get_regional_backend(region)
-            db_name = arn_breakdown[-1]
-        else:
+            db_name = arn_details['resource'].split(':')[-1]
+        except InvalidArnException:
             backend = self
             db_name = db_id
+        # Here was the original code.  Might revert back.
+        # if self.arn_regex.match(db_id):
+        #     arn_breakdown = db_id.split(':')
+        #     region = arn_breakdown[3]
+        #     backend = self.get_regional_backend(region)
+        #     db_name = arn_breakdown[-1]
+        # else:
+        #     backend = self
+        #     db_name = db_id
 
         return backend.get_db_instance(db_name)
 

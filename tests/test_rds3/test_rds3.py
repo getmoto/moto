@@ -3,8 +3,9 @@ from __future__ import print_function
 
 from botocore.exceptions import ClientError, ParamValidationError
 import boto3
+import boto.rds
 import sure  # noqa
-from . import mock_ec2, mock_kms, mock_rds
+from . import mock_ec2, mock_kms, mock_rds, mock_rds_deprecated
 
 
 # TODO: Always test empty response, singular item in list and plural in list!!!
@@ -1215,3 +1216,30 @@ def test_copy_tags_to_snapshot():
                                 Tags=snapshot_tags)
     resp = client.list_tags_for_resource(ResourceName=snapshot['DBSnapshotArn'])
     resp['TagList'].should.equal(instance_tags + snapshot_tags)
+
+
+@mock_rds_deprecated
+def test_create_cross_region_database_replica():
+    west_1_conn = boto.rds.connect_to_region("us-west-1")
+    west_2_conn = boto.rds.connect_to_region("us-west-2")
+
+    primary = west_1_conn.create_dbinstance(
+        "db-master-1", 10, "db.m1.small", "root", "hunter2"
+    )
+    primary_arn = getattr(primary, 'DBInstanceArn')
+
+    replica = west_2_conn.create_dbinstance_read_replica(
+        "replica", primary_arn, "db.m1.small"
+    )
+    replica_arn = getattr(replica, 'DBInstanceArn')
+
+    primary = west_1_conn.get_all_dbinstances("db-master-1")[0]
+    primary.read_replica_dbinstance_identifiers[0].should.equal(replica_arn)
+
+    replica = west_2_conn.get_all_dbinstances("replica")[0]
+    replica.instance_class.should.equal("db.m1.small")
+
+    west_2_conn.delete_dbinstance("replica")
+
+    primary = west_1_conn.get_all_dbinstances("db-master-1")[0]
+    list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)

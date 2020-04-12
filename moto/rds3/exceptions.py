@@ -1,239 +1,188 @@
 from __future__ import unicode_literals
 
-from werkzeug.exceptions import HTTPException
 
-from moto.core.utils import get_random_message_id
+class RDSError(Exception):
 
+    fmt = 'An unspecified RDS error occurred.'
 
-class RDSClientError(HTTPException):
+    http_status_code = 400
 
-    code = 400
+    sender_fault = True
 
-    def __init__(self, code, message):
-        super(RDSClientError, self).__init__()
-        self.error_code = code
-        self.error_message = message
-        self.description = self.to_dict()
+    code = None
 
-    def to_dict(self):
-        return {
-            'RDSClientError': {
-                'Error': {
-                    'Code': self.error_code,
-                    'Message': self.error_message,
-                    'Type': 'Sender'
-                },
-                'RequestId': get_random_message_id()
-            }
-        }
+    def __init__(self, **kwargs):
+        msg = self.fmt.format(**kwargs)
+        super(RDSError, self).__init__(msg)
+        if self.code is None:
+            self.code = self.__class__.__name__
 
 
-class DBClusterNotFound(RDSClientError):
+# Exception Classes for not found faults need to be the AWS error code, e.g. DBInstanceNotFound
+class ResourceNotFound(RDSError):
 
-    code = 404
+    fmt = '{resource_type} {resource_id} not found.'
 
-    def __init__(self, db_cluster_identifier):
-        super(DBClusterNotFound, self).__init__(
-            'DBClusterNotFound',
-            "DBCluster {0} not found.".format(db_cluster_identifier))
+    http_status_code = 404
 
-
-class DBInstanceNotFound(RDSClientError):
-
-    code = 404
-
-    def __init__(self, database_identifier):
-        super(DBInstanceNotFound, self).__init__(
-            'DBInstanceNotFound',
-            "Database {0} not found.".format(database_identifier))
+    def __init__(self, resource_id):
+        resource_type = self.__class__.__name__.replace('NotFound', '')
+        super(ResourceNotFound, self).__init__(resource_id=resource_id, resource_type=resource_type)
 
 
-class DBInstanceAlreadyExists(RDSClientError):
-
-    def __init__(self):
-        super(DBInstanceAlreadyExists, self).__init__(
-            'DBInstanceAlreadyExists',
-            'DB Instance already exists')
+class DBInstanceNotFound(ResourceNotFound):
+    pass
 
 
-class DBParameterGroupAlreadyExists(RDSClientError):
-
-    def __init__(self, db_parameter_group_name):
-        super(DBParameterGroupAlreadyExists, self).__init__(
-            'DBParameterAlreadyExists',
-            'Parameter group {} already exists'.format(db_parameter_group_name))
+class DBClusterNotFound(ResourceNotFound):
+    pass
 
 
-class DBClusterParameterGroupAlreadyExists(RDSClientError):
-
-    def __init__(self, db_cluster_parameter_group_name):
-        super(DBClusterParameterGroupAlreadyExists, self).__init__(
-            'DBClusterParameterAlreadyExists',
-            'Parameter group {} already exists'.format(db_cluster_parameter_group_name))
+class DBSnapshotNotFound(ResourceNotFound):
+    pass
 
 
-class OptionGroupAlreadyExists(RDSClientError):
-
-    def __init__(self, option_group_name):
-        super(OptionGroupAlreadyExists, self).__init__(
-            'OptionGroupAlreadyExists',
-            'Option group {} already exists'.format(option_group_name))
+class DBClusterSnapshotNotFound(ResourceNotFound):
+    pass
 
 
-class DBClusterSnapshotAlreadyExists(RDSClientError):
-    def __init__(self):
-        super(DBClusterSnapshotAlreadyExists, self).__init__(
-            'DBClusterSnapshotAlreadyExists',
-            'DB Cluster Snapshot already exists')
+class DBSecurityGroupNotFound(ResourceNotFound):
+    pass
 
 
-class DBSnapshotNotFound(RDSClientError):
-
-    code = 404
-
-    def __init__(self, snapshot_identifier):
-        super(DBSnapshotNotFound, self).__init__(
-            'DBSnapshotNotFound',
-            "DBSnapshot {0} not found.".format(snapshot_identifier))
+class DBSubnetGroupNotFound(ResourceNotFound):
+    pass
 
 
-class DBClusterSnapshotNotFound(RDSClientError):
-    code = 404
+class DBParameterGroupNotFound(ResourceNotFound):
 
-    def __init__(self, snapshot_identifier):
-        super(DBClusterSnapshotNotFound, self).__init__(
-            'DBClusterSnapshotNotFound',
-            "DBClusterSnapshot {0} not found.".format(snapshot_identifier))
+    fmt = '{resource_type} not found: {resource_id}'
 
 
-class DBSecurityGroupNotFound(RDSClientError):
-
-    code = 404
-
-    def __init__(self, security_group_name):
-        super(DBSecurityGroupNotFound, self).__init__(
-            'DBSecurityGroupNotFound',
-            "Security Group {0} not found.".format(security_group_name))
+class DBClusterParameterGroupNotFound(ResourceNotFound):
+    pass
 
 
-class DBSubnetGroupNotFound(RDSClientError):
-
-    code = 404
-
-    def __init__(self, subnet_group_name):
-        super(DBSubnetGroupNotFound, self).__init__(
-            'DBSubnetGroupNotFound',
-            "Subnet Group {0} not found.".format(subnet_group_name))
+class OptionGroupNotFound(ResourceNotFound):
+    pass
 
 
-class DBParameterGroupNotFound(RDSClientError):
+# Exception Classes for already exists faults need to be the AWS error code, e.g. DBInstanceAlreadyExists
+class ResourceAlreadyExists(RDSError):
 
-    code = 404
+    fmt = '{resource_type} {resource_id} already exists.'
 
-    def __init__(self, db_parameter_group_name):
-        super(DBParameterGroupNotFound, self).__init__(
-            'DBParameterGroupNotFound',
-            'DBParameterGroup not found: {}'.format(db_parameter_group_name))
+    http_status_code = 404
 
-
-class DBClusterParameterGroupNotFound(RDSClientError):
-
-    code = 404
-
-    def __init__(self, db_cluster_parameter_group_name):
-        super(DBClusterParameterGroupNotFound, self).__init__(
-            'DBParameterGroupNotFound',  # Code is correct.  No 'Cluster' needed.
-            'DBClusterParameterGroup not found: {}'.format(db_cluster_parameter_group_name))
+    def __init__(self, resource_id):
+        resource_type = self.__class__.__name__.replace('AlreadyExists', '')
+        super(ResourceAlreadyExists, self).__init__(resource_id=resource_id, resource_type=resource_type)
 
 
-class OptionGroupNotFound(RDSClientError):
+class DBInstanceAlreadyExists(ResourceAlreadyExists):
 
-    code = 404
-
-    def __init__(self, option_group_name):
-        super(OptionGroupNotFound, self).__init__(
-            'OptionGroupNotFoundFault',
-            'Specified OptionGroupName: {} not found.'.format(option_group_name))
+    fmt = 'DB Instance already exists.'
 
 
-class InvalidDBClusterStateFault(RDSClientError):
+class DBParameterGroupAlreadyExists(ResourceAlreadyExists):
+
+    fmt = 'Parameter group {resource_id} already exists'
+
+
+class DBClusterParameterGroupAlreadyExists(ResourceAlreadyExists):
+
+    fmt = 'Parameter group {resource_id} already exists'
+
+
+class OptionGroupAlreadyExists(ResourceAlreadyExists):
+
+    fmt = 'Option group {resource_id} already exists'
+
+
+class DBClusterSnapshotAlreadyExists(ResourceAlreadyExists):
+
+    fmt = 'DB Cluster Snapshot already exists'
+
+
+class DBSnapshotAlreadyExists(ResourceAlreadyExists):
+
+    fmt = 'Cannot create the snapshot because a snapshot with the identifier {resource_id} already exists.'
+
+
+class InvalidDBClusterStateFault(RDSError):
+
+    fmt = ('Invalid DB type, when trying to perform StopDBInstance on {resource_id}. '
+           'See AWS RDS documentation on rds.stop_db_instance')
 
     def __init__(self, database_identifier):
-        super(InvalidDBClusterStateFault, self).__init__(
-            'InvalidDBClusterStateFault',
-            'Invalid DB type, when trying to perform StopDBInstance on {0}e. '
-            'See AWS RDS documentation on rds.stop_db_instance'.format(database_identifier))
+        super(InvalidDBClusterStateFault, self).__init__(resource_id=database_identifier)
 
 
-class DBClusterToBeDeletedHasActiveMembers(RDSClientError):
+class DBClusterToBeDeletedHasActiveMembers(RDSError):
 
-    def __init__(self):
-        super(DBClusterToBeDeletedHasActiveMembers, self).__init__(
-            'InvalidDBClusterStateFault',
-            'Cluster cannot be deleted, it still contains DB instances in non-deleting state.')
+    fmt = 'Cluster cannot be deleted, it still contains DB instances in non-deleting state.'
 
 
-class InvalidDBInstanceState(RDSClientError):
+class InvalidDBInstanceState(RDSError):
+
+    fmt = 'Instance {resource_id} is not {status_msg}.'
 
     def __init__(self, database_identifier, istate):
         estate = "in available state" if istate == 'stop' else "stopped, it cannot be started"
-        super(InvalidDBInstanceState, self).__init__(
-            'InvalidDBInstanceState',
-            'Instance {} is not {}.'.format(database_identifier, estate))
+        super(InvalidDBInstanceState, self).__init__(resource_id=database_identifier, status_msg=estate)
 
 
-class SnapshotQuotaExceeded(RDSClientError):
+class SnapshotQuotaExceeded(RDSError):
 
-    def __init__(self):
-        super(SnapshotQuotaExceeded, self).__init__(
-            'SnapshotQuotaExceeded',
-            'The request cannot be processed because it would exceed the maximum number of snapshots.')
+    fmt = 'The request cannot be processed because it would exceed the maximum number of snapshots.'
 
 
-class DBSnapshotAlreadyExists(RDSClientError):
+class InvalidParameterValue(RDSError):
 
-    def __init__(self, database_snapshot_identifier):
-        super(DBSnapshotAlreadyExists, self).__init__(
-            'DBSnapshotAlreadyExists',
-            'Cannot create the snapshot because a snapshot with the '
-            'identifier {} already exists.'.format(database_snapshot_identifier))
+    code = 'InvalidParameterValue'
 
+    fmt = '{error_message}'
 
-class InvalidParameterValue(RDSClientError):
-
-    def __init__(self, message):
-        super(InvalidParameterValue, self).__init__(
-            'InvalidParameterValue',
-            message)
+    def __init__(self, error_message=None, **kwargs):
+        if error_message:
+            kwargs['error_message'] = error_message
+        super(InvalidParameterValue, self).__init__(**kwargs)
 
 
-class InvalidParameterCombination(RDSClientError):
-    def __init__(self, message):
-        super(InvalidParameterCombination, self).__init__(
-            'InvalidParameterCombination',
-            message)
+class InvalidParameterCombination(RDSError):
+
+    code = 'InvalidParameterCombination'
+
+    fmt = '{error_message}'
+
+    def __init__(self, error_message=None, **kwargs):
+        if error_message:
+            kwargs['error_message'] = error_message
+        super(InvalidParameterCombination, self).__init__(**kwargs)
 
 
-class InvalidAvailabilityZones(RDSClientError):
+class InvalidAvailabilityZones(RDSError):
+
+    code = 'InvalidVPCNetworkStateFault'
+
+    fmt = ('Availability zone{zone_plural} \'[{invalid_zones}]\' '
+           '{verb} unavailable in this region, please choose another zone set.')
 
     def __init__(self, invalid_zones):
-        super(InvalidAvailabilityZones, self).__init__(
-            'InvalidVPCNetworkStateFault',
-            'Availability zone{} \'[{}]\' {} unavailable in this region, '
-            'please choose another zone set.'.format(
-                's' if len(invalid_zones) > 1 else '',
-                ', '.join(sorted(list(invalid_zones))),
-                'are' if len(invalid_zones) > 1 else 'is'
-            )
-        )
+        kwargs = {
+            'zone_plural': 's' if len(invalid_zones) > 1 else '',
+            'invalid_zones': ', '.join(sorted(list(invalid_zones))),
+            'verb': 'are' if len(invalid_zones) > 1 else 'is'
+        }
+        super(InvalidAvailabilityZones, self).__init__(**kwargs)
 
 
-class InvalidDBSnapshotIdentifierValue(RDSClientError):
+class InvalidDBSnapshotIdentifierValue(InvalidParameterValue):
+
+    fmt = ('{resource_id} is not a valid identifier. Identifiers '
+           'must begin with a letter; must contain only ASCII letters, '
+           'digits, and hyphens; and must not end with a hyphen or '
+           'contain two consecutive hyphens.')
 
     def __init__(self, identifier):
-        super(InvalidDBSnapshotIdentifierValue, self).__init__(
-            'InvalidParameterValue',
-            '{} is not a valid identifier. Identifiers '
-            'must begin with a letter; must contain only ASCII letters, '
-            'digits, and hyphens; and must not end with a hyphen or '
-            'contain two consecutive hyphens.'.format(identifier))
+        super(InvalidDBSnapshotIdentifierValue, self).__init__(resource_id=identifier)

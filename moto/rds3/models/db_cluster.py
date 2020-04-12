@@ -28,6 +28,7 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
                  master_user_password,
                  availability_zones,
                  backup_retention_period=1,
+                 character_set_name=None,
                  database_name=None,
                  db_cluster_parameter_group_name=None,
                  db_subnet_group=None,
@@ -41,8 +42,7 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.allocated_storage = 1
         self.availability_zones = availability_zones
         self.backup_retention_period = backup_retention_period
-        if 'character_set_name' in kwargs and kwargs['character_set_name']:
-            self.character_set_name = kwargs.get('character_set_name')
+        self.character_set_name = character_set_name
         self.database_name = database_name
         self.db_cluster_identifier = identifier
         self.db_cluster_parameter_group_name = db_cluster_parameter_group_name
@@ -53,7 +53,12 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.master_username = master_username
         self.preferred_backup_window = preferred_backup_window or '05:30-06:00'
         self.port = port
+        self.storage_type = 'aurora'
         self.storage_encrypted = storage_encrypted
+        if self.storage_encrypted:
+            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+        else:
+            self.kms_key_id = kwargs.get("kms_key_id")
         self.vpc_security_group_ids = vpc_security_group_ids or []
         if tags:
             self.add_tags(tags)

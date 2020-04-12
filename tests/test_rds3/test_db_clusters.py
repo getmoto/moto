@@ -358,3 +358,55 @@ def test_restore_db_cluster_from_snapshot_with_parameters():
         ResourceName=cluster['DBClusterArn']
     ).get('TagList')
     tags.should.equal(test_tags)
+
+
+@mock_rds
+def test_modify_db_cluster_updates_cluster_instances():
+    cluster_only_attributes = {
+        'create': {
+            'BackupRetentionPeriod': 7,
+            'CharacterSetName': 'char-set-1',
+            'EngineVersion': '10.4',
+            'PreferredBackupWindow': '13:30-14:00',
+            'StorageEncrypted': True,
+        },
+        'modify': {
+            'BackupRetentionPeriod': 15,
+            'EngineVersion': '10.5',
+            'PreferredBackupWindow': '14:30-15:00',
+        }
+    }
+    client = boto3.client('rds', region_name='us-west-2')
+    client.create_db_cluster(
+        DBClusterIdentifier='cluster-1',
+        DatabaseName='db_name',
+        Engine='aurora-postgresql',
+        MasterUsername='root',
+        MasterUserPassword='password',
+        **cluster_only_attributes['create']
+    )
+    fmt_instance_id = 'test-instance-{id}'
+    for i in range(3):
+        instance = client.create_db_instance(
+            DBInstanceIdentifier=fmt_instance_id.format(id=i),
+            DBInstanceClass='db.m1.small',
+            Engine='aurora-postgresql',
+            DBClusterIdentifier='cluster-1',
+            PromotionTier=15 - i
+        )['DBInstance']
+        for attr, value in cluster_only_attributes['create'].items():
+            instance[attr].should.equal(value)
+        instance['AllocatedStorage'].should.equal(1)
+        instance['StorageType'].should.equal('aurora')
+
+    client.modify_db_cluster(
+        DBClusterIdentifier='cluster-1',
+        **cluster_only_attributes['modify']
+    )
+    for i in range(3):
+        instance = client.describe_db_instances(
+            DBInstanceIdentifier=fmt_instance_id.format(id=i),
+
+        )['DBInstances'][0]
+        for attr, value in cluster_only_attributes['modify'].items():
+            instance[attr].should.equal(value)

@@ -119,3 +119,9 @@ def test_max_allocated_storage():
         DBInstanceIdentifier=identifier,
         MaxAllocatedStorage=0
     ).should.throw(ClientError, 'Max storage size must be greater than storage size')
+
+# @mock_rds
+# def test_invalid_parameter():
+#     client = boto3.client('rds', region_name='us-west-2')
+#     client.describe_db_instances(DBInstanceIdentifier='fake')
+#     client.describe_db_instances(MaxRecords=500)
