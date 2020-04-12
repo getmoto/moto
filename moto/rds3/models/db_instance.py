@@ -433,27 +433,14 @@ class DBInstanceBackend(BaseRDSBackend):
         return database
 
     def find_db_from_id(self, db_id):
-        # I wanted to use the botocore helper, but I think maybe it was only
-        # for S3 and it doesn't split resource type from id...
-        from botocore.utils import ArnParser, InvalidArnException
-        parser = ArnParser()
-        try:
-            arn_details = parser.parse_arn(db_id)
-            region = arn_details['region']
+        if self.arn_regex.match(db_id):
+            arn_breakdown = db_id.split(':')
+            region = arn_breakdown[3]
             backend = self.get_regional_backend(region)
-            db_name = arn_details['resource'].split(':')[-1]
-        except InvalidArnException:
+            db_name = arn_breakdown[-1]
+        else:
             backend = self
             db_name = db_id
-        # Here was the original code.  Might revert back.
-        # if self.arn_regex.match(db_id):
-        #     arn_breakdown = db_id.split(':')
-        #     region = arn_breakdown[3]
-        #     backend = self.get_regional_backend(region)
-        #     db_name = arn_breakdown[-1]
-        # else:
-        #     backend = self
-        #     db_name = db_id
 
         return backend.get_db_instance(db_name)
 
