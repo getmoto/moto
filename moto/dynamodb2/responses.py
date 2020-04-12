@@ -10,7 +10,7 @@ import six
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
 from .exceptions import InvalidIndexNameError, InvalidUpdateExpression, ItemSizeTooLarge
-from .models import dynamodb_backends, dynamo_json_dump
+from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 
 
 TRANSACTION_MAX_ITEMS = 25
