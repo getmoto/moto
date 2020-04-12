@@ -226,7 +226,9 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def describe_auto_scaling_instances(self):
-        instance_states = self.autoscaling_backend.describe_auto_scaling_instances()
+        instance_states = self.autoscaling_backend.describe_auto_scaling_instances(
+            instance_ids=self._get_multi_param("InstanceIds.member")
+        )
         template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instance_states=instance_states)
 
