@@ -655,10 +655,16 @@ class AutoScalingBackend(BaseBackend):
         self.set_desired_capacity(group_name, 0)
         self.autoscaling_groups.pop(group_name, None)
 
-    def describe_auto_scaling_instances(self):
+    def describe_auto_scaling_instances(self, instance_ids):
         instance_states = []
         for group in self.autoscaling_groups.values():
-            instance_states.extend(group.instance_states)
+            instance_states.extend(
+                [
+                    x
+                    for x in group.instance_states
+                    if not instance_ids or x.instance.id in instance_ids
+                ]
+            )
         return instance_states
 
     def attach_instances(self, group_name, instance_ids):

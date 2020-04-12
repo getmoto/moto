@@ -843,13 +843,41 @@ def test_describe_autoscaling_instances_boto3():
         NewInstancesProtectedFromScaleIn=True,
     )
 
+    response = client.describe_auto_scaling_instances()
+    len(response["AutoScalingInstances"]).should.equal(5)
+    for instance in response["AutoScalingInstances"]:
+        instance["AutoScalingGroupName"].should.equal("test_asg")
+        instance["AvailabilityZone"].should.equal("us-east-1a")
+        instance["ProtectedFromScaleIn"].should.equal(True)
+
+
+@mock_autoscaling
+def test_describe_autoscaling_instances_instanceid_filter():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    _ = client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration"
+    )
+    _ = client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+        NewInstancesProtectedFromScaleIn=True,
+    )
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_ids = [
         instance["InstanceId"]
         for instance in response["AutoScalingGroups"][0]["Instances"]
     ]
 
-    response = client.describe_auto_scaling_instances(InstanceIds=instance_ids)
+    response = client.describe_auto_scaling_instances(
+        InstanceIds=instance_ids[0:2]
+    )  # Filter by first 2 of 5
+    len(response["AutoScalingInstances"]).should.equal(2)
     for instance in response["AutoScalingInstances"]:
         instance["AutoScalingGroupName"].should.equal("test_asg")
         instance["AvailabilityZone"].should.equal("us-east-1a")
