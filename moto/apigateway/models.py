@@ -500,12 +500,12 @@ class RestAPI(BaseModel):
         return child
 
     def add_model(self,
-                    name,
-                    description=None,
-                    schema=None,
-                    content_type=None,
-                    cli_input_json=None,
-                    generate_cli_skeleton=None):
+                  name,
+                  description=None,
+                  schema=None,
+                  content_type=None,
+                  cli_input_json=None,
+                  generate_cli_skeleton=None):
         model_id = create_id()
         new_model = Model(
             id=model_id,
@@ -518,7 +518,6 @@ class RestAPI(BaseModel):
 
         self.models[name] = new_model
         return new_model
-
 
     def get_resource_for_path(self, path_after_stage_name):
         for resource in self.resources.values():
@@ -686,7 +685,6 @@ class Model(BaseModel,dict):
             self["cliInputJson"] = kwargs.get("cli_input_json")
         if kwargs.get("generate_cli_skeleton"):
             self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
-
 
 
 class APIGatewayBackend(BaseBackend):
@@ -1171,7 +1169,8 @@ class APIGatewayBackend(BaseBackend):
         model = api.models.get(model_name)
         if model is None:
             raise ModelNotFound
-        return model
+        else:
+            return model
 
 
 apigateway_backends = {}

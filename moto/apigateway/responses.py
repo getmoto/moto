@@ -639,7 +639,7 @@ class APIGatewayResponse(BaseResponse):
                 '{{"message":"{0}","code":"{1}"}}'.format(
                     error.message, error.error_type
                 ),
-                )
+            )
 
     def model_induvidual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
