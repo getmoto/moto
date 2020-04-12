@@ -36,6 +36,10 @@ from .exceptions import (
     ApiKeyAlreadyExists,
     DomainNameNotFound,
     InvalidDomainName,
+    InvalidRestApiId,
+    InvalidModelName,
+    RestAPINotFound,
+    ModelNotFound
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -466,6 +470,7 @@ class RestAPI(BaseModel):
         self.authorizers = {}
         self.stages = {}
         self.resources = {}
+        self.models = {}
         self.add_child("/")  # Add default child
 
     def __repr__(self):
@@ -493,6 +498,27 @@ class RestAPI(BaseModel):
         )
         self.resources[child_id] = child
         return child
+
+    def add_model(self,
+                    name,
+                    description=None,
+                    schema=None,
+                    content_type=None,
+                    cli_input_json=None,
+                    generate_cli_skeleton=None):
+        model_id = create_id()
+        new_model = Model(
+            id=model_id,
+            name=name,
+            description=description,
+            schema=schema,
+            content_type=content_type,
+            cli_input_json=cli_input_json,
+            generate_cli_skeleton=generate_cli_skeleton)
+
+        self.models[name] = new_model
+        return new_model
+
 
     def get_resource_for_path(self, path_after_stage_name):
         for resource in self.resources.values():
@@ -645,6 +671,24 @@ class DomainName(BaseModel, dict):
             self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
 
 
+class Model(BaseModel,dict):
+    def __init__(self, id, name, **kwargs):
+        super(Model, self).__init__()
+        self["id"] = id
+        self["name"] = name
+        if kwargs.get("description"):
+            self["description"] = kwargs.get("description")
+        if kwargs.get("schema"):
+            self["schema"] = kwargs.get("schema")
+        if kwargs.get("content_type"):
+            self["contentType"] = kwargs.get("content_type")
+        if kwargs.get("cli_input_json"):
+            self["cliInputJson"] = kwargs.get("cli_input_json")
+        if kwargs.get("generate_cli_skeleton"):
+            self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
+
+
+
 class APIGatewayBackend(BaseBackend):
     def __init__(self, region_name):
         super(APIGatewayBackend, self).__init__()
@@ -653,6 +697,7 @@ class APIGatewayBackend(BaseBackend):
         self.usage_plans = {}
         self.usage_plan_keys = {}
         self.domain_names = {}
+        self.models = {}
         self.region_name = region_name
 
     def reset(self):
@@ -682,7 +727,9 @@ class APIGatewayBackend(BaseBackend):
         return rest_api
 
     def get_rest_api(self, function_id):
-        rest_api = self.apis[function_id]
+        rest_api = self.apis.get(function_id)
+        if rest_api is None:
+            raise RestAPINotFound()
         return rest_api
 
     def list_apis(self):
@@ -1084,6 +1131,47 @@ class APIGatewayBackend(BaseBackend):
             raise DomainNameNotFound
         else:
             return self.domain_names[domain_name]
+
+    def create_model(self,
+                    rest_api_id,
+                    name,
+                    content_type,
+                    description=None,
+                    schema=None,
+                    cli_input_json=None,
+                    generate_cli_skeleton=None):
+
+        if not rest_api_id:
+            raise InvalidRestApiId
+        if not name:
+            raise InvalidModelName
+
+        api = self.get_rest_api(rest_api_id)
+        new_model = api.add_model(
+            name=name,
+            description=description,
+            schema=schema,
+            content_type=content_type,
+            cli_input_json=cli_input_json,
+            generate_cli_skeleton=generate_cli_skeleton)
+
+        return new_model
+
+    def get_models(self, rest_api_id):
+        if not rest_api_id:
+            raise InvalidRestApiId
+        api = self.get_rest_api(rest_api_id)
+        models = api.models.values()
+        return list(models)
+
+    def get_model(self, rest_api_id, model_name):
+        if not rest_api_id:
+            raise InvalidRestApiId
+        api = self.get_rest_api(rest_api_id)
+        model = api.models.get(model_name)
+        if model is None:
+            raise ModelNotFound
+        return model
 
 
 apigateway_backends = {}

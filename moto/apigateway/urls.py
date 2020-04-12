@@ -22,6 +22,8 @@ url_paths = {
     "{0}/apikeys/(?P<apikey>[^/]+)": APIGatewayResponse().apikey_individual,
     "{0}/usageplans$": APIGatewayResponse().usage_plans,
     "{0}/domainnames$": APIGatewayResponse().domain_names,
+    "{0}/restapis/(?P<function_id>[^/]+)/models": APIGatewayResponse().models,
+    "{0}/restapis/(?P<function_id>[^/]+)/models/(?P<model_name>[^/]+)/?$": APIGatewayResponse().model_induvidual,
     "{0}/domainnames/(?P<domain_name>[^/]+)/?$": APIGatewayResponse().domain_name_induvidual,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/?$": APIGatewayResponse().usage_plan_individual,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys$": APIGatewayResponse().usage_plan_keys,
