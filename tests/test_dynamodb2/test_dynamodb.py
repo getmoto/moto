@@ -4143,13 +4143,13 @@ def test_dynamodb_max_1mb_limit():
         TableName=table_name,
         KeySchema=[
             {"AttributeName": "partition_key", "KeyType": "HASH"},
-            {"AttributeName": "sort_key", "KeyType": "SORT"},
+            {"AttributeName": "sort_key", "KeyType": "RANGE"},
         ],
         AttributeDefinitions=[
             {"AttributeName": "partition_key", "AttributeType": "S"},
             {"AttributeName": "sort_key", "AttributeType": "S"},
         ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        BillingMode="PAY_PER_REQUEST",
     )
 
     # Populate the table
@@ -4170,3 +4170,4 @@ def test_dynamodb_max_1mb_limit():
     # We shouldn't get everything back - the total result set is well over 1MB
     assert response["Count"] < len(items)
     response["LastEvaluatedKey"].shouldnt.be(None)
+
