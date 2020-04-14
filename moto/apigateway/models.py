@@ -39,7 +39,7 @@ from .exceptions import (
     InvalidRestApiId,
     InvalidModelName,
     RestAPINotFound,
-    ModelNotFound
+    ModelNotFound,
 )
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
@@ -499,13 +499,15 @@ class RestAPI(BaseModel):
         self.resources[child_id] = child
         return child
 
-    def add_model(self,
-                  name,
-                  description=None,
-                  schema=None,
-                  content_type=None,
-                  cli_input_json=None,
-                  generate_cli_skeleton=None):
+    def add_model(
+        self,
+        name,
+        description=None,
+        schema=None,
+        content_type=None,
+        cli_input_json=None,
+        generate_cli_skeleton=None,
+    ):
         model_id = create_id()
         new_model = Model(
             id=model_id,
@@ -514,7 +516,8 @@ class RestAPI(BaseModel):
             schema=schema,
             content_type=content_type,
             cli_input_json=cli_input_json,
-            generate_cli_skeleton=generate_cli_skeleton)
+            generate_cli_skeleton=generate_cli_skeleton,
+        )
 
         self.models[name] = new_model
         return new_model
@@ -670,7 +673,7 @@ class DomainName(BaseModel, dict):
             self["generateCliSkeleton"] = kwargs.get("generate_cli_skeleton")
 
 
-class Model(BaseModel,dict):
+class Model(BaseModel, dict):
     def __init__(self, id, name, **kwargs):
         super(Model, self).__init__()
         self["id"] = id
@@ -1130,14 +1133,16 @@ class APIGatewayBackend(BaseBackend):
         else:
             return self.domain_names[domain_name]
 
-    def create_model(self,
-                    rest_api_id,
-                    name,
-                    content_type,
-                    description=None,
-                    schema=None,
-                    cli_input_json=None,
-                    generate_cli_skeleton=None):
+    def create_model(
+        self,
+        rest_api_id,
+        name,
+        content_type,
+        description=None,
+        schema=None,
+        cli_input_json=None,
+        generate_cli_skeleton=None,
+    ):
 
         if not rest_api_id:
             raise InvalidRestApiId
@@ -1151,7 +1156,8 @@ class APIGatewayBackend(BaseBackend):
             schema=schema,
             content_type=content_type,
             cli_input_json=cli_input_json,
-            generate_cli_skeleton=generate_cli_skeleton)
+            generate_cli_skeleton=generate_cli_skeleton,
+        )
 
         return new_model
 

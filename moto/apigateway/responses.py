@@ -16,7 +16,7 @@ from .exceptions import (
     InvalidRestApiId,
     InvalidModelName,
     RestAPINotFound,
-    ModelNotFound
+    ModelNotFound,
 )
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
@@ -600,15 +600,13 @@ class APIGatewayResponse(BaseResponse):
                 ),
             )
 
-    def models(self,request, full_url, headers):
+    def models(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
         rest_api_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
         try:
             if self.method == "GET":
-                models = self.backend.get_models(
-                    rest_api_id
-                )
+                models = self.backend.get_models(rest_api_id)
                 return 200, {}, json.dumps({"item": models})
 
             elif self.method == "POST":
@@ -617,9 +615,7 @@ class APIGatewayResponse(BaseResponse):
                 schema = self._get_param("schema")
                 content_type = self._get_param("contentType")
                 cli_input_json = self._get_param("cliInputJson")
-                generate_cli_skeleton = self._get_param(
-                    "generateCliSkeleton"
-                )
+                generate_cli_skeleton = self._get_param("generateCliSkeleton")
                 model = self.backend.create_model(
                     rest_api_id,
                     name,
@@ -627,12 +623,12 @@ class APIGatewayResponse(BaseResponse):
                     description,
                     schema,
                     cli_input_json,
-                    generate_cli_skeleton
+                    generate_cli_skeleton,
                 )
 
                 return 200, {}, json.dumps(model)
 
-        except (InvalidRestApiId, InvalidModelName,RestAPINotFound) as error:
+        except (InvalidRestApiId, InvalidModelName, RestAPINotFound) as error:
             return (
                 error.code,
                 {},
@@ -649,13 +645,14 @@ class APIGatewayResponse(BaseResponse):
         model_info = {}
         try:
             if self.method == "GET":
-                model_info = self.backend.get_model(
-                    rest_api_id,
-                    model_name
-                )
+                model_info = self.backend.get_model(rest_api_id, model_name)
             return 200, {}, json.dumps(model_info)
-        except (ModelNotFound, RestAPINotFound, InvalidRestApiId,
-                InvalidModelName) as error:
+        except (
+            ModelNotFound,
+            RestAPINotFound,
+            InvalidRestApiId,
+            InvalidModelName,
+        ) as error:
             return (
                 error.code,
                 {},
