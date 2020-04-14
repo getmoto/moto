@@ -286,7 +286,7 @@ class Item(BaseModel):
         return "Item: {0}".format(self.to_json())
 
     def size(self):
-        return sum([bytesize(key) + value.size() for key, value in self.attrs.items()])
+        return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
 
     def to_json(self):
         attributes = {}
