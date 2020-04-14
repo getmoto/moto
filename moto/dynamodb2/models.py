@@ -1127,7 +1127,7 @@ class Table(BaseModel):
 
         last_evaluated_key = None
         size_limit = 1000000  # DynamoDB has a 1MB size limit
-        item_size = sum([res.size() for res in results])
+        item_size = sum(res.size() for res in results)
         if item_size > size_limit:
             item_size = idx = 0
             while item_size + results[idx].size() < size_limit:
