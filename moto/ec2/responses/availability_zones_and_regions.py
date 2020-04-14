@@ -35,6 +35,7 @@ DESCRIBE_ZONES_RESPONSE = """<DescribeAvailabilityZonesResponse xmlns="http://ec
           <zoneName>{{ zone.name }}</zoneName>
           <zoneState>available</zoneState>
           <regionName>{{ zone.region_name }}</regionName>
+          <zoneId>{{ zone.zone_id }}</zoneId>
           <messageSet/>
        </item>
    {% endfor %}
