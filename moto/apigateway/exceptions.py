@@ -137,3 +137,39 @@ class DomainNameNotFound(RESTError):
         super(DomainNameNotFound, self).__init__(
             "NotFoundException", "Invalid Domain Name specified"
         )
+
+
+class InvalidRestApiId(BadRequestException):
+    code = 404
+
+    def __init__(self):
+        super(InvalidRestApiId, self).__init__(
+            "BadRequestException", "No Rest API Id specified"
+        )
+
+
+class InvalidModelName(BadRequestException):
+    code = 404
+
+    def __init__(self):
+        super(InvalidModelName, self).__init__(
+            "BadRequestException", "No Model Name specified"
+        )
+
+
+class RestAPINotFound(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(RestAPINotFound, self).__init__(
+            "NotFoundException", "Invalid Rest API Id specified"
+        )
+
+
+class ModelNotFound(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(ModelNotFound, self).__init__(
+            "NotFoundException", "Invalid Model Name specified"
+        )

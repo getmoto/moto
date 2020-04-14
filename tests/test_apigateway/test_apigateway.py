@@ -1548,6 +1548,117 @@ def test_get_domain_name():
 
 
 @mock_apigateway
+def test_create_model():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    dummy_rest_api_id = "a12b3c4d"
+    model_name = "testModel"
+    description = "test model"
+    content_type = "application/json"
+    # success case with valid params
+    response = client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description=description,
+        contentType=content_type,
+    )
+    response["name"].should.equal(model_name)
+    response["description"].should.equal(description)
+
+    # with an invalid rest_api_id it should throw NotFoundException
+    with assert_raises(ClientError) as ex:
+        client.create_model(
+            restApiId=dummy_rest_api_id,
+            name=model_name,
+            description=description,
+            contentType=content_type,
+        )
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Rest API Id specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+
+    with assert_raises(ClientError) as ex:
+        client.create_model(
+            restApiId=rest_api_id,
+            name="",
+            description=description,
+            contentType=content_type,
+        )
+
+    ex.exception.response["Error"]["Message"].should.equal("No Model Name specified")
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+
+
+@mock_apigateway
+def test_get_api_models():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    model_name = "testModel"
+    description = "test model"
+    content_type = "application/json"
+    # when no models are present
+    result = client.get_models(restApiId=rest_api_id)
+    result["items"].should.equal([])
+    # add a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description=description,
+        contentType=content_type,
+    )
+    # get models after adding
+    result = client.get_models(restApiId=rest_api_id)
+    result["items"][0]["name"] = model_name
+    result["items"][0]["description"] = description
+
+
+@mock_apigateway
+def test_get_model_by_name():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    dummy_rest_api_id = "a12b3c4d"
+    model_name = "testModel"
+    description = "test model"
+    content_type = "application/json"
+    # add a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description=description,
+        contentType=content_type,
+    )
+    # get models after adding
+    result = client.get_model(restApiId=rest_api_id, modelName=model_name)
+    result["name"] = model_name
+    result["description"] = description
+
+    with assert_raises(ClientError) as ex:
+        client.get_model(restApiId=dummy_rest_api_id, modelName=model_name)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Rest API Id specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_get_model_with_invalid_name():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    # test with an invalid model name
+    with assert_raises(ClientError) as ex:
+        client.get_model(restApiId=rest_api_id, modelName="fake")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Model Name specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
 def test_http_proxying_integration():
     responses.add(
         responses.GET, "http://httpbin.org/robots.txt", body="a fake response"
