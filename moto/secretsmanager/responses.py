@@ -29,6 +29,16 @@ class SecretsManagerResponse(BaseResponse):
             tags=tags,
         )
 
+    def update_secret(self):
+        secret_id = self._get_param("SecretId")
+        secret_string = self._get_param("SecretString")
+        secret_binary = self._get_param("SecretBinary")
+        return secretsmanager_backends[self.region].update_secret(
+            secret_id=secret_id,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+        )
+
     def get_random_password(self):
         password_length = self._get_param("PasswordLength", if_none=32)
         exclude_characters = self._get_param("ExcludeCharacters", if_none="")
