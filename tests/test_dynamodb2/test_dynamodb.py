@@ -4213,5 +4213,5 @@ def test_dynamodb_max_1mb_limit():
         KeyConditionExpression=Key("partition_key").eq("partition_key_val")
     )
     # We shouldn't get everything back - the total result set is well over 1MB
-     len(items).should.be.greater_than(response["Count"])
+    len(items).should.be.greater_than(response["Count"])
     response["LastEvaluatedKey"].shouldnt.be(None)
