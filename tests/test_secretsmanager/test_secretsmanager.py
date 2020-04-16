@@ -711,3 +711,79 @@ def test_can_list_secret_version_ids():
     returned_version_ids = [v["VersionId"] for v in versions_list["Versions"]]
 
     assert [first_version_id, second_version_id].sort() == returned_version_ids.sort()
+
+
+@mock_secretsmanager
+def test_update_secret():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    assert created_secret["ARN"]
+    assert created_secret["Name"] == "test-secret"
+    assert created_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "foosecret"
+
+    updated_secret = conn.update_secret(
+        SecretId="test-secret", SecretString="barsecret"
+    )
+
+    assert updated_secret["ARN"]
+    assert updated_secret["Name"] == "test-secret"
+    assert updated_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "barsecret"
+    assert created_secret["VersionId"] != updated_secret["VersionId"]
+
+
+@mock_secretsmanager
+def test_update_secret_which_does_not_exit():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    with assert_raises(ClientError) as cm:
+        updated_secret = conn.update_secret(
+            SecretId="test-secret", SecretString="barsecret"
+        )
+
+    assert_equal(
+        "Secrets Manager can't find the specified secret.",
+        cm.exception.response["Error"]["Message"],
+    )
+
+
+@mock_secretsmanager
+def test_update_secret_marked_as_deleted():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    deleted_secret = conn.delete_secret(SecretId="test-secret")
+
+    with assert_raises(ClientError) as cm:
+        updated_secret = conn.update_secret(
+            SecretId="test-secret", SecretString="barsecret"
+        )
+
+    assert (
+        "because it was marked for deletion."
+        in cm.exception.response["Error"]["Message"]
+    )
+
+
+@mock_secretsmanager
+def test_update_secret_marked_as_deleted_after_restoring():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+    deleted_secret = conn.delete_secret(SecretId="test-secret")
+    restored_secret = conn.restore_secret(SecretId="test-secret")
+
+    updated_secret = conn.update_secret(
+        SecretId="test-secret", SecretString="barsecret"
+    )
+
+    assert updated_secret["ARN"]
+    assert updated_secret["Name"] == "test-secret"
+    assert updated_secret["VersionId"] != ""
