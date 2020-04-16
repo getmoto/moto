@@ -368,3 +368,12 @@ class WrongPublicAccessBlockAccountIdError(S3ClientError):
         super(WrongPublicAccessBlockAccountIdError, self).__init__(
             "AccessDenied", "Access Denied"
         )
+
+
+class NoSystemTags(S3ClientError):
+    code = 400
+
+    def __init__(self):
+        super(NoSystemTags, self).__init__(
+            "InvalidTag", "System tags cannot be added/updated by requester"
+        )

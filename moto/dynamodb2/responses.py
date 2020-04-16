@@ -10,7 +10,7 @@ import six
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
 from .exceptions import InvalidIndexNameError, InvalidUpdateExpression, ItemSizeTooLarge
-from .models import dynamodb_backends, dynamo_json_dump
+from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 
 
 TRANSACTION_MAX_ITEMS = 25
@@ -299,6 +299,9 @@ class DynamoHandler(BaseResponse):
         except ItemSizeTooLarge:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ItemSizeTooLarge.message)
+        except KeyError as ke:
+            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
+            return self.error(er, ke.args[0])
         except ValueError as ve:
             er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
             return self.error(er, str(ve))

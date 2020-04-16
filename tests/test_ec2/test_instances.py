@@ -1167,6 +1167,21 @@ def test_describe_instance_status_with_instance_filter_deprecated():
 
 
 @mock_ec2
+def test_describe_instance_credit_specifications():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    # We want to filter based on this one
+    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    result = conn.describe_instance_credit_specifications(
+        InstanceIds=[reservation["Instances"][0]["InstanceId"]]
+    )
+    assert (
+        result["InstanceCreditSpecifications"][0]["InstanceId"]
+        == reservation["Instances"][0]["InstanceId"]
+    )
+
+
+@mock_ec2
 def test_describe_instance_status_with_instance_filter():
     conn = boto3.client("ec2", region_name="us-west-1")
 

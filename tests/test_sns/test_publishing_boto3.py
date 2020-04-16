@@ -148,34 +148,42 @@ def test_publish_to_sqs_msg_attr_byte_value():
     conn.create_topic(Name="some-topic")
     response = conn.list_topics()
     topic_arn = response["Topics"][0]["TopicArn"]
-
-    sqs_conn = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs_conn.create_queue(QueueName="test-queue")
-
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+    conn.subscribe(
+        TopicArn=topic_arn, Protocol="sqs", Endpoint=queue.attributes["QueueArn"],
+    )
+    queue_raw = sqs.create_queue(QueueName="test-queue-raw")
     conn.subscribe(
         TopicArn=topic_arn,
         Protocol="sqs",
-        Endpoint="arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
+        Endpoint=queue_raw.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
     )
-    message = "my message"
+
     conn.publish(
         TopicArn=topic_arn,
-        Message=message,
+        Message="my message",
         MessageAttributes={
             "store": {"DataType": "Binary", "BinaryValue": b"\x02\x03\x04"}
         },
     )
-    messages = queue.receive_messages(MaxNumberOfMessages=5)
-    message_attributes = [json.loads(m.body)["MessageAttributes"] for m in messages]
-    message_attributes.should.equal(
-        [
-            {
-                "store": {
-                    "Type": "Binary",
-                    "Value": base64.b64encode(b"\x02\x03\x04").decode(),
-                }
+
+    message = json.loads(queue.receive_messages()[0].body)
+    message["Message"].should.equal("my message")
+    message["MessageAttributes"].should.equal(
+        {
+            "store": {
+                "Type": "Binary",
+                "Value": base64.b64encode(b"\x02\x03\x04").decode(),
             }
-        ]
+        }
+    )
+
+    message = queue_raw.receive_messages()[0]
+    message.body.should.equal("my message")
+    message.message_attributes.should.equal(
+        {"store": {"DataType": "Binary", "BinaryValue": b"\x02\x03\x04"}}
     )
 
 
@@ -187,6 +195,12 @@ def test_publish_to_sqs_msg_attr_number_type():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
     topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
+    queue_raw = sqs.create_queue(QueueName="test-queue-raw")
+    topic.subscribe(
+        Protocol="sqs",
+        Endpoint=queue_raw.attributes["QueueArn"],
+        Attributes={"RawMessageDelivery": "true"},
+    )
 
     topic.publish(
         Message="test message",
@@ -197,6 +211,12 @@ def test_publish_to_sqs_msg_attr_number_type():
     message["Message"].should.equal("test message")
     message["MessageAttributes"].should.equal(
         {"retries": {"Type": "Number", "Value": 0}}
+    )
+
+    message = queue_raw.receive_messages()[0]
+    message.body.should.equal("test message")
+    message.message_attributes.should.equal(
+        {"retries": {"DataType": "Number", "StringValue": "0"}}
     )
 
 

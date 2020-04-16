@@ -582,11 +582,13 @@ class ELBv2Backend(BaseBackend):
                 report='Missing required parameter in Actions[%s].FixedResponseConfig: "StatusCode"'
                 % i
             )
-        if not re.match(r"^(2|4|5)\d\d$", status_code):
+        expression = r"^(2|4|5)\d\d$"
+        if not re.match(expression, status_code):
             raise InvalidStatusCodeActionTypeError(
-                "1 validation error detected: Value '%s' at 'actions.%s.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
-Member must satisfy regular expression pattern: ^(2|4|5)\d\d$"
-                % (status_code, index)
+                "1 validation error detected: Value '{}' at 'actions.{}.member.fixedResponseConfig.statusCode' failed to satisfy constraint: \
+Member must satisfy regular expression pattern: {}".format(
+                    status_code, index, expression
+                )
             )
         content_type = action.data["fixed_response_config._content_type"]
         if content_type and content_type not in [
@@ -603,16 +605,19 @@ Member must satisfy regular expression pattern: ^(2|4|5)\d\d$"
     def create_target_group(self, name, **kwargs):
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' cannot be longer than '32' characters" % name
+                "Target group name '{}' cannot be longer than '32' characters".format(
+                    name
+                )
             )
-        if not re.match("^[a-zA-Z0-9\-]+$", name):
+        if not re.match(r"^[a-zA-Z0-9\-]+$", name):
             raise InvalidTargetGroupNameError(
-                "Target group name '%s' can only contain characters that are alphanumeric characters or hyphens(-)"
-                % name
+                "Target group name '{}' can only contain characters that are alphanumeric characters or hyphens(-)".format(
+                    name
+                )
             )
 
         # undocumented validation
-        if not re.match("(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$", name):
+        if not re.match(r"(?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$", name):
             raise InvalidTargetGroupNameError(
                 "1 validation error detected: Value '%s' at 'targetGroup.targetGroupArn.targetGroupName' failed to satisfy constraint: Member must satisfy regular expression pattern: (?!.*--)(?!^-)(?!.*-$)^[A-Za-z0-9-]+$"
                 % name

@@ -34,6 +34,7 @@ from .exceptions import (
     InvalidNotificationARN,
     InvalidNotificationEvent,
     ObjectNotInActiveTierError,
+    NoSystemTags,
 )
 from .models import (
     s3_backend,
@@ -1231,9 +1232,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             new_key.set_tagging(tagging)
 
-        template = self.response_template(S3_OBJECT_RESPONSE)
         response_headers.update(new_key.response_dict)
-        return 200, response_headers, template.render(key=new_key)
+        return 200, response_headers, ""
 
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
@@ -1399,6 +1399,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 for tag in parsed_xml["Tagging"]["TagSet"]["Tag"]:
                     tags.append(FakeTag(tag["Key"], tag["Value"]))
 
+        # Verify that "aws:" is not in the tags. If so, then this is a problem:
+        for tag in tags:
+            if tag.key.startswith("aws:"):
+                raise NoSystemTags()
+
         tag_set = FakeTagSet(tags)
         tagging = FakeTagging(tag_set)
         return tagging
@@ -1546,8 +1551,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 204, {}, ""
         version_id = query.get("versionId", [None])[0]
         self.backend.delete_key(bucket_name, key_name, version_id=version_id)
-        template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
-        return 204, {}, template.render()
+        return 204, {}, ""
 
     def _complete_multipart_body(self, body):
         ps = minidom.parseString(body).getElementsByTagName("Part")
@@ -1861,20 +1865,6 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>
 {% endfor %}
 </DeleteResult>"""
-
-S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-  <DeleteObjectResponse>
-    <Code>200</Code>
-    <Description>OK</Description>
-  </DeleteObjectResponse>
-</DeleteObjectResponse>"""
-
-S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-      <PutObjectResponse>
-        <ETag>{{ key.etag }}</ETag>
-        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-      </PutObjectResponse>
-    </PutObjectResponse>"""
 
 S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">

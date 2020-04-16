@@ -516,7 +516,7 @@ def test_state_machine_describe_execution_after_stoppage():
     description = client.describe_execution(executionArn=execution["executionArn"])
     #
     description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    description["status"].should.equal("SUCCEEDED")
+    description["status"].should.equal("ABORTED")
     description["stopDate"].should.be.a(datetime)
 
 

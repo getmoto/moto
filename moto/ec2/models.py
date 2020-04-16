@@ -70,6 +70,7 @@ from .exceptions import (
     InvalidSubnetIdError,
     InvalidSubnetRangeError,
     InvalidVolumeIdError,
+    VolumeInUseError,
     InvalidVolumeAttachmentError,
     InvalidVpcCidrBlockAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
@@ -935,6 +936,12 @@ class InstanceBackend(object):
         instance = self.get_instance(instance_id)
         value = getattr(instance, key)
         return instance, value
+
+    def describe_instance_credit_specifications(self, instance_ids):
+        queried_instances = []
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            queried_instances.append(instance)
+        return queried_instances
 
     def all_instances(self, filters=None):
         instances = []
@@ -2385,6 +2392,9 @@ class EBSBackend(object):
 
     def delete_volume(self, volume_id):
         if volume_id in self.volumes:
+            volume = self.volumes[volume_id]
+            if volume.attachment:
+                raise VolumeInUseError(volume_id, volume.attachment.instance.id)
             return self.volumes.pop(volume_id)
         raise InvalidVolumeIdError(volume_id)
 
