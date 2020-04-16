@@ -2,7 +2,12 @@ import six
 
 from moto.dynamodb2.comparisons import get_comparison_func
 from moto.dynamodb2.exceptions import InvalidUpdateExpression
-from moto.dynamodb2.models.utilities import attribute_is_list, bytesize
+from moto.dynamodb2.models.utilities import (
+    attribute_is_list,
+    bytesize,
+    is_float,
+    is_int,
+)
 
 
 class DynamoType(object):
@@ -98,6 +103,16 @@ class DynamoType(object):
                     self.value[attr].filter(relevant_expressions)
             for expr in expressions_to_delete:
                 self.value.pop(expr)
+
+    def num_increment(self, increment):
+        if self.type == "N":
+            if is_int(self.value):
+                if is_int(increment):
+                    self.value = str(int(self.value) + int(increment))
+                else:
+                    self.value = "{:.2f}".format(int(self.value) + float(increment))
+            elif is_float(self.value):
+                self.value = "{:.2f}".format(float(self.value) + float(increment))
 
     def __hash__(self):
         return hash((self.type, self.value))

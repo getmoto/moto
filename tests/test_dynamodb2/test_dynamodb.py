@@ -4177,3 +4177,86 @@ def test_gsi_verify_negative_number_order():
     [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
         [-0.7, -0.6, 0.7]
     )
+
+
+@mock_dynamodb2
+def test_update_item_atomic_counter():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-3")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+    )
+
+    key = {"t_id": {"S": "item1"}}
+
+    ddb_mock.put_item(
+        TableName=table,
+        Item={"t_id": {"S": "item1"}, "n_i": {"N": "5"}, "n_f": {"N": "5.3"}},
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="set n_i = n_i + :inc1, n_f = n_f + :inc2",
+        ExpressionAttributeValues={":inc1": {"N": "1.2"}, ":inc2": {"N": "0.05"}},
+    )
+    updated_item = ddb_mock.query(
+        TableName=table, KeyConditionExpression="t_id = item1"
+    )["Items"][0]
+    updated_item["n_i"]["N"].should.equal("6.20")
+    updated_item["n_f"]["N"].should.equal("5.35")
+
+
+@mock_dynamodb2
+def test_update_item_atomic_counter_return_values():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-3")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+    )
+
+    key = {"t_id": {"S": "item1"}}
+
+    ddb_mock.put_item(TableName=table, Item={"t_id": {"S": "item1"}, "v": {"N": "5"}})
+
+    response = ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="set v = v + :inc",
+        ExpressionAttributeValues={":inc": {"N": "1"}},
+        ReturnValues="UPDATED_OLD",
+    )
+    assert (
+        "v" in response["Attributes"]
+    ), "v has been updated, and should be returned here"
+    response["Attributes"]["v"]["N"].should.equal("5")
+
+    # second update
+    response = ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="set v = v + :inc",
+        ExpressionAttributeValues={":inc": {"N": "1"}},
+        ReturnValues="UPDATED_OLD",
+    )
+    assert (
+        "v" in response["Attributes"]
+    ), "v has been updated, and should be returned here"
+    response["Attributes"]["v"]["N"].should.equal("6")
+
+    # third update
+    response = ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="set v = v + :inc",
+        ExpressionAttributeValues={":inc": {"N": "1"}},
+        ReturnValues="UPDATED_NEW",
+    )
+    assert (
+        "v" in response["Attributes"]
+    ), "v has been updated, and should be returned here"
+    response["Attributes"]["v"]["N"].should.equal("8")

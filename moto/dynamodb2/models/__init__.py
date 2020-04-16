@@ -138,6 +138,14 @@ class Item(BaseModel):
                     value = self._get_default(value)
                     # If operation == list_append, get the original value and append it
                     value = self._get_appended_list(value, expression_attribute_values)
+                    # If there is a +-operator, we need to compute the new value
+                    if type(value) != DynamoType and "+" in value:
+                        att1, att2 = value.split("+")
+                        if att1 in self.attrs:
+                            if att2 in expression_attribute_values:
+                                att2 = expression_attribute_values[att2]
+                            value = self.attrs[attr]
+                            value.num_increment(DynamoType(att2).value)
 
                     if type(value) != DynamoType:
                         if value in expression_attribute_values:

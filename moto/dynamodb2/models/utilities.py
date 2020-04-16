@@ -15,3 +15,23 @@ def attribute_is_list(attr):
     if list_index_update:
         attr = list_index_update.group(1)
     return attr, list_index_update.group(2) if list_index_update else None
+
+
+def is_int(val):
+    if type(val) == int:
+        return True
+    try:
+        int(val)
+        return True
+    except ValueError:
+        return False
+
+
+def is_float(val):
+    if type(val) == float:
+        return True
+    try:
+        float(val)
+        return True
+    except ValueError:
+        return False
