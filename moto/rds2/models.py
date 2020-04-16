@@ -865,7 +865,10 @@ class RDS2Backend(BaseBackend):
     def stop_database(self, db_instance_identifier, db_snapshot_identifier=None):
         database = self.describe_databases(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
-        if database.is_replica or database.multi_az:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html#USER_StopInstance.Limitations
+        if database.is_replica or (
+            database.multi_az and database.engine.lower().startswith("sqlserver")
+        ):
             # todo: more db types not supported by stop/start instance api
             raise InvalidDBClusterStateFaultError(db_instance_identifier)
         if database.status != "available":
