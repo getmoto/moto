@@ -79,13 +79,23 @@ def generate_environment():
 @mock_events
 def test_put_rule():
     client = boto3.client("events", "us-west-2")
-
     client.list_rules()["Rules"].should.have.length_of(0)
 
-    rule_data = get_random_rule()
+    rule_data = {
+        "Name": "my-event",
+        "ScheduleExpression": "rate(5 minutes)",
+        "EventPattern": '{"source": ["test-source"]}',
+    }
+
     client.put_rule(**rule_data)
 
-    client.list_rules()["Rules"].should.have.length_of(1)
+    rules = client.list_rules()["Rules"]
+
+    rules.should.have.length_of(1)
+    rules[0]["Name"].should.equal(rule_data["Name"])
+    rules[0]["ScheduleExpression"].should.equal(rule_data["ScheduleExpression"])
+    rules[0]["EventPattern"].should.equal(rule_data["EventPattern"])
+    rules[0]["State"].should.equal("ENABLED")
 
 
 @mock_events

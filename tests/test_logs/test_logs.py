@@ -12,17 +12,14 @@ _logs_region = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
 
 @mock_logs
-def test_log_group_create():
+def test_create_log_group():
     conn = boto3.client("logs", "us-west-2")
-    log_group_name = "dummy"
-    response = conn.create_log_group(logGroupName=log_group_name)
 
-    response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
-    assert len(response["logGroups"]) == 1
-    # AWS defaults to Never Expire for log group retention
-    assert response["logGroups"][0].get("retentionInDays") == None
+    response = conn.create_log_group(logGroupName="dummy")
+    response = conn.describe_log_groups()
 
-    response = conn.delete_log_group(logGroupName=log_group_name)
+    response["logGroups"].should.have.length_of(1)
+    response["logGroups"][0].should_not.have.key("retentionInDays")
 
 
 @mock_logs
