@@ -183,12 +183,12 @@ def test_start_database():
 
 
 @mock_rds2
-def test_fail_to_stop_multi_az():
+def test_fail_to_stop_multi_az_and_sqlserver():
     conn = boto3.client("rds", region_name="us-west-2")
     database = conn.create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
-        Engine="postgres",
+        Engine="sqlserver-ee",
         DBName="staging-postgres",
         DBInstanceClass="db.m1.small",
         LicenseModel="license-included",
@@ -211,6 +211,33 @@ def test_fail_to_stop_multi_az():
     conn.start_db_instance.when.called_with(
         DBInstanceIdentifier=mydb["DBInstanceIdentifier"]
     ).should.throw(ClientError)
+
+
+@mock_rds2
+def test_stop_multi_az_postgres():
+    conn = boto3.client("rds", region_name="us-west-2")
+    database = conn.create_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        LicenseModel="license-included",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+        MultiAZ=True,
+    )
+
+    mydb = conn.describe_db_instances(
+        DBInstanceIdentifier=database["DBInstance"]["DBInstanceIdentifier"]
+    )["DBInstances"][0]
+    mydb["DBInstanceStatus"].should.equal("available")
+
+    response = conn.stop_db_instance(DBInstanceIdentifier=mydb["DBInstanceIdentifier"])
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["DBInstance"]["DBInstanceStatus"].should.equal("stopped")
 
 
 @mock_rds2
