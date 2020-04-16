@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from base64 import b64encode
 import json
 
 import boto
@@ -100,6 +101,128 @@ def test_assume_role():
     )
     assume_role_response["AssumedRoleUser"]["AssumedRoleId"].should.have.length_of(
         21 + 1 + len(session_name)
+    )
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_sts
+def test_assume_role_with_saml():
+    client = boto3.client("sts", region_name="us-east-1")
+
+    session_name = "session-name"
+    policy = json.dumps(
+        {
+            "Statement": [
+                {
+                    "Sid": "Stmt13690092345534",
+                    "Action": ["S3:ListBucket"],
+                    "Effect": "Allow",
+                    "Resource": ["arn:aws:s3:::foobar-tester"],
+                }
+            ]
+        }
+    )
+    role_name = "test-role"
+    provider_name = "TestProvFed"
+    user_name = "testuser"
+    role_input = "arn:aws:iam::{account_id}:role/{role_name}".format(
+        account_id=ACCOUNT_ID, role_name=role_name
+    )
+    principal_role = "arn:aws:iam:{account_id}:saml-provider/{provider_name}".format(
+        account_id=ACCOUNT_ID, provider_name=provider_name
+    )
+    saml_assertion = """
+<?xml version="1.0"?>
+<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_00000000-0000-0000-0000-000000000000" Version="2.0" IssueInstant="2012-01-01T12:00:00.000Z" Destination="https://signin.aws.amazon.com/saml" Consent="urn:oasis:names:tc:SAML:2.0:consent:unspecified">
+  <Issuer xmlns="urn:oasis:names:tc:SAML:2.0:assertion">http://localhost/</Issuer>
+  <samlp:Status>
+    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
+  </samlp:Status>
+  <Assertion xmlns="urn:oasis:names:tc:SAML:2.0:assertion" ID="_00000000-0000-0000-0000-000000000000" IssueInstant="2012-12-01T12:00:00.000Z" Version="2.0">
+    <Issuer>http://localhost:3000/</Issuer>
+    <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+      <ds:SignedInfo>
+        <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+        <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+        <ds:Reference URI="#_00000000-0000-0000-0000-000000000000">
+          <ds:Transforms>
+            <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+            <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+          </ds:Transforms>
+          <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+          <ds:DigestValue>NTIyMzk0ZGI4MjI0ZjI5ZGNhYjkyOGQyZGQ1NTZjODViZjk5YTY4ODFjOWRjNjkyYzZmODY2ZDQ4NjlkZjY3YSAgLQo=</ds:DigestValue>
+        </ds:Reference>
+      </ds:SignedInfo>
+      <ds:SignatureValue>NTIyMzk0ZGI4MjI0ZjI5ZGNhYjkyOGQyZGQ1NTZjODViZjk5YTY4ODFjOWRjNjkyYzZmODY2ZDQ4NjlkZjY3YSAgLQo=</ds:SignatureValue>
+      <KeyInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+        <ds:X509Data>
+          <ds:X509Certificate>NTIyMzk0ZGI4MjI0ZjI5ZGNhYjkyOGQyZGQ1NTZjODViZjk5YTY4ODFjOWRjNjkyYzZmODY2ZDQ4NjlkZjY3YSAgLQo=</ds:X509Certificate>
+        </ds:X509Data>
+      </KeyInfo>
+    </ds:Signature>
+    <Subject>
+      <NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">{username}</NameID>
+      <SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <SubjectConfirmationData NotOnOrAfter="2012-01-01T13:00:00.000Z" Recipient="https://signin.aws.amazon.com/saml"/>
+      </SubjectConfirmation>
+    </Subject>
+    <Conditions NotBefore="2012-01-01T12:00:00.000Z" NotOnOrAfter="2012-01-01T13:00:00.000Z">
+      <AudienceRestriction>
+        <Audience>urn:amazon:webservices</Audience>
+      </AudienceRestriction>
+    </Conditions>
+    <AttributeStatement>
+      <Attribute Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName">
+        <AttributeValue>{username}@localhost</AttributeValue>
+      </Attribute>
+      <Attribute Name="https://aws.amazon.com/SAML/Attributes/Role">
+        <AttributeValue>arn:aws:iam::{account_id}:saml-provider/{provider_name},arn:aws:iam::{account_id}:role/{role_name}</AttributeValue>
+      </Attribute>
+      <Attribute Name="https://aws.amazon.com/SAML/Attributes/SessionDuration">
+        <AttributeValue>900</AttributeValue>
+      </Attribute>
+    </AttributeStatement>
+    <AuthnStatement AuthnInstant="2012-01-01T12:00:00.000Z" SessionIndex="_00000000-0000-0000-0000-000000000000">
+      <AuthnContext>
+        <AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</AuthnContextClassRef>
+      </AuthnContext>
+    </AuthnStatement>
+  </Assertion>
+</samlp:Response>""".format(
+        account_id=ACCOUNT_ID,
+        role_name=role_name,
+        provider_name=provider_name,
+        username=user_name,
+    ).replace(
+        "\n", ""
+    )
+
+    assume_role_response = client.assume_role_with_saml(
+        RoleArn=role_input,
+        PrincipalArn=principal_role,
+        SAMLAssertion=b64encode(saml_assertion.encode("utf-8")).decode("utf-8"),
+    )
+
+    credentials = assume_role_response["Credentials"]
+    if not settings.TEST_SERVER_MODE:
+        credentials["Expiration"].isoformat().should.equal("2012-01-01T12:15:00+00:00")
+    credentials["SessionToken"].should.have.length_of(356)
+    assert credentials["SessionToken"].startswith("FQoGZXIvYXdzE")
+    credentials["AccessKeyId"].should.have.length_of(20)
+    assert credentials["AccessKeyId"].startswith("ASIA")
+    credentials["SecretAccessKey"].should.have.length_of(40)
+
+    assume_role_response["AssumedRoleUser"]["Arn"].should.equal(
+        "arn:aws:sts::{account_id}:assumed-role/{role_name}/{fed_name}@localhost".format(
+            account_id=ACCOUNT_ID, role_name=role_name, fed_name=user_name
+        )
+    )
+    assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].startswith("AROA")
+    assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].endswith(
+        ":{fed_name}@localhost".format(fed_name=user_name)
+    )
+    assume_role_response["AssumedRoleUser"]["AssumedRoleId"].should.have.length_of(
+        21 + 1 + len("{fed_name}@localhost".format(fed_name=user_name))
     )
 
 
