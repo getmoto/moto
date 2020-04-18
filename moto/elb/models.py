@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
 import datetime
+
+import pytz
+
 from boto.ec2.elb.attributes import (
     LbAttributes,
     ConnectionSettingAttribute,
@@ -83,7 +86,7 @@ class FakeLoadBalancer(BaseModel):
         self.zones = zones
         self.listeners = []
         self.backends = []
-        self.created_time = datetime.datetime.now()
+        self.created_time = datetime.datetime.now(pytz.utc)
         self.scheme = scheme
         self.attributes = FakeLoadBalancer.get_default_attributes()
         self.policies = Policies()
