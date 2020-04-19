@@ -14,11 +14,16 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
-from moto.dynamodb2.comparisons import get_expected, get_comparison_func
-from moto.dynamodb2.exceptions import InvalidIndexNameError, ItemSizeTooLarge, InvalidUpdateExpression
+from moto.dynamodb2.comparisons import get_expected
+from moto.dynamodb2.exceptions import (
+    InvalidIndexNameError,
+    ItemSizeTooLarge,
+    ItemSizeToUpdateTooLarge,
+)
 from moto.dynamodb2.models.utilities import bytesize, attribute_is_list
 from moto.dynamodb2.models.dynamo_type import DynamoType
 from moto.dynamodb2.parsing.expressions import UpdateExpressionParser
+from moto.dynamodb2.parsing.validators import UpdateExpressionValidator
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
@@ -151,7 +156,10 @@ class Item(BaseModel):
                     if "." in key and attr not in self.attrs:
                         raise ValueError  # Setting nested attr not allowed if first attr does not exist yet
                     elif attr not in self.attrs:
-                        self.attrs[attr] = dyn_value  # set new top-level attribute
+                        try:
+                            self.attrs[attr] = dyn_value  # set new top-level attribute
+                        except ItemSizeTooLarge:
+                            raise ItemSizeToUpdateTooLarge()
                     else:
                         self.attrs[attr].set(
                             ".".join(key.split(".")[1:]), dyn_value, list_index
@@ -1202,7 +1210,7 @@ class DynamoDBBackend(BaseBackend):
         # E.g. `a = b + c` -> `a=b+c`
         if update_expression:
             # Parse expression to get validation errors
-            UpdateExpressionParser.make(update_expression)
+            update_expression_ast = UpdateExpressionParser.make(update_expression)
             update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
@@ -1247,6 +1255,12 @@ class DynamoDBBackend(BaseBackend):
             item = table.get_item(hash_value, range_value)
 
         if update_expression:
+            UpdateExpressionValidator(
+                update_expression_ast,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                item=item,
+            ).validate()
             item.update(
                 update_expression,
                 expression_attribute_names,

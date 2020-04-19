@@ -2147,13 +2147,33 @@ def test_update_item_on_map():
     # Nonexistent nested attributes are supported for existing top-level attributes.
     table.update_item(
         Key={"forum_name": "the-key", "subject": "123"},
-        UpdateExpression="SET body.#nested.#data = :tb, body.nested.#nonexistentnested.#data = :tb2",
+        UpdateExpression="SET body.#nested.#data = :tb",
+        ExpressionAttributeNames={"#nested": "nested", "#data": "data",},
+        ExpressionAttributeValues={":tb": "new_value"},
+    )
+    # Running this against AWS DDB gives an exception so make sure it also fails.:
+    with assert_raises(client.exceptions.ClientError):
+        # botocore.exceptions.ClientError: An error occurred (ValidationException) when calling the UpdateItem
+        # operation: The document path provided in the update expression is invalid for update
+        table.update_item(
+            Key={"forum_name": "the-key", "subject": "123"},
+            UpdateExpression="SET body.#nested.#nonexistentnested.#data = :tb2",
+            ExpressionAttributeNames={
+                "#nested": "nested",
+                "#nonexistentnested": "nonexistentnested",
+                "#data": "data",
+            },
+            ExpressionAttributeValues={":tb2": "other_value"},
+        )
+
+    table.update_item(
+        Key={"forum_name": "the-key", "subject": "123"},
+        UpdateExpression="SET body.#nested.#nonexistentnested = :tb2",
         ExpressionAttributeNames={
             "#nested": "nested",
             "#nonexistentnested": "nonexistentnested",
-            "#data": "data",
         },
-        ExpressionAttributeValues={":tb": "new_value", ":tb2": "other_value"},
+        ExpressionAttributeValues={":tb2": {"data": "other_value"}},
     )
 
     resp = table.scan()
@@ -2161,8 +2181,8 @@ def test_update_item_on_map():
         {"nested": {"data": "new_value", "nonexistentnested": {"data": "other_value"}}}
     )
 
-    # Test nested value for a nonexistent attribute.
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    # Test nested value for a nonexistent attribute throws a ClientError.
+    with assert_raises(client.exceptions.ClientError):
         table.update_item(
             Key={"forum_name": "the-key", "subject": "123"},
             UpdateExpression="SET nonexistent.#nested = :tb",
@@ -3184,7 +3204,10 @@ def test_remove_top_level_attribute():
         TableName=table_name, Item={"id": {"S": "foo"}, "item": {"S": "bar"}}
     )
     client.update_item(
-        TableName=table_name, Key={"id": {"S": "foo"}}, UpdateExpression="REMOVE item"
+        TableName=table_name,
+        Key={"id": {"S": "foo"}},
+        UpdateExpression="REMOVE #i",
+        ExpressionAttributeNames={"#i": "item"},
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
@@ -3359,21 +3382,21 @@ def test_item_size_is_under_400KB():
     assert_failure_due_to_item_size(
         func=client.put_item,
         TableName="moto-test",
-        Item={"id": {"S": "foo"}, "item": {"S": large_item}},
+        Item={"id": {"S": "foo"}, "cont": {"S": large_item}},
     )
     assert_failure_due_to_item_size(
-        func=table.put_item, Item={"id": "bar", "item": large_item}
+        func=table.put_item, Item={"id": "bar", "cont": large_item}
     )
-    assert_failure_due_to_item_size(
+    assert_failure_due_to_item_size_to_update(
         func=client.update_item,
         TableName="moto-test",
         Key={"id": {"S": "foo2"}},
-        UpdateExpression="set item=:Item",
+        UpdateExpression="set cont=:Item",
         ExpressionAttributeValues={":Item": {"S": large_item}},
     )
     # Assert op fails when updating a nested item
     assert_failure_due_to_item_size(
-        func=table.put_item, Item={"id": "bar", "itemlist": [{"item": large_item}]}
+        func=table.put_item, Item={"id": "bar", "itemlist": [{"cont": large_item}]}
     )
     assert_failure_due_to_item_size(
         func=client.put_item,
@@ -3391,6 +3414,15 @@ def assert_failure_due_to_item_size(func, **kwargs):
     ex.exception.response["Error"]["Code"].should.equal("ValidationException")
     ex.exception.response["Error"]["Message"].should.equal(
         "Item size has exceeded the maximum allowed size"
+    )
+
+
+def assert_failure_due_to_item_size_to_update(func, **kwargs):
+    with assert_raises(ClientError) as ex:
+        func(**kwargs)
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Item size to update has exceeded the maximum allowed size"
     )
 
 

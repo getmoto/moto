@@ -111,6 +111,17 @@ class ItemSizeTooLarge(MockValidationException):
         super(ItemSizeTooLarge, self).__init__(self.item_size_too_large_msg)
 
 
+class ItemSizeToUpdateTooLarge(MockValidationException):
+    item_size_to_update_too_large_msg = (
+        "Item size to update has exceeded the maximum allowed size"
+    )
+
+    def __init__(self):
+        super(ItemSizeToUpdateTooLarge, self).__init__(
+            self.item_size_to_update_too_large_msg
+        )
+
+
 class IncorrectOperandType(InvalidUpdateExpression):
     inv_operand_msg = "Incorrect operand type for operator or function; operator or function: {f}, operand type: {t}"
 
