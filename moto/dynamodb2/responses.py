@@ -92,16 +92,24 @@ class DynamoHandler(BaseResponse):
     def list_tables(self):
         body = self.body
         limit = body.get("Limit", 100)
-        if body.get("ExclusiveStartTableName"):
-            last = body.get("ExclusiveStartTableName")
-            start = list(self.dynamodb_backend.tables.keys()).index(last) + 1
+        all_tables = list(self.dynamodb_backend.tables.keys())
+
+        exclusive_start_table_name = body.get("ExclusiveStartTableName")
+        if exclusive_start_table_name:
+            try:
+                last_table_index = all_tables.index(exclusive_start_table_name)
+            except ValueError:
+                start = len(all_tables)
+            else:
+                start = last_table_index + 1
         else:
             start = 0
-        all_tables = list(self.dynamodb_backend.tables.keys())
+
         if limit:
             tables = all_tables[start : start + limit]
         else:
             tables = all_tables[start:]
+
         response = {"TableNames": tables}
         if limit and len(all_tables) > start + limit:
             response["LastEvaluatedTableName"] = tables[-1]
