@@ -158,6 +158,60 @@ def test_put_metric_data_no_dimensions():
 
 
 @mock_cloudwatch
+def test_get_metric_data():
+    conn = boto3.client("cloudwatch", region_name="us-east-1")
+
+    conn.put_metric_data(
+        Namespace="some/thing", MetricData=[dict(MetricName="someMetric", Value=23)]
+    )
+    conn.put_metric_data(
+        Namespace="some/thing", MetricData=[dict(MetricName="someMetric", Value=18)]
+    )
+    conn.put_metric_data(
+        Namespace="ug/thing", MetricData=[dict(MetricName="ug", Value=23)]
+    )
+    # filtering metric data with current time interval
+    response = conn.get_metric_data(
+        MetricDataQueries=[{"Id": "some","MetricStat": {"Metric":
+                        {"Namespace": "some/thing","MetricName": "someMetric"},
+                        "Period": 60,"Stat": "Sum"}},
+                        {"Id": "part", "MetricStat": {"Metric":
+                        {"Namespace": "ug/thing", "MetricName": "ug"},
+                        "Period": 60, "Stat": "Sum"}}],
+        StartTime=datetime.utcnow()-timedelta(hours=1),
+        EndTime=datetime.utcnow(),
+    )
+
+    for data_metric in response["MetricDataResults"]:
+        if data_metric["Id"] == "some":
+            data_metric["Values"].should.have.length_of(2)
+            data_metric["Values"].should.contain(float(23))
+            data_metric["Values"].should.contain(float(18))
+        if data_metric["Id"] == "part":
+            data_metric["Values"].should.have.length_of(1)
+            data_metric["Values"].should.contain(float(23))
+
+        # filtering metric data with current time interval
+        response = conn.get_metric_data(
+            MetricDataQueries=[{"Id": "some", "MetricStat": {"Metric":
+                    {"Namespace": "some/thing",
+                     "MetricName": "someMetric"},
+                    "Period": 60, "Stat": "Sum"}},
+                    {"Id": "part", "MetricStat": {"Metric":
+                    {"Namespace": "ug/thing", "MetricName": "ug"},
+                    "Period": 60, "Stat": "Sum"}}],
+            StartTime=datetime.utcnow()+timedelta(hours=1),
+            EndTime=datetime.utcnow()+timedelta(hours=2),
+        )
+
+        for data_metric in response["MetricDataResults"]:
+            if data_metric["Id"] == "some":
+                data_metric["Values"].should.have.length_of(0)
+            if data_metric["Id"] == "part":
+                data_metric["Values"].should.have.length_of(0)
+
+
+@mock_cloudwatch
 def test_put_metric_data_with_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=pytz.utc)

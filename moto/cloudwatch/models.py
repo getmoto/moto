@@ -295,6 +295,44 @@ class CloudWatchBackend(BaseBackend):
                 )
             )
 
+    def get_metric_data(self, metric_data_queries, start_time, end_time):
+
+        def round_time(dt=None, round_to=60):
+            dt = dt.replace(tzinfo=None)
+            seconds = (dt - dt.min).seconds
+            rounding = (seconds + round_to / 2) // round_to * round_to
+            return dt + timedelta(0, rounding - seconds, -dt.microsecond)
+
+        filtered_metrics = []
+        for metric_data in metric_data_queries:
+            found_metric = {}
+            timestamps = []
+            values = []
+
+            id = metric_data.get("Id")
+            period = int(metric_data.get("MetricStat.Period"))
+            namespace = metric_data.get("MetricStat.Metric.Namespace")
+            metric_name = metric_data.get("MetricStat.Metric.MetricName")
+
+            found_metric["id"] = id
+            namespace_filtered_metrics = self.get_filtered_metrics(metric_name, namespace)
+            for metric in namespace_filtered_metrics:
+
+                metric.timestamp = metric.timestamp.replace(tzinfo=None)
+                end_time = end_time.replace(tzinfo=None)
+                rounded_start_time = round_time(start_time, period)
+
+                if metric.timestamp >= rounded_start_time and metric.timestamp <= end_time :
+                    timestamps.append(iso_8601_datetime_without_milliseconds(metric.timestamp))
+                    values.append(metric.value)
+
+                found_metric["timestamps"] = timestamps
+                found_metric["values"] = values
+
+            filtered_metrics.append(found_metric)
+
+        return filtered_metrics
+
     def get_metric_statistics(
         self, namespace, metric_name, start_time, end_time, period, stats
     ):

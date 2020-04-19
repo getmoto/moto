@@ -93,6 +93,15 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
+    def get_metric_data(self):
+        start_time = dtparse(self._get_param("StartTime"))
+        end_time = dtparse(self._get_param("EndTime"))
+        metric_data_query = self._get_multi_param("MetricDataQueries.member")
+        metrics = self.cloudwatch_backend.get_metric_data(metric_data_query, start_time, end_time)
+        template = self.response_template(GET_METRIC_DATA_TEMPLATE)
+        return template.render(metrics=metrics)
+
+    @amzn_request_id
     def get_metric_statistics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -415,3 +424,25 @@ ERROR_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://monitoring.amazonaws.c
   </Error>
   <RequestId>{{ request_id }}</RequestId>
 </ErrorResponse>"""
+
+GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <GetMetricDataResult>
+            {% for metric in metrics %}
+                <MetricDataResults>
+                  <Id>{{ metric['id'] }}</Id>
+                  <Label>{{ metric['label'] }}</Label>
+                  <StatusCode>Complete</StatusCode>
+                  <Timestamps>
+                    {% for timestamp in metric['timestamps'] %}
+                        <Timestamp>{{ timestamp }}</Timestamp>
+                    {% endfor %}
+                  </Timestamps>
+                  <Values>
+                    {% for metric_value in metric['values'] %}
+                        <Value>{{ metric_value }}</Value>
+                    {% endfor %}
+                  </Values>
+                </MetricDataResults>
+            {% endfor %}
+    </GetMetricDataResult>
+</GetMetricDataResponse>"""
