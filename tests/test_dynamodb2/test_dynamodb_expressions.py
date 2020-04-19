@@ -393,3 +393,13 @@ def test_update_expression_parsing_is_not_keyword_aware():
     except InvalidTokenException as te:
         assert te.token == "1"
         assert te.near == "VALUE 1"
+
+
+def test_expression_if_not_exists_is_not_valid_in_remove_statement():
+    set_action = "REMOVE if_not_exists(a,b)"
+    try:
+        UpdateExpressionParser.make(set_action)
+        assert False, "Exception not raised correctly"
+    except InvalidTokenException as te:
+        assert te.token == "("
+        assert te.near == "if_not_exists(a"

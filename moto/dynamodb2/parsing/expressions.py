@@ -29,7 +29,7 @@ from moto.dynamodb2.parsing.ast_nodes import (
     UpdateExpressionDeleteActions,
     UpdateExpressionDeleteClause,
 )
-from moto.dynamodb2.exceptions import InvalidTokenException
+from moto.dynamodb2.exceptions import InvalidTokenException, InvalidUpdateExpression
 from moto.dynamodb2.parsing.tokens import Token, ExpressionTokenizer
 
 
@@ -371,6 +371,7 @@ class NestableBinExpressionParser(ExpressionParser):
                 self._parse_target_clause(self._operand_factory_class())
             else:
                 self.raise_unexpected_token()
+        return self._create_node()
 
     @abstractmethod
     def _operand_factory_class(self):
@@ -485,7 +486,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
             else:
                 self.raise_unexpected_token()
 
-        return self._create_node(), self.token_pos
+        return self._create_node()
 
     @classmethod
     def make(cls, expression_str):
@@ -804,15 +805,41 @@ class UpdateExpressionAttributeValueParser(ExpressionParser):
         return token.type == Token.ATTRIBUTE_VALUE
 
 
+class UpdateExpressionAttributeValueOrPathParser(ExpressionParser):
+    def _parse(self):
+        if UpdateExpressionAttributeValueParser.is_possible_start(
+            self.get_next_token()
+        ):
+            token, self.token_pos = UpdateExpressionAttributeValueParser(
+                **self._initializer_args()
+            )._parse_with_pos()
+        else:
+            token, self.token_pos = UpdateExpressionPathParser(
+                **self._initializer_args()
+            )._parse_with_pos()
+        return token
+
+    @classmethod
+    def _is_possible_start(cls, token):
+        return any(
+            [
+                UpdateExpressionAttributeValueParser.is_possible_start(token),
+                UpdateExpressionPathParser.is_possible_start(token),
+            ]
+        )
+
+
 class UpdateExpressionFunctionParser(ExpressionParser):
     """
     A helper to process a function of an Update Expression
     """
 
-    # TODO(pbbouwel): Function names are supposedly case sensitive according to doc add tests
     # Map function to the factories for its elements
     FUNCTIONS = {
-        "if_not_exists": [UpdateExpressionPathParser, UpdateExpressionValueParser],
+        "if_not_exists": [
+            UpdateExpressionPathParser,
+            UpdateExpressionAttributeValueOrPathParser,
+        ],
         "list_append": [UpdateExpressionOperandParser, UpdateExpressionOperandParser],
     }
 
@@ -833,6 +860,9 @@ class UpdateExpressionFunctionParser(ExpressionParser):
 
     def _parse(self):
         function_name = self.get_next_token_value()
+        if function_name not in self.FUNCTIONS.keys():
+            # Function names are case sensitive
+            raise InvalidUpdateExpression(function_name)
         self.goto_next_significant_token()
         self.process_token_of_type(Token.OPEN_ROUND_BRACKET)
         function_elements = [function_name]

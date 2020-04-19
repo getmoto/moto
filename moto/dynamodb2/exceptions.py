@@ -7,21 +7,72 @@ class MockValidationException(ValueError):
         self.exception_msg = message
 
 
-class InvalidUpdateExpression(MockValidationException):
+class InvalidUpdateExpressionInvalidDocumentPath(MockValidationException):
     invalid_update_expression_msg = (
         "The document path provided in the update expression is invalid for update"
     )
 
     def __init__(self):
-        super(InvalidUpdateExpression, self).__init__(
+        super(InvalidUpdateExpressionInvalidDocumentPath, self).__init__(
             self.invalid_update_expression_msg
         )
 
 
-class UpdateExprSyntaxError(MockValidationException):
-    update_expr_syntax_error_msg = (
-        "Invalid UpdateExpression: Syntax error; {error_detail}"
+class InvalidUpdateExpression(MockValidationException):
+    invalid_update_expr_msg = "Invalid UpdateExpression: {update_expression_error}"
+
+    def __init__(self, update_expression_error):
+        self.update_expression_error = update_expression_error
+        super(InvalidUpdateExpression, self).__init__(
+            self.invalid_update_expr_msg.format(
+                update_expression_error=update_expression_error
+            )
+        )
+
+
+class AttributeDoesNotExist(MockValidationException):
+    attr_does_not_exist_msg = (
+        "The provided expression refers to an attribute that does not exist in the item"
     )
+
+    def __init__(self):
+        super(AttributeDoesNotExist, self).__init__(self.attr_does_not_exist_msg)
+
+
+class ExpressionAttributeNameNotDefined(InvalidUpdateExpression):
+    name_not_defined_msg = "An expression attribute name used in the document path is not defined; attribute name: {n}"
+
+    def __init__(self, attribute_name):
+        self.not_defined_attribute_name = attribute_name
+        super(ExpressionAttributeNameNotDefined, self).__init__(
+            self.name_not_defined_msg.format(n=attribute_name)
+        )
+
+
+class AttributeIsReservedKeyword(InvalidUpdateExpression):
+    attribute_is_keyword_msg = (
+        "Attribute name is a reserved keyword; reserved keyword: {keyword}"
+    )
+
+    def __init__(self, keyword):
+        self.keyword = keyword
+        super(AttributeIsReservedKeyword, self).__init__(
+            self.attribute_is_keyword_msg.format(keyword=keyword)
+        )
+
+
+class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
+    attr_value_not_defined_msg = "An expression attribute value used in expression is not defined; attribute value: {attribute_value}"
+
+    def __init__(self, attribute_value):
+        self.attribute_value = attribute_value
+        super(ExpressionAttributeValueNotDefined, self).__init__(
+            self.attr_value_not_defined_msg.format(attribute_value=attribute_value)
+        )
+
+
+class UpdateExprSyntaxError(InvalidUpdateExpression):
+    update_expr_syntax_error_msg = "Syntax error; {error_detail}"
 
     def __init__(self, error_detail):
         self.error_detail = error_detail
@@ -58,3 +109,14 @@ class ItemSizeTooLarge(MockValidationException):
 
     def __init__(self):
         super(ItemSizeTooLarge, self).__init__(self.item_size_too_large_msg)
+
+
+class IncorrectOperandType(InvalidUpdateExpression):
+    inv_operand_msg = "Incorrect operand type for operator or function; operator or function: {f}, operand type: {t}"
+
+    def __init__(self, operator_or_function, operand_type):
+        self.operator_or_function = operator_or_function
+        self.operand_type = operand_type
+        super(IncorrectOperandType, self).__init__(
+            self.inv_operand_msg.format(f=operator_or_function, t=operand_type)
+        )
