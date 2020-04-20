@@ -4177,3 +4177,12 @@ def test_gsi_verify_negative_number_order():
     [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
         [-0.7, -0.6, 0.7]
     )
+
+
+@mock_dynamodb2
+def test_list_tables_exclusive_start_table_name_empty():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    resp = client.list_tables(Limit=1, ExclusiveStartTableName="whatever")
+
+    len(resp["TableNames"]).should.equal(0)
