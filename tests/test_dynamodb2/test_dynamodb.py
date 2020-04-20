@@ -4187,6 +4187,7 @@ def test_update_item_atomic_counter():
         TableName=table,
         KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
     )
 
     key = {"t_id": {"S": "item1"}}
