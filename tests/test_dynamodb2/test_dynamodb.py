@@ -4203,9 +4203,9 @@ def test_update_item_atomic_counter():
         UpdateExpression="set n_i = n_i + :inc1, n_f = n_f + :inc2",
         ExpressionAttributeValues={":inc1": {"N": "1.2"}, ":inc2": {"N": "0.05"}},
     )
-    updated_item = ddb_mock.query(
-        TableName=table, KeyConditionExpression="t_id = item1"
-    )["Items"][0]
+    updated_item = ddb_mock.get_item(
+        TableName=table, Key=key
+    )["Item"]
     updated_item["n_i"]["N"].should.equal("6.20")
     updated_item["n_f"]["N"].should.equal("5.35")
 
