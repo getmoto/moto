@@ -134,7 +134,8 @@ ACTION_MAP = {
 
 
 def parse_key_name(pth):
-    return pth.lstrip("/")
+    # strip the first '/' left by urlparse
+    return pth[1:] if pth.startswith('/') else pth
 
 
 def is_delete_keys(request, path, bucket_name):
