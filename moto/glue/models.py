@@ -34,6 +34,9 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise DatabaseNotFoundException(database_name)
 
+    def get_databases(self):
+        return [self.databases[key] for key in self.databases] if self.databases else []
+
     def create_table(self, database_name, table_name, table_input):
         database = self.get_database(database_name)
 
