@@ -67,7 +67,9 @@ def test_get_databases_several_items():
     helpers.create_database(client, database_name_1)
     helpers.create_database(client, database_name_2)
 
-    database_list = sorted(client.get_databases()["DatabaseList"], key=lambda x: x["Name"])
+    database_list = sorted(
+        client.get_databases()["DatabaseList"], key=lambda x: x["Name"]
+    )
     database_list.should.have.length_of(2)
     database_list[0].should.equal({"Name": database_name_1})
     database_list[1].should.equal({"Name": database_name_2})
