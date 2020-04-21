@@ -9,7 +9,7 @@ import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError, InvalidUpdateExpression, ItemSizeTooLarge
+from .exceptions import InvalidIndexNameError, ItemSizeTooLarge, MockValidationException
 from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 
 
@@ -298,7 +298,7 @@ class DynamoHandler(BaseResponse):
             )
         except ItemSizeTooLarge:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.message)
+            return self.error(er, ItemSizeTooLarge.item_size_too_large_msg)
         except KeyError as ke:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ke.args[0])
@@ -748,11 +748,6 @@ class DynamoHandler(BaseResponse):
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
-        # Support spaces between operators in an update expression
-        # E.g. `a = b + c` -> `a=b+c`
-        if update_expression:
-            update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
-
         try:
             item = self.dynamodb_backend.update_item(
                 name,
@@ -764,15 +759,9 @@ class DynamoHandler(BaseResponse):
                 expected,
                 condition_expression,
             )
-        except InvalidUpdateExpression:
+        except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(
-                er,
-                "The document path provided in the update expression is invalid for update",
-            )
-        except ItemSizeTooLarge:
-            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.message)
+            return self.error(er, mve.exception_msg)
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
             return self.error(

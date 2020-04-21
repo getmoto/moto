@@ -123,6 +123,37 @@ class DynamoType(object):
     def __repr__(self):
         return "DynamoType: {0}".format(self.to_json())
 
+    def __add__(self, other):
+        if self.type != other.type:
+            raise TypeError("Different types of operandi is not allowed.")
+        if self.type == "N":
+            return DynamoType({"N": "{v}".format(v=int(self.value) + int(other.value))})
+        else:
+            raise TypeError("Sum only supported for Numbers.")
+
+    def __sub__(self, other):
+        if self.type != other.type:
+            raise TypeError("Different types of operandi is not allowed.")
+        if self.type == "N":
+            return DynamoType({"N": "{v}".format(v=int(self.value) - int(other.value))})
+        else:
+            raise TypeError("Sum only supported for Numbers.")
+
+    def __getitem__(self, item):
+        if isinstance(item, six.string_types):
+            # If our DynamoType is a map it should be subscriptable with a key
+            if self.type == "M":
+                return self.value[item]
+        elif isinstance(item, int):
+            # If our DynamoType is a list is should be subscriptable with an index
+            if self.type == "L":
+                return self.value[item]
+        raise TypeError(
+            "This DynamoType {dt} is not subscriptable by a {it}".format(
+                dt=self.type, it=type(item)
+            )
+        )
+
     @property
     def cast_value(self):
         if self.is_number():
