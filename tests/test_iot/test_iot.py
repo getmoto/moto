@@ -728,6 +728,13 @@ def test_principal_thing():
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(0)
 
+    with assert_raises(ClientError) as e:
+        client.list_thing_principals(thingName='xxx')
+
+    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.exception.response["Error"]["Message"].should.equal(
+        "Failed to list principals for thing xxx because the thing does not exist in your account"
+    )
 
 @mock_iot
 def test_delete_principal_thing():
