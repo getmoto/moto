@@ -71,7 +71,7 @@ def test_instance_launch_and_terminate():
     instance.id.should.equal(instance.id)
     instance.state.should.equal("running")
     instance.launch_time.should.equal("2014-01-01T05:00:00.000Z")
-    instance.vpc_id.should.equal(None)
+    instance.vpc_id.shouldnt.equal(None)
     instance.placement.should.equal("us-east-1a")
 
     root_device_name = instance.root_device_name

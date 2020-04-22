@@ -805,6 +805,14 @@ class IoTBackend(BaseBackend):
         return thing_names
 
     def list_thing_principals(self, thing_name):
+
+        things = [_ for _ in self.things.values() if _.thing_name == thing_name]
+        if len(things) == 0:
+            raise ResourceNotFoundException(
+                "Failed to list principals for thing %s because the thing does not exist in your account"
+                % thing_name
+            )
+
         principals = [
             k[0] for k, v in self.principal_things.items() if k[1] == thing_name
         ]

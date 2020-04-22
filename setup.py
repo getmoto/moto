@@ -94,10 +94,12 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Testing",
     ],
     project_urls={
         "Documentation": "http://docs.getmoto.org/en/latest/",
     },
+    data_files=[('', ['moto/dynamodb2/parsing/reserved_keywords.txt'])],
 )

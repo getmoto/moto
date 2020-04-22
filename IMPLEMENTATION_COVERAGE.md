@@ -7210,13 +7210,13 @@
 - [ ] update_vtl_device_type
 
 ## sts
-50% implemented
+62% implemented
 - [X] assume_role
 - [ ] assume_role_with_saml
 - [X] assume_role_with_web_identity
 - [ ] decode_authorization_message
 - [ ] get_access_key_info
-- [ ] get_caller_identity
+- [X] get_caller_identity
 - [X] get_federation_token
 - [X] get_session_token
 
