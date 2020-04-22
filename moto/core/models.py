@@ -12,6 +12,8 @@ from io import BytesIO
 from collections import defaultdict
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
+from six.moves.urllib.parse import urlparse
+from werkzeug.wrappers import Request
 
 import mock
 from moto import settings
@@ -175,6 +177,24 @@ class CallbackResponse(responses.CallbackResponse):
         """
         Need to override this so we can pass decode_content=False
         """
+        if not isinstance(request, Request):
+            url = urlparse(request.url)
+            if request.body is None:
+                body = None
+            elif isinstance(request.body, six.text_type):
+                body = six.BytesIO(six.b(request.body))
+            else:
+                body = six.BytesIO(request.body)
+            req = Request.from_values(
+                path='?'.join([url.path, url.query]),
+                input_stream=body,
+                content_length=request.headers.get("Content-Length"),
+                content_type=request.headers.get("Content-Type"),
+                method=request.method,
+                base_url='{scheme}://{netloc}'.format(scheme=url.scheme, netloc=url.netloc),
+                headers=[(k, v) for k, v in six.iteritems(request.headers)]
+            )
+            request = req
         headers = self.get_headers()
 
         result = self.callback(request)
