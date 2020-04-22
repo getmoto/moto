@@ -840,26 +840,33 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def _bucket_response_delete_keys(self, request, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
 
-        keys = minidom.parseString(body).getElementsByTagName("Key")
-        deleted_names = []
+        objects = minidom.parseString(body).getElementsByTagName("Object")
+
+        deleted_objects = []
         error_names = []
-        if len(keys) == 0:
+        if len(objects) == 0:
             raise MalformedXML()
 
-        for k in keys:
-            key_name = k.firstChild.nodeValue
+        for object_ in objects:
+            key_name = object_.getElementsByTagName("Key")[0].firstChild.nodeValue
+            version_id_node = object_.getElementsByTagName("VersionId")
+            if version_id_node:
+                version_id = version_id_node[0].firstChild.nodeValue
+            else:
+                version_id = None
+
             success = self.backend.delete_key(
-                bucket_name, undo_clean_key_name(key_name)
+                bucket_name, undo_clean_key_name(key_name), version_id=version_id
             )
             if success:
-                deleted_names.append(key_name)
+                deleted_objects.append((key_name, version_id))
             else:
                 error_names.append(key_name)
 
         return (
             200,
             {},
-            template.render(deleted=deleted_names, delete_errors=error_names),
+            template.render(deleted=deleted_objects, delete_errors=error_names),
         )
 
     def _handle_range_header(self, request, headers, response_content):
@@ -1861,9 +1868,10 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-{% for k in deleted %}
+{% for k, v in deleted %}
 <Deleted>
 <Key>{{k}}</Key>
+{% if v %}<VersionId>{{v}}</VersionId>{% endif %}
 </Deleted>
 {% endfor %}
 {% for k in delete_errors %}
