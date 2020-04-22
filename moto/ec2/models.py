@@ -1518,6 +1518,9 @@ class RegionsAndZonesBackend(object):
         regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region)))
 
     zones = {
+        "af-south-1": [
+            Zone(region_name="af-south-1", name="af-south-1a", zone_id="afs1-az1"),
+        ],
         "ap-south-1": [
             Zone(region_name="ap-south-1", name="ap-south-1a", zone_id="aps1-az1"),
             Zone(region_name="ap-south-1", name="ap-south-1b", zone_id="aps1-az3"),
