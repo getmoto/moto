@@ -186,13 +186,15 @@ class CallbackResponse(responses.CallbackResponse):
             else:
                 body = six.BytesIO(request.body)
             req = Request.from_values(
-                path='?'.join([url.path, url.query]),
+                path="?".join([url.path, url.query]),
                 input_stream=body,
                 content_length=request.headers.get("Content-Length"),
                 content_type=request.headers.get("Content-Type"),
                 method=request.method,
-                base_url='{scheme}://{netloc}'.format(scheme=url.scheme, netloc=url.netloc),
-                headers=[(k, v) for k, v in six.iteritems(request.headers)]
+                base_url="{scheme}://{netloc}".format(
+                    scheme=url.scheme, netloc=url.netloc
+                ),
+                headers=[(k, v) for k, v in six.iteritems(request.headers)],
             )
             request = req
         headers = self.get_headers()
