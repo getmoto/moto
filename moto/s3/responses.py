@@ -5,7 +5,6 @@ import sys
 
 import six
 from botocore.awsrequest import AWSPreparedRequest
-from werkzeug.wrappers import Request
 
 from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
 from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
@@ -796,14 +795,6 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # POST to bucket-url should create file from form
         if hasattr(request, "form"):
             # Not HTTPretty
-            form = request.form
-        elif request.headers.get("Content-Type").startswith("multipart/form-data"):
-            request = Request.from_values(
-                input_stream=six.BytesIO(request.body),
-                content_length=request.headers["Content-Length"],
-                content_type=request.headers["Content-Type"],
-                method="POST",
-            )
             form = request.form
         else:
             # HTTPretty, build new form object
