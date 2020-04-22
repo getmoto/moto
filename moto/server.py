@@ -139,12 +139,16 @@ class DomainDispatcherApplication(object):
     def get_action_from_body(self, environ):
         body = None
         try:
-            request_body_size = int(environ.get("CONTENT_LENGTH", 0))
-            if "wsgi.input" in environ:
+            # AWS requests use querystrings as the body (Action=x&Data=y&...)
+            simple_form = environ["CONTENT_TYPE"].startswith(
+                "application/x-www-form-urlencoded"
+            )
+            request_body_size = int(environ["CONTENT_LENGTH"])
+            if simple_form and request_body_size:
                 body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
-                body_dict = dict(x.split("=") for x in str(body).split("&"))
+                body_dict = dict(x.split("=") for x in body.split("&"))
                 return body_dict["Action"]
-        except ValueError:
+        except (KeyError, ValueError):
             pass
         finally:
             if body:
