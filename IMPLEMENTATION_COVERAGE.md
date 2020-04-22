@@ -3351,7 +3351,7 @@
 - [ ] update_listener
 
 ## glue
-14/123 = 11% implemented
+11% implemented
 - [X] batch_create_partition
 - [ ] batch_delete_connection
 - [X] batch_delete_partition
