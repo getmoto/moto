@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import argparse
+import io
 import json
 import re
 import sys
@@ -29,6 +30,7 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
+UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
 
 
 class DomainDispatcherApplication(object):
@@ -77,9 +79,13 @@ class DomainDispatcherApplication(object):
         else:
             # Unsigned request
             target = environ.get("HTTP_X_AMZ_TARGET")
+            action = self.get_action_from_body(environ)
             if target:
                 service, _ = target.split(".", 1)
                 service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
+            elif action and action in UNSIGNED_ACTIONS:
+                # See if we can match the Action to a known service
+                service, region = UNSIGNED_ACTIONS.get(action)
             else:
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
@@ -129,6 +135,22 @@ class DomainDispatcherApplication(object):
                 app = self.create_app(backend)
                 self.app_instances[backend] = app
             return app
+
+    def get_action_from_body(self, environ):
+        body = None
+        try:
+            request_body_size = int(environ.get("CONTENT_LENGTH", 0))
+            if "wsgi.input" in environ:
+                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
+                body_dict = dict(x.split("=") for x in str(body).split("&"))
+                return body_dict["Action"]
+        except ValueError:
+            pass
+        finally:
+            if body:
+                # We've consumed the body = need to reset it
+                environ["wsgi.input"] = io.StringIO(body)
+        return None
 
     def __call__(self, environ, start_response):
         backend_app = self.get_application(environ)
