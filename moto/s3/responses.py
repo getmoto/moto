@@ -797,12 +797,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if hasattr(request, "form"):
             # Not HTTPretty
             form = request.form
-        elif request.headers.get('Content-Type').startswith('multipart/form-data'):
+        elif request.headers.get("Content-Type").startswith("multipart/form-data"):
             request = Request.from_values(
                 input_stream=six.BytesIO(request.body),
-                content_length=request.headers['Content-Length'],
-                content_type=request.headers['Content-Type'],
-                method='POST',
+                content_length=request.headers["Content-Length"],
+                content_type=request.headers["Content-Type"],
+                method="POST",
             )
             form = request.form
         else:
