@@ -4457,6 +4457,6 @@ def test_creating_presigned_post():
         ExpiresIn=1000,
     )
     resp = requests.post(data['url'], data=data['fields'], files={'file': fdata}, allow_redirects=False)
-    assert resp.headers['Location'] == url
+    assert resp.headers['Location'] == success_url
     assert resp.status_code == 303
-    assert s3.get_object(Bucket=bucket, Key='{file_uuid}.txt'.format(file_uid=file_uid))['Body'].read() == fdata
+    assert s3.get_object(Bucket=bucket, Key='{file_uid}.txt'.format(file_uid=file_uid))['Body'].read() == fdata
