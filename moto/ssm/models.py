@@ -651,7 +651,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 label.startswith("aws")
                 or label.startswith("ssm")
                 or label[:1].isdigit()
-                or not re.match("^[a-zA-z0-9_\.\-]*$", label)
+                or not re.match(r"^[a-zA-z0-9_\.\-]*$", label)
             ):
                 invalid_labels.append(label)
                 continue
