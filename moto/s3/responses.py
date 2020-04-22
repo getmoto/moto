@@ -5,6 +5,7 @@ import sys
 
 import six
 from botocore.awsrequest import AWSPreparedRequest
+from werkzeug.wrappers import Request
 
 from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
 from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
@@ -141,31 +142,6 @@ def is_delete_keys(request, path, bucket_name):
     return path == "/?delete" or (
         path == "/" and getattr(request, "query_string", "") == "delete"
     )
-
-
-def _process_multipart_formdata(request):
-    """
-    When not using the live server, the request does not pass through flask, so it is not processed.
-    This will only be used in places where we end up with a requests PreparedRequest.
-    """
-    form = {}
-    boundkey = request.headers['Content-Type'][len('multipart/form-data; boundary='):]
-    boundary = f'--{boundkey}'
-    data = request.body.decode().split(boundary)
-    fields = [field.split('\r\n\r\n') for field in data][1:-1]
-    for key, value in fields:
-        key, value = key.replace('\r\n', ''), value.replace('\r\n', '')
-        key = key.split('; ')
-        if len(key) == 2:
-            disposition, name = key
-            filename = None
-        else:
-            disposition, name, filename = key
-        name = name[len('name='):].strip('"')
-        if disposition.endswith('form-data'):
-            form[name] = value
-    import code; code.interact(local=locals())
-    return form
 
 
 class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
@@ -822,7 +798,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # Not HTTPretty
             form = request.form
         elif request.headers.get('Content-Type').startswith('multipart/form-data'):
-            form = _process_multipart_formdata(request)
+            request = Request.from_values(
+                input_stream=six.BytesIO(request.body),
+                content_length=request.headers['Content-Length'],
+                content_type=request.headers['Content-Type'],
+                method='POST',
+            )
+            form = request.form
         else:
             # HTTPretty, build new form object
             body = body.decode()
