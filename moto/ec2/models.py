@@ -1514,6 +1514,8 @@ class RegionsAndZonesBackend(object):
     zones = {
         "af-south-1": [
             Zone(region_name="af-south-1", name="af-south-1a", zone_id="afs1-az1"),
+            Zone(region_name="af-south-1", name="af-south-1b", zone_id="afs1-az2"),
+            Zone(region_name="af-south-1", name="af-south-1c", zone_id="afs1-az3"),
         ],
         "ap-south-1": [
             Zone(region_name="ap-south-1", name="ap-south-1a", zone_id="aps1-az1"),
