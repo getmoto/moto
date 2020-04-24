@@ -279,7 +279,7 @@ class SecretsManagerBackend(BaseBackend):
             {
                 "ARN": secret_arn(self.region, secret["secret_id"]),
                 "Name": secret["name"],
-                "Description": "",
+                "Description": secret.get("description", ""),
                 "KmsKeyId": "",
                 "RotationEnabled": secret["rotation_enabled"],
                 "RotationLambdaARN": secret["rotation_lambda_arn"],
