@@ -227,9 +227,13 @@ class SecretsManagerBackend(BaseBackend):
 
     def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
 
-        secret = self.secrets[secret_id]
-        tags = secret["tags"]
-        description = secret["description"]
+        if secret_id in self.secrets.keys():
+            secret = self.secrets[secret_id]
+            tags = secret["tags"]
+            description = secret["description"]
+        else:
+            tags = []
+            description = ""
 
         version_id = self._add_secret(
             secret_id, secret_string, secret_binary, description=description, tags=tags, version_stages=version_stages
@@ -427,7 +431,7 @@ class SecretsManagerBackend(BaseBackend):
                 {
                     "ARN": secret_arn(self.region, secret["secret_id"]),
                     "DeletedDate": secret.get("deleted_date", None),
-                    "Description": secret.get["description"],
+                    "Description": secret.get("description", ""),
                     "KmsKeyId": "",
                     "LastAccessedDate": None,
                     "LastChangedDate": None,
