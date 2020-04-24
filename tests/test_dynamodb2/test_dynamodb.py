@@ -4277,3 +4277,12 @@ def test_update_expression_with_multiple_set_clauses_must_be_comma_separated():
         assert False, "Validation exception not thrown"
     except dynamodb.exceptions.ClientError as e:
         assert_raise_syntax_error(e, "Mystr2", "myNum Mystr2 myNum2")
+
+
+@mock_dynamodb2
+def test_list_tables_exclusive_start_table_name_empty():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    resp = client.list_tables(Limit=1, ExclusiveStartTableName="whatever")
+
+    len(resp["TableNames"]).should.equal(0)
