@@ -1504,21 +1504,30 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
-    regions_not_enabled_by_default = [
-        'ap-east-1',
-        'me-south-1'
-    ]
+    regions_not_enabled_by_default = ["ap-east-1", "me-south-1"]
 
     regions = []
     for region in Session().get_available_regions("ec2"):
         if region in regions_not_enabled_by_default:
-            regions.append(Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in"))
+            regions.append(
+                Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in")
+            )
         else:
-            regions.append(Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"))
+            regions.append(
+                Region(
+                    region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"
+                )
+            )
     for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"))
+        regions.append(
+            Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required")
+        )
     for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region), "opt-in-not-required"))
+        regions.append(
+            Region(
+                region, "ec2.{}.amazonaws.com.cn".format(region), "opt-in-not-required"
+            )
+        )
 
     zones = {
         "af-south-1": [
