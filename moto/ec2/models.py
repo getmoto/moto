@@ -1490,9 +1490,10 @@ class AmiBackend(object):
 
 
 class Region(object):
-    def __init__(self, name, endpoint):
+    def __init__(self, name, endpoint, opt_in_status):
         self.name = name
         self.endpoint = endpoint
+        self.opt_in_status = opt_in_status
 
 
 class Zone(object):
@@ -1503,13 +1504,21 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
+    regions_not_enabled_by_default = [
+        'ap-east-1',
+        'me-south-1'
+    ]
+
     regions = []
     for region in Session().get_available_regions("ec2"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+        if region in regions_not_enabled_by_default:
+            regions.append(Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in"))
+        else:
+            regions.append(Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"))
     for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"))
     for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region)))
+        regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region), "opt-in-not-required"))
 
     zones = {
         "af-south-1": [
