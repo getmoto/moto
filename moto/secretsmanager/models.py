@@ -126,7 +126,11 @@ class SecretsManagerBackend(BaseBackend):
         description = secret["description"]
 
         version_id = self._add_secret(
-            secret_id, secret_string=secret_string, secret_binary=secret_binary, description=description, tags=tags
+            secret_id,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+            description=description,
+            tags=tags,
         )
 
         response = json.dumps(
@@ -140,7 +144,13 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def create_secret(
-        self, name, secret_string=None, secret_binary=None, description=None, tags=[], **kwargs
+        self,
+        name,
+        secret_string=None,
+        secret_binary=None,
+        description=None,
+        tags=[],
+        **kwargs
     ):
 
         # error if secret exists
@@ -150,7 +160,11 @@ class SecretsManagerBackend(BaseBackend):
             )
 
         version_id = self._add_secret(
-            name, secret_string=secret_string, secret_binary=secret_binary, description=description, tags=tags
+            name,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+            description=description,
+            tags=tags,
         )
 
         response = json.dumps(
@@ -236,7 +250,12 @@ class SecretsManagerBackend(BaseBackend):
             description = ""
 
         version_id = self._add_secret(
-            secret_id, secret_string, secret_binary, description=description, tags=tags, version_stages=version_stages
+            secret_id,
+            secret_string,
+            secret_binary,
+            description=description,
+            tags=tags,
+            version_stages=version_stages,
         )
 
         response = json.dumps(
