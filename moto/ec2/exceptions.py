@@ -231,6 +231,14 @@ class InvalidVolumeAttachmentError(EC2ClientError):
         )
 
 
+class VolumeInUseError(EC2ClientError):
+    def __init__(self, volume_id, instance_id):
+        super(VolumeInUseError, self).__init__(
+            "VolumeInUse",
+            "Volume {0} is currently attached to {1}".format(volume_id, instance_id),
+        )
+
+
 class InvalidDomainError(EC2ClientError):
     def __init__(self, domain):
         super(InvalidDomainError, self).__init__(

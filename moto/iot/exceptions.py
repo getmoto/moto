@@ -7,10 +7,10 @@ class IoTClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(IoTClientError):
-    def __init__(self):
+    def __init__(self, msg=None):
         self.code = 404
         super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException", "The specified resource does not exist"
+            "ResourceNotFoundException", msg or "The specified resource does not exist"
         )
 
 

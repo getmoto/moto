@@ -30,6 +30,12 @@ class GlueResponse(BaseResponse):
         database = self.glue_backend.get_database(database_name)
         return json.dumps({"Database": {"Name": database.name}})
 
+    def get_databases(self):
+        database_list = self.glue_backend.get_databases()
+        return json.dumps(
+            {"DatabaseList": [{"Name": database.name} for database in database_list]}
+        )
+
     def create_table(self):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")

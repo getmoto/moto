@@ -495,7 +495,7 @@ def test_autoscaling_group_with_elb():
             "my-as-group": {
                 "Type": "AWS::AutoScaling::AutoScalingGroup",
                 "Properties": {
-                    "AvailabilityZones": ["us-east1"],
+                    "AvailabilityZones": ["us-east-1a"],
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
@@ -522,7 +522,7 @@ def test_autoscaling_group_with_elb():
             "my-elb": {
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
                 "Properties": {
-                    "AvailabilityZones": ["us-east1"],
+                    "AvailabilityZones": ["us-east-1a"],
                     "Listeners": [
                         {
                             "LoadBalancerPort": "80",
@@ -545,10 +545,10 @@ def test_autoscaling_group_with_elb():
 
     web_setup_template_json = json.dumps(web_setup_template)
 
-    conn = boto.cloudformation.connect_to_region("us-west-1")
+    conn = boto.cloudformation.connect_to_region("us-east-1")
     conn.create_stack("web_stack", template_body=web_setup_template_json)
 
-    autoscale_conn = boto.ec2.autoscale.connect_to_region("us-west-1")
+    autoscale_conn = boto.ec2.autoscale.connect_to_region("us-east-1")
     autoscale_group = autoscale_conn.get_all_groups()[0]
     autoscale_group.launch_config_name.should.contain("my-launch-config")
     autoscale_group.load_balancers[0].should.equal("my-elb")
@@ -557,7 +557,7 @@ def test_autoscaling_group_with_elb():
     autoscale_conn.get_all_launch_configurations().should.have.length_of(1)
 
     # Confirm the ELB was actually created
-    elb_conn = boto.ec2.elb.connect_to_region("us-west-1")
+    elb_conn = boto.ec2.elb.connect_to_region("us-east-1")
     elb_conn.get_all_load_balancers().should.have.length_of(1)
 
     stack = conn.describe_stacks()[0]
@@ -584,7 +584,7 @@ def test_autoscaling_group_with_elb():
     elb_resource.physical_resource_id.should.contain("my-elb")
 
     # confirm the instances were created with the right tags
-    ec2_conn = boto.ec2.connect_to_region("us-west-1")
+    ec2_conn = boto.ec2.connect_to_region("us-east-1")
     reservations = ec2_conn.get_all_reservations()
     len(reservations).should.equal(1)
     reservation = reservations[0]
@@ -604,7 +604,7 @@ def test_autoscaling_group_update():
             "my-as-group": {
                 "Type": "AWS::AutoScaling::AutoScalingGroup",
                 "Properties": {
-                    "AvailabilityZones": ["us-west-1"],
+                    "AvailabilityZones": ["us-west-1a"],
                     "LaunchConfigurationName": {"Ref": "my-launch-config"},
                     "MinSize": "2",
                     "MaxSize": "2",
@@ -2373,13 +2373,12 @@ def test_create_log_group_using_fntransform():
     }
 
     cf_conn = boto3.client("cloudformation", "us-west-2")
-    cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(template),
-    )
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(template))
 
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
     log_group["logGroupName"].should.equal("some-log-group")
+    log_group["retentionInDays"].should.be.equal(90)
 
 
 @mock_cloudformation
@@ -2400,7 +2399,7 @@ def test_stack_events_create_rule_integration():
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
@@ -2428,7 +2427,7 @@ def test_stack_events_delete_rule_integration():
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
@@ -2457,8 +2456,45 @@ def test_stack_events_create_rule_without_name_integration():
     }
     cf_conn = boto3.client("cloudformation", "us-west-2")
     cf_conn.create_stack(
-        StackName="test_stack", TemplateBody=json.dumps(events_template),
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
     rules["Rules"][0]["Name"].should.contain("test_stack-Event-")
+
+
+@mock_cloudformation
+@mock_events
+@mock_logs
+def test_stack_events_create_rule_as_target():
+    events_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "SecurityGroup": {
+                "Type": "AWS::Logs::LogGroup",
+                "Properties": {
+                    "LogGroupName": {"Fn::GetAtt": ["Event", "Arn"]},
+                    "RetentionInDays": 3,
+                },
+            },
+            "Event": {
+                "Type": "AWS::Events::Rule",
+                "Properties": {
+                    "State": "ENABLED",
+                    "ScheduleExpression": "rate(5 minutes)",
+                },
+            },
+        },
+    }
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+    cf_conn.create_stack(
+        StackName="test_stack", TemplateBody=json.dumps(events_template)
+    )
+
+    rules = boto3.client("events", "us-west-2").list_rules()
+    log_groups = boto3.client("logs", "us-west-2").describe_log_groups()
+
+    rules["Rules"][0]["Name"].should.contain("test_stack-Event-")
+
+    log_groups["logGroups"][0]["logGroupName"].should.equal(rules["Rules"][0]["Arn"])
+    log_groups["logGroups"][0]["retentionInDays"].should.equal(3)

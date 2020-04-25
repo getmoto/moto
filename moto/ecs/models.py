@@ -604,7 +604,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
     def run_task(self, cluster_str, task_definition_str, count, overrides, started_by):
-        cluster_name = cluster_str.split("/")[-1]
+        if cluster_str:
+            cluster_name = cluster_str.split("/")[-1]
+        else:
+            cluster_name = "default"
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
         else:

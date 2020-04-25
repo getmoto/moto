@@ -4,7 +4,10 @@ Moto has a [Code of Conduct](https://github.com/spulec/moto/blob/master/CODE_OF_
 
 ## Running the tests locally
 
-Moto has a Makefile which has some helpful commands for getting setup. You should be able to run `make init` to install the dependencies and then `make test` to run the tests.
+Moto has a Makefile which has some helpful commands for getting setup. You should be able to run `make init` to install the dependencies and then `make test` to run the tests.  
+
+## Linting
+Run `make lint` or `black --check moto tests` to verify whether your code confirms to the guidelines.
 
 ## Is there a missing feature?
 

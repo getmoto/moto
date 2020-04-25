@@ -7,7 +7,7 @@ import base64
 from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
-from moto.dynamodb2.models import dynamodb_backends
+from moto.dynamodb2.models import dynamodb_backends, DynamoJsonEncoder
 
 
 class ShardIterator(BaseModel):
@@ -137,7 +137,7 @@ class DynamoDBStreamsBackend(BaseBackend):
 
     def get_records(self, iterator_arn, limit):
         shard_iterator = self.shard_iterators[iterator_arn]
-        return json.dumps(shard_iterator.get(limit))
+        return json.dumps(shard_iterator.get(limit), cls=DynamoJsonEncoder)
 
 
 dynamodbstreams_backends = {}

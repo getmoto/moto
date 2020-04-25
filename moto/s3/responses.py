@@ -7,7 +7,7 @@ import six
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.utils import str_to_rfc_1123_datetime, py2_strip_unicode_keys
-from six.moves.urllib.parse import parse_qs, urlparse, unquote
+from six.moves.urllib.parse import parse_qs, urlparse, unquote, parse_qsl
 
 import xmltodict
 
@@ -775,6 +775,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 409, {}, template.render(bucket=removed_bucket)
 
     def _bucket_response_post(self, request, body, bucket_name):
+        response_headers = {}
         if not request.headers.get("Content-Length"):
             return 411, {}, "Content-Length required"
 
@@ -796,11 +797,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # HTTPretty, build new form object
             body = body.decode()
-
-            form = {}
-            for kv in body.split("&"):
-                k, v = kv.split("=")
-                form[k] = v
+            form = dict(parse_qsl(body))
 
         key = form["key"]
         if "file" in form:
@@ -808,13 +805,23 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             f = request.files["file"].stream.read()
 
+        if "success_action_redirect" in form:
+            response_headers["Location"] = form["success_action_redirect"]
+
+        if "success_action_status" in form:
+            status_code = form["success_action_status"]
+        elif "success_action_redirect" in form:
+            status_code = 303
+        else:
+            status_code = 204
+
         new_key = self.backend.set_key(bucket_name, key, f)
 
         # Metadata
         metadata = metadata_from_headers(form)
         new_key.set_metadata(metadata)
 
-        return 200, {}, ""
+        return status_code, response_headers, ""
 
     @staticmethod
     def _get_path(request):
@@ -1232,9 +1239,8 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             self.backend.set_key_tags(new_key, tagging)
 
-        template = self.response_template(S3_OBJECT_RESPONSE)
         response_headers.update(new_key.response_dict)
-        return 200, response_headers, template.render(key=new_key)
+        return 200, response_headers, ""
 
     def _key_response_head(self, bucket_name, query, key_name, headers):
         response_headers = {}
@@ -1542,8 +1548,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 204, {}, ""
         version_id = query.get("versionId", [None])[0]
         self.backend.delete_key(bucket_name, key_name, version_id=version_id)
-        template = self.response_template(S3_DELETE_OBJECT_SUCCESS)
-        return 204, {}, template.render()
+        return 204, {}, ""
 
     def _complete_multipart_body(self, body):
         ps = minidom.parseString(body).getElementsByTagName("Part")
@@ -1857,20 +1862,6 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>
 {% endfor %}
 </DeleteResult>"""
-
-S3_DELETE_OBJECT_SUCCESS = """<DeleteObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-  <DeleteObjectResponse>
-    <Code>200</Code>
-    <Description>OK</Description>
-  </DeleteObjectResponse>
-</DeleteObjectResponse>"""
-
-S3_OBJECT_RESPONSE = """<PutObjectResponse xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-      <PutObjectResponse>
-        <ETag>{{ key.etag }}</ETag>
-        <LastModified>{{ key.last_modified_ISO8601 }}</LastModified>
-      </PutObjectResponse>
-    </PutObjectResponse>"""
 
 S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
