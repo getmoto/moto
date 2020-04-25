@@ -59,6 +59,7 @@ class APIGatewayResponse(BaseResponse):
             api_key_source = self._get_param("apiKeySource")
             endpoint_configuration = self._get_param("endpointConfiguration")
             tags = self._get_param("tags")
+            policy = self._get_param("policy")
 
             # Param validation
             if api_key_source and api_key_source not in API_KEY_SOURCES:
@@ -94,6 +95,7 @@ class APIGatewayResponse(BaseResponse):
                 api_key_source=api_key_source,
                 endpoint_configuration=endpoint_configuration,
                 tags=tags,
+                policy=policy,
             )
             return 200, {}, json.dumps(rest_api.to_dict())
 

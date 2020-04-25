@@ -599,3 +599,20 @@ def validate_subnet_details_after_creating_eni(
     for eni in enis_created:
         client.delete_network_interface(NetworkInterfaceId=eni["NetworkInterfaceId"])
     client.delete_subnet(SubnetId=subnet["SubnetId"])
+
+
+@mock_ec2
+def test_run_instances_should_attach_to_default_subnet():
+    # https://github.com/spulec/moto/issues/2877
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    ec2.create_security_group(GroupName="sg01", Description="Test security group sg01")
+    # run_instances
+    instances = client.run_instances(MinCount=1, MaxCount=1, SecurityGroups=["sg01"],)
+    # Assert subnet is created appropriately
+    subnets = client.describe_subnets()["Subnets"]
+    default_subnet_id = subnets[0]["SubnetId"]
+    instances["Instances"][0]["NetworkInterfaces"][0]["SubnetId"].should.equal(
+        default_subnet_id
+    )
+    subnets[0]["AvailableIpAddressCount"].should.equal(4090)

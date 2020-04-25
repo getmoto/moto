@@ -9,7 +9,7 @@ import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError, InvalidUpdateExpression, ItemSizeTooLarge
+from .exceptions import InvalidIndexNameError, ItemSizeTooLarge, MockValidationException
 from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 
 
@@ -92,16 +92,24 @@ class DynamoHandler(BaseResponse):
     def list_tables(self):
         body = self.body
         limit = body.get("Limit", 100)
-        if body.get("ExclusiveStartTableName"):
-            last = body.get("ExclusiveStartTableName")
-            start = list(self.dynamodb_backend.tables.keys()).index(last) + 1
+        all_tables = list(self.dynamodb_backend.tables.keys())
+
+        exclusive_start_table_name = body.get("ExclusiveStartTableName")
+        if exclusive_start_table_name:
+            try:
+                last_table_index = all_tables.index(exclusive_start_table_name)
+            except ValueError:
+                start = len(all_tables)
+            else:
+                start = last_table_index + 1
         else:
             start = 0
-        all_tables = list(self.dynamodb_backend.tables.keys())
+
         if limit:
             tables = all_tables[start : start + limit]
         else:
             tables = all_tables[start:]
+
         response = {"TableNames": tables}
         if limit and len(all_tables) > start + limit:
             response["LastEvaluatedTableName"] = tables[-1]
@@ -298,7 +306,7 @@ class DynamoHandler(BaseResponse):
             )
         except ItemSizeTooLarge:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.message)
+            return self.error(er, ItemSizeTooLarge.item_size_too_large_msg)
         except KeyError as ke:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
             return self.error(er, ke.args[0])
@@ -462,8 +470,10 @@ class DynamoHandler(BaseResponse):
                 for k, v in six.iteritems(self.body.get("ExpressionAttributeNames", {}))
             )
 
-            if " AND " in key_condition_expression:
-                expressions = key_condition_expression.split(" AND ", 1)
+            if " and " in key_condition_expression.lower():
+                expressions = re.split(
+                    " AND ", key_condition_expression, maxsplit=1, flags=re.IGNORECASE
+                )
 
                 index_hash_key = [key for key in index if key["KeyType"] == "HASH"][0]
                 hash_key_var = reverse_attribute_lookup.get(
@@ -748,11 +758,6 @@ class DynamoHandler(BaseResponse):
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
-        # Support spaces between operators in an update expression
-        # E.g. `a = b + c` -> `a=b+c`
-        if update_expression:
-            update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
-
         try:
             item = self.dynamodb_backend.update_item(
                 name,
@@ -764,15 +769,9 @@ class DynamoHandler(BaseResponse):
                 expected,
                 condition_expression,
             )
-        except InvalidUpdateExpression:
+        except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(
-                er,
-                "The document path provided in the update expression is invalid for update",
-            )
-        except ItemSizeTooLarge:
-            er = "com.amazonaws.dynamodb.v20111205#ValidationException"
-            return self.error(er, ItemSizeTooLarge.message)
+            return self.error(er, mve.exception_msg)
         except ValueError:
             er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
             return self.error(

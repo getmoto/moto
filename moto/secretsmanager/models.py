@@ -107,6 +107,34 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
+    def update_secret(
+        self, secret_id, secret_string=None, secret_binary=None, **kwargs
+    ):
+
+        # error if secret does not exist
+        if secret_id not in self.secrets.keys():
+            raise SecretNotFoundException()
+
+        if "deleted_date" in self.secrets[secret_id]:
+            raise InvalidRequestException(
+                "An error occurred (InvalidRequestException) when calling the UpdateSecret operation: "
+                "You can't perform this operation on the secret because it was marked for deletion."
+            )
+
+        version_id = self._add_secret(
+            secret_id, secret_string=secret_string, secret_binary=secret_binary
+        )
+
+        response = json.dumps(
+            {
+                "ARN": secret_arn(self.region, secret_id),
+                "Name": secret_id,
+                "VersionId": version_id,
+            }
+        )
+
+        return response
+
     def create_secret(
         self, name, secret_string=None, secret_binary=None, tags=[], **kwargs
     ):
