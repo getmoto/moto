@@ -557,6 +557,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
             # worst case we'll get IP address exaustion... rarely
             pass
 
+    def add_block_device(self, size, device_path):
+        volume = self.ec2_backend.create_volume(size, self.region_name)
+        self.ec2_backend.attach_volume(volume.id, self.id, device_path)
+
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
@@ -564,9 +568,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1")
 
     def teardown_defaults(self):
-        volume_id = self.block_device_mapping["/dev/sda1"].volume_id
-        self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
-        self.ec2_backend.delete_volume(volume_id)
+        if "/dev/sda1" in self.block_device_mapping:
+            volume_id = self.block_device_mapping["/dev/sda1"].volume_id
+            self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
+            self.ec2_backend.delete_volume(volume_id)
 
     @property
     def get_block_device_mapping(self):
@@ -621,6 +626,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
             subnet_id=properties.get("SubnetId"),
             key_name=properties.get("KeyName"),
             private_ip=properties.get("PrivateIpAddress"),
+            block_device_mappings=properties.get("BlockDeviceMappings", {}),
         )
         instance = reservation.instances[0]
         for tag in properties.get("Tags", []):
@@ -880,7 +886,14 @@ class InstanceBackend(object):
             )
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
-            new_instance.setup_defaults()
+            if "block_device_mappings" in kwargs:
+                for block_device in kwargs["block_device_mappings"]:
+                    new_instance.add_block_device(
+                        block_device["Ebs"]["VolumeSize"], block_device["DeviceName"]
+                    )
+            else:
+                new_instance.setup_defaults()
+
         return new_reservation
 
     def start_instances(self, instance_ids):
