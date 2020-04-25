@@ -74,6 +74,9 @@ class Item(BaseModel):
     def __repr__(self):
         return "Item: {0}".format(self.to_json())
 
+    def size(self):
+        return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
+
     def to_json(self):
         attributes = {}
         for attribute_key, attribute in self.attrs.items():
@@ -921,6 +924,14 @@ class Table(BaseModel):
                     break
 
         last_evaluated_key = None
+        size_limit = 1000000  # DynamoDB has a 1MB size limit
+        item_size = sum(res.size() for res in results)
+        if item_size > size_limit:
+            item_size = idx = 0
+            while item_size + results[idx].size() < size_limit:
+                item_size += results[idx].size()
+                idx += 1
+            limit = min(limit, idx) if limit else idx
         if limit and len(results) > limit:
             results = results[:limit]
             last_evaluated_key = {self.hash_key_attr: results[-1].hash_key}

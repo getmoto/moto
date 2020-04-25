@@ -4219,6 +4219,44 @@ def test_gsi_verify_negative_number_order():
     )
 
 
+@mock_dynamodb2
+def test_dynamodb_max_1mb_limit():
+    ddb = boto3.resource("dynamodb", region_name="eu-west-1")
+
+    table_name = "populated-mock-table"
+    table = ddb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "partition_key", "KeyType": "HASH"},
+            {"AttributeName": "sort_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "partition_key", "AttributeType": "S"},
+            {"AttributeName": "sort_key", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Populate the table
+    items = [
+        {
+            "partition_key": "partition_key_val",  # size=30
+            "sort_key": "sort_key_value____" + str(i),  # size=30
+        }
+        for i in range(10000, 29999)
+    ]
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=item)
+
+    response = table.query(
+        KeyConditionExpression=Key("partition_key").eq("partition_key_val")
+    )
+    # We shouldn't get everything back - the total result set is well over 1MB
+    len(items).should.be.greater_than(response["Count"])
+    response["LastEvaluatedKey"].shouldnt.be(None)
+
+
 def assert_raise_syntax_error(client_error, token, near):
     """
     Assert whether a client_error is as expected Syntax error. Syntax error looks like: `syntax_error_template`
