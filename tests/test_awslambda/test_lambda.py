@@ -1677,6 +1677,42 @@ def test_create_function_with_unknown_arn():
     )
 
 
+@mock_lambda
+def test_remove_function_permission():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    conn.create_function(
+        FunctionName="testFunction",
+        Runtime="python2.7",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    conn.add_permission(
+        FunctionName="testFunction",
+        StatementId="1",
+        Action="lambda:InvokeFunction",
+        Principal="432143214321",
+        SourceArn="arn:aws:lambda:us-west-2:account-id:function:helloworld",
+        SourceAccount="123412341234",
+        EventSourceToken="blah",
+        Qualifier="2",
+    )
+
+    remove = conn.remove_permission(
+        FunctionName="testFunction", StatementId="1", Qualifier="2",
+    )
+    remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
+    policy = conn.get_policy(FunctionName="testFunction", Qualifier="2")["Policy"]
+    policy = json.loads(policy)
+    policy["Statement"].should.equal([])
+
+
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
