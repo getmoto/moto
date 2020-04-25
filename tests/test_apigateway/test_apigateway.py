@@ -73,11 +73,9 @@ def test_create_rest_api_with_tags():
 def test_create_rest_api_with_policy():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    policy = "{\"Version\": \"2012-10-17\",\"Statement\": []}"
+    policy = '{"Version": "2012-10-17","Statement": []}'
     response = client.create_rest_api(
-        name="my_api",
-        description="this is my api",
-        policy=policy
+        name="my_api", description="this is my api", policy=policy
     )
     api_id = response["id"]
 
