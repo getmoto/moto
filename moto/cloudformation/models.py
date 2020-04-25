@@ -239,8 +239,11 @@ class FakeStack(BaseModel):
         self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
-        self._add_stack_event("CREATE_COMPLETE")
-        self.status = "CREATE_COMPLETE"
+        if create_change_set:
+            self.status = "REVIEW_IN_PROGRESS"
+        else:
+            self.create_resources()
+            self._add_stack_event("CREATE_COMPLETE")
         self.creation_time = datetime.utcnow()
 
     def _create_resource_map(self):
@@ -253,7 +256,7 @@ class FakeStack(BaseModel):
             self.template_dict,
             self.cross_stack_resources,
         )
-        resource_map.create()
+        resource_map.load()
         return resource_map
 
     def _create_output_map(self):
@@ -325,6 +328,10 @@ class FakeStack(BaseModel):
     @property
     def exports(self):
         return self.output_map.exports
+
+    def create_resources(self):
+        self.resource_map.create()
+        self.status = "CREATE_COMPLETE"
 
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event(
@@ -640,6 +647,7 @@ class CloudFormationBackend(BaseBackend):
         else:
             stack._add_stack_event("UPDATE_IN_PROGRESS")
             stack._add_stack_event("UPDATE_COMPLETE")
+        stack.create_resources()
         return True
 
     def describe_stacks(self, name_or_stack_id):
