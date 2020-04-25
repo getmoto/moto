@@ -48,6 +48,5 @@ def test_get_id():
         },
     )
 
-    print(res.data)
     json_data = json.loads(res.data.decode("utf-8"))
     assert ":" in json_data["IdentityId"]
