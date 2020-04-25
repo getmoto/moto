@@ -3,6 +3,7 @@
 import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
+from freezegun import freeze_time
 from nose.tools import assert_raises
 from uuid import uuid4
 import pytz
@@ -212,6 +213,35 @@ def test_get_metric_statistics():
 
 
 @mock_cloudwatch
+@freeze_time("2020-02-10 18:44:05")
+def test_custom_timestamp():
+    utc_now = datetime.now(tz=pytz.utc)
+    time = "2020-02-10T18:44:09Z"
+    cw = boto3.client("cloudwatch", "eu-west-1")
+
+    cw.put_metric_data(
+        Namespace="tester",
+        MetricData=[dict(MetricName="metric1", Value=1.5, Timestamp=time)],
+    )
+
+    cw.put_metric_data(
+        Namespace="tester",
+        MetricData=[
+            dict(MetricName="metric2", Value=1.5, Timestamp=datetime(2020, 2, 10))
+        ],
+    )
+
+    stats = cw.get_metric_statistics(
+        Namespace="tester",
+        MetricName="metric",
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+        Period=60,
+        Statistics=["SampleCount", "Sum"],
+    )
+
+
+@mock_cloudwatch
 def test_list_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify namespace has to exist
@@ -300,3 +330,232 @@ def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
                 Namespace=namespace,
                 MetricData=[{"MetricName": metric_name, "Value": j, "Unit": "Seconds"}],
             )
+
+
+@mock_cloudwatch
+def test_get_metric_data_within_timeframe():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace1 = "my_namespace/"
+    # put metric data
+    values = [0, 2, 4, 3.5, 7, 100]
+    cloudwatch.put_metric_data(
+        Namespace=namespace1,
+        MetricData=[
+            {"MetricName": "metric1", "Value": val, "Unit": "Seconds"} for val in values
+        ],
+    )
+    # get_metric_data
+    stats = ["Average", "Sum", "Minimum", "Maximum"]
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result_" + stat,
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": stat,
+                },
+            }
+            for stat in stats
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    # Assert Average/Min/Max/Sum is returned as expected
+    avg = [
+        res for res in response["MetricDataResults"] if res["Id"] == "result_Average"
+    ][0]
+    avg["Label"].should.equal("metric1 Average")
+    avg["StatusCode"].should.equal("Complete")
+    [int(val) for val in avg["Values"]].should.equal([19])
+
+    sum_ = [res for res in response["MetricDataResults"] if res["Id"] == "result_Sum"][
+        0
+    ]
+    sum_["Label"].should.equal("metric1 Sum")
+    sum_["StatusCode"].should.equal("Complete")
+    [val for val in sum_["Values"]].should.equal([sum(values)])
+
+    min_ = [
+        res for res in response["MetricDataResults"] if res["Id"] == "result_Minimum"
+    ][0]
+    min_["Label"].should.equal("metric1 Minimum")
+    min_["StatusCode"].should.equal("Complete")
+    [int(val) for val in min_["Values"]].should.equal([0])
+
+    max_ = [
+        res for res in response["MetricDataResults"] if res["Id"] == "result_Maximum"
+    ][0]
+    max_["Label"].should.equal("metric1 Maximum")
+    max_["StatusCode"].should.equal("Complete")
+    [int(val) for val in max_["Values"]].should.equal([100])
+
+
+@mock_cloudwatch
+def test_get_metric_data_partially_within_timeframe():
+    utc_now = datetime.now(tz=pytz.utc)
+    yesterday = utc_now - timedelta(days=1)
+    last_week = utc_now - timedelta(days=7)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace1 = "my_namespace/"
+    # put metric data
+    values = [0, 2, 4, 3.5, 7, 100]
+    cloudwatch.put_metric_data(
+        Namespace=namespace1,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 10,
+                "Unit": "Seconds",
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    cloudwatch.put_metric_data(
+        Namespace=namespace1,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 20,
+                "Unit": "Seconds",
+                "Timestamp": yesterday,
+            }
+        ],
+    )
+    cloudwatch.put_metric_data(
+        Namespace=namespace1,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Unit": "Seconds",
+                "Timestamp": last_week,
+            }
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            }
+        ],
+        StartTime=yesterday - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    # Assert Last week's data is not returned
+    len(response["MetricDataResults"]).should.equal(1)
+    sum_ = response["MetricDataResults"][0]
+    sum_["Label"].should.equal("metric1 Sum")
+    sum_["StatusCode"].should.equal("Complete")
+    sum_["Values"].should.equal([30.0])
+
+
+@mock_cloudwatch
+def test_get_metric_data_outside_timeframe():
+    utc_now = datetime.now(tz=pytz.utc)
+    last_week = utc_now - timedelta(days=7)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace1 = "my_namespace/"
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace1,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Unit": "Seconds",
+                "Timestamp": last_week,
+            }
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace1, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            }
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    # Assert Last week's data is not returned
+    len(response["MetricDataResults"]).should.equal(1)
+    response["MetricDataResults"][0]["Id"].should.equal("result")
+    response["MetricDataResults"][0]["StatusCode"].should.equal("Complete")
+    response["MetricDataResults"][0]["Values"].should.equal([])
+
+
+@mock_cloudwatch
+def test_get_metric_data_for_multiple_metrics():
+    utc_now = datetime.now(tz=pytz.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+    # put metric data
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 50,
+                "Unit": "Seconds",
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric2",
+                "Value": 25,
+                "Unit": "Seconds",
+                "Timestamp": utc_now,
+            }
+        ],
+    )
+    # get_metric_data
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result1",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+            {
+                "Id": "result2",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace, "MetricName": "metric2"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+            },
+        ],
+        StartTime=utc_now - timedelta(seconds=60),
+        EndTime=utc_now + timedelta(seconds=60),
+    )
+    #
+    len(response["MetricDataResults"]).should.equal(2)
+
+    res1 = [res for res in response["MetricDataResults"] if res["Id"] == "result1"][0]
+    res1["Values"].should.equal([50.0])
+
+    res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
+    res2["Values"].should.equal([25.0])

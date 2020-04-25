@@ -323,6 +323,43 @@ class CloudWatchBackend(BaseBackend):
                 )
             )
 
+    def get_metric_data(self, queries, start_time, end_time):
+        period_data = [
+            md for md in self.metric_data if start_time <= md.timestamp <= end_time
+        ]
+        results = []
+        for query in queries:
+            query_ns = query["metric_stat._metric._namespace"]
+            query_name = query["metric_stat._metric._metric_name"]
+            query_data = [
+                md
+                for md in period_data
+                if md.namespace == query_ns and md.name == query_name
+            ]
+            metric_values = [m.value for m in query_data]
+            result_vals = []
+            stat = query["metric_stat._stat"]
+            if len(metric_values) > 0:
+                if stat == "Average":
+                    result_vals.append(sum(metric_values) / len(metric_values))
+                elif stat == "Minimum":
+                    result_vals.append(min(metric_values))
+                elif stat == "Maximum":
+                    result_vals.append(max(metric_values))
+                elif stat == "Sum":
+                    result_vals.append(sum(metric_values))
+
+            label = query["metric_stat._metric._metric_name"] + " " + stat
+            results.append(
+                {
+                    "id": query["id"],
+                    "label": label,
+                    "vals": result_vals,
+                    "timestamps": [datetime.now() for _ in result_vals],
+                }
+            )
+        return results
+
     def get_metric_statistics(
         self, namespace, metric_name, start_time, end_time, period, stats
     ):

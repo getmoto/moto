@@ -93,6 +93,18 @@ class CloudWatchResponse(BaseResponse):
         return template.render()
 
     @amzn_request_id
+    def get_metric_data(self):
+        start = dtparse(self._get_param("StartTime"))
+        end = dtparse(self._get_param("EndTime"))
+        queries = self._get_list_prefix("MetricDataQueries.member")
+        results = self.cloudwatch_backend.get_metric_data(
+            start_time=start, end_time=end, queries=queries
+        )
+
+        template = self.response_template(GET_METRIC_DATA_TEMPLATE)
+        return template.render(results=results)
+
+    @amzn_request_id
     def get_metric_statistics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -285,6 +297,35 @@ PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.am
       </RequestId>
    </ResponseMetadata>
 </PutMetricDataResponse>"""
+
+GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+   <ResponseMetadata>
+      <RequestId>
+         {{ request_id }}
+      </RequestId>
+   </ResponseMetadata>
+   <GetMetricDataResult>
+       <MetricDataResults>
+           {% for result in results %}
+            <member>
+                <Id>{{ result.id }}</Id>
+                <Label>{{ result.label }}</Label>
+                <StatusCode>Complete</StatusCode>
+                <Timestamps>
+                    {% for val in result.timestamps %}
+                    <member>{{ val }}</member>
+                    {% endfor %}
+                </Timestamps>
+                <Values>
+                    {% for val in result.vals %}
+                    <member>{{ val }}</member>
+                    {% endfor %}
+                </Values>
+            </member>
+            {% endfor %}
+       </MetricDataResults>
+   </GetMetricDataResult>
+</GetMetricDataResponse>"""
 
 GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
