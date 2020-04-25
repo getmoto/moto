@@ -3744,18 +3744,18 @@ def test_root_dir_with_empty_name_works():
     store_and_read_back_a_key("/")
 
 
-@parameterized(['mybucket', 'my.bucket'])
+@parameterized(["mybucket", "my.bucket"])
 @mock_s3
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket=bucket_name)
 
-    uploaded_key = '/key'
-    invalid_key_1 = 'key'
-    invalid_key_2 = '//key'
+    uploaded_key = "/key"
+    invalid_key_1 = "key"
+    invalid_key_2 = "//key"
 
-    s3.put_object(Bucket=bucket_name, Key=uploaded_key, Body=b'Some body')
+    s3.put_object(Bucket=bucket_name, Key=uploaded_key, Body=b"Some body")
 
     with assert_raises(ClientError) as e:
         s3.get_object(Bucket=bucket_name, Key=invalid_key_1)
