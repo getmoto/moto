@@ -70,6 +70,24 @@ def test_create_rest_api_with_tags():
 
 
 @mock_apigateway
+def test_create_rest_api_with_policy():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    policy = "{\"Version\": \"2012-10-17\",\"Statement\": []}"
+    response = client.create_rest_api(
+        name="my_api",
+        description="this is my api",
+        policy=policy
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+
+    assert "policy" in response
+    response["policy"].should.equal(policy)
+
+
+@mock_apigateway
 def test_create_rest_api_invalid_apikeysource():
     client = boto3.client("apigateway", region_name="us-west-2")
 
