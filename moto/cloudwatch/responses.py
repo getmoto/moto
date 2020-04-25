@@ -124,9 +124,10 @@ class CloudWatchResponse(BaseResponse):
     def list_metrics(self):
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
+        dimensions = self._get_multi_param("Dimensions.member")
         next_token = self._get_param("NextToken")
         next_token, metrics = self.cloudwatch_backend.list_metrics(
-            next_token, namespace, metric_name
+            next_token, namespace, metric_name, dimensions
         )
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics, next_token=next_token)
@@ -342,7 +343,7 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
                     </member>
                     {% endfor %}
                 </Dimensions>
-                <MetricName>{{ metric.name }}</MetricName>
+                <MetricName>Metric:{{ metric.name }}</MetricName>
                 <Namespace>{{ metric.namespace }}</Namespace>
             </member>
             {% endfor %}
