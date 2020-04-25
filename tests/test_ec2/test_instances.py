@@ -1335,6 +1335,12 @@ def test_create_instance_ebs_optimized():
     instance.load()
     instance.ebs_optimized.should.be(False)
 
+    instance = ec2_resource.create_instances(
+        ImageId="ami-12345678", MaxCount=1, MinCount=1,
+    )[0]
+    instance.load()
+    instance.ebs_optimized.should.be(False)
+
 
 @mock_ec2
 def test_run_multiple_instances_in_same_command():
