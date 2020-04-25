@@ -1454,6 +1454,13 @@ def test_filter_expression():
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
+    # lowercase AND test
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        "Id > :v0 and Subs < :v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "7"}}
+    )
+    filter_expr.expr(row1).should.be(True)
+    filter_expr.expr(row2).should.be(False)
+
     # OR test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
         "Id = :v0 OR Id=:v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "8"}}
@@ -2785,7 +2792,7 @@ def test_query_gsi_with_range_key():
     res = dynamodb.query(
         TableName="test",
         IndexName="test_gsi",
-        KeyConditionExpression="gsi_hash_key = :gsi_hash_key AND gsi_range_key = :gsi_range_key",
+        KeyConditionExpression="gsi_hash_key = :gsi_hash_key and gsi_range_key = :gsi_range_key",
         ExpressionAttributeValues={
             ":gsi_hash_key": {"S": "key1"},
             ":gsi_range_key": {"S": "range1"},
