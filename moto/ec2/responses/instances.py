@@ -52,7 +52,7 @@ class InstanceResponse(BaseResponse):
         private_ip = self._get_param("PrivateIpAddress")
         associate_public_ip = self._get_param("AssociatePublicIpAddress")
         key_name = self._get_param("KeyName")
-        ebs_optimized = self._get_param("EbsOptimized")
+        ebs_optimized = self._get_param("EbsOptimized") or False
         instance_initiated_shutdown_behavior = self._get_param(
             "InstanceInitiatedShutdownBehavior"
         )
@@ -167,6 +167,14 @@ class InstanceResponse(BaseResponse):
             template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
 
         return template.render(instance=instance, attribute=attribute, value=value)
+
+    def describe_instance_credit_specifications(self):
+        instance_ids = self._get_multi_param("InstanceId")
+        instance = self.ec2_backend.describe_instance_credit_specifications(
+            instance_ids
+        )
+        template = self.response_template(EC2_DESCRIBE_INSTANCE_CREDIT_SPECIFICATIONS)
+        return template.render(instances=instance)
 
     def modify_instance_attribute(self):
         handlers = [
@@ -670,6 +678,18 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
     {% endif %}
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
+
+EC2_DESCRIBE_INSTANCE_CREDIT_SPECIFICATIONS = """<DescribeInstanceCreditSpecificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>1b234b5c-d6ef-7gh8-90i1-j2345678901</requestId>
+    <instanceCreditSpecificationSet>
+       {% for instance in instances %}
+      <item>
+        <instanceId>{{ instance.id }}</instanceId>
+        <cpuCredits>standard</cpuCredits>
+      </item>
+    {% endfor %}
+    </instanceCreditSpecificationSet>
+</DescribeInstanceCreditSpecificationsResponse>"""
 
 EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

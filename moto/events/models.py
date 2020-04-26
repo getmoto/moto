@@ -26,6 +26,10 @@ class Rule(BaseModel):
         self.role_arn = kwargs.get("RoleArn")
         self.targets = []
 
+    @property
+    def physical_resource_id(self):
+        return self.name
+
     # This song and dance for targets is because we need order for Limits and NextTokens, but can't use OrderedDicts
     # with Python 2.6, so tracking it with an array it is.
     def _check_target_exists(self, target_id):
@@ -58,6 +62,14 @@ class Rule(BaseModel):
             index = self._check_target_exists(target_id)
             if index is not None:
                 self.targets.pop(index)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+
+        raise UnformattedGetAttTemplateException()
 
     @classmethod
     def create_from_cloudformation_json(

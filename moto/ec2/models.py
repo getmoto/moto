@@ -70,6 +70,7 @@ from .exceptions import (
     InvalidSubnetIdError,
     InvalidSubnetRangeError,
     InvalidVolumeIdError,
+    VolumeInUseError,
     InvalidVolumeAttachmentError,
     InvalidVpcCidrBlockAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
@@ -556,6 +557,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
             # worst case we'll get IP address exaustion... rarely
             pass
 
+    def add_block_device(self, size, device_path):
+        volume = self.ec2_backend.create_volume(size, self.region_name)
+        self.ec2_backend.attach_volume(volume.id, self.id, device_path)
+
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
@@ -563,9 +568,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
         self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1")
 
     def teardown_defaults(self):
-        volume_id = self.block_device_mapping["/dev/sda1"].volume_id
-        self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
-        self.ec2_backend.delete_volume(volume_id)
+        if "/dev/sda1" in self.block_device_mapping:
+            volume_id = self.block_device_mapping["/dev/sda1"].volume_id
+            self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
+            self.ec2_backend.delete_volume(volume_id)
 
     @property
     def get_block_device_mapping(self):
@@ -620,6 +626,7 @@ class Instance(TaggedEC2Resource, BotoInstance):
             subnet_id=properties.get("SubnetId"),
             key_name=properties.get("KeyName"),
             private_ip=properties.get("PrivateIpAddress"),
+            block_device_mappings=properties.get("BlockDeviceMappings", {}),
         )
         instance = reservation.instances[0]
         for tag in properties.get("Tags", []):
@@ -775,7 +782,14 @@ class Instance(TaggedEC2Resource, BotoInstance):
                 if "SubnetId" in nic:
                     subnet = self.ec2_backend.get_subnet(nic["SubnetId"])
                 else:
-                    subnet = None
+                    # Get default Subnet
+                    subnet = [
+                        subnet
+                        for subnet in self.ec2_backend.get_all_subnets(
+                            filters={"availabilityZone": self._placement.zone}
+                        )
+                        if subnet.default_for_az
+                    ][0]
 
                 group_id = nic.get("SecurityGroupId")
                 group_ids = [group_id] if group_id else []
@@ -872,7 +886,14 @@ class InstanceBackend(object):
             )
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
-            new_instance.setup_defaults()
+            if "block_device_mappings" in kwargs:
+                for block_device in kwargs["block_device_mappings"]:
+                    new_instance.add_block_device(
+                        block_device["Ebs"]["VolumeSize"], block_device["DeviceName"]
+                    )
+            else:
+                new_instance.setup_defaults()
+
         return new_reservation
 
     def start_instances(self, instance_ids):
@@ -935,6 +956,12 @@ class InstanceBackend(object):
         instance = self.get_instance(instance_id)
         value = getattr(instance, key)
         return instance, value
+
+    def describe_instance_credit_specifications(self, instance_ids):
+        queried_instances = []
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            queried_instances.append(instance)
+        return queried_instances
 
     def all_instances(self, filters=None):
         instances = []
@@ -1498,6 +1525,11 @@ class RegionsAndZonesBackend(object):
         regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region)))
 
     zones = {
+        "af-south-1": [
+            Zone(region_name="af-south-1", name="af-south-1a", zone_id="afs1-az1"),
+            Zone(region_name="af-south-1", name="af-south-1b", zone_id="afs1-az2"),
+            Zone(region_name="af-south-1", name="af-south-1c", zone_id="afs1-az3"),
+        ],
         "ap-south-1": [
             Zone(region_name="ap-south-1", name="ap-south-1a", zone_id="aps1-az1"),
             Zone(region_name="ap-south-1", name="ap-south-1b", zone_id="aps1-az3"),
@@ -2385,6 +2417,9 @@ class EBSBackend(object):
 
     def delete_volume(self, volume_id):
         if volume_id in self.volumes:
+            volume = self.volumes[volume_id]
+            if volume.attachment:
+                raise VolumeInUseError(volume_id, volume.attachment.instance.id)
             return self.volumes.pop(volume_id)
         raise InvalidVolumeIdError(volume_id)
 

@@ -70,6 +70,22 @@ def test_create_rest_api_with_tags():
 
 
 @mock_apigateway
+def test_create_rest_api_with_policy():
+    client = boto3.client("apigateway", region_name="us-west-2")
+
+    policy = '{"Version": "2012-10-17","Statement": []}'
+    response = client.create_rest_api(
+        name="my_api", description="this is my api", policy=policy
+    )
+    api_id = response["id"]
+
+    response = client.get_rest_api(restApiId=api_id)
+
+    assert "policy" in response
+    response["policy"].should.equal(policy)
+
+
+@mock_apigateway
 def test_create_rest_api_invalid_apikeysource():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -1481,6 +1497,181 @@ def test_deployment():
     stage["stageName"].should.equal(stage_name)
     stage["deploymentId"].should.equal(deployment_id)
     stage["description"].should.equal("_new_description_")
+
+
+@mock_apigateway
+def test_create_domain_names():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    test_certificate_private_key = "testPrivateKey"
+    # success case with valid params
+    response = client.create_domain_name(
+        domainName=domain_name,
+        certificateName=test_certificate_name,
+        certificatePrivateKey=test_certificate_private_key,
+    )
+    response["domainName"].should.equal(domain_name)
+    response["certificateName"].should.equal(test_certificate_name)
+    # without domain name it should throw BadRequestException
+    with assert_raises(ClientError) as ex:
+        client.create_domain_name(domainName="")
+
+    ex.exception.response["Error"]["Message"].should.equal("No Domain Name specified")
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+
+
+@mock_apigateway
+def test_get_domain_names():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    # without any domain names already present
+    result = client.get_domain_names()
+    result["items"].should.equal([])
+    domain_name = "testDomain"
+    test_certificate_name = "test.certificate"
+    response = client.create_domain_name(
+        domainName=domain_name, certificateName=test_certificate_name
+    )
+
+    response["domainName"].should.equal(domain_name)
+    response["certificateName"].should.equal(test_certificate_name)
+    response["domainNameStatus"].should.equal("AVAILABLE")
+    # after adding a new domain name
+    result = client.get_domain_names()
+    result["items"][0]["domainName"].should.equal(domain_name)
+    result["items"][0]["certificateName"].should.equal(test_certificate_name)
+    result["items"][0]["domainNameStatus"].should.equal("AVAILABLE")
+
+
+@mock_apigateway
+def test_get_domain_name():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    domain_name = "testDomain"
+    # quering an invalid domain name which is not present
+    with assert_raises(ClientError) as ex:
+        client.get_domain_name(domainName=domain_name)
+
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Domain Name specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    # adding a domain name
+    client.create_domain_name(domainName=domain_name)
+    # retrieving the data of added domain name.
+    result = client.get_domain_name(domainName=domain_name)
+    result["domainName"].should.equal(domain_name)
+    result["domainNameStatus"].should.equal("AVAILABLE")
+
+
+@mock_apigateway
+def test_create_model():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    dummy_rest_api_id = "a12b3c4d"
+    model_name = "testModel"
+    description = "test model"
+    content_type = "application/json"
+    # success case with valid params
+    response = client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description=description,
+        contentType=content_type,
+    )
+    response["name"].should.equal(model_name)
+    response["description"].should.equal(description)
+
+    # with an invalid rest_api_id it should throw NotFoundException
+    with assert_raises(ClientError) as ex:
+        client.create_model(
+            restApiId=dummy_rest_api_id,
+            name=model_name,
+            description=description,
+            contentType=content_type,
+        )
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Rest API Id specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+
+    with assert_raises(ClientError) as ex:
+        client.create_model(
+            restApiId=rest_api_id,
+            name="",
+            description=description,
+            contentType=content_type,
+        )
+
+    ex.exception.response["Error"]["Message"].should.equal("No Model Name specified")
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+
+
+@mock_apigateway
+def test_get_api_models():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    model_name = "testModel"
+    description = "test model"
+    content_type = "application/json"
+    # when no models are present
+    result = client.get_models(restApiId=rest_api_id)
+    result["items"].should.equal([])
+    # add a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description=description,
+        contentType=content_type,
+    )
+    # get models after adding
+    result = client.get_models(restApiId=rest_api_id)
+    result["items"][0]["name"] = model_name
+    result["items"][0]["description"] = description
+
+
+@mock_apigateway
+def test_get_model_by_name():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    dummy_rest_api_id = "a12b3c4d"
+    model_name = "testModel"
+    description = "test model"
+    content_type = "application/json"
+    # add a model
+    client.create_model(
+        restApiId=rest_api_id,
+        name=model_name,
+        description=description,
+        contentType=content_type,
+    )
+    # get models after adding
+    result = client.get_model(restApiId=rest_api_id, modelName=model_name)
+    result["name"] = model_name
+    result["description"] = description
+
+    with assert_raises(ClientError) as ex:
+        client.get_model(restApiId=dummy_rest_api_id, modelName=model_name)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Rest API Id specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+
+
+@mock_apigateway
+def test_get_model_with_invalid_name():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    rest_api_id = response["id"]
+    # test with an invalid model name
+    with assert_raises(ClientError) as ex:
+        client.get_model(restApiId=rest_api_id, modelName="fake")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Model Name specified"
+    )
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
 
 
 @mock_apigateway

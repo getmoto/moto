@@ -7,6 +7,7 @@ from nose.tools import assert_raises
 from moto import mock_cognitoidentity
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import ACCOUNT_ID
+from uuid import UUID
 
 
 @mock_cognitoidentity
@@ -83,8 +84,10 @@ def test_describe_identity_pool_with_invalid_id_raises_error():
 
 # testing a helper function
 def test_get_random_identity_id():
-    assert len(get_random_identity_id("us-west-2")) > 0
-    assert len(get_random_identity_id("us-west-2").split(":")[1]) == 19
+    identity_id = get_random_identity_id("us-west-2")
+    region, id = identity_id.split(":")
+    region.should.equal("us-west-2")
+    UUID(id, version=4)  # Will throw an error if it's not a valid UUID
 
 
 @mock_cognitoidentity
@@ -96,7 +99,6 @@ def test_get_id():
         IdentityPoolId="us-west-2:12345",
         Logins={"someurl": "12345"},
     )
-    print(result)
     assert (
         result.get("IdentityId", "").startswith("us-west-2")
         or result.get("ResponseMetadata").get("HTTPStatusCode") == 200

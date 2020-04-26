@@ -21,6 +21,7 @@ from .datasync import mock_datasync  # noqa
 from .dynamodb import mock_dynamodb, mock_dynamodb_deprecated  # noqa
 from .dynamodb2 import mock_dynamodb2, mock_dynamodb2_deprecated  # noqa
 from .dynamodbstreams import mock_dynamodbstreams  # noqa
+from .elasticbeanstalk import mock_elasticbeanstalk  # noqa
 from .ec2 import mock_ec2, mock_ec2_deprecated  # noqa
 from .ec2_instance_connect import mock_ec2_instance_connect  # noqa
 from .ecr import mock_ecr, mock_ecr_deprecated  # noqa

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+import re
 from decimal import Decimal
 
 import six
@@ -1453,6 +1454,13 @@ def test_filter_expression():
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
+    # lowercase AND test
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        "Id > :v0 and Subs < :v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "7"}}
+    )
+    filter_expr.expr(row1).should.be(True)
+    filter_expr.expr(row2).should.be(False)
+
     # OR test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
         "Id = :v0 OR Id=:v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "8"}}
@@ -2146,13 +2154,33 @@ def test_update_item_on_map():
     # Nonexistent nested attributes are supported for existing top-level attributes.
     table.update_item(
         Key={"forum_name": "the-key", "subject": "123"},
-        UpdateExpression="SET body.#nested.#data = :tb, body.nested.#nonexistentnested.#data = :tb2",
+        UpdateExpression="SET body.#nested.#data = :tb",
+        ExpressionAttributeNames={"#nested": "nested", "#data": "data",},
+        ExpressionAttributeValues={":tb": "new_value"},
+    )
+    # Running this against AWS DDB gives an exception so make sure it also fails.:
+    with assert_raises(client.exceptions.ClientError):
+        # botocore.exceptions.ClientError: An error occurred (ValidationException) when calling the UpdateItem
+        # operation: The document path provided in the update expression is invalid for update
+        table.update_item(
+            Key={"forum_name": "the-key", "subject": "123"},
+            UpdateExpression="SET body.#nested.#nonexistentnested.#data = :tb2",
+            ExpressionAttributeNames={
+                "#nested": "nested",
+                "#nonexistentnested": "nonexistentnested",
+                "#data": "data",
+            },
+            ExpressionAttributeValues={":tb2": "other_value"},
+        )
+
+    table.update_item(
+        Key={"forum_name": "the-key", "subject": "123"},
+        UpdateExpression="SET body.#nested.#nonexistentnested = :tb2",
         ExpressionAttributeNames={
             "#nested": "nested",
             "#nonexistentnested": "nonexistentnested",
-            "#data": "data",
         },
-        ExpressionAttributeValues={":tb": "new_value", ":tb2": "other_value"},
+        ExpressionAttributeValues={":tb2": {"data": "other_value"}},
     )
 
     resp = table.scan()
@@ -2160,8 +2188,8 @@ def test_update_item_on_map():
         {"nested": {"data": "new_value", "nonexistentnested": {"data": "other_value"}}}
     )
 
-    # Test nested value for a nonexistent attribute.
-    with assert_raises(client.exceptions.ConditionalCheckFailedException):
+    # Test nested value for a nonexistent attribute throws a ClientError.
+    with assert_raises(client.exceptions.ClientError):
         table.update_item(
             Key={"forum_name": "the-key", "subject": "123"},
             UpdateExpression="SET nonexistent.#nested = :tb",
@@ -2764,7 +2792,7 @@ def test_query_gsi_with_range_key():
     res = dynamodb.query(
         TableName="test",
         IndexName="test_gsi",
-        KeyConditionExpression="gsi_hash_key = :gsi_hash_key AND gsi_range_key = :gsi_range_key",
+        KeyConditionExpression="gsi_hash_key = :gsi_hash_key and gsi_range_key = :gsi_range_key",
         ExpressionAttributeValues={
             ":gsi_hash_key": {"S": "key1"},
             ":gsi_range_key": {"S": "range1"},
@@ -3183,7 +3211,10 @@ def test_remove_top_level_attribute():
         TableName=table_name, Item={"id": {"S": "foo"}, "item": {"S": "bar"}}
     )
     client.update_item(
-        TableName=table_name, Key={"id": {"S": "foo"}}, UpdateExpression="REMOVE item"
+        TableName=table_name,
+        Key={"id": {"S": "foo"}},
+        UpdateExpression="REMOVE #i",
+        ExpressionAttributeNames={"#i": "item"},
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
@@ -3358,21 +3389,21 @@ def test_item_size_is_under_400KB():
     assert_failure_due_to_item_size(
         func=client.put_item,
         TableName="moto-test",
-        Item={"id": {"S": "foo"}, "item": {"S": large_item}},
+        Item={"id": {"S": "foo"}, "cont": {"S": large_item}},
     )
     assert_failure_due_to_item_size(
-        func=table.put_item, Item={"id": "bar", "item": large_item}
+        func=table.put_item, Item={"id": "bar", "cont": large_item}
     )
-    assert_failure_due_to_item_size(
+    assert_failure_due_to_item_size_to_update(
         func=client.update_item,
         TableName="moto-test",
         Key={"id": {"S": "foo2"}},
-        UpdateExpression="set item=:Item",
+        UpdateExpression="set cont=:Item",
         ExpressionAttributeValues={":Item": {"S": large_item}},
     )
     # Assert op fails when updating a nested item
     assert_failure_due_to_item_size(
-        func=table.put_item, Item={"id": "bar", "itemlist": [{"item": large_item}]}
+        func=table.put_item, Item={"id": "bar", "itemlist": [{"cont": large_item}]}
     )
     assert_failure_due_to_item_size(
         func=client.put_item,
@@ -3390,6 +3421,15 @@ def assert_failure_due_to_item_size(func, **kwargs):
     ex.exception.response["Error"]["Code"].should.equal("ValidationException")
     ex.exception.response["Error"]["Message"].should.equal(
         "Item size has exceeded the maximum allowed size"
+    )
+
+
+def assert_failure_due_to_item_size_to_update(func, **kwargs):
+    with assert_raises(ClientError) as ex:
+        func(**kwargs)
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Item size to update has exceeded the maximum allowed size"
     )
 
 
@@ -4529,3 +4569,117 @@ def test_transact_write_items_update_with_failed_condition_expression():
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
     items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+
+
+@mock_dynamodb2
+def test_dynamodb_max_1mb_limit():
+    ddb = boto3.resource("dynamodb", region_name="eu-west-1")
+
+    table_name = "populated-mock-table"
+    table = ddb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "partition_key", "KeyType": "HASH"},
+            {"AttributeName": "sort_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "partition_key", "AttributeType": "S"},
+            {"AttributeName": "sort_key", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Populate the table
+    items = [
+        {
+            "partition_key": "partition_key_val",  # size=30
+            "sort_key": "sort_key_value____" + str(i),  # size=30
+        }
+        for i in range(10000, 29999)
+    ]
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=item)
+
+    response = table.query(
+        KeyConditionExpression=Key("partition_key").eq("partition_key_val")
+    )
+    # We shouldn't get everything back - the total result set is well over 1MB
+    len(items).should.be.greater_than(response["Count"])
+    response["LastEvaluatedKey"].shouldnt.be(None)
+
+
+def assert_raise_syntax_error(client_error, token, near):
+    """
+    Assert whether a client_error is as expected Syntax error. Syntax error looks like: `syntax_error_template`
+
+    Args:
+        client_error(ClientError): The ClientError exception that was raised
+        token(str): The token that ws unexpected
+        near(str): The part in the expression that shows where the error occurs it generally has the preceding token the
+        optional separation and the problematic token.
+    """
+    syntax_error_template = (
+        'Invalid UpdateExpression: Syntax error; token: "{token}", near: "{near}"'
+    )
+    expected_syntax_error = syntax_error_template.format(token=token, near=near)
+    assert client_error.response["Error"]["Code"] == "ValidationException"
+    assert expected_syntax_error == client_error.response["Error"]["Message"]
+
+
+@mock_dynamodb2
+def test_update_expression_with_numeric_literal_instead_of_value():
+    """
+    DynamoDB requires literals to be passed in as values. If they are put literally in the expression a token error will
+    be raised
+    """
+    dynamodb = boto3.client("dynamodb", region_name="eu-west-1")
+
+    dynamodb.create_table(
+        TableName="moto-test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+    )
+
+    try:
+        dynamodb.update_item(
+            TableName="moto-test",
+            Key={"id": {"S": "1"}},
+            UpdateExpression="SET MyStr = myNum + 1",
+        )
+        assert False, "Validation exception not thrown"
+    except dynamodb.exceptions.ClientError as e:
+        assert_raise_syntax_error(e, "1", "+ 1")
+
+
+@mock_dynamodb2
+def test_update_expression_with_multiple_set_clauses_must_be_comma_separated():
+    """
+    An UpdateExpression can have multiple set clauses but if they are passed in without the separating comma.
+    """
+    dynamodb = boto3.client("dynamodb", region_name="eu-west-1")
+
+    dynamodb.create_table(
+        TableName="moto-test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+    )
+
+    try:
+        dynamodb.update_item(
+            TableName="moto-test",
+            Key={"id": {"S": "1"}},
+            UpdateExpression="SET MyStr = myNum Mystr2 myNum2",
+        )
+        assert False, "Validation exception not thrown"
+    except dynamodb.exceptions.ClientError as e:
+        assert_raise_syntax_error(e, "Mystr2", "myNum Mystr2 myNum2")
+
+
+@mock_dynamodb2
+def test_list_tables_exclusive_start_table_name_empty():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    resp = client.list_tables(Limit=1, ExclusiveStartTableName="whatever")
+
+    len(resp["TableNames"]).should.equal(0)

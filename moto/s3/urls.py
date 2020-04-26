@@ -15,5 +15,5 @@ url_paths = {
     # path-based bucket + key
     "{0}/(?P<bucket_name_path>[^/]+)/(?P<key_name>.+)": S3ResponseInstance.key_or_control_response,
     # subdomain bucket + key with empty first part of path
-    "{0}//(?P<key_name>.*)$": S3ResponseInstance.key_or_control_response,
+    "{0}/(?P<key_name>/.*)$": S3ResponseInstance.key_or_control_response,
 }

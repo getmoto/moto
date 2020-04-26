@@ -9,6 +9,7 @@ from nose.tools import assert_raises
 import base64
 import datetime
 import ipaddress
+import json
 
 import six
 import boto
@@ -18,7 +19,7 @@ from boto.exception import EC2ResponseError, EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2
+from moto import mock_ec2_deprecated, mock_ec2, mock_cloudformation
 from tests.helpers import requires_boto_gte
 
 
@@ -71,7 +72,7 @@ def test_instance_launch_and_terminate():
     instance.id.should.equal(instance.id)
     instance.state.should.equal("running")
     instance.launch_time.should.equal("2014-01-01T05:00:00.000Z")
-    instance.vpc_id.should.equal(None)
+    instance.vpc_id.shouldnt.equal(None)
     instance.placement.should.equal("us-east-1a")
 
     root_device_name = instance.root_device_name
@@ -1167,6 +1168,21 @@ def test_describe_instance_status_with_instance_filter_deprecated():
 
 
 @mock_ec2
+def test_describe_instance_credit_specifications():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    # We want to filter based on this one
+    reservation = conn.run_instances(ImageId="ami-1234abcd", MinCount=1, MaxCount=1)
+    result = conn.describe_instance_credit_specifications(
+        InstanceIds=[reservation["Instances"][0]["InstanceId"]]
+    )
+    assert (
+        result["InstanceCreditSpecifications"][0]["InstanceId"]
+        == reservation["Instances"][0]["InstanceId"]
+    )
+
+
+@mock_ec2
 def test_describe_instance_status_with_instance_filter():
     conn = boto3.client("ec2", region_name="us-west-1")
 
@@ -1319,6 +1335,12 @@ def test_create_instance_ebs_optimized():
     instance.load()
     instance.ebs_optimized.should.be(False)
 
+    instance = ec2_resource.create_instances(
+        ImageId="ami-12345678", MaxCount=1, MinCount=1,
+    )[0]
+    instance.load()
+    instance.ebs_optimized.should.be(False)
+
 
 @mock_ec2
 def test_run_multiple_instances_in_same_command():
@@ -1399,3 +1421,40 @@ def test_describe_instance_attribute():
             invalid_instance_attribute=invalid_instance_attribute
         )
         ex.exception.response["Error"]["Message"].should.equal(message)
+
+
+@mock_ec2
+@mock_cloudformation
+def test_volume_size_through_cloudformation():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+
+    volume_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "testInstance": {
+                "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId": "ami-d3adb33f",
+                    "KeyName": "dummy",
+                    "InstanceType": "t2.micro",
+                    "BlockDeviceMappings": [
+                        {"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": "50"}}
+                    ],
+                    "Tags": [
+                        {"Key": "foo", "Value": "bar"},
+                        {"Key": "blah", "Value": "baz"},
+                    ],
+                },
+            }
+        },
+    }
+    template_json = json.dumps(volume_template)
+    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
+    instances = ec2.describe_instances()
+    volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
+        "Ebs"
+    ]
+
+    volumes = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])
+    volumes["Volumes"][0]["Size"].should.equal(50)

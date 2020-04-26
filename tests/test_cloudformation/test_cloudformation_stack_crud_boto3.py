@@ -835,8 +835,10 @@ def test_describe_change_set():
     )
 
     stack = cf_conn.describe_change_set(ChangeSetName="NewChangeSet")
+
     stack["ChangeSetName"].should.equal("NewChangeSet")
     stack["StackName"].should.equal("NewStack")
+    stack["Status"].should.equal("REVIEW_IN_PROGRESS")
 
     cf_conn.create_change_set(
         StackName="NewStack",
@@ -851,15 +853,30 @@ def test_describe_change_set():
 
 
 @mock_cloudformation
+@mock_ec2
 def test_execute_change_set_w_arn():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    # Verify no instances exist at the moment
+    ec2.describe_instances()["Reservations"].should.have.length_of(0)
+    # Create a Change set, and verify no resources have been created yet
     change_set = cf_conn.create_change_set(
         StackName="NewStack",
         TemplateBody=dummy_template_json,
         ChangeSetName="NewChangeSet",
         ChangeSetType="CREATE",
     )
+    ec2.describe_instances()["Reservations"].should.have.length_of(0)
+    cf_conn.describe_change_set(ChangeSetName="NewChangeSet")["Status"].should.equal(
+        "REVIEW_IN_PROGRESS"
+    )
+    # Execute change set
     cf_conn.execute_change_set(ChangeSetName=change_set["Id"])
+    # Verify that the status has changed, and the appropriate resources have been created
+    cf_conn.describe_change_set(ChangeSetName="NewChangeSet")["Status"].should.equal(
+        "CREATE_COMPLETE"
+    )
+    ec2.describe_instances()["Reservations"].should.have.length_of(1)
 
 
 @mock_cloudformation

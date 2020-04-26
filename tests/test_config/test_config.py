@@ -11,6 +11,8 @@ from moto import mock_s3
 from moto.config import mock_config
 from moto.core import ACCOUNT_ID
 
+import sure  # noqa
+
 
 @mock_config
 def test_put_configuration_recorder():

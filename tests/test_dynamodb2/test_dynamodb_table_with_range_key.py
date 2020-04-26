@@ -1254,14 +1254,22 @@ def test_update_item_with_expression():
 
     item_key = {"forum_name": "the-key", "subject": "123"}
 
-    table.update_item(Key=item_key, UpdateExpression="SET field=2")
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="SET field = :field_value",
+        ExpressionAttributeValues={":field_value": 2},
+    )
     dict(table.get_item(Key=item_key)["Item"]).should.equal(
-        {"field": "2", "forum_name": "the-key", "subject": "123"}
+        {"field": Decimal("2"), "forum_name": "the-key", "subject": "123"}
     )
 
-    table.update_item(Key=item_key, UpdateExpression="SET field  = 3")
+    table.update_item(
+        Key=item_key,
+        UpdateExpression="SET field = :field_value",
+        ExpressionAttributeValues={":field_value": 3},
+    )
     dict(table.get_item(Key=item_key)["Item"]).should.equal(
-        {"field": "3", "forum_name": "the-key", "subject": "123"}
+        {"field": Decimal("3"), "forum_name": "the-key", "subject": "123"}
     )
 
 
