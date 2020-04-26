@@ -531,14 +531,16 @@ class ResourceMap(collections_abc.Mapping):
         for condition_name in self.lazy_condition_map:
             self.lazy_condition_map[condition_name]
 
-    def create(self):
+    def load(self):
         self.load_mapping()
         self.transform_mapping()
         self.load_parameters()
         self.load_conditions()
 
+    def create(self):
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
+        # Assumes that self.load() has been called before
         self.tags.update(
             {
                 "aws:cloudformation:stack-name": self.get("AWS::StackName"),

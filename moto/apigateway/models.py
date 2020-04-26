@@ -461,6 +461,7 @@ class RestAPI(BaseModel):
         self.description = description
         self.create_date = int(time.time())
         self.api_key_source = kwargs.get("api_key_source") or "HEADER"
+        self.policy = kwargs.get("policy") or None
         self.endpoint_configuration = kwargs.get("endpoint_configuration") or {
             "types": ["EDGE"]
         }
@@ -485,6 +486,7 @@ class RestAPI(BaseModel):
             "apiKeySource": self.api_key_source,
             "endpointConfiguration": self.endpoint_configuration,
             "tags": self.tags,
+            "policy": self.policy,
         }
 
     def add_child(self, path, parent_id=None):
@@ -713,6 +715,7 @@ class APIGatewayBackend(BaseBackend):
         api_key_source=None,
         endpoint_configuration=None,
         tags=None,
+        policy=None,
     ):
         api_id = create_id()
         rest_api = RestAPI(
@@ -723,6 +726,7 @@ class APIGatewayBackend(BaseBackend):
             api_key_source=api_key_source,
             endpoint_configuration=endpoint_configuration,
             tags=tags,
+            policy=policy,
         )
         self.apis[api_id] = rest_api
         return rest_api

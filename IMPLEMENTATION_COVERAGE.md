@@ -2878,15 +2878,15 @@
 - [ ] test_failover
 
 ## elasticbeanstalk
-0% implemented
+13% implemented
 - [ ] abort_environment_update
 - [ ] apply_environment_managed_action
 - [ ] check_dns_availability
 - [ ] compose_environments
-- [ ] create_application
+- [X] create_application
 - [ ] create_application_version
 - [ ] create_configuration_template
-- [ ] create_environment
+- [X] create_environment
 - [ ] create_platform_version
 - [ ] create_storage_location
 - [ ] delete_application
@@ -2903,13 +2903,13 @@
 - [ ] describe_environment_managed_action_history
 - [ ] describe_environment_managed_actions
 - [ ] describe_environment_resources
-- [ ] describe_environments
+- [X] describe_environments
 - [ ] describe_events
 - [ ] describe_instances_health
 - [ ] describe_platform_version
-- [ ] list_available_solution_stacks
+- [X] list_available_solution_stacks
 - [ ] list_platform_versions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] rebuild_environment
 - [ ] request_environment_info
 - [ ] restart_app_server
@@ -2921,7 +2921,7 @@
 - [ ] update_application_version
 - [ ] update_configuration_template
 - [ ] update_environment
-- [ ] update_tags_for_resource
+- [X] update_tags_for_resource
 - [ ] validate_configuration_settings
 
 ## elastictranscoder
@@ -3351,11 +3351,11 @@
 - [ ] update_listener
 
 ## glue
-4% implemented
-- [ ] batch_create_partition
+11% implemented
+- [X] batch_create_partition
 - [ ] batch_delete_connection
-- [ ] batch_delete_partition
-- [ ] batch_delete_table
+- [X] batch_delete_partition
+- [X] batch_delete_table
 - [ ] batch_delete_table_version
 - [ ] batch_get_crawlers
 - [ ] batch_get_dev_endpoints
@@ -3372,7 +3372,7 @@
 - [ ] create_dev_endpoint
 - [ ] create_job
 - [ ] create_ml_transform
-- [ ] create_partition
+- [X] create_partition
 - [ ] create_script
 - [ ] create_security_configuration
 - [X] create_table
@@ -3404,7 +3404,7 @@
 - [ ] get_crawlers
 - [ ] get_data_catalog_encryption_settings
 - [X] get_database
-- [ ] get_databases
+- [X] get_databases
 - [ ] get_dataflow_graph
 - [ ] get_dev_endpoint
 - [ ] get_dev_endpoints
@@ -3418,7 +3418,7 @@
 - [ ] get_ml_task_runs
 - [ ] get_ml_transform
 - [ ] get_ml_transforms
-- [ ] get_partition
+- [X] get_partition
 - [ ] get_partitions
 - [ ] get_plan
 - [ ] get_resource_policy
@@ -3470,8 +3470,8 @@
 - [ ] update_dev_endpoint
 - [ ] update_job
 - [ ] update_ml_transform
-- [ ] update_partition
-- [ ] update_table
+- [X] update_partition
+- [X] update_table
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow

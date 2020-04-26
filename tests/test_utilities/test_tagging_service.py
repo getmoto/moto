@@ -77,3 +77,34 @@ def test_extract_tag_names():
     expected = ["key1", "key2"]
 
     expected.should.be.equal(actual)
+
+
+def test_copy_non_existing_arn():
+    svc = TaggingService()
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    svc.tag_resource("new_arn", tags)
+    #
+    svc.copy_tags("non_existing_arn", "new_arn")
+    # Copying from a non-existing ARN should a NOOP
+    # Assert the old tags still exist
+    actual = sorted(
+        svc.list_tags_for_resource("new_arn")["Tags"], key=lambda t: t["Key"]
+    )
+    actual.should.equal(tags)
+
+
+def test_copy_existing_arn():
+    svc = TaggingService()
+    tags_old_arn = [{"Key": "key1", "Value": "value1"}]
+    tags_new_arn = [{"Key": "key2", "Value": "value2"}]
+    svc.tag_resource("old_arn", tags_old_arn)
+    svc.tag_resource("new_arn", tags_new_arn)
+    #
+    svc.copy_tags("old_arn", "new_arn")
+    # Assert the old tags still exist
+    actual = sorted(
+        svc.list_tags_for_resource("new_arn")["Tags"], key=lambda t: t["Key"]
+    )
+    actual.should.equal(
+        [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    )

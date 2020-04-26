@@ -3256,7 +3256,8 @@ def test_boto3_put_object_tagging_on_earliest_version():
     # Older version has tags while the most recent does not
     resp = s3.get_object_tagging(Bucket=bucket_name, Key=key, VersionId=first_object.id)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    resp["TagSet"].should.equal(
+    sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
+    sorted_tagset.should.equal(
         [{"Key": "item1", "Value": "foo"}, {"Key": "item2", "Value": "bar"}]
     )
 
@@ -3334,7 +3335,8 @@ def test_boto3_put_object_tagging_on_both_version():
 
     resp = s3.get_object_tagging(Bucket=bucket_name, Key=key, VersionId=first_object.id)
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    resp["TagSet"].should.equal(
+    sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
+    sorted_tagset.should.equal(
         [{"Key": "item1", "Value": "foo"}, {"Key": "item2", "Value": "bar"}]
     )
 
@@ -3342,7 +3344,8 @@ def test_boto3_put_object_tagging_on_both_version():
         Bucket=bucket_name, Key=key, VersionId=second_object.id
     )
     resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    resp["TagSet"].should.equal(
+    sorted_tagset = sorted(resp["TagSet"], key=lambda t: t["Key"])
+    sorted_tagset.should.equal(
         [{"Key": "item1", "Value": "baz"}, {"Key": "item2", "Value": "bin"}]
     )
 
@@ -3742,6 +3745,28 @@ def test_root_dir_with_empty_name_works():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
         raise SkipTest("Does not work in server mode due to error in Workzeug")
     store_and_read_back_a_key("/")
+
+
+@parameterized(["mybucket", "my.bucket"])
+@mock_s3
+def test_leading_slashes_not_removed(bucket_name):
+    """Make sure that leading slashes are not removed internally."""
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket=bucket_name)
+
+    uploaded_key = "/key"
+    invalid_key_1 = "key"
+    invalid_key_2 = "//key"
+
+    s3.put_object(Bucket=bucket_name, Key=uploaded_key, Body=b"Some body")
+
+    with assert_raises(ClientError) as e:
+        s3.get_object(Bucket=bucket_name, Key=invalid_key_1)
+    e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
+
+    with assert_raises(ClientError) as e:
+        s3.get_object(Bucket=bucket_name, Key=invalid_key_2)
+    e.exception.response["Error"]["Code"].should.equal("NoSuchKey")
 
 
 @parameterized(
@@ -4293,24 +4318,17 @@ def test_s3_config_dict():
         FakeAcl,
         FakeGrant,
         FakeGrantee,
-        FakeTag,
-        FakeTagging,
-        FakeTagSet,
         OWNER,
     )
 
     # Without any buckets:
     assert not s3_config_query.get_config_resource("some_bucket")
 
-    tags = FakeTagging(
-        FakeTagSet(
-            [FakeTag("someTag", "someValue"), FakeTag("someOtherTag", "someOtherValue")]
-        )
-    )
+    tags = {"someTag": "someValue", "someOtherTag": "someOtherValue"}
 
     # With 1 bucket in us-west-2:
     s3_config_query.backends["global"].create_bucket("bucket1", "us-west-2")
-    s3_config_query.backends["global"].put_bucket_tagging("bucket1", tags)
+    s3_config_query.backends["global"].put_bucket_tags("bucket1", tags)
 
     # With a log bucket:
     s3_config_query.backends["global"].create_bucket("logbucket", "us-west-2")

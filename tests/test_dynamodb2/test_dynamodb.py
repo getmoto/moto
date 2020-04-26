@@ -1454,6 +1454,13 @@ def test_filter_expression():
     filter_expr.expr(row1).should.be(True)
     filter_expr.expr(row2).should.be(False)
 
+    # lowercase AND test
+    filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
+        "Id > :v0 and Subs < :v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "7"}}
+    )
+    filter_expr.expr(row1).should.be(True)
+    filter_expr.expr(row2).should.be(False)
+
     # OR test
     filter_expr = moto.dynamodb2.comparisons.get_filter_expression(
         "Id = :v0 OR Id=:v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "8"}}
@@ -2785,7 +2792,7 @@ def test_query_gsi_with_range_key():
     res = dynamodb.query(
         TableName="test",
         IndexName="test_gsi",
-        KeyConditionExpression="gsi_hash_key = :gsi_hash_key AND gsi_range_key = :gsi_range_key",
+        KeyConditionExpression="gsi_hash_key = :gsi_hash_key and gsi_range_key = :gsi_range_key",
         ExpressionAttributeValues={
             ":gsi_hash_key": {"S": "key1"},
             ":gsi_range_key": {"S": "range1"},
@@ -4212,6 +4219,44 @@ def test_gsi_verify_negative_number_order():
     )
 
 
+@mock_dynamodb2
+def test_dynamodb_max_1mb_limit():
+    ddb = boto3.resource("dynamodb", region_name="eu-west-1")
+
+    table_name = "populated-mock-table"
+    table = ddb.create_table(
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "partition_key", "KeyType": "HASH"},
+            {"AttributeName": "sort_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "partition_key", "AttributeType": "S"},
+            {"AttributeName": "sort_key", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Populate the table
+    items = [
+        {
+            "partition_key": "partition_key_val",  # size=30
+            "sort_key": "sort_key_value____" + str(i),  # size=30
+        }
+        for i in range(10000, 29999)
+    ]
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.put_item(Item=item)
+
+    response = table.query(
+        KeyConditionExpression=Key("partition_key").eq("partition_key_val")
+    )
+    # We shouldn't get everything back - the total result set is well over 1MB
+    len(items).should.be.greater_than(response["Count"])
+    response["LastEvaluatedKey"].shouldnt.be(None)
+
+
 def assert_raise_syntax_error(client_error, token, near):
     """
     Assert whether a client_error is as expected Syntax error. Syntax error looks like: `syntax_error_template`
@@ -4277,3 +4322,12 @@ def test_update_expression_with_multiple_set_clauses_must_be_comma_separated():
         assert False, "Validation exception not thrown"
     except dynamodb.exceptions.ClientError as e:
         assert_raise_syntax_error(e, "Mystr2", "myNum Mystr2 myNum2")
+
+
+@mock_dynamodb2
+def test_list_tables_exclusive_start_table_name_empty():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    resp = client.list_tables(Limit=1, ExclusiveStartTableName="whatever")
+
+    len(resp["TableNames"]).should.equal(0)
