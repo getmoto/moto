@@ -8,6 +8,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 import sure  # noqa
 from freezegun import freeze_time
+from nose.tools import assert_raises
+
 from moto import mock_dynamodb2, mock_dynamodb2_deprecated
 from boto.exception import JSONResponseError
 from tests.helpers import requires_boto_gte
@@ -1273,6 +1275,15 @@ def test_update_item_with_expression():
     )
 
 
+def assert_failure_due_to_key_not_in_schema(func, **kwargs):
+    with assert_raises(ClientError) as ex:
+        func(**kwargs)
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "The provided key element does not match the schema"
+    )
+
+
 @mock_dynamodb2
 def test_update_item_add_with_expression():
     table = _create_table_with_range_key()
@@ -1299,14 +1310,13 @@ def test_update_item_add_with_expression():
     dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
 
     # Update item to add a string value to a non-existing set
-    # Should just create the set in the background
-    table.update_item(
+    # Should throw: 'The provided key element does not match the schema'
+    assert_failure_due_to_key_not_in_schema(
+        table.update_item,
         Key=item_key,
         UpdateExpression="ADD non_existing_str_set :v",
         ExpressionAttributeValues={":v": {"item4"}},
     )
-    current_item["non_existing_str_set"] = {"item4"}
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
 
     # Update item to add a num value to a num set
     table.update_item(
@@ -1381,15 +1391,14 @@ def test_update_item_add_with_nested_sets():
     dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
 
     # Update item to add a string value to a non-existing set
-    # Should just create the set in the background
-    table.update_item(
+    # Should raise
+    assert_failure_due_to_key_not_in_schema(
+        table.update_item,
         Key=item_key,
         UpdateExpression="ADD #ns.#ne :v",
         ExpressionAttributeNames={"#ns": "nested", "#ne": "non_existing_str_set"},
         ExpressionAttributeValues={":v": {"new_item"}},
     )
-    current_item["nested"]["non_existing_str_set"] = {"new_item"}
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
 
 
 @mock_dynamodb2
