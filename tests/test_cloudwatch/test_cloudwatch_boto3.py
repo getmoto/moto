@@ -155,7 +155,7 @@ def test_put_metric_data_no_dimensions():
     metrics.should.have.length_of(1)
     metric = metrics[0]
     metric["Namespace"].should.equal("tester")
-    metric["MetricName"].should.equal("Metric:metric")
+    metric["MetricName"].should.equal("metric")
 
 
 @mock_cloudwatch
@@ -183,7 +183,7 @@ def test_put_metric_data_with_statistics():
     metrics.should.have.length_of(1)
     metric = metrics[0]
     metric["Namespace"].should.equal("tester")
-    metric["MetricName"].should.equal("Metric:statmetric")
+    metric["MetricName"].should.equal("statmetric")
     # TODO: test statistics - https://github.com/spulec/moto/issues/1615
 
 
@@ -266,12 +266,12 @@ def test_list_metrics():
             {
                 u"Namespace": "list_test_1/",
                 u"Dimensions": [],
-                u"MetricName": "Metric:metric1",
+                u"MetricName": "metric1",
             },
             {
                 u"Namespace": "list_test_1/",
                 u"Dimensions": [],
-                u"MetricName": "Metric:metric1",
+                u"MetricName": "metric1",
             },
         ]
     )

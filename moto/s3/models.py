@@ -22,7 +22,7 @@ import six
 from bisect import insort
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
-from moto.cloudwatch.models import metric_providers, MetricDatum
+from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     BucketAlreadyExists,
@@ -1159,9 +1159,11 @@ class S3Backend(BaseBackend):
         self.account_public_access_block = None
         self.tagger = TaggingService()
 
+        # TODO: This is broken! DO NOT IMPORT MUTABLE DATA TYPES FROM OTHER AREAS -- THIS BREAKS UNMOCKING!
+        # WRAP WITH A GETTER/SETTER FUNCTION
         # Register this class as a CloudWatch Metric Provider
         # Must provide a method 'get_cloudwatch_metrics' that will return a list of metrics, based on the data available
-        metric_providers["S3"] = self
+        # metric_providers["S3"] = self
 
     def get_cloudwatch_metrics(self):
         metrics = []
