@@ -1504,19 +1504,38 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
-    regions_not_enabled_by_default = ["ap-east-1", "me-south-1"]
+    regions_opt_in_not_required = [
+        "af-south-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+    ]
 
     regions = []
     for region in Session().get_available_regions("ec2"):
-        if region in regions_not_enabled_by_default:
-            regions.append(
-                Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in")
-            )
-        else:
+        if region in regions_opt_in_not_required:
             regions.append(
                 Region(
                     region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"
                 )
+            )
+        else:
+            regions.append(
+                Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in")
             )
     for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
         regions.append(
