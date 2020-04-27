@@ -839,21 +839,22 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _bucket_response_delete_keys(self, request, body, bucket_name):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
+        body_dict = xmltodict.parse(body)
 
-        objects = minidom.parseString(body).getElementsByTagName("Object")
-
-        deleted_objects = []
-        error_names = []
+        objects = body_dict["Delete"].get("Object", [])
+        if not isinstance(objects, list):
+            # We expect a list of objects, but when there is a single <Object> node xmltodict does not
+            # return a list.
+            objects = [objects]
         if len(objects) == 0:
             raise MalformedXML()
 
+        deleted_objects = []
+        error_names = []
+
         for object_ in objects:
-            key_name = object_.getElementsByTagName("Key")[0].firstChild.nodeValue
-            version_id_node = object_.getElementsByTagName("VersionId")
-            if version_id_node:
-                version_id = version_id_node[0].firstChild.nodeValue
-            else:
-                version_id = None
+            key_name = object_["Key"]
+            version_id = object_.get("VersionId", None)
 
             success = self.backend.delete_key(
                 bucket_name, undo_clean_key_name(key_name), version_id=version_id
