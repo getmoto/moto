@@ -121,8 +121,16 @@ class SecretsManagerBackend(BaseBackend):
                 "You can't perform this operation on the secret because it was marked for deletion."
             )
 
+        secret = self.secrets[secret_id]
+        tags = secret["tags"]
+        description = secret["description"]
+
         version_id = self._add_secret(
-            secret_id, secret_string=secret_string, secret_binary=secret_binary
+            secret_id,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+            description=description,
+            tags=tags,
         )
 
         response = json.dumps(
@@ -136,7 +144,13 @@ class SecretsManagerBackend(BaseBackend):
         return response
 
     def create_secret(
-        self, name, secret_string=None, secret_binary=None, tags=[], **kwargs
+        self,
+        name,
+        secret_string=None,
+        secret_binary=None,
+        description=None,
+        tags=[],
+        **kwargs
     ):
 
         # error if secret exists
@@ -146,7 +160,11 @@ class SecretsManagerBackend(BaseBackend):
             )
 
         version_id = self._add_secret(
-            name, secret_string=secret_string, secret_binary=secret_binary, tags=tags
+            name,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+            description=description,
+            tags=tags,
         )
 
         response = json.dumps(
@@ -164,6 +182,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_id,
         secret_string=None,
         secret_binary=None,
+        description=None,
         tags=[],
         version_id=None,
         version_stages=None,
@@ -216,13 +235,27 @@ class SecretsManagerBackend(BaseBackend):
         secret["rotation_lambda_arn"] = ""
         secret["auto_rotate_after_days"] = 0
         secret["tags"] = tags
+        secret["description"] = description
 
         return version_id
 
     def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
 
+        if secret_id in self.secrets.keys():
+            secret = self.secrets[secret_id]
+            tags = secret["tags"]
+            description = secret["description"]
+        else:
+            tags = []
+            description = ""
+
         version_id = self._add_secret(
-            secret_id, secret_string, secret_binary, version_stages=version_stages
+            secret_id,
+            secret_string,
+            secret_binary,
+            description=description,
+            tags=tags,
+            version_stages=version_stages,
         )
 
         response = json.dumps(
@@ -246,7 +279,7 @@ class SecretsManagerBackend(BaseBackend):
             {
                 "ARN": secret_arn(self.region, secret["secret_id"]),
                 "Name": secret["name"],
-                "Description": "",
+                "Description": secret.get("description", ""),
                 "KmsKeyId": "",
                 "RotationEnabled": secret["rotation_enabled"],
                 "RotationLambdaARN": secret["rotation_lambda_arn"],
@@ -310,6 +343,7 @@ class SecretsManagerBackend(BaseBackend):
         self._add_secret(
             secret_id,
             old_secret_version["secret_string"],
+            secret["description"],
             secret["tags"],
             version_id=new_version_id,
             version_stages=["AWSCURRENT"],
@@ -416,7 +450,7 @@ class SecretsManagerBackend(BaseBackend):
                 {
                     "ARN": secret_arn(self.region, secret["secret_id"]),
                     "DeletedDate": secret.get("deleted_date", None),
-                    "Description": "",
+                    "Description": secret.get("description", ""),
                     "KmsKeyId": "",
                     "LastAccessedDate": None,
                     "LastChangedDate": None,

@@ -39,6 +39,17 @@ class AttributeDoesNotExist(MockValidationException):
         super(AttributeDoesNotExist, self).__init__(self.attr_does_not_exist_msg)
 
 
+class ProvidedKeyDoesNotExist(MockValidationException):
+    provided_key_does_not_exist_msg = (
+        "The provided key element does not match the schema"
+    )
+
+    def __init__(self):
+        super(ProvidedKeyDoesNotExist, self).__init__(
+            self.provided_key_does_not_exist_msg
+        )
+
+
 class ExpressionAttributeNameNotDefined(InvalidUpdateExpression):
     name_not_defined_msg = "An expression attribute name used in the document path is not defined; attribute name: {n}"
 
@@ -131,3 +142,10 @@ class IncorrectOperandType(InvalidUpdateExpression):
         super(IncorrectOperandType, self).__init__(
             self.inv_operand_msg.format(f=operator_or_function, t=operand_type)
         )
+
+
+class IncorrectDataType(MockValidationException):
+    inc_data_type_msg = "An operand in the update expression has an incorrect data type"
+
+    def __init__(self):
+        super(IncorrectDataType, self).__init__(self.inc_data_type_msg)

@@ -1,8 +1,51 @@
 import six
 
 from moto.dynamodb2.comparisons import get_comparison_func
-from moto.dynamodb2.exceptions import InvalidUpdateExpression
+from moto.dynamodb2.exceptions import InvalidUpdateExpression, IncorrectDataType
 from moto.dynamodb2.models.utilities import attribute_is_list, bytesize
+
+
+class DDBType(object):
+    """
+    Official documentation at https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_AttributeValue.html
+    """
+
+    BINARY_SET = "BS"
+    NUMBER_SET = "NS"
+    STRING_SET = "SS"
+    STRING = "S"
+    NUMBER = "N"
+    MAP = "M"
+    LIST = "L"
+    BOOLEAN = "BOOL"
+    BINARY = "B"
+    NULL = "NULL"
+
+
+class DDBTypeConversion(object):
+    _human_type_mapping = {
+        val: key.replace("_", " ")
+        for key, val in DDBType.__dict__.items()
+        if key.upper() == key
+    }
+
+    @classmethod
+    def get_human_type(cls, abbreviated_type):
+        """
+        Args:
+            abbreviated_type(str): An attribute of DDBType
+
+        Returns:
+            str: The human readable form of the DDBType.
+        """
+        try:
+            human_type_str = cls._human_type_mapping[abbreviated_type]
+        except KeyError:
+            raise ValueError(
+                "Invalid abbreviated_type {at}".format(at=abbreviated_type)
+            )
+
+        return human_type_str
 
 
 class DynamoType(object):
@@ -50,12 +93,21 @@ class DynamoType(object):
                 self.value = new_value.value
             else:
                 if attr not in self.value:  # nonexistingattribute
-                    type_of_new_attr = "M" if "." in key else new_value.type
+                    type_of_new_attr = DDBType.MAP if "." in key else new_value.type
                     self.value[attr] = DynamoType({type_of_new_attr: {}})
                 # {'M': {'foo': DynamoType}} ==> DynamoType.set(new_value)
                 self.value[attr].set(
                     ".".join(key.split(".")[1:]), new_value, list_index
                 )
+
+    def __contains__(self, item):
+        if self.type == DDBType.STRING:
+            return False
+        try:
+            self.__getitem__(item)
+            return True
+        except KeyError:
+            return False
 
     def delete(self, key, index=None):
         if index:
@@ -126,33 +178,55 @@ class DynamoType(object):
     def __add__(self, other):
         if self.type != other.type:
             raise TypeError("Different types of operandi is not allowed.")
-        if self.type == "N":
-            return DynamoType({"N": "{v}".format(v=int(self.value) + int(other.value))})
+        if self.is_number():
+            self_value = float(self.value) if "." in self.value else int(self.value)
+            other_value = float(other.value) if "." in other.value else int(other.value)
+            return DynamoType(
+                {DDBType.NUMBER: "{v}".format(v=self_value + other_value)}
+            )
         else:
-            raise TypeError("Sum only supported for Numbers.")
+            raise IncorrectDataType()
 
     def __sub__(self, other):
         if self.type != other.type:
             raise TypeError("Different types of operandi is not allowed.")
-        if self.type == "N":
-            return DynamoType({"N": "{v}".format(v=int(self.value) - int(other.value))})
+        if self.type == DDBType.NUMBER:
+            self_value = float(self.value) if "." in self.value else int(self.value)
+            other_value = float(other.value) if "." in other.value else int(other.value)
+            return DynamoType(
+                {DDBType.NUMBER: "{v}".format(v=self_value - other_value)}
+            )
         else:
             raise TypeError("Sum only supported for Numbers.")
 
     def __getitem__(self, item):
         if isinstance(item, six.string_types):
             # If our DynamoType is a map it should be subscriptable with a key
-            if self.type == "M":
+            if self.type == DDBType.MAP:
                 return self.value[item]
         elif isinstance(item, int):
             # If our DynamoType is a list is should be subscriptable with an index
-            if self.type == "L":
+            if self.type == DDBType.LIST:
                 return self.value[item]
         raise TypeError(
             "This DynamoType {dt} is not subscriptable by a {it}".format(
                 dt=self.type, it=type(item)
             )
         )
+
+    def __setitem__(self, key, value):
+        if isinstance(key, int):
+            if self.is_list():
+                if key >= len(self.value):
+                    # DynamoDB doesn't care you are out of box just add it to the end.
+                    self.value.append(value)
+                else:
+                    self.value[key] = value
+        elif isinstance(key, six.string_types):
+            if self.is_map():
+                self.value[key] = value
+        else:
+            raise NotImplementedError("No set_item for {t}".format(t=type(key)))
 
     @property
     def cast_value(self):
@@ -222,16 +296,22 @@ class DynamoType(object):
         return comparison_func(self.cast_value, *range_values)
 
     def is_number(self):
-        return self.type == "N"
+        return self.type == DDBType.NUMBER
 
     def is_set(self):
-        return self.type == "SS" or self.type == "NS" or self.type == "BS"
+        return self.type in (DDBType.STRING_SET, DDBType.NUMBER_SET, DDBType.BINARY_SET)
 
     def is_list(self):
-        return self.type == "L"
+        return self.type == DDBType.LIST
 
     def is_map(self):
-        return self.type == "M"
+        return self.type == DDBType.MAP
 
     def same_type(self, other):
         return self.type == other.type
+
+    def pop(self, key, *args, **kwargs):
+        if self.is_map() or self.is_list():
+            self.value.pop(key, *args, **kwargs)
+        else:
+            raise TypeError("pop not supported for DynamoType {t}".format(t=self.type))

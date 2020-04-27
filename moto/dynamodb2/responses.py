@@ -470,8 +470,10 @@ class DynamoHandler(BaseResponse):
                 for k, v in six.iteritems(self.body.get("ExpressionAttributeNames", {}))
             )
 
-            if " AND " in key_condition_expression:
-                expressions = key_condition_expression.split(" AND ", 1)
+            if " and " in key_condition_expression.lower():
+                expressions = re.split(
+                    " AND ", key_condition_expression, maxsplit=1, flags=re.IGNORECASE
+                )
 
                 index_hash_key = [key for key in index if key["KeyType"] == "HASH"][0]
                 hash_key_var = reverse_attribute_lookup.get(
@@ -760,12 +762,12 @@ class DynamoHandler(BaseResponse):
             item = self.dynamodb_backend.update_item(
                 name,
                 key,
-                update_expression,
-                attribute_updates,
-                expression_attribute_names,
-                expression_attribute_values,
-                expected,
-                condition_expression,
+                update_expression=update_expression,
+                attribute_updates=attribute_updates,
+                expression_attribute_names=expression_attribute_names,
+                expression_attribute_values=expression_attribute_values,
+                expected=expected,
+                condition_expression=condition_expression,
             )
         except MockValidationException as mve:
             er = "com.amazonaws.dynamodb.v20111205#ValidationException"
@@ -922,3 +924,15 @@ class DynamoHandler(BaseResponse):
             result.update({"ConsumedCapacity": [v for v in consumed_capacity.values()]})
 
         return dynamo_json_dump(result)
+
+    def transact_write_items(self):
+        transact_items = self.body["TransactItems"]
+        try:
+            self.dynamodb_backend.transact_write_items(transact_items)
+        except ValueError:
+            er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
+            return self.error(
+                er, "A condition specified in the operation could not be evaluated."
+            )
+        response = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
+        return dynamo_json_dump(response)

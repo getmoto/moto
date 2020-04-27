@@ -2878,15 +2878,15 @@
 - [ ] test_failover
 
 ## elasticbeanstalk
-0% implemented
+13% implemented
 - [ ] abort_environment_update
 - [ ] apply_environment_managed_action
 - [ ] check_dns_availability
 - [ ] compose_environments
-- [ ] create_application
+- [X] create_application
 - [ ] create_application_version
 - [ ] create_configuration_template
-- [ ] create_environment
+- [X] create_environment
 - [ ] create_platform_version
 - [ ] create_storage_location
 - [ ] delete_application
@@ -2903,13 +2903,13 @@
 - [ ] describe_environment_managed_action_history
 - [ ] describe_environment_managed_actions
 - [ ] describe_environment_resources
-- [ ] describe_environments
+- [X] describe_environments
 - [ ] describe_events
 - [ ] describe_instances_health
 - [ ] describe_platform_version
-- [ ] list_available_solution_stacks
+- [X] list_available_solution_stacks
 - [ ] list_platform_versions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] rebuild_environment
 - [ ] request_environment_info
 - [ ] restart_app_server
@@ -2921,7 +2921,7 @@
 - [ ] update_application_version
 - [ ] update_configuration_template
 - [ ] update_environment
-- [ ] update_tags_for_resource
+- [X] update_tags_for_resource
 - [ ] validate_configuration_settings
 
 ## elastictranscoder

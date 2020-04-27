@@ -138,6 +138,45 @@ def test_create_secret_with_tags():
 
 
 @mock_secretsmanager
+def test_create_secret_with_description():
+    conn = boto3.client("secretsmanager", region_name="us-east-1")
+    secret_name = "test-secret-with-tags"
+
+    result = conn.create_secret(
+        Name=secret_name, SecretString="foosecret", Description="desc"
+    )
+    assert result["ARN"]
+    assert result["Name"] == secret_name
+    secret_value = conn.get_secret_value(SecretId=secret_name)
+    assert secret_value["SecretString"] == "foosecret"
+    secret_details = conn.describe_secret(SecretId=secret_name)
+    assert secret_details["Description"] == "desc"
+
+
+@mock_secretsmanager
+def test_create_secret_with_tags_and_description():
+    conn = boto3.client("secretsmanager", region_name="us-east-1")
+    secret_name = "test-secret-with-tags"
+
+    result = conn.create_secret(
+        Name=secret_name,
+        SecretString="foosecret",
+        Description="desc",
+        Tags=[{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}],
+    )
+    assert result["ARN"]
+    assert result["Name"] == secret_name
+    secret_value = conn.get_secret_value(SecretId=secret_name)
+    assert secret_value["SecretString"] == "foosecret"
+    secret_details = conn.describe_secret(SecretId=secret_name)
+    assert secret_details["Tags"] == [
+        {"Key": "Foo", "Value": "Bar"},
+        {"Key": "Mykey", "Value": "Myvalue"},
+    ]
+    assert secret_details["Description"] == "desc"
+
+
+@mock_secretsmanager
 def test_delete_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
@@ -691,6 +730,31 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
 
 
 @mock_secretsmanager
+def test_put_secret_value_maintains_description_and_tags():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="foosecret",
+        Description="desc",
+        Tags=[{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}],
+    )
+
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="dupe_secret",
+        VersionStages=["AWSCURRENT"],
+    )
+    secret_details = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
+    assert secret_details["Tags"] == [
+        {"Key": "Foo", "Value": "Bar"},
+        {"Key": "Mykey", "Value": "Myvalue"},
+    ]
+    assert secret_details["Description"] == "desc"
+
+
+@mock_secretsmanager
 def test_can_list_secret_version_ids():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     put_secret_value_dict = conn.put_secret_value(
@@ -737,6 +801,43 @@ def test_update_secret():
     secret = conn.get_secret_value(SecretId="test-secret")
     assert secret["SecretString"] == "barsecret"
     assert created_secret["VersionId"] != updated_secret["VersionId"]
+
+
+@mock_secretsmanager
+def test_update_secret_with_tags_and_description():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    created_secret = conn.create_secret(
+        Name="test-secret",
+        SecretString="foosecret",
+        Description="desc",
+        Tags=[{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}],
+    )
+
+    assert created_secret["ARN"]
+    assert created_secret["Name"] == "test-secret"
+    assert created_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "foosecret"
+
+    updated_secret = conn.update_secret(
+        SecretId="test-secret", SecretString="barsecret"
+    )
+
+    assert updated_secret["ARN"]
+    assert updated_secret["Name"] == "test-secret"
+    assert updated_secret["VersionId"] != ""
+
+    secret = conn.get_secret_value(SecretId="test-secret")
+    assert secret["SecretString"] == "barsecret"
+    assert created_secret["VersionId"] != updated_secret["VersionId"]
+    secret_details = conn.describe_secret(SecretId="test-secret")
+    assert secret_details["Tags"] == [
+        {"Key": "Foo", "Value": "Bar"},
+        {"Key": "Mykey", "Value": "Myvalue"},
+    ]
+    assert secret_details["Description"] == "desc"
 
 
 @mock_secretsmanager

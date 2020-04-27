@@ -146,6 +146,12 @@ class _VersionedKeyStore(dict):
         for key in self:
             yield key, self.getlist(key)
 
+    def item_size(self):
+        size = 0
+        for val in self.values():
+            size += sys.getsizeof(val)
+        return size
+
     items = iteritems = _iteritems
     lists = iterlists = _iterlists
     values = itervalues = _itervalues

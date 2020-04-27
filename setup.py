@@ -101,5 +101,4 @@ setup(
     project_urls={
         "Documentation": "http://docs.getmoto.org/en/latest/",
     },
-    data_files=[('', ['moto/dynamodb2/parsing/reserved_keywords.txt'])],
 )
