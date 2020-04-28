@@ -1797,6 +1797,14 @@ def test_usage_plans():
     response = client.get_usage_plans()
     len(response["items"]).should.equal(0)
 
+    # # Try to get info about a non existing usage
+    with assert_raises(ClientError) as ex:
+        client.get_usage_plan(usagePlanId="not_existing")
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Usage Plan ID specified"
+    )
+
     usage_plan_name = "TEST-PLAN"
     payload = {"name": usage_plan_name}
     response = client.create_usage_plan(**payload)
@@ -1878,6 +1886,30 @@ def test_usage_plan_keys():
     # Get current plan keys (expect none)
     response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
     len(response["items"]).should.equal(0)
+
+    # Try to get info about a non existing api key
+    with assert_raises(ClientError) as ex:
+        client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId="not_existing_key")
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid API Key identifier specified"
+    )
+
+    # Try to get info about an existing api key that has not jet added to a valid usage plan
+    with assert_raises(ClientError) as ex:
+        client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Usage Plan ID specified"
+    )
+
+    # Try to get info about an existing api key that has not jet added to a valid usage plan
+    with assert_raises(ClientError) as ex:
+        client.get_usage_plan_key(usagePlanId="not_existing_plan_id", keyId=key_id)
+    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Usage Plan ID specified"
+    )
 
 
 @mock_apigateway

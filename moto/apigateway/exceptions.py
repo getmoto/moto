@@ -112,6 +112,15 @@ class ApiKeyNotFoundException(RESTError):
         )
 
 
+class UsagePlanNotFoundException(RESTError):
+    code = 404
+
+    def __init__(self):
+        super(UsagePlanNotFoundException, self).__init__(
+            "NotFoundException", "Invalid Usage Plan ID specified"
+        )
+
+
 class ApiKeyAlreadyExists(RESTError):
     code = 409
 
