@@ -6,7 +6,6 @@ import yaml
 import os
 import string
 
-from cfnlint import decode, core
 from moto.core import ACCOUNT_ID
 
 
@@ -62,6 +61,8 @@ def yaml_tag_constructor(loader, tag, node):
 
 
 def validate_template_cfn_lint(template):
+    # Importing cfnlint adds a significant overhead, so we keep it local
+    from cfnlint import decode, core
 
     # Save the template to a temporary file -- cfn-lint requires a file
     filename = "file.tmp"

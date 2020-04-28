@@ -288,6 +288,7 @@ class AWSManagedPolicy(ManagedPolicy):
 
 # AWS defines some of its own managed policies and we periodically
 # import them via `make aws_managed_policies`
+# FIXME: Takes about 40ms at import time
 aws_managed_policies = [
     AWSManagedPolicy.from_data(name, d)
     for name, d in json.loads(aws_managed_policies_data).items()
