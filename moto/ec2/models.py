@@ -104,6 +104,7 @@ from .utils import (
     random_internet_gateway_id,
     random_ip,
     random_ipv6_cidr,
+    randor_ipv4_cidr,
     random_launch_template_id,
     random_nat_gateway_id,
     random_key_pair,
@@ -112,6 +113,8 @@ from .utils import (
     random_reservation_id,
     random_route_table_id,
     generate_route_id,
+    generate_vpc_end_point_id,
+    create_dns_entries,
     split_route_id,
     random_security_group_id,
     random_snapshot_id,
@@ -2735,6 +2738,7 @@ class VPCBackend(object):
 
     def __init__(self):
         self.vpcs = {}
+        self.vpc_end_points = {}
         self.vpc_refs[self.__class__].add(weakref.ref(self))
         super(VPCBackend, self).__init__()
 
@@ -2876,6 +2880,66 @@ class VPCBackend(object):
     ):
         vpc = self.get_vpc(vpc_id)
         return vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
+
+    def create_vpc_endpoint(self,
+                             vpc_id,
+                             service_name,
+                             type=None,
+                             policy_document=False,
+                             route_table_ids=None,
+                             subnet_ids=[],
+                             network_interface_ids=[],
+                             dns_entries=None,
+                             client_token=None,
+                             security_group=None,
+                             tag_specifications=None,
+                             private_dns_enabled=None
+                            ):
+
+        vpc_endpoint_id = generate_vpc_end_point_id(vpc_id)
+
+        #validates if vpc is present or not.
+        self.get_vpc(vpc_id)
+
+        if type == "interface" or "Interface ":
+
+            network_interface_ids = []
+            for subnet_id in subnet_ids:
+                self.get_subnet(subnet_id)
+                eni = self.create_network_interface(subnet_id, random_private_ip())
+                network_interface_ids.append(eni.id)
+
+            dns_entries = create_dns_entries(service_name, vpc_endpoint_id)
+
+        else :
+            # considering gateway if type is not mentioned.
+            service_destination_cidr = randor_ipv4_cidr()
+
+            for route_table_id in route_table_ids:
+                self.create_route(
+                    route_table_id,
+                    service_destination_cidr
+                )
+
+        vpc_end_point = VPCEndPoint(
+            vpc_endpoint_id,
+            vpc_id,
+            service_name,
+            type,
+            policy_document,
+            route_table_ids,
+            subnet_ids,
+            network_interface_ids,
+            [dns_entries],
+            client_token,
+            security_group,
+            tag_specifications,
+            private_dns_enabled
+        )
+
+        self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
+
+        return vpc_end_point
 
 
 class VPCPeeringConnectionStatus(object):
@@ -3483,6 +3547,40 @@ class Route(object):
             vpc_peering_connection_id=pcx_id,
         )
         return route_table
+
+
+class VPCEndPoint(TaggedEC2Resource):
+    def __init__(
+        self,
+        id,
+        vpc_id,
+        service_name,
+        type=None,
+        policy_document=False,
+        route_table_ids=None,
+        subnet_ids =None,
+        network_interface_ids=None,
+        dns_entries=None,
+        client_token=None,
+        security_group=None,
+        tag_specifications=None,
+        private_dns_enabled=None,
+    ):
+
+        self.id = id
+        self.vpc_id = vpc_id
+        self.service_name = service_name
+        self.type = type
+        self.policy_document = policy_document
+        self.route_table_ids = route_table_ids
+        self.network_interface_ids = network_interface_ids
+        self.subnet_ids = subnet_ids
+        self.client_token = client_token
+        self.security_group = security_group
+        self.tag_specifications = tag_specifications
+        self.private_dns_enabled = private_dns_enabled
+        self.created_at = datetime.utcnow()
+        self.dns_entries = dns_entries
 
 
 class RouteBackend(object):
