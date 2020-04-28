@@ -1,4 +1,4 @@
-import boto
+import boto.ec2
 from moto.core import BaseBackend
 
 

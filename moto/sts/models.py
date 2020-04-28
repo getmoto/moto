@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
+from base64 import b64decode
 import datetime
+import xmltodict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core import ACCOUNT_ID
@@ -78,6 +80,25 @@ class STSBackend(BaseBackend):
 
     def assume_role_with_web_identity(self, **kwargs):
         return self.assume_role(**kwargs)
+
+    def assume_role_with_saml(self, **kwargs):
+        del kwargs["principal_arn"]
+        saml_assertion_encoded = kwargs.pop("saml_assertion")
+        saml_assertion_decoded = b64decode(saml_assertion_encoded)
+        saml_assertion = xmltodict.parse(saml_assertion_decoded.decode("utf-8"))
+        kwargs["duration"] = int(
+            saml_assertion["samlp:Response"]["Assertion"]["AttributeStatement"][
+                "Attribute"
+            ][2]["AttributeValue"]
+        )
+        kwargs["role_session_name"] = saml_assertion["samlp:Response"]["Assertion"][
+            "AttributeStatement"
+        ]["Attribute"][0]["AttributeValue"]
+        kwargs["external_id"] = None
+        kwargs["policy"] = None
+        role = AssumedRole(**kwargs)
+        self.assumed_roles.append(role)
+        return role
 
 
 sts_backend = STSBackend()

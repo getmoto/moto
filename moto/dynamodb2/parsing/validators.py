@@ -11,6 +11,7 @@ from moto.dynamodb2.exceptions import (
     ExpressionAttributeNameNotDefined,
     IncorrectOperandType,
     InvalidUpdateExpressionInvalidDocumentPath,
+    ProvidedKeyDoesNotExist,
 )
 from moto.dynamodb2.models import DynamoType
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -54,6 +55,76 @@ class ExpressionAttributeValueProcessor(DepthFirstTraverser):
                 attribute_value=attribute_value_name
             )
         return DDBTypedValue(DynamoType(target))
+
+
+class ExpressionPathResolver(object):
+    def __init__(self, expression_attribute_names):
+        self.expression_attribute_names = expression_attribute_names
+
+    @classmethod
+    def raise_exception_if_keyword(cls, attribute):
+        if attribute.upper() in ReservedKeywords.get_reserved_keywords():
+            raise AttributeIsReservedKeyword(attribute)
+
+    def resolve_expression_path(self, item, update_expression_path):
+        assert isinstance(update_expression_path, UpdateExpressionPath)
+        return self.resolve_expression_path_nodes(item, update_expression_path.children)
+
+    def resolve_expression_path_nodes(self, item, update_expression_path_nodes):
+        target = item.attrs
+
+        for child in update_expression_path_nodes:
+            # First replace placeholder with attribute_name
+            attr_name = None
+            if isinstance(child, ExpressionAttributeName):
+                attr_placeholder = child.get_attribute_name_placeholder()
+                try:
+                    attr_name = self.expression_attribute_names[attr_placeholder]
+                except KeyError:
+                    raise ExpressionAttributeNameNotDefined(attr_placeholder)
+            elif isinstance(child, ExpressionAttribute):
+                attr_name = child.get_attribute_name()
+                self.raise_exception_if_keyword(attr_name)
+            if attr_name is not None:
+                # Resolv attribute_name
+                try:
+                    target = target[attr_name]
+                except (KeyError, TypeError):
+                    if child == update_expression_path_nodes[-1]:
+                        return NoneExistingPath(creatable=True)
+                    return NoneExistingPath()
+            else:
+                if isinstance(child, ExpressionPathDescender):
+                    continue
+                elif isinstance(child, ExpressionSelector):
+                    index = child.get_index()
+                    if target.is_list():
+                        try:
+                            target = target[index]
+                        except IndexError:
+                            # When a list goes out of bounds when assigning that is no problem when at the assignment
+                            # side. It will just append to the list.
+                            if child == update_expression_path_nodes[-1]:
+                                return NoneExistingPath(creatable=True)
+                            return NoneExistingPath()
+                    else:
+                        raise InvalidUpdateExpressionInvalidDocumentPath
+                else:
+                    raise NotImplementedError(
+                        "Path resolution for {t}".format(t=type(child))
+                    )
+        if not isinstance(target, DynamoType):
+            print(target)
+        return DDBTypedValue(target)
+
+    def resolve_expression_path_nodes_to_dynamo_type(
+        self, item, update_expression_path_nodes
+    ):
+        node = self.resolve_expression_path_nodes(item, update_expression_path_nodes)
+        if isinstance(node, NoneExistingPath):
+            raise ProvidedKeyDoesNotExist()
+        assert isinstance(node, DDBTypedValue)
+        return node.get_value()
 
 
 class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):
@@ -107,55 +178,9 @@ class ExpressionAttributeResolvingProcessor(DepthFirstTraverser):
             return node
 
     def resolve_expression_path(self, node):
-        assert isinstance(node, UpdateExpressionPath)
-
-        target = deepcopy(self.item.attrs)
-        for child in node.children:
-            # First replace placeholder with attribute_name
-            attr_name = None
-            if isinstance(child, ExpressionAttributeName):
-                attr_placeholder = child.get_attribute_name_placeholder()
-                try:
-                    attr_name = self.expression_attribute_names[attr_placeholder]
-                except KeyError:
-                    raise ExpressionAttributeNameNotDefined(attr_placeholder)
-            elif isinstance(child, ExpressionAttribute):
-                attr_name = child.get_attribute_name()
-                self.raise_exception_if_keyword(attr_name)
-            if attr_name is not None:
-                # Resolv attribute_name
-                try:
-                    target = target[attr_name]
-                except (KeyError, TypeError):
-                    if child == node.children[-1]:
-                        return NoneExistingPath(creatable=True)
-                    return NoneExistingPath()
-            else:
-                if isinstance(child, ExpressionPathDescender):
-                    continue
-                elif isinstance(child, ExpressionSelector):
-                    index = child.get_index()
-                    if target.is_list():
-                        try:
-                            target = target[index]
-                        except IndexError:
-                            # When a list goes out of bounds when assigning that is no problem when at the assignment
-                            # side. It will just append to the list.
-                            if child == node.children[-1]:
-                                return NoneExistingPath(creatable=True)
-                            return NoneExistingPath()
-                    else:
-                        raise InvalidUpdateExpressionInvalidDocumentPath
-                else:
-                    raise NotImplementedError(
-                        "Path resolution for {t}".format(t=type(child))
-                    )
-        return DDBTypedValue(DynamoType(target))
-
-    @classmethod
-    def raise_exception_if_keyword(cls, attribute):
-        if attribute.upper() in ReservedKeywords.get_reserved_keywords():
-            raise AttributeIsReservedKeyword(attribute)
+        return ExpressionPathResolver(
+            self.expression_attribute_names
+        ).resolve_expression_path(self.item, node)
 
 
 class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
@@ -183,7 +208,9 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):
             assert isinstance(result, (DDBTypedValue, NoneExistingPath))
             return result
         elif function_name == "list_append":
-            first_arg = self.get_list_from_ddb_typed_value(first_arg, function_name)
+            first_arg = deepcopy(
+                self.get_list_from_ddb_typed_value(first_arg, function_name)
+            )
             second_arg = self.get_list_from_ddb_typed_value(second_arg, function_name)
             for list_element in second_arg.value:
                 first_arg.value.append(list_element)

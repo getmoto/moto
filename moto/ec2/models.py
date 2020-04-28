@@ -1503,9 +1503,10 @@ class AmiBackend(object):
 
 
 class Region(object):
-    def __init__(self, name, endpoint):
+    def __init__(self, name, endpoint, opt_in_status):
         self.name = name
         self.endpoint = endpoint
+        self.opt_in_status = opt_in_status
 
 
 class Zone(object):
@@ -1516,13 +1517,49 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
+    regions_opt_in_not_required = [
+        "af-south-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+    ]
+
     regions = []
     for region in Session().get_available_regions("ec2"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+        if region in regions_opt_in_not_required:
+            regions.append(
+                Region(
+                    region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required"
+                )
+            )
+        else:
+            regions.append(
+                Region(region, "ec2.{}.amazonaws.com".format(region), "not-opted-in")
+            )
     for region in Session().get_available_regions("ec2", partition_name="aws-us-gov"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
+        regions.append(
+            Region(region, "ec2.{}.amazonaws.com".format(region), "opt-in-not-required")
+        )
     for region in Session().get_available_regions("ec2", partition_name="aws-cn"):
-        regions.append(Region(region, "ec2.{}.amazonaws.com.cn".format(region)))
+        regions.append(
+            Region(
+                region, "ec2.{}.amazonaws.com.cn".format(region), "opt-in-not-required"
+            )
+        )
 
     zones = {
         "af-south-1": [

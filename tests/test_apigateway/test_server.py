@@ -39,6 +39,10 @@ def test_usage_plans_apis():
     fetched_plan = json.loads(res.data)
     fetched_plan.should.equal(created_plan)
 
+    # Not existing usage plan
+    res = test_client.get("/usageplans/{0}".format("not_existing"))
+    res.status_code.should.equal(404)
+
     # Delete usage plan
     res = test_client.delete("/usageplans/{0}".format(created_plan["id"]))
     res.data.should.equal(b"{}")
@@ -60,6 +64,24 @@ def test_usage_plans_keys():
     # List usage plans keys (expect empty)
     res = test_client.get("/usageplans/{0}/keys".format(usage_plan_id))
     json.loads(res.data)["item"].should.have.length_of(0)
+
+    # Invalid api key (does not exists at all)
+    res = test_client.get(
+        "/usageplans/{0}/keys/{1}".format(usage_plan_id, "not_existing")
+    )
+    res.status_code.should.equal(404)
+
+    # not existing usage plan with existing api key
+    res = test_client.get(
+        "/usageplans/{0}/keys/{1}".format("not_existing", created_api_key["id"])
+    )
+    res.status_code.should.equal(404)
+
+    # not jet added api key
+    res = test_client.get(
+        "/usageplans/{0}/keys/{1}".format(usage_plan_id, created_api_key["id"])
+    )
+    res.status_code.should.equal(404)
 
     # Create usage plan key
     res = test_client.post(

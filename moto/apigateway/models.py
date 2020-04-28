@@ -20,6 +20,7 @@ from moto.core.utils import path_url
 from moto.sts.models import ACCOUNT_ID
 from .exceptions import (
     ApiKeyNotFoundException,
+    UsagePlanNotFoundException,
     AwsProxyNotAllowed,
     CrossAccountNotAllowed,
     IntegrationMethodNotDefined,
@@ -1045,6 +1046,9 @@ class APIGatewayBackend(BaseBackend):
         return plans
 
     def get_usage_plan(self, usage_plan_id):
+        if usage_plan_id not in self.usage_plans:
+            raise UsagePlanNotFoundException()
+
         return self.usage_plans[usage_plan_id]
 
     def delete_usage_plan(self, usage_plan_id):
@@ -1077,6 +1081,17 @@ class APIGatewayBackend(BaseBackend):
         return list(self.usage_plan_keys[usage_plan_id].values())
 
     def get_usage_plan_key(self, usage_plan_id, key_id):
+        # first check if is a valid api key
+        if key_id not in self.keys:
+            raise ApiKeyNotFoundException()
+
+        # then check if is a valid api key and that the key is in the plan
+        if (
+            usage_plan_id not in self.usage_plan_keys
+            or key_id not in self.usage_plan_keys[usage_plan_id]
+        ):
+            raise UsagePlanNotFoundException()
+
         return self.usage_plan_keys[usage_plan_id][key_id]
 
     def delete_usage_plan_key(self, usage_plan_id, key_id):

@@ -384,7 +384,7 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
                     </member>
                     {% endfor %}
                 </Dimensions>
-                <MetricName>Metric:{{ metric.name }}</MetricName>
+                <MetricName>{{ metric.name }}</MetricName>
                 <Namespace>{{ metric.namespace }}</Namespace>
             </member>
             {% endfor %}

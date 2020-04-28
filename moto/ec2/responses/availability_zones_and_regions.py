@@ -22,6 +22,7 @@ DESCRIBE_REGIONS_RESPONSE = """<DescribeRegionsResponse xmlns="http://ec2.amazon
           <item>
              <regionName>{{ region.name }}</regionName>
              <regionEndpoint>{{ region.endpoint }}</regionEndpoint>
+             <optInStatus>{{ region.opt_in_status }}</optInStatus>
           </item>
       {% endfor %}
    </regionInfo>

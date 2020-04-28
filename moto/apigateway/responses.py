@@ -6,6 +6,7 @@ from moto.core.responses import BaseResponse
 from .models import apigateway_backends
 from .exceptions import (
     ApiKeyNotFoundException,
+    UsagePlanNotFoundException,
     BadRequestException,
     CrossAccountNotAllowed,
     AuthorizerNotFoundException,
@@ -490,7 +491,16 @@ class APIGatewayResponse(BaseResponse):
         usage_plan = url_path_parts[2]
 
         if self.method == "GET":
-            usage_plan_response = self.backend.get_usage_plan(usage_plan)
+            try:
+                usage_plan_response = self.backend.get_usage_plan(usage_plan)
+            except (UsagePlanNotFoundException) as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
         elif self.method == "DELETE":
             usage_plan_response = self.backend.delete_usage_plan(usage_plan)
         return 200, {}, json.dumps(usage_plan_response)
@@ -529,7 +539,18 @@ class APIGatewayResponse(BaseResponse):
         key_id = url_path_parts[4]
 
         if self.method == "GET":
-            usage_plan_response = self.backend.get_usage_plan_key(usage_plan_id, key_id)
+            try:
+                usage_plan_response = self.backend.get_usage_plan_key(
+                    usage_plan_id, key_id
+                )
+            except (UsagePlanNotFoundException, ApiKeyNotFoundException) as error:
+                return (
+                    error.code,
+                    {},
+                    '{{"message":"{0}","code":"{1}"}}'.format(
+                        error.message, error.error_type
+                    ),
+                )
         elif self.method == "DELETE":
             usage_plan_response = self.backend.delete_usage_plan_key(
                 usage_plan_id, key_id

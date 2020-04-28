@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import argparse
+import io
 import json
 import re
 import sys
@@ -14,7 +15,7 @@ from six.moves.urllib.parse import urlencode
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import run_simple
 
-from moto.backends import BACKENDS
+import moto.backends as backends
 from moto.core.utils import convert_flask_to_httpretty_response
 
 
@@ -29,6 +30,7 @@ UNSIGNED_REQUESTS = {
     "AWSCognitoIdentityService": ("cognito-identity", "us-east-1"),
     "AWSCognitoIdentityProviderService": ("cognito-idp", "us-east-1"),
 }
+UNSIGNED_ACTIONS = {"AssumeRoleWithSAML": ("sts", "us-east-1")}
 
 
 class DomainDispatcherApplication(object):
@@ -50,13 +52,15 @@ class DomainDispatcherApplication(object):
         if self.service:
             return self.service
 
-        if host in BACKENDS:
+        if host in backends.BACKENDS:
             return host
 
-        for backend_name, backend in BACKENDS.items():
-            for url_base in list(backend.values())[0].url_bases:
-                if re.match(url_base, "http://%s" % host):
-                    return backend_name
+        return backends.search_backend(
+            lambda backend: any(
+                re.match(url_base, "http://%s" % host)
+                for url_base in list(backend.values())[0].url_bases
+            )
+        )
 
     def infer_service_region_host(self, environ):
         auth = environ.get("HTTP_AUTHORIZATION")
@@ -77,9 +81,13 @@ class DomainDispatcherApplication(object):
         else:
             # Unsigned request
             target = environ.get("HTTP_X_AMZ_TARGET")
+            action = self.get_action_from_body(environ)
             if target:
                 service, _ = target.split(".", 1)
                 service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
+            elif action and action in UNSIGNED_ACTIONS:
+                # See if we can match the Action to a known service
+                service, region = UNSIGNED_ACTIONS.get(action)
             else:
                 # S3 is the last resort when the target is also unknown
                 service, region = DEFAULT_SERVICE_REGION
@@ -130,6 +138,26 @@ class DomainDispatcherApplication(object):
                 self.app_instances[backend] = app
             return app
 
+    def get_action_from_body(self, environ):
+        body = None
+        try:
+            # AWS requests use querystrings as the body (Action=x&Data=y&...)
+            simple_form = environ["CONTENT_TYPE"].startswith(
+                "application/x-www-form-urlencoded"
+            )
+            request_body_size = int(environ["CONTENT_LENGTH"])
+            if simple_form and request_body_size:
+                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
+                body_dict = dict(x.split("=") for x in body.split("&"))
+                return body_dict["Action"]
+        except (KeyError, ValueError):
+            pass
+        finally:
+            if body:
+                # We've consumed the body = need to reset it
+                environ["wsgi.input"] = io.StringIO(body)
+        return None
+
     def __call__(self, environ, start_response):
         backend_app = self.get_application(environ)
         return backend_app(environ, start_response)
@@ -178,7 +206,7 @@ def create_backend_app(service):
     backend_app.view_functions = {}
     backend_app.url_map = Map()
     backend_app.url_map.converters["regex"] = RegexConverter
-    backend = list(BACKENDS[service].values())[0]
+    backend = list(backends.get_backend(service).values())[0]
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_flask_to_httpretty_response(handler)
         if handler.__name__ == "dispatch":
