@@ -40,6 +40,15 @@ def test_boto3_describe_regions():
     resp = ec2.describe_regions(RegionNames=[test_region])
     resp["Regions"].should.have.length_of(1)
     resp["Regions"][0].should.have.key("RegionName").which.should.equal(test_region)
+    resp["Regions"][0].should.have.key("OptInStatus").which.should.equal(
+        "opt-in-not-required"
+    )
+
+    test_region = "ap-east-1"
+    resp = ec2.describe_regions(RegionNames=[test_region])
+    resp["Regions"].should.have.length_of(1)
+    resp["Regions"][0].should.have.key("RegionName").which.should.equal(test_region)
+    resp["Regions"][0].should.have.key("OptInStatus").which.should.equal("not-opted-in")
 
 
 @mock_ec2
