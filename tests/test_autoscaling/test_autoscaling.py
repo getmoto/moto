@@ -1338,6 +1338,14 @@ def test_standby_elb_update():
 
     response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
     list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(2)
+    instance_to_standby.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
+
+    response = elb_client.describe_instance_health(
+        LoadBalancerName="my-lb", Instances=[{"InstanceId": instance_to_standby},]
+    )
+    response["InstanceStates"][0]["State"].should_not.equal("InService")
 
 
 @mock_autoscaling

@@ -419,11 +419,8 @@ class FakeAutoScalingGroup(BaseModel):
         curr_instance_count = len(self.active_instances())
 
         if self.desired_capacity == curr_instance_count:
-            self.autoscaling_backend.update_attached_elbs(self.name)
-            self.autoscaling_backend.update_attached_target_groups(self.name)
-            return
-
-        if self.desired_capacity > curr_instance_count:
+            pass  # Nothing to do here
+        elif self.desired_capacity > curr_instance_count:
             # Need more instances
             count_needed = int(self.desired_capacity) - int(curr_instance_count)
 
@@ -447,6 +444,7 @@ class FakeAutoScalingGroup(BaseModel):
                 self.instance_states = list(
                     set(self.instance_states) - set(instances_to_remove)
                 )
+        if self.name in self.autoscaling_backend.autoscaling_groups:
             self.autoscaling_backend.update_attached_elbs(self.name)
             self.autoscaling_backend.update_attached_target_groups(self.name)
 
