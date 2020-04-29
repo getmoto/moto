@@ -176,22 +176,20 @@ class VPCs(BaseResponse):
         security_group = self._get_param("SecurityGroup")
 
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
-                vpc_id=vpc_id,
-                service_name=service_name,
-                type=type,
-                policy_document=policy_document,
-                route_table_ids=route_table_ids,
-                subnet_ids=subnet_ids,
-                client_token=client_token,
-                security_group=security_group,
-                tag_specifications=tag_specifications,
-                private_dns_enabled=private_dns_enabled
+            vpc_id=vpc_id,
+            service_name=service_name,
+            type=type,
+            policy_document=policy_document,
+            route_table_ids=route_table_ids,
+            subnet_ids=subnet_ids,
+            client_token=client_token,
+            security_group=security_group,
+            tag_specifications=tag_specifications,
+            private_dns_enabled=private_dns_enabled,
         )
 
         template = self.response_template(CREATE_VPC_END_POINT)
-        return template.render(
-            vpc_end_point=vpc_end_point
-        )
+        return template.render(vpc_end_point=vpc_end_point)
 
 
 CREATE_VPC_RESPONSE = """

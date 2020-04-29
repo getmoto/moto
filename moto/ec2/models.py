@@ -2881,24 +2881,25 @@ class VPCBackend(object):
         vpc = self.get_vpc(vpc_id)
         return vpc.associate_vpc_cidr_block(cidr_block, amazon_provided_ipv6_cidr_block)
 
-    def create_vpc_endpoint(self,
-                             vpc_id,
-                             service_name,
-                             type=None,
-                             policy_document=False,
-                             route_table_ids=None,
-                             subnet_ids=[],
-                             network_interface_ids=[],
-                             dns_entries=None,
-                             client_token=None,
-                             security_group=None,
-                             tag_specifications=None,
-                             private_dns_enabled=None
-                            ):
+    def create_vpc_endpoint(
+        self,
+        vpc_id,
+        service_name,
+        type=None,
+        policy_document=False,
+        route_table_ids=None,
+        subnet_ids=[],
+        network_interface_ids=[],
+        dns_entries=None,
+        client_token=None,
+        security_group=None,
+        tag_specifications=None,
+        private_dns_enabled=None,
+    ):
 
         vpc_endpoint_id = generate_vpc_end_point_id(vpc_id)
 
-        #validates if vpc is present or not.
+        # validates if vpc is present or not.
         self.get_vpc(vpc_id)
 
         if type and type.lower() == "interface":
@@ -2911,15 +2912,12 @@ class VPCBackend(object):
 
             dns_entries = create_dns_entries(service_name, vpc_endpoint_id)
 
-        else :
+        else:
             # considering gateway if type is not mentioned.
             service_destination_cidr = randor_ipv4_cidr()
 
             for route_table_id in route_table_ids:
-                self.create_route(
-                    route_table_id,
-                    service_destination_cidr
-                )
+                self.create_route(route_table_id, service_destination_cidr)
         if dns_entries:
             dns_entries = [dns_entries]
 
@@ -2936,7 +2934,7 @@ class VPCBackend(object):
             client_token,
             security_group,
             tag_specifications,
-            private_dns_enabled
+            private_dns_enabled,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
@@ -3560,7 +3558,7 @@ class VPCEndPoint(TaggedEC2Resource):
         type=None,
         policy_document=False,
         route_table_ids=None,
-        subnet_ids =None,
+        subnet_ids=None,
         network_interface_ids=None,
         dns_entries=None,
         client_token=None,

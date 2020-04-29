@@ -194,13 +194,14 @@ def generate_route_id(route_table_id, cidr_block):
 
 
 def generate_vpc_end_point_id(vpc_id):
-    return "%s-%s" % ('vpce', vpc_id[4:])
+    return "%s-%s" % ("vpce", vpc_id[4:])
 
 
 def create_dns_entries(service_name, vpc_endpoint_id):
     dns_entries = {}
-    dns_entries["dns_name"] = "{}-{}.{}".format(vpc_endpoint_id,
-                        random_resource_id(8), service_name)
+    dns_entries["dns_name"] = "{}-{}.{}".format(
+        vpc_endpoint_id, random_resource_id(8), service_name
+    )
     dns_entries["hosted_zone_id"] = random_resource_id(13).upper()
     return dns_entries
 

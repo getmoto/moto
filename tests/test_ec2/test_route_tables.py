@@ -625,8 +625,7 @@ def test_create_vpc_end_point():
 
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc["Vpc"]["VpcId"],
-                               CidrBlock="10.0.0.0/24")
+    subnet = ec2.create_subnet(VpcId=vpc["Vpc"]["VpcId"], CidrBlock="10.0.0.0/24")
 
     route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
 
@@ -634,13 +633,15 @@ def test_create_vpc_end_point():
     vpc_end_point = ec2.create_vpc_endpoint(
         VpcId=vpc["Vpc"]["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
-        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]]
-        )
+        RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+    )
 
-    vpc_end_point["VpcEndpoint"]["ServiceName"].\
-        should.equal("com.amazonaws.us-east-1.s3")
-    vpc_end_point["VpcEndpoint"]["RouteTableIds"][0].\
-        should.equal(route_table["RouteTable"]["RouteTableId"])
+    vpc_end_point["VpcEndpoint"]["ServiceName"].should.equal(
+        "com.amazonaws.us-east-1.s3"
+    )
+    vpc_end_point["VpcEndpoint"]["RouteTableIds"][0].should.equal(
+        route_table["RouteTable"]["RouteTableId"]
+    )
     vpc_end_point["VpcEndpoint"]["VpcId"].should.equal(vpc["Vpc"]["VpcId"])
     vpc_end_point["VpcEndpoint"]["DnsEntries"].should.have.length_of(0)
 
@@ -649,13 +650,15 @@ def test_create_vpc_end_point():
         VpcId=vpc["Vpc"]["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
         RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
-        VpcEndpointType="gateway"
+        VpcEndpointType="gateway",
     )
 
-    vpc_end_point["VpcEndpoint"]["ServiceName"]. \
-        should.equal("com.amazonaws.us-east-1.s3")
-    vpc_end_point["VpcEndpoint"]["RouteTableIds"][0]. \
-        should.equal(route_table["RouteTable"]["RouteTableId"])
+    vpc_end_point["VpcEndpoint"]["ServiceName"].should.equal(
+        "com.amazonaws.us-east-1.s3"
+    )
+    vpc_end_point["VpcEndpoint"]["RouteTableIds"][0].should.equal(
+        route_table["RouteTable"]["RouteTableId"]
+    )
     vpc_end_point["VpcEndpoint"]["VpcId"].should.equal(vpc["Vpc"]["VpcId"])
     vpc_end_point["VpcEndpoint"]["DnsEntries"].should.have.length_of(0)
 
@@ -664,12 +667,14 @@ def test_create_vpc_end_point():
         VpcId=vpc["Vpc"]["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
         SubnetIds=[subnet["Subnet"]["SubnetId"]],
-        VpcEndpointType="interface"
+        VpcEndpointType="interface",
     )
 
-    vpc_end_point["VpcEndpoint"]["ServiceName"].\
-        should.equal("com.amazonaws.us-east-1.s3")
-    vpc_end_point["VpcEndpoint"]["SubnetIds"][0].\
-        should.equal(subnet["Subnet"]["SubnetId"])
+    vpc_end_point["VpcEndpoint"]["ServiceName"].should.equal(
+        "com.amazonaws.us-east-1.s3"
+    )
+    vpc_end_point["VpcEndpoint"]["SubnetIds"][0].should.equal(
+        subnet["Subnet"]["SubnetId"]
+    )
     vpc_end_point["VpcEndpoint"]["VpcId"].should.equal(vpc["Vpc"]["VpcId"])
     len(vpc_end_point["VpcEndpoint"]["DnsEntries"]).should.be.greater_than(0)
