@@ -48,6 +48,7 @@ install_requires = [
     "responses>=0.9.0",
     "idna<3,>=2.5",
     "cfn-lint>=0.4.0",
+    "MarkupSafe<2.0",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
 ]
 
 #
@@ -59,6 +60,13 @@ install_requires = [
 #
 if PY2:
     install_requires += [
+        #
+        # This is an indirect dependency. Version 5.0.0 claims to be for
+        # Py2.6+, but it really isn't.
+        #
+        # https://github.com/jaraco/configparser/issues/51
+        #
+        "configparser<5.0",
         "Jinja2<3.0.0,>=2.10.1",
         "mock<=3.0.5",
         "more-itertools==5.0.0",
