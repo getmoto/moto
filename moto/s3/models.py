@@ -1370,7 +1370,7 @@ class S3Backend(BaseBackend):
             raise MissingKey(key_name)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(
-            key.arn, [{"Key": key, "Value": value} for key, value in tags.items()],
+            key.arn, [{"Key": k, "Value": v} for (k, v) in tags.items()],
         )
         return key
 
