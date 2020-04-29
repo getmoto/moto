@@ -419,11 +419,8 @@ class FakeAutoScalingGroup(BaseModel):
         curr_instance_count = len(self.active_instances())
 
         if self.desired_capacity == curr_instance_count:
-            self.autoscaling_backend.update_attached_elbs(self.name)
-            self.autoscaling_backend.update_attached_target_groups(self.name)
-            return
-
-        if self.desired_capacity > curr_instance_count:
+            pass  # Nothing to do here
+        elif self.desired_capacity > curr_instance_count:
             # Need more instances
             count_needed = int(self.desired_capacity) - int(curr_instance_count)
 
@@ -447,6 +444,7 @@ class FakeAutoScalingGroup(BaseModel):
                 self.instance_states = list(
                     set(self.instance_states) - set(instances_to_remove)
                 )
+        if self.name in self.autoscaling_backend.autoscaling_groups:
             self.autoscaling_backend.update_attached_elbs(self.name)
             self.autoscaling_backend.update_attached_target_groups(self.name)
 
@@ -695,6 +693,7 @@ class AutoScalingBackend(BaseBackend):
                 )
             group.instance_states.extend(new_instances)
             self.update_attached_elbs(group.name)
+            self.update_attached_target_groups(group.name)
 
     def set_instance_health(
         self, instance_id, health_status, should_respect_grace_period
@@ -938,8 +937,7 @@ class AutoScalingBackend(BaseBackend):
                 standby_instances.append(instance_state)
         if should_decrement:
             group.desired_capacity = group.desired_capacity - len(instance_ids)
-        else:
-            group.set_desired_capacity(group.desired_capacity)
+        group.set_desired_capacity(group.desired_capacity)
         return standby_instances, original_size, group.desired_capacity
 
     def exit_standby_instances(self, group_name, instance_ids):
@@ -951,6 +949,7 @@ class AutoScalingBackend(BaseBackend):
                 instance_state.lifecycle_state = "InService"
                 standby_instances.append(instance_state)
         group.desired_capacity = group.desired_capacity + len(instance_ids)
+        group.set_desired_capacity(group.desired_capacity)
         return standby_instances, original_size, group.desired_capacity
 
     def terminate_instance(self, instance_id, should_decrement):
