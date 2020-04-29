@@ -33,15 +33,14 @@ class BaseMockAWS(object):
     nested_count = 0
 
     def __init__(self, backends):
-        from moto.instance_metadata import instance_metadata_backend
-        from moto.core import moto_api_backend
-
         self.backends = backends
 
         self.backends_for_urls = {}
+        from moto.backends import BACKENDS
+
         default_backends = {
-            "instance_metadata": instance_metadata_backend,
-            "moto_api": moto_api_backend,
+            "instance_metadata": BACKENDS["instance_metadata"]["global"],
+            "moto_api": BACKENDS["moto_api"]["global"],
         }
         self.backends_for_urls.update(self.backends)
         self.backends_for_urls.update(default_backends)
@@ -722,12 +721,12 @@ class deprecated_base_decorator(base_decorator):
 
 class MotoAPIBackend(BaseBackend):
     def reset(self):
-        import moto.backends as backends
+        from moto.backends import BACKENDS
 
-        for name, backends_ in backends.named_backends():
+        for name, backends in BACKENDS.items():
             if name == "moto_api":
                 continue
-            for region_name, backend in backends_.items():
+            for region_name, backend in backends.items():
                 backend.reset()
         self.__init__()
 

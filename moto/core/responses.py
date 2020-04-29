@@ -20,6 +20,7 @@ import six
 from six.moves.urllib.parse import parse_qs, urlparse
 
 import xmltodict
+from pkg_resources import resource_filename
 from werkzeug.exceptions import HTTPException
 
 import boto3
@@ -765,9 +766,6 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
-        # Importing pkg_resources takes ~60ms; keep it local
-        from pkg_resources import resource_filename  # noqa
-
         self.path = resource_filename("botocore", path)
         with io.open(self.path, "r", encoding="utf-8") as f:
             spec = json.load(f)
