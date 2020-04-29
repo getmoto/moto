@@ -2901,7 +2901,7 @@ class VPCBackend(object):
         #validates if vpc is present or not.
         self.get_vpc(vpc_id)
 
-        if type == "interface" or "Interface ":
+        if type and type.lower() == "interface":
 
             network_interface_ids = []
             for subnet_id in subnet_ids:
@@ -2920,6 +2920,8 @@ class VPCBackend(object):
                     route_table_id,
                     service_destination_cidr
                 )
+        if dns_entries:
+            dns_entries = [dns_entries]
 
         vpc_end_point = VPCEndPoint(
             vpc_endpoint_id,
@@ -2930,7 +2932,7 @@ class VPCBackend(object):
             route_table_ids,
             subnet_ids,
             network_interface_ids,
-            [dns_entries],
+            dns_entries,
             client_token,
             security_group,
             tag_specifications,
