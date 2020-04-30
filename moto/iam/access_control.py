@@ -25,8 +25,6 @@ from botocore.credentials import Credentials
 from six import string_types
 
 from moto.core import ACCOUNT_ID
-from moto.iam.models import Policy
-from moto.iam import iam_backend
 from moto.core.exceptions import (
     SignatureDoesNotMatchError,
     AccessDeniedError,
@@ -44,6 +42,7 @@ from moto.s3.exceptions import (
     S3SignatureDoesNotMatchError,
 )
 from moto.sts import sts_backend
+from .models import iam_backend, Policy
 
 log = logging.getLogger(__name__)
 
