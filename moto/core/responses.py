@@ -11,7 +11,6 @@ import requests
 
 import pytz
 
-from moto.core.access_control import IAMRequest, S3IAMRequest
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
@@ -134,9 +133,13 @@ class ActionAuthenticatorMixin(object):
             ActionAuthenticatorMixin.request_count += 1
 
     def _authenticate_and_authorize_normal_action(self):
+        from moto.iam.access_control import IAMRequest
+
         self._authenticate_and_authorize_action(IAMRequest)
 
     def _authenticate_and_authorize_s3_action(self):
+        from moto.iam.access_control import S3IAMRequest
+
         self._authenticate_and_authorize_action(S3IAMRequest)
 
     @staticmethod
