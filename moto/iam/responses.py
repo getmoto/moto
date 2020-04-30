@@ -1779,7 +1779,11 @@ GET_ACCESS_KEY_LAST_USED_TEMPLATE = """
     <GetAccessKeyLastUsedResult>
         <UserName>{{ user_name }}</UserName>
         <AccessKeyLastUsed>
-            <LastUsedDate>{{ last_used }}</LastUsedDate>
+        {% if last_used %}
+          <LastUsedDate>{{ last_used }}</LastUsedDate>
+        {% endif %}
+          <ServiceName>N/A</ServiceName>
+          <Region>N/A</Region>
         </AccessKeyLastUsed>
     </GetAccessKeyLastUsedResult>
 </GetAccessKeyLastUsedResponse>
