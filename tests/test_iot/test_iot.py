@@ -757,6 +757,47 @@ def test_delete_principal_thing():
 
 
 @mock_iot
+def test_delete_thing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    group_name_1a = "my-group-name-1a"
+    group_name_2a = "my-group-name-2a"
+    # --1a
+    #    |--2a
+
+    # create thing groups tree
+    # 1
+    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
+    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
+    thing_group1a.should.have.key("thingGroupArn")
+    # 2
+    thing_group2a = client.create_thing_group(
+        thingGroupName=group_name_2a, parentGroupName=group_name_1a
+    )
+    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
+    thing_group2a.should.have.key("thingGroupArn")
+
+    # delete group with child
+    try:
+        client.delete_thing_group(thingGroupName=group_name_1a)
+    except client.exceptions.InvalidRequestException as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("InvalidRequestException")
+    else:
+        raise Exception("Should have raised error")
+
+    # delete child group
+    client.delete_thing_group(thingGroupName=group_name_2a)
+    res = client.list_thing_groups()
+    res.should.have.key("thingGroups").which.should.have.length_of(1)
+    res["thingGroups"].should_not.have.key(group_name_2a)
+
+    # now that there is no child group, we can delete the previus group safely
+    client.delete_thing_group(thingGroupName=group_name_1a)
+    res = client.list_thing_groups()
+    res.should.have.key("thingGroups").which.should.have.length_of(0)
+
+
+@mock_iot
 def test_describe_thing_group_metadata_hierarchy():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group-name-1a"

@@ -163,6 +163,34 @@ class VPCs(BaseResponse):
             cidr_block_state="disassociating",
         )
 
+    def create_vpc_endpoint(self):
+        vpc_id = self._get_param("VpcId")
+        service_name = self._get_param("ServiceName")
+        route_table_ids = self._get_multi_param("RouteTableId")
+        subnet_ids = self._get_multi_param("SubnetId")
+        type = self._get_param("VpcEndpointType")
+        policy_document = self._get_param("PolicyDocument")
+        client_token = self._get_param("ClientToken")
+        tag_specifications = self._get_param("TagSpecifications")
+        private_dns_enabled = self._get_param("PrivateDNSEnabled")
+        security_group = self._get_param("SecurityGroup")
+
+        vpc_end_point = self.ec2_backend.create_vpc_endpoint(
+            vpc_id=vpc_id,
+            service_name=service_name,
+            type=type,
+            policy_document=policy_document,
+            route_table_ids=route_table_ids,
+            subnet_ids=subnet_ids,
+            client_token=client_token,
+            security_group=security_group,
+            tag_specifications=tag_specifications,
+            private_dns_enabled=private_dns_enabled,
+        )
+
+        template = self.response_template(CREATE_VPC_END_POINT)
+        return template.render(vpc_end_point=vpc_end_point)
+
 
 CREATE_VPC_RESPONSE = """
 <CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
@@ -384,3 +412,40 @@ IPV6_DISASSOCIATE_VPC_CIDR_BLOCK_RESPONSE = """
         </ipv6CidrBlockState>
     </ipv6CidrBlockAssociation>
 </DisassociateVpcCidrBlockResponse>"""
+
+CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <vpcEndpoint>
+        <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
+        <state> available </state>
+        <vpcEndpointPolicySupported> false </vpcEndpointPolicySupported>
+        <serviceName>{{ vpc_end_point.service_name }}</serviceName>
+        <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
+        <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
+        <routeTableIdSet>
+            {% for routeid in vpc_end_point.route_table_ids %}
+                <item>{{ routeid }}</item>
+            {% endfor %}
+        </routeTableIdSet>
+        <networkInterfaceIdSet>
+            {% for network_interface_id in vpc_end_point.network_interface_ids %}
+                <item>{{ network_interface_id }}</item>
+            {% endfor %}
+        </networkInterfaceIdSet>
+        <subnetIdSet>
+            {% for subnetId in vpc_end_point.subnet_ids %}
+                <item>{{ subnetId }}</item>
+            {% endfor %}
+        </subnetIdSet>
+        <dnsEntrySet>
+        {% if vpc_end_point.dns_entries  %}
+            {% for entry in vpc_end_point.dns_entries %}
+            <item>
+                <hostedZoneId>{{ entry["hosted_zone_id"] }}</hostedZoneId>
+                <dnsName>{{ entry["dns_name"] }}</dnsName>
+            </item>
+            {% endfor %}
+        {% endif %}
+        </dnsEntrySet>
+        <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
+    </vpcEndpoint>
+</CreateVpcEndpointResponse>"""

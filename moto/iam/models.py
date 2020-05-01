@@ -464,7 +464,7 @@ class AccessKey(BaseModel):
         self.secret_access_key = random_alphanumeric(40)
         self.status = "Active"
         self.create_date = datetime.utcnow()
-        self.last_used = datetime.utcnow()
+        self.last_used = None
 
     @property
     def created_iso_8601(self):
@@ -676,20 +676,50 @@ class User(BaseModel):
         if len(self.access_keys) == 0:
             access_key_1_active = "false"
             access_key_1_last_rotated = "N/A"
+            access_key_1_last_used = "N/A"
             access_key_2_active = "false"
             access_key_2_last_rotated = "N/A"
+            access_key_2_last_used = "N/A"
         elif len(self.access_keys) == 1:
-            access_key_1_active = "true"
-            access_key_1_last_rotated = date_created.strftime(date_format)
+            access_key_1_active = (
+                "true" if self.access_keys[0].status == "Active" else "false"
+            )
+            access_key_1_last_rotated = self.access_keys[0].create_date.strftime(
+                date_format
+            )
+            access_key_1_last_used = (
+                "N/A"
+                if self.access_keys[0].last_used is None
+                else self.access_keys[0].last_used.strftime(date_format)
+            )
             access_key_2_active = "false"
             access_key_2_last_rotated = "N/A"
+            access_key_2_last_used = "N/A"
         else:
-            access_key_1_active = "true"
-            access_key_1_last_rotated = date_created.strftime(date_format)
-            access_key_2_active = "true"
-            access_key_2_last_rotated = date_created.strftime(date_format)
+            access_key_1_active = (
+                "true" if self.access_keys[0].status == "Active" else "false"
+            )
+            access_key_1_last_rotated = self.access_keys[0].create_date.strftime(
+                date_format
+            )
+            access_key_1_last_used = (
+                "N/A"
+                if self.access_keys[0].last_used is None
+                else self.access_keys[0].last_used.strftime(date_format)
+            )
+            access_key_2_active = (
+                "true" if self.access_keys[1].status == "Active" else "false"
+            )
+            access_key_2_last_rotated = self.access_keys[1].create_date.strftime(
+                date_format
+            )
+            access_key_2_last_used = (
+                "N/A"
+                if self.access_keys[1].last_used is None
+                else self.access_keys[1].last_used.strftime(date_format)
+            )
 
-        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},{9},false,N/A,false,N/A".format(
+        return "{0},{1},{2},{3},{4},{5},not_supported,false,{6},{7},{8},not_supported,not_supported,{9},{10},{11},not_supported,not_supported,false,N/A,false,N/A\n".format(
             self.name,
             self.arn,
             date_created.strftime(date_format),
@@ -698,8 +728,10 @@ class User(BaseModel):
             date_created.strftime(date_format),
             access_key_1_active,
             access_key_1_last_rotated,
+            access_key_1_last_used,
             access_key_2_active,
             access_key_2_last_rotated,
+            access_key_2_last_used,
         )
 
 
@@ -1799,7 +1831,7 @@ class IAMBackend(BaseBackend):
     def get_credential_report(self):
         if not self.credential_report:
             raise IAMReportNotPresentException("Credential report not present")
-        report = "user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_2_active,access_key_2_last_rotated,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n"
+        report = "user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_1_last_used_date,access_key_1_last_used_region,access_key_1_last_used_service,access_key_2_active,access_key_2_last_rotated,access_key_2_last_used_date,access_key_2_last_used_region,access_key_2_last_used_service,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n"
         for user in self.users:
             report += self.users[user].to_csv()
         return base64.b64encode(report.encode("ascii")).decode("ascii")
