@@ -285,6 +285,9 @@ class SQSResponse(BaseResponse):
                     "MessageAttributes": message_attributes,
                 }
 
+        if entries == {}:
+            raise EmptyBatchRequest()
+
         messages = self.sqs_backend.send_message_batch(queue_name, entries)
 
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)

@@ -1148,6 +1148,21 @@ def test_send_message_batch_errors():
 
 
 @mock_sqs
+def test_send_message_batch_with_empty_list():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    response = client.create_queue(QueueName="test-queue")
+    queue_url = response["QueueUrl"]
+
+    client.send_message_batch.when.called_with(
+        QueueUrl=queue_url, Entries=[]
+    ).should.throw(
+        ClientError,
+        "There should be at least one SendMessageBatchRequestEntry in the request.",
+    )
+
+
+@mock_sqs
 def test_batch_change_message_visibility():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
         raise SkipTest("Cant manipulate time in server mode")
