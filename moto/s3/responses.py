@@ -137,8 +137,13 @@ def parse_key_name(pth):
 
 
 def is_delete_keys(request, path, bucket_name):
-    return path == "/?delete" or (
-        path == "/" and getattr(request, "query_string", "") == "delete"
+    # GOlang sends a request as url/?delete= (treating it as a normal key=value, even if the value is empty)
+    # Python sends a request as url/?delete (treating it as a flag)
+    # https://github.com/spulec/moto/issues/2937
+    return (
+        path == "/?delete"
+        or path == "/?delete="
+        or (path == "/" and getattr(request, "query_string", "") == "delete")
     )
 
 
