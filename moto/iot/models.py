@@ -849,7 +849,9 @@ class IoTBackend(BaseBackend):
         ]
         if len(child_groups) > 0:
             raise InvalidRequestException(
-                f" Cannot delete thing group : {thing_group_name} when there are still child groups attached to it"
+                " Cannot delete thing group : "
+                + thing_group_name
+                + " when there are still child groups attached to it"
             )
         thing_group = self.describe_thing_group(thing_group_name)
         del self.thing_groups[thing_group.arn]
