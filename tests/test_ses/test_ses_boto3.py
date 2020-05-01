@@ -4,6 +4,8 @@ import boto3
 from botocore.exceptions import ClientError
 from six.moves.email_mime_multipart import MIMEMultipart
 from six.moves.email_mime_text import MIMEText
+from nose.tools import assert_raises
+
 
 import sure  # noqa
 
@@ -227,3 +229,53 @@ def test_send_email_notification_with_encoded_sender():
         Message={"Subject": {"Data": "hi",}, "Body": {"Text": {"Data": "there",}}},
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+@mock_ses
+def test_create_configuration_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
+
+    conn.create_configuration_set_event_destination(
+            ConfigurationSetName='test',
+            EventDestination={
+                'Name': 'snsEvent',
+                'Enabled': True,
+                'MatchingEventTypes': [
+                    'send',
+                ],
+                'SNSDestination': {
+                    'TopicARN': 'arn:aws:sns:us-east-1:123456789012:myTopic'
+                }
+            })
+
+    with assert_raises(ClientError) as ex:
+        conn.create_configuration_set_event_destination(
+            ConfigurationSetName='failtest',
+            EventDestination={
+                'Name': 'snsEvent',
+                'Enabled': True,
+                'MatchingEventTypes': [
+                    'send',
+                ],
+                'SNSDestination': {
+                    'TopicARN': 'arn:aws:sns:us-east-1:123456789012:myTopic'
+                }
+            })
+
+    ex.exception.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+
+    with assert_raises(ClientError) as ex:
+        conn.create_configuration_set_event_destination(
+            ConfigurationSetName='test',
+            EventDestination={
+                'Name': 'snsEvent',
+                'Enabled': True,
+                'MatchingEventTypes': [
+                    'send',
+                ],
+                'SNSDestination': {
+                    'TopicARN': 'arn:aws:sns:us-east-1:123456789012:myTopic'
+                }
+            })
+
+    ex.exception.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
