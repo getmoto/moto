@@ -3765,7 +3765,7 @@ def test_paths_with_leading_slashes_work():
 
 @mock_s3
 def test_root_dir_with_empty_name_works():
-    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
+    if settings.TEST_SERVER_MODE:
         raise SkipTest("Does not work in server mode due to error in Workzeug")
     store_and_read_back_a_key("/")
 
