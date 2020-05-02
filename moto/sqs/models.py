@@ -230,7 +230,7 @@ class Queue(BaseModel):
             "FifoQueue": "false",
             "KmsDataKeyReusePeriodSeconds": 300,  # five minutes
             "KmsMasterKeyId": None,
-            "MaximumMessageSize": int(64 << 10),
+            "MaximumMessageSize": int(64 << 12),
             "MessageRetentionPeriod": 86400 * 4,  # four days
             "Policy": None,
             "ReceiveMessageWaitTimeSeconds": 0,

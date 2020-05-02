@@ -384,7 +384,7 @@ def test_get_queue_attributes():
     response["Attributes"]["CreatedTimestamp"].should.be.a(six.string_types)
     response["Attributes"]["DelaySeconds"].should.equal("0")
     response["Attributes"]["LastModifiedTimestamp"].should.be.a(six.string_types)
-    response["Attributes"]["MaximumMessageSize"].should.equal("65536")
+    response["Attributes"]["MaximumMessageSize"].should.equal("262144")
     response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
     response["Attributes"]["QueueArn"].should.equal(
         "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID)
@@ -406,7 +406,7 @@ def test_get_queue_attributes():
     response["Attributes"].should.equal(
         {
             "ApproximateNumberOfMessages": "0",
-            "MaximumMessageSize": "65536",
+            "MaximumMessageSize": "262144",
             "QueueArn": "arn:aws:sqs:us-east-1:{}:test-queue".format(ACCOUNT_ID),
             "VisibilityTimeout": "30",
             "RedrivePolicy": json.dumps(
