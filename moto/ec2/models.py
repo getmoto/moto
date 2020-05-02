@@ -560,8 +560,10 @@ class Instance(TaggedEC2Resource, BotoInstance):
             # worst case we'll get IP address exaustion... rarely
             pass
 
-    def add_block_device(self, size, device_path):
-        volume = self.ec2_backend.create_volume(size, self.region_name)
+    def add_block_device(self, size, device_path, snapshot_id=None, encrypted=False):
+        volume = self.ec2_backend.create_volume(
+            size, self.region_name, snapshot_id, encrypted
+        )
         self.ec2_backend.attach_volume(volume.id, self.id, device_path)
 
     def setup_defaults(self):
@@ -891,8 +893,24 @@ class InstanceBackend(object):
             new_instance.add_tags(instance_tags)
             if "block_device_mappings" in kwargs:
                 for block_device in kwargs["block_device_mappings"]:
+                    device_name = block_device["DeviceName"]
+                    volume_size = (
+                        block_device["Ebs"].get("VolumeSize")
+                        if "Ebs" in block_device
+                        else None
+                    )
+                    snapshot_id = (
+                        block_device["Ebs"].get("SnapshotId")
+                        if "Ebs" in block_device
+                        else None
+                    )
+                    encrypted = (
+                        block_device["Ebs"].get("Encrypted")
+                        if "Ebs" in block_device
+                        else False
+                    )
                     new_instance.add_block_device(
-                        block_device["Ebs"]["VolumeSize"], block_device["DeviceName"]
+                        volume_size, device_name, snapshot_id, encrypted
                     )
             else:
                 new_instance.setup_defaults()
