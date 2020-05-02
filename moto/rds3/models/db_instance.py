@@ -6,7 +6,7 @@ from re import compile as re_compile
 
 from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.compat import OrderedDict
-from moto.core.utils import get_random_hex
+from moto.core.utils import get_random_hex, iso_8601_datetime_with_milliseconds
 from ..exceptions import (
     DBInstanceAlreadyExists,
     DBInstanceNotFound,
@@ -223,6 +223,15 @@ class DBInstance(TaggableRDSResource, EventMixin, BaseRDSModel):
     def address(self):
         return "{0}.aaaaaaaaaa.{1}.rds.amazonaws.com".format(self.resource_id, self.backend.region)
 
+    # Commenting this out for now because it breaks the stupid GraphQL snapshottests in the RDS Broker...
+    # @property
+    # def instance_create_time(self):
+    #     return self.created
+    #
+    # @property
+    # def latest_restorable_time(self):
+    #     return iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+
     def update(self, db_kwargs):
         # TODO: This is all horrible.  Must fix.
         if 'max_allocated_storage' in db_kwargs:
@@ -372,6 +381,21 @@ class DBInstanceBackend(BaseRDSBackend):
         db_args = self._validate_create_instance_args(db_args)
         db_instance = DBInstance(identifier=db_instance_identifier, **db_args)
         self.db_instances[db_instance_identifier] = db_instance
+        return db_instance
+
+    def restore_db_instance_to_point_in_time(self, source_db_instance_identifier, target_db_instance_identifier, **kwargs):
+        source = self.get_db_instance(source_db_instance_identifier)
+        db_args = dict(**source.__dict__)
+        # AWS restores the database with most of the original configuration,
+        # but with the default security/parameter group.
+        attrs_to_remove = ['vpc_security_group_ids', 'db_security_groups', 'db_parameter_group_name']
+        for attr in attrs_to_remove:
+            db_args.pop(attr, None)
+        # Use our backend and update with any user-provided parameters.
+        db_args.update(backend=self, **kwargs)
+        db_args = self._validate_create_instance_args(db_args)
+        db_instance = DBInstance(identifier=target_db_instance_identifier, **db_args)
+        self.db_instances[target_db_instance_identifier] = db_instance
         return db_instance
 
     def create_db_instance_read_replica(self, db_instance_identifier, source_db_instance_identifier,

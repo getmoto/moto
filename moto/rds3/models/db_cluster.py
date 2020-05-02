@@ -29,6 +29,7 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
                  availability_zones,
                  backup_retention_period=1,
                  character_set_name=None,
+                 copy_tags_to_snapshot=False,
                  database_name=None,
                  db_cluster_parameter_group_name=None,
                  db_subnet_group=None,
@@ -43,6 +44,7 @@ class DBCluster(TaggableRDSResource, EventMixin, BaseRDSModel):
         self.availability_zones = availability_zones
         self.backup_retention_period = backup_retention_period
         self.character_set_name = character_set_name
+        self.copy_tags_to_snapshot = copy_tags_to_snapshot
         self.database_name = database_name
         self.db_cluster_identifier = identifier
         self.db_cluster_parameter_group_name = db_cluster_parameter_group_name
@@ -212,6 +214,19 @@ class DBClusterBackend(BaseRDSBackend):
         # TODO: Snapshot can be name or arn for cluster snapshot or arn for db_instance snapshot.
         snapshot = self.get_db_cluster_snapshot(snapshot_identifier)
         cluster_args = dict(**snapshot.cluster.__dict__)
+        # AWS restores the cluster with most of the original configuration,
+        # but with the default security group.
+        cluster_args.pop('vpc_security_group_ids', None)
+        # Use our backend and update with any user-provided parameters.
+        cluster_args.update(backend=self, **kwargs)
+        cluster_args = self._validate_create_cluster_args(cluster_args)
+        cluster = DBCluster(identifier=db_cluster_identifier, **cluster_args)
+        self.db_clusters[db_cluster_identifier] = cluster
+        return cluster
+
+    def restore_db_cluster_to_point_in_time(self, db_cluster_identifier, source_db_cluster_identifier, **kwargs):
+        source = self.get_db_cluster(source_db_cluster_identifier)
+        cluster_args = dict(**source.__dict__)
         # AWS restores the cluster with most of the original configuration,
         # but with the default security group.
         cluster_args.pop('vpc_security_group_ids', None)

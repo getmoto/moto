@@ -1,11 +1,15 @@
 from __future__ import unicode_literals
 
+import datetime
+import time
 import uuid
+
 import boto3
+import pytz
 from botocore.exceptions import ClientError
+from sure import this
 
 from . import mock_rds
-from sure import this
 
 
 def create_db_instance(client, **kwargs):
@@ -119,6 +123,19 @@ def test_max_allocated_storage():
         DBInstanceIdentifier=identifier,
         MaxAllocatedStorage=0
     ).should.throw(ClientError, 'Max storage size must be greater than storage size')
+
+
+@mock_rds
+def test_restore_db_instance_to_point_in_time():
+    client = boto3.client('rds', region_name='us-west-2')
+    source_identifier, details_source = create_db_instance(client, CopyTagsToSnapshot=True)
+    details_target = client.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier=source_identifier,
+        TargetDBInstanceIdentifier='pit-id',
+        RestoreTime=datetime.datetime.fromtimestamp(time.time() - 600, pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    )['DBInstance']
+    details_target['CopyTagsToSnapshot'].should.equal(details_source['CopyTagsToSnapshot'])
+    details_target['DBInstanceClass'].should.equal(details_source['DBInstanceClass'])
 
 # @mock_rds
 # def test_invalid_parameter():

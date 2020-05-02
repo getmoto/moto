@@ -410,3 +410,24 @@ def test_modify_db_cluster_updates_cluster_instances():
         )['DBInstances'][0]
         for attr, value in cluster_only_attributes['modify'].items():
             instance[attr].should.equal(value)
+
+
+@mock_rds
+def test_restore_db_instance_to_point_in_time():
+    client = boto3.client('rds', region_name='us-west-2')
+    details_source = client.create_db_cluster(
+        DBClusterIdentifier='cluster-1',
+        DatabaseName='db_name',
+        Engine='aurora-postgresql',
+        MasterUsername='root',
+        MasterUserPassword='password',
+        Port=1234,
+        CopyTagsToSnapshot=True,
+    ).get('DBCluster')
+    details_target = client.restore_db_cluster_to_point_in_time(
+        SourceDBClusterIdentifier='cluster-1',
+        DBClusterIdentifier='pit-id',
+        UseLatestRestorableTime=True,
+    )['DBCluster']
+    details_target['CopyTagsToSnapshot'].should.equal(details_source['CopyTagsToSnapshot'])
+    details_target['Port'].should.equal(details_source['Port'])
