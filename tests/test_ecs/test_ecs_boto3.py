@@ -2604,3 +2604,36 @@ def test_ecs_service_untag_resource_multiple_tags():
         resourceArn=response["service"]["serviceArn"]
     )
     response["tags"].should.equal([{"key": "hello", "value": "world"}])
+
+
+@mock_ecs
+def test_ecs_task_definition_placement_constraints():
+    client = boto3.client("ecs", region_name="us-east-1")
+    response = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+        networkMode="bridge",
+        tags=[
+            {"key": "createdBy", "value": "moto-unittest"},
+            {"key": "foo", "value": "bar"},
+        ],
+        placementConstraints=[
+            {"type": "memberOf", "expression": "attribute:ecs.instance-type =~ t2.*"}
+        ],
+    )
+    type(response["taskDefinition"]["placementConstraints"]).should.be(list)
+    response["taskDefinition"]["placementConstraints"].should.equal(
+        [{"type": "memberOf", "expression": "attribute:ecs.instance-type =~ t2.*"}]
+    )

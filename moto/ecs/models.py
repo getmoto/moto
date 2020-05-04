@@ -121,6 +121,7 @@ class TaskDefinition(BaseObject):
         network_mode=None,
         volumes=None,
         tags=None,
+        placement_constraints=None,
     ):
         self.family = family
         self.revision = revision
@@ -137,6 +138,9 @@ class TaskDefinition(BaseObject):
             self.network_mode = "bridge"
         else:
             self.network_mode = network_mode
+        self.placement_constraints = (
+            placement_constraints if placement_constraints is not None else []
+        )
 
     @property
     def response_object(self):
@@ -558,7 +562,13 @@ class EC2ContainerServiceBackend(BaseBackend):
             raise Exception("{0} is not a cluster".format(cluster_name))
 
     def register_task_definition(
-        self, family, container_definitions, volumes=None, network_mode=None, tags=None
+        self,
+        family,
+        container_definitions,
+        volumes=None,
+        network_mode=None,
+        tags=None,
+        placement_constraints=None,
     ):
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -574,6 +584,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             volumes=volumes,
             network_mode=network_mode,
             tags=tags,
+            placement_constraints=placement_constraints,
         )
         self.task_definitions[family][revision] = task_definition
 
