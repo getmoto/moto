@@ -1230,6 +1230,7 @@ def test_put_integration_response_requires_responseTemplate():
         responseTemplates={},
     )
 
+
 @mock_apigateway
 def test_put_integration_response_with_response_template():
     client = boto3.client("apigateway", region_name="us-west-2")
@@ -1268,9 +1269,9 @@ def test_put_integration_response_with_response_template():
         resourceId=root_id,
         httpMethod="GET",
         statusCode="200",
-        selectionPattern= "foobar",
-        responseTemplates={"application/json": json.dumps({"data":"test"})})
-
+        selectionPattern="foobar",
+        responseTemplates={"application/json": json.dumps({"data": "test"})},
+    )
 
     response = client.get_integration_response(
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
@@ -1284,9 +1285,10 @@ def test_put_integration_response_with_response_template():
             "statusCode": "200",
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
-            "responseTemplates": {"application/json": json.dumps({"data":"test"})},
+            "responseTemplates": {"application/json": json.dumps({"data": "test"})},
         }
     )
+
 
 @mock_apigateway
 def test_put_integration_validation():

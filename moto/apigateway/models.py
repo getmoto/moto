@@ -57,7 +57,7 @@ class Deployment(BaseModel, dict):
 
 class IntegrationResponse(BaseModel, dict):
     def __init__(self, status_code, selection_pattern=None, response_templates=None):
-        if response_templates == None:
+        if response_templates is None:
             response_templates = {"application/json": None}
         self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
@@ -74,10 +74,14 @@ class Integration(BaseModel, dict):
         self["requestTemplates"] = request_templates
         self["integrationResponses"] = {"200": IntegrationResponse(200)}
 
-    def create_integration_response(self, status_code, selection_pattern, response_templates):
+    def create_integration_response(
+        self, status_code, selection_pattern, response_templates
+    ):
         if response_templates == {}:
             response_templates = None
-        integration_response = IntegrationResponse(status_code, selection_pattern, response_templates)
+        integration_response = IntegrationResponse(
+            status_code, selection_pattern, response_templates
+        )
         self["integrationResponses"][status_code] = integration_response
         return integration_response
 
