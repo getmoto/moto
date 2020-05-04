@@ -127,3 +127,45 @@ def test_send_raw_email():
         send_quota["GetSendQuotaResponse"]["GetSendQuotaResult"]["SentLast24Hours"]
     )
     sent_count.should.equal(1)
+
+
+@mock_ses_deprecated
+def test_get_send_statistics():
+    conn = boto.connect_ses("the_key", "the_secret")
+
+    conn.send_email.when.called_with(
+        "test@example.com",
+        "test subject",
+        "<span>test body</span>",
+        "test_to@example.com",
+        format="html",
+    ).should.throw(BotoServerError)
+
+    # tests to verify rejects in get_send_statistics
+    result = conn.get_send_statistics()
+
+    reject_count = int(
+        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["Rejects"]
+    )
+    delivery_count = int(
+        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["DeliveryAttempts"]
+    )
+    reject_count.should.equal(1)
+    delivery_count.should.equal(0)
+
+    conn.verify_email_identity("test@example.com")
+    conn.send_email(
+        "test@example.com", "test subject", "test body", "test_to@example.com"
+    )
+
+    # tests to delivery attempts in get_send_statistics
+    result = conn.get_send_statistics()
+
+    reject_count = int(
+        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["Rejects"]
+    )
+    delivery_count = int(
+        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["DeliveryAttempts"]
+    )
+    reject_count.should.equal(1)
+    delivery_count.should.equal(1)

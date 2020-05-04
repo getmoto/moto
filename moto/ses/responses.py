@@ -133,6 +133,48 @@ class EmailResponse(BaseResponse):
         template = self.response_template(SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE)
         return template.render()
 
+    def get_send_statistics(self):
+        statistics = ses_backend.get_send_statistics()
+        template = self.response_template(GET_SEND_STATISTICS)
+        return template.render(all_statistics=[statistics])
+
+    def create_configuration_set(self):
+        configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]
+        ses_backend.create_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
+        template = self.response_template(CREATE_CONFIGURATION_SET)
+        return template.render()
+
+    def create_configuration_set_event_destination(self):
+
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        is_configuration_event_enabled = self.querystring.get(
+            "EventDestination.Enabled"
+        )[0]
+        configuration_event_name = self.querystring.get("EventDestination.Name")[0]
+        event_topic_arn = self.querystring.get(
+            "EventDestination.SNSDestination.TopicARN"
+        )[0]
+        event_matching_types = self._get_multi_param(
+            "EventDestination.MatchingEventTypes.member"
+        )
+
+        event_destination = {
+            "Name": configuration_event_name,
+            "Enabled": is_configuration_event_enabled,
+            "EventMatchingTypes": event_matching_types,
+            "SNSDestination": event_topic_arn,
+        }
+
+        ses_backend.create_configuration_set_event_destination(
+            configuration_set_name=configuration_set_name,
+            event_destination=event_destination,
+        )
+
+        template = self.response_template(CREATE_CONFIGURATION_SET_EVENT_DESTINATION)
+        return template.render()
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -248,3 +290,35 @@ SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE = """<SetIdentityNotificationTopicRespo
     <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </SetIdentityNotificationTopicResponse>"""
+
+GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <SendDataPoints>
+    {% for statistics in all_statistics %}
+        <item>
+            <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
+            <Rejects>{{ statistics["Rejects"] }}</Rejects>
+            <Bounces>{{ statistics["Bounces"] }}</Bounces>
+            <Complaints>{{ statistics["Complaints"] }}</Complaints>
+            <Timestamp>{{ statistics["Timestamp"] }}</Timestamp>
+        </item>
+    {% endfor %}
+  </SendDataPoints>
+  <ResponseMetadata>
+    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
+  </ResponseMetadata>
+</GetSendStatisticsResponse>"""
+
+CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <CreateConfigurationSetResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</CreateConfigurationSetResponse>"""
+
+
+CREATE_CONFIGURATION_SET_EVENT_DESTINATION = """<CreateConfigurationSetEventDestinationResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <CreateConfigurationSetEventDestinationResult/>
+  <ResponseMetadata>
+    <RequestId>67e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</CreateConfigurationSetEventDestinationResponse>"""
