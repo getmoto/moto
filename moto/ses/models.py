@@ -6,7 +6,11 @@ from email.utils import parseaddr
 
 from moto.core import BaseBackend, BaseModel
 from moto.sns.models import sns_backends
-from .exceptions import MessageRejectedError,ConfigurationSetDoesNotExist,EventDestinationAlreadyExists
+from .exceptions import (
+    MessageRejectedError,
+    ConfigurationSetDoesNotExist,
+    EventDestinationAlreadyExists,
+)
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
@@ -123,7 +127,7 @@ class SESBackend(BaseBackend):
         if recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many recipients.")
         if not self._is_verified_address(source):
-            self.rejected_messages_count+=1
+            self.rejected_messages_count += 1
             raise MessageRejectedError("Email address not verified %s" % source)
 
         self.__process_sns_feedback__(source, destinations, region)
@@ -248,7 +252,9 @@ class SESBackend(BaseBackend):
         self.config_set[configuration_set_name] = 1
         return {}
 
-    def create_configuration_set_event_destination(self,configuration_set_name, event_destination):
+    def create_configuration_set_event_destination(
+        self, configuration_set_name, event_destination
+    ):
 
         if self.config_set.get(configuration_set_name) is None:
             raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")

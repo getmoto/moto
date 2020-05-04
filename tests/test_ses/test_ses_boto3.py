@@ -230,52 +230,50 @@ def test_send_email_notification_with_encoded_sender():
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
+
 @mock_ses
 def test_create_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
 
     conn.create_configuration_set_event_destination(
-            ConfigurationSetName='test',
-            EventDestination={
-                'Name': 'snsEvent',
-                'Enabled': True,
-                'MatchingEventTypes': [
-                    'send',
-                ],
-                'SNSDestination': {
-                    'TopicARN': 'arn:aws:sns:us-east-1:123456789012:myTopic'
-                }
-            })
+        ConfigurationSetName="test",
+        EventDestination={
+            "Name": "snsEvent",
+            "Enabled": True,
+            "MatchingEventTypes": ["send",],
+            "SNSDestination": {
+                "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+            },
+        },
+    )
 
     with assert_raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
-            ConfigurationSetName='failtest',
+            ConfigurationSetName="failtest",
             EventDestination={
-                'Name': 'snsEvent',
-                'Enabled': True,
-                'MatchingEventTypes': [
-                    'send',
-                ],
-                'SNSDestination': {
-                    'TopicARN': 'arn:aws:sns:us-east-1:123456789012:myTopic'
-                }
-            })
+                "Name": "snsEvent",
+                "Enabled": True,
+                "MatchingEventTypes": ["send",],
+                "SNSDestination": {
+                    "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+                },
+            },
+        )
 
     ex.exception.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
 
     with assert_raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
-            ConfigurationSetName='test',
+            ConfigurationSetName="test",
             EventDestination={
-                'Name': 'snsEvent',
-                'Enabled': True,
-                'MatchingEventTypes': [
-                    'send',
-                ],
-                'SNSDestination': {
-                    'TopicARN': 'arn:aws:sns:us-east-1:123456789012:myTopic'
-                }
-            })
+                "Name": "snsEvent",
+                "Enabled": True,
+                "MatchingEventTypes": ["send",],
+                "SNSDestination": {
+                    "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+                },
+            },
+        )
 
     ex.exception.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")

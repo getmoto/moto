@@ -140,32 +140,40 @@ class EmailResponse(BaseResponse):
 
     def create_configuration_set(self):
         configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]
-        ses_backend.create_configuration_set(configuration_set_name=configuration_set_name)
+        ses_backend.create_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
         template = self.response_template(CREATE_CONFIGURATION_SET)
         return template.render()
 
     def create_configuration_set_event_destination(self):
 
-        configuration_set_name = self._get_param('ConfigurationSetName')
-        is_configuration_event_enabled = self.querystring.get("EventDestination.Enabled")[0]
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        is_configuration_event_enabled = self.querystring.get(
+            "EventDestination.Enabled"
+        )[0]
         configuration_event_name = self.querystring.get("EventDestination.Name")[0]
-        event_topic_arn = self.querystring.get("EventDestination.SNSDestination.TopicARN")[0]
-        event_matching_types = self._get_multi_param("EventDestination.MatchingEventTypes.member")
+        event_topic_arn = self.querystring.get(
+            "EventDestination.SNSDestination.TopicARN"
+        )[0]
+        event_matching_types = self._get_multi_param(
+            "EventDestination.MatchingEventTypes.member"
+        )
 
-        event_destination = {"Name":configuration_event_name,
-                             "Enabled":is_configuration_event_enabled,
-                             "EventMatchingTypes":event_matching_types,
-                             "SNSDestination":event_topic_arn
-                             }
+        event_destination = {
+            "Name": configuration_event_name,
+            "Enabled": is_configuration_event_enabled,
+            "EventMatchingTypes": event_matching_types,
+            "SNSDestination": event_topic_arn,
+        }
 
         ses_backend.create_configuration_set_event_destination(
-                            configuration_set_name=configuration_set_name,
-                            event_destination=event_destination
-                            )
+            configuration_set_name=configuration_set_name,
+            event_destination=event_destination,
+        )
 
         template = self.response_template(CREATE_CONFIGURATION_SET_EVENT_DESTINATION)
         return template.render()
-
 
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
