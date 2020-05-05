@@ -757,6 +757,140 @@ def test_delete_principal_thing():
 
 
 @mock_iot
+def test_list_thing_groups():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    group_name_1a = "my-group-name-1a"
+    group_name_1b = "my-group-name-1b"
+    group_name_2a = "my-group-name-2a"
+    group_name_2b = "my-group-name-2b"
+    group_name_3a = "my-group-name-3a"
+    group_name_3b = "my-group-name-3b"
+    group_name_3c = "my-group-name-3c"
+    group_name_3d = "my-group-name-3d"
+
+    # --1a
+    #    |--2a
+    #    |   |--3a
+    #    |   |--3b
+    #    |
+    #    |--2b
+    #        |--3c
+    #        |--3d
+    # --1b
+
+    # create thing groups tree
+    # 1
+    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
+    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
+    thing_group1a.should.have.key("thingGroupArn")
+    thing_group1b = client.create_thing_group(thingGroupName=group_name_1b)
+    thing_group1b.should.have.key("thingGroupName").which.should.equal(group_name_1b)
+    thing_group1b.should.have.key("thingGroupArn")
+    # 2
+    thing_group2a = client.create_thing_group(
+        thingGroupName=group_name_2a, parentGroupName=group_name_1a
+    )
+    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
+    thing_group2a.should.have.key("thingGroupArn")
+    thing_group2b = client.create_thing_group(
+        thingGroupName=group_name_2b, parentGroupName=group_name_1a
+    )
+    thing_group2b.should.have.key("thingGroupName").which.should.equal(group_name_2b)
+    thing_group2b.should.have.key("thingGroupArn")
+    # 3
+    thing_group3a = client.create_thing_group(
+        thingGroupName=group_name_3a, parentGroupName=group_name_2a
+    )
+    thing_group3a.should.have.key("thingGroupName").which.should.equal(group_name_3a)
+    thing_group3a.should.have.key("thingGroupArn")
+    thing_group3b = client.create_thing_group(
+        thingGroupName=group_name_3b, parentGroupName=group_name_2a
+    )
+    thing_group3b.should.have.key("thingGroupName").which.should.equal(group_name_3b)
+    thing_group3b.should.have.key("thingGroupArn")
+    thing_group3c = client.create_thing_group(
+        thingGroupName=group_name_3c, parentGroupName=group_name_2b
+    )
+    thing_group3c.should.have.key("thingGroupName").which.should.equal(group_name_3c)
+    thing_group3c.should.have.key("thingGroupArn")
+    thing_group3d = client.create_thing_group(
+        thingGroupName=group_name_3d, parentGroupName=group_name_2b
+    )
+    thing_group3d.should.have.key("thingGroupName").which.should.equal(group_name_3d)
+    thing_group3d.should.have.key("thingGroupArn")
+
+    # begin tests
+    # should list all groups
+    resp = client.list_thing_groups()
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(8)
+    # should list all groups non-recursively
+    resp = client.list_thing_groups(recursive=False)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+
+    # should list all groups filtered by parent
+    resp = client.list_thing_groups(parentGroup=group_name_1a)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(6)
+    resp = client.list_thing_groups(parentGroup=group_name_2a)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+    resp = client.list_thing_groups(parentGroup=group_name_1b)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(0)
+    try:
+        client.list_thing_groups(parentGroup="inexistant-group-name")
+    except client.exceptions.ResourceNotFoundException as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("ResourceNotFoundException")
+    else:
+        raise Exception("Should have raised error")
+    # should list all groups filtered by parent non-recursively
+    resp = client.list_thing_groups(parentGroup=group_name_1a, recursive=False)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+    resp = client.list_thing_groups(parentGroup=group_name_2a, recursive=False)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+
+    # should list all groups filtered by name prefix
+    resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+    resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(4)
+    resp = client.list_thing_groups(namePrefixFilter="prefix-which-doesn-not-match")
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(0)
+    # should list all groups filtered by name prefix non-recursively
+    resp = client.list_thing_groups(namePrefixFilter="my-group-name-1", recursive=False)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+    resp = client.list_thing_groups(namePrefixFilter="my-group-name-3", recursive=False)
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(0)
+
+    # should list all groups filtered by name prefix and parent
+    resp = client.list_thing_groups(
+        namePrefixFilter="my-group-name-2", parentGroup=group_name_1a
+    )
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(2)
+    resp = client.list_thing_groups(
+        namePrefixFilter="my-group-name-3", parentGroup=group_name_1a
+    )
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(4)
+    resp = client.list_thing_groups(
+        namePrefixFilter="prefix-which-doesn-not-match", parentGroup=group_name_1a
+    )
+    resp.should.have.key("thingGroups")
+    resp["thingGroups"].should.have.length_of(0)
+
+
+@mock_iot
 def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group-name-1a"
