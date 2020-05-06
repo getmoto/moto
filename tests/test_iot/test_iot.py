@@ -814,7 +814,6 @@ class TestListThingGroup:
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(8)
 
-
     @mock_iot
     def test_should_list_all_groups_non_recursively(self):
         # setup
@@ -824,7 +823,6 @@ class TestListThingGroup:
         resp = client.list_thing_groups(recursive=False)
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(2)
-
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_parent(self):
@@ -843,7 +841,9 @@ class TestListThingGroup:
         resp["thingGroups"].should.have.length_of(0)
         with assert_raises(ClientError) as e:
             client.list_thing_groups(parentGroup="inexistant-group-name")
-            e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+            e.exception.response["Error"]["Code"].should.equal(
+                "ResourceNotFoundException"
+            )
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
@@ -857,7 +857,6 @@ class TestListThingGroup:
         resp = client.list_thing_groups(parentGroup=self.group_name_2a, recursive=False)
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(2)
-
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_name_prefix(self):
@@ -875,20 +874,22 @@ class TestListThingGroup:
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(0)
 
-
     @mock_iot
     def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
         group_catalog = generate_thing_group_tree(client, self.tree_dict)
         # test
-        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1", recursive=False)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-1", recursive=False
+        )
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(2)
-        resp = client.list_thing_groups(namePrefixFilter="my-group-name-3", recursive=False)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-3", recursive=False
+        )
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(0)
-
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
@@ -907,7 +908,8 @@ class TestListThingGroup:
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(4)
         resp = client.list_thing_groups(
-            namePrefixFilter="prefix-which-doesn-not-match", parentGroup=self.group_name_1a
+            namePrefixFilter="prefix-which-doesn-not-match",
+            parentGroup=self.group_name_1a,
         )
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(0)
@@ -919,9 +921,7 @@ def test_delete_thing_group():
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
     tree_dict = {
-        group_name_1a: {
-            group_name_2a: {},
-        },
+        group_name_1a: {group_name_2a: {},},
     }
     group_catalog = generate_thing_group_tree(client, tree_dict)
 
