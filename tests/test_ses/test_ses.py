@@ -145,10 +145,10 @@ def test_get_send_statistics():
     result = conn.get_send_statistics()
 
     reject_count = int(
-        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["Rejects"]
+        result["GetSendStatisticsResponse"]["GetSendStatisticsResult"]["SendDataPoints"][0]["Rejects"]
     )
     delivery_count = int(
-        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["DeliveryAttempts"]
+        result["GetSendStatisticsResponse"]["GetSendStatisticsResult"]["SendDataPoints"][0]["DeliveryAttempts"]
     )
     reject_count.should.equal(1)
     delivery_count.should.equal(0)
@@ -162,10 +162,10 @@ def test_get_send_statistics():
     result = conn.get_send_statistics()
 
     reject_count = int(
-        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["Rejects"]
+        result["GetSendStatisticsResponse"]["GetSendStatisticsResult"]["SendDataPoints"][0]["Rejects"]
     )
     delivery_count = int(
-        result["GetSendStatisticsResponse"]["SendDataPoints"][0]["DeliveryAttempts"]
+        result["GetSendStatisticsResponse"]["GetSendStatisticsResult"]["SendDataPoints"][0]["DeliveryAttempts"]
     )
     reject_count.should.equal(1)
     delivery_count.should.equal(1)
