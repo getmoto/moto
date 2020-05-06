@@ -514,6 +514,16 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def get_parameters(self, names, with_decryption):
         result = []
+
+        if len(names) > 10:
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '[{}]' at 'names' failed to satisfy constraint: "
+                "Member must have length less than or equal to 10.".format(
+                    ", ".join(names)
+                )
+            )
+
         for name in names:
             if name in self._parameters:
                 result.append(self.get_parameter(name, with_decryption))
