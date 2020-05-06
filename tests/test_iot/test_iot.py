@@ -36,7 +36,8 @@ def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
         subtree_dict = generate_thing_group_tree(
             iot_client=iot_client, tree_dict=tree_dict[group_name], _parent=group_name
         )
-        created_dict = {**created_dict, **subtree_dict}
+        created_dict.update(created_dict)
+        created_dict.update(subtree_dict)
     return created_dict
 
 
