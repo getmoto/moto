@@ -195,6 +195,10 @@ def test_ec2_integration():
     reservations = ec2.describe_instances()["Reservations"]
     assert reservations.should.be.empty
 
+    # Before starting the instance, its status should be "stopped"
+    opsworks_instance = opsworks.describe_instances(StackId=stack_id)["Instances"][0]
+    opsworks_instance["Status"].should.equal("stopped")
+
     # After starting the instance, it should be discoverable via ec2
     opsworks.start_instance(InstanceId=instance_id)
     reservations = ec2.describe_instances()["Reservations"]
@@ -204,3 +208,5 @@ def test_ec2_integration():
 
     instance["InstanceId"].should.equal(opsworks_instance["Ec2InstanceId"])
     instance["PrivateIpAddress"].should.equal(opsworks_instance["PrivateIp"])
+    # After starting the instance, its status should be "online"
+    opsworks_instance["Status"].should.equal("online")
