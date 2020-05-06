@@ -798,8 +798,8 @@ class TestListThingGroup:
     group_name_3d = "my-group-name-3d"
     tree_dict = {
         group_name_1a: {
-            group_name_2a: {group_name_3a: {} or None, group_name_3b: {} or None},
-            group_name_2b: {group_name_3c: {} or None, group_name_3d: {} or None},
+            group_name_2a: {group_name_3a: {}, group_name_3b: {}},
+            group_name_2b: {group_name_3c: {}, group_name_3d: {}},
         },
         group_name_1b: {},
     }
@@ -918,20 +918,12 @@ def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
-    # --1a
-    #    |--2a
-
-    # create thing groups tree
-    # 1
-    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
-    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
-    thing_group1a.should.have.key("thingGroupArn")
-    # 2
-    thing_group2a = client.create_thing_group(
-        thingGroupName=group_name_2a, parentGroupName=group_name_1a
-    )
-    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
-    thing_group2a.should.have.key("thingGroupArn")
+    tree_dict = {
+        group_name_1a: {
+            group_name_2a: {},
+        },
+    }
+    group_catalog = generate_thing_group_tree(client, tree_dict)
 
     # delete group with child
     try:
