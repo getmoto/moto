@@ -787,9 +787,7 @@ def test_delete_principal_thing():
     client.delete_certificate(certificateId=cert_id)
 
 
-@mock_iot
-def test_list_thing_groups():
-    client = boto3.client("iot", region_name="ap-northeast-1")
+class TestListThingGroup:
     group_name_1a = "my-group-name-1a"
     group_name_1b = "my-group-name-1b"
     group_name_2a = "my-group-name-2a"
@@ -805,77 +803,114 @@ def test_list_thing_groups():
         },
         group_name_1b: {},
     }
-    group_catalog = generate_thing_group_tree(client, tree_dict)
 
-    # begin tests
-    # should list all groups
-    resp = client.list_thing_groups()
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(8)
-    # should list all groups non-recursively
-    resp = client.list_thing_groups(recursive=False)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
+    @mock_iot
+    def test_should_list_all_groups(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups()
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(8)
 
-    # should list all groups filtered by parent
-    resp = client.list_thing_groups(parentGroup=group_name_1a)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(6)
-    resp = client.list_thing_groups(parentGroup=group_name_2a)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
-    resp = client.list_thing_groups(parentGroup=group_name_1b)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(0)
-    try:
-        client.list_thing_groups(parentGroup="inexistant-group-name")
-    except client.exceptions.ResourceNotFoundException as exc:
-        error_code = exc.response["Error"]["Code"]
-        error_code.should.equal("ResourceNotFoundException")
-    else:
-        raise Exception("Should have raised error")
-    # should list all groups filtered by parent non-recursively
-    resp = client.list_thing_groups(parentGroup=group_name_1a, recursive=False)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
-    resp = client.list_thing_groups(parentGroup=group_name_2a, recursive=False)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
 
-    # should list all groups filtered by name prefix
-    resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
-    resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(4)
-    resp = client.list_thing_groups(namePrefixFilter="prefix-which-doesn-not-match")
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(0)
-    # should list all groups filtered by name prefix non-recursively
-    resp = client.list_thing_groups(namePrefixFilter="my-group-name-1", recursive=False)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
-    resp = client.list_thing_groups(namePrefixFilter="my-group-name-3", recursive=False)
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(0)
+    @mock_iot
+    def test_should_list_all_groups_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
 
-    # should list all groups filtered by name prefix and parent
-    resp = client.list_thing_groups(
-        namePrefixFilter="my-group-name-2", parentGroup=group_name_1a
-    )
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(2)
-    resp = client.list_thing_groups(
-        namePrefixFilter="my-group-name-3", parentGroup=group_name_1a
-    )
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(4)
-    resp = client.list_thing_groups(
-        namePrefixFilter="prefix-which-doesn-not-match", parentGroup=group_name_1a
-    )
-    resp.should.have.key("thingGroups")
-    resp["thingGroups"].should.have.length_of(0)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_parent(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(parentGroup=self.group_name_1a)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(6)
+        resp = client.list_thing_groups(parentGroup=self.group_name_2a)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(parentGroup=self.group_name_1b)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+        with assert_raises(ClientError) as e:
+            client.list_thing_groups(parentGroup="inexistant-group-name")
+            e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(parentGroup=self.group_name_2a, recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(4)
+        resp = client.list_thing_groups(namePrefixFilter="prefix-which-doesn-not-match")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1", recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-3", recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-3", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(4)
+        resp = client.list_thing_groups(
+            namePrefixFilter="prefix-which-doesn-not-match", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
 
 
 @mock_iot
