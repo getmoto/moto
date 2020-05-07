@@ -292,20 +292,22 @@ SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE = """<SetIdentityNotificationTopicRespo
 </SetIdentityNotificationTopicResponse>"""
 
 GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendDataPoints>
-    {% for statistics in all_statistics %}
-        <item>
-            <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
-            <Rejects>{{ statistics["Rejects"] }}</Rejects>
-            <Bounces>{{ statistics["Bounces"] }}</Bounces>
-            <Complaints>{{ statistics["Complaints"] }}</Complaints>
-            <Timestamp>{{ statistics["Timestamp"] }}</Timestamp>
-        </item>
-    {% endfor %}
-  </SendDataPoints>
-  <ResponseMetadata>
-    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
-  </ResponseMetadata>
+  <GetSendStatisticsResult>
+      <SendDataPoints>
+        {% for statistics in all_statistics %}
+            <item>
+                <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
+                <Rejects>{{ statistics["Rejects"] }}</Rejects>
+                <Bounces>{{ statistics["Bounces"] }}</Bounces>
+                <Complaints>{{ statistics["Complaints"] }}</Complaints>
+                <Timestamp>{{ statistics["Timestamp"] }}</Timestamp>
+            </item>
+        {% endfor %}
+      </SendDataPoints>
+      <ResponseMetadata>
+        <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
+      </ResponseMetadata>
+  </GetSendStatisticsResult>
 </GetSendStatisticsResponse>"""
 
 CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
