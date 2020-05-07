@@ -2049,6 +2049,45 @@ def test_set_ttl():
     resp["TimeToLiveDescription"]["TimeToLiveStatus"].should.equal("DISABLED")
 
 
+@mock_dynamodb2
+def test_describe_continuous_backups():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    response = client.describe_continuous_backups(TableName=table_name)
+
+    response["ContinuousBackupsDescription"].should.equal(
+        {
+            "ContinuousBackupsStatus": "ENABLED",
+            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_describe_continuous_backups_errors():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    with assert_raises(Exception) as e:
+        client.describe_continuous_backups(TableName="not-existing-table")
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeContinuousBackups")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
+    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
+
+
 # https://github.com/spulec/moto/issues/1043
 @mock_dynamodb2
 def test_query_missing_expr_names():

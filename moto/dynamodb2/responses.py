@@ -936,3 +936,16 @@ class DynamoHandler(BaseResponse):
             )
         response = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
+
+    def describe_continuous_backups(self):
+        name = self.body["TableName"]
+
+        if self.dynamodb_backend.get_table(name) is None:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#TableNotFoundException",
+                "Table not found: {}".format(name),
+            )
+
+        response = self.dynamodb_backend.describe_continuous_backups(name)
+
+        return json.dumps({"ContinuousBackupsDescription": response})
