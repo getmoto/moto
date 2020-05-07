@@ -7212,7 +7212,7 @@
 ## sts
 62% implemented
 - [X] assume_role
-- [ ] assume_role_with_saml
+- [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
 - [ ] decode_authorization_message
 - [ ] get_access_key_info
