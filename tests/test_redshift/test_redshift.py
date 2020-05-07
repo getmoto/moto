@@ -915,6 +915,11 @@ def test_create_cluster_from_snapshot():
         ClusterIdentifier=original_cluster_identifier,
     )
 
+    client.restore_from_cluster_snapshot.when.called_with(
+        ClusterIdentifier=original_cluster_identifier,
+        SnapshotIdentifier=original_snapshot_identifier,
+    ).should.throw(ClientError, "ClusterAlreadyExists")
+
     response = client.restore_from_cluster_snapshot(
         ClusterIdentifier=new_cluster_identifier,
         SnapshotIdentifier=original_snapshot_identifier,
@@ -1333,3 +1338,20 @@ def test_modify_snapshot_copy_retention_period():
     response = client.describe_clusters(ClusterIdentifier="test")
     cluster_snapshot_copy_status = response["Clusters"][0]["ClusterSnapshotCopyStatus"]
     cluster_snapshot_copy_status["RetentionPeriod"].should.equal(5)
+
+
+@mock_redshift
+def test_create_duplicate_cluster_fails():
+    kwargs = {
+        "ClusterIdentifier": "test",
+        "ClusterType": "single-node",
+        "DBName": "test",
+        "MasterUsername": "user",
+        "MasterUserPassword": "password",
+        "NodeType": "ds2.xlarge",
+    }
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(**kwargs)
+    client.create_cluster.when.called_with(**kwargs).should.throw(
+        ClientError, "ClusterAlreadyExists"
+    )
