@@ -5029,3 +5029,81 @@ def test_update_item_atomic_counter_return_values():
         "v" in response["Attributes"]
     ), "v has been updated, and should be returned here"
     response["Attributes"]["v"]["N"].should.equal("8")
+
+
+@mock_dynamodb2
+def test_update_item_atomic_counter_from_zero():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    key = {"t_id": {"S": "item1"}}
+
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add n_i :inc1, n_f :inc2",
+        ExpressionAttributeValues={":inc1": {"N": "1.2"}, ":inc2": {"N": "-0.5"}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["n_i"]["N"] == "1.2"
+    assert updated_item["n_f"]["N"] == "-0.5"
+
+
+@mock_dynamodb2
+def test_update_item_add_to_non_existent_set():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    key = {"t_id": {"S": "item1"}}
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add s_i :s1",
+        ExpressionAttributeValues={":s1": {"SS": ["hello"]}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["s_i"]["SS"] == ["hello"]
+
+
+@mock_dynamodb2
+def test_update_item_add_to_non_existent_number_set():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    key = {"t_id": {"S": "item1"}}
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add s_i :s1",
+        ExpressionAttributeValues={":s1": {"NS": ["3"]}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["s_i"]["NS"] == ["3"]

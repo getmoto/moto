@@ -1307,16 +1307,16 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {"item4"}},
     )
     current_item["str_set"] = current_item["str_set"].union({"item4"})
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a string value to a non-existing set
-    # Should throw: 'The provided key element does not match the schema'
-    assert_failure_due_to_key_not_in_schema(
-        table.update_item,
+    table.update_item(
         Key=item_key,
         UpdateExpression="ADD non_existing_str_set :v",
         ExpressionAttributeValues={":v": {"item4"}},
     )
+    current_item["non_existing_str_set"] = {"item4"}
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a num value to a num set
     table.update_item(
@@ -1325,7 +1325,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {6}},
     )
     current_item["num_set"] = current_item["num_set"].union({6})
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a value to a number value
     table.update_item(
@@ -1334,7 +1334,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": 20},
     )
     current_item["num_val"] = current_item["num_val"] + 20
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Attempt to add a number value to a string set, should raise Client Error
     table.update_item.when.called_with(
@@ -1342,7 +1342,7 @@ def test_update_item_add_with_expression():
         UpdateExpression="ADD str_set :v",
         ExpressionAttributeValues={":v": 20},
     ).should.have.raised(ClientError)
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Attempt to add a number set to the string set, should raise a ClientError
     table.update_item.when.called_with(
@@ -1350,7 +1350,7 @@ def test_update_item_add_with_expression():
         UpdateExpression="ADD str_set :v",
         ExpressionAttributeValues={":v": {20}},
     ).should.have.raised(ClientError)
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Attempt to update with a bad expression
     table.update_item.when.called_with(
@@ -1388,17 +1388,18 @@ def test_update_item_add_with_nested_sets():
     current_item["nested"]["str_set"] = current_item["nested"]["str_set"].union(
         {"item4"}
     )
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
     # Update item to add a string value to a non-existing set
     # Should raise
-    assert_failure_due_to_key_not_in_schema(
-        table.update_item,
+    table.update_item(
         Key=item_key,
         UpdateExpression="ADD #ns.#ne :v",
         ExpressionAttributeNames={"#ns": "nested", "#ne": "non_existing_str_set"},
         ExpressionAttributeValues={":v": {"new_item"}},
     )
+    current_item["nested"]["non_existing_str_set"] = {"new_item"}
+    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
 
 
 @mock_dynamodb2
