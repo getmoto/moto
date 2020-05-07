@@ -43,6 +43,7 @@ def _process_lambda(func_str):
 def get_test_zip_file1():
     pfunc = """
 def lambda_handler(event, context):
+    print("custom log event")
     return event
 """
     return _process_lambda(pfunc)
@@ -115,11 +116,11 @@ def test_invoke_requestresponse_function():
     )
 
     success_result["StatusCode"].should.equal(200)
-    result_obj = json.loads(
-        base64.b64decode(success_result["LogResult"]).decode("utf-8")
-    )
+    logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
 
-    result_obj.should.equal(in_data)
+    logs.should.contain("START RequestId:")
+    logs.should.contain("custom log event")
+    logs.should.contain("END RequestId:")
 
     payload = success_result["Payload"].read().decode("utf-8")
     json.loads(payload).should.equal(in_data)
@@ -152,11 +153,6 @@ def test_invoke_requestresponse_function_with_arn():
     )
 
     success_result["StatusCode"].should.equal(200)
-    result_obj = json.loads(
-        base64.b64decode(success_result["LogResult"]).decode("utf-8")
-    )
-
-    result_obj.should.equal(in_data)
 
     payload = success_result["Payload"].read().decode("utf-8")
     json.loads(payload).should.equal(in_data)
