@@ -118,6 +118,7 @@ class FakeThingGroup(BaseModel):
 
     def to_dict(self):
         return {
+            "thingGroupArn": self.arn,
             "thingGroupName": self.thing_group_name,
             "thingGroupId": self.thing_group_id,
             "version": self.version,
