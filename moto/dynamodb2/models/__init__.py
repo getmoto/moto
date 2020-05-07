@@ -1257,6 +1257,28 @@ class DynamoDBBackend(BaseBackend):
 
         return table.continuous_backups
 
+    def update_continuous_backups(self, table_name, point_in_time_spec):
+        table = self.get_table(table_name)
+
+        if (
+            point_in_time_spec["PointInTimeRecoveryEnabled"]
+            and table.continuous_backups["PointInTimeRecoveryDescription"][
+                "PointInTimeRecoveryStatus"
+            ]
+            == "DISABLED"
+        ):
+            table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                "PointInTimeRecoveryStatus": "ENABLED",
+                "EarliestRestorableDateTime": datetime.datetime.utcnow().timestamp(),
+                "LatestRestorableDateTime": datetime.datetime.utcnow().timestamp(),
+            }
+        elif not point_in_time_spec["PointInTimeRecoveryEnabled"]:
+            table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                "PointInTimeRecoveryStatus": "DISABLED"
+            }
+
+        return table.continuous_backups
+
 
 dynamodb_backends = {}
 for region in Session().get_available_regions("dynamodb"):

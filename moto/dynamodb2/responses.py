@@ -949,3 +949,19 @@ class DynamoHandler(BaseResponse):
         response = self.dynamodb_backend.describe_continuous_backups(name)
 
         return json.dumps({"ContinuousBackupsDescription": response})
+
+    def update_continuous_backups(self):
+        name = self.body["TableName"]
+        point_in_time_spec = self.body["PointInTimeRecoverySpecification"]
+
+        if self.dynamodb_backend.get_table(name) is None:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#TableNotFoundException",
+                "Table not found: {}".format(name),
+            )
+
+        response = self.dynamodb_backend.update_continuous_backups(
+            name, point_in_time_spec
+        )
+
+        return json.dumps({"ContinuousBackupsDescription": response})

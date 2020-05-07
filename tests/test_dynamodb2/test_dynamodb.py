@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+from datetime import datetime
 from decimal import Decimal
 
 import boto
@@ -2051,6 +2052,7 @@ def test_set_ttl():
 
 @mock_dynamodb2
 def test_describe_continuous_backups():
+    # given
     client = boto3.client("dynamodb", region_name="us-east-1")
     table_name = client.create_table(
         TableName="test",
@@ -2065,8 +2067,10 @@ def test_describe_continuous_backups():
         BillingMode="PAY_PER_REQUEST",
     )["TableDescription"]["TableName"]
 
+    # when
     response = client.describe_continuous_backups(TableName=table_name)
 
+    # then
     response["ContinuousBackupsDescription"].should.equal(
         {
             "ContinuousBackupsStatus": "ENABLED",
@@ -2077,12 +2081,105 @@ def test_describe_continuous_backups():
 
 @mock_dynamodb2
 def test_describe_continuous_backups_errors():
+    # given
     client = boto3.client("dynamodb", region_name="us-east-1")
 
+    # when
     with assert_raises(Exception) as e:
         client.describe_continuous_backups(TableName="not-existing-table")
+
+    # then
     ex = e.exception
     ex.operation_name.should.equal("DescribeContinuousBackups")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
+    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
+
+
+@mock_dynamodb2
+def test_update_continuous_backups():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
+        "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    earliest_datetime = point_in_time["EarliestRestorableDateTime"]
+    earliest_datetime.should.be.a(datetime)
+    latest_datetime = point_in_time["LatestRestorableDateTime"]
+    latest_datetime.should.be.a(datetime)
+    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+
+    # when
+    # a second update should not change anything
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
+        "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    point_in_time["EarliestRestorableDateTime"].should.equal(earliest_datetime)
+    point_in_time["LatestRestorableDateTime"].should.equal(latest_datetime)
+    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": False},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"].should.equal(
+        {
+            "ContinuousBackupsStatus": "ENABLED",
+            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_continuous_backups_errors():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # when
+    with assert_raises(Exception) as e:
+        client.update_continuous_backups(
+            TableName="not-existing-table",
+            PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("UpdateContinuousBackups")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TableNotFoundException")
     ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
