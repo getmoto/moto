@@ -1269,8 +1269,8 @@ class DynamoDBBackend(BaseBackend):
         ):
             table.continuous_backups["PointInTimeRecoveryDescription"] = {
                 "PointInTimeRecoveryStatus": "ENABLED",
-                "EarliestRestorableDateTime": datetime.datetime.utcnow().timestamp(),
-                "LatestRestorableDateTime": datetime.datetime.utcnow().timestamp(),
+                "EarliestRestorableDateTime": unix_time(),
+                "LatestRestorableDateTime": unix_time(),
             }
         elif not point_in_time_spec["PointInTimeRecoveryEnabled"]:
             table.continuous_backups["PointInTimeRecoveryDescription"] = {
