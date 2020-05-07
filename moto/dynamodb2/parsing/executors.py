@@ -1,6 +1,10 @@
 from abc import abstractmethod
 
-from moto.dynamodb2.exceptions import IncorrectOperandType, IncorrectDataType
+from moto.dynamodb2.exceptions import (
+    IncorrectOperandType,
+    IncorrectDataType,
+    ProvidedKeyDoesNotExist,
+)
 from moto.dynamodb2.models import DynamoType
 from moto.dynamodb2.models.dynamo_type import DDBTypeConversion, DDBType
 from moto.dynamodb2.parsing.ast_nodes import (
@@ -193,7 +197,18 @@ class AddExecutor(NodeExecutor):
         value_to_add = self.get_action_value()
         if isinstance(value_to_add, DynamoType):
             if value_to_add.is_set():
-                current_string_set = self.get_item_at_end_of_path(item)
+                try:
+                    current_string_set = self.get_item_at_end_of_path(item)
+                except ProvidedKeyDoesNotExist:
+                    current_string_set = DynamoType({value_to_add.type: []})
+                    SetExecutor.set(
+                        item_part_to_modify_with_set=self.get_item_before_end_of_path(
+                            item
+                        ),
+                        element_to_set=self.get_element_to_action(),
+                        value_to_set=current_string_set,
+                        expression_attribute_names=self.expression_attribute_names,
+                    )
                 assert isinstance(current_string_set, DynamoType)
                 if not current_string_set.type == value_to_add.type:
                     raise IncorrectDataType()
@@ -204,7 +219,11 @@ class AddExecutor(NodeExecutor):
                     else:
                         current_string_set.value.append(value)
             elif value_to_add.type == DDBType.NUMBER:
-                existing_value = self.get_item_at_end_of_path(item)
+                try:
+                    existing_value = self.get_item_at_end_of_path(item)
+                except ProvidedKeyDoesNotExist:
+                    existing_value = DynamoType({DDBType.NUMBER: "0"})
+
                 assert isinstance(existing_value, DynamoType)
                 if not existing_value.type == DDBType.NUMBER:
                     raise IncorrectDataType()
