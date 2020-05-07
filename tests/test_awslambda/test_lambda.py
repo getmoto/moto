@@ -113,7 +113,7 @@ def test_invoke_requestresponse_function():
         FunctionName="testFunction",
         InvocationType="RequestResponse",
         Payload=json.dumps(in_data),
-        LogType="Tail"
+        LogType="Tail",
     )
 
     success_result["StatusCode"].should.equal(200)
