@@ -5,7 +5,10 @@ from six.moves.urllib.parse import urlparse, parse_qs
 
 from moto.core.responses import BaseResponse
 from .models import managedblockchain_backends
-from .utils import region_from_managedblckchain_url, networkid_from_managedblockchain_url
+from .utils import (
+    region_from_managedblckchain_url,
+    networkid_from_managedblockchain_url,
+)
 
 
 class ManagedBlockchainResponse(BaseResponse):
@@ -16,7 +19,9 @@ class ManagedBlockchainResponse(BaseResponse):
     @classmethod
     def network_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(managedblockchain_backends[region_name])
+        response_instance = ManagedBlockchainResponse(
+            managedblockchain_backends[region_name]
+        )
         return response_instance._network_response(request, full_url, headers)
 
     def _network_response(self, request, full_url, headers):
@@ -42,13 +47,35 @@ class ManagedBlockchainResponse(BaseResponse):
         return 200, headers, response
 
     def _network_response_post(self, json_body, querystring, headers):
-        self.backend.create_network(json_body)
-        return 201, headers, ""
+        name = json_body["Name"]
+        framework = json_body["Framework"]
+        frameworkversion = json_body["FrameworkVersion"]
+        frameworkconfiguration = json_body["FrameworkConfiguration"]
+        voting_policy = json_body["VotingPolicy"]
+        member_configuration = json_body["MemberConfiguration"]
+
+        # Optional
+        description = None
+        if "Description" in json_body:
+            description = json_body["Description"]
+
+        response = self.backend.create_network(
+            name,
+            framework,
+            frameworkversion,
+            frameworkconfiguration,
+            voting_policy,
+            member_configuration,
+            description,
+        )
+        return 201, headers, json.dumps(response)
 
     @classmethod
     def networkid_response(clazz, request, full_url, headers):
         region_name = region_from_managedblckchain_url(full_url)
-        response_instance = ManagedBlockchainResponse(managedblockchain_backends[region_name])
+        response_instance = ManagedBlockchainResponse(
+            managedblockchain_backends[region_name]
+        )
         return response_instance._networkid_response(request, full_url, headers)
 
     def _networkid_response(self, request, full_url, headers):
@@ -60,8 +87,6 @@ class ManagedBlockchainResponse(BaseResponse):
 
     def _networkid_response_get(self, network_id, headers):
         mbcnetwork = self.backend.get_network(network_id)
-        response = json.dumps(
-            {"Network": mbcnetwork.to_dict()}
-        )
+        response = json.dumps({"Network": mbcnetwork.get_format()})
         headers["content-type"] = "application/json"
         return 200, headers, response

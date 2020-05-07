@@ -21,3 +21,9 @@ def get_network_id():
     return "n-" + "".join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
     )
+
+
+def get_member_id():
+    return "m-" + "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
+    )
