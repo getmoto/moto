@@ -131,3 +131,12 @@ def test_create_network_badedition():
         VotingPolicy=default_votingpolicy,
         MemberConfiguration=default_memberconfiguration,
     ).should.throw(Exception, "Invalid request body")
+
+
+@mock_managedblockchain
+def test_get_network_badnetwork():
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    response = conn.get_network.when.called_with(
+        NetworkId="n-BADNETWORK",
+    ).should.throw(Exception, "Network n-BADNETWORK not found")

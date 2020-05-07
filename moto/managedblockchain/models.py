@@ -6,7 +6,7 @@ from boto3 import Session
 
 from moto.core import BaseBackend, BaseModel
 
-from .exceptions import BadRequestException
+from .exceptions import BadRequestException, ResourceNotFoundException
 
 from .utils import get_network_id, get_member_id
 
@@ -164,6 +164,10 @@ class ManagedBlockchainBackend(BaseBackend):
         return self.networks.values()
 
     def get_network(self, network_id):
+        if network_id not in self.networks:
+            raise ResourceNotFoundException(
+                "CreateNetwork", "Network {0} not found".format(network_id)
+            )
         return self.networks.get(network_id)
 
 
