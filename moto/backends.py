@@ -39,6 +39,7 @@ BACKENDS = {
     "kms": ("kms", "kms_backends"),
     "lambda": ("awslambda", "lambda_backends"),
     "logs": ("logs", "logs_backends"),
+    "managedblockchain": ("managedblockchain", "managedblockchain_backends"),
     "moto_api": ("core", "moto_api_backends"),
     "opsworks": ("opsworks", "opsworks_backends"),
     "organizations": ("organizations", "organizations_backends"),
