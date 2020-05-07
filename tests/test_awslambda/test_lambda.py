@@ -113,6 +113,7 @@ def test_invoke_requestresponse_function():
         FunctionName="testFunction",
         InvocationType="RequestResponse",
         Payload=json.dumps(in_data),
+        LogType="Tail"
     )
 
     success_result["StatusCode"].should.equal(200)
@@ -124,6 +125,16 @@ def test_invoke_requestresponse_function():
 
     payload = success_result["Payload"].read().decode("utf-8")
     json.loads(payload).should.equal(in_data)
+
+    # Logs should not be returned by default, only when the LogType-param is supplied
+    success_result = conn.invoke(
+        FunctionName="testFunction",
+        InvocationType="RequestResponse",
+        Payload=json.dumps(in_data),
+    )
+
+    success_result["StatusCode"].should.equal(200)
+    assert "LogResult" not in success_result
 
 
 @mock_lambda

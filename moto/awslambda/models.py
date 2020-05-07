@@ -1049,9 +1049,9 @@ class LambdaBackend(BaseBackend):
         if fn:
             payload = fn.invoke(body, headers, response_headers)
             response_headers["Content-Length"] = str(len(payload))
-            return response_headers, payload
+            return payload
         else:
-            return response_headers, None
+            return None
 
 
 def do_validate_s3():
