@@ -55,9 +55,7 @@ class ManagedBlockchainResponse(BaseResponse):
         member_configuration = json_body["MemberConfiguration"]
 
         # Optional
-        description = None
-        if "Description" in json_body:
-            description = json_body["Description"]
+        description = json_body.get("Description", None)
 
         response = self.backend.create_network(
             name,
