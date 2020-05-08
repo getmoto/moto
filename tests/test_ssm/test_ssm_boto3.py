@@ -324,7 +324,6 @@ def test_get_parameters_errors():
             ", ".join(ssm_parameters.keys())
         )
     )
-    print(ex.response["Error"]["Message"])
 
 
 @mock_ssm
