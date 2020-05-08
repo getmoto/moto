@@ -2149,6 +2149,18 @@ def test_boto3_copy_object_with_versioning():
     data.should.equal(b"test2")
 
 
+@mock_s3_deprecated
+def test_s3_abort_multipart_data_with_invalid_upload_and_key():
+    conn = boto.connect_s3("the_key", "the_secret")
+    bucket = conn.create_bucket("foobar")
+
+    with assert_raises(S3ResponseError) as ce:
+        bucket.cancel_multipart_upload(
+            key_name="foobar",
+            upload_id="dummy_upload_id"
+        )
+
+
 @mock_s3
 def test_boto3_copy_object_from_unversioned_to_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
