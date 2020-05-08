@@ -425,3 +425,36 @@ def test_untag_log_group():
     assert response["tags"] == remaining_tags
 
     response = conn.delete_log_group(logGroupName=log_group_name)
+
+
+@mock_logs
+def test_describe_subscription_filters():
+    # given
+    client = boto3.client("logs", "us-east-1")
+    log_group_name = "/test"
+    client.create_log_group(logGroupName=log_group_name)
+
+    # when
+    response = client.describe_subscription_filters(logGroupName=log_group_name)
+
+    # then
+    response["subscriptionFilters"].should.have.length_of(0)
+
+
+@mock_logs
+def test_describe_subscription_filters_errors():
+    # given
+    client = boto3.client("logs", "us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeSubscriptionFilters")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified log group does not exist"
+    )

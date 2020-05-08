@@ -227,6 +227,7 @@ class LogGroup:
         self.retention_in_days = kwargs.get(
             "RetentionInDays"
         )  # AWS defaults to Never Expire for log group retention
+        self.subscription_filters = []
 
     def create_log_stream(self, log_stream_name):
         if log_stream_name in self.streams:
@@ -385,6 +386,9 @@ class LogGroup:
             self.tags = {
                 k: v for (k, v) in self.tags.items() if k not in tags_to_remove
             }
+
+    def describe_subscription_filters(self):
+        return self.subscription_filters
 
 
 class LogsBackend(BaseBackend):
@@ -556,6 +560,14 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
         log_group.untag(tags)
+
+    def describe_subscription_filters(self, log_group_name):
+        log_group = self.groups.get(log_group_name)
+
+        if not log_group:
+            raise ResourceNotFoundException()
+
+        return log_group.describe_subscription_filters()
 
 
 logs_backends = {}

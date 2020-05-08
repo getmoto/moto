@@ -10,7 +10,7 @@ class ResourceNotFoundException(LogsClientError):
     def __init__(self):
         self.code = 400
         super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException", "The specified resource does not exist"
+            "ResourceNotFoundException", "The specified log group does not exist"
         )
 
 
