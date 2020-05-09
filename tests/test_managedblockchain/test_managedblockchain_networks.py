@@ -41,8 +41,10 @@ def test_create_network():
         VotingPolicy=default_votingpolicy,
         MemberConfiguration=default_memberconfiguration,
     )
-    response["NetworkId"].should.match("n-[A-Z0-9]{26}")
-    response["MemberId"].should.match("m-[A-Z0-9]{26}")
+    network_id = response["NetworkId"]
+    member_id = response["MemberId"]
+    network_id.should.match("n-[A-Z0-9]{26}")
+    member_id.should.match("m-[A-Z0-9]{26}")
 
     # Find in full list
     response = conn.list_networks()
@@ -51,7 +53,6 @@ def test_create_network():
     mbcnetworks[0]["Name"].should.equal("testnetwork1")
 
     # Get network details
-    network_id = mbcnetworks[0]["Id"]
     response = conn.get_network(NetworkId=network_id)
     response["Network"]["Name"].should.equal("testnetwork1")
 
@@ -69,8 +70,10 @@ def test_create_network_withopts():
         VotingPolicy=default_votingpolicy,
         MemberConfiguration=default_memberconfiguration,
     )
-    response["NetworkId"].should.match("n-[A-Z0-9]{26}")
-    response["MemberId"].should.match("m-[A-Z0-9]{26}")
+    network_id = response["NetworkId"]
+    member_id = response["MemberId"]
+    network_id.should.match("n-[A-Z0-9]{26}")
+    member_id.should.match("m-[A-Z0-9]{26}")
 
     # Find in full list
     response = conn.list_networks()
@@ -79,7 +82,6 @@ def test_create_network_withopts():
     mbcnetworks[0]["Description"].should.equal("Test Network 1")
 
     # Get network details
-    network_id = mbcnetworks[0]["Id"]
     response = conn.get_network(NetworkId=network_id)
     response["Network"]["Description"].should.equal("Test Network 1")
 
@@ -138,5 +140,5 @@ def test_get_network_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     response = conn.get_network.when.called_with(
-        NetworkId="n-BADNETWORK",
-    ).should.throw(Exception, "Network n-BADNETWORK not found")
+        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")

@@ -16,6 +16,16 @@ class BadRequestException(ManagedBlockchainClientError):
         )
 
 
+class InvalidRequestException(ManagedBlockchainClientError):
+    def __init__(self, pretty_called_method, operation_error):
+        super(InvalidRequestException, self).__init__(
+            "InvalidRequestException",
+            "An error occurred (InvalidRequestException) when calling the {0} operation: {1}".format(
+                pretty_called_method, operation_error
+            ),
+        )
+
+
 class ResourceNotFoundException(ManagedBlockchainClientError):
     def __init__(self, pretty_called_method, operation_error):
         self.code = 404
