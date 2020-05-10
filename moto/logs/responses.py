@@ -187,3 +187,16 @@ class LogsResponse(BaseResponse):
         )
 
         return json.dumps({"subscriptionFilters": subscription_filters})
+
+    def put_subscription_filter(self):
+        log_group_name = self._get_param("logGroupName")
+        filter_name = self._get_param("filterName")
+        filter_pattern = self._get_param("filterPattern")
+        destination_arn = self._get_param("destinationArn")
+        role_arn = self._get_param("roleArn")
+
+        self.logs_backend.put_subscription_filter(
+            log_group_name, filter_name, filter_pattern, destination_arn, role_arn
+        )
+
+        return ""

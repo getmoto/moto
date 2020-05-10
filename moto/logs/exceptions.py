@@ -28,3 +28,11 @@ class ResourceAlreadyExistsException(LogsClientError):
         super(ResourceAlreadyExistsException, self).__init__(
             "ResourceAlreadyExistsException", "The specified log group already exists"
         )
+
+
+class LimitExceededException(LogsClientError):
+    def __init__(self):
+        self.code = 400
+        super(LimitExceededException, self).__init__(
+            "LimitExceededException", "Resource limit exceeded."
+        )
