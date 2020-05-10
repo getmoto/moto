@@ -5,30 +5,7 @@ import sure  # noqa
 
 from moto.managedblockchain.exceptions import BadRequestException
 from moto import mock_managedblockchain
-
-
-default_frameworkconfiguration = {"Fabric": {"Edition": "STARTER"}}
-
-default_votingpolicy = {
-    "ApprovalThresholdPolicy": {
-        "ThresholdPercentage": 50,
-        "ProposalDurationInHours": 24,
-        "ThresholdComparator": "GREATER_THAN_OR_EQUAL_TO",
-    }
-}
-
-default_memberconfiguration = {
-    "Name": "testmember1",
-    "Description": "Test Member 1",
-    "FrameworkConfiguration": {
-        "Fabric": {"AdminUsername": "admin", "AdminPassword": "Admin12345"}
-    },
-    "LogPublishingConfiguration": {
-        "Fabric": {"CaLogs": {"Cloudwatch": {"Enabled": False}}}
-    },
-}
-
-default_policy_actions = {"Invitations": [{"Principal": "123456789012"}]}
+from . import helpers
 
 
 @mock_managedblockchain
@@ -40,9 +17,9 @@ def test_create_proposal():
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
-        FrameworkConfiguration=default_frameworkconfiguration,
-        VotingPolicy=default_votingpolicy,
-        MemberConfiguration=default_memberconfiguration,
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
@@ -51,7 +28,9 @@ def test_create_proposal():
 
     # Create proposal
     response = conn.create_proposal(
-        NetworkId=network_id, MemberId=member_id, Actions=default_policy_actions,
+        NetworkId=network_id,
+        MemberId=member_id,
+        Actions=helpers.default_policy_actions,
     )
     proposal_id = response["ProposalId"]
     proposal_id.should.match("p-[A-Z0-9]{26}")
@@ -76,9 +55,9 @@ def test_create_proposal_withopts():
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
-        FrameworkConfiguration=default_frameworkconfiguration,
-        VotingPolicy=default_votingpolicy,
-        MemberConfiguration=default_memberconfiguration,
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
@@ -89,7 +68,7 @@ def test_create_proposal_withopts():
     response = conn.create_proposal(
         NetworkId=network_id,
         MemberId=member_id,
-        Actions=default_policy_actions,
+        Actions=helpers.default_policy_actions,
         Description="Adding a new member",
     )
     proposal_id = response["ProposalId"]
@@ -107,7 +86,7 @@ def test_create_proposal_badnetwork():
     response = conn.create_proposal.when.called_with(
         NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
         MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        Actions=default_policy_actions,
+        Actions=helpers.default_policy_actions,
     ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
@@ -120,16 +99,16 @@ def test_create_proposal_badmember():
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
-        FrameworkConfiguration=default_frameworkconfiguration,
-        VotingPolicy=default_votingpolicy,
-        MemberConfiguration=default_memberconfiguration,
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
 
     response = conn.create_proposal.when.called_with(
         NetworkId=network_id,
         MemberId="m-ABCDEFGHIJKLMNOP0123456789",
-        Actions=default_policy_actions,
+        Actions=helpers.default_policy_actions,
     ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
@@ -145,18 +124,25 @@ def test_create_proposal_badinvitationacctid():
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
-        FrameworkConfiguration=default_frameworkconfiguration,
-        VotingPolicy=default_votingpolicy,
-        MemberConfiguration=default_memberconfiguration,
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
     response = conn.create_proposal.when.called_with(
-        NetworkId=network_id,
-        MemberId=member_id,
-        Actions=actions,
+        NetworkId=network_id, MemberId=member_id, Actions=actions,
     ).should.throw(Exception, "Account ID format specified in proposal is not valid")
+
+
+@mock_managedblockchain
+def test_list_proposal_badnetwork():
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    response = conn.list_proposals.when.called_with(
+        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
 
 @mock_managedblockchain
@@ -168,6 +154,7 @@ def test_get_proposal_badnetwork():
         ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
 
+
 @mock_managedblockchain
 def test_get_proposal_badproposal():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
@@ -177,13 +164,12 @@ def test_get_proposal_badproposal():
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
-        FrameworkConfiguration=default_frameworkconfiguration,
-        VotingPolicy=default_votingpolicy,
-        MemberConfiguration=default_memberconfiguration,
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
 
     response = conn.get_proposal.when.called_with(
-        NetworkId=network_id,
-        ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
+        NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Proposal p-ABCDEFGHIJKLMNOP0123456789 not found")

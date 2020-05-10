@@ -35,3 +35,14 @@ class ResourceNotFoundException(ManagedBlockchainClientError):
                 pretty_called_method, operation_error
             ),
         )
+
+
+class ResourceLimitExceededException(ManagedBlockchainClientError):
+    def __init__(self, pretty_called_method, operation_error):
+        self.code = 429
+        super(ResourceLimitExceededException, self).__init__(
+            "ResourceLimitExceededException",
+            "An error occurred (ResourceLimitExceededException) when calling the {0} operation: {1}".format(
+                pretty_called_method, operation_error
+            ),
+        )
