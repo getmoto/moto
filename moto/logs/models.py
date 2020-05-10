@@ -442,6 +442,17 @@ class LogGroup:
             }
         ]
 
+    def delete_subscription_filter(self, filter_name):
+        if (
+            not self.subscription_filters
+            or self.subscription_filters[0]["filterName"] != filter_name
+        ):
+            raise ResourceNotFoundException(
+                "The specified subscription filter does not exist."
+            )
+
+        self.subscription_filters = []
+
 
 class LogsBackend(BaseBackend):
     def __init__(self, region_name):
@@ -641,9 +652,17 @@ class LogsBackend(BaseBackend):
                 "Make sure you have given CloudWatch Logs permission to execute your function."
             )
 
-        return log_group.put_subscription_filter(
+        log_group.put_subscription_filter(
             filter_name, filter_pattern, destination_arn, role_arn
         )
+
+    def delete_subscription_filter(self, log_group_name, filter_name):
+        log_group = self.groups.get(log_group_name)
+
+        if not log_group:
+            raise ResourceNotFoundException()
+
+        log_group.delete_subscription_filter(filter_name)
 
 
 logs_backends = {}

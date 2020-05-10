@@ -7,10 +7,10 @@ class LogsClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(LogsClientError):
-    def __init__(self):
+    def __init__(self, msg=None):
         self.code = 400
         super(ResourceNotFoundException, self).__init__(
-            "ResourceNotFoundException", "The specified log group does not exist"
+            "ResourceNotFoundException", msg or "The specified log group does not exist"
         )
 
 

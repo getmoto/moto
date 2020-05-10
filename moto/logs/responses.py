@@ -200,3 +200,11 @@ class LogsResponse(BaseResponse):
         )
 
         return ""
+
+    def delete_subscription_filter(self):
+        log_group_name = self._get_param("logGroupName")
+        filter_name = self._get_param("filterName")
+
+        self.logs_backend.delete_subscription_filter(log_group_name, filter_name)
+
+        return ""

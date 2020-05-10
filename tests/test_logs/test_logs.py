@@ -631,7 +631,6 @@ def test_put_subscription_filter_with_lambda():
     log_events[1]["timestamp"].should.equal(0)
 
 
-@mock_lambda
 @mock_logs
 def test_put_subscription_filter_errors():
     # given
@@ -693,6 +692,101 @@ def test_put_subscription_filter_errors():
     ex.response["Error"]["Message"].should.equal(
         "Could not execute the lambda function. "
         "Make sure you have given CloudWatch Logs permission to execute your function."
+    )
+
+
+@mock_lambda
+@mock_logs
+def test_delete_subscription_filter_errors():
+    # given
+    region_name = "us-east-1"
+    client_lambda = boto3.client("lambda", region_name)
+    client_logs = boto3.client("logs", region_name)
+    log_group_name = "/test"
+    client_logs.create_log_group(logGroupName=log_group_name)
+    function_arn = client_lambda.create_function(
+        FunctionName="test",
+        Runtime="python3.8",
+        Role=_get_role_name(region_name),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": _get_test_zip_file()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )["FunctionArn"]
+    client_logs.put_subscription_filter(
+        logGroupName=log_group_name,
+        filterName="test",
+        filterPattern="",
+        destinationArn=function_arn,
+    )
+
+    # when
+    client_logs.delete_subscription_filter(
+        logGroupName="/test", filterName="test",
+    )
+
+    # then
+    response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
+    response["subscriptionFilters"].should.have.length_of(0)
+
+
+@mock_lambda
+@mock_logs
+def test_delete_subscription_filter_errors():
+    # given
+    region_name = "us-east-1"
+    client_lambda = boto3.client("lambda", region_name)
+    client_logs = boto3.client("logs", region_name)
+    log_group_name = "/test"
+    client_logs.create_log_group(logGroupName=log_group_name)
+    function_arn = client_lambda.create_function(
+        FunctionName="test",
+        Runtime="python3.8",
+        Role=_get_role_name(region_name),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": _get_test_zip_file()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )["FunctionArn"]
+    client_logs.put_subscription_filter(
+        logGroupName=log_group_name,
+        filterName="test",
+        filterPattern="",
+        destinationArn=function_arn,
+    )
+
+    # when
+    with assert_raises(ClientError) as e:
+        client_logs.delete_subscription_filter(
+            logGroupName="not-existing-log-group", filterName="test",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeleteSubscriptionFilter")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified log group does not exist"
+    )
+
+    # when
+    with assert_raises(ClientError) as e:
+        client_logs.delete_subscription_filter(
+            logGroupName="/test", filterName="wrong-filter-name",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeleteSubscriptionFilter")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified subscription filter does not exist."
     )
 
 
