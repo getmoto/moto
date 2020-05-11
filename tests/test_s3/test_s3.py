@@ -2154,7 +2154,7 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
     client.create_bucket(
-        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
+        Bucket="blah"
     )
 
     with assert_raises(Exception) as err:
