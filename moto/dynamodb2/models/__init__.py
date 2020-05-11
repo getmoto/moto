@@ -18,6 +18,8 @@ from moto.dynamodb2.exceptions import (
     InvalidIndexNameError,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
+    ConditionalCheckFailed,
+    TransactionCanceledException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -459,14 +461,14 @@ class Table(BaseModel):
 
         if not overwrite:
             if not get_expected(expected).expr(current):
-                raise ValueError("The conditional request failed")
+                raise ConditionalCheckFailed
             condition_op = get_filter_expression(
                 condition_expression,
                 expression_attribute_names,
                 expression_attribute_values,
             )
             if not condition_op.expr(current):
-                raise ValueError("The conditional request failed")
+                raise ConditionalCheckFailed
 
         if range_value:
             self.items[hash_value][range_value] = item
@@ -1076,14 +1078,14 @@ class DynamoDBBackend(BaseBackend):
             expected = {}
 
         if not get_expected(expected).expr(item):
-            raise ValueError("The conditional request failed")
+            raise ConditionalCheckFailed
         condition_op = get_filter_expression(
             condition_expression,
             expression_attribute_names,
             expression_attribute_values,
         )
         if not condition_op.expr(item):
-            raise ValueError("The conditional request failed")
+            raise ConditionalCheckFailed
 
         # Update does not fail on new items, so create one
         if item is None:
@@ -1136,7 +1138,7 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_values,
         )
         if not condition_op.expr(item):
-            raise ValueError("The conditional request failed")
+            raise ConditionalCheckFailed
 
         return table.delete_item(hash_value, range_value)
 
@@ -1167,8 +1169,9 @@ class DynamoDBBackend(BaseBackend):
     def transact_write_items(self, transact_items):
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
-        try:
-            for item in transact_items:
+        errors = []
+        for item in transact_items:
+            try:
                 if "ConditionCheck" in item:
                     item = item["ConditionCheck"]
                     key = item["Key"]
@@ -1188,7 +1191,7 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_values,
                     )
                     if not condition_op.expr(current):
-                        raise ValueError("The conditional request failed")
+                        raise ConditionalCheckFailed()
                 elif "Put" in item:
                     item = item["Put"]
                     attrs = item["Item"]
@@ -1247,10 +1250,13 @@ class DynamoDBBackend(BaseBackend):
                     )
                 else:
                     raise ValueError
-        except:  # noqa: E722 Do not use bare except
-            # Rollback to the original state, and reraise the error
+                errors.append(None)
+            except Exception as e:  # noqa: E722 Do not use bare except
+                errors.append(type(e).__name__)
+        if any(errors):
+            # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
-            raise
+            raise TransactionCanceledException(errors)
 
     def describe_continuous_backups(self, table_name):
         table = self.get_table(table_name)

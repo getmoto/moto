@@ -9,7 +9,12 @@ import six
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores, amzn_request_id
-from .exceptions import InvalidIndexNameError, ItemSizeTooLarge, MockValidationException
+from .exceptions import (
+    InvalidIndexNameError,
+    ItemSizeTooLarge,
+    MockValidationException,
+    TransactionCanceledException,
+)
 from moto.dynamodb2.models import dynamodb_backends, dynamo_json_dump
 
 
@@ -929,11 +934,9 @@ class DynamoHandler(BaseResponse):
         transact_items = self.body["TransactItems"]
         try:
             self.dynamodb_backend.transact_write_items(transact_items)
-        except ValueError:
-            er = "com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException"
-            return self.error(
-                er, "A condition specified in the operation could not be evaluated."
-            )
+        except TransactionCanceledException as e:
+            er = "com.amazonaws.dynamodb.v20111205#TransactionCanceledException"
+            return self.error(er, str(e))
         response = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
 
