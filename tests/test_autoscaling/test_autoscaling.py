@@ -1071,6 +1071,7 @@ def test_autoscaling_describe_policies_boto3():
     response["ScalingPolicies"][0]["PolicyName"].should.equal("test_policy_down")
 
 
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_detach_one_instance_decrement():
@@ -1096,6 +1097,19 @@ def test_detach_one_instance_decrement():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_detach = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
     instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
@@ -1111,6 +1125,9 @@ def test_detach_one_instance_decrement():
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     response["AutoScalingGroups"][0]["Instances"].should.have.length_of(1)
+    instance_to_detach.shouldnt.be.within(
+        [x["InstanceId"] for x in response["AutoScalingGroups"][0]["Instances"]]
+    )
 
     # test to ensure tag has been removed
     response = ec2_client.describe_instances(InstanceIds=[instance_to_detach])
@@ -1122,7 +1139,14 @@ def test_detach_one_instance_decrement():
     tags = response["Reservations"][0]["Instances"][0]["Tags"]
     tags.should.have.length_of(2)
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(1)
+    instance_to_detach.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_detach_one_instance():
@@ -1148,6 +1172,19 @@ def test_detach_one_instance():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_detach = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
     instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
@@ -1173,7 +1210,14 @@ def test_detach_one_instance():
     tags = response["Reservations"][0]["Instances"][0]["Tags"]
     tags.should.have.length_of(2)
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(2)
+    instance_to_detach.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_one_instance_decrement():
@@ -1199,6 +1243,19 @@ def test_standby_one_instance_decrement():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
     instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
@@ -1226,7 +1283,14 @@ def test_standby_one_instance_decrement():
             tags = instance["Tags"]
             tags.should.have.length_of(2)
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(1)
+    instance_to_standby.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_one_instance():
@@ -1252,6 +1316,19 @@ def test_standby_one_instance():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby = response["AutoScalingGroups"][0]["Instances"][0]["InstanceId"]
     instance_to_keep = response["AutoScalingGroups"][0]["Instances"][1]["InstanceId"]
@@ -1278,6 +1355,12 @@ def test_standby_one_instance():
         for instance in reservation["Instances"]:
             tags = instance["Tags"]
             tags.should.have.length_of(2)
+
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(2)
+    instance_to_standby.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
 
 @mock_elb
@@ -1338,8 +1421,12 @@ def test_standby_elb_update():
 
     response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
     list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(2)
+    instance_to_standby.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
 
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_terminate_instance_decrement():
@@ -1365,6 +1452,18 @@ def test_standby_terminate_instance_decrement():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby_terminate = response["AutoScalingGroups"][0]["Instances"][0][
@@ -1409,7 +1508,14 @@ def test_standby_terminate_instance_decrement():
         "terminated"
     )
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(1)
+    instance_to_standby_terminate.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_terminate_instance_no_decrement():
@@ -1435,6 +1541,18 @@ def test_standby_terminate_instance_no_decrement():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby_terminate = response["AutoScalingGroups"][0]["Instances"][0][
@@ -1479,7 +1597,14 @@ def test_standby_terminate_instance_no_decrement():
         "terminated"
     )
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(2)
+    instance_to_standby_terminate.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_detach_instance_decrement():
@@ -1505,6 +1630,18 @@ def test_standby_detach_instance_decrement():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby_detach = response["AutoScalingGroups"][0]["Instances"][0][
@@ -1547,7 +1684,14 @@ def test_standby_detach_instance_decrement():
     response = ec2_client.describe_instances(InstanceIds=[instance_to_standby_detach])
     response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal("running")
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(1)
+    instance_to_standby_detach.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_detach_instance_no_decrement():
@@ -1573,6 +1717,18 @@ def test_standby_detach_instance_no_decrement():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby_detach = response["AutoScalingGroups"][0]["Instances"][0][
@@ -1615,7 +1771,14 @@ def test_standby_detach_instance_no_decrement():
     response = ec2_client.describe_instances(InstanceIds=[instance_to_standby_detach])
     response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal("running")
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(2)
+    instance_to_standby_detach.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_standby_exit_standby():
@@ -1641,6 +1804,18 @@ def test_standby_exit_standby():
         ],
         VPCZoneIdentifier=mocked_networking["subnet1"],
     )
+
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     instance_to_standby_exit_standby = response["AutoScalingGroups"][0]["Instances"][0][
@@ -1683,7 +1858,14 @@ def test_standby_exit_standby():
     )
     response["Reservations"][0]["Instances"][0]["State"]["Name"].should.equal("running")
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(3)
+    instance_to_standby_exit_standby.should.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_attach_one_instance():
@@ -1711,6 +1893,18 @@ def test_attach_one_instance():
         NewInstancesProtectedFromScaleIn=True,
     )
 
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     ec2 = boto3.resource("ec2", "us-east-1")
     instances_to_add = [
         x.id for x in ec2.create_instances(ImageId="", MinCount=1, MaxCount=1)
@@ -1726,6 +1920,9 @@ def test_attach_one_instance():
     instances.should.have.length_of(3)
     for instance in instances:
         instance["ProtectedFromScaleIn"].should.equal(True)
+
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(3)
 
 
 @mock_autoscaling
@@ -1948,6 +2145,7 @@ def test_terminate_instance_via_ec2_in_autoscaling_group():
     replaced_instance_id.should_not.equal(original_instance_id)
 
 
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_terminate_instance_in_auto_scaling_group_decrement():
@@ -1966,6 +2164,18 @@ def test_terminate_instance_in_auto_scaling_group_decrement():
         NewInstancesProtectedFromScaleIn=False,
     )
 
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     original_instance_id = next(
         instance["InstanceId"]
@@ -1979,7 +2189,11 @@ def test_terminate_instance_in_auto_scaling_group_decrement():
     response["AutoScalingGroups"][0]["Instances"].should.equal([])
     response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(0)
 
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(0)
 
+
+@mock_elb
 @mock_autoscaling
 @mock_ec2
 def test_terminate_instance_in_auto_scaling_group_no_decrement():
@@ -1998,6 +2212,18 @@ def test_terminate_instance_in_auto_scaling_group_no_decrement():
         NewInstancesProtectedFromScaleIn=False,
     )
 
+    elb_client = boto3.client("elb", region_name="us-east-1")
+    elb_client.create_load_balancer(
+        LoadBalancerName="my-lb",
+        Listeners=[{"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080}],
+        AvailabilityZones=["us-east-1a", "us-east-1b"],
+    )
+
+    response = client.attach_load_balancers(
+        AutoScalingGroupName="test_asg", LoadBalancerNames=["my-lb"]
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
     original_instance_id = next(
         instance["InstanceId"]
@@ -2014,3 +2240,9 @@ def test_terminate_instance_in_auto_scaling_group_no_decrement():
     )
     replaced_instance_id.should_not.equal(original_instance_id)
     response["AutoScalingGroups"][0]["DesiredCapacity"].should.equal(1)
+
+    response = elb_client.describe_load_balancers(LoadBalancerNames=["my-lb"])
+    list(response["LoadBalancerDescriptions"][0]["Instances"]).should.have.length_of(1)
+    original_instance_id.shouldnt.be.within(
+        [x["InstanceId"] for x in response["LoadBalancerDescriptions"][0]["Instances"]]
+    )
