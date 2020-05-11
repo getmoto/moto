@@ -2155,10 +2155,7 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
     bucket = conn.create_bucket("foobar")
 
     with assert_raises(S3ResponseError) as ce:
-        bucket.cancel_multipart_upload(
-            key_name="foobar",
-            upload_id="dummy_upload_id"
-        )
+        bucket.cancel_multipart_upload(key_name="foobar", upload_id="dummy_upload_id")
 
 
 @mock_s3
