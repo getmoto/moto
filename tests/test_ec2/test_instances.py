@@ -1125,6 +1125,111 @@ def test_run_instance_with_keypair():
     instance.key_name.should.equal("keypair_name")
 
 
+@mock_ec2
+def test_run_instance_with_block_device_mappings():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [{"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}}],
+    }
+
+    ec2_client.run_instances(**kwargs)
+
+    instances = ec2_client.describe_instances()
+    volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
+        "Ebs"
+    ]
+
+    volumes = ec2_client.describe_volumes(VolumeIds=[volume["VolumeId"]])
+    volumes["Volumes"][0]["Size"].should.equal(50)
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_missing_ebs():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [{"DeviceName": "/dev/sda2"}],
+    }
+    with assert_raises(ClientError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    ex.exception.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter ebs"
+    )
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_missing_size():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [
+            {"DeviceName": "/dev/sda2", "Ebs": {"VolumeType": "standard"}}
+        ],
+    }
+    with assert_raises(ClientError) as ex:
+        ec2_client.run_instances(**kwargs)
+
+    ex.exception.response["Error"]["Code"].should.equal("MissingParameter")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "The request must contain the parameter size or snapshotId"
+    )
+
+
+@mock_ec2
+def test_run_instance_with_block_device_mappings_from_snapshot():
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
+    volume_details = {
+        "AvailabilityZone": "1a",
+        "Size": 30,
+    }
+
+    volume = ec2_resource.create_volume(**volume_details)
+    snapshot = volume.create_snapshot()
+    kwargs = {
+        "MinCount": 1,
+        "MaxCount": 1,
+        "ImageId": "ami-d3adb33f",
+        "KeyName": "the_key",
+        "InstanceType": "t1.micro",
+        "BlockDeviceMappings": [
+            {"DeviceName": "/dev/sda2", "Ebs": {"SnapshotId": snapshot.snapshot_id}}
+        ],
+    }
+
+    ec2_client.run_instances(**kwargs)
+
+    instances = ec2_client.describe_instances()
+    volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
+        "Ebs"
+    ]
+
+    volumes = ec2_client.describe_volumes(VolumeIds=[volume["VolumeId"]])
+
+    volumes["Volumes"][0]["Size"].should.equal(30)
+    volumes["Volumes"][0]["SnapshotId"].should.equal(snapshot.snapshot_id)
+
+
 @mock_ec2_deprecated
 def test_describe_instance_status_no_instances():
     conn = boto.connect_ec2("the_key", "the_secret")

@@ -541,6 +541,12 @@ class Instance(TaggedEC2Resource, BotoInstance):
             # worst case we'll get IP address exaustion... rarely
             pass
 
+    def add_block_device(self, size, device_path, snapshot_id=None, encrypted=False):
+        volume = self.ec2_backend.create_volume(
+            size, self.region_name, snapshot_id, encrypted
+        )
+        self.ec2_backend.attach_volume(volume.id, self.id, device_path)
+
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
@@ -842,7 +848,18 @@ class InstanceBackend(object):
             )
             new_reservation.instances.append(new_instance)
             new_instance.add_tags(instance_tags)
-            new_instance.setup_defaults()
+            if "block_device_mappings" in kwargs:
+                for block_device in kwargs["block_device_mappings"]:
+                    device_name = block_device["DeviceName"]
+                    volume_size = block_device["Ebs"].get("VolumeSize")
+                    snapshot_id = block_device["Ebs"].get("SnapshotId")
+                    encrypted = block_device["Ebs"].get("Encrypted", False)
+                    new_instance.add_block_device(
+                        volume_size, device_name, snapshot_id, encrypted
+                    )
+            else:
+                new_instance.setup_defaults()
+
         return new_reservation
 
     def start_instances(self, instance_ids):
