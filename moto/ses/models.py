@@ -10,6 +10,8 @@ from .exceptions import (
     MessageRejectedError,
     ConfigurationSetDoesNotExist,
     EventDestinationAlreadyExists,
+    TemplateNameAlreadyExists,
+    TemplateDoesNotExist,
 )
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -91,6 +93,7 @@ class SESBackend(BaseBackend):
         self.config_set = {}
         self.config_set_event_destination = {}
         self.event_destinations = {}
+        self.templates = {}
 
     def _is_verified_address(self, source):
         _, address = parseaddr(source)
@@ -277,5 +280,18 @@ class SESBackend(BaseBackend):
         statistics["Timestamp"] = datetime.datetime.utcnow()
         return statistics
 
+    def add_template(self, template_info):
+        template_name = template_info["template_name"]
+        if self.templates.get(template_name, None):
+            raise TemplateNameAlreadyExists("Duplicate Template Name.")
+        self.templates[template_name] = template_info
+
+    def get_template(self,template_name):
+        if not self.templates.get(template_name,None):
+            raise TemplateDoesNotExist("Invalid Template Name.")
+        return self.templates[template_name]
+
+    def list_templates(self):
+        return list(self.templates.values())
 
 ses_backend = SESBackend()

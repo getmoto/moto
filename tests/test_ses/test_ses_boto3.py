@@ -277,3 +277,49 @@ def test_create_configuration_set():
         )
 
     ex.exception.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+
+
+@mock_ses
+def test_create_ses_template():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    conn.create_template(
+        Template={
+            'TemplateName': "MyTemplate",
+            'SubjectPart': "Greetings, {{name}}!",
+            'TextPart': "Dear {{name}},"
+            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            'HtmlPart': "<h1>Hello {{name}},"
+            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+        }
+    )
+    with assert_raises(ClientError) as ex:
+        conn.create_template(
+            Template={
+                'TemplateName': "MyTemplate",
+                'SubjectPart': "Greetings, {{name}}!",
+                'TextPart': "Dear {{name}},"
+                "\r\nYour favorite animal is {{favoriteanimal}}.",
+                'HtmlPart': "<h1>Hello {{name}},"
+                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+            }
+        )
+
+    ex.exception.response["Error"]["Code"].\
+        should.equal("TemplateNameAlreadyExists")
+
+    # get a template which is already added
+    result=conn.get_template(TemplateName="MyTemplate")
+    result["Template"]["TemplateName"].should.equal("MyTemplate")
+    result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
+
+    # get a template which is not present
+    with assert_raises(ClientError) as ex:
+        conn.get_template(TemplateName="MyFakeTemplate")
+
+    ex.exception.response["Error"]["Code"].\
+        should.equal("TemplateDoesNotExist")
+
+    result = conn.list_templates()
+    result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")
+
