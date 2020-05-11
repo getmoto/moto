@@ -894,21 +894,9 @@ class InstanceBackend(object):
             if "block_device_mappings" in kwargs:
                 for block_device in kwargs["block_device_mappings"]:
                     device_name = block_device["DeviceName"]
-                    volume_size = (
-                        block_device["Ebs"].get("VolumeSize")
-                        if "Ebs" in block_device
-                        else None
-                    )
-                    snapshot_id = (
-                        block_device["Ebs"].get("SnapshotId")
-                        if "Ebs" in block_device
-                        else None
-                    )
-                    encrypted = (
-                        block_device["Ebs"].get("Encrypted")
-                        if "Ebs" in block_device
-                        else False
-                    )
+                    volume_size = block_device["Ebs"].get("VolumeSize")
+                    snapshot_id = block_device["Ebs"].get("SnapshotId")
+                    encrypted = block_device["Ebs"].get("Encrypted", False)
                     new_instance.add_block_device(
                         volume_size, device_name, snapshot_id, encrypted
                     )
