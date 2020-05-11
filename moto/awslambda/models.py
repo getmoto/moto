@@ -990,7 +990,7 @@ class LambdaBackend(BaseBackend):
     ):
         data = {
             "messageType": "DATA_MESSAGE",
-            "owner": "123456789012",
+            "owner": ACCOUNT_ID,
             "logGroup": log_group_name,
             "logStream": log_stream_name,
             "subscriptionFilters": [filter_name],
