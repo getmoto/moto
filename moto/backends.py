@@ -21,7 +21,7 @@ BACKENDS = {
     "dynamodb2": ("dynamodb2", "dynamodb_backends2"),
     "dynamodbstreams": ("dynamodbstreams", "dynamodbstreams_backends"),
     "ec2": ("ec2", "ec2_backends"),
-    "ec2_instance_connect": ("ec2_instance_connect", "ec2_instance_connect_backends"),
+    "ec2instanceconnect": ("ec2instanceconnect", "ec2instanceconnect_backends"),
     "ecr": ("ecr", "ecr_backends"),
     "ecs": ("ecs", "ecs_backends"),
     "elasticbeanstalk": ("elasticbeanstalk", "eb_backends"),

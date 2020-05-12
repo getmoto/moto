@@ -49,9 +49,7 @@ mock_dynamodbstreams = lazy_load(".dynamodbstreams", "mock_dynamodbstreams")
 mock_elasticbeanstalk = lazy_load(".elasticbeanstalk", "mock_elasticbeanstalk")
 mock_ec2 = lazy_load(".ec2", "mock_ec2")
 mock_ec2_deprecated = lazy_load(".ec2", "mock_ec2_deprecated")
-mock_ec2_instance_connect = lazy_load(
-    ".ec2_instance_connect", "mock_ec2_instance_connect"
-)
+mock_ec2instanceconnect = lazy_load(".ec2instanceconnect", "mock_ec2instanceconnect")
 mock_ecr = lazy_load(".ecr", "mock_ecr")
 mock_ecr_deprecated = lazy_load(".ecr", "mock_ecr_deprecated")
 mock_ecs = lazy_load(".ecs", "mock_ecs")

@@ -7,18 +7,18 @@ import boto3
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-alternative_service_names = {'lambda': 'awslambda'}
+alternative_service_names = {'lambda': 'awslambda', 'dynamodb': 'dynamodb2'}
 
 
 def get_moto_implementation(service_name):
     service_name = service_name.replace("-", "") if "-" in service_name else service_name
     alt_service_name = alternative_service_names[service_name] if service_name in alternative_service_names else service_name
-    if not hasattr(moto, alt_service_name):
-        return None
-    module = getattr(moto, alt_service_name)
-    if module is None:
-        return None
-    mock = getattr(module, "mock_{}".format(service_name))
+    if hasattr(moto, "mock_{}".format(alt_service_name)):
+        mock = getattr(moto, "mock_{}".format(alt_service_name))
+    elif hasattr(moto, "mock_{}".format(service_name)):
+        mock = getattr(moto, "mock_{}".format(service_name))
+    else:
+        mock = None
     if mock is None:
         return None
     backends = list(mock().backends.values())
@@ -97,12 +97,14 @@ def write_implementation_coverage_to_file(coverage):
 
             file.write("\n")
             file.write("## {}\n".format(service_name))
-            file.write("{}% implemented\n".format(percentage_implemented))
+            file.write("<details>\n")
+            file.write("<summary>{}% implemented</summary>\n\n".format(percentage_implemented))
             for op in operations:
                 if op in implemented:
                     file.write("- [X] {}\n".format(op))
                 else:
                     file.write("- [ ] {}\n".format(op))
+            file.write("</details>\n")
 
 
 if __name__ == '__main__':
