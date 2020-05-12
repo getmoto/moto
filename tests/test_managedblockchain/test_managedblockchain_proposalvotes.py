@@ -1,10 +1,14 @@
 from __future__ import unicode_literals
 
+import os
+
 import boto3
 import sure  # noqa
+from freezegun import freeze_time
+from nose import SkipTest
 
 from moto.managedblockchain.exceptions import BadRequestException
-from moto import mock_managedblockchain
+from moto import mock_managedblockchain, settings
 from . import helpers
 
 
@@ -266,6 +270,56 @@ def test_vote_on_proposal_no_greater_than():
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
     response["Proposal"]["NetworkId"].should.equal(network_id)
     response["Proposal"]["Status"].should.equal("REJECTED")
+
+
+@mock_managedblockchain
+def test_vote_on_proposal_expiredproposal():
+    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
+        raise SkipTest("Cant manipulate time in server mode")
+
+    votingpolicy = {
+        "ApprovalThresholdPolicy": {
+            "ThresholdPercentage": 50,
+            "ProposalDurationInHours": 1,
+            "ThresholdComparator": "GREATER_THAN_OR_EQUAL_TO",
+        }
+    }
+
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    with freeze_time("2015-01-01 12:00:00"):
+        # Create network - need a good network
+        response = conn.create_network(
+            Name="testnetwork1",
+            Framework="HYPERLEDGER_FABRIC",
+            FrameworkVersion="1.2",
+            FrameworkConfiguration=helpers.default_frameworkconfiguration,
+            VotingPolicy=votingpolicy,
+            MemberConfiguration=helpers.default_memberconfiguration,
+        )
+        network_id = response["NetworkId"]
+        member_id = response["MemberId"]
+
+        response = conn.create_proposal(
+            NetworkId=network_id,
+            MemberId=member_id,
+            Actions=helpers.default_policy_actions,
+        )
+
+        proposal_id = response["ProposalId"]
+
+    with freeze_time("2015-02-01 12:00:00"):
+        # Vote yes - should set status to expired
+        response = conn.vote_on_proposal(
+            NetworkId=network_id,
+            ProposalId=proposal_id,
+            VoterMemberId=member_id,
+            Vote="YES",
+        )
+
+        # Get proposal details - should be EXPIRED
+        response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
+        response["Proposal"]["Status"].should.equal("EXPIRED")
 
 
 @mock_managedblockchain

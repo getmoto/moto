@@ -291,10 +291,19 @@ class ManagedBlockchainResponse(BaseResponse):
 
     def _memberid_response(self, request, full_url, headers):
         method = request.method
+        if hasattr(request, "body"):
+            body = request.body
+        else:
+            body = request.data
         network_id = networkid_from_managedblockchain_url(full_url)
         member_id = memberid_from_managedblockchain_url(full_url)
         if method == "GET":
             return self._memberid_response_get(network_id, member_id, headers)
+        elif method == "PATCH":
+            json_body = json.loads(body.decode("utf-8"))
+            return self._memberid_response_patch(
+                network_id, member_id, json_body, headers
+            )
         elif method == "DELETE":
             return self._memberid_response_delete(network_id, member_id, headers)
 
@@ -303,6 +312,13 @@ class ManagedBlockchainResponse(BaseResponse):
         response = json.dumps({"Member": member.get_format()})
         headers["content-type"] = "application/json"
         return 200, headers, response
+
+    def _memberid_response_patch(self, network_id, member_id, json_body, headers):
+        logpublishingconfiguration = json_body["LogPublishingConfiguration"]
+        self.backend.update_member(
+            network_id, member_id, logpublishingconfiguration,
+        )
+        return 200, headers, ""
 
     def _memberid_response_delete(self, network_id, member_id, headers):
         self.backend.delete_member(network_id, member_id)

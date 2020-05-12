@@ -77,6 +77,25 @@ def test_create_another_member():
     response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
     response["Member"]["Name"].should.equal("testmember2")
 
+    # Update member
+    logconfignewenabled = not helpers.default_memberconfiguration[
+        "LogPublishingConfiguration"
+    ]["Fabric"]["CaLogs"]["Cloudwatch"]["Enabled"]
+    logconfignew = {
+        "Fabric": {"CaLogs": {"Cloudwatch": {"Enabled": logconfignewenabled}}}
+    }
+    conn.update_member(
+        NetworkId=network_id,
+        MemberId=member_id2,
+        LogPublishingConfiguration=logconfignew,
+    )
+
+    # Get member 2 details
+    response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
+    response["Member"]["LogPublishingConfiguration"]["Fabric"]["CaLogs"]["Cloudwatch"][
+        "Enabled"
+    ].should.equal(logconfignewenabled)
+
 
 @mock_managedblockchain
 def test_create_another_member_withopts():
@@ -507,4 +526,41 @@ def test_delete_member_badmember():
 
     response = conn.delete_member.when.called_with(
         NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+    ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+
+
+@mock_managedblockchain
+def test_update_member_badnetwork():
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    response = conn.update_member.when.called_with(
+        NetworkId="n-ABCDEFGHIJKLMNOP0123456789",
+        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        LogPublishingConfiguration=helpers.default_memberconfiguration[
+            "LogPublishingConfiguration"
+        ],
+    ).should.throw(Exception, "Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+
+
+@mock_managedblockchain
+def test_update_member_badmember():
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    # Create network - need a good network
+    response = conn.create_network(
+        Name="testnetwork1",
+        Framework="HYPERLEDGER_FABRIC",
+        FrameworkVersion="1.2",
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
+    )
+    network_id = response["NetworkId"]
+
+    response = conn.update_member.when.called_with(
+        NetworkId=network_id,
+        MemberId="m-ABCDEFGHIJKLMNOP0123456789",
+        LogPublishingConfiguration=helpers.default_memberconfiguration[
+            "LogPublishingConfiguration"
+        ],
     ).should.throw(Exception, "Member m-ABCDEFGHIJKLMNOP0123456789 not found")

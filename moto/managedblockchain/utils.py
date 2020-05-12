@@ -7,11 +7,10 @@ from six.moves.urllib.parse import urlparse
 
 def region_from_managedblckchain_url(url):
     domain = urlparse(url).netloc
-
+    region = "us-east-1"
     if "." in domain:
-        return domain.split(".")[1]
-    else:
-        return "us-east-1"
+        region = domain.split(".")[1]
+    return region
 
 
 def networkid_from_managedblockchain_url(full_url):
@@ -87,14 +86,13 @@ def number_of_members_in_network(members, networkid):
 
 
 def admin_password_ok(password):
-    # I thought I needed to define different exceptions?
     if not re.search("[a-z]", password):
-        return "INVALID"
+        return False
     elif not re.search("[A-Z]", password):
-        return "INVALID"
+        return False
     elif not re.search("[0-9]", password):
-        return "INVALID"
+        return False
     elif re.search("['\"@\\/]", password):
-        return "INVALID"
+        return False
     else:
-        return "OK"
+        return True

@@ -390,6 +390,11 @@ class ManagedBlockchainMember(BaseModel):
     def delete(self):
         self.status = "DELETED"
 
+    def update(self, logpublishingconfiguration):
+        self.member_configuration[
+            "LogPublishingConfiguration"
+        ] = logpublishingconfiguration
+
 
 class ManagedBlockchainBackend(BaseBackend):
     def __init__(self, region_name):
@@ -669,7 +674,7 @@ class ManagedBlockchainBackend(BaseBackend):
         memberadminpassword = member_configuration["FrameworkConfiguration"]["Fabric"][
             "AdminPassword"
         ]
-        if admin_password_ok(memberadminpassword) == "INVALID":
+        if admin_password_ok(memberadminpassword) is False:
             raise BadRequestException("CreateMember", "Invalid request body")
 
         member_id = get_member_id()
@@ -734,8 +739,19 @@ class ManagedBlockchainBackend(BaseBackend):
 
         self.members.get(memberid).delete()
 
+    def update_member(self, networkid, memberid, logpublishingconfiguration):
+        # Check if network exists
+        if networkid not in self.networks:
+            raise ResourceNotFoundException(
+                "UpdateMember", "Network {0} not found.".format(networkid)
+            )
 
-#    def update_member
+        if memberid not in self.members:
+            raise ResourceNotFoundException(
+                "UpdateMember", "Member {0} not found.".format(memberid)
+            )
+
+        self.members.get(memberid).update(logpublishingconfiguration)
 
 
 managedblockchain_backends = {}
