@@ -5,6 +5,8 @@ import time
 from collections import defaultdict
 import copy
 import datetime
+from gzip import GzipFile
+
 import docker
 import docker.errors
 import hashlib
@@ -980,6 +982,28 @@ class LambdaBackend(BaseBackend):
                 for item in items
             ]
         }
+        func = self._lambdas.get_arn(function_arn)
+        return func.invoke(json.dumps(event), {}, {})
+
+    def send_log_event(
+        self, function_arn, filter_name, log_group_name, log_stream_name, log_events
+    ):
+        data = {
+            "messageType": "DATA_MESSAGE",
+            "owner": ACCOUNT_ID,
+            "logGroup": log_group_name,
+            "logStream": log_stream_name,
+            "subscriptionFilters": [filter_name],
+            "logEvents": log_events,
+        }
+
+        output = io.BytesIO()
+        with GzipFile(fileobj=output, mode="w") as f:
+            f.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
+        payload_gz_encoded = base64.b64encode(output.getvalue()).decode("utf-8")
+
+        event = {"awslogs": {"data": payload_gz_encoded}}
+
         func = self._lambdas.get_arn(function_arn)
         return func.invoke(json.dumps(event), {}, {})
 

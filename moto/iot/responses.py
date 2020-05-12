@@ -535,7 +535,7 @@ class IoTResponse(BaseResponse):
         # max_results = self._get_int_param("maxResults")
         parent_group = self._get_param("parentGroup")
         name_prefix_filter = self._get_param("namePrefixFilter")
-        recursive = self._get_param("recursive")
+        recursive = self._get_bool_param("recursive")
         thing_groups = self.iot_backend.list_thing_groups(
             parent_group=parent_group,
             name_prefix_filter=name_prefix_filter,

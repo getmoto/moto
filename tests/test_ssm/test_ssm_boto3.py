@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import string
+
 import boto3
 import botocore.exceptions
 import sure  # noqa
@@ -297,6 +299,30 @@ def test_get_parameter():
     response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
     response["Parameter"]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
+
+
+@mock_ssm
+def test_get_parameters_errors():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    ssm_parameters = {name: "value" for name in string.ascii_lowercase[:11]}
+
+    for name, value in ssm_parameters.items():
+        client.put_parameter(Name=name, Value=value, Type="String")
+
+    with assert_raises(ClientError) as e:
+        client.get_parameters(Names=list(ssm_parameters.keys()))
+    ex = e.exception
+    ex.operation_name.should.equal("GetParameters")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value '[{}]' at 'names' failed to satisfy constraint: "
+        "Member must have length less than or equal to 10.".format(
+            ", ".join(ssm_parameters.keys())
+        )
     )
 
 

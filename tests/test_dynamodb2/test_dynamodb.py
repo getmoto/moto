@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+from datetime import datetime
 from decimal import Decimal
 
 import boto
@@ -2047,6 +2048,141 @@ def test_set_ttl():
 
     resp = client.describe_time_to_live(TableName="test1")
     resp["TimeToLiveDescription"]["TimeToLiveStatus"].should.equal("DISABLED")
+
+
+@mock_dynamodb2
+def test_describe_continuous_backups():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.describe_continuous_backups(TableName=table_name)
+
+    # then
+    response["ContinuousBackupsDescription"].should.equal(
+        {
+            "ContinuousBackupsStatus": "ENABLED",
+            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_describe_continuous_backups_errors():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # when
+    with assert_raises(Exception) as e:
+        client.describe_continuous_backups(TableName="not-existing-table")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeContinuousBackups")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
+    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
+
+
+@mock_dynamodb2
+def test_update_continuous_backups():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
+        "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    earliest_datetime = point_in_time["EarliestRestorableDateTime"]
+    earliest_datetime.should.be.a(datetime)
+    latest_datetime = point_in_time["LatestRestorableDateTime"]
+    latest_datetime.should.be.a(datetime)
+    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+
+    # when
+    # a second update should not change anything
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
+        "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    point_in_time["EarliestRestorableDateTime"].should.equal(earliest_datetime)
+    point_in_time["LatestRestorableDateTime"].should.equal(latest_datetime)
+    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": False},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"].should.equal(
+        {
+            "ContinuousBackupsStatus": "ENABLED",
+            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_continuous_backups_errors():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # when
+    with assert_raises(Exception) as e:
+        client.update_continuous_backups(
+            TableName="not-existing-table",
+            PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("UpdateContinuousBackups")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
+    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
 
 
 # https://github.com/spulec/moto/issues/1043
@@ -5029,3 +5165,81 @@ def test_update_item_atomic_counter_return_values():
         "v" in response["Attributes"]
     ), "v has been updated, and should be returned here"
     response["Attributes"]["v"]["N"].should.equal("8")
+
+
+@mock_dynamodb2
+def test_update_item_atomic_counter_from_zero():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    key = {"t_id": {"S": "item1"}}
+
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add n_i :inc1, n_f :inc2",
+        ExpressionAttributeValues={":inc1": {"N": "1.2"}, ":inc2": {"N": "-0.5"}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["n_i"]["N"] == "1.2"
+    assert updated_item["n_f"]["N"] == "-0.5"
+
+
+@mock_dynamodb2
+def test_update_item_add_to_non_existent_set():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    key = {"t_id": {"S": "item1"}}
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add s_i :s1",
+        ExpressionAttributeValues={":s1": {"SS": ["hello"]}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["s_i"]["SS"] == ["hello"]
+
+
+@mock_dynamodb2
+def test_update_item_add_to_non_existent_number_set():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    key = {"t_id": {"S": "item1"}}
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add s_i :s1",
+        ExpressionAttributeValues={":s1": {"NS": ["3"]}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["s_i"]["NS"] == ["3"]

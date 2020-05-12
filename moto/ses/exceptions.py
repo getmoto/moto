@@ -7,3 +7,21 @@ class MessageRejectedError(RESTError):
 
     def __init__(self, message):
         super(MessageRejectedError, self).__init__("MessageRejected", message)
+
+
+class ConfigurationSetDoesNotExist(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ConfigurationSetDoesNotExist, self).__init__(
+            "ConfigurationSetDoesNotExist", message
+        )
+
+
+class EventDestinationAlreadyExists(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(EventDestinationAlreadyExists, self).__init__(
+            "EventDestinationAlreadyExists", message
+        )

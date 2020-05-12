@@ -316,6 +316,12 @@ class Table(BaseModel):
         }
         self.set_stream_specification(streams)
         self.lambda_event_source_mappings = {}
+        self.continuous_backups = {
+            "ContinuousBackupsStatus": "ENABLED",  # One of 'ENABLED'|'DISABLED', it's enabled by default
+            "PointInTimeRecoveryDescription": {
+                "PointInTimeRecoveryStatus": "DISABLED"  # One of 'ENABLED'|'DISABLED'
+            },
+        }
 
     @classmethod
     def create_from_cloudformation_json(
@@ -1281,6 +1287,33 @@ class DynamoDBBackend(BaseBackend):
             # Rollback to the original state, and reraise the error
             self.tables = original_table_state
             raise
+
+    def describe_continuous_backups(self, table_name):
+        table = self.get_table(table_name)
+
+        return table.continuous_backups
+
+    def update_continuous_backups(self, table_name, point_in_time_spec):
+        table = self.get_table(table_name)
+
+        if (
+            point_in_time_spec["PointInTimeRecoveryEnabled"]
+            and table.continuous_backups["PointInTimeRecoveryDescription"][
+                "PointInTimeRecoveryStatus"
+            ]
+            == "DISABLED"
+        ):
+            table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                "PointInTimeRecoveryStatus": "ENABLED",
+                "EarliestRestorableDateTime": unix_time(),
+                "LatestRestorableDateTime": unix_time(),
+            }
+        elif not point_in_time_spec["PointInTimeRecoveryEnabled"]:
+            table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                "PointInTimeRecoveryStatus": "DISABLED"
+            }
+
+        return table.continuous_backups
 
     ######################
     # LIST of methods where the logic completely resides in responses.py

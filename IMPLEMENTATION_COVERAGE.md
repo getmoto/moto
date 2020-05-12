@@ -2468,7 +2468,7 @@
 
 ## dynamodb
 <details>
-<summary>46% implemented</summary>
+<summary>53% implemented</summary>
 
 - [X] batch_get_item
 - [X] batch_write_item
@@ -2479,7 +2479,7 @@
 - [X] delete_item
 - [X] delete_table
 - [ ] describe_backup
-- [ ] describe_continuous_backups
+- [X] describe_continuous_backups
 - [ ] describe_contributor_insights
 - [ ] describe_endpoints
 - [ ] describe_global_table
@@ -2500,10 +2500,10 @@
 - [ ] restore_table_to_point_in_time
 - [X] scan
 - [X] tag_resource
-- [ ] transact_get_items
+- [X] transact_get_items
 - [X] transact_write_items
 - [X] untag_resource
-- [ ] update_continuous_backups
+- [X] update_continuous_backups
 - [ ] update_contributor_insights
 - [ ] update_global_table
 - [ ] update_global_table_settings
@@ -5195,7 +5195,7 @@
 
 ## logs
 <details>
-<summary>35% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -5208,7 +5208,7 @@
 - [ ] delete_metric_filter
 - [ ] delete_resource_policy
 - [X] delete_retention_policy
-- [ ] delete_subscription_filter
+- [X] delete_subscription_filter
 - [ ] describe_destinations
 - [ ] describe_export_tasks
 - [X] describe_log_groups
@@ -5216,7 +5216,7 @@
 - [ ] describe_metric_filters
 - [ ] describe_queries
 - [ ] describe_resource_policies
-- [ ] describe_subscription_filters
+- [X] describe_subscription_filters
 - [ ] disassociate_kms_key
 - [X] filter_log_events
 - [X] get_log_events
@@ -5230,7 +5230,7 @@
 - [ ] put_metric_filter
 - [ ] put_resource_policy
 - [X] put_retention_policy
-- [ ] put_subscription_filter
+- [X] put_subscription_filter
 - [ ] start_query
 - [ ] stop_query
 - [X] tag_log_group
@@ -5287,21 +5287,21 @@
 
 ## managedblockchain
 <details>
-<summary>0% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] create_member
-- [ ] create_network
+- [X] create_network
 - [ ] create_node
 - [ ] create_proposal
 - [ ] delete_member
 - [ ] delete_node
 - [ ] get_member
-- [ ] get_network
+- [X] get_network
 - [ ] get_node
 - [ ] get_proposal
 - [ ] list_invitations
 - [ ] list_members
-- [ ] list_networks
+- [X] list_networks
 - [ ] list_nodes
 - [ ] list_proposal_votes
 - [ ] list_proposals
@@ -7392,11 +7392,11 @@
 
 ## ses
 <details>
-<summary>14% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] clone_receipt_rule_set
-- [ ] create_configuration_set
-- [ ] create_configuration_set_event_destination
+- [X] create_configuration_set
+- [X] create_configuration_set_event_destination
 - [ ] create_configuration_set_tracking_options
 - [ ] create_custom_verification_email_template
 - [ ] create_receipt_filter
@@ -7426,7 +7426,7 @@
 - [ ] get_identity_policies
 - [ ] get_identity_verification_attributes
 - [X] get_send_quota
-- [ ] get_send_statistics
+- [X] get_send_statistics
 - [ ] get_template
 - [ ] list_configuration_sets
 - [ ] list_custom_verification_email_templates
