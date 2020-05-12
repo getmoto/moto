@@ -285,31 +285,30 @@ def test_create_ses_template():
 
     conn.create_template(
         Template={
-            'TemplateName': "MyTemplate",
-            'SubjectPart': "Greetings, {{name}}!",
-            'TextPart': "Dear {{name}},"
+            "TemplateName": "MyTemplate",
+            "SubjectPart": "Greetings, {{name}}!",
+            "TextPart": "Dear {{name}},"
             "\r\nYour favorite animal is {{favoriteanimal}}.",
-            'HtmlPart': "<h1>Hello {{name}},"
-            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+            "HtmlPart": "<h1>Hello {{name}},"
+            "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
     with assert_raises(ClientError) as ex:
         conn.create_template(
             Template={
-                'TemplateName': "MyTemplate",
-                'SubjectPart': "Greetings, {{name}}!",
-                'TextPart': "Dear {{name}},"
+                "TemplateName": "MyTemplate",
+                "SubjectPart": "Greetings, {{name}}!",
+                "TextPart": "Dear {{name}},"
                 "\r\nYour favorite animal is {{favoriteanimal}}.",
-                'HtmlPart': "<h1>Hello {{name}},"
-                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+                "HtmlPart": "<h1>Hello {{name}},"
+                "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
             }
         )
 
-    ex.exception.response["Error"]["Code"].\
-        should.equal("TemplateNameAlreadyExists")
+    ex.exception.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
 
     # get a template which is already added
-    result=conn.get_template(TemplateName="MyTemplate")
+    result = conn.get_template(TemplateName="MyTemplate")
     result["Template"]["TemplateName"].should.equal("MyTemplate")
     result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
 
@@ -317,9 +316,7 @@ def test_create_ses_template():
     with assert_raises(ClientError) as ex:
         conn.get_template(TemplateName="MyFakeTemplate")
 
-    ex.exception.response["Error"]["Code"].\
-        should.equal("TemplateDoesNotExist")
+    ex.exception.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
 
     result = conn.list_templates()
     result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")
-

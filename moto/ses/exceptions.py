@@ -40,6 +40,4 @@ class TemplateDoesNotExist(RESTError):
     code = 400
 
     def __init__(self, message):
-        super(TemplateDoesNotExist, self).__init__(
-            "TemplateDoesNotExist", message
-        )
+        super(TemplateDoesNotExist, self).__init__("TemplateDoesNotExist", message)

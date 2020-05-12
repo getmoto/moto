@@ -286,12 +286,13 @@ class SESBackend(BaseBackend):
             raise TemplateNameAlreadyExists("Duplicate Template Name.")
         self.templates[template_name] = template_info
 
-    def get_template(self,template_name):
-        if not self.templates.get(template_name,None):
+    def get_template(self, template_name):
+        if not self.templates.get(template_name, None):
             raise TemplateDoesNotExist("Invalid Template Name.")
         return self.templates[template_name]
 
     def list_templates(self):
         return list(self.templates.values())
+
 
 ses_backend = SESBackend()
