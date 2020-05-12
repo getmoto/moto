@@ -178,3 +178,33 @@ class LogsResponse(BaseResponse):
         tags = self._get_param("tags")
         self.logs_backend.untag_log_group(log_group_name, tags)
         return ""
+
+    def describe_subscription_filters(self):
+        log_group_name = self._get_param("logGroupName")
+
+        subscription_filters = self.logs_backend.describe_subscription_filters(
+            log_group_name
+        )
+
+        return json.dumps({"subscriptionFilters": subscription_filters})
+
+    def put_subscription_filter(self):
+        log_group_name = self._get_param("logGroupName")
+        filter_name = self._get_param("filterName")
+        filter_pattern = self._get_param("filterPattern")
+        destination_arn = self._get_param("destinationArn")
+        role_arn = self._get_param("roleArn")
+
+        self.logs_backend.put_subscription_filter(
+            log_group_name, filter_name, filter_pattern, destination_arn, role_arn
+        )
+
+        return ""
+
+    def delete_subscription_filter(self):
+        log_group_name = self._get_param("logGroupName")
+        filter_name = self._get_param("filterName")
+
+        self.logs_backend.delete_subscription_filter(log_group_name, filter_name)
+
+        return ""
