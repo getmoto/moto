@@ -377,3 +377,12 @@ class NoSystemTags(S3ClientError):
         super(NoSystemTags, self).__init__(
             "InvalidTag", "System tags cannot be added/updated by requester"
         )
+
+
+class NoSuchUpload(S3ClientError):
+    code = 404
+
+    def __init__(self):
+        super(NoSuchUpload, self).__init__(
+            "NoSuchUpload", "The specified multipart upload does not exist."
+        )
