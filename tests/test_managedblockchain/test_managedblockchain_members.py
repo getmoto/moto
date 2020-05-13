@@ -276,7 +276,7 @@ def test_create_and_delete_member():
     # Check the invitation status
     response = conn.list_invitations()
     invitations = helpers.select_invitation_id_for_network(
-        response["Invitations"], network_id, status="PENDING"
+        response["Invitations"], network_id, "PENDING"
     )
     invitations.should.have.length_of(1)
 
