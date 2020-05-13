@@ -5,6 +5,7 @@ import six
 
 from moto.core.responses import BaseResponse
 from .models import ses_backend
+from datetime import datetime
 
 
 class EmailResponse(BaseResponse):
@@ -175,6 +176,29 @@ class EmailResponse(BaseResponse):
         template = self.response_template(CREATE_CONFIGURATION_SET_EVENT_DESTINATION)
         return template.render()
 
+    def create_template(self):
+        template_data = self._get_dict_param("Template")
+        template_info = {}
+        template_info["text_part"] = template_data["._text_part"]
+        template_info["html_part"] = template_data["._html_part"]
+        template_info["template_name"] = template_data["._name"]
+        template_info["subject_part"] = template_data["._subject_part"]
+        template_info["Timestamp"] = datetime.utcnow()
+        ses_backend.add_template(template_info=template_info)
+        template = self.response_template(CREATE_TEMPLATE)
+        return template.render()
+
+    def get_template(self):
+        template_name = self._get_param("TemplateName")
+        template_data = ses_backend.get_template(template_name)
+        template = self.response_template(GET_TEMPLATE)
+        return template.render(template_data=template_data)
+
+    def list_templates(self):
+        email_templates = ses_backend.list_templates()
+        template = self.response_template(LIST_TEMPLATES)
+        return template.render(templates=email_templates)
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -324,3 +348,40 @@ CREATE_CONFIGURATION_SET_EVENT_DESTINATION = """<CreateConfigurationSetEventDest
     <RequestId>67e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </CreateConfigurationSetEventDestinationResponse>"""
+
+CREATE_TEMPLATE = """<CreateTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <CreateTemplateResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
+  </ResponseMetadata>
+</CreateTemplateResponse>"""
+
+GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+    <GetTemplateResult>
+        <Template>
+            <TemplateName>{{ template_data["template_name"] }}</TemplateName>
+            <SubjectPart>{{ template_data["subject_part"] }}</SubjectPart>
+            <HtmlPart>{{ template_data["html_part"] }}</HtmlPart>
+            <TextPart>{{ template_data["text_part"] }}</TextPart>
+        </Template>
+    </GetTemplateResult>
+    <ResponseMetadata>
+        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
+    </ResponseMetadata>
+</GetTemplateResponse>"""
+
+LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+    <ListTemplatesResult>
+        <TemplatesMetadata>
+            {% for template in templates %}
+                <Item>
+                    <Name>{{ template["template_name"] }}</Name>
+                    <CreatedTimestamp>{{ template["Timestamp"] }}</CreatedTimestamp>
+                </Item>
+            {% endfor %}
+        </TemplatesMetadata>
+    </ListTemplatesResult>
+    <ResponseMetadata>
+        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
+    </ResponseMetadata>
+</ListTemplatesResponse>"""
