@@ -79,9 +79,17 @@ def member_name_exist_in_network(members, networkid, membername):
     return membernamexists
 
 
-def number_of_members_in_network(members, networkid):
+def number_of_members_in_network(members, networkid, member_status=None):
     return len(
-        [membid for membid in members if members.get(membid).network_id == networkid]
+        [
+            membid
+            for membid in members
+            if members.get(membid).network_id == networkid
+            and (
+                member_status is None
+                or members.get(membid).member_status == member_status
+            )
+        ]
     )
 
 

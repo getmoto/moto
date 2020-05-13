@@ -137,6 +137,30 @@ def test_create_proposal_badinvitationacctid():
 
 
 @mock_managedblockchain
+def test_create_proposal_badremovalmemid():
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    # Must be 12 digits
+    actions = {"Removals": [{"MemberId": "m-ABCDEFGHIJKLMNOP0123456789"}]}
+
+    # Create network - need a good network
+    response = conn.create_network(
+        Name="testnetwork1",
+        Framework="HYPERLEDGER_FABRIC",
+        FrameworkVersion="1.2",
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
+    )
+    network_id = response["NetworkId"]
+    member_id = response["MemberId"]
+
+    response = conn.create_proposal.when.called_with(
+        NetworkId=network_id, MemberId=member_id, Actions=actions,
+    ).should.throw(Exception, "Member ID format specified in proposal is not valid")
+
+
+@mock_managedblockchain
 def test_list_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 

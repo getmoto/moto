@@ -24,6 +24,10 @@ default_memberconfiguration = {
 
 default_policy_actions = {"Invitations": [{"Principal": "123456789012"}]}
 
+multiple_policy_actions = {
+    "Invitations": [{"Principal": "123456789012"}, {"Principal": "123456789013"}]
+}
+
 
 def member_id_exist_in_list(members, memberid):
     memberidxists = False

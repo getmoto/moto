@@ -202,6 +202,16 @@ class ManagedBlockchainProposal(BaseModel):
     def proposal_votes(self):
         return self.votes
 
+    def proposal_actions(self, action_type):
+        default_return = []
+        if action_type.lower() == "invitations":
+            if "Invitations" in self.actions:
+                return self.actions["Invitations"]
+        elif action_type.lower() == "removals":
+            if "Removals" in self.actions:
+                return self.actions["Removals"]
+        return default_return
+
     def to_dict(self):
         # Format for list_proposals
         d = {
@@ -296,6 +306,10 @@ class ManagedBlockchainInvitation(BaseModel):
     def invitation_status(self):
         return self.status
 
+    @property
+    def invitation_networkid(self):
+        return self.networkid
+
     def to_dict(self):
         d = {
             "InvitationId": self.id,
@@ -320,6 +334,9 @@ class ManagedBlockchainInvitation(BaseModel):
 
     def reject_invitation(self):
         self.status = "REJECTED"
+
+    def set_network_status(self, network_status):
+        self.networkstatus = network_status
 
 
 class ManagedBlockchainMember(BaseModel):
@@ -489,14 +506,23 @@ class ManagedBlockchainBackend(BaseBackend):
                 "CreateProposal", "Member {0} not found.".format(memberid)
             )
 
-        # TODO Handle Removals
-        # TODO Cannot have both Invitations and Removals
-        # Invitations is an array, not sure if mutiple could actually be sent
-        if re.match("[0-9]{12}", actions["Invitations"][0]["Principal"]) is None:
-            raise InvalidRequestException(
-                "CreateProposal",
-                "Account ID format specified in proposal is not valid.",
-            )
+        # CLI docs say that Invitations and Removals cannot both be passed - but it does
+        # not throw an error and can be performed
+        if "Invitations" in actions:
+            for propinvitation in actions["Invitations"]:
+                if re.match("[0-9]{12}", propinvitation["Principal"]) is None:
+                    raise InvalidRequestException(
+                        "CreateProposal",
+                        "Account ID format specified in proposal is not valid.",
+                    )
+
+        if "Removals" in actions:
+            for propmember in actions["Removals"]:
+                if propmember["MemberId"] not in self.members:
+                    raise InvalidRequestException(
+                        "CreateProposal",
+                        "Member ID format specified in proposal is not valid.",
+                    )
 
         ## Generate proposal ID
         proposal_id = get_proposal_id()
@@ -578,22 +604,33 @@ class ManagedBlockchainBackend(BaseBackend):
             votermemberid, self.members.get(votermemberid).name, vote.upper()
         ):
             if self.proposals.get(proposalid).proposal_status == "APPROVED":
-                ## Generate invitation
-                invitation_id = get_invitation_id()
-                self.invitations[invitation_id] = ManagedBlockchainInvitation(
-                    id=invitation_id,
-                    networkid=networkid,
-                    networkname=self.networks.get(networkid).network_name,
-                    networkframework=self.networks.get(networkid).network_framework,
-                    networkframeworkversion=self.networks.get(
-                        networkid
-                    ).network_framework_version,
-                    networkcreationdate=self.networks.get(
-                        networkid
-                    ).network_creationdate,
-                    region=self.region_name,
-                    networkdescription=self.networks.get(networkid).network_description,
-                )
+                ## Generate invitations
+                for propinvitation in self.proposals.get(proposalid).proposal_actions(
+                    "Invitations"
+                ):
+                    invitation_id = get_invitation_id()
+                    self.invitations[invitation_id] = ManagedBlockchainInvitation(
+                        id=invitation_id,
+                        networkid=networkid,
+                        networkname=self.networks.get(networkid).network_name,
+                        networkframework=self.networks.get(networkid).network_framework,
+                        networkframeworkversion=self.networks.get(
+                            networkid
+                        ).network_framework_version,
+                        networkcreationdate=self.networks.get(
+                            networkid
+                        ).network_creationdate,
+                        region=self.region_name,
+                        networkdescription=self.networks.get(
+                            networkid
+                        ).network_description,
+                    )
+
+                ## Delete members
+                for propmember in self.proposals.get(proposalid).proposal_actions(
+                    "Removals"
+                ):
+                    self.delete_member(networkid, propmember["MemberId"])
 
     def list_proposal_votes(self, networkid, proposalid):
         # Check if network exists
@@ -738,6 +775,21 @@ class ManagedBlockchainBackend(BaseBackend):
             )
 
         self.members.get(memberid).delete()
+
+        # Is this the last member in the network? (all set to DELETED)
+        if number_of_members_in_network(
+            self.members, networkid, member_status="DELETED"
+        ) == len(self.members):
+            # Set network status to DELETED for all invitations
+            for invitation_id in self.invitations:
+                if (
+                    self.invitations.get(invitation_id).invitation_networkid
+                    == networkid
+                ):
+                    self.invitations.get(invitation_id).set_network_status("DELETED")
+
+            # Remove network
+            del self.networks[networkid]
 
     def update_member(self, networkid, memberid, logpublishingconfiguration):
         # Check if network exists
