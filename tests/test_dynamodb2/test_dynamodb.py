@@ -4434,13 +4434,8 @@ def test_transact_write_items_put_conditional_expressions():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4529,13 +4524,8 @@ def test_transact_write_items_conditioncheck_fails():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
 
     # Assert the original email address is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
@@ -4631,13 +4621,8 @@ def test_transact_write_items_delete_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4709,13 +4694,8 @@ def test_transact_write_items_update_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -5243,3 +5223,48 @@ def test_update_item_add_to_non_existent_number_set():
     )
     updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
     assert updated_item["s_i"]["NS"] == ["3"]
+
+
+@mock_dynamodb2
+def test_transact_write_items_fails_with_transaction_canceled_exception():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert one item
+    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    # Update two items, the one that exists and another that doesn't
+    with assert_raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": "test-table",
+                        "UpdateExpression": "SET #k = :v",
+                        "ConditionExpression": "attribute_exists(id)",
+                        "ExpressionAttributeNames": {"#k": "key"},
+                        "ExpressionAttributeValues": {":v": {"S": "value"}},
+                    }
+                },
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "doesnotexist"}},
+                        "TableName": "test-table",
+                        "UpdateExpression": "SET #e = :v",
+                        "ConditionExpression": "attribute_exists(id)",
+                        "ExpressionAttributeNames": {"#e": "key"},
+                        "ExpressionAttributeValues": {":v": {"S": "value"}},
+                    }
+                },
+            ]
+        )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]"
+    )
