@@ -832,6 +832,42 @@ class DynamoDBBackend(BaseBackend):
                 required_table = self.tables[table]
         return required_table.tags
 
+    def list_tables(self, limit, exclusive_start_table_name):
+        all_tables = list(self.tables.keys())
+
+        if exclusive_start_table_name:
+            try:
+                last_table_index = all_tables.index(exclusive_start_table_name)
+            except ValueError:
+                start = len(all_tables)
+            else:
+                start = last_table_index + 1
+        else:
+            start = 0
+
+        if limit:
+            tables = all_tables[start : start + limit]
+        else:
+            tables = all_tables[start:]
+
+        if limit and len(all_tables) > start + limit:
+            return tables, tables[-1]
+        return tables, None
+
+    def describe_table(self, name):
+        table = self.tables[name]
+        return table.describe(base_key="Table")
+
+    def update_table(self, name, global_index, throughput, stream_spec):
+        table = self.get_table(name)
+        if global_index:
+            table = self.update_table_global_indexes(name, global_index)
+        if throughput:
+            table = self.update_table_throughput(name, throughput)
+        if stream_spec:
+            table = self.update_table_streams(name, stream_spec)
+        return table
+
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
         table.throughput = throughput
@@ -1142,7 +1178,7 @@ class DynamoDBBackend(BaseBackend):
 
         return table.delete_item(hash_value, range_value)
 
-    def update_ttl(self, table_name, ttl_spec):
+    def update_time_to_live(self, table_name, ttl_spec):
         table = self.tables.get(table_name)
         if table is None:
             raise JsonRESTError("ResourceNotFound", "Table not found")
@@ -1159,7 +1195,7 @@ class DynamoDBBackend(BaseBackend):
             table.ttl["TimeToLiveStatus"] = "DISABLED"
         table.ttl["AttributeName"] = ttl_spec["AttributeName"]
 
-    def describe_ttl(self, table_name):
+    def describe_time_to_live(self, table_name):
         table = self.tables.get(table_name)
         if table is None:
             raise JsonRESTError("ResourceNotFound", "Table not found")
@@ -1284,6 +1320,21 @@ class DynamoDBBackend(BaseBackend):
             }
 
         return table.continuous_backups
+
+    ######################
+    # LIST of methods where the logic completely resides in responses.py
+    # Duplicated here so that the implementation coverage script is aware
+    # TODO: Move logic here
+    ######################
+
+    def batch_get_item(self):
+        pass
+
+    def batch_write_item(self):
+        pass
+
+    def transact_get_items(self):
+        pass
 
 
 dynamodb_backends = {}

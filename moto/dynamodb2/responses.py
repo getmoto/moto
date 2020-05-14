@@ -97,27 +97,14 @@ class DynamoHandler(BaseResponse):
     def list_tables(self):
         body = self.body
         limit = body.get("Limit", 100)
-        all_tables = list(self.dynamodb_backend.tables.keys())
-
         exclusive_start_table_name = body.get("ExclusiveStartTableName")
-        if exclusive_start_table_name:
-            try:
-                last_table_index = all_tables.index(exclusive_start_table_name)
-            except ValueError:
-                start = len(all_tables)
-            else:
-                start = last_table_index + 1
-        else:
-            start = 0
-
-        if limit:
-            tables = all_tables[start : start + limit]
-        else:
-            tables = all_tables[start:]
+        tables, last_eval = self.dynamodb_backend.list_tables(
+            limit, exclusive_start_table_name
+        )
 
         response = {"TableNames": tables}
-        if limit and len(all_tables) > start + limit:
-            response["LastEvaluatedTableName"] = tables[-1]
+        if last_eval:
+            response["LastEvaluatedTableName"] = last_eval
 
         return dynamo_json_dump(response)
 
@@ -237,33 +224,29 @@ class DynamoHandler(BaseResponse):
 
     def update_table(self):
         name = self.body["TableName"]
-        table = self.dynamodb_backend.get_table(name)
-        if "GlobalSecondaryIndexUpdates" in self.body:
-            table = self.dynamodb_backend.update_table_global_indexes(
-                name, self.body["GlobalSecondaryIndexUpdates"]
+        global_index = self.body.get("GlobalSecondaryIndexUpdates", None)
+        throughput = self.body.get("ProvisionedThroughput", None)
+        stream_spec = self.body.get("StreamSpecification", None)
+        try:
+            table = self.dynamodb_backend.update_table(
+                name=name,
+                global_index=global_index,
+                throughput=throughput,
+                stream_spec=stream_spec,
             )
-        if "ProvisionedThroughput" in self.body:
-            throughput = self.body["ProvisionedThroughput"]
-            table = self.dynamodb_backend.update_table_throughput(name, throughput)
-        if "StreamSpecification" in self.body:
-            try:
-                table = self.dynamodb_backend.update_table_streams(
-                    name, self.body["StreamSpecification"]
-                )
-            except ValueError:
-                er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
-                return self.error(er, "Cannot enable stream")
-
-        return dynamo_json_dump(table.describe())
+            return dynamo_json_dump(table.describe())
+        except ValueError:
+            er = "com.amazonaws.dynamodb.v20111205#ResourceInUseException"
+            return self.error(er, "Cannot enable stream")
 
     def describe_table(self):
         name = self.body["TableName"]
         try:
-            table = self.dynamodb_backend.tables[name]
+            table = self.dynamodb_backend.describe_table(name)
+            return dynamo_json_dump(table)
         except KeyError:
             er = "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
             return self.error(er, "Requested resource not found")
-        return dynamo_json_dump(table.describe(base_key="Table"))
 
     def put_item(self):
         name = self.body["TableName"]
@@ -855,14 +838,14 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         ttl_spec = self.body["TimeToLiveSpecification"]
 
-        self.dynamodb_backend.update_ttl(name, ttl_spec)
+        self.dynamodb_backend.update_time_to_live(name, ttl_spec)
 
         return json.dumps({"TimeToLiveSpecification": ttl_spec})
 
     def describe_time_to_live(self):
         name = self.body["TableName"]
 
-        ttl_spec = self.dynamodb_backend.describe_ttl(name)
+        ttl_spec = self.dynamodb_backend.describe_time_to_live(name)
 
         return json.dumps({"TimeToLiveDescription": ttl_spec})
 
