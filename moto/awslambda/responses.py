@@ -178,7 +178,7 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         qualifier = self._get_param("qualifier")
 
-        response_header, payload = self.lambda_backend.invoke(
+        payload = self.lambda_backend.invoke(
             function_name, qualifier, self.body, self.headers, response_headers
         )
         if payload:
@@ -187,6 +187,8 @@ class LambdaResponse(BaseResponse):
             elif request.headers.get("X-Amz-Invocation-Type") == "DryRun":
                 status_code = 204
             else:
+                if request.headers.get("X-Amz-Log-Type") != "Tail":
+                    del response_headers["x-amz-log-result"]
                 status_code = 200
             return status_code, response_headers, payload
         else:
