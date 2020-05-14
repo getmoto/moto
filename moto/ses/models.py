@@ -203,7 +203,7 @@ class SESBackend(BaseBackend):
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
             _, source_email_address = parseaddr(source)
-            if source_email_address not in self.addresses:
+            if not self._is_verified_address(source_email_address):
                 raise MessageRejectedError(
                     "Did not have authority to send from email %s"
                     % source_email_address
@@ -216,7 +216,7 @@ class SESBackend(BaseBackend):
                 raise MessageRejectedError("Source not specified")
 
             _, source_email_address = parseaddr(message["from"])
-            if source_email_address not in self.addresses:
+            if not self._is_verified_address(source_email_address):
                 raise MessageRejectedError(
                     "Did not have authority to send from email %s"
                     % source_email_address

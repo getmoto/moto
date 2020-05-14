@@ -141,19 +141,7 @@ def test_send_html_email():
 def test_send_raw_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    message = MIMEMultipart()
-    message["Subject"] = "Test"
-    message["From"] = "test@example.com"
-    message["To"] = "to@example.com, foo@example.com"
-
-    # Message body
-    part = MIMEText("test file attached")
-    message.attach(part)
-
-    # Attachment
-    part = MIMEText("contents of test file here")
-    part.add_header("Content-Disposition", "attachment; filename=test.txt")
-    message.attach(part)
+    message = get_raw_email()
 
     kwargs = dict(Source=message["From"], RawMessage={"Data": message.as_string()})
 
@@ -165,6 +153,39 @@ def test_send_raw_email():
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
     sent_count.should.equal(2)
+
+
+@mock_ses
+def test_send_raw_email_validate_domain():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    message = get_raw_email()
+
+    kwargs = dict(Source=message["From"], RawMessage={"Data": message.as_string()})
+
+    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+
+    conn.verify_domain_identity(Domain="example.com")
+    conn.send_raw_email(**kwargs)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(2)
+
+
+def get_raw_email():
+    message = MIMEMultipart()
+    message["Subject"] = "Test"
+    message["From"] = "test@example.com"
+    message["To"] = "to@example.com, foo@example.com"
+    # Message body
+    part = MIMEText("test file attached")
+    message.attach(part)
+    # Attachment
+    part = MIMEText("contents of test file here")
+    part.add_header("Content-Disposition", "attachment; filename=test.txt")
+    message.attach(part)
+    return message
 
 
 @mock_ses
