@@ -296,7 +296,6 @@ def resource_class_from_type(resource_type):
 
 
 def resource_name_property_from_type(resource_type):
-    print(resource_type)
     return NAME_TYPE_MAP.get(resource_type)
 
 
@@ -332,7 +331,6 @@ def parse_resource(logical_id, resource_json, resources_map):
 
     resource_json = clean_json(resource_json, resources_map)
     resource_name_property = resource_name_property_from_type(resource_type)
-    print(resource_name_property)
     if resource_name_property:
         if "Properties" not in resource_json:
             resource_json["Properties"] = dict()
@@ -362,7 +360,6 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
     if not resource_tuple:
         return None
     resource_class, resource_json, resource_name = resource_tuple
-    print(resource_name)
     resource = resource_class.create_from_cloudformation_json(
         resource_name, resource_json, region_name
     )
@@ -477,13 +474,11 @@ class ResourceMap(collections_abc.Mapping):
 
     def __getitem__(self, key):
         resource_logical_id = key
-        print(key)
 
         if resource_logical_id in self._parsed_resources:
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
-            print(resource_json)
 
             if not resource_json:
                 raise KeyError(resource_logical_id)
