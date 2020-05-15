@@ -332,7 +332,6 @@ def parse_resource(logical_id, resource_json, resources_map):
 
     resource_json = clean_json(resource_json, resources_map)
     resource_name_property = resource_name_property_from_type(resource_type)
-    print(resource_type, resource_name_property)
     if resource_name_property:
         if "Properties" not in resource_json:
             resource_json["Properties"] = dict()
