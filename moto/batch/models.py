@@ -285,7 +285,7 @@ class JobDefinition(BaseModel):
 
 
 class Job(threading.Thread, BaseModel):
-    def __init__(self, name, job_def, job_queue, log_backend, container_overrides):
+    def __init__(self, name, job_def, job_queue, log_backend, container_overrides, depends_on, all_jobs):
         """
         Docker Job
 
@@ -309,6 +309,8 @@ class Job(threading.Thread, BaseModel):
         self.job_stopped_at = datetime.datetime(1970, 1, 1)
         self.job_stopped = False
         self.job_stopped_reason = None
+        self.depends_on = depends_on
+        self.all_jobs = all_jobs
 
         self.stop = False
 
@@ -340,7 +342,7 @@ class Job(threading.Thread, BaseModel):
             "jobName": self.job_name,
             "jobQueue": self.job_queue.arn,
             "status": self.job_state,
-            "dependsOn": [],
+            "dependsOn": self.depends_on if self.depends_on else [],
         }
         if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
             result["startedAt"] = datetime2int(self.job_started_at)
@@ -381,6 +383,10 @@ class Job(threading.Thread, BaseModel):
         """
         try:
             self.job_state = "PENDING"
+
+            if self.depends_on and not self._wait_for_dependencies():
+                return
+
             time.sleep(1)
 
             image = self.job_definition.container_properties.get(
@@ -546,6 +552,30 @@ class Job(threading.Thread, BaseModel):
         if not self.stop:
             self.stop = True
             self.job_stopped_reason = reason
+
+    def _wait_for_dependencies(self):
+        dependent_ids = [dependency["jobId"] for dependency in self.depends_on]
+        successful_dependencies = set()
+        while len(successful_dependencies) != len(dependent_ids):
+            for dependent_id in dependent_ids:
+                if dependent_id in self.all_jobs:
+                    dependent_job = self.all_jobs[dependent_id]
+                    if dependent_job.job_state == "SUCCEEDED":
+                        successful_dependencies.add(dependent_id)
+                    if dependent_job.job_state == "FAILED":
+                        logger.error(
+                            "Terminating job {0} due to failed dependency {1}".format(
+                                self.name, dependent_job.name
+                            )
+                        )
+                        self.job_state = "FAILED"
+                        self.job_stopped = True
+                        self.job_stopped_at = datetime.datetime.now()
+                        return False
+
+            time.sleep(1)
+
+        return True
 
 
 class BatchBackend(BaseBackend):
@@ -1260,6 +1290,8 @@ class BatchBackend(BaseBackend):
             queue,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
+            depends_on=depends_on,
+            all_jobs=self._jobs
         )
         self._jobs[job.job_id] = job
 
