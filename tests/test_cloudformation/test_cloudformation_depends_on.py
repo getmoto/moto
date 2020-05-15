@@ -27,24 +27,24 @@ depends_on_template = {
                 "MinSize": 1,
                 "MaxSize": 50,
                 "LaunchConfigurationName": "test-launch-config",
-                "AvailabilityZones": ["us-east-1a"]
+                "AvailabilityZones": ["us-east-1a"],
             },
             "DependsOn": ["ECSCluster", "LaunchConfig"],
         },
         "LaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "Properties": {
-                "LaunchConfigurationName": "test-launch-config",
-            }
-        }
+            "Properties": {"LaunchConfigurationName": "test-launch-config",},
+        },
     },
 }
 
 depends_on_template_json = json.dumps(depends_on_template)
 
+
 @mock_cloudformation
 @mock_ec2
 def test_create_stack_with_depends_on():
     make_subnet()
-    boto3.client("cloudformation").create_stack(StackName="depends_on_test",
-                                                TemplateBody=depends_on_template_json)
+    boto3.client("cloudformation").create_stack(
+        StackName="depends_on_test", TemplateBody=depends_on_template_json
+    )
