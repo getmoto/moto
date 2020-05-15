@@ -470,6 +470,32 @@ class ResourceMap(collections_abc.Mapping):
     def __len__(self):
         return len(self._resource_json_map)
 
+    def __get_resources_in_dependency_order(self):
+        resource_map = copy.deepcopy(self._resource_json_map)
+        resources_in_dependency_order = []
+
+        def recursively_get_dependencies(resource):
+            resource_info = resource_map[resource]
+            if "DependsOn" not in resource_info:
+                resources_in_dependency_order.append(resource)
+                del resource_map[resource]
+                return
+
+            dependencies = resource_info["DependsOn"]
+            if isinstance(dependencies, str):  # Dependencies may be a string or list
+                dependencies = [dependencies]
+
+            for dependency in dependencies:
+                if dependency in resource_map:
+                    recursively_get_dependencies(dependency)
+                    resources_in_dependency_order.append(resource)
+                    del resource_map[resource]
+
+        while resource_map:
+            recursively_get_dependencies(list(resource_map.keys())[0])
+
+        return resources_in_dependency_order
+
     @property
     def resources(self):
         return self._resource_json_map.keys()
@@ -547,7 +573,8 @@ class ResourceMap(collections_abc.Mapping):
                 "aws:cloudformation:stack-id": self.get("AWS::StackId"),
             }
         )
-        for resource in self.resources:
+        print(self.__get_resources_in_dependency_order())
+        for resource in self.__get_resources_in_dependency_order():
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags(
