@@ -100,13 +100,32 @@ MODEL_MAP = {
 
 # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
 NAME_TYPE_MAP = {
-    "AWS::CloudWatch::Alarm": "Alarm",
+    "AWS::ApiGateway::ApiKey": "Name",
+    "AWS::ApiGateway::Model": "Name",
+    "AWS::CloudWatch::Alarm": "AlarmName",
     "AWS::DynamoDB::Table": "TableName",
-    "AWS::ElastiCache::CacheCluster": "ClusterName",
     "AWS::ElasticBeanstalk::Application": "ApplicationName",
     "AWS::ElasticBeanstalk::Environment": "EnvironmentName",
+    "AWS::CodeDeploy::Application": "ApplicationName",
+    "AWS::CodeDeploy::DeploymentConfig": "DeploymentConfigName",
+    "AWS::CodeDeploy::DeploymentGroup": "DeploymentGroupName",
+    "AWS::Config::ConfigRule": "ConfigRuleName",
+    "AWS::Config::DeliveryChannel": "Name",
+    "AWS::Config::ConfigurationRecorder": "Name",
     "AWS::ElasticLoadBalancing::LoadBalancer": "LoadBalancerName",
+    "AWS::ElasticLoadBalancingV2::LoadBalancer": "Name",
     "AWS::ElasticLoadBalancingV2::TargetGroup": "Name",
+    "AWS::EC2::SecurityGroup": "GroupName",
+    "AWS::ElastiCache::CacheCluster": "ClusterName",
+    "AWS::ECR::Repository": "RepositoryName",
+    "AWS::ECS::Cluster": "ClusterName",
+    "AWS::Elasticsearch::Domain": "DomainName",
+    "AWS::Events::Rule": "Name",
+    "AWS::IAM::Group": "GroupName",
+    "AWS::IAM::ManagedPolicy": "ManagedPolicyName",
+    "AWS::IAM::Role": "RoleName",
+    "AWS::IAM::User": "UserName",
+    "AWS::Lambda::Function": "FunctionName",
     "AWS::RDS::DBInstance": "DBInstanceIdentifier",
     "AWS::S3::Bucket": "BucketName",
     "AWS::SNS::Topic": "TopicName",
@@ -307,6 +326,7 @@ def parse_resource(logical_id, resource_json, resources_map):
 
     resource_json = clean_json(resource_json, resources_map)
     resource_name_property = resource_name_property_from_type(resource_type)
+    print(resource_name_property)
     if resource_name_property:
         if "Properties" not in resource_json:
             resource_json["Properties"] = dict()
@@ -336,6 +356,7 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
     if not resource_tuple:
         return None
     resource_class, resource_json, resource_name = resource_tuple
+    print(resource_name)
     resource = resource_class.create_from_cloudformation_json(
         resource_name, resource_json, region_name
     )
@@ -450,11 +471,14 @@ class ResourceMap(collections_abc.Mapping):
 
     def __getitem__(self, key):
         resource_logical_id = key
+        print(key)
 
         if resource_logical_id in self._parsed_resources:
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
+            print(resource_json)
+
             if not resource_json:
                 raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(
@@ -573,8 +597,9 @@ class ResourceMap(collections_abc.Mapping):
                 "aws:cloudformation:stack-id": self.get("AWS::StackId"),
             }
         )
-        print(self.__get_resources_in_dependency_order())
-        for resource in self.__get_resources_in_dependency_order():
+        # print(self.__get_resources_in_dependency_order())
+        # print(self.resources)
+        for resource in self.resources:
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags(
