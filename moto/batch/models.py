@@ -496,7 +496,11 @@ class Job(threading.Thread, BaseModel):
                     .split("\n")
                 )
 
-                self.job_state = "SUCCEEDED" if not self.stop else "FAILED"
+                result = container.wait()
+                if self.stop or result["StatusCode"] != 0:
+                    self.job_state = "FAILED"
+                else:
+                    self.job_state = "SUCCEEDED"
 
                 # Process logs
                 logs_stdout = [x for x in logs_stdout if len(x) > 0]
