@@ -100,7 +100,7 @@ MODEL_MAP = {
 
 UNDOCUMENTED_NAME_TYPE_MAP = {
     "AWS::AutoScaling::LaunchConfiguration": "LaunchConfigurationName",
-    "AWS::IAM::InstanceProfile": "InstanceProfileName"
+    "AWS::IAM::InstanceProfile": "InstanceProfileName",
 }
 
 # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
