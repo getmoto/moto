@@ -878,3 +878,62 @@ def test_terminate_job():
     resp["jobs"][0]["jobName"].should.equal("test1")
     resp["jobs"][0]["status"].should.equal("FAILED")
     resp["jobs"][0]["statusReason"].should.equal("test_terminate")
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_failed_job():
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName="sayhellotomylittlefriend",
+        type="container",
+        containerProperties={
+            "image": "busybox:latest",
+            "vcpus": 1,
+            "memory": 128,
+            "command": ["exit", "1"],
+        },
+    )
+    job_def_arn = resp["jobDefinitionArn"]
+
+    resp = batch_client.submit_job(
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_def_arn
+    )
+    job_id = resp["jobId"]
+
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    while datetime.datetime.now() < future:
+        resp = batch_client.describe_jobs(jobs=[job_id])
+
+        if resp["jobs"][0]["status"] == "FAILED":
+            break
+        if resp["jobs"][0]["status"] == "SUCCEEDED":
+            raise RuntimeError("Batch job succeeded even though it had exit code 1")
+        time.sleep(0.5)
+    else:
+        raise RuntimeError("Batch job timed out")
+
+
