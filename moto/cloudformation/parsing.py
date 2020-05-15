@@ -501,6 +501,7 @@ class ResourceMap(collections_abc.Mapping):
 
         def recursively_get_dependencies(resource):
             resource_info = resource_map[resource]
+
             if "DependsOn" not in resource_info:
                 resources_in_dependency_order.append(resource)
                 del resource_map[resource]
@@ -513,8 +514,9 @@ class ResourceMap(collections_abc.Mapping):
             for dependency in dependencies:
                 if dependency in resource_map:
                     recursively_get_dependencies(dependency)
-                    resources_in_dependency_order.append(resource)
-                    del resource_map[resource]
+
+            resources_in_dependency_order.append(resource)
+            del resource_map[resource]
 
         while resource_map:
             recursively_get_dependencies(list(resource_map.keys())[0])
