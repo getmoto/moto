@@ -2,7 +2,6 @@ import boto3
 from moto import mock_cloudformation, mock_ec2
 import json
 
-# @pytest.fixture(scope="module")
 @mock_ec2
 def make_subnet():
     ec2 = boto3.resource("ec2")
