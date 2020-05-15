@@ -98,6 +98,10 @@ MODEL_MAP = {
     "AWS::Events::Rule": events_models.Rule,
 }
 
+UNDOCUMENTED_NAME_TYPE_MAP = {
+    "AWS::AutoScaling::LaunchConfiguration": "LaunchConfigurationName"
+}
+
 # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
 NAME_TYPE_MAP = {
     "AWS::ApiGateway::ApiKey": "Name",
@@ -131,6 +135,7 @@ NAME_TYPE_MAP = {
     "AWS::SNS::Topic": "TopicName",
     "AWS::SQS::Queue": "QueueName",
 }
+NAME_TYPE_MAP.update(UNDOCUMENTED_NAME_TYPE_MAP)
 
 # Just ignore these models types for now
 NULL_MODELS = [
@@ -291,6 +296,7 @@ def resource_class_from_type(resource_type):
 
 
 def resource_name_property_from_type(resource_type):
+    print(resource_type)
     return NAME_TYPE_MAP.get(resource_type)
 
 
@@ -597,9 +603,7 @@ class ResourceMap(collections_abc.Mapping):
                 "aws:cloudformation:stack-id": self.get("AWS::StackId"),
             }
         )
-        # print(self.__get_resources_in_dependency_order())
-        # print(self.resources)
-        for resource in self.resources:
+        for resource in self.__get_resources_in_dependency_order():
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags(
