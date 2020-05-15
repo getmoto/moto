@@ -1,5 +1,5 @@
 import boto3
-from moto import mock_cloudformation, mock_ec2
+from moto import mock_cloudformation
 import json
 
 depends_on_template = {
@@ -32,11 +32,7 @@ depends_on_template_json = json.dumps(depends_on_template)
 
 
 @mock_cloudformation
-@mock_ec2
 def test_create_stack_with_depends_on():
     boto3.client("cloudformation", region_name="us-east-1").create_stack(
         StackName="depends_on_test", TemplateBody=depends_on_template_json
     )
-
-if __name__ == '__main__':
-    test_create_stack_with_depends_on()
