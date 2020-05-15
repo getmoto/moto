@@ -49,7 +49,7 @@ from moto import (
 from moto.core import ACCOUNT_ID
 from moto.dynamodb2.models import Table
 
-from .fixtures import (
+from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_db_parameter_group,
@@ -948,6 +948,7 @@ def test_iam_roles():
             )  # Role name is not specified, so randomly generated - can't check exact name
         else:
             role_name_to_id["no-path"] = role.role_id
+            print(role)
             role.role_name.should.equal("my-role-no-path-name")
             role.path.should.equal("/")
 
@@ -2498,3 +2499,6 @@ def test_stack_events_create_rule_as_target():
 
     log_groups["logGroups"][0]["logGroupName"].should.equal(rules["Rules"][0]["Arn"])
     log_groups["logGroups"][0]["retentionInDays"].should.equal(3)
+
+if __name__ == '__main__':
+    test_iam_roles()
