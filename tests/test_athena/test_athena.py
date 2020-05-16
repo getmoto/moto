@@ -64,18 +64,18 @@ def test_create_and_get_workgroup():
 
     create_basic_workgroup(client=client, name="athena_workgroup")
 
-    work_group = client.get_work_group(WorkGroup='athena_workgroup')['WorkGroup']
-    del work_group["CreationTime"] # Were not testing creationtime atm
-    work_group.should.equal({
-       'Name': 'athena_workgroup',
-        'State': 'ENABLED',
-        'Configuration': {
-            'ResultConfiguration': {
-                'OutputLocation': 's3://bucket-name/prefix/'
-            }
-        },
-        'Description': 'Test work group'
-    })
+    work_group = client.get_work_group(WorkGroup="athena_workgroup")["WorkGroup"]
+    del work_group["CreationTime"]  # Were not testing creationtime atm
+    work_group.should.equal(
+        {
+            "Name": "athena_workgroup",
+            "State": "ENABLED",
+            "Configuration": {
+                "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/"}
+            },
+            "Description": "Test work group",
+        }
+    )
 
 
 @mock_athena
@@ -83,16 +83,20 @@ def test_start_query_execution():
     client = boto3.client("athena", region_name="us-east-1")
 
     create_basic_workgroup(client=client, name="athena_workgroup")
-    response = client.start_query_execution(QueryString='query1',
-                                            QueryExecutionContext={'Database': 'string'},
-                                            ResultConfiguration={'OutputLocation': 'string'},
-                                            WorkGroup='athena_workgroup')
-    assert 'QueryExecutionId' in response
+    response = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    assert "QueryExecutionId" in response
 
-    sec_response = client.start_query_execution(QueryString='query2',
-                                                QueryExecutionContext={'Database': 'string'},
-                                                ResultConfiguration={'OutputLocation': 'string'})
-    assert 'QueryExecutionId' in sec_response
+    sec_response = client.start_query_execution(
+        QueryString="query2",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+    )
+    assert "QueryExecutionId" in sec_response
     response["QueryExecutionId"].shouldnt.equal(sec_response["QueryExecutionId"])
 
 
@@ -101,10 +105,12 @@ def test_start_query_validate_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
 
     with assert_raises(ClientError) as err:
-        client.start_query_execution(QueryString='query1',
-                                     QueryExecutionContext={'Database': 'string'},
-                                     ResultConfiguration={'OutputLocation': 'string'},
-                                     WorkGroup='unknown_workgroup')
+        client.start_query_execution(
+            QueryString="query1",
+            QueryExecutionContext={"Database": "string"},
+            ResultConfiguration={"OutputLocation": "string"},
+            WorkGroup="unknown_workgroup",
+        )
     err.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
     err.exception.response["Error"]["Message"].should.equal("WorkGroup does not exist")
 
@@ -117,9 +123,11 @@ def test_get_query_execution():
     location = "s3://bucket-name/prefix/"
     database = "database"
     # Start Query
-    exex_id = client.start_query_execution(QueryString=query,
-                                           QueryExecutionContext={'Database': database},
-                                           ResultConfiguration={'OutputLocation': location})["QueryExecutionId"]
+    exex_id = client.start_query_execution(
+        QueryString=query,
+        QueryExecutionContext={"Database": database},
+        ResultConfiguration={"OutputLocation": location},
+    )["QueryExecutionId"]
     #
     details = client.get_query_execution(QueryExecutionId=exex_id)["QueryExecution"]
     #
@@ -129,12 +137,16 @@ def test_get_query_execution():
     details["ResultConfiguration"]["OutputLocation"].should.equal(location)
     details["QueryExecutionContext"]["Database"].should.equal(database)
     details["Status"]["State"].should.equal("QUEUED")
-    details["Statistics"].should.equal({'EngineExecutionTimeInMillis': 0,
-                                        'DataScannedInBytes': 0,
-                                        'TotalExecutionTimeInMillis': 0,
-                                        'QueryQueueTimeInMillis': 0,
-                                        'QueryPlanningTimeInMillis': 0,
-                                        'ServiceProcessingTimeInMillis': 0})
+    details["Statistics"].should.equal(
+        {
+            "EngineExecutionTimeInMillis": 0,
+            "DataScannedInBytes": 0,
+            "TotalExecutionTimeInMillis": 0,
+            "QueryQueueTimeInMillis": 0,
+            "QueryPlanningTimeInMillis": 0,
+            "ServiceProcessingTimeInMillis": 0,
+        }
+    )
     assert "WorkGroup" not in details
 
 
@@ -146,9 +158,11 @@ def test_stop_query_execution():
     location = "s3://bucket-name/prefix/"
     database = "database"
     # Start Query
-    exex_id = client.start_query_execution(QueryString=query,
-                                           QueryExecutionContext={'Database': database},
-                                           ResultConfiguration={'OutputLocation': location})["QueryExecutionId"]
+    exex_id = client.start_query_execution(
+        QueryString=query,
+        QueryExecutionContext={"Database": database},
+        ResultConfiguration={"OutputLocation": location},
+    )["QueryExecutionId"]
     # Stop Query
     client.stop_query_execution(QueryExecutionId=exex_id)
     # Verify status
@@ -163,8 +177,6 @@ def create_basic_workgroup(client, name):
         Name=name,
         Description="Test work group",
         Configuration={
-            "ResultConfiguration": {
-                "OutputLocation": "s3://bucket-name/prefix/",
-            }
-        }
+            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/",}
+        },
     )

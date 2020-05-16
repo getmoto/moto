@@ -50,7 +50,6 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
 
 
 class Execution(BaseModel):
-
     def __init__(self, query, context, config, workgroup):
         self.id = str(uuid4())
         self.query = query
@@ -97,11 +96,13 @@ class AthenaBackend(BaseBackend):
             "State": wg.state,
             "Configuration": wg.configuration,
             "Description": wg.description,
-            "CreationTime": time.time()
+            "CreationTime": time.time(),
         }
 
     def start_query_execution(self, query, context, config, workgroup):
-        execution = Execution(query=query, context=context, config=config, workgroup=workgroup)
+        execution = Execution(
+            query=query, context=context, config=config, workgroup=workgroup
+        )
         self.executions[execution.id] = execution
         return execution.id
 
