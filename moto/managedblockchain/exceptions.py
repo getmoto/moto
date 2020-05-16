@@ -31,7 +31,18 @@ class ResourceNotFoundException(ManagedBlockchainClientError):
         self.code = 404
         super(ResourceNotFoundException, self).__init__(
             "ResourceNotFoundException",
-            "An error occurred (BadRequestException) when calling the {0} operation: {1}".format(
+            "An error occurred (ResourceNotFoundException) when calling the {0} operation: {1}".format(
+                pretty_called_method, operation_error
+            ),
+        )
+
+
+class ResourceAlreadyExistsException(ManagedBlockchainClientError):
+    def __init__(self, pretty_called_method, operation_error):
+        self.code = 409
+        super(ResourceAlreadyExistsException, self).__init__(
+            "ResourceAlreadyExistsException",
+            "An error occurred (ResourceAlreadyExistsException) when calling the {0} operation: {1}".format(
                 pretty_called_method, operation_error
             ),
         )
