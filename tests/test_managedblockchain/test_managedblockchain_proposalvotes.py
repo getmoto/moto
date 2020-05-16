@@ -7,7 +7,6 @@ import sure  # noqa
 from freezegun import freeze_time
 from nose import SkipTest
 
-from moto.managedblockchain.exceptions import BadRequestException
 from moto import mock_managedblockchain, settings
 from . import helpers
 
@@ -186,6 +185,18 @@ def test_vote_on_proposal_yes_greater_than():
     response["Proposal"]["NetworkId"].should.equal(network_id)
     response["Proposal"]["Status"].should.equal("IN_PROGRESS")
 
+    # Vote no with member 2
+    response = conn.vote_on_proposal(
+        NetworkId=network_id,
+        ProposalId=proposal_id,
+        VoterMemberId=member_id2,
+        Vote="NO",
+    )
+
+    # Get proposal details
+    response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
+    response["Proposal"]["Status"].should.equal("REJECTED")
+
 
 @mock_managedblockchain
 def test_vote_on_proposal_no_greater_than():
@@ -310,6 +321,47 @@ def test_vote_on_proposal_expiredproposal():
 
     with freeze_time("2015-02-01 12:00:00"):
         # Vote yes - should set status to expired
+        response = conn.vote_on_proposal.when.called_with(
+            NetworkId=network_id,
+            ProposalId=proposal_id,
+            VoterMemberId=member_id,
+            Vote="YES",
+        ).should.throw(
+            Exception,
+            "Proposal {0} is expired and you cannot vote on it.".format(proposal_id),
+        )
+
+        # Get proposal details - should be EXPIRED
+        response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
+        response["Proposal"]["Status"].should.equal("EXPIRED")
+
+
+@mock_managedblockchain
+def test_vote_on_proposal_status_check():
+    conn = boto3.client("managedblockchain", region_name="us-east-1")
+
+    # Create network
+    response = conn.create_network(
+        Name="testnetwork1",
+        Framework="HYPERLEDGER_FABRIC",
+        FrameworkVersion="1.2",
+        FrameworkConfiguration=helpers.default_frameworkconfiguration,
+        VotingPolicy=helpers.default_votingpolicy,
+        MemberConfiguration=helpers.default_memberconfiguration,
+    )
+    network_id = response["NetworkId"]
+    member_id = response["MemberId"]
+
+    # Create 2 more members
+    for counter in range(2, 4):
+        response = conn.create_proposal(
+            NetworkId=network_id,
+            MemberId=member_id,
+            Actions=helpers.default_policy_actions,
+        )
+        proposal_id = response["ProposalId"]
+
+        # Vote yes
         response = conn.vote_on_proposal(
             NetworkId=network_id,
             ProposalId=proposal_id,
@@ -317,9 +369,88 @@ def test_vote_on_proposal_expiredproposal():
             Vote="YES",
         )
 
-        # Get proposal details - should be EXPIRED
-        response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
-        response["Proposal"]["Status"].should.equal("EXPIRED")
+    memberidlist = [None, None, None]
+    memberidlist[0] = member_id
+    for counter in range(2, 4):
+        # Get the invitation
+        response = conn.list_invitations()
+        invitation_id = helpers.select_invitation_id_for_network(
+            response["Invitations"], network_id, "PENDING"
+        )[0]
+
+        # Create the member
+        response = conn.create_member(
+            InvitationId=invitation_id,
+            NetworkId=network_id,
+            MemberConfiguration=helpers.create_member_configuration(
+                "testmember" + str(counter),
+                "admin",
+                "Admin12345",
+                False,
+                "Test Member " + str(counter),
+            ),
+        )
+        member_id = response["MemberId"]
+        memberidlist[counter - 1] = member_id
+
+    # Should be no more pending invitations
+    response = conn.list_invitations()
+    pendinginvs = helpers.select_invitation_id_for_network(
+        response["Invitations"], network_id, "PENDING"
+    )
+    pendinginvs.should.have.length_of(0)
+
+    # Create another proposal
+    response = conn.create_proposal(
+        NetworkId=network_id,
+        MemberId=member_id,
+        Actions=helpers.default_policy_actions,
+    )
+
+    proposal_id = response["ProposalId"]
+
+    # Vote yes with member 1
+    response = conn.vote_on_proposal(
+        NetworkId=network_id,
+        ProposalId=proposal_id,
+        VoterMemberId=memberidlist[0],
+        Vote="YES",
+    )
+
+    # Vote yes with member 2
+    response = conn.vote_on_proposal(
+        NetworkId=network_id,
+        ProposalId=proposal_id,
+        VoterMemberId=memberidlist[1],
+        Vote="YES",
+    )
+
+    # Get proposal details - now approved (2 yes, 1 outstanding)
+    response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
+    response["Proposal"]["NetworkId"].should.equal(network_id)
+    response["Proposal"]["Status"].should.equal("APPROVED")
+
+    # Should be one pending invitation
+    response = conn.list_invitations()
+    pendinginvs = helpers.select_invitation_id_for_network(
+        response["Invitations"], network_id, "PENDING"
+    )
+    pendinginvs.should.have.length_of(1)
+
+    # Vote with member 3 - should throw an exception and not create a new invitation
+    response = conn.vote_on_proposal.when.called_with(
+        NetworkId=network_id,
+        ProposalId=proposal_id,
+        VoterMemberId=memberidlist[2],
+        Vote="YES",
+    ).should.throw(Exception, "and you cannot vote on it")
+
+    # Should still be one pending invitation
+    response = conn.list_invitations()
+    pendinginvs = helpers.select_invitation_id_for_network(
+        response["Invitations"], network_id, "PENDING"
+    )
+    pendinginvs.should.have.length_of(1)
 
 
 @mock_managedblockchain
@@ -425,13 +556,21 @@ def test_vote_on_proposal_badvote():
 def test_vote_on_proposal_alreadyvoted():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
+    votingpolicy = {
+        "ApprovalThresholdPolicy": {
+            "ThresholdPercentage": 50,
+            "ProposalDurationInHours": 24,
+            "ThresholdComparator": "GREATER_THAN",
+        }
+    }
+
     # Create network - need a good network
     response = conn.create_network(
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
         FrameworkConfiguration=helpers.default_frameworkconfiguration,
-        VotingPolicy=helpers.default_votingpolicy,
+        VotingPolicy=votingpolicy,
         MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
@@ -465,7 +604,6 @@ def test_vote_on_proposal_alreadyvoted():
             "testmember2", "admin", "Admin12345", False, "Test Member 2"
         ),
     )
-    member_id2 = response["MemberId"]
 
     # Create another proposal
     response = conn.create_proposal(
@@ -495,7 +633,10 @@ def test_vote_on_proposal_alreadyvoted():
         ProposalId=proposal_id,
         VoterMemberId=member_id,
         Vote="YES",
-    ).should.throw(Exception, "Invalid request body")
+    ).should.throw(
+        Exception,
+        "Member {0} has already voted on proposal {1}.".format(member_id, proposal_id),
+    )
 
 
 @mock_managedblockchain

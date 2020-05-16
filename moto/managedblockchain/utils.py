@@ -104,3 +104,32 @@ def admin_password_ok(password):
         return False
     else:
         return True
+
+
+def nodeid_from_managedblockchain_url(full_url):
+    id_search = re.search("\/nd-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    return_id = None
+    if id_search:
+        return_id = id_search.group(0).replace("/", "")
+    return return_id
+
+
+def get_node_id():
+    return "nd-" + "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
+    )
+
+
+def number_of_nodes_in_member(nodes, memberid, node_status=None):
+    return len(
+        [
+            nodid
+            for nodid in nodes
+            if nodes.get(nodid).member_id == memberid
+            and (node_status is None or nodes.get(nodid).node_status == node_status)
+        ]
+    )
+
+
+def nodes_in_member(nodes, memberid):
+    return [nodid for nodid in nodes if nodes.get(nodid).member_id == memberid]

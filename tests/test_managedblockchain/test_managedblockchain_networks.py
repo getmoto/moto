@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import boto3
 import sure  # noqa
 
-from moto.managedblockchain.exceptions import BadRequestException
 from moto import mock_managedblockchain
 from . import helpers
 

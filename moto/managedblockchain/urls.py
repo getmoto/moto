@@ -13,4 +13,7 @@ url_paths = {
     "{0}/invitations/(?P<invitationid>[^/.]+)$": ManagedBlockchainResponse.invitationid_response,
     "{0}/networks/(?P<networkid>[^/.]+)/members$": ManagedBlockchainResponse.member_response,
     "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)$": ManagedBlockchainResponse.memberid_response,
+    "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)/nodes$": ManagedBlockchainResponse.node_response,
+    "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)/nodes?(?P<querys>[^/.]+)$": ManagedBlockchainResponse.node_response,
+    "{0}/networks/(?P<networkid>[^/.]+)/members/(?P<memberid>[^/.]+)/nodes/(?P<nodeid>[^/.]+)$": ManagedBlockchainResponse.nodeid_response,
 }
