@@ -9,6 +9,38 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 
+def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
+    """
+    Generates a thing group tree given the input tree structure.
+    :param iot_client: the iot client for boto3
+    :param tree_dict: dictionary with the key being the group_name, and the value being a sub tree.
+        tree_dict = {
+            "group_name_1a":{
+                "group_name_2a":{
+                    "group_name_3a":{} or None
+                },
+            },
+            "group_name_1b":{}
+        }
+    :return: a dictionary of created groups, keyed by group name
+    """
+    if tree_dict is None:
+        tree_dict = {}
+    created_dict = {}
+    for group_name in tree_dict.keys():
+        params = {"thingGroupName": group_name}
+        if _parent:
+            params["parentGroupName"] = _parent
+        created_group = iot_client.create_thing_group(**params)
+        created_dict[group_name] = created_group
+        subtree_dict = generate_thing_group_tree(
+            iot_client=iot_client, tree_dict=tree_dict[group_name], _parent=group_name
+        )
+        created_dict.update(created_dict)
+        created_dict.update(subtree_dict)
+    return created_dict
+
+
 @mock_iot
 def test_attach_policy():
     client = boto3.client("iot", region_name="ap-northeast-1")
@@ -756,25 +788,143 @@ def test_delete_principal_thing():
     client.delete_certificate(certificateId=cert_id)
 
 
+class TestListThingGroup:
+    group_name_1a = "my-group-name-1a"
+    group_name_1b = "my-group-name-1b"
+    group_name_2a = "my-group-name-2a"
+    group_name_2b = "my-group-name-2b"
+    group_name_3a = "my-group-name-3a"
+    group_name_3b = "my-group-name-3b"
+    group_name_3c = "my-group-name-3c"
+    group_name_3d = "my-group-name-3d"
+    tree_dict = {
+        group_name_1a: {
+            group_name_2a: {group_name_3a: {}, group_name_3b: {}},
+            group_name_2b: {group_name_3c: {}, group_name_3d: {}},
+        },
+        group_name_1b: {},
+    }
+
+    @mock_iot
+    def test_should_list_all_groups(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups()
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(8)
+
+    @mock_iot
+    def test_should_list_all_groups_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_parent(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(parentGroup=self.group_name_1a)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(6)
+        resp = client.list_thing_groups(parentGroup=self.group_name_2a)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(parentGroup=self.group_name_1b)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+        with assert_raises(ClientError) as e:
+            client.list_thing_groups(parentGroup="inexistant-group-name")
+            e.exception.response["Error"]["Code"].should.equal(
+                "ResourceNotFoundException"
+            )
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(parentGroup=self.group_name_2a, recursive=False)
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(4)
+        resp = client.list_thing_groups(namePrefixFilter="prefix-which-doesn-not-match")
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-1", recursive=False
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-3", recursive=False
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+    @mock_iot
+    def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
+        # setup
+        client = boto3.client("iot", region_name="ap-northeast-1")
+        group_catalog = generate_thing_group_tree(client, self.tree_dict)
+        # test
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(
+            namePrefixFilter="my-group-name-3", parentGroup=self.group_name_1a
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(4)
+        resp = client.list_thing_groups(
+            namePrefixFilter="prefix-which-doesn-not-match",
+            parentGroup=self.group_name_1a,
+        )
+        resp.should.have.key("thingGroups")
+        resp["thingGroups"].should.have.length_of(0)
+
+
 @mock_iot
 def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group-name-1a"
     group_name_2a = "my-group-name-2a"
-    # --1a
-    #    |--2a
-
-    # create thing groups tree
-    # 1
-    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
-    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
-    thing_group1a.should.have.key("thingGroupArn")
-    # 2
-    thing_group2a = client.create_thing_group(
-        thingGroupName=group_name_2a, parentGroupName=group_name_1a
-    )
-    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
-    thing_group2a.should.have.key("thingGroupArn")
+    tree_dict = {
+        group_name_1a: {group_name_2a: {},},
+    }
+    group_catalog = generate_thing_group_tree(client, tree_dict)
 
     # delete group with child
     try:
@@ -809,56 +959,14 @@ def test_describe_thing_group_metadata_hierarchy():
     group_name_3c = "my-group-name-3c"
     group_name_3d = "my-group-name-3d"
 
-    # --1a
-    #    |--2a
-    #    |   |--3a
-    #    |   |--3b
-    #    |
-    #    |--2b
-    #        |--3c
-    #        |--3d
-    # --1b
-
-    # create thing groups tree
-    # 1
-    thing_group1a = client.create_thing_group(thingGroupName=group_name_1a)
-    thing_group1a.should.have.key("thingGroupName").which.should.equal(group_name_1a)
-    thing_group1a.should.have.key("thingGroupArn")
-    thing_group1b = client.create_thing_group(thingGroupName=group_name_1b)
-    thing_group1b.should.have.key("thingGroupName").which.should.equal(group_name_1b)
-    thing_group1b.should.have.key("thingGroupArn")
-    # 2
-    thing_group2a = client.create_thing_group(
-        thingGroupName=group_name_2a, parentGroupName=group_name_1a
-    )
-    thing_group2a.should.have.key("thingGroupName").which.should.equal(group_name_2a)
-    thing_group2a.should.have.key("thingGroupArn")
-    thing_group2b = client.create_thing_group(
-        thingGroupName=group_name_2b, parentGroupName=group_name_1a
-    )
-    thing_group2b.should.have.key("thingGroupName").which.should.equal(group_name_2b)
-    thing_group2b.should.have.key("thingGroupArn")
-    # 3
-    thing_group3a = client.create_thing_group(
-        thingGroupName=group_name_3a, parentGroupName=group_name_2a
-    )
-    thing_group3a.should.have.key("thingGroupName").which.should.equal(group_name_3a)
-    thing_group3a.should.have.key("thingGroupArn")
-    thing_group3b = client.create_thing_group(
-        thingGroupName=group_name_3b, parentGroupName=group_name_2a
-    )
-    thing_group3b.should.have.key("thingGroupName").which.should.equal(group_name_3b)
-    thing_group3b.should.have.key("thingGroupArn")
-    thing_group3c = client.create_thing_group(
-        thingGroupName=group_name_3c, parentGroupName=group_name_2b
-    )
-    thing_group3c.should.have.key("thingGroupName").which.should.equal(group_name_3c)
-    thing_group3c.should.have.key("thingGroupArn")
-    thing_group3d = client.create_thing_group(
-        thingGroupName=group_name_3d, parentGroupName=group_name_2b
-    )
-    thing_group3d.should.have.key("thingGroupName").which.should.equal(group_name_3d)
-    thing_group3d.should.have.key("thingGroupArn")
+    tree_dict = {
+        group_name_1a: {
+            group_name_2a: {group_name_3a: {}, group_name_3b: {}},
+            group_name_2b: {group_name_3c: {}, group_name_3d: {}},
+        },
+        group_name_1b: {},
+    }
+    group_catalog = generate_thing_group_tree(client, tree_dict)
 
     # describe groups
     # groups level 1
@@ -910,7 +1018,7 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description2a.should.have.key("version")
     # 2b
     thing_group_description2b = client.describe_thing_group(
@@ -936,7 +1044,7 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description2b.should.have.key("version")
     # groups level 3
     # 3a
@@ -963,13 +1071,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2a)
     thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2a]["thingGroupArn"])
     thing_group_description3a.should.have.key("version")
     # 3b
     thing_group_description3b = client.describe_thing_group(
@@ -995,13 +1103,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2a)
     thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2a]["thingGroupArn"])
     thing_group_description3b.should.have.key("version")
     # 3c
     thing_group_description3c = client.describe_thing_group(
@@ -1027,13 +1135,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2b)
     thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2b["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2b]["thingGroupArn"])
     thing_group_description3c.should.have.key("version")
     # 3d
     thing_group_description3d = client.describe_thing_group(
@@ -1059,13 +1167,13 @@ def test_describe_thing_group_metadata_hierarchy():
     ].should.match(group_name_1a)
     thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][0][
         "groupArn"
-    ].should.match(thing_group1a["thingGroupArn"])
+    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
     thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupName"
     ].should.match(group_name_2b)
     thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1][
         "groupArn"
-    ].should.match(thing_group2b["thingGroupArn"])
+    ].should.match(group_catalog[group_name_2b]["thingGroupArn"])
     thing_group_description3d.should.have.key("version")
 
 

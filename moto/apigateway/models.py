@@ -56,8 +56,10 @@ class Deployment(BaseModel, dict):
 
 
 class IntegrationResponse(BaseModel, dict):
-    def __init__(self, status_code, selection_pattern=None):
-        self["responseTemplates"] = {"application/json": None}
+    def __init__(self, status_code, selection_pattern=None, response_templates=None):
+        if response_templates is None:
+            response_templates = {"application/json": None}
+        self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
             self["selectionPattern"] = selection_pattern
@@ -72,8 +74,14 @@ class Integration(BaseModel, dict):
         self["requestTemplates"] = request_templates
         self["integrationResponses"] = {"200": IntegrationResponse(200)}
 
-    def create_integration_response(self, status_code, selection_pattern):
-        integration_response = IntegrationResponse(status_code, selection_pattern)
+    def create_integration_response(
+        self, status_code, selection_pattern, response_templates
+    ):
+        if response_templates == {}:
+            response_templates = None
+        integration_response = IntegrationResponse(
+            status_code, selection_pattern, response_templates
+        )
         self["integrationResponses"][status_code] = integration_response
         return integration_response
 
@@ -956,7 +964,7 @@ class APIGatewayBackend(BaseBackend):
             raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
-            status_code, selection_pattern
+            status_code, selection_pattern, response_templates
         )
         return integration_response
 

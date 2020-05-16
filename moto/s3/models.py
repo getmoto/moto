@@ -40,6 +40,7 @@ from .exceptions import (
     NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
     WrongPublicAccessBlockAccountIdError,
+    NoSuchUpload,
 )
 from .utils import clean_key_name, _VersionedKeyStore
 
@@ -1478,6 +1479,9 @@ class S3Backend(BaseBackend):
 
     def cancel_multipart(self, bucket_name, multipart_id):
         bucket = self.get_bucket(bucket_name)
+        multipart_data = bucket.multiparts.get(multipart_id, None)
+        if not multipart_data:
+            raise NoSuchUpload()
         del bucket.multiparts[multipart_id]
 
     def list_multipart(self, bucket_name, multipart_id):

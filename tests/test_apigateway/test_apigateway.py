@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import json
 
 import boto3
 from freezegun import freeze_time
@@ -1227,6 +1228,65 @@ def test_put_integration_response_requires_responseTemplate():
         httpMethod="GET",
         statusCode="200",
         responseTemplates={},
+    )
+
+
+@mock_apigateway
+def test_put_integration_response_with_response_template():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+    resources = client.get_resources(restApiId=api_id)
+    root_id = [resource for resource in resources["items"] if resource["path"] == "/"][
+        0
+    ]["id"]
+
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
+    )
+    client.put_method_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+    client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        type="HTTP",
+        uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.put_integration_response(
+            restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+        )
+
+    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.exception.response["Error"]["Message"].should.equal("Invalid request input")
+
+    client.put_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="GET",
+        statusCode="200",
+        selectionPattern="foobar",
+        responseTemplates={"application/json": json.dumps({"data": "test"})},
+    )
+
+    response = client.get_integration_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
+    )
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "statusCode": "200",
+            "selectionPattern": "foobar",
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "responseTemplates": {"application/json": json.dumps({"data": "test"})},
+        }
     )
 
 

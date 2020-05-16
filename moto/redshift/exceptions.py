@@ -136,3 +136,10 @@ class SnapshotCopyAlreadyEnabledFaultError(RedshiftClientError):
                 cluster_identifier
             ),
         )
+
+
+class ClusterAlreadyExistsFaultError(RedshiftClientError):
+    def __init__(self):
+        super(ClusterAlreadyExistsFaultError, self).__init__(
+            "ClusterAlreadyExists", "Cluster already exists"
+        )

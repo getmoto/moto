@@ -125,6 +125,9 @@ class OpsworkInstance(BaseModel):
     def status(self):
         if self.instance is None:
             return "stopped"
+        # OpsWorks reports the "running" state as "online"
+        elif self.instance._state.name == "running":
+            return "online"
         return self.instance._state.name
 
     def to_dict(self):

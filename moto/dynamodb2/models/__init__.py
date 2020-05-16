@@ -18,6 +18,8 @@ from moto.dynamodb2.exceptions import (
     InvalidIndexNameError,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
+    ConditionalCheckFailed,
+    TransactionCanceledException,
 )
 from moto.dynamodb2.models.utilities import bytesize
 from moto.dynamodb2.models.dynamo_type import DynamoType
@@ -316,6 +318,12 @@ class Table(BaseModel):
         }
         self.set_stream_specification(streams)
         self.lambda_event_source_mappings = {}
+        self.continuous_backups = {
+            "ContinuousBackupsStatus": "ENABLED",  # One of 'ENABLED'|'DISABLED', it's enabled by default
+            "PointInTimeRecoveryDescription": {
+                "PointInTimeRecoveryStatus": "DISABLED"  # One of 'ENABLED'|'DISABLED'
+            },
+        }
 
     @classmethod
     def create_from_cloudformation_json(
@@ -453,14 +461,14 @@ class Table(BaseModel):
 
         if not overwrite:
             if not get_expected(expected).expr(current):
-                raise ValueError("The conditional request failed")
+                raise ConditionalCheckFailed
             condition_op = get_filter_expression(
                 condition_expression,
                 expression_attribute_names,
                 expression_attribute_values,
             )
             if not condition_op.expr(current):
-                raise ValueError("The conditional request failed")
+                raise ConditionalCheckFailed
 
         if range_value:
             self.items[hash_value][range_value] = item
@@ -824,6 +832,42 @@ class DynamoDBBackend(BaseBackend):
                 required_table = self.tables[table]
         return required_table.tags
 
+    def list_tables(self, limit, exclusive_start_table_name):
+        all_tables = list(self.tables.keys())
+
+        if exclusive_start_table_name:
+            try:
+                last_table_index = all_tables.index(exclusive_start_table_name)
+            except ValueError:
+                start = len(all_tables)
+            else:
+                start = last_table_index + 1
+        else:
+            start = 0
+
+        if limit:
+            tables = all_tables[start : start + limit]
+        else:
+            tables = all_tables[start:]
+
+        if limit and len(all_tables) > start + limit:
+            return tables, tables[-1]
+        return tables, None
+
+    def describe_table(self, name):
+        table = self.tables[name]
+        return table.describe(base_key="Table")
+
+    def update_table(self, name, global_index, throughput, stream_spec):
+        table = self.get_table(name)
+        if global_index:
+            table = self.update_table_global_indexes(name, global_index)
+        if throughput:
+            table = self.update_table_throughput(name, throughput)
+        if stream_spec:
+            table = self.update_table_streams(name, stream_spec)
+        return table
+
     def update_table_throughput(self, name, throughput):
         table = self.tables[name]
         table.throughput = throughput
@@ -1070,14 +1114,14 @@ class DynamoDBBackend(BaseBackend):
             expected = {}
 
         if not get_expected(expected).expr(item):
-            raise ValueError("The conditional request failed")
+            raise ConditionalCheckFailed
         condition_op = get_filter_expression(
             condition_expression,
             expression_attribute_names,
             expression_attribute_values,
         )
         if not condition_op.expr(item):
-            raise ValueError("The conditional request failed")
+            raise ConditionalCheckFailed
 
         # Update does not fail on new items, so create one
         if item is None:
@@ -1130,11 +1174,11 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_values,
         )
         if not condition_op.expr(item):
-            raise ValueError("The conditional request failed")
+            raise ConditionalCheckFailed
 
         return table.delete_item(hash_value, range_value)
 
-    def update_ttl(self, table_name, ttl_spec):
+    def update_time_to_live(self, table_name, ttl_spec):
         table = self.tables.get(table_name)
         if table is None:
             raise JsonRESTError("ResourceNotFound", "Table not found")
@@ -1151,7 +1195,7 @@ class DynamoDBBackend(BaseBackend):
             table.ttl["TimeToLiveStatus"] = "DISABLED"
         table.ttl["AttributeName"] = ttl_spec["AttributeName"]
 
-    def describe_ttl(self, table_name):
+    def describe_time_to_live(self, table_name):
         table = self.tables.get(table_name)
         if table is None:
             raise JsonRESTError("ResourceNotFound", "Table not found")
@@ -1161,8 +1205,9 @@ class DynamoDBBackend(BaseBackend):
     def transact_write_items(self, transact_items):
         # Create a backup in case any of the transactions fail
         original_table_state = copy.deepcopy(self.tables)
-        try:
-            for item in transact_items:
+        errors = []
+        for item in transact_items:
+            try:
                 if "ConditionCheck" in item:
                     item = item["ConditionCheck"]
                     key = item["Key"]
@@ -1182,7 +1227,7 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_values,
                     )
                     if not condition_op.expr(current):
-                        raise ValueError("The conditional request failed")
+                        raise ConditionalCheckFailed()
                 elif "Put" in item:
                     item = item["Put"]
                     attrs = item["Item"]
@@ -1241,10 +1286,55 @@ class DynamoDBBackend(BaseBackend):
                     )
                 else:
                     raise ValueError
-        except:  # noqa: E722 Do not use bare except
-            # Rollback to the original state, and reraise the error
+                errors.append(None)
+            except Exception as e:  # noqa: E722 Do not use bare except
+                errors.append(type(e).__name__)
+        if any(errors):
+            # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
-            raise
+            raise TransactionCanceledException(errors)
+
+    def describe_continuous_backups(self, table_name):
+        table = self.get_table(table_name)
+
+        return table.continuous_backups
+
+    def update_continuous_backups(self, table_name, point_in_time_spec):
+        table = self.get_table(table_name)
+
+        if (
+            point_in_time_spec["PointInTimeRecoveryEnabled"]
+            and table.continuous_backups["PointInTimeRecoveryDescription"][
+                "PointInTimeRecoveryStatus"
+            ]
+            == "DISABLED"
+        ):
+            table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                "PointInTimeRecoveryStatus": "ENABLED",
+                "EarliestRestorableDateTime": unix_time(),
+                "LatestRestorableDateTime": unix_time(),
+            }
+        elif not point_in_time_spec["PointInTimeRecoveryEnabled"]:
+            table.continuous_backups["PointInTimeRecoveryDescription"] = {
+                "PointInTimeRecoveryStatus": "DISABLED"
+            }
+
+        return table.continuous_backups
+
+    ######################
+    # LIST of methods where the logic completely resides in responses.py
+    # Duplicated here so that the implementation coverage script is aware
+    # TODO: Move logic here
+    ######################
+
+    def batch_get_item(self):
+        pass
+
+    def batch_write_item(self):
+        pass
+
+    def transact_get_items(self):
+        pass
 
 
 dynamodb_backends = {}

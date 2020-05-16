@@ -2150,6 +2150,19 @@ def test_boto3_copy_object_with_versioning():
 
 
 @mock_s3
+def test_s3_abort_multipart_data_with_invalid_upload_and_key():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    client.create_bucket(Bucket="blah")
+
+    with assert_raises(Exception) as err:
+        client.abort_multipart_upload(
+            Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
+        )
+    err.exception.response["Error"]["Code"].should.equal("NoSuchUpload")
+
+
+@mock_s3
 def test_boto3_copy_object_from_unversioned_to_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 

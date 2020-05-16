@@ -149,3 +149,18 @@ class IncorrectDataType(MockValidationException):
 
     def __init__(self):
         super(IncorrectDataType, self).__init__(self.inc_data_type_msg)
+
+
+class ConditionalCheckFailed(ValueError):
+    msg = "The conditional request failed"
+
+    def __init__(self):
+        super(ConditionalCheckFailed, self).__init__(self.msg)
+
+
+class TransactionCanceledException(ValueError):
+    cancel_reason_msg = "Transaction cancelled, please refer cancellation reasons for specific reasons [{}]"
+
+    def __init__(self, errors):
+        msg = self.cancel_reason_msg.format(", ".join([str(err) for err in errors]))
+        super(TransactionCanceledException, self).__init__(msg)

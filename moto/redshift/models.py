@@ -10,6 +10,7 @@ from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
 from .exceptions import (
+    ClusterAlreadyExistsFaultError,
     ClusterNotFoundError,
     ClusterParameterGroupNotFoundError,
     ClusterSecurityGroupNotFoundError,
@@ -580,6 +581,8 @@ class RedshiftBackend(BaseBackend):
 
     def create_cluster(self, **cluster_kwargs):
         cluster_identifier = cluster_kwargs["cluster_identifier"]
+        if cluster_identifier in self.clusters:
+            raise ClusterAlreadyExistsFaultError()
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
         return cluster

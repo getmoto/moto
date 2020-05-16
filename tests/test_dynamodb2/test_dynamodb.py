@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+from datetime import datetime
 from decimal import Decimal
 
 import boto
@@ -2047,6 +2048,141 @@ def test_set_ttl():
 
     resp = client.describe_time_to_live(TableName="test1")
     resp["TimeToLiveDescription"]["TimeToLiveStatus"].should.equal("DISABLED")
+
+
+@mock_dynamodb2
+def test_describe_continuous_backups():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.describe_continuous_backups(TableName=table_name)
+
+    # then
+    response["ContinuousBackupsDescription"].should.equal(
+        {
+            "ContinuousBackupsStatus": "ENABLED",
+            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_describe_continuous_backups_errors():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # when
+    with assert_raises(Exception) as e:
+        client.describe_continuous_backups(TableName="not-existing-table")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeContinuousBackups")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
+    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
+
+
+@mock_dynamodb2
+def test_update_continuous_backups():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )["TableDescription"]["TableName"]
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
+        "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    earliest_datetime = point_in_time["EarliestRestorableDateTime"]
+    earliest_datetime.should.be.a(datetime)
+    latest_datetime = point_in_time["LatestRestorableDateTime"]
+    latest_datetime.should.be.a(datetime)
+    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+
+    # when
+    # a second update should not change anything
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
+        "ENABLED"
+    )
+    point_in_time = response["ContinuousBackupsDescription"][
+        "PointInTimeRecoveryDescription"
+    ]
+    point_in_time["EarliestRestorableDateTime"].should.equal(earliest_datetime)
+    point_in_time["LatestRestorableDateTime"].should.equal(latest_datetime)
+    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+
+    # when
+    response = client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": False},
+    )
+
+    # then
+    response["ContinuousBackupsDescription"].should.equal(
+        {
+            "ContinuousBackupsStatus": "ENABLED",
+            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+        }
+    )
+
+
+@mock_dynamodb2
+def test_update_continuous_backups_errors():
+    # given
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # when
+    with assert_raises(Exception) as e:
+        client.update_continuous_backups(
+            TableName="not-existing-table",
+            PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("UpdateContinuousBackups")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
+    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
 
 
 # https://github.com/spulec/moto/issues/1043
@@ -4298,13 +4434,8 @@ def test_transact_write_items_put_conditional_expressions():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4393,13 +4524,8 @@ def test_transact_write_items_conditioncheck_fails():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
 
     # Assert the original email address is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
@@ -4495,13 +4621,8 @@ def test_transact_write_items_delete_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4573,13 +4694,8 @@ def test_transact_write_items_update_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal(
-        "ConditionalCheckFailedException"
-    )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -5029,3 +5145,126 @@ def test_update_item_atomic_counter_return_values():
         "v" in response["Attributes"]
     ), "v has been updated, and should be returned here"
     response["Attributes"]["v"]["N"].should.equal("8")
+
+
+@mock_dynamodb2
+def test_update_item_atomic_counter_from_zero():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    key = {"t_id": {"S": "item1"}}
+
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add n_i :inc1, n_f :inc2",
+        ExpressionAttributeValues={":inc1": {"N": "1.2"}, ":inc2": {"N": "-0.5"}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["n_i"]["N"] == "1.2"
+    assert updated_item["n_f"]["N"] == "-0.5"
+
+
+@mock_dynamodb2
+def test_update_item_add_to_non_existent_set():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    key = {"t_id": {"S": "item1"}}
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add s_i :s1",
+        ExpressionAttributeValues={":s1": {"SS": ["hello"]}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["s_i"]["SS"] == ["hello"]
+
+
+@mock_dynamodb2
+def test_update_item_add_to_non_existent_number_set():
+    table = "table_t"
+    ddb_mock = boto3.client("dynamodb", region_name="eu-west-1")
+    ddb_mock.create_table(
+        TableName=table,
+        KeySchema=[{"AttributeName": "t_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "t_id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    key = {"t_id": {"S": "item1"}}
+    ddb_mock.put_item(
+        TableName=table, Item=key,
+    )
+
+    ddb_mock.update_item(
+        TableName=table,
+        Key=key,
+        UpdateExpression="add s_i :s1",
+        ExpressionAttributeValues={":s1": {"NS": ["3"]}},
+    )
+    updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
+    assert updated_item["s_i"]["NS"] == ["3"]
+
+
+@mock_dynamodb2
+def test_transact_write_items_fails_with_transaction_canceled_exception():
+    table_schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"},],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    # Insert one item
+    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    # Update two items, the one that exists and another that doesn't
+    with assert_raises(ClientError) as ex:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": "test-table",
+                        "UpdateExpression": "SET #k = :v",
+                        "ConditionExpression": "attribute_exists(id)",
+                        "ExpressionAttributeNames": {"#k": "key"},
+                        "ExpressionAttributeValues": {":v": {"S": "value"}},
+                    }
+                },
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "doesnotexist"}},
+                        "TableName": "test-table",
+                        "UpdateExpression": "SET #e = :v",
+                        "ConditionExpression": "attribute_exists(id)",
+                        "ExpressionAttributeNames": {"#e": "key"},
+                        "ExpressionAttributeValues": {":v": {"S": "value"}},
+                    }
+                },
+            ]
+        )
+    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]"
+    )

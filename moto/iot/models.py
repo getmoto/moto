@@ -857,8 +857,30 @@ class IoTBackend(BaseBackend):
         del self.thing_groups[thing_group.arn]
 
     def list_thing_groups(self, parent_group, name_prefix_filter, recursive):
-        thing_groups = self.thing_groups.values()
-        return thing_groups
+        if recursive is None:
+            recursive = True
+        if name_prefix_filter is None:
+            name_prefix_filter = ""
+        if parent_group and parent_group not in [
+            _.thing_group_name for _ in self.thing_groups.values()
+        ]:
+            raise ResourceNotFoundException()
+        thing_groups = [
+            _ for _ in self.thing_groups.values() if _.parent_group_name == parent_group
+        ]
+        if recursive:
+            for g in thing_groups:
+                thing_groups.extend(
+                    self.list_thing_groups(
+                        parent_group=g.thing_group_name,
+                        name_prefix_filter=None,
+                        recursive=False,
+                    )
+                )
+        # thing_groups = groups_to_process.values()
+        return [
+            _ for _ in thing_groups if _.thing_group_name.startswith(name_prefix_filter)
+        ]
 
     def update_thing_group(
         self, thing_group_name, thing_group_properties, expected_version
