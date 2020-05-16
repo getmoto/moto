@@ -2496,7 +2496,3 @@ def test_stack_events_create_rule_as_target():
 
     log_groups["logGroups"][0]["logGroupName"].should.equal(rules["Rules"][0]["Arn"])
     log_groups["logGroups"][0]["retentionInDays"].should.equal(3)
-
-
-if __name__ == "__main__":
-    test_iam_roles()
