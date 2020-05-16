@@ -641,7 +641,7 @@
 
 ## athena
 <details>
-<summary>10% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_query_execution
@@ -652,13 +652,13 @@
 - [ ] get_named_query
 - [ ] get_query_execution
 - [ ] get_query_results
-- [ ] get_work_group
+- [X] get_work_group
 - [ ] list_named_queries
 - [ ] list_query_executions
 - [ ] list_tags_for_resource
 - [X] list_work_groups
-- [ ] start_query_execution
-- [ ] stop_query_execution
+- [X] start_query_execution
+- [X] stop_query_execution
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_work_group
@@ -5287,26 +5287,26 @@
 
 ## managedblockchain
 <details>
-<summary>16% implemented</summary>
+<summary>77% implemented</summary>
 
-- [ ] create_member
+- [X] create_member
 - [X] create_network
 - [ ] create_node
-- [ ] create_proposal
-- [ ] delete_member
+- [X] create_proposal
+- [X] delete_member
 - [ ] delete_node
-- [ ] get_member
+- [X] get_member
 - [X] get_network
 - [ ] get_node
-- [ ] get_proposal
-- [ ] list_invitations
-- [ ] list_members
+- [X] get_proposal
+- [X] list_invitations
+- [X] list_members
 - [X] list_networks
 - [ ] list_nodes
-- [ ] list_proposal_votes
-- [ ] list_proposals
-- [ ] reject_invitation
-- [ ] vote_on_proposal
+- [X] list_proposal_votes
+- [X] list_proposals
+- [X] reject_invitation
+- [X] vote_on_proposal
 </details>
 
 ## marketplace-catalog
@@ -7392,7 +7392,7 @@
 
 ## ses
 <details>
-<summary>18% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -7427,14 +7427,14 @@
 - [ ] get_identity_verification_attributes
 - [X] get_send_quota
 - [X] get_send_statistics
-- [ ] get_template
+- [X] get_template
 - [ ] list_configuration_sets
 - [ ] list_custom_verification_email_templates
 - [X] list_identities
 - [ ] list_identity_policies
 - [ ] list_receipt_filters
 - [ ] list_receipt_rule_sets
-- [ ] list_templates
+- [X] list_templates
 - [X] list_verified_email_addresses
 - [ ] put_configuration_set_delivery_options
 - [ ] put_identity_policy

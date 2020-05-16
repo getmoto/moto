@@ -2,10 +2,9 @@ from __future__ import unicode_literals
 import time
 
 from boto3 import Session
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 
-from moto.core import BaseBackend, BaseModel
-
-from moto.core import ACCOUNT_ID
+from uuid import uuid4
 
 
 class TaggableResourceMixin(object):
@@ -50,6 +49,18 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         self.configuration = configuration
 
 
+class Execution(BaseModel):
+
+    def __init__(self, query, context, config, workgroup):
+        self.id = str(uuid4())
+        self.query = query
+        self.context = context
+        self.config = config
+        self.workgroup = workgroup
+        self.start_time = time.time()
+        self.status = "QUEUED"
+
+
 class AthenaBackend(BaseBackend):
     region_name = None
 
@@ -57,6 +68,7 @@ class AthenaBackend(BaseBackend):
         if region_name is not None:
             self.region_name = region_name
         self.work_groups = {}
+        self.executions = {}
 
     def create_work_group(self, name, configuration, description, tags):
         if name in self.work_groups:
@@ -75,6 +87,30 @@ class AthenaBackend(BaseBackend):
             }
             for wg in self.work_groups.values()
         ]
+
+    def get_work_group(self, name):
+        if name not in self.work_groups:
+            return None
+        wg = self.work_groups[name]
+        return {
+            "Name": wg.name,
+            "State": wg.state,
+            "Configuration": wg.configuration,
+            "Description": wg.description,
+            "CreationTime": time.time()
+        }
+
+    def start_query_execution(self, query, context, config, workgroup):
+        execution = Execution(query=query, context=context, config=config, workgroup=workgroup)
+        self.executions[execution.id] = execution
+        return execution.id
+
+    def get_execution(self, exec_id):
+        return self.executions[exec_id]
+
+    def stop_query_execution(self, exec_id):
+        execution = self.executions[exec_id]
+        execution.status = "CANCELLED"
 
 
 athena_backends = {}

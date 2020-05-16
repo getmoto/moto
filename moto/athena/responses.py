@@ -18,15 +18,7 @@ class AthenaResponse(BaseResponse):
             name, configuration, description, tags
         )
         if not work_group:
-            return (
-                json.dumps(
-                    {
-                        "__type": "InvalidRequestException",
-                        "Message": "WorkGroup already exists",
-                    }
-                ),
-                dict(status=400),
-            )
+            return self.error("WorkGroup already exists", 400)
         return json.dumps(
             {
                 "CreateWorkGroupResponse": {
@@ -39,3 +31,60 @@ class AthenaResponse(BaseResponse):
 
     def list_work_groups(self):
         return json.dumps({"WorkGroups": self.athena_backend.list_work_groups()})
+
+    def get_work_group(self):
+        name = self._get_param("WorkGroup")
+        return json.dumps({"WorkGroup": self.athena_backend.get_work_group(name)})
+
+    def start_query_execution(self):
+        query = self._get_param("QueryString")
+        context = self._get_param("QueryExecutionContext")
+        config = self._get_param("ResultConfiguration")
+        workgroup = self._get_param("WorkGroup")
+        if workgroup and not self.athena_backend.get_work_group(workgroup):
+            return self.error("WorkGroup does not exist", 400)
+        id = self.athena_backend.start_query_execution(query=query, context=context, config=config, workgroup=workgroup)
+        return json.dumps({"QueryExecutionId": id})
+
+    def get_query_execution(self):
+        exec_id = self._get_param("QueryExecutionId")
+        execution = self.athena_backend.get_execution(exec_id)
+        result = {
+            'QueryExecution': {
+                'QueryExecutionId': exec_id,
+                'Query': execution.query,
+                'StatementType': 'DDL',
+                'ResultConfiguration': execution.config,
+                'QueryExecutionContext': execution.context,
+                'Status': {
+                    'State': execution.status,
+                    'SubmissionDateTime': execution.start_time
+                },
+                'Statistics': {
+                    'EngineExecutionTimeInMillis': 0,
+                    'DataScannedInBytes': 0,
+                    'TotalExecutionTimeInMillis': 0,
+                    'QueryQueueTimeInMillis': 0,
+                    'QueryPlanningTimeInMillis': 0,
+                    'ServiceProcessingTimeInMillis': 0
+                },
+                'WorkGroup': execution.workgroup
+            }
+        }
+        return json.dumps(result)
+
+    def stop_query_execution(self):
+        exec_id = self._get_param("QueryExecutionId")
+        self.athena_backend.stop_query_execution(exec_id)
+        return json.dumps({})
+
+    def error(self, msg, status):
+        return (
+            json.dumps(
+                {
+                    "__type": "InvalidRequestException",
+                    "Message": msg,
+                }
+            ),
+            dict(status=status),
+        )
