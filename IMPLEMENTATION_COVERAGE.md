@@ -2738,7 +2738,7 @@
 - [ ] describe_local_gateways
 - [ ] describe_moving_addresses
 - [ ] describe_nat_gateways
-- [ ] describe_network_acls
+- [X] describe_network_acls
 - [ ] describe_network_interface_attribute
 - [ ] describe_network_interface_permissions
 - [X] describe_network_interfaces
