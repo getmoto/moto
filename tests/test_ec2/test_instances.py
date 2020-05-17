@@ -99,6 +99,106 @@ def test_instance_launch_and_terminate():
     instance.state.should.equal("terminated")
 
 
+@mock_ec2
+def test_instance_terminate_discard_volumes():
+
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {
+                "DeviceName": "/dev/sda1",
+                "Ebs": {"VolumeSize": 50, "DeleteOnTermination": True},
+            }
+        ],
+    )
+    instance = result[0]
+
+    instance_volume_ids = []
+    for volume in instance.volumes.all():
+        instance_volume_ids.append(volume.volume_id)
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert not list(ec2_resource.volumes.all())
+
+
+@mock_ec2
+def test_instance_terminate_keep_volumes():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}}],
+    )
+    instance = result[0]
+
+    instance_volume_ids = []
+    for volume in instance.volumes.all():
+        instance_volume_ids.append(volume.volume_id)
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert len(instance_volume_ids) == 1
+    volume = ec2_resource.Volume(instance_volume_ids[0])
+    volume.state.should.equal("available")
+
+
+@mock_ec2
+def test_instance_terminate_detach_volumes():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},
+            {"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": 50}},
+        ],
+    )
+    instance = result[0]
+    for volume in instance.volumes.all():
+        response = instance.detach_volume(VolumeId=volume.volume_id)
+        response["State"].should.equal("detaching")
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert len(list(ec2_resource.volumes.all())) == 2
+
+
+@mock_ec2
+def test_instance_detach_volume_wrong_path():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
+    )
+    instance = result[0]
+    for volume in instance.volumes.all():
+        with assert_raises(ClientError) as ex:
+            instance.detach_volume(VolumeId=volume.volume_id, Device="/dev/sdf")
+
+        ex.exception.response["Error"]["Code"].should.equal(
+            "InvalidAttachment.NotFound"
+        )
+        ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.exception.response["Error"]["Message"].should.equal(
+            "The volume {0} is not attached to instance {1} as device {2}".format(
+                volume.volume_id, instance.instance_id, "/dev/sdf"
+            )
+        )
+
+
 @mock_ec2_deprecated
 def test_terminate_empty_instances():
     conn = boto.connect_ec2("the_key", "the_secret")
@@ -1416,14 +1516,14 @@ def test_modify_delete_on_termination():
     result = ec2_client.create_instances(ImageId="ami-12345678", MinCount=1, MaxCount=1)
     instance = result[0]
     instance.load()
-    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(False)
+    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(True)
     instance.modify_attribute(
         BlockDeviceMappings=[
-            {"DeviceName": "/dev/sda1", "Ebs": {"DeleteOnTermination": True}}
+            {"DeviceName": "/dev/sda1", "Ebs": {"DeleteOnTermination": False}}
         ]
     )
     instance.load()
-    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(True)
+    instance.block_device_mappings[0]["Ebs"]["DeleteOnTermination"].should.be(False)
 
 
 @mock_ec2
