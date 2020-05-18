@@ -138,6 +138,6 @@ def test_create_chained_depends_on_stack():
     s3 = boto3.client("s3", region_name="us-east-1")
     bucket_response = s3.list_buckets()["Buckets"]
 
-    assert [bucket["Name"] for bucket in bucket_response] == [
+    assert sorted([bucket["Name"] for bucket in bucket_response]) == [
         "test-bucket-" + str(i) + "-us-east-1" for i in range(1, 10)
     ]
