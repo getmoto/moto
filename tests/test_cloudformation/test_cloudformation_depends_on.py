@@ -1,5 +1,5 @@
 import boto3
-from moto import mock_cloudformation, mock_ecs, mock_autoscaling
+from moto import mock_cloudformation, mock_ecs, mock_autoscaling, mock_s3
 import json
 
 depends_on_template_list = {
@@ -49,6 +49,27 @@ depends_on_template_string = {
         },
     },
 }
+
+
+def make_chained_depends_on_template():
+    depends_on_template_linked_dependencies = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "Bucket1": {
+                "Type": "AWS::S3::Bucket",
+                "Properties": {"BucketName": "test-bucket-0-us-east-1"},
+            },
+        },
+    }
+
+    for i in range(1, 10):
+        depends_on_template_linked_dependencies["Resources"][f"Bucket{i}"] = {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {"BucketName": f"test-bucket-{i}-us-east-1"},
+            "DependsOn": [f"Bucket{i - 1}"],
+        }
+
+    return json.dumps(depends_on_template_linked_dependencies)
 
 
 depends_on_template_list_json = json.dumps(depends_on_template_list)
@@ -104,3 +125,19 @@ def test_create_stack_with_depends_on_string():
         "LaunchConfigurations"
     ][0]
     assert launch_configuration["LaunchConfigurationName"] == "test-launch-config"
+
+
+@mock_cloudformation
+@mock_s3
+def test_create_chained_depends_on_stack():
+    boto3.client("cloudformation", region_name="us-east-1").create_stack(
+        StackName="linked_depends_on_test",
+        TemplateBody=make_chained_depends_on_template(),
+    )
+
+    s3 = boto3.client("s3", region_name="us-east-1")
+    bucket_response = s3.list_buckets()["Buckets"]
+
+    assert [bucket["Name"] for bucket in bucket_response] == [
+        f"test-bucket-{i}-us-east-1" for i in range(1, 10)
+    ]
