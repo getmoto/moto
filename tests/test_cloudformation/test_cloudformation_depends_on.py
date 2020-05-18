@@ -63,10 +63,10 @@ def make_chained_depends_on_template():
     }
 
     for i in range(1, 10):
-        depends_on_template_linked_dependencies["Resources"][f"Bucket{i}"] = {
+        depends_on_template_linked_dependencies["Resources"]["Bucket" + str(i)] = {
             "Type": "AWS::S3::Bucket",
-            "Properties": {"BucketName": f"test-bucket-{i}-us-east-1"},
-            "DependsOn": [f"Bucket{i - 1}"],
+            "Properties": {"BucketName": "test-bucket-" + str(i) + "-us-east-1"},
+            "DependsOn": ["Bucket" + str(i - 1)],
         }
 
     return json.dumps(depends_on_template_linked_dependencies)
@@ -139,5 +139,5 @@ def test_create_chained_depends_on_stack():
     bucket_response = s3.list_buckets()["Buckets"]
 
     assert [bucket["Name"] for bucket in bucket_response] == [
-        f"test-bucket-{i}-us-east-1" for i in range(1, 10)
+        "test-bucket-" + str(i) + "-us-east-1" for i in range(1, 10)
     ]
