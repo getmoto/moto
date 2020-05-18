@@ -295,7 +295,7 @@ def test_describe_network_acls():
     result[0]["NetworkAclId"].should.equal(network_acl_id)
 
     resp2 = conn.describe_network_acls()["NetworkAcls"]
-    resp2.should.have.length_of(len(resp2))
+    resp2.should.have.length_of(1)
 
     with assert_raises(ClientError) as ex:
         conn.describe_network_acls(NetworkAclIds=["1"])
