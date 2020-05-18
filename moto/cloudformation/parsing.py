@@ -98,20 +98,46 @@ MODEL_MAP = {
     "AWS::Events::Rule": events_models.Rule,
 }
 
+UNDOCUMENTED_NAME_TYPE_MAP = {
+    "AWS::AutoScaling::AutoScalingGroup": "AutoScalingGroupName",
+    "AWS::AutoScaling::LaunchConfiguration": "LaunchConfigurationName",
+    "AWS::IAM::InstanceProfile": "InstanceProfileName",
+}
+
 # http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
 NAME_TYPE_MAP = {
-    "AWS::CloudWatch::Alarm": "Alarm",
+    "AWS::ApiGateway::ApiKey": "Name",
+    "AWS::ApiGateway::Model": "Name",
+    "AWS::CloudWatch::Alarm": "AlarmName",
     "AWS::DynamoDB::Table": "TableName",
-    "AWS::ElastiCache::CacheCluster": "ClusterName",
     "AWS::ElasticBeanstalk::Application": "ApplicationName",
     "AWS::ElasticBeanstalk::Environment": "EnvironmentName",
+    "AWS::CodeDeploy::Application": "ApplicationName",
+    "AWS::CodeDeploy::DeploymentConfig": "DeploymentConfigName",
+    "AWS::CodeDeploy::DeploymentGroup": "DeploymentGroupName",
+    "AWS::Config::ConfigRule": "ConfigRuleName",
+    "AWS::Config::DeliveryChannel": "Name",
+    "AWS::Config::ConfigurationRecorder": "Name",
     "AWS::ElasticLoadBalancing::LoadBalancer": "LoadBalancerName",
+    "AWS::ElasticLoadBalancingV2::LoadBalancer": "Name",
     "AWS::ElasticLoadBalancingV2::TargetGroup": "Name",
+    "AWS::EC2::SecurityGroup": "GroupName",
+    "AWS::ElastiCache::CacheCluster": "ClusterName",
+    "AWS::ECR::Repository": "RepositoryName",
+    "AWS::ECS::Cluster": "ClusterName",
+    "AWS::Elasticsearch::Domain": "DomainName",
+    "AWS::Events::Rule": "Name",
+    "AWS::IAM::Group": "GroupName",
+    "AWS::IAM::ManagedPolicy": "ManagedPolicyName",
+    "AWS::IAM::Role": "RoleName",
+    "AWS::IAM::User": "UserName",
+    "AWS::Lambda::Function": "FunctionName",
     "AWS::RDS::DBInstance": "DBInstanceIdentifier",
     "AWS::S3::Bucket": "BucketName",
     "AWS::SNS::Topic": "TopicName",
     "AWS::SQS::Queue": "QueueName",
 }
+NAME_TYPE_MAP.update(UNDOCUMENTED_NAME_TYPE_MAP)
 
 # Just ignore these models types for now
 NULL_MODELS = [
@@ -455,6 +481,7 @@ class ResourceMap(collections_abc.Mapping):
             return self._parsed_resources[resource_logical_id]
         else:
             resource_json = self._resource_json_map.get(resource_logical_id)
+
             if not resource_json:
                 raise KeyError(resource_logical_id)
             new_resource = parse_and_create_resource(
@@ -469,6 +496,34 @@ class ResourceMap(collections_abc.Mapping):
 
     def __len__(self):
         return len(self._resource_json_map)
+
+    def __get_resources_in_dependency_order(self):
+        resource_map = copy.deepcopy(self._resource_json_map)
+        resources_in_dependency_order = []
+
+        def recursively_get_dependencies(resource):
+            resource_info = resource_map[resource]
+
+            if "DependsOn" not in resource_info:
+                resources_in_dependency_order.append(resource)
+                del resource_map[resource]
+                return
+
+            dependencies = resource_info["DependsOn"]
+            if isinstance(dependencies, str):  # Dependencies may be a string or list
+                dependencies = [dependencies]
+
+            for dependency in dependencies:
+                if dependency in resource_map:
+                    recursively_get_dependencies(dependency)
+
+            resources_in_dependency_order.append(resource)
+            del resource_map[resource]
+
+        while resource_map:
+            recursively_get_dependencies(list(resource_map.keys())[0])
+
+        return resources_in_dependency_order
 
     @property
     def resources(self):
@@ -547,7 +602,7 @@ class ResourceMap(collections_abc.Mapping):
                 "aws:cloudformation:stack-id": self.get("AWS::StackId"),
             }
         )
-        for resource in self.resources:
+        for resource in self.__get_resources_in_dependency_order():
             if isinstance(self[resource], ec2_models.TaggedEC2Resource):
                 self.tags["aws:cloudformation:logical-id"] = resource
                 ec2_models.ec2_backends[self._region_name].create_tags(
