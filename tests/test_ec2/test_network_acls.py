@@ -296,3 +296,11 @@ def test_describe_network_acls():
 
     resp2 = conn.describe_network_acls()["NetworkAcls"]
     resp2.should.have.length_of(len(resp2))
+
+    with assert_raises(ClientError) as ex:
+        conn.describe_network_acls(NetworkAclIds=["1"])
+
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidRouteTableID.NotFound) when calling the "
+        "DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
+    )
