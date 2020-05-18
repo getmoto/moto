@@ -99,6 +99,7 @@ MODEL_MAP = {
 }
 
 UNDOCUMENTED_NAME_TYPE_MAP = {
+    "AWS::AutoScaling::AutoScalingGroup": "AutoScalingGroupName",
     "AWS::AutoScaling::LaunchConfiguration": "LaunchConfigurationName",
     "AWS::IAM::InstanceProfile": "InstanceProfileName",
 }
