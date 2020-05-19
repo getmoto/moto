@@ -2524,14 +2524,14 @@ def test_autoscaling_propagate_tags():
                             "Key": "test-key-no-propagate",
                             "Value": "test",
                             "PropagateAtLaunch": False,
-                        }
+                        },
                     ],
                 },
                 "DependsOn": "LaunchConfig",
             },
             "LaunchConfig": {
                 "Type": "AWS::AutoScaling::LaunchConfiguration",
-                "Properties": {"LaunchConfigurationName": "test-launch-config",},
+                "Properties": {"LaunchConfigurationName": "test-launch-config"},
             },
         },
     }
@@ -2540,14 +2540,14 @@ def test_autoscaling_propagate_tags():
         TemplateBody=json.dumps(autoscaling_group_with_tags),
     )
 
-    autoscaling_group_tags = boto3.client(
-        "autoscaling", "us-east-1"
-    ).describe_auto_scaling_groups()['AutoScalingGroups'][0]['Tags']
-    propagation_dict = {tag['Key']:tag['PropagateAtLaunch'] for tag in autoscaling_group_tags}
+    autoscaling = boto3.client("autoscaling", "us-east-1")
 
-    assert propagation_dict['test-key-propagate']
-    assert not propagation_dict['test-key-no-propagate']
+    autoscaling_group_tags = autoscaling.describe_auto_scaling_groups()[
+        "AutoScalingGroups"
+    ][0]["Tags"]
+    propagation_dict = {
+        tag["Key"]: tag["PropagateAtLaunch"] for tag in autoscaling_group_tags
+    }
 
-
-if __name__ == "__main__":
-    test_autoscaling_propagate_tags()
+    assert propagation_dict["test-key-propagate"]
+    assert not propagation_dict["test-key-no-propagate"]
