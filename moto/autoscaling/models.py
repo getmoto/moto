@@ -465,7 +465,7 @@ class FakeAutoScalingGroup(BaseModel):
             # boto3 and cloudformation use PropagateAtLaunch
             if "propagate_at_launch" in tag and tag["propagate_at_launch"] == "true":
                 propagated_tags[tag["key"]] = tag["value"]
-            if "PropagateAtLaunch" in tag and tag["PropagateAtLaunch"]:
+            if "PropagateAtLaunch" in tag and tag["PropagateAtLaunch"] == "true":
                 propagated_tags[tag["Key"]] = tag["Value"]
         return propagated_tags
 
