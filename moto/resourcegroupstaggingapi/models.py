@@ -286,8 +286,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 }
 
         # TODO add these to the keys and values functions / combine functions
-        # ELB
-
+        # ELB, resource type elasticloadbalancing:loadbalancer
         def get_elbv2_tags(arn):
             result = []
             for key, value in self.elbv2_backend.load_balancers[elb.arn].tags.items():
@@ -296,8 +295,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         if (
             not resource_type_filters
-            or "elasticloadbalancer" in resource_type_filters
-            or "elasticloadbalancer:loadbalancer" in resource_type_filters
+            or "elasticloadbalancing" in resource_type_filters
+            or "elasticloadbalancing:loadbalancer" in resource_type_filters
         ):
             for elb in self.elbv2_backend.load_balancers.values():
                 tags = get_elbv2_tags(elb.arn)
@@ -305,6 +304,27 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": "{0}".format(elb.arn), "Tags": tags}
+
+        # ELB Target Group, resource type elasticloadbalancing:targetgroup
+        def get_target_group_tags(arn):
+            result = []
+            for key, value in self.elbv2_backend.target_groups[
+                target_group.arn
+            ].tags.items():
+                result.append({"Key": key, "Value": value})
+            return result
+
+        if (
+            not resource_type_filters
+            or "elasticloadbalancing" in resource_type_filters
+            or "elasticloadbalancing:targetgroup" in resource_type_filters
+        ):
+            for target_group in self.elbv2_backend.target_groups.values():
+                tags = get_target_group_tags(target_group.arn)
+                if not tag_filter(tags):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {"ResourceARN": "{0}".format(target_group.arn), "Tags": tags}
 
         # EMR Cluster
 
