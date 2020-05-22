@@ -207,6 +207,24 @@ def test_remove_role_from_instance_profile():
 
 
 @mock_iam()
+def test_delete_instance_profile():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+    )
+    conn.create_instance_profile(InstanceProfileName="my-profile")
+    conn.add_role_to_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_instance_profile(InstanceProfileName="my-profile")
+    conn.remove_role_from_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+    conn.delete_instance_profile(InstanceProfileName="my-profile")
+
+
+@mock_iam()
 def test_get_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
