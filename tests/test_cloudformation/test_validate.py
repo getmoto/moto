@@ -65,7 +65,7 @@ def test_boto3_json_invalid_missing_resource():
         assert (
             str(e)
             == "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
-            " with id Missing top level item Resources to file module does not exist"
+            " with id Missing top level template section Resources does not exist"
         )
         assert True
 
@@ -106,6 +106,6 @@ def test_boto3_yaml_invalid_missing_resource():
         assert (
             str(e)
             == "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
-            " with id Missing top level item Resources to file module does not exist"
+            " with id Missing top level template section Resources does not exist"
         )
         assert True

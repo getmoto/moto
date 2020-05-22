@@ -47,7 +47,7 @@ install_requires = [
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
     "idna<3,>=2.5",
-    "cfn-lint>=0.4.0",
+    "cfn-lint>=0.32.1",
     "MarkupSafe<2.0",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
 ]
 
