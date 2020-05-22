@@ -5,10 +5,10 @@ import datetime
 import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
+from sure import expect
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
 import functools
 import nose
-
 
 DEFAULT_REGION = "eu-central-1"
 
@@ -692,6 +692,11 @@ def test_submit_job():
     ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
     vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
+    # logs_client.create_log_group(logGroupName="/aws/batch/job")
+    # resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
+    # print(resp["logStreams"])
+    # len(resp["logStreams"]).should.equal(0)
+
     compute_name = "test_compute_env"
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
@@ -1101,3 +1106,118 @@ def test_failed_dependencies():
         time.sleep(0.5)
     else:
         raise RuntimeError("Batch job timed out")
+
+
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+def test_container_overrides():
+    """
+    Test if container overrides have any effect.
+    Overwrites should be reflected in container description.
+    Environment variables should be accessible inside docker container
+    """
+
+    # Set up environment
+
+    ec2_client, iam_client, ecs_client, logs_client, batch_client = _get_clients()
+    vpc_id, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = "test_compute_env"
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName="test_job_queue",
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    job_definition_name = "sleep10"
+
+    # Set up Job Definition
+    # We will then override the container properties in the actual job
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": 512,
+            "command": ["sleep", "10"],
+            "environment": [{"name": "TEST0", "value": "from job definition"},
+                            {"name": "TEST1", "value": "from job definition"}]
+        },
+    )
+
+    job_definition_arn = resp["jobDefinitionArn"]
+
+    # The Job to run, including container overrides
+    resp = batch_client.submit_job(
+        jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name,
+        containerOverrides={
+            "vcpus": 2,
+            "memory": 1024,
+            "command": ["printenv"],
+            "environment": [{"name": "TEST0", "value": "from job"}, {"name": "TEST2", "value": "from job"}]
+        },
+    )
+
+    job_id = resp["jobId"]
+
+    # Wait until Job finishes
+    future = datetime.datetime.now() + datetime.timedelta(seconds=30)
+
+    while datetime.datetime.now() < future:
+        resp_jobs = batch_client.describe_jobs(jobs=[job_id])
+
+        if resp_jobs["jobs"][0]["status"] == "FAILED":
+            raise RuntimeError("Batch job failed")
+        if resp_jobs["jobs"][0]["status"] == "SUCCEEDED":
+            break
+        time.sleep(0.5)
+    else:
+        raise RuntimeError("Batch job timed out")
+
+    # Getting the log stream to read out env variables inside container
+    resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
+
+    env_var = list()
+    for stream in resp["logStreams"]:
+        ls_name = stream["logStreamName"]
+
+        stream_resp = logs_client.get_log_events(
+            logGroupName="/aws/batch/job", logStreamName=ls_name
+        )
+
+        for event in stream_resp["events"]:
+            if "TEST" in event["message"]:
+                key, value = tuple(event["message"].split("="))
+                env_var.append({"name": key, "value": value})
+
+
+    len(resp_jobs["jobs"]).should.equal(1)
+    resp_jobs["jobs"][0]["jobId"].should.equal(job_id)
+    resp_jobs["jobs"][0]["jobQueue"].should.equal(queue_arn)
+    resp_jobs["jobs"][0]["jobDefinition"].should.equal(job_definition_arn)
+    resp_jobs["jobs"][0]["container"]["vcpus"].should.equal(2)
+    resp_jobs["jobs"][0]["container"]["memory"].should.equal(1024)
+    resp_jobs["jobs"][0]["container"]["command"].should.equal(["printenv"])
+
+    expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST0", "value": "from job"})
+    expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST1", "value": "from job definition"})
+    expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST2", "value": "from job"})
+
+    expect(env_var).to.contain({"name": "TEST0", "value": "from job"})
+    expect(env_var).to.contain({"name": "TEST1", "value": "from job definition"})
+    expect(env_var).to.contain({"name": "TEST2", "value": "from job"})
+
