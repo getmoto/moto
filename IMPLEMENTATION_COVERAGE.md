@@ -110,6 +110,7 @@
 >>>>>>> Updating implementation coverage
 - [X] remove_tags_from_certificate
 - [ ] renew_certificate
+<<<<<<< HEAD
 - [X] request_certificate
 =======
 - [ ] remove_tags_from_certificate
@@ -117,6 +118,8 @@
 >>>>>>> Updating implementation coverage
 =======
 - [X] remove_tags_from_certificate
+=======
+>>>>>>> bump version
 - [X] request_certificate
 >>>>>>> Updating implementation coverage
 - [ ] resend_validation_email
@@ -1100,8 +1103,11 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] start_instance_refresh
 =======
 <<<<<<< HEAD
@@ -1110,6 +1116,7 @@
 =======
 <<<<<<< HEAD
 >>>>>>> fix handling of encoding errors
+<<<<<<< HEAD
 =======
 >>>>>>> bump version
 =======
@@ -1128,14 +1135,14 @@
 >>>>>>> Updating implementation coverage
 - [ ] set_instance_protection
 >>>>>>> Updating implementation coverage
+=======
+=======
+>>>>>>> bump version
+>>>>>>> bump version
 - [X] suspend_processes
 - [ ] terminate_instance_in_auto_scaling_group
-<<<<<<< HEAD
-- [ ] update_auto_scaling_group
->>>>>>> Updating implementation coverage
-=======
 - [X] update_auto_scaling_group
->>>>>>> Updating implementation coverage
+</details>
 
 ## autoscaling-plans
 <details>
@@ -1210,10 +1217,6 @@
 <summary>78% implemented</summary>
 
 - [ ] cancel_job
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Updating implementation coverage
 - [X] create_compute_environment
 - [X] create_job_queue
 - [X] delete_compute_environment
@@ -1232,27 +1235,7 @@
 - [ ] untag_resource
 - [X] update_compute_environment
 - [X] update_job_queue
-<<<<<<< HEAD
 </details>
-=======
-- [ ] create_compute_environment
-- [ ] create_job_queue
-- [ ] delete_compute_environment
-- [ ] delete_job_queue
-- [ ] deregister_job_definition
-- [ ] describe_compute_environments
-- [ ] describe_job_definitions
-- [ ] describe_job_queues
-- [ ] describe_jobs
-- [ ] list_jobs
-- [ ] register_job_definition
-- [ ] submit_job
-- [ ] terminate_job
-- [ ] update_compute_environment
-- [ ] update_job_queue
->>>>>>> Updating implementation coverage
-=======
->>>>>>> Updating implementation coverage
 
 ## braket
 <details>
@@ -1871,6 +1854,7 @@
 - [X] delete_alarms
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1881,6 +1865,9 @@
 <<<<<<< HEAD
 >>>>>>> Updating implementation coverage
 - [ ] delete_anomaly_detector
+=======
+- [ ] delete_anomaly_detector
+>>>>>>> bump version
 - [X] delete_dashboards
 <<<<<<< HEAD
 - [ ] delete_insight_rules
@@ -1911,6 +1898,7 @@
 - [X] list_dashboards
 - [X] list_metrics
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 - [ ] list_metrics
@@ -1925,6 +1913,8 @@
 <<<<<<< HEAD
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] list_tags_for_resource
 - [ ] put_anomaly_detector
 - [ ] put_composite_alarm
@@ -1935,6 +1925,7 @@
 - [X] set_alarm_state
 - [ ] tag_resource
 - [ ] untag_resource
+<<<<<<< HEAD
 <<<<<<< HEAD
 </details>
 =======
@@ -1955,6 +1946,9 @@
 - [X] set_alarm_state
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+</details>
+>>>>>>> bump version
 
 ## codeartifact
 <details>
@@ -4085,8 +4079,11 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 ## ecr-public
 <details>
 <summary>0% implemented</summary>
@@ -4140,15 +4137,18 @@
 >>>>>>> fix handling of encoding errors
 =======
 >>>>>>> bump version
-=======
-=======
 <<<<<<< HEAD
 =======
 =======
 <<<<<<< HEAD
+=======
+=======
+<<<<<<< HEAD
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 ## ecs
 <details>
 <summary>70% implemented</summary>
@@ -4208,6 +4208,7 @@
 - [ ] discover_poll_endpoint
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -4217,6 +4218,8 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] list_account_settings
 - [X] list_attributes
 - [X] list_clusters
@@ -4228,6 +4231,7 @@
 - [X] list_tasks
 - [ ] put_account_setting
 - [ ] put_account_setting_default
+<<<<<<< HEAD
 - [X] put_attributes
 <<<<<<< HEAD
 - [ ] put_cluster_capacity_providers
@@ -4251,6 +4255,8 @@
 <<<<<<< HEAD
 =======
 =======
+=======
+>>>>>>> bump version
 - [X] put_attributes
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
@@ -4575,8 +4581,8 @@
 - [X] set_load_balancer_policies_of_listener
 </details>
 
-<<<<<<< HEAD
 ## elbv2
+<<<<<<< HEAD
 
 <details>
 <summary>70% implemented</summary>
@@ -4598,6 +4604,11 @@
 ## elbv2 - 70% implemented
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+<details>
+<summary>70% implemented</summary>
+
+>>>>>>> bump version
 - [ ] add_listener_certificates
 - [ ] add_tags
 - [X] create_listener
@@ -4630,19 +4641,9 @@
 - [ ] remove_tags
 - [X] set_ip_address_type
 - [X] set_rule_priorities
-<<<<<<< HEAD
-<<<<<<< HEAD
 - [X] set_security_groups
 - [X] set_subnets
 </details>
-=======
-- [ ] set_security_groups
-- [ ] set_subnets
->>>>>>> Updating implementation coverage
-=======
-- [X] set_security_groups
-- [X] set_subnets
->>>>>>> Updating implementation coverage
 
 ## emr
 <details>
@@ -4784,6 +4785,9 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> bump version
 - [X] describe_replay
 =======
 =======
@@ -4854,6 +4858,7 @@
 =======
 >>>>>>> bump version
 >>>>>>> bump version
+<<<<<<< HEAD
 =======
 >>>>>>> Updating implementation coverage
 =======
@@ -4861,6 +4866,8 @@
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [X] describe_rule
 - [X] disable_rule
 - [X] enable_rule
@@ -4878,6 +4885,7 @@
 <<<<<<< HEAD
 - [X] put_events
 - [ ] put_partner_events
+<<<<<<< HEAD
 - [X] put_permission
 =======
 - [ ] put_events
@@ -4885,6 +4893,8 @@
 >>>>>>> Updating implementation coverage
 =======
 - [X] put_events
+=======
+>>>>>>> bump version
 - [X] put_permission
 >>>>>>> Updating implementation coverage
 - [X] put_rule
@@ -5747,6 +5757,7 @@
 - [X] delete_user_policy
 - [X] delete_virtual_mfa_device
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 - [ ] delete_virtual_mfa_device
@@ -5759,6 +5770,8 @@
 - [ ] detach_group_policy
 >>>>>>> Updating implementation coverage
 =======
+=======
+>>>>>>> bump version
 - [X] detach_group_policy
 >>>>>>> Updating implementation coverage
 - [X] detach_role_policy
@@ -6127,20 +6140,9 @@
 - [ ] list_mitigation_actions
 - [ ] list_ota_updates
 - [ ] list_outgoing_certificates
-<<<<<<< HEAD
-<<<<<<< HEAD
 - [X] list_policies
 - [X] list_policy_principals
 - [X] list_policy_versions
-=======
-- [ ] list_policies
-- [ ] list_policy_principals
-=======
-- [X] list_policies
-- [X] list_policy_principals
->>>>>>> Updating implementation coverage
-- [ ] list_policy_versions
->>>>>>> Updating implementation coverage
 - [X] list_principal_policies
 - [X] list_principal_things
 - [ ] list_provisioning_template_versions
@@ -7048,6 +7050,7 @@
 - [ ] attach_static_ip
 - [ ] close_instance_public_ports
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -7056,22 +7059,29 @@
 =======
 <<<<<<< HEAD
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] copy_snapshot
 - [ ] create_certificate
 - [ ] create_cloud_formation_stack
-<<<<<<< HEAD
 - [ ] create_contact_method
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] create_container_service
 - [ ] create_container_service_deployment
 - [ ] create_container_service_registry_login
 =======
 >>>>>>> Updating implementation coverage
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> bump version
 =======
 >>>>>>> bump version
 >>>>>>> Updating implementation coverage
@@ -7163,6 +7173,9 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> bump version
 - [ ] get_certificates
 =======
 <<<<<<< HEAD
@@ -7193,6 +7206,7 @@
 =======
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+<<<<<<< HEAD
 - [ ] get_cloud_formation_stack_records
 <<<<<<< HEAD
 - [ ] get_contact_methods
@@ -7217,10 +7231,13 @@
 >>>>>>> bump version
 - [ ] get_cloud_formation_stack_records
 - [ ] get_contact_methods
+<<<<<<< HEAD
 =======
 >>>>>>> Updating implementation coverage
 =======
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] get_disk
 - [ ] get_disk_snapshot
 - [ ] get_disk_snapshots
@@ -7398,6 +7415,7 @@
 - [ ] get_query_results
 - [X] list_tags_log_group
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 =======
@@ -7411,6 +7429,8 @@
 - [ ] list_tags_log_group
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] put_destination
 - [ ] put_destination_policy
 - [X] put_log_events
@@ -8641,10 +8661,16 @@
 
 ## pricing
 <<<<<<< HEAD
+<<<<<<< HEAD
 <details>
 <summary>0% implemented</summary>
 
 >>>>>>> Updating implementation coverage
+=======
+<details>
+<summary>0% implemented</summary>
+
+>>>>>>> bump version
 - [ ] describe_services
 - [ ] get_attribute_values
 - [ ] get_products
@@ -8820,10 +8846,10 @@
 
 <<<<<<< HEAD
 ## rds
-<<<<<<< HEAD
 <details>
 <summary>0% implemented</summary>
 
+<<<<<<< HEAD
 =======
 0% implemented
 =======
@@ -8855,6 +8881,8 @@
 ## rds - 0% implemented
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
 - [ ] add_source_identifier_to_subscription
@@ -9250,6 +9278,7 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## resourcegroupstaggingapi
 <<<<<<< HEAD
 <details>
@@ -9259,6 +9288,12 @@
 <<<<<<< HEAD
 37% implemented
 >>>>>>> Updating implementation coverage
+=======
+## resourcegroupstaggingapi
+<details>
+<summary>37% implemented</summary>
+
+>>>>>>> bump version
 - [ ] describe_report_creation
 - [ ] get_compliance_summary
 =======
@@ -9345,15 +9380,17 @@
 </details>
 
 ## route53
-<<<<<<< HEAD
 <details>
 <summary>10% implemented</summary>
 
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] activate_key_signing_key
 =======
 =======
@@ -9401,6 +9438,7 @@
 >>>>>>> fix handling of encoding errors
 =======
 >>>>>>> bump version
+<<<<<<< HEAD
 =======
 =======
 ## route53 - 12% implemented
@@ -9412,6 +9450,8 @@
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] associate_vpc_with_hosted_zone
 - [ ] change_resource_record_sets
 - [X] change_tags_for_resource
@@ -9714,27 +9754,27 @@
 =======
 =======
 =======
+=======
+>>>>>>> bump version
 - [ ] get_bucket_cors
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> Updating implementation coverage
-=======
 - [ ] get_bucket_encryption
+<<<<<<< HEAD
+>>>>>>> Updating implementation coverage
+>>>>>>> Updating implementation coverage
+>>>>>>> Updating implementation coverage
 >>>>>>> Updating implementation coverage
 <<<<<<< HEAD
+>>>>>>> Updating implementation coverage
 =======
 =======
->>>>>>> Updating implementation coverage
-<<<<<<< HEAD
 =======
 =======
-- [ ] get_bucket_encryption
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
->>>>>>> Updating implementation coverage
+>>>>>>> fix handling of encoding errors
+>>>>>>> fix handling of encoding errors
+>>>>>>> fix handling of encoding errors
+=======
+>>>>>>> bump version
+>>>>>>> bump version
 - [ ] get_bucket_inventory_configuration
 - [ ] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
@@ -11164,6 +11204,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 <<<<<<< HEAD
+<<<<<<< HEAD
 - [ ] update_state_machine
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -11180,21 +11221,31 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> Updating implementation coverage
+=======
+>>>>>>> bump version
 - [ ] update_state_machine
 <<<<<<< HEAD
->>>>>>> Updating implementation coverage
-=======
 <<<<<<< HEAD
 >>>>>>> Updating implementation coverage
+<<<<<<< HEAD
 >>>>>>> Updating implementation coverage
 </details>
 =======
 =======
+>>>>>>> bump version
+=======
+<<<<<<< HEAD
 >>>>>>> Updating implementation coverage
+<<<<<<< HEAD
 >>>>>>> Updating implementation coverage
 =======
 - [ ] update_state_machine
 >>>>>>> Updating implementation coverage
+=======
+=======
+>>>>>>> bump version
+</details>
+>>>>>>> bump version
 
 ## storagegateway
 <details>
