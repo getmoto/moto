@@ -778,6 +778,7 @@ class FakeBucket(BaseModel):
         self.payer = "BucketOwner"
         self.creation_date = datetime.datetime.utcnow()
         self.public_access_block = None
+        self.encryption = None
 
     @property
     def location(self):
@@ -1274,6 +1275,12 @@ class S3Backend(BaseBackend):
     def delete_bucket_policy(self, bucket_name, body):
         bucket = self.get_bucket(bucket_name)
         bucket.policy = None
+
+    def put_bucket_encryption(self, bucket_name, encryption):
+        self.get_bucket(bucket_name).encryption = encryption
+
+    def delete_bucket_encryption(self, bucket_name):
+        self.get_bucket(bucket_name).encryption = None
 
     def set_bucket_lifecycle(self, bucket_name, rules):
         bucket = self.get_bucket(bucket_name)

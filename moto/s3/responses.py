@@ -466,6 +466,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     is_truncated="false",
                 ),
             )
+        elif "encryption" in querystring:
+            bucket = self.backend.get_bucket(bucket_name)
+            if not bucket.encryption:
+                template = self.response_template(S3_NO_ENCRYPTION)
+                return 404, {}, template.render(bucket_name=bucket_name)
+            template = self.response_template(S3_ENCRYPTION_CONFIG)
+            return 200, {}, template.render(encryption=bucket.encryption)
         elif querystring.get("list-type", [None])[0] == "2":
             return 200, {}, self._handle_list_objects_v2(bucket_name, querystring)
 
@@ -703,7 +710,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 bucket_name, pab_config["PublicAccessBlockConfiguration"]
             )
             return ""
-
+        elif "encryption" in querystring:
+            try:
+                self.backend.put_bucket_encryption(
+                    bucket_name, self._encryption_config_from_xml(body)
+                )
+                return ""
+            except KeyError:
+                raise MalformedXML()
+            except Exception as e:
+                raise e
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use it as a location constraint --> it fails
@@ -767,6 +783,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return 204, {}, ""
         elif "publicAccessBlock" in querystring:
             self.backend.delete_bucket_public_access_block(bucket_name)
+            return 204, {}, ""
+        elif "encryption" in querystring:
+            bucket = self.backend.delete_bucket_encryption(bucket_name)
             return 204, {}, ""
 
         removed_bucket = self.backend.delete_bucket(bucket_name)
@@ -1426,6 +1445,22 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return [cors for cors in parsed_xml["CORSConfiguration"]["CORSRule"]]
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
+
+    def _encryption_config_from_xml(self, xml):
+        parsed_xml = xmltodict.parse(xml)
+
+        if (
+            not parsed_xml["ServerSideEncryptionConfiguration"].get("Rule")
+            or not parsed_xml["ServerSideEncryptionConfiguration"]["Rule"].get(
+                "ApplyServerSideEncryptionByDefault"
+            )
+            or not parsed_xml["ServerSideEncryptionConfiguration"]["Rule"][
+                "ApplyServerSideEncryptionByDefault"
+            ].get("SSEAlgorithm")
+        ):
+            raise MalformedXML()
+
+        return [parsed_xml["ServerSideEncryptionConfiguration"]]
 
     def _logging_from_xml(self, xml):
         parsed_xml = xmltodict.parse(xml)
@@ -2128,6 +2163,31 @@ S3_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_NO_LOGGING_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
 <BucketLoggingStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01" />
+"""
+
+S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
+<BucketEncryptionStatus xmlns="http://doc.s3.amazonaws.com/2006-03-01">
+    {% for entry in encryption %}
+        <Rule>
+            <ApplyServerSideEncryptionByDefault>
+                <SSEAlgorithm>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"] }}</SSEAlgorithm>
+                {% if entry["Rule"]["ApplyServerSideEncryptionByDefault"].get("KMSMasterKeyID") %}
+                <KMSMasterKeyID>{{ entry["Rule"]["ApplyServerSideEncryptionByDefault"]["KMSMasterKeyID"] }}</KMSMasterKeyID>
+                {% endif %}
+            </ApplyServerSideEncryptionByDefault>
+        </Rule>
+    {% endfor %}
+</BucketEncryptionStatus>
+"""
+
+S3_NO_ENCRYPTION = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>ServerSideEncryptionConfigurationNotFoundError</Code>
+  <Message>The server side encryption configuration was not found</Message>
+  <BucketName>{{ bucket_name }}</BucketName>
+  <RequestId>0D68A23BB2E2215B</RequestId>
+  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
+</Error>
 """
 
 S3_GET_BUCKET_NOTIFICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
