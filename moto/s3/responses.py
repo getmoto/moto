@@ -36,6 +36,7 @@ from .exceptions import (
     InvalidNotificationEvent,
     ObjectNotInActiveTierError,
     NoSystemTags,
+    PreconditionFailed,
 )
 from .models import (
     s3_backend,
@@ -1149,13 +1150,28 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
         version_id = query.get("versionId", [None])[0]
         if_modified_since = headers.get("If-Modified-Since", None)
+        if_match = headers.get("If-Match", None)
+        if_none_match = headers.get("If-None-Match", None)
+        if_unmodified_since = headers.get("If-Unmodified-Since", None)
+
         key = self.backend.get_object(bucket_name, key_name, version_id=version_id)
         if key is None:
             raise MissingKey(key_name)
+
+        if if_unmodified_since:
+            if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
+            if key.last_modified > if_unmodified_since:
+                raise PreconditionFailed("If-Unmodified-Since")
+        if if_match and key.etag != if_match:
+            raise PreconditionFailed("If-Match")
+
         if if_modified_since:
             if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
-        if if_modified_since and key.last_modified < if_modified_since:
+            if key.last_modified < if_modified_since:
+                return 304, response_headers, "Not Modified"
+        if if_none_match and key.etag == if_none_match:
             return 304, response_headers, "Not Modified"
+
         if "acl" in query:
             template = self.response_template(S3_OBJECT_ACL_RESPONSE)
             return 200, response_headers, template.render(obj=key)
@@ -1319,8 +1335,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             part_number = int(part_number)
 
         if_modified_since = headers.get("If-Modified-Since", None)
-        if if_modified_since:
-            if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
+        if_match = headers.get("If-Match", None)
+        if_none_match = headers.get("If-None-Match", None)
+        if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         key = self.backend.get_object(
             bucket_name, key_name, version_id=version_id, part_number=part_number
@@ -1329,10 +1346,21 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
 
-            if if_modified_since and key.last_modified < if_modified_since:
+            if if_unmodified_since:
+                if_unmodified_since = str_to_rfc_1123_datetime(if_unmodified_since)
+                if key.last_modified > if_unmodified_since:
+                    return 412, response_headers, ""
+            if if_match and key.etag != if_match:
+                return 412, response_headers, ""
+
+            if if_modified_since:
+                if_modified_since = str_to_rfc_1123_datetime(if_modified_since)
+                if key.last_modified < if_modified_since:
+                    return 304, response_headers, "Not Modified"
+            if if_none_match and key.etag == if_none_match:
                 return 304, response_headers, "Not Modified"
-            else:
-                return 200, response_headers, ""
+
+            return 200, response_headers, ""
         else:
             return 404, response_headers, ""
 

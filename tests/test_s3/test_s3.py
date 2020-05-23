@@ -2336,6 +2336,64 @@ def test_boto3_get_object_if_modified_since():
 
 
 @mock_s3
+def test_boto3_get_object_if_unmodified_since():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.get_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
+        )
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("PreconditionFailed")
+    e.response["Error"]["Condition"].should.equal("If-Unmodified-Since")
+
+
+@mock_s3
+def test_boto3_get_object_if_match():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.get_object(
+            Bucket=bucket_name, Key=key, IfMatch='"hello"',
+        )
+    e = err.exception
+    e.response["Error"]["Code"].should.equal("PreconditionFailed")
+    e.response["Error"]["Condition"].should.equal("If-Match")
+
+
+@mock_s3
+def test_boto3_get_object_if_none_match():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.get_object(
+            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
+        )
+    e = err.exception
+    e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
+
+
+@mock_s3
 def test_boto3_head_object_if_modified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -2350,6 +2408,62 @@ def test_boto3_head_object_if_modified_since():
             Bucket=bucket_name,
             Key=key,
             IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+        )
+    e = err.exception
+    e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
+
+
+@mock_s3
+def test_boto3_head_object_if_unmodified_since():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.head_object(
+            Bucket=bucket_name,
+            Key=key,
+            IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
+        )
+    e = err.exception
+    e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
+
+
+@mock_s3
+def test_boto3_head_object_if_match():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    s3.put_object(Bucket=bucket_name, Key=key, Body="test")
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.head_object(
+            Bucket=bucket_name, Key=key, IfMatch='"hello"',
+        )
+    e = err.exception
+    e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
+
+
+@mock_s3
+def test_boto3_head_object_if_none_match():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "blah"
+    s3.create_bucket(Bucket=bucket_name)
+
+    key = "hello.txt"
+
+    etag = s3.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
+
+    with assert_raises(botocore.exceptions.ClientError) as err:
+        s3.head_object(
+            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
         )
     e = err.exception
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
