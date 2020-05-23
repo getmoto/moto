@@ -16,7 +16,7 @@ from moto.core.exceptions import DryRunClientError
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
 import six
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
 
 import xmltodict
 from werkzeug.exceptions import HTTPException
@@ -240,7 +240,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     querystring[key] = [value]
             elif self.body:
                 try:
-                    querystring.update(parse_qs(raw_body, keep_blank_values=True))
+                    querystring.update(OrderedDict(parse_qsl(raw_body, keep_blank_values=True)))
                 except UnicodeEncodeError:
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
