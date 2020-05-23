@@ -240,7 +240,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     querystring[key] = [value]
             elif self.body:
                 try:
-                    querystring.update(OrderedDict(parse_qsl(raw_body, keep_blank_values=True)))
+                    querystring.update(
+                        OrderedDict(parse_qsl(raw_body, keep_blank_values=True))
+                    )
                 except UnicodeEncodeError:
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
