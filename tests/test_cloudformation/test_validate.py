@@ -103,7 +103,7 @@ def test_boto3_yaml_invalid_missing_resource():
         assert False
     except botocore.exceptions.ClientError as e:
         str(e).should.equal(
-            == "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
+            "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
             " with id Missing top level item Resources to file module does not exist"
         )
         assert True
