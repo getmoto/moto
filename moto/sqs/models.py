@@ -6,6 +6,7 @@ import json
 import re
 import six
 import struct
+from copy import deepcopy
 from xml.sax.saxutils import escape
 
 from boto3 import Session
@@ -101,7 +102,6 @@ class Message(BaseModel):
             if data_type == "String" or data_type == "Number":
                 value = attr["string_value"]
             elif data_type == "Binary":
-                print(data_type, attr["binary_value"], type(attr["binary_value"]))
                 value = base64.b64decode(attr["binary_value"])
             else:
                 print(
@@ -722,6 +722,7 @@ class SQSBackend(BaseBackend):
         previous_result_count = len(result)
 
         polling_end = unix_time() + wait_seconds_timeout
+        currently_pending_groups = deepcopy(queue.pending_message_groups)
 
         # queue.messages only contains visible messages
         while True:
@@ -739,11 +740,11 @@ class SQSBackend(BaseBackend):
                     # The message is pending but is visible again, so the
                     # consumer must have timed out.
                     queue.pending_messages.remove(message)
+                    currently_pending_groups = deepcopy(queue.pending_message_groups)
 
                 if message.group_id and queue.fifo_queue:
-                    if message.group_id in queue.pending_message_groups:
-                        # There is already one active message with the same
-                        # group, so we cannot deliver this one.
+                    if message.group_id in currently_pending_groups:
+                        # A previous call is still processing messages in this group, so we cannot deliver this one.
                         continue
 
                 queue.pending_messages.add(message)
