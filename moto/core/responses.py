@@ -243,8 +243,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     querystring.update(
                         OrderedDict(
                             (key, [value])
-                            for key, value
-                            in parse_qsl(raw_body, keep_blank_values=True)
+                            for key, value in parse_qsl(
+                                raw_body, keep_blank_values=True
+                            )
                         )
                     )
                 except UnicodeEncodeError:
