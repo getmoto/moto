@@ -49,7 +49,7 @@ from moto import (
 from moto.core import ACCOUNT_ID
 from moto.dynamodb2.models import Table
 
-from .fixtures import (
+from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
     fn_join,
     rds_mysql_with_db_parameter_group,
@@ -940,12 +940,10 @@ def test_iam_roles():
     role_name_to_id = {}
     for role_result in role_results:
         role = iam_conn.get_role(role_result.role_name)
-        if "my-role" not in role.role_name:
+        # Role name is not specified, so randomly generated - can't check exact name
+        if "with-path" in role.role_name:
             role_name_to_id["with-path"] = role.role_id
             role.path.should.equal("my-path")
-            len(role.role_name).should.equal(
-                5
-            )  # Role name is not specified, so randomly generated - can't check exact name
         else:
             role_name_to_id["no-path"] = role.role_id
             role.role_name.should.equal("my-role-no-path-name")

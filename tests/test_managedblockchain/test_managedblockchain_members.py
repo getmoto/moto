@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import boto3
 import sure  # noqa
 
-from moto.managedblockchain.exceptions import BadRequestException
 from moto import mock_managedblockchain
 from . import helpers
 
@@ -204,7 +203,7 @@ def test_create_another_member_withopts():
 
 
 @mock_managedblockchain
-def test_create_and_delete_member():
+def test_invite_and_remove_member():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     # Create network
@@ -362,17 +361,14 @@ def test_create_too_many_members():
         response["Invitations"], network_id, "PENDING"
     )[0]
 
-    # Try to create member with already used invitation
+    # Try to create one too many members
     response = conn.create_member.when.called_with(
         InvitationId=invitation_id,
         NetworkId=network_id,
         MemberConfiguration=helpers.create_member_configuration(
             "testmember6", "admin", "Admin12345", False, "Test Member 6"
         ),
-    ).should.throw(
-        Exception,
-        "5 is the maximum number of members allowed in a STARTER Edition network",
-    )
+    ).should.throw(Exception, "is the maximum number of members allowed in a",)
 
 
 @mock_managedblockchain
