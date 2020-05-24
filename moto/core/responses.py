@@ -16,7 +16,7 @@ from moto.core.exceptions import DryRunClientError
 from jinja2 import Environment, DictLoader, TemplateNotFound
 
 import six
-from six.moves.urllib.parse import parse_qs, urlparse
+from six.moves.urllib.parse import parse_qs, parse_qsl, urlparse
 
 import xmltodict
 from werkzeug.exceptions import HTTPException
@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 
 
 def _decode_dict(d):
-    decoded = {}
+    decoded = OrderedDict()
     for key, value in d.items():
         if isinstance(key, six.binary_type):
             newkey = key.decode("utf-8")
@@ -199,7 +199,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return cls()._dispatch(*args, **kwargs)
 
     def setup_class(self, request, full_url, headers):
-        querystring = {}
+        querystring = OrderedDict()
         if hasattr(request, "body"):
             # Boto
             self.body = request.body
@@ -211,7 +211,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # definition for back-compatibility
             self.body = request.data
 
-            querystring = {}
+            querystring = OrderedDict()
             for key, value in request.form.items():
                 querystring[key] = [value]
 
@@ -240,7 +240,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     querystring[key] = [value]
             elif self.body:
                 try:
-                    querystring.update(parse_qs(raw_body, keep_blank_values=True))
+                    querystring.update(
+                        OrderedDict(
+                            (key, [value])
+                            for key, value in parse_qsl(
+                                raw_body, keep_blank_values=True
+                            )
+                        )
+                    )
                 except UnicodeEncodeError:
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
