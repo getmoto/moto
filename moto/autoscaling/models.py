@@ -301,6 +301,14 @@ class FakeAutoScalingGroup(BaseModel):
         self.availability_zones = availability_zones
         self.vpc_zone_identifier = vpc_zone_identifier
 
+    @staticmethod
+    def __set_string_propagate_at_launch_booleans_on_tags(tags):
+        bool_to_string = {True: "true", False: "false"}
+        for tag in tags:
+            if "PropagateAtLaunch" in tag:
+                tag["PropagateAtLaunch"] = bool_to_string[tag["PropagateAtLaunch"]]
+        return tags
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -329,7 +337,9 @@ class FakeAutoScalingGroup(BaseModel):
             target_group_arns=target_group_arns,
             placement_group=None,
             termination_policies=properties.get("TerminationPolicies", []),
-            tags=properties.get("Tags", []),
+            tags=cls.__set_string_propagate_at_launch_booleans_on_tags(
+                properties.get("Tags", [])
+            ),
             new_instances_protected_from_scale_in=properties.get(
                 "NewInstancesProtectedFromScaleIn", False
             ),
@@ -455,7 +465,7 @@ class FakeAutoScalingGroup(BaseModel):
             # boto3 and cloudformation use PropagateAtLaunch
             if "propagate_at_launch" in tag and tag["propagate_at_launch"] == "true":
                 propagated_tags[tag["key"]] = tag["value"]
-            if "PropagateAtLaunch" in tag and tag["PropagateAtLaunch"]:
+            if "PropagateAtLaunch" in tag and tag["PropagateAtLaunch"] == "true":
                 propagated_tags[tag["Key"]] = tag["Value"]
         return propagated_tags
 

@@ -21,6 +21,7 @@ import sure  # noqa
 
 from moto import (
     mock_autoscaling_deprecated,
+    mock_autoscaling,
     mock_cloudformation,
     mock_cloudformation_deprecated,
     mock_datapipeline_deprecated,
@@ -2496,3 +2497,57 @@ def test_stack_events_create_rule_as_target():
 
     log_groups["logGroups"][0]["logGroupName"].should.equal(rules["Rules"][0]["Arn"])
     log_groups["logGroups"][0]["retentionInDays"].should.equal(3)
+
+
+@mock_cloudformation
+@mock_autoscaling
+def test_autoscaling_propagate_tags():
+    autoscaling_group_with_tags = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "AutoScalingGroup": {
+                "Type": "AWS::AutoScaling::AutoScalingGroup",
+                "Properties": {
+                    "AutoScalingGroupName": "test-scaling-group",
+                    "DesiredCapacity": 1,
+                    "MinSize": 1,
+                    "MaxSize": 50,
+                    "LaunchConfigurationName": "test-launch-config",
+                    "AvailabilityZones": ["us-east-1a"],
+                    "Tags": [
+                        {
+                            "Key": "test-key-propagate",
+                            "Value": "test",
+                            "PropagateAtLaunch": True,
+                        },
+                        {
+                            "Key": "test-key-no-propagate",
+                            "Value": "test",
+                            "PropagateAtLaunch": False,
+                        },
+                    ],
+                },
+                "DependsOn": "LaunchConfig",
+            },
+            "LaunchConfig": {
+                "Type": "AWS::AutoScaling::LaunchConfiguration",
+                "Properties": {"LaunchConfigurationName": "test-launch-config"},
+            },
+        },
+    }
+    boto3.client("cloudformation", "us-east-1").create_stack(
+        StackName="propagate_tags_test",
+        TemplateBody=json.dumps(autoscaling_group_with_tags),
+    )
+
+    autoscaling = boto3.client("autoscaling", "us-east-1")
+
+    autoscaling_group_tags = autoscaling.describe_auto_scaling_groups()[
+        "AutoScalingGroups"
+    ][0]["Tags"]
+    propagation_dict = {
+        tag["Key"]: tag["PropagateAtLaunch"] for tag in autoscaling_group_tags
+    }
+
+    assert propagation_dict["test-key-propagate"]
+    assert not propagation_dict["test-key-no-propagate"]
