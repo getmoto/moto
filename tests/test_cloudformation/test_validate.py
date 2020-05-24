@@ -62,9 +62,8 @@ def test_boto3_json_invalid_missing_resource():
         cf_conn.validate_template(TemplateBody=dummy_bad_template_json)
         assert False
     except botocore.exceptions.ClientError as e:
-        assert (
-            str(e)
-            == "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
+        str(e).should.equal(
+            "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
             " with id Missing top level item Resources to file module does not exist"
         )
         assert True
@@ -103,8 +102,7 @@ def test_boto3_yaml_invalid_missing_resource():
         cf_conn.validate_template(TemplateBody=yaml_bad_template)
         assert False
     except botocore.exceptions.ClientError as e:
-        assert (
-            str(e)
+        str(e).should.equal(
             == "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
             " with id Missing top level item Resources to file module does not exist"
         )
