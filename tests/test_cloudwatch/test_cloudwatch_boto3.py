@@ -93,6 +93,16 @@ def test_get_dashboard_fail():
 
 
 @mock_cloudwatch
+def test_delete_invalid_alarm():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    # trying to delete an alarm which is not created.
+    with assert_raises(ClientError) as e:
+        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
+    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+
+
+@mock_cloudwatch
 def test_alarm_state():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 
