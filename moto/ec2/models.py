@@ -4750,23 +4750,7 @@ class NetworkAclBackend(object):
             )
 
     def get_all_network_acls(self, network_acl_ids=None, filters=None):
-        network_acls = self.network_acls.values()
-
-        if network_acl_ids:
-            network_acls = [
-                network_acl
-                for network_acl in network_acls
-                if network_acl.id in network_acl_ids
-            ]
-            if len(network_acls) != len(network_acl_ids):
-                invalid_id = list(
-                    set(network_acl_ids).difference(
-                        set([network_acl.id for network_acl in network_acls])
-                    )
-                )[0]
-                raise InvalidRouteTableIdError(invalid_id)
-
-        return generic_filter(filters, network_acls)
+        self.describe_network_acls(network_acl_ids, filters)
 
     def delete_network_acl(self, network_acl_id):
         deleted = self.network_acls.pop(network_acl_id, None)
@@ -4885,6 +4869,25 @@ class NetworkAclBackend(object):
         acl.associations[association_id] = NetworkAclAssociation(
             self, association_id, subnet_id, acl.id
         )
+
+    def describe_network_acls(self, network_acl_ids=None, filters=None):
+        network_acls = self.network_acls.values()
+
+        if network_acl_ids:
+            network_acls = [
+                network_acl
+                for network_acl in network_acls
+                if network_acl.id in network_acl_ids
+            ]
+            if len(network_acls) != len(network_acl_ids):
+                invalid_id = list(
+                    set(network_acl_ids).difference(
+                        set([network_acl.id for network_acl in network_acls])
+                    )
+                )[0]
+                raise InvalidRouteTableIdError(invalid_id)
+
+        return generic_filter(filters, network_acls)
 
 
 class NetworkAclAssociation(object):
