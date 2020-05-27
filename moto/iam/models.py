@@ -1341,6 +1341,15 @@ class IAMBackend(BaseBackend):
         self.instance_profiles[name] = instance_profile
         return instance_profile
 
+    def delete_instance_profile(self, name):
+        instance_profile = self.get_instance_profile(name)
+        if len(instance_profile.roles) > 0:
+            raise IAMConflictException(
+                code="DeleteConflict",
+                message="Cannot delete entity, must remove roles from instance profile first.",
+            )
+        del self.instance_profiles[name]
+
     def get_instance_profile(self, profile_name):
         for profile in self.get_instance_profiles():
             if profile.name == profile_name:
