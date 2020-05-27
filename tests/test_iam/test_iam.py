@@ -2816,11 +2816,12 @@ def test_list_user_tags():
     )
     response["IsTruncated"].should_not.be.ok
 
+
 @mock_iam()
 def test_delete_role_with_instance_profiles_present():
-    iam = boto3.client('iam')
+    iam = boto3.client("iam", region_name="us-east-1")
 
-    trust_policy = '''
+    trust_policy = """
     {
       "Version": "2012-10-17",
       "Statement": [
@@ -2833,17 +2834,17 @@ def test_delete_role_with_instance_profiles_present():
         }
       ]
     }
-        '''
+        """
     trust_policy = trust_policy.strip()
 
-    iam.create_role(RoleName='Role1', AssumeRolePolicyDocument=trust_policy)
-    iam.create_instance_profile(InstanceProfileName='IP1')
-    iam.add_role_to_instance_profile(InstanceProfileName='IP1', RoleName='Role1')
+    iam.create_role(RoleName="Role1", AssumeRolePolicyDocument=trust_policy)
+    iam.create_instance_profile(InstanceProfileName="IP1")
+    iam.add_role_to_instance_profile(InstanceProfileName="IP1", RoleName="Role1")
 
-    iam.create_role(RoleName='Role2', AssumeRolePolicyDocument=trust_policy)
+    iam.create_role(RoleName="Role2", AssumeRolePolicyDocument=trust_policy)
 
-    iam.delete_role(RoleName='Role2')
+    iam.delete_role(RoleName="Role2")
 
-    role_names = [role['RoleName'] for role in iam.list_roles()['Roles']]
-    assert('Role1' in role_names)
-    assert('Role2' not in role_names)
+    role_names = [role["RoleName"] for role in iam.list_roles()["Roles"]]
+    assert "Role1" in role_names
+    assert "Role2" not in role_names
