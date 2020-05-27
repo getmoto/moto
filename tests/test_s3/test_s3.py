@@ -4521,3 +4521,36 @@ def test_creating_presigned_post():
         ].read()
         == fdata
     )
+
+
+@mock_s3
+def test_encryption():
+    # Create Bucket so that test can run
+    conn = boto3.client("s3", region_name="us-east-1")
+    conn.create_bucket(Bucket="mybucket")
+
+    with assert_raises(ClientError) as exc:
+        conn.get_bucket_encryption(Bucket="mybucket")
+
+    sse_config = {
+        "Rules": [
+            {
+                "ApplyServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "aws:kms",
+                    "KMSMasterKeyID": "12345678",
+                }
+            }
+        ]
+    }
+
+    conn.put_bucket_encryption(
+        Bucket="mybucket", ServerSideEncryptionConfiguration=sse_config
+    )
+
+    resp = conn.get_bucket_encryption(Bucket="mybucket")
+    assert "ServerSideEncryptionConfiguration" in resp
+    assert resp["ServerSideEncryptionConfiguration"] == sse_config
+
+    conn.delete_bucket_encryption(Bucket="mybucket")
+    with assert_raises(ClientError) as exc:
+        conn.get_bucket_encryption(Bucket="mybucket")
