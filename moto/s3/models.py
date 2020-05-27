@@ -1228,6 +1228,9 @@ class S3Backend(BaseBackend):
     def get_bucket_versioning(self, bucket_name):
         return self.get_bucket(bucket_name).versioning_status
 
+    def get_bucket_encryption(self, bucket_name):
+        return self.get_bucket(bucket_name).encryption
+
     def get_bucket_latest_versions(self, bucket_name):
         versions = self.get_bucket_versions(bucket_name)
         latest_modified_per_key = {}

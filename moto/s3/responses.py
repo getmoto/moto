@@ -467,12 +467,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 ),
             )
         elif "encryption" in querystring:
-            bucket = self.backend.get_bucket(bucket_name)
-            if not bucket.encryption:
+            encryption = self.backend.get_bucket_encryption(bucket_name)
+            if not encryption:
                 template = self.response_template(S3_NO_ENCRYPTION)
                 return 404, {}, template.render(bucket_name=bucket_name)
             template = self.response_template(S3_ENCRYPTION_CONFIG)
-            return 200, {}, template.render(encryption=bucket.encryption)
+            return 200, {}, template.render(encryption=encryption)
         elif querystring.get("list-type", [None])[0] == "2":
             return 200, {}, self._handle_list_objects_v2(bucket_name, querystring)
 
