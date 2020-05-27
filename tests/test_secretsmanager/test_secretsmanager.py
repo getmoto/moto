@@ -752,6 +752,7 @@ def test_put_secret_value_maintains_description_and_tags():
         {"Key": "Mykey", "Value": "Myvalue"},
     ]
     assert secret_details["Description"] == "desc"
+    assert secret_details["VersionIdsToStages"] is not None
 
 
 @mock_secretsmanager
