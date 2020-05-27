@@ -222,6 +222,8 @@ def test_delete_instance_profile():
         InstanceProfileName="my-profile", RoleName="my-role"
     )
     conn.delete_instance_profile(InstanceProfileName="my-profile")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        profile = conn.get_instance_profile(InstanceProfileName="my-profile")
 
 
 @mock_iam()
