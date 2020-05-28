@@ -819,7 +819,7 @@ def test_create_change_set_from_s3_url():
         in response["Id"]
     )
     assert (
-        "arn:aws:cloudformation:us-east-1:123456789:stack/NewStack"
+        "arn:aws:cloudformation:us-west-1:123456789:stack/NewStack"
         in response["StackId"]
     )
 
@@ -838,7 +838,12 @@ def test_describe_change_set():
 
     stack["ChangeSetName"].should.equal("NewChangeSet")
     stack["StackName"].should.equal("NewStack")
-    stack["Status"].should.equal("REVIEW_IN_PROGRESS")
+    stack["Status"].should.equal("CREATE_COMPLETE")
+    stack["ExecutionStatus"].should.equal("AVAILABLE")
+    two_secs_ago = datetime.now(tz=pytz.UTC) - timedelta(seconds=2)
+    assert (
+        two_secs_ago < stack["CreationTime"] < datetime.now(tz=pytz.UTC)
+    ), "Change set should have been created recently"
 
     cf_conn.create_change_set(
         StackName="NewStack",
@@ -868,7 +873,7 @@ def test_execute_change_set_w_arn():
     )
     ec2.describe_instances()["Reservations"].should.have.length_of(0)
     cf_conn.describe_change_set(ChangeSetName="NewChangeSet")["Status"].should.equal(
-        "REVIEW_IN_PROGRESS"
+        "CREATE_COMPLETE"
     )
     # Execute change set
     cf_conn.execute_change_set(ChangeSetName=change_set["Id"])

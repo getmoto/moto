@@ -240,7 +240,8 @@ class FakeStack(BaseModel):
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
         if create_change_set:
-            self.status = "REVIEW_IN_PROGRESS"
+            self.status = "CREATE_COMPLETE"
+            self.execution_status = "AVAILABLE"
         else:
             self.create_resources()
             self._add_stack_event("CREATE_COMPLETE")
@@ -397,6 +398,7 @@ class FakeChangeSet(FakeStack):
         self.change_set_id = change_set_id
         self.change_set_name = change_set_name
         self.changes = self.diff(template=template, parameters=parameters)
+        self.creation_time = datetime.utcnow()
 
     def diff(self, template, parameters=None):
         self.template = template
@@ -587,7 +589,7 @@ class CloudFormationBackend(BaseBackend):
             if stack is None:
                 raise ValidationError(stack_name)
         else:
-            stack_id = generate_stack_id(stack_name)
+            stack_id = generate_stack_id(stack_name, region_name)
             stack_template = template
 
         change_set_id = generate_changeset_id(change_set_name, region_name)
