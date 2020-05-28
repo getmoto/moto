@@ -733,19 +733,22 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
 def test_put_secret_value_maintains_description_and_tags():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    conn.create_secret(
+    previous_response = conn.create_secret(
         Name=DEFAULT_SECRET_NAME,
         SecretString="foosecret",
         Description="desc",
         Tags=[{"Key": "Foo", "Value": "Bar"}, {"Key": "Mykey", "Value": "Myvalue"}],
     )
+    previous_version_id = previous_response["VersionId"]
 
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.put_secret_value(
+    current_response = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="dupe_secret",
         VersionStages=["AWSCURRENT"],
     )
+    current_version_id = current_response["VersionId"]
+
     secret_details = conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
     assert secret_details["Tags"] == [
         {"Key": "Foo", "Value": "Bar"},
@@ -753,6 +756,10 @@ def test_put_secret_value_maintains_description_and_tags():
     ]
     assert secret_details["Description"] == "desc"
     assert secret_details["VersionIdsToStages"] is not None
+    assert previous_version_id in secret_details["VersionIdsToStages"]
+    assert current_version_id in secret_details["VersionIdsToStages"]
+    assert secret_details["VersionIdsToStages"][previous_version_id] == ["AWSPREVIOUS"]
+    assert secret_details["VersionIdsToStages"][current_version_id] == ["AWSCURRENT"]
 
 
 @mock_secretsmanager
