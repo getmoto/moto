@@ -5,6 +5,7 @@ import os
 import boto3
 from nose.tools import raises
 import botocore
+import sure  # noqa
 
 
 from moto.cloudformation.exceptions import ValidationError
