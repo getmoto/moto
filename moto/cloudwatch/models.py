@@ -305,6 +305,13 @@ class CloudWatchBackend(BaseBackend):
 
     def delete_alarms(self, alarm_names):
         for alarm_name in alarm_names:
+            if alarm_name not in self.alarms:
+                raise RESTError(
+                    "ResourceNotFound",
+                    "Alarm {0} not found".format(alarm_name),
+                    status=404,
+                )
+        for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(self, namespace, metric_data):
