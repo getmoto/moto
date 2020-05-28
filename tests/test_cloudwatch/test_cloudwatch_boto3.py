@@ -117,7 +117,7 @@ def test_delete_invalid_alarm():
     # making sure other alarms are not deleted in case of an error.
     len(resp["MetricAlarms"]).should.equal(1)
 
-   # test to check if the error raises if only one invalid alarm is tried to delete.
+    # test to check if the error raises if only one invalid alarm is tried to delete.
     with assert_raises(ClientError) as e:
         cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
     e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
