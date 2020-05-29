@@ -282,7 +282,7 @@ def test_nested_selectors_in_update_expression_should_fail_at_nesting():
         assert te.near == "[  [2"
 
 
-def test_update_expression_number_in_selector_cannot_be_splite():
+def test_update_expression_number_in_selector_cannot_be_split():
     update_expression = "SET a [2 1]. b = 5"
     try:
         UpdateExpressionParser.make(update_expression)

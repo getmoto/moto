@@ -269,6 +269,59 @@ def test_execution_of_remove_in_list():
     assert expected_item == item
 
 
+def test_execution_of_set_map_attribute_in_list():
+    update_expression = "SET itemmap.itemlist[1] = :0"
+    expected_new_value = {"M": {"foo00": {"S": "resultingValue"}, "foo01": {"S": "FooResult"}}},
+    update_expression_values = {":0": expected_new_value,}
+    update_expression_ast = UpdateExpressionParser.make(update_expression)
+    item = Item(
+        hash_key=DynamoType({"S": "id"}),
+        hash_key_type="TYPE",
+        range_key=None,
+        range_key_type=None,
+        attrs={
+            "id": {"S": "foo2"},
+            "itemmap": {
+                "M": {
+                    "itemlist": {
+                        "L": [
+                            {"M": {"foo00": {"S": "bar1"}, "foo01": {"S": "bar2"}}},
+                            {"M": {"foo10": {"S": "bar1"}, "foo11": {"S": "bar2"}}},
+                        ]
+                    }
+                }
+            },
+        },
+    )
+    validated_ast = UpdateExpressionValidator(
+        update_expression_ast,
+        expression_attribute_names=None,
+        expression_attribute_values=update_expression_values,
+        item=item,
+    ).validate()
+    UpdateExpressionExecutor(validated_ast, item, None).execute()
+    expected_item = Item(
+        hash_key=DynamoType({"S": "id"}),
+        hash_key_type="TYPE",
+        range_key=None,
+        range_key_type=None,
+        attrs={
+            "id": {"S": "foo2"},
+            "itemmap": {
+                "M": {
+                    "itemlist": {
+                        "L": [
+                            {"M": {"foo00": {"S": "bar1"}, "foo01": {"S": "bar2"}}},
+                            expected_new_value,
+                        ]
+                    }
+                }
+            },
+        },
+    )
+    assert expected_item == item
+
+
 def test_execution_of_delete_element_from_set():
     update_expression = "delete s :value"
     update_expression_ast = UpdateExpressionParser.make(update_expression)
