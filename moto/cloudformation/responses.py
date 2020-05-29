@@ -609,7 +609,7 @@ DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
         </member>
       {% endfor %}
     </Parameters>
-    <CreationTime>2011-05-23T15:47:44Z</CreationTime>
+    <CreationTime>{{ change_set.creation_time_iso_8601 }}</CreationTime>
     <ExecutionStatus>{{ change_set.execution_status }}</ExecutionStatus>
     <Status>{{ change_set.status }}</Status>
     <StatusReason>{{ change_set.status_reason }}</StatusReason>
