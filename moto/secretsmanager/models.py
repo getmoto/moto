@@ -292,7 +292,7 @@ class SecretsManagerBackend(BaseBackend):
                 "LastAccessedDate": None,
                 "DeletedDate": secret.get("deleted_date", None),
                 "Tags": secret["tags"],
-                "VersionIdsToStages": version_id_to_stages
+                "VersionIdsToStages": version_id_to_stages,
             }
         )
 
@@ -561,8 +561,6 @@ class SecretsManagerBackend(BaseBackend):
             version_id_to_stages[key] = value["version_stages"]
 
         return version_id_to_stages
-
-
 
 
 secretsmanager_backends = {}
