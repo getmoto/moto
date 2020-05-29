@@ -271,8 +271,8 @@ def test_execution_of_remove_in_list():
 
 def test_execution_of_set_map_attribute_in_list():
     update_expression = "SET itemmap.itemlist[1] = :0"
-    expected_new_value = {"M": {"foo00": {"S": "resultingValue"}, "foo01": {"S": "FooResult"}}},
-    update_expression_values = {":0": expected_new_value,}
+    expected_new_value = {"M": {"foo00": {"S": "resultingValue"}, "foo01": {"S": "FooResult"}}}
+    update_expression_values = {":0": expected_new_value}
     update_expression_ast = UpdateExpressionParser.make(update_expression)
     item = Item(
         hash_key=DynamoType({"S": "id"}),
