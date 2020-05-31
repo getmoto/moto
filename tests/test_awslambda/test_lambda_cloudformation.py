@@ -118,7 +118,7 @@ def test_lambda_can_be_deleted_by_cloudformation():
 @mock_lambda
 @mock_s3
 @mock_sqs
-def test_event_source_mapping_created_by_cfn():
+def test_event_source_mapping_create_by_cfn():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -151,7 +151,7 @@ def test_event_source_mapping_created_by_cfn():
 @mock_lambda
 @mock_s3
 @mock_sqs
-def test_event_source_mapping_deleted_by_cfn():
+def test_event_source_mapping_delete_by_cfn():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -179,6 +179,54 @@ def test_event_source_mapping_deleted_by_cfn():
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
 
     event_sources["EventSourceMappings"].should.have.length_of(0)
+
+
+@mock_cloudformation
+@mock_lambda
+@mock_s3
+@mock_sqs
+def test_event_source_mapping_update_by_cfn():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    s3 = boto3.client("s3", "us-east-1")
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    lmbda = boto3.client("lambda", region_name="us-east-1")
+
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    # Creates lambda
+    _, lambda_stack = create_stack(cf, s3)
+    created_fn_name = get_created_function_name(cf, lambda_stack)
+    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
+
+    original_template = event_source_mapping_template.substitute({
+        "batch_size": 1,
+        "event_source_arn": queue.attributes["QueueArn"],
+        "function_name": created_fn_name,
+        "enabled": True
+    })
+
+    cf.create_stack(StackName="test-event-source", TemplateBody=original_template)
+    event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
+    original_esm = event_sources["EventSourceMappings"][0]
+
+    original_esm["State"].should.equal("Enabled")
+    original_esm["BatchSize"].should.equal(1)
+
+    # Update
+    new_template = event_source_mapping_template.substitute({
+        "batch_size": 10,
+        "event_source_arn": queue.attributes["QueueArn"],
+        "function_name": created_fn_name,
+        "enabled": False
+    })
+
+    cf.update_stack(StackName="test-event-source", TemplateBody=new_template)
+    event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
+    updated_esm = event_sources["EventSourceMappings"][0]
+
+    updated_esm["State"].should.equal("Disabled")
+    updated_esm["BatchSize"].should.equal(10)
+    updated_esm["LastModified"].should.be.greater_than(original_esm["LastModified"])
 
 
 def create_stack(cf, s3):

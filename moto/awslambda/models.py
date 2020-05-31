@@ -605,7 +605,7 @@ class EventSourceMapping(BaseModel):
             self._batch_size = batch_size_for_source[0]
         elif batch_size > batch_size_for_source[1]:
             error_message = "BatchSize {} exceeds the max of {}".format(
-                batch_size, batch_size_for_source.max
+                batch_size, batch_size_for_source[1]
             )
             raise ValueError("InvalidParameterValueException", error_message)
         else:
@@ -634,6 +634,15 @@ class EventSourceMapping(BaseModel):
         properties = cloudformation_json["Properties"]
         lambda_backend = lambda_backends[region_name]
         return lambda_backend.create_event_source_mapping(properties)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_source_uuid = original_resource.uuid
+        lambda_backend = lambda_backends[region_name]
+        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)
 
     @classmethod
     def delete_from_cloudformation_json(
@@ -901,17 +910,20 @@ class LambdaBackend(BaseBackend):
 
     def update_event_source_mapping(self, uuid, spec):
         esm = self.get_event_source_mapping(uuid)
-        if esm:
-            if spec.get("FunctionName"):
-                func = self._lambdas.get_function_by_name_or_arn(
-                    spec.get("FunctionName")
-                )
+        if not esm:
+            return False
+
+        for key, value in spec.items():
+            if key == "FunctionName":
+                func = self._lambdas.get_function_by_name_or_arn(spec[key])
                 esm.function_arn = func.function_arn
-            if "BatchSize" in spec:
-                esm.batch_size = spec["BatchSize"]
-            if "Enabled" in spec:
-                esm.enabled = spec["Enabled"]
-            return esm
+            elif key == "BatchSize":
+                esm.batch_size = spec[key]
+            elif key == "Enabled":
+                esm.enabled = spec[key]
+
+        esm.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        return esm
 
     def list_event_source_mappings(self, event_source_arn, function_name):
         esms = list(self._event_source_mappings.values())
