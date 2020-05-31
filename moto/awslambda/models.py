@@ -649,9 +649,15 @@ class EventSourceMapping(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        event_source_uuid = properties["UUID"]
         lambda_backend = lambda_backends[region_name]
-        lambda_backend.delete_event_source_mapping(event_source_uuid)
+        esms = lambda_backend.list_event_source_mappings(
+            event_source_arn=properties["EventSourceArn"], function_name=properties["FunctionName"]
+        )
+
+        for esm in esms:
+            if esm.logical_resource_id in resource_name:
+                lambda_backend.delete_event_source_mapping
+                esm.delete(region_name)
 
 
 class LambdaVersion(BaseModel):
