@@ -558,32 +558,8 @@ class EventSourceMapping(BaseModel):
         self.function_arn = spec["FunctionArn"]
         self.event_source_arn = spec["EventSourceArn"]
 
-        # BatchSize service default/max mapping
-        batch_size_map = {
-            "kinesis": (100, 10000),
-            "dynamodb": (100, 1000),
-            "sqs": (10, 10),
-        }
-        source_type = self.event_source_arn.split(":")[2].lower()
-        batch_size_entry = batch_size_map.get(source_type)
-        if batch_size_entry:
-            # Use service default if not provided
-            batch_size = int(spec.get("BatchSize", batch_size_entry[0]))
-            if batch_size > batch_size_entry[1]:
-                raise ValueError(
-                    "InvalidParameterValueException",
-                    "BatchSize {} exceeds the max of {}".format(
-                        batch_size, batch_size_entry[1]
-                    ),
-                )
-            else:
-                self.batch_size = batch_size
-        else:
-            raise ValueError(
-                "InvalidParameterValueException", "Unsupported event source type"
-            )
-
         # optional
+        self.batch_size = spec.get("BatchSize")
         self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
@@ -605,6 +581,31 @@ class EventSourceMapping(BaseModel):
         if not self._validate_event_source(event_source_arn):
             raise ValueError("InvalidParameterValueException", "Unsupported event source type")
         self._event_source_arn = event_source_arn
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, batch_size):
+        batch_size_service_map = {
+            "kinesis": (100, 10000),
+            "dynamodb": (100, 1000),
+            "sqs": (10, 10),
+        }
+
+        source_type = self.event_source_arn.split(":")[2].lower()
+        batch_size_for_source = batch_size_service_map[source_type]
+
+        if batch_size is None:
+            self._batch_size = batch_size_for_source[0]
+        elif batch_size > batch_size_for_source[1]:
+            error_message = "BatchSize {} exceeds the max of {}".format(
+                batch_size, batch_size_for_source.max
+            )
+            raise ValueError("InvalidParameterValueException", error_message)
+        else:
+            self._batch_size = int(batch_size)
 
     def get_configuration(self):
         return {
