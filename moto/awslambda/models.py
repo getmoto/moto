@@ -567,9 +567,12 @@ class EventSourceMapping(BaseModel):
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
+    def _get_service_source_from_arn(self, event_source_arn):
+        return event_source_arn.split(":")[2].lower()
+
     def _validate_event_source(self, event_source_arn):
         valid_services = ("dynamodb", "kinesis", "sqs")
-        service = event_source_arn.split(":")[2].lower()
+        service = self._get_service_source_from_arn(event_source_arn)
         return True if service in valid_services else False
 
     @property
@@ -594,7 +597,7 @@ class EventSourceMapping(BaseModel):
             "sqs": (10, 10),
         }
 
-        source_type = self.event_source_arn.split(":")[2].lower()
+        source_type = self._get_service_source_from_arn(self.event_source_arn)
         batch_size_for_source = batch_size_service_map[source_type]
 
         if batch_size is None:
