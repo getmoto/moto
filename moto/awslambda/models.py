@@ -591,6 +591,21 @@ class EventSourceMapping(BaseModel):
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
+    def _validate_event_source(self, event_source_arn):
+        valid_services = ("dynamodb", "kinesis", "sqs")
+        service = event_source_arn.split(":")[2].lower()
+        return True if service in valid_services else False
+
+    @property
+    def event_source_arn(self):
+        return self._event_source_arn
+
+    @event_source_arn.setter
+    def event_source_arn(self, event_source_arn):
+        if not self._validate_event_source(event_source_arn):
+            raise ValueError("InvalidParameterValueException", "Unsupported event source type")
+        self._event_source_arn = event_source_arn
+
     def get_configuration(self):
         return {
             "UUID": self.uuid,
