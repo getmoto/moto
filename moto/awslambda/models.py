@@ -557,8 +557,6 @@ class EventSourceMapping(BaseModel):
         # required
         self.function_arn = spec["FunctionArn"]
         self.event_source_arn = spec["EventSourceArn"]
-        self.uuid = str(uuid.uuid4())
-        self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
         # BatchSize service default/max mapping
         batch_size_map = {
@@ -589,6 +587,9 @@ class EventSourceMapping(BaseModel):
         self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+
+        self.uuid = str(uuid.uuid4())
+        self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
     def get_configuration(self):
         return {
