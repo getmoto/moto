@@ -162,7 +162,6 @@ def test_event_source_mapping_deleted_by_cfn():
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
-    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
 
     template = event_source_mapping_template.substitute({
         "batch_size": 1,
