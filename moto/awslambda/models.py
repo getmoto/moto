@@ -623,6 +623,10 @@ class EventSourceMapping(BaseModel):
             "StateTransitionReason": "User initiated",
         }
 
+    def delete(self, region_name):
+        lambda_backend = lambda_backends[region_name]
+        lambda_backend.delete_event_source_mapping(self.uuid)
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -630,6 +634,15 @@ class EventSourceMapping(BaseModel):
         properties = cloudformation_json["Properties"]
         lambda_backend = lambda_backends[region_name]
         return lambda_backend.create_event_source_mapping(properties)
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_source_uuid = properties["UUID"]
+        lambda_backend = lambda_backends[region_name]
+        lambda_backend.delete_event_source_mapping(event_source_uuid)
 
 
 class LambdaVersion(BaseModel):

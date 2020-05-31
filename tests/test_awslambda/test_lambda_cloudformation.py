@@ -127,8 +127,8 @@ def test_event_source_mapping_created_by_cfn():
     queue = sqs.create_queue(QueueName="test-sqs-queue1")
 
     # Creates lambda
-    _, stack = create_stack(cf, s3)
-    created_fn_name = get_created_function_name(cf, stack)
+    _, lambda_stack = create_stack(cf, s3)
+    created_fn_name = get_created_function_name(cf, lambda_stack)
     created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
 
     template = event_source_mapping_template.substitute({
@@ -145,6 +145,41 @@ def test_event_source_mapping_created_by_cfn():
     event_source = event_sources["EventSourceMappings"][0]
     event_source["EventSourceArn"].should.be.equal(queue.attributes["QueueArn"])
     event_source["FunctionArn"].should.be.equal(created_fn_arn)
+
+
+@mock_cloudformation
+@mock_lambda
+@mock_s3
+@mock_sqs
+def test_event_source_mapping_deleted_by_cfn():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    s3 = boto3.client("s3", "us-east-1")
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    lmbda = boto3.client("lambda", region_name="us-east-1")
+
+    queue = sqs.create_queue(QueueName="test-sqs-queue1")
+
+    # Creates lambda
+    _, lambda_stack = create_stack(cf, s3)
+    created_fn_name = get_created_function_name(cf, lambda_stack)
+    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
+
+    template = event_source_mapping_template.substitute({
+        "batch_size": 1,
+        "event_source_arn": queue.attributes["QueueArn"],
+        "function_name": created_fn_name,
+        "enabled": True
+    })
+
+    esm_stack = cf.create_stack(StackName="test-event-source", TemplateBody=template)
+    event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
+
+    event_sources["EventSourceMappings"].should.have.length_of(1)
+
+    cf.delete_stack(StackName=esm_stack["StackId"])
+    event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
+
+    event_sources["EventSourceMappings"].should.have.length_of(0)
 
 
 def create_stack(cf, s3):
