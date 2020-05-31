@@ -555,7 +555,7 @@ class LambdaFunction(BaseModel):
 class EventSourceMapping(BaseModel):
     def __init__(self, spec):
         # required
-        self.function_arn = spec["FunctionArn"]
+        self.function_name = spec["FunctionName"]
         self.event_source_arn = spec["EventSourceArn"]
 
         # optional
@@ -564,6 +564,7 @@ class EventSourceMapping(BaseModel):
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
 
+        self.function_arn = spec["FunctionArn"]
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
@@ -627,18 +628,8 @@ class EventSourceMapping(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        func = lambda_backends[region_name].get_function(properties["FunctionName"])
-        spec = {
-            "FunctionArn": func.function_arn,
-            "EventSourceArn": properties["EventSourceArn"],
-            "StartingPosition": properties["StartingPosition"],
-            "BatchSize": properties.get("BatchSize", 100),
-        }
-        optional_properties = "BatchSize Enabled StartingPositionTimestamp".split()
-        for prop in optional_properties:
-            if prop in properties:
-                spec[prop] = properties[prop]
-        return EventSourceMapping(spec)
+        lambda_backend = lambda_backends[region_name]
+        return lambda_backend.create_event_source_mapping(properties)
 
 
 class LambdaVersion(BaseModel):
@@ -839,7 +830,7 @@ class LambdaBackend(BaseBackend):
                 )
 
         # Validate function name
-        func = self._lambdas.get_function_by_name_or_arn(spec.pop("FunctionName", ""))
+        func = self._lambdas.get_function_by_name_or_arn(spec.get("FunctionName", ""))
         if not func:
             raise RESTError("ResourceNotFoundException", "Invalid FunctionName")
 
@@ -908,7 +899,6 @@ class LambdaBackend(BaseBackend):
             if "Enabled" in spec:
                 esm.enabled = spec["Enabled"]
             return esm
-        return False
 
     def list_event_source_mappings(self, event_source_arn, function_name):
         esms = list(self._event_source_mappings.values())
