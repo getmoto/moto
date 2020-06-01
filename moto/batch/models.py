@@ -44,13 +44,13 @@ def datetime2int(date):
 
 class ComputeEnvironment(BaseModel):
     def __init__(
-        self,
-        compute_environment_name,
-        _type,
-        state,
-        compute_resources,
-        service_role,
-        region_name,
+            self,
+            compute_environment_name,
+            _type,
+            state,
+            compute_resources,
+            service_role,
+            region_name,
     ):
         self.name = compute_environment_name
         self.env_type = _type
@@ -78,7 +78,7 @@ class ComputeEnvironment(BaseModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+            cls, resource_name, cloudformation_json, region_name
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -97,7 +97,7 @@ class ComputeEnvironment(BaseModel):
 
 class JobQueue(BaseModel):
     def __init__(
-        self, name, priority, state, environments, env_order_json, region_name
+            self, name, priority, state, environments, env_order_json, region_name
     ):
         """
         :param name: Job queue name
@@ -141,7 +141,7 @@ class JobQueue(BaseModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+            cls, resource_name, cloudformation_json, region_name
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -166,14 +166,14 @@ class JobQueue(BaseModel):
 
 class JobDefinition(BaseModel):
     def __init__(
-        self,
-        name,
-        parameters,
-        _type,
-        container_properties,
-        region_name,
-        revision=0,
-        retry_strategy=0,
+            self,
+            name,
+            parameters,
+            _type,
+            container_properties,
+            region_name,
+            revision=0,
+            retry_strategy=0,
     ):
         self.name = name
         self.retries = retry_strategy
@@ -218,6 +218,7 @@ class JobDefinition(BaseModel):
 
         if "vcpus" not in self.container_properties:
             raise ClientException("containerProperties must contain vcpus")
+
         if self.container_properties["vcpus"] < 1:
             raise ClientException("container vcpus limit must be greater than 0")
 
@@ -266,7 +267,7 @@ class JobDefinition(BaseModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+            cls, resource_name, cloudformation_json, region_name
     ):
         backend = batch_backends[region_name]
         properties = cloudformation_json["Properties"]
@@ -349,20 +350,34 @@ class Job(threading.Thread, BaseModel):
         if self.job_stopped:
             result["stoppedAt"] = datetime2int(self.job_stopped_at)
             result["container"] = {}
-            result["container"]["command"] = [
-                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"'
-            ]
-            result["container"]["privileged"] = False
-            result["container"]["readonlyRootFilesystem"] = False
-            result["container"]["ulimits"] = {}
-            result["container"]["vcpus"] = 1
-            result["container"]["volumes"] = ""
+            result["container"]["command"] = self._get_container_property("command", [])
+            result["container"]["privileged"] = self._get_container_property("privileged", False)
+            result["container"]["readonlyRootFilesystem"] = self._get_container_property("readonlyRootFilesystem",
+                                                                                         False)
+            result["container"]["ulimits"] = self._get_container_property("ulimits", {})
+            result["container"]["vcpus"] = self._get_container_property("vcpus", 1)
+            result["container"]["memory"] = self._get_container_property("memory", 512)
+            result["container"]["volumes"] = self._get_container_property("volumes", [])
+            result["container"]["environment"] = self._get_container_property("environment", [])
             result["container"]["logStreamName"] = self.log_stream_name
         if self.job_stopped_reason is not None:
             result["statusReason"] = self.job_stopped_reason
         return result
 
     def _get_container_property(self, p, default):
+
+        if p == "environment":
+            job_env = self.container_overrides.get(p, default)
+            jd_env = self.job_definition.container_properties.get(p, default)
+
+            job_env_dict = {_env["name"]: _env["value"] for _env in job_env}
+            jd_env_dict = {_env["name"]: _env["value"] for _env in jd_env}
+
+            for key in jd_env_dict.keys():
+                if key not in job_env_dict.keys():
+                    job_env.append({"name": key, "value": jd_env_dict[key]})
+            return job_env
+
         return self.container_overrides.get(
             p, self.job_definition.container_properties.get(p, default)
         )
@@ -458,8 +473,8 @@ class Job(threading.Thread, BaseModel):
                                 timestamps=True,
                                 since=datetime2int(now),
                             )
-                            .decode()
-                            .split("\n")
+                                .decode()
+                                .split("\n")
                         )
                         logs_stdout.extend(
                             container.logs(
@@ -468,8 +483,8 @@ class Job(threading.Thread, BaseModel):
                                 timestamps=True,
                                 since=datetime2int(now),
                             )
-                            .decode()
-                            .split("\n")
+                                .decode()
+                                .split("\n")
                         )
                         now = datetime.datetime.now()
                         container.reload()
@@ -488,8 +503,8 @@ class Job(threading.Thread, BaseModel):
                         timestamps=True,
                         since=datetime2int(now),
                     )
-                    .decode()
-                    .split("\n")
+                        .decode()
+                        .split("\n")
                 )
                 logs_stdout.extend(
                     container.logs(
@@ -498,8 +513,8 @@ class Job(threading.Thread, BaseModel):
                         timestamps=True,
                         since=datetime2int(now),
                     )
-                    .decode()
-                    .split("\n")
+                        .decode()
+                        .split("\n")
                 )
 
                 result = container.wait()
@@ -551,6 +566,7 @@ class Job(threading.Thread, BaseModel):
 
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
+
     def terminate(self, reason):
         if not self.stop:
             self.stop = True
@@ -753,7 +769,7 @@ class BatchBackend(BaseBackend):
             return None
 
     def describe_compute_environments(
-        self, environments=None, max_results=None, next_token=None
+            self, environments=None, max_results=None, next_token=None
     ):
         envs = set()
         if environments is not None:
@@ -782,7 +798,7 @@ class BatchBackend(BaseBackend):
         return result
 
     def create_compute_environment(
-        self, compute_environment_name, _type, state, compute_resources, service_role
+            self, compute_environment_name, _type, state, compute_resources, service_role
     ):
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
@@ -880,13 +896,13 @@ class BatchBackend(BaseBackend):
         :type cr: dict
         """
         for param in (
-            "instanceRole",
-            "maxvCpus",
-            "minvCpus",
-            "instanceTypes",
-            "securityGroupIds",
-            "subnets",
-            "type",
+                "instanceRole",
+                "maxvCpus",
+                "minvCpus",
+                "instanceTypes",
+                "securityGroupIds",
+                "subnets",
+                "type",
         ):
             if param not in cr:
                 raise InvalidParameterValueException(
@@ -1018,7 +1034,7 @@ class BatchBackend(BaseBackend):
                 self.ec2_backend.terminate_instances(instance_ids)
 
     def update_compute_environment(
-        self, compute_environment_name, state, compute_resources, service_role
+            self, compute_environment_name, state, compute_resources, service_role
     ):
         # Validate
         compute_env = self.get_compute_environment(compute_environment_name)
@@ -1067,10 +1083,10 @@ class BatchBackend(BaseBackend):
         :rtype: tuple of str
         """
         for variable, var_name in (
-            (queue_name, "jobQueueName"),
-            (priority, "priority"),
-            (state, "state"),
-            (compute_env_order, "computeEnvironmentOrder"),
+                (queue_name, "jobQueueName"),
+                (priority, "priority"),
+                (state, "state"),
+                (compute_env_order, "computeEnvironmentOrder"),
         ):
             if variable is None:
                 raise ClientException("{0} must be provided".format(var_name))
@@ -1196,7 +1212,7 @@ class BatchBackend(BaseBackend):
             del self._job_queues[job_queue.arn]
 
     def register_job_definition(
-        self, def_name, parameters, _type, retry_strategy, container_properties
+            self, def_name, parameters, _type, retry_strategy, container_properties
     ):
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
@@ -1237,12 +1253,12 @@ class BatchBackend(BaseBackend):
             del self._job_definitions[job_def.arn]
 
     def describe_job_definitions(
-        self,
-        job_def_name=None,
-        job_def_list=None,
-        status=None,
-        max_results=None,
-        next_token=None,
+            self,
+            job_def_name=None,
+            job_def_list=None,
+            status=None,
+            max_results=None,
+            next_token=None,
     ):
         jobs = []
 
@@ -1265,14 +1281,14 @@ class BatchBackend(BaseBackend):
         return jobs
 
     def submit_job(
-        self,
-        job_name,
-        job_def_id,
-        job_queue,
-        parameters=None,
-        retries=None,
-        depends_on=None,
-        container_overrides=None,
+            self,
+            job_name,
+            job_def_id,
+            job_queue,
+            parameters=None,
+            retries=None,
+            depends_on=None,
+            container_overrides=None,
     ):
         # TODO parameters, retries (which is a dict raw from request), job dependencies and container overrides are ignored for now
 
@@ -1325,13 +1341,13 @@ class BatchBackend(BaseBackend):
             raise ClientException("Job queue {0} does not exist".format(job_queue))
 
         if job_status is not None and job_status not in (
-            "SUBMITTED",
-            "PENDING",
-            "RUNNABLE",
-            "STARTING",
-            "RUNNING",
-            "SUCCEEDED",
-            "FAILED",
+                "SUBMITTED",
+                "PENDING",
+                "RUNNABLE",
+                "STARTING",
+                "RUNNING",
+                "SUCCEEDED",
+                "FAILED",
         ):
             raise ClientException(
                 "Job status is not one of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED"
