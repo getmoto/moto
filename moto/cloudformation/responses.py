@@ -662,6 +662,10 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
       <member>
         <StackName>{{ stack.name }}</StackName>
         <StackId>{{ stack.stack_id }}</StackId>
+        {% if stack.change_set_id %}
+        <ChangeSetId>{{ stack.change_set_id }}</ChangeSetId>
+        {% endif %}
+        <Description>{{ stack.description }}</Description>
         <CreationTime>{{ stack.creation_time_iso_8601 }}</CreationTime>
         <StackStatus>{{ stack.status }}</StackStatus>
         {% if stack.notification_arns %}
