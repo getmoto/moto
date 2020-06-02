@@ -844,6 +844,13 @@ def test_describe_change_set():
     assert (
         two_secs_ago < stack["CreationTime"] < datetime.now(tz=pytz.UTC)
     ), "Change set should have been created recently"
+    stack["Changes"].should.have.length_of(1)
+    stack["Changes"][0].should.equal(dict({'Type': 'Resource', 'ResourceChange': {'Action': 'Add', 'LogicalResourceId': 'EC2Instance1', 'ResourceType': 'AWS::EC2::Instance'}}))
+
+    # Execute change set
+    cf_conn.execute_change_set(ChangeSetName="NewChangeSet")
+    # Verify that the changes have been applied
+    cf_conn.describe_change_set(ChangeSetName="NewChangeSet")["Changes"].should.have.length_of(1)
 
     cf_conn.create_change_set(
         StackName="NewStack",
