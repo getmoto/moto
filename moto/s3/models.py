@@ -5,6 +5,7 @@ import json
 import os
 import base64
 import datetime
+import pytz
 import hashlib
 import copy
 import itertools
@@ -776,7 +777,7 @@ class FakeBucket(BaseModel):
         self.notification_configuration = None
         self.accelerate_configuration = None
         self.payer = "BucketOwner"
-        self.creation_date = datetime.datetime.utcnow()
+        self.creation_date = datetime.datetime.now(tz=pytz.utc)
         self.public_access_block = None
         self.encryption = None
 
