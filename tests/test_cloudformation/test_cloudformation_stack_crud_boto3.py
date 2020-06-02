@@ -573,9 +573,9 @@ def test_boto3_create_stack_set_with_yaml():
 def test_create_stack_set_from_s3_url():
     s3 = boto3.client("s3")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
-    bucket = s3_conn.create_bucket(Bucket="foobar")
+    s3_conn.create_bucket(Bucket="foobar")
 
-    key = s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
+    s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
     key_url = s3.generate_presigned_url(
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
@@ -716,9 +716,9 @@ def test_create_stack_with_role_arn():
 def test_create_stack_from_s3_url():
     s3 = boto3.client("s3")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
-    bucket = s3_conn.create_bucket(Bucket="foobar")
+    s3_conn.create_bucket(Bucket="foobar")
 
-    key = s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
+    s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
     key_url = s3.generate_presigned_url(
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
@@ -800,9 +800,9 @@ def test_update_stack_from_s3_url():
 def test_create_change_set_from_s3_url():
     s3 = boto3.client("s3")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
-    bucket = s3_conn.create_bucket(Bucket="foobar")
+    s3_conn.create_bucket(Bucket="foobar")
 
-    key = s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
+    s3_conn.Object("foobar", "template-key").put(Body=dummy_template_json)
     key_url = s3.generate_presigned_url(
         ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
     )
@@ -845,12 +845,24 @@ def test_describe_change_set():
         two_secs_ago < stack["CreationTime"] < datetime.now(tz=pytz.UTC)
     ), "Change set should have been created recently"
     stack["Changes"].should.have.length_of(1)
-    stack["Changes"][0].should.equal(dict({'Type': 'Resource', 'ResourceChange': {'Action': 'Add', 'LogicalResourceId': 'EC2Instance1', 'ResourceType': 'AWS::EC2::Instance'}}))
+    stack["Changes"][0].should.equal(
+        dict(
+            {
+                "Type": "Resource",
+                "ResourceChange": {
+                    "Action": "Add",
+                    "LogicalResourceId": "EC2Instance1",
+                    "ResourceType": "AWS::EC2::Instance",
+                },
+            }
+        )
+    )
 
     # Execute change set
     cf_conn.execute_change_set(ChangeSetName="NewChangeSet")
     # Verify that the changes have been applied
-    cf_conn.describe_change_set(ChangeSetName="NewChangeSet")["Changes"].should.have.length_of(1)
+    stack = cf_conn.describe_change_set(ChangeSetName="NewChangeSet")
+    stack["Changes"].should.have.length_of(1)
 
     cf_conn.create_change_set(
         StackName="NewStack",
@@ -894,7 +906,7 @@ def test_execute_change_set_w_arn():
 @mock_cloudformation
 def test_execute_change_set_w_name():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    change_set = cf_conn.create_change_set(
+    cf_conn.create_change_set(
         StackName="NewStack",
         TemplateBody=dummy_template_json,
         ChangeSetName="NewChangeSet",
@@ -1228,9 +1240,7 @@ def test_delete_stack_with_export():
 @mock_cloudformation
 def test_export_names_must_be_unique():
     cf = boto3.resource("cloudformation", region_name="us-east-1")
-    first_stack = cf.create_stack(
-        StackName="test_stack", TemplateBody=dummy_output_template_json
-    )
+    cf.create_stack(StackName="test_stack", TemplateBody=dummy_output_template_json)
     with assert_raises(ClientError):
         cf.create_stack(StackName="test_stack", TemplateBody=dummy_output_template_json)
 
@@ -1244,9 +1254,7 @@ def test_stack_with_imports():
     output_stack = cf.create_stack(
         StackName="test_stack1", TemplateBody=dummy_output_template_json
     )
-    import_stack = cf.create_stack(
-        StackName="test_stack2", TemplateBody=dummy_import_template_json
-    )
+    cf.create_stack(StackName="test_stack2", TemplateBody=dummy_import_template_json)
 
     output_stack.outputs.should.have.length_of(1)
     output = output_stack.outputs[0]["OutputValue"]
