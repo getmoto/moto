@@ -217,7 +217,10 @@ class EventsHandler(BaseResponse):
                 "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
             )
 
-        return "", self.response_headers
+        return (
+            json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
+            self.response_headers,
+        )
 
     def remove_targets(self):
         rule_name = self._get_param("Rule")
