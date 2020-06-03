@@ -583,7 +583,9 @@ class EventSourceMapping(BaseModel):
     @event_source_arn.setter
     def event_source_arn(self, event_source_arn):
         if not self._validate_event_source(event_source_arn):
-            raise ValueError("InvalidParameterValueException", "Unsupported event source type")
+            raise ValueError(
+                "InvalidParameterValueException", "Unsupported event source type"
+            )
         self._event_source_arn = event_source_arn
 
     @property
@@ -651,7 +653,8 @@ class EventSourceMapping(BaseModel):
         properties = cloudformation_json["Properties"]
         lambda_backend = lambda_backends[region_name]
         esms = lambda_backend.list_event_source_mappings(
-            event_source_arn=properties["EventSourceArn"], function_name=properties["FunctionName"]
+            event_source_arn=properties["EventSourceArn"],
+            function_name=properties["FunctionName"],
         )
 
         for esm in esms:

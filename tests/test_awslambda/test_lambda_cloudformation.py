@@ -129,15 +129,19 @@ def test_event_source_mapping_create_from_cloudformation_json():
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
-    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
+    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"][
+        "FunctionArn"
+    ]
 
-    template = event_source_mapping_template.substitute({
-        "resource_name": "Foo",
-        "batch_size": 1,
-        "event_source_arn": queue.attributes["QueueArn"],
-        "function_name": created_fn_name,
-        "enabled": True
-    })
+    template = event_source_mapping_template.substitute(
+        {
+            "resource_name": "Foo",
+            "batch_size": 1,
+            "event_source_arn": queue.attributes["QueueArn"],
+            "function_name": created_fn_name,
+            "enabled": True,
+        }
+    )
 
     cf.create_stack(StackName="test-event-source", TemplateBody=template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
@@ -164,13 +168,15 @@ def test_event_source_mapping_delete_stack():
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
 
-    template = event_source_mapping_template.substitute({
-        "resource_name": "Foo",
-        "batch_size": 1,
-        "event_source_arn": queue.attributes["QueueArn"],
-        "function_name": created_fn_name,
-        "enabled": True
-    })
+    template = event_source_mapping_template.substitute(
+        {
+            "resource_name": "Foo",
+            "batch_size": 1,
+            "event_source_arn": queue.attributes["QueueArn"],
+            "function_name": created_fn_name,
+            "enabled": True,
+        }
+    )
 
     esm_stack = cf.create_stack(StackName="test-event-source", TemplateBody=template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
@@ -198,15 +204,19 @@ def test_event_source_mapping_update_from_cloudformation_json():
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
-    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
+    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"][
+        "FunctionArn"
+    ]
 
-    original_template = event_source_mapping_template.substitute({
-        "resource_name": "Foo",
-        "batch_size": 1,
-        "event_source_arn": queue.attributes["QueueArn"],
-        "function_name": created_fn_name,
-        "enabled": True
-    })
+    original_template = event_source_mapping_template.substitute(
+        {
+            "resource_name": "Foo",
+            "batch_size": 1,
+            "event_source_arn": queue.attributes["QueueArn"],
+            "function_name": created_fn_name,
+            "enabled": True,
+        }
+    )
 
     cf.create_stack(StackName="test-event-source", TemplateBody=original_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
@@ -216,13 +226,15 @@ def test_event_source_mapping_update_from_cloudformation_json():
     original_esm["BatchSize"].should.equal(1)
 
     # Update
-    new_template = event_source_mapping_template.substitute({
-        "resource_name": "Foo",
-        "batch_size": 10,
-        "event_source_arn": queue.attributes["QueueArn"],
-        "function_name": created_fn_name,
-        "enabled": False
-    })
+    new_template = event_source_mapping_template.substitute(
+        {
+            "resource_name": "Foo",
+            "batch_size": 10,
+            "event_source_arn": queue.attributes["QueueArn"],
+            "function_name": created_fn_name,
+            "enabled": False,
+        }
+    )
 
     cf.update_stack(StackName="test-event-source", TemplateBody=new_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
@@ -247,15 +259,19 @@ def test_event_source_mapping_delete_from_cloudformation_json():
     # Creates lambda
     _, lambda_stack = create_stack(cf, s3)
     created_fn_name = get_created_function_name(cf, lambda_stack)
-    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"]["FunctionArn"]
+    created_fn_arn = lmbda.get_function(FunctionName=created_fn_name)["Configuration"][
+        "FunctionArn"
+    ]
 
-    original_template = event_source_mapping_template.substitute({
-        "resource_name": "Foo",
-        "batch_size": 1,
-        "event_source_arn": queue.attributes["QueueArn"],
-        "function_name": created_fn_name,
-        "enabled": True
-    })
+    original_template = event_source_mapping_template.substitute(
+        {
+            "resource_name": "Foo",
+            "batch_size": 1,
+            "event_source_arn": queue.attributes["QueueArn"],
+            "function_name": created_fn_name,
+            "enabled": True,
+        }
+    )
 
     cf.create_stack(StackName="test-event-source", TemplateBody=original_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
@@ -265,13 +281,15 @@ def test_event_source_mapping_delete_from_cloudformation_json():
     original_esm["BatchSize"].should.equal(1)
 
     # Update with deletion of old resources
-    new_template = event_source_mapping_template.substitute({
-        "resource_name": "Bar",  # changed name
-        "batch_size": 10,
-        "event_source_arn": queue.attributes["QueueArn"],
-        "function_name": created_fn_name,
-        "enabled": False
-    })
+    new_template = event_source_mapping_template.substitute(
+        {
+            "resource_name": "Bar",  # changed name
+            "batch_size": 10,
+            "event_source_arn": queue.attributes["QueueArn"],
+            "function_name": created_fn_name,
+            "enabled": False,
+        }
+    )
 
     cf.update_stack(StackName="test-event-source", TemplateBody=new_template)
     event_sources = lmbda.list_event_source_mappings(FunctionName=created_fn_name)
