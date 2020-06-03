@@ -17,6 +17,7 @@ import boto.sqs
 import boto.vpc
 import boto3
 import sure  # noqa
+from string import Template
 
 from moto import (
     mock_autoscaling_deprecated,
@@ -2491,6 +2492,45 @@ def test_stack_events_create_rule_as_target():
 
     log_groups["logGroups"][0]["logGroupName"].should.equal(rules["Rules"][0]["Arn"])
     log_groups["logGroups"][0]["retentionInDays"].should.equal(3)
+
+
+@mock_cloudformation
+@mock_events
+def test_stack_events_update_rule_integration():
+    events_template = Template(
+        """{
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "Event": {
+                "Type": "AWS::Events::Rule",
+                "Properties": {
+                    "Name": "$Name",
+                    "State": "$State",
+                    "ScheduleExpression": "rate(5 minutes)",
+                },
+            }
+        },
+    } """
+    )
+
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+
+    original_template = events_template.substitute(Name="Foo", State="ENABLED")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=original_template)
+
+    rules = boto3.client("events", "us-west-2").list_rules()
+    rules["Rules"].should.have.length_of(1)
+    rules["Rules"][0]["Name"].should.equal("Foo")
+    rules["Rules"][0]["State"].should.equal("ENABLED")
+
+    update_template = events_template.substitute(Name="Bar", State="DISABLED")
+    cf_conn.update_stack(StackName="test_stack", TemplateBody=update_template)
+
+    rules = boto3.client("events", "us-west-2").list_rules()
+
+    rules["Rules"].should.have.length_of(1)
+    rules["Rules"][0]["Name"].should.equal("Bar")
+    rules["Rules"][0]["State"].should.equal("DISABLED")
 
 
 @mock_cloudformation

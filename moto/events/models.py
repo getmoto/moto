@@ -81,6 +81,15 @@ class Rule(BaseModel):
         return event_backend.put_rule(name=event_name, **properties)
 
     @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        original_resource.delete(region_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
