@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 import json
 
-import base64
 from decimal import Decimal
 
 import boto
@@ -28,7 +27,6 @@ from moto import (
     mock_dynamodb2,
     mock_ec2,
     mock_ec2_deprecated,
-    mock_elb,
     mock_elb_deprecated,
     mock_events,
     mock_iam_deprecated,
@@ -37,18 +35,14 @@ from moto import (
     mock_logs,
     mock_rds_deprecated,
     mock_rds2,
-    mock_rds2_deprecated,
-    mock_redshift,
     mock_redshift_deprecated,
     mock_route53_deprecated,
     mock_s3,
     mock_sns_deprecated,
-    mock_sqs,
     mock_sqs_deprecated,
     mock_elbv2,
 )
 from moto.core import ACCOUNT_ID
-from moto.dynamodb2.models import Table
 
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,

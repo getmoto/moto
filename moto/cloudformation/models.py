@@ -219,7 +219,12 @@ class FakeStack(BaseModel):
         self.stack_id = stack_id
         self.name = name
         self.template = template
-        self._parse_template()
+        if template != {}:
+            self._parse_template()
+            self.description = self.template_dict.get("Description")
+        else:
+            self.template_dict = {}
+            self.description = None
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
@@ -235,7 +240,6 @@ class FakeStack(BaseModel):
                 "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
             )
 
-        self.description = self.template_dict.get("Description")
         self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
@@ -331,7 +335,9 @@ class FakeStack(BaseModel):
         return self.output_map.exports
 
     def create_resources(self):
-        self.resource_map.create()
+        self.resource_map.create(self.template_dict)
+        # Set the description of the stack
+        self.description = self.template_dict.get("Description")
         self.status = "CREATE_COMPLETE"
 
     def update(self, template, role_arn=None, parameters=None, tags=None):
@@ -398,6 +404,8 @@ class FakeChangeSet(FakeStack):
         self.change_set_id = change_set_id
         self.change_set_name = change_set_name
         self.changes = self.diff(template=template, parameters=parameters)
+        if self.description is None:
+            self.description = self.template_dict.get("Description")
         self.creation_time = datetime.utcnow()
 
     def diff(self, template, parameters=None):
@@ -590,7 +598,7 @@ class CloudFormationBackend(BaseBackend):
                 raise ValidationError(stack_name)
         else:
             stack_id = generate_stack_id(stack_name, region_name)
-            stack_template = template
+            stack_template = {}
 
         change_set_id = generate_changeset_id(change_set_name, region_name)
         new_change_set = FakeChangeSet(
@@ -645,6 +653,9 @@ class CloudFormationBackend(BaseBackend):
         if stack is None:
             raise ValidationError(stack_name)
         if stack.events[-1].resource_status == "REVIEW_IN_PROGRESS":
+            stack._add_stack_event(
+                "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
+            )
             stack._add_stack_event("CREATE_COMPLETE")
         else:
             stack._add_stack_event("UPDATE_IN_PROGRESS")
