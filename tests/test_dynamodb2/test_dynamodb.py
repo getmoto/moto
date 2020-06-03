@@ -3045,7 +3045,7 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
         dynamodb.batch_get_item(
             RequestItems={
                 "users": {
-                    "Keys": [{"username": {"S": f"user{i}"}} for i in range(0, 104)],
+                    "Keys": [{"username": {"S": "user" + str(i)}} for i in range(0, 104)],
                     "ConsistentRead": True,
                 }
             }
