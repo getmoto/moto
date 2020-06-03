@@ -2585,3 +2585,27 @@ def test_autoscaling_propagate_tags():
 
     assert propagation_dict["test-key-propagate"]
     assert not propagation_dict["test-key-no-propagate"]
+
+
+@mock_cloudformation
+@mock_events
+def test_stack_eventbus_create_integration():
+    eventbus_template = """{
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "EventBus": {
+                "Type": "AWS::Events::EventBus",
+                "Properties": {
+                    "Name": "MyCustomEventBus"
+                },
+            }
+        },
+    } """
+
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=eventbus_template)
+
+    event_buses = boto3.client("events", "us-west-2").list_event_buses(NamePrefix="MyCustom")
+
+    event_buses["EventBuses"].should.have.length_of(1)
+    event_buses["EventBuses"][0]["Name"].should.equal("MyCustomEventBus")

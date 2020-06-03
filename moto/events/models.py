@@ -134,6 +134,16 @@ class EventBus(BaseModel):
 
         return json.dumps(policy)
 
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_name = properties["Name"]
+        event_source_name = properties.get("EventSourceName")
+        return event_backend.create_event_bus(name=event_name, event_source_name=event_source_name)
+
 
 class EventsBackend(BaseBackend):
     ACCOUNT_ID = re.compile(r"^(\d{1,12}|\*)$")
@@ -369,7 +379,7 @@ class EventsBackend(BaseBackend):
 
         return event_bus
 
-    def create_event_bus(self, name, event_source_name):
+    def create_event_bus(self, name, event_source_name=None):
         if name in self.event_buses:
             raise JsonRESTError(
                 "ResourceAlreadyExistsException",
