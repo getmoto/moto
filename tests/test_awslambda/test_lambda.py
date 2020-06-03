@@ -1446,11 +1446,12 @@ def test_update_event_source_mapping():
     assert response["State"] == "Enabled"
 
     mapping = conn.update_event_source_mapping(
-        UUID=response["UUID"], Enabled=False, BatchSize=15, FunctionName="testFunction2"
+        UUID=response["UUID"], Enabled=False, BatchSize=2, FunctionName="testFunction2"
     )
     assert mapping["UUID"] == response["UUID"]
     assert mapping["FunctionArn"] == func2["FunctionArn"]
     assert mapping["State"] == "Disabled"
+    assert response["BatchSize"] == 2
 
 
 @mock_lambda
