@@ -2504,7 +2504,7 @@ def test_stack_events_create_rule_as_target():
 @mock_events
 def test_stack_events_update_rule_integration():
     events_template = Template(
-    """{
+        """{
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
             "Event": {
@@ -2516,7 +2516,8 @@ def test_stack_events_update_rule_integration():
                 },
             }
         },
-    } """)
+    } """
+    )
 
     cf_conn = boto3.client("cloudformation", "us-west-2")
 
