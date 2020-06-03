@@ -371,6 +371,26 @@ class DynamoHandler(BaseResponse):
 
         results = {"ConsumedCapacity": [], "Responses": {}, "UnprocessedKeys": {}}
 
+        # Validation: Can only request up to 100 items at the same time
+        # Scenario 1: We're requesting more than a 100 keys from a single table
+        for table_name, table_request in table_batches.items():
+            if len(table_request["Keys"]) > 100:
+                return self.error(
+                    "com.amazonaws.dynamodb.v20111205#ValidationException",
+                    "1 validation error detected: Value at 'requestItems."
+                    + table_name
+                    + ".member.keys' failed to satisfy constraint: Member must have length less than or equal to 100",
+                )
+        # Scenario 2: We're requesting more than a 100 keys across all tables
+        nr_of_keys_across_all_tables = sum(
+            [len(req["Keys"]) for _, req in table_batches.items()]
+        )
+        if nr_of_keys_across_all_tables > 100:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#ValidationException",
+                "Too many items requested for the BatchGetItem call",
+            )
+
         for table_name, table_request in table_batches.items():
             keys = table_request["Keys"]
             if self._contains_duplicates(keys):

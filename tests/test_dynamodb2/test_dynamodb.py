@@ -3039,6 +3039,52 @@ def test_batch_items_returns_all():
 
 
 @mock_dynamodb2
+def test_batch_items_throws_exception_when_requesting_100_items_for_single_table():
+    dynamodb = _create_user_table()
+    with assert_raises(ClientError) as ex:
+        dynamodb.batch_get_item(
+            RequestItems={
+                "users": {
+                    "Keys": [{"username": {"S": f"user{i}"}} for i in range(0, 104)],
+                    "ConsistentRead": True,
+                }
+            }
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    msg = ex.exception.response["Error"]["Message"]
+    msg.should.contain("1 validation error detected: Value")
+    msg.should.contain(
+        "at 'requestItems.users.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
+    )
+
+
+@mock_dynamodb2
+def test_batch_items_throws_exception_when_requesting_100_items_across_all_tables():
+    dynamodb = _create_user_table()
+    with assert_raises(ClientError) as ex:
+        dynamodb.batch_get_item(
+            RequestItems={
+                "users": {
+                    "Keys": [
+                        {"username": {"S": "user" + str(i)}} for i in range(0, 75)
+                    ],
+                    "ConsistentRead": True,
+                },
+                "users2": {
+                    "Keys": [
+                        {"username": {"S": "user" + str(i)}} for i in range(0, 75)
+                    ],
+                    "ConsistentRead": True,
+                },
+            }
+        )
+    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Too many items requested for the BatchGetItem call"
+    )
+
+
+@mock_dynamodb2
 def test_batch_items_with_basic_projection_expression():
     dynamodb = _create_user_table()
     returned_items = dynamodb.batch_get_item(
