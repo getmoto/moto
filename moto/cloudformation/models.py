@@ -254,7 +254,7 @@ class FakeStack(BaseModel):
 
     def initialize_resources(self):
         self.resource_map.load()
-        self.resource_map.create()
+        self.resource_map.create(self.template_dict)
         self.output_map.create()
         self._add_stack_event("CREATE_COMPLETE")
         self.status = "CREATE_COMPLETE"
@@ -344,12 +344,6 @@ class FakeStack(BaseModel):
     @property
     def exports(self):
         return self.output_map.exports
-
-    def create_resources(self):
-        self.resource_map.create(self.template_dict)
-        # Set the description of the stack
-        self.description = self.template_dict.get("Description")
-        self.status = "CREATE_COMPLETE"
 
     def update(self, template, role_arn=None, parameters=None, tags=None):
         self._add_stack_event(
@@ -714,7 +708,7 @@ class CloudFormationBackend(BaseBackend):
         else:
             stack._add_stack_event("UPDATE_IN_PROGRESS")
             stack._add_stack_event("UPDATE_COMPLETE")
-        stack.create_resources()
+        stack.initialize_resources()
         return True
 
     def describe_stacks(self, name_or_stack_id):
