@@ -2307,6 +2307,7 @@ def test_stack_dynamodb_resources_integration():
                             },
                         }
                     ],
+                    "StreamSpecification": {"StreamViewType": "KEYS_ONLY"},
                 },
             }
         },
@@ -2317,6 +2318,12 @@ def test_stack_dynamodb_resources_integration():
     cfn_conn = boto3.client("cloudformation", "us-east-1")
     cfn_conn.create_stack(
         StackName="dynamodb_stack", TemplateBody=dynamodb_template_json
+    )
+
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_desc = dynamodb_client.describe_table(TableName="myTableName")["Table"]
+    table_desc["StreamSpecification"].should.equal(
+        {"StreamEnabled": True, "StreamViewType": "KEYS_ONLY",}
     )
 
     dynamodb_conn = boto3.resource("dynamodb", region_name="us-east-1")
