@@ -138,6 +138,18 @@ class EventBus(BaseModel):
         event_backend = events_backends[region_name]
         event_backend.delete_event_bus(name=self.name)
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Name":
+            return self.name
+        elif attribute_name == "Policy":
+            return self.policy
+
+        raise UnformattedGetAttTemplateException()
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
