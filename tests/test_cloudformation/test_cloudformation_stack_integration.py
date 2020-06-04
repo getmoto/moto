@@ -2684,3 +2684,43 @@ def test_stack_events_delete_from_cfn_integration():
     )
     update_event_buses["EventBuses"].should.have.length_of(1)
     update_event_buses["EventBuses"][0]["Arn"].shouldnt.equal(original_eventbus["Arn"])
+
+
+@mock_cloudformation
+@mock_events
+def test_stack_events_update_from_cfn_integration():
+    eventbus_template = Template(
+        """{
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "EventBus": {
+                "Type": "AWS::Events::EventBus",
+                "Properties": {
+                    "Name": "$name"
+                },
+            }
+        },
+    }"""
+    )
+
+    cf_conn = boto3.client("cloudformation", "us-west-2")
+
+    original_template = eventbus_template.substitute({"name": "MyCustomEventBus"})
+    cf_conn.create_stack(StackName="test_stack", TemplateBody=original_template)
+
+    original_event_buses = boto3.client("events", "us-west-2").list_event_buses(
+        NamePrefix="MyCustom"
+    )
+    original_event_buses["EventBuses"].should.have.length_of(1)
+
+    original_eventbus = original_event_buses["EventBuses"][0]
+
+    updated_template = eventbus_template.substitute({"name": "NewEventBus"})
+    cf_conn.update_stack(StackName="test_stack", TemplateBody=updated_template)
+
+    update_event_buses = boto3.client("events", "us-west-2").list_event_buses(
+        NamePrefix="NewEventBus"
+    )
+    update_event_buses["EventBuses"].should.have.length_of(1)
+    update_event_buses["EventBuses"][0]["Name"].should.equal("NewEventBus")
+    update_event_buses["EventBuses"][0]["Arn"].shouldnt.equal(original_eventbus["Arn"])
