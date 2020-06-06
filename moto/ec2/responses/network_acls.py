@@ -83,7 +83,7 @@ class NetworkACLs(BaseResponse):
     def describe_network_acls(self):
         network_acl_ids = self._get_multi_param("NetworkAclId")
         filters = filters_from_querystring(self.querystring)
-        network_acls = self.ec2_backend.get_all_network_acls(network_acl_ids, filters)
+        network_acls = self.ec2_backend.describe_network_acls(network_acl_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_ACL_RESPONSE)
         return template.render(network_acls=network_acls)
 

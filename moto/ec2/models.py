@@ -72,6 +72,7 @@ from .exceptions import (
     InvalidVolumeIdError,
     VolumeInUseError,
     InvalidVolumeAttachmentError,
+    InvalidVolumeDetachmentError,
     InvalidVpcCidrBlockAssociationIdError,
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
@@ -560,23 +561,34 @@ class Instance(TaggedEC2Resource, BotoInstance):
             # worst case we'll get IP address exaustion... rarely
             pass
 
-    def add_block_device(self, size, device_path, snapshot_id=None, encrypted=False):
+    def add_block_device(
+        self,
+        size,
+        device_path,
+        snapshot_id=None,
+        encrypted=False,
+        delete_on_termination=False,
+    ):
         volume = self.ec2_backend.create_volume(
             size, self.region_name, snapshot_id, encrypted
         )
-        self.ec2_backend.attach_volume(volume.id, self.id, device_path)
+        self.ec2_backend.attach_volume(
+            volume.id, self.id, device_path, delete_on_termination
+        )
 
     def setup_defaults(self):
         # Default have an instance with root volume should you not wish to
         # override with attach volume cmd.
         volume = self.ec2_backend.create_volume(8, "us-east-1a")
-        self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1")
+        self.ec2_backend.attach_volume(volume.id, self.id, "/dev/sda1", True)
 
     def teardown_defaults(self):
-        if "/dev/sda1" in self.block_device_mapping:
-            volume_id = self.block_device_mapping["/dev/sda1"].volume_id
-            self.ec2_backend.detach_volume(volume_id, self.id, "/dev/sda1")
-            self.ec2_backend.delete_volume(volume_id)
+        for device_path in list(self.block_device_mapping.keys()):
+            volume = self.block_device_mapping[device_path]
+            volume_id = volume.volume_id
+            self.ec2_backend.detach_volume(volume_id, self.id, device_path)
+            if volume.delete_on_termination:
+                self.ec2_backend.delete_volume(volume_id)
 
     @property
     def get_block_device_mapping(self):
@@ -897,8 +909,15 @@ class InstanceBackend(object):
                     volume_size = block_device["Ebs"].get("VolumeSize")
                     snapshot_id = block_device["Ebs"].get("SnapshotId")
                     encrypted = block_device["Ebs"].get("Encrypted", False)
+                    delete_on_termination = block_device["Ebs"].get(
+                        "DeleteOnTermination", False
+                    )
                     new_instance.add_block_device(
-                        volume_size, device_name, snapshot_id, encrypted
+                        volume_size,
+                        device_name,
+                        snapshot_id,
+                        encrypted,
+                        delete_on_termination,
                     )
             else:
                 new_instance.setup_defaults()
@@ -2475,7 +2494,9 @@ class EBSBackend(object):
             return self.volumes.pop(volume_id)
         raise InvalidVolumeIdError(volume_id)
 
-    def attach_volume(self, volume_id, instance_id, device_path):
+    def attach_volume(
+        self, volume_id, instance_id, device_path, delete_on_termination=False
+    ):
         volume = self.get_volume(volume_id)
         instance = self.get_instance(instance_id)
 
@@ -2489,17 +2510,25 @@ class EBSBackend(object):
             status=volume.status,
             size=volume.size,
             attach_time=utc_date_and_time(),
+            delete_on_termination=delete_on_termination,
         )
         instance.block_device_mapping[device_path] = bdt
         return volume.attachment
 
     def detach_volume(self, volume_id, instance_id, device_path):
         volume = self.get_volume(volume_id)
-        self.get_instance(instance_id)
+        instance = self.get_instance(instance_id)
 
         old_attachment = volume.attachment
         if not old_attachment:
             raise InvalidVolumeAttachmentError(volume_id, instance_id)
+        device_path = device_path or old_attachment.device
+
+        try:
+            del instance.block_device_mapping[device_path]
+        except KeyError:
+            raise InvalidVolumeDetachmentError(volume_id, instance_id, device_path)
+
         old_attachment.status = "detached"
 
         volume.attachment = None
@@ -4721,23 +4750,7 @@ class NetworkAclBackend(object):
             )
 
     def get_all_network_acls(self, network_acl_ids=None, filters=None):
-        network_acls = self.network_acls.values()
-
-        if network_acl_ids:
-            network_acls = [
-                network_acl
-                for network_acl in network_acls
-                if network_acl.id in network_acl_ids
-            ]
-            if len(network_acls) != len(network_acl_ids):
-                invalid_id = list(
-                    set(network_acl_ids).difference(
-                        set([network_acl.id for network_acl in network_acls])
-                    )
-                )[0]
-                raise InvalidRouteTableIdError(invalid_id)
-
-        return generic_filter(filters, network_acls)
+        self.describe_network_acls(network_acl_ids, filters)
 
     def delete_network_acl(self, network_acl_id):
         deleted = self.network_acls.pop(network_acl_id, None)
@@ -4856,6 +4869,25 @@ class NetworkAclBackend(object):
         acl.associations[association_id] = NetworkAclAssociation(
             self, association_id, subnet_id, acl.id
         )
+
+    def describe_network_acls(self, network_acl_ids=None, filters=None):
+        network_acls = self.network_acls.values()
+
+        if network_acl_ids:
+            network_acls = [
+                network_acl
+                for network_acl in network_acls
+                if network_acl.id in network_acl_ids
+            ]
+            if len(network_acls) != len(network_acl_ids):
+                invalid_id = list(
+                    set(network_acl_ids).difference(
+                        set([network_acl.id for network_acl in network_acls])
+                    )
+                )[0]
+                raise InvalidRouteTableIdError(invalid_id)
+
+        return generic_filter(filters, network_acls)
 
 
 class NetworkAclAssociation(object):

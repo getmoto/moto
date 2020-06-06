@@ -93,6 +93,37 @@ def test_get_dashboard_fail():
 
 
 @mock_cloudwatch
+def test_delete_invalid_alarm():
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+
+    cloudwatch.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+
+    # trying to delete an alarm which is not created along with valid alarm.
+    with assert_raises(ClientError) as e:
+        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName", "testalarm1"])
+    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+
+    resp = cloudwatch.describe_alarms(AlarmNames=["testalarm1"])
+    # making sure other alarms are not deleted in case of an error.
+    len(resp["MetricAlarms"]).should.equal(1)
+
+    # test to check if the error raises if only one invalid alarm is tried to delete.
+    with assert_raises(ClientError) as e:
+        cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
+    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+
+
+@mock_cloudwatch
 def test_alarm_state():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 

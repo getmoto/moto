@@ -95,7 +95,10 @@ class StepFunctionResponse(BaseResponse):
     def start_execution(self):
         arn = self._get_param("stateMachineArn")
         name = self._get_param("name")
-        execution = self.stepfunction_backend.start_execution(arn, name)
+        try:
+            execution = self.stepfunction_backend.start_execution(arn, name)
+        except AWSError as err:
+            return err.response()
         response = {
             "executionArn": execution.execution_arn,
             "startDate": execution.start_date,

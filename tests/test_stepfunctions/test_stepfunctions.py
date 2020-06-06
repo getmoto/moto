@@ -255,6 +255,15 @@ def test_state_machine_throws_error_when_describing_unknown_machine():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_throws_error_when_describing_bad_arn():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    with assert_raises(ClientError) as exc:
+        client.describe_state_machine(stateMachineArn="bad")
+
+
+@mock_stepfunctions
+@mock_sts
 def test_state_machine_throws_error_when_describing_machine_in_different_account():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -364,6 +373,15 @@ def test_state_machine_start_execution():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_start_execution_bad_arn_raises_exception():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    with assert_raises(ClientError) as exc:
+        client.start_execution(stateMachineArn="bad")
+
+
+@mock_stepfunctions
+@mock_sts
 def test_state_machine_start_execution_with_custom_name():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -446,7 +464,7 @@ def test_state_machine_describe_execution():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_throws_error_when_describing_unknown_machine():
+def test_execution_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
     with assert_raises(ClientError) as exc:

@@ -207,6 +207,26 @@ def test_remove_role_from_instance_profile():
 
 
 @mock_iam()
+def test_delete_instance_profile():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_role(
+        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+    )
+    conn.create_instance_profile(InstanceProfileName="my-profile")
+    conn.add_role_to_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+    with assert_raises(conn.exceptions.DeleteConflictException):
+        conn.delete_instance_profile(InstanceProfileName="my-profile")
+    conn.remove_role_from_instance_profile(
+        InstanceProfileName="my-profile", RoleName="my-role"
+    )
+    conn.delete_instance_profile(InstanceProfileName="my-profile")
+    with assert_raises(conn.exceptions.NoSuchEntityException):
+        profile = conn.get_instance_profile(InstanceProfileName="my-profile")
+
+
+@mock_iam()
 def test_get_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -2815,3 +2835,36 @@ def test_list_user_tags():
         [{"Key": "Stan", "Value": "The Caddy"}, {"Key": "like-a", "Value": "glove"}]
     )
     response["IsTruncated"].should_not.be.ok
+
+
+@mock_iam()
+def test_delete_role_with_instance_profiles_present():
+    iam = boto3.client("iam", region_name="us-east-1")
+
+    trust_policy = """
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "ec2.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }
+        """
+    trust_policy = trust_policy.strip()
+
+    iam.create_role(RoleName="Role1", AssumeRolePolicyDocument=trust_policy)
+    iam.create_instance_profile(InstanceProfileName="IP1")
+    iam.add_role_to_instance_profile(InstanceProfileName="IP1", RoleName="Role1")
+
+    iam.create_role(RoleName="Role2", AssumeRolePolicyDocument=trust_policy)
+
+    iam.delete_role(RoleName="Role2")
+
+    role_names = [role["RoleName"] for role in iam.list_roles()["Roles"]]
+    assert "Role1" in role_names
+    assert "Role2" not in role_names

@@ -274,6 +274,7 @@ class SecretsManagerBackend(BaseBackend):
             raise SecretNotFoundException()
 
         secret = self.secrets[secret_id]
+        version_id_to_stages = self.form_version_ids_to_stages(secret["versions"])
 
         response = json.dumps(
             {
@@ -291,6 +292,7 @@ class SecretsManagerBackend(BaseBackend):
                 "LastAccessedDate": None,
                 "DeletedDate": secret.get("deleted_date", None),
                 "Tags": secret["tags"],
+                "VersionIdsToStages": version_id_to_stages,
             }
         )
 
@@ -551,6 +553,14 @@ class SecretsManagerBackend(BaseBackend):
                 "ResourcePolicy": json.dumps(resource_policy),
             }
         )
+
+    @staticmethod
+    def form_version_ids_to_stages(secret):
+        version_id_to_stages = {}
+        for key, value in secret.items():
+            version_id_to_stages[key] = value["version_stages"]
+
+        return version_id_to_stages
 
 
 secretsmanager_backends = {}

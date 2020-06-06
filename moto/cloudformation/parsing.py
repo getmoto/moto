@@ -96,6 +96,7 @@ MODEL_MAP = {
     "AWS::S3::Bucket": s3_models.FakeBucket,
     "AWS::SQS::Queue": sqs_models.Queue,
     "AWS::Events::Rule": events_models.Rule,
+    "AWS::Events::EventBus": events_models.EventBus,
 }
 
 UNDOCUMENTED_NAME_TYPE_MAP = {
@@ -456,7 +457,7 @@ class ResourceMap(collections_abc.Mapping):
         cross_stack_resources,
     ):
         self._template = template
-        self._resource_json_map = template["Resources"]
+        self._resource_json_map = template["Resources"] if template != {} else {}
         self._region_name = region_name
         self.input_parameters = parameters
         self.tags = copy.deepcopy(tags)
@@ -592,10 +593,12 @@ class ResourceMap(collections_abc.Mapping):
         self.load_parameters()
         self.load_conditions()
 
-    def create(self):
+    def create(self, template):
         # Since this is a lazy map, to create every object we just need to
         # iterate through self.
         # Assumes that self.load() has been called before
+        self._template = template
+        self._resource_json_map = template["Resources"]
         self.tags.update(
             {
                 "aws:cloudformation:stack-name": self.get("AWS::StackName"),

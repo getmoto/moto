@@ -81,6 +81,15 @@ class Rule(BaseModel):
         return event_backend.put_rule(name=event_name, **properties)
 
     @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        original_resource.delete(region_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
@@ -124,6 +133,52 @@ class EventBus(BaseModel):
             )
 
         return json.dumps(policy)
+
+    def delete(self, region_name):
+        event_backend = events_backends[region_name]
+        event_backend.delete_event_bus(name=self.name)
+
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Name":
+            return self.name
+        elif attribute_name == "Policy":
+            return self.policy
+
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_name = properties["Name"]
+        event_source_name = properties.get("EventSourceName")
+        return event_backend.create_event_bus(
+            name=event_name, event_source_name=event_source_name
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        original_resource.delete(region_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_backend = events_backends[region_name]
+        event_bus_name = properties["Name"]
+        event_backend.delete_event_bus(event_bus_name)
 
 
 class EventsBackend(BaseBackend):
@@ -360,7 +415,7 @@ class EventsBackend(BaseBackend):
 
         return event_bus
 
-    def create_event_bus(self, name, event_source_name):
+    def create_event_bus(self, name, event_source_name=None):
         if name in self.event_buses:
             raise JsonRESTError(
                 "ResourceAlreadyExistsException",
@@ -397,7 +452,6 @@ class EventsBackend(BaseBackend):
             raise JsonRESTError(
                 "ValidationException", "Cannot delete event bus default."
             )
-
         self.event_buses.pop(name, None)
 
     def list_tags_for_resource(self, arn):

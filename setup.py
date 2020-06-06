@@ -41,7 +41,7 @@ install_requires = [
     "PyYAML>=5.1",
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
-    "python-jose<4.0.0",
+    "python-jose[cryptography]>=3.1.0,<4.0.0",
     "docker>=2.5.1",
     "jsondiff>=1.1.2",
     "aws-xray-sdk!=0.96,>=0.93",

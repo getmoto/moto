@@ -275,3 +275,32 @@ def test_duplicate_network_acl_entry():
             rule_number
         )
     )
+
+
+@mock_ec2
+def test_describe_network_acls():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+
+    network_acl = conn.create_network_acl(VpcId=vpc_id)
+
+    network_acl_id = network_acl["NetworkAcl"]["NetworkAclId"]
+
+    resp = conn.describe_network_acls(NetworkAclIds=[network_acl_id])
+    result = resp["NetworkAcls"]
+
+    result.should.have.length_of(1)
+    result[0]["NetworkAclId"].should.equal(network_acl_id)
+
+    resp2 = conn.describe_network_acls()["NetworkAcls"]
+    resp2.should.have.length_of(3)
+
+    with assert_raises(ClientError) as ex:
+        conn.describe_network_acls(NetworkAclIds=["1"])
+
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidRouteTableID.NotFound) when calling the "
+        "DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
+    )
