@@ -96,6 +96,7 @@ MODEL_MAP = {
     "AWS::S3::Bucket": s3_models.FakeBucket,
     "AWS::SQS::Queue": sqs_models.Queue,
     "AWS::Events::Rule": events_models.Rule,
+    "AWS::Events::EventBus": events_models.EventBus,
 }
 
 UNDOCUMENTED_NAME_TYPE_MAP = {
