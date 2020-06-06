@@ -218,7 +218,7 @@ class LambdaFunction(BaseModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
+                key = s3_backend.get_object(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
                     raise InvalidParameterValueException(
@@ -344,7 +344,7 @@ class LambdaFunction(BaseModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(
+                key = s3_backend.get_object(
                     updated_spec["S3Bucket"], updated_spec["S3Key"]
                 )
             except MissingBucket:
