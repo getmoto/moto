@@ -543,7 +543,9 @@ def test_integration_response():
         statusCode="200",
         selectionPattern="foobar",
         responseTemplates={},
+        contentHandling="CONVERT_TO_BINARY"
     )
+
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
@@ -553,6 +555,7 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {"application/json": None},
+            "contentHandling":"CONVERT_TO_BINARY"
         }
     )
 
@@ -568,6 +571,7 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {"application/json": None},
+            "contentHandling": "CONVERT_TO_BINARY",
         }
     )
 
@@ -581,6 +585,7 @@ def test_integration_response():
                 "responseTemplates": {"application/json": None},
                 "selectionPattern": "foobar",
                 "statusCode": "200",
+                "contentHandling": "CONVERT_TO_BINARY",
             }
         }
     )

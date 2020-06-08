@@ -56,13 +56,15 @@ class Deployment(BaseModel, dict):
 
 
 class IntegrationResponse(BaseModel, dict):
-    def __init__(self, status_code, selection_pattern=None, response_templates=None):
+    def __init__(self, status_code, selection_pattern=None, response_templates=None, content_handling=None):
         if response_templates is None:
             response_templates = {"application/json": None}
         self["responseTemplates"] = response_templates
         self["statusCode"] = status_code
         if selection_pattern:
             self["selectionPattern"] = selection_pattern
+        if content_handling:
+            self["contentHandling"] = content_handling
 
 
 class Integration(BaseModel, dict):
@@ -75,12 +77,12 @@ class Integration(BaseModel, dict):
         self["integrationResponses"] = {"200": IntegrationResponse(200)}
 
     def create_integration_response(
-        self, status_code, selection_pattern, response_templates
+        self, status_code, selection_pattern, response_templates, content_handling
     ):
         if response_templates == {}:
             response_templates = None
         integration_response = IntegrationResponse(
-            status_code, selection_pattern, response_templates
+            status_code, selection_pattern, response_templates, content_handling
         )
         self["integrationResponses"][status_code] = integration_response
         return integration_response
@@ -959,12 +961,13 @@ class APIGatewayBackend(BaseBackend):
         status_code,
         selection_pattern,
         response_templates,
+        content_handling,
     ):
         if response_templates is None:
             raise InvalidRequestInput()
         integration = self.get_integration(function_id, resource_id, method_type)
         integration_response = integration.create_integration_response(
-            status_code, selection_pattern, response_templates
+            status_code, selection_pattern, response_templates, content_handling
         )
         return integration_response
 
