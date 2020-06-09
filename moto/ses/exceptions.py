@@ -41,3 +41,30 @@ class TemplateDoesNotExist(RESTError):
 
     def __init__(self, message):
         super(TemplateDoesNotExist, self).__init__("TemplateDoesNotExist", message)
+
+
+class RuleSetNameAlreadyExists(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(RuleSetNameAlreadyExists, self).__init__(
+            "RuleSetNameAlreadyExists", message
+        )
+
+
+class RuleAlreadyExists(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(RuleAlreadyExists, self).__init__(
+            "RuleAlreadyExists", message
+        )
+
+
+class RuleSetDoesNotExist(RESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(RuleSetDoesNotExist, self).__init__(
+            "RuleSetDoesNotExist", message
+        )
