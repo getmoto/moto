@@ -184,7 +184,7 @@ class CallbackResponse(responses.CallbackResponse):
                 body = None
             elif isinstance(request.body, six.text_type):
                 body = six.BytesIO(six.b(request.body))
-            elif hasattr(request.body, 'read'):
+            elif hasattr(request.body, "read"):
                 body = six.BytesIO(request.body.read())
             else:
                 body = six.BytesIO(request.body)

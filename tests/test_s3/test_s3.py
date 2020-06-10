@@ -1051,7 +1051,7 @@ def test_streaming_upload_from_file_to_presigned_url():
     presigned_url = boto3.client("s3").generate_presigned_url(
         "put_object", params, ExpiresIn=900
     )
-    with open(__file__, 'rb') as f:
+    with open(__file__, "rb") as f:
         response = requests.get(presigned_url, data=f)
     assert response.status_code == 200
 
