@@ -56,7 +56,13 @@ class Deployment(BaseModel, dict):
 
 
 class IntegrationResponse(BaseModel, dict):
-    def __init__(self, status_code, selection_pattern=None, response_templates=None, content_handling=None):
+    def __init__(
+        self,
+        status_code,
+        selection_pattern=None,
+        response_templates=None,
+        content_handling=None,
+    ):
         if response_templates is None:
             response_templates = {"application/json": None}
         self["responseTemplates"] = response_templates

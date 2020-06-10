@@ -593,7 +593,7 @@ def test_integration_response():
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
     response["methodIntegration"]["integrationResponses"].should.equal({})
 
-     # adding a new method and perfomring put intergration with contentHandling as CONVERT_TO_BINARY
+    # adding a new method and perfomring put intergration with contentHandling as CONVERT_TO_BINARY
     client.put_method(
         restApiId=api_id, resourceId=root_id, httpMethod="PUT", authorizationType="none"
     )
@@ -618,7 +618,7 @@ def test_integration_response():
         statusCode="200",
         selectionPattern="foobar",
         responseTemplates={},
-        contentHandling="CONVERT_TO_BINARY"
+        contentHandling="CONVERT_TO_BINARY",
     )
 
     # this is hard to match against, so remove it
@@ -630,7 +630,7 @@ def test_integration_response():
             "selectionPattern": "foobar",
             "ResponseMetadata": {"HTTPStatusCode": 200},
             "responseTemplates": {"application/json": None},
-            "contentHandling": "CONVERT_TO_BINARY"
+            "contentHandling": "CONVERT_TO_BINARY",
         }
     )
 
@@ -649,8 +649,6 @@ def test_integration_response():
             "contentHandling": "CONVERT_TO_BINARY",
         }
     )
-
-
 
 
 @mock_apigateway
