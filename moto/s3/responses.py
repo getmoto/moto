@@ -61,7 +61,7 @@ from .models import (
     FakeGrant,
     FakeAcl,
     FakeKey,
-)
+    FakeMultipart)
 from .utils import (
     bucket_name_from_url,
     clean_key_name,
@@ -1767,9 +1767,13 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self._set_action("KEY", "POST", query)
         self._authenticate_and_authorize_s3_action()
 
-        if body == b"" and "uploads" in query:
+        if body == b'' and 'uploads' in query:
             metadata = metadata_from_headers(request.headers)
-            multipart = self.backend.initiate_multipart(bucket_name, key_name, metadata)
+            multipart = FakeMultipart(key_name, metadata)
+            multipart.storage = request.headers.get('x-amz-storage-class', 'STANDARD')
+
+            bucket = self.backend.get_bucket(bucket_name)
+            bucket.multiparts[multipart.id] = multipart
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(
@@ -1777,10 +1781,23 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             return 200, {}, response
 
-        if query.get("uploadId"):
+        if query.get('uploadId'):
             body = self._complete_multipart_body(body)
-            upload_id = query["uploadId"][0]
-            key = self.backend.complete_multipart(bucket_name, upload_id, body)
+            multipart_id = query['uploadId'][0]
+
+            bucket = self.backend.get_bucket(bucket_name)
+            multipart = bucket.multiparts[multipart_id]
+            value, etag = multipart.complete(body)
+            if value is None:
+                return 400, {}, ''
+
+            del bucket.multiparts[multipart_id]
+
+            key = self.backend.set_key(
+                bucket_name, multipart.key_name, value, storage=multipart.storage, etag=etag, multipart=multipart
+            )
+            key.set_metadata(multipart.metadata)
+
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             headers = {}
             if key.version_id:
@@ -1792,18 +1809,20 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     bucket_name=bucket_name, key_name=key.name, etag=key.etag
                 ),
             )
-        elif "restore" in query:
-            es = minidom.parseString(body).getElementsByTagName("Days")
+
+        elif 'restore' in query:
+            es = minidom.parseString(body).getElementsByTagName('Days')
             days = es[0].childNodes[0].wholeText
             key = self.backend.get_object(bucket_name, key_name)
             r = 202
             if key.expiry_date is not None:
                 r = 200
             key.restore(int(days))
-            return r, {}, ""
+            return r, {}, ''
+
         else:
             raise NotImplementedError(
-                "Method POST had only been implemented for multipart uploads and restore operations, so far"
+                'Method POST had only been implemented for multipart uploads and restore operations, so far'
             )
 
     def _invalid_headers(self, url, headers):
