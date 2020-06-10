@@ -199,6 +199,28 @@ def test_instance_detach_volume_wrong_path():
         )
 
 
+@mock_ec2
+def test_instance_iam_instance_profile():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    instance_profile_arn = "arn:aws:iam::\
+                123456789012:instance-profile/not-a-real-profile"
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={
+            "Name": "fake-instance-profile",
+            "Arn": instance_profile_arn,
+        },
+    )
+    instance = result[0]
+    assert instance_profile_arn == instance.iam_instance_profile["Arn"]
+    instance.terminate()
+    instance.wait_until_terminated()
+
+
 @mock_ec2_deprecated
 def test_terminate_empty_instances():
     conn = boto.connect_ec2("the_key", "the_secret")
