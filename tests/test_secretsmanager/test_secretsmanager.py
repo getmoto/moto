@@ -212,6 +212,24 @@ def test_delete_secret_force():
 
 
 @mock_secretsmanager
+def test_delete_secret_force_with_arn():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    create_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    result = conn.delete_secret(
+        SecretId=create_secret["ARN"], ForceDeleteWithoutRecovery=True
+    )
+
+    assert result["ARN"]
+    assert result["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
+    assert result["Name"] == "test-secret"
+
+    with assert_raises(ClientError):
+        result = conn.get_secret_value(SecretId="test-secret")
+
+
+@mock_secretsmanager
 def test_delete_secret_that_does_not_exist():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 

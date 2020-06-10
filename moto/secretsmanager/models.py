@@ -38,6 +38,10 @@ class SecretsStore(dict):
         new_key = get_secret_name_from_arn(key)
         return dict.__contains__(self, new_key)
 
+    def pop(self, key, *args, **kwargs):
+        new_key = get_secret_name_from_arn(key)
+        return super(SecretsStore, self).pop(new_key, *args, **kwargs)
+
 
 class SecretsManagerBackend(BaseBackend):
     def __init__(self, region_name=None, **kwargs):
