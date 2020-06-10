@@ -56,15 +56,11 @@ class RuleAlreadyExists(RESTError):
     code = 400
 
     def __init__(self, message):
-        super(RuleAlreadyExists, self).__init__(
-            "RuleAlreadyExists", message
-        )
+        super(RuleAlreadyExists, self).__init__("RuleAlreadyExists", message)
 
 
 class RuleSetDoesNotExist(RESTError):
     code = 400
 
     def __init__(self, message):
-        super(RuleSetDoesNotExist, self).__init__(
-            "RuleSetDoesNotExist", message
-        )
+        super(RuleSetDoesNotExist, self).__init__("RuleSetDoesNotExist", message)

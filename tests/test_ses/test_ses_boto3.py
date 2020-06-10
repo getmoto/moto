@@ -290,7 +290,7 @@ def test_create_configuration_set():
             EventDestination={
                 "Name": "snsEvent",
                 "Enabled": True,
-                "MatchingEventTypes": ["send", ],
+                "MatchingEventTypes": ["send",],
                 "SNSDestination": {
                     "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
                 },
@@ -319,92 +319,95 @@ def test_create_receipt_rule():
     rule_set_name = "testRuleSet"
     conn.create_receipt_rule_set(RuleSetName=rule_set_name)
 
-    result = conn.create_receipt_rule(RuleSetName=rule_set_name,
-                                      Rule={
-                                          "Name": "testRule",
-                                          "Enabled": False,
-                                          "TlsPolicy": "Optional",
-                                          "Recipients": ["string"],
-                                          "Actions": [
-                                              {
-                                                  "S3Action": {
-                                                      "TopicArn": "string",
-                                                      "BucketName": "string",
-                                                      "ObjectKeyPrefix": "string",
-                                                      "KmsKeyArn": "string"
-                                                  },
-                                                  "BounceAction": {
-                                                      "TopicArn": "string",
-                                                      "SmtpReplyCode": "string",
-                                                      "StatusCode": "string",
-                                                      "Message": "string",
-                                                      "Sender": "string"
-                                                  }
-                                              }
-
-                                          ],
-                                          "ScanEnabled": False
-                                      })
+    result = conn.create_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": "testRule",
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["string"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "string",
+                        "ObjectKeyPrefix": "string",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
 
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
     with assert_raises(ClientError) as ex:
-        conn.create_receipt_rule(RuleSetName=rule_set_name,
-                                 Rule={
-                                     "Name": "testRule",
-                                     "Enabled": False,
-                                     "TlsPolicy": "Optional",
-                                     "Recipients": ["string"],
-                                     "Actions": [
-                                         {
-                                             "S3Action": {
-                                                 "TopicArn": "string",
-                                                 "BucketName": "string",
-                                                 "ObjectKeyPrefix": "string",
-                                                 "KmsKeyArn": "string"
-                                             },
-                                             "BounceAction": {
-                                                 "TopicArn": "string",
-                                                 "SmtpReplyCode": "string",
-                                                 "StatusCode": "string",
-                                                 "Message": "string",
-                                                 "Sender": "string"
-                                             }
-                                         }
-
-                                     ],
-                                     "ScanEnabled": False
-                                 })
+        conn.create_receipt_rule(
+            RuleSetName=rule_set_name,
+            Rule={
+                "Name": "testRule",
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["string"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "string",
+                            "ObjectKeyPrefix": "string",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
 
     ex.exception.response["Error"]["Code"].should.equal("RuleAlreadyExists")
 
     with assert_raises(ClientError) as ex:
-        conn.create_receipt_rule(RuleSetName="InvalidRuleSetaName",
-                                 Rule={
-                                     "Name": "testRule",
-                                     "Enabled": False,
-                                     "TlsPolicy": "Optional",
-                                     "Recipients": ["string"],
-                                     "Actions": [
-                                         {
-                                             "S3Action": {
-                                                 "TopicArn": "string",
-                                                 "BucketName": "string",
-                                                 "ObjectKeyPrefix": "string",
-                                                 "KmsKeyArn": "string"
-                                             },
-                                             "BounceAction": {
-                                                 "TopicArn": "string",
-                                                 "SmtpReplyCode": "string",
-                                                 "StatusCode": "string",
-                                                 "Message": "string",
-                                                 "Sender": "string"
-                                             }
-                                         }
-
-                                     ],
-                                     "ScanEnabled": False
-                                 })
+        conn.create_receipt_rule(
+            RuleSetName="InvalidRuleSetaName",
+            Rule={
+                "Name": "testRule",
+                "Enabled": False,
+                "TlsPolicy": "Optional",
+                "Recipients": ["string"],
+                "Actions": [
+                    {
+                        "S3Action": {
+                            "TopicArn": "string",
+                            "BucketName": "string",
+                            "ObjectKeyPrefix": "string",
+                            "KmsKeyArn": "string",
+                        },
+                        "BounceAction": {
+                            "TopicArn": "string",
+                            "SmtpReplyCode": "string",
+                            "StatusCode": "string",
+                            "Message": "string",
+                            "Sender": "string",
+                        },
+                    }
+                ],
+                "ScanEnabled": False,
+            },
+        )
 
     ex.exception.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
 
