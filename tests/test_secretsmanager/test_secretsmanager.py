@@ -217,7 +217,9 @@ def test_delete_secret_force_with_arn():
 
     create_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    result = conn.delete_secret(SecretId=create_secret["ARN"], ForceDeleteWithoutRecovery=True)
+    result = conn.delete_secret(
+        SecretId=create_secret["ARN"], ForceDeleteWithoutRecovery=True
+    )
 
     assert result["ARN"]
     assert result["DeletionDate"] > datetime.fromtimestamp(1, pytz.utc)
