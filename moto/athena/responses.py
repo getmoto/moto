@@ -85,3 +85,32 @@ class AthenaResponse(BaseResponse):
             json.dumps({"__type": "InvalidRequestException", "Message": msg,}),
             dict(status=status),
         )
+
+    def create_named_query(self):
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        database = self._get_param("Database")
+        query_string = self._get_param("QueryString")
+        workgroup = self._get_param("WorkGroup")
+        if workgroup and not self.athena_backend.get_work_group(workgroup):
+            return self.error("WorkGroup does not exist", 400)
+        query_id = self.athena_backend.create_named_query(
+            name, description, database, query_string, workgroup
+        )
+        return json.dumps({"NamedQueryId": query_id})
+
+    def get_named_query(self):
+        query_id = self._get_param("NamedQueryId")
+        nq = self.athena_backend.get_named_query(query_id)
+        return json.dumps(
+            {
+                "NamedQuery": {
+                    "Name": nq.name,
+                    "Description": nq.description,
+                    "Database": nq.database,
+                    "QueryString": nq.query_string,
+                    "NamedQueryId": nq.id,
+                    "WorkGroup": nq.workgroup,
+                }
+            }
+        )
