@@ -462,7 +462,7 @@ def test_routes_not_supported():
     # Create
     conn.create_route.when.called_with(
         main_route_table.id, ROUTE_CIDR, interface_id="eni-1234abcd"
-    ).should.throw(NotImplementedError)
+    ).should.throw("InvalidNetworkInterfaceID.NotFound")
 
     # Replace
     igw = conn.create_internet_gateway()
