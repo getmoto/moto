@@ -172,6 +172,44 @@ def test_stop_query_execution():
     details["Status"]["State"].should.equal("CANCELLED")
 
 
+@mock_athena
+def test_create_named_query():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    # craete named query
+    res = client.create_named_query(
+        Name="query-name", Database="target_db", QueryString="SELECT * FROM table1",
+    )
+
+    assert "NamedQueryId" in res
+
+
+@mock_athena
+def test_get_named_query():
+    client = boto3.client("athena", region_name="us-east-1")
+    query_name = "query-name"
+    database = "target_db"
+    query_string = "SELECT * FROM tbl1"
+    description = "description of this query"
+
+    # craete named query
+    res_create = client.create_named_query(
+        Name=query_name,
+        Database=database,
+        QueryString=query_string,
+        Description=description,
+    )
+    query_id = res_create["NamedQueryId"]
+
+    # get named query
+    res_get = client.get_named_query(NamedQueryId=query_id)["NamedQuery"]
+    res_get["Name"].should.equal(query_name)
+    res_get["Description"].should.equal(description)
+    res_get["Database"].should.equal(database)
+    res_get["QueryString"].should.equal(query_string)
+    res_get["NamedQueryId"].should.equal(query_id)
+
+
 def create_basic_workgroup(client, name):
     client.create_work_group(
         Name=name,
