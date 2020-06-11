@@ -1041,6 +1041,22 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
 
 
 @mock_s3
+def test_streaming_upload_from_file_to_presigned_url():
+    s3 = boto3.resource("s3")
+    bucket = s3.Bucket("test-bucket")
+    bucket.create()
+    bucket.put_object(Body=b"ABCD", Key="file.txt")
+
+    params = {"Bucket": "test-bucket", "Key": "file.txt"}
+    presigned_url = boto3.client("s3").generate_presigned_url(
+        "put_object", params, ExpiresIn=900
+    )
+    with open(__file__, "rb") as f:
+        response = requests.get(presigned_url, data=f)
+    assert response.status_code == 200
+
+
+@mock_s3
 def test_s3_object_in_private_bucket():
     s3 = boto3.resource("s3")
     bucket = s3.Bucket("test-bucket")
