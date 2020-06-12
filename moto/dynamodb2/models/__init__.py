@@ -342,6 +342,8 @@ class Table(BaseModel):
             params["throughput"] = properties["ProvisionedThroughput"]
         if "LocalSecondaryIndexes" in properties:
             params["indexes"] = properties["LocalSecondaryIndexes"]
+        if "StreamSpecification" in properties:
+            params["streams"] = properties["StreamSpecification"]
 
         table = dynamodb_backends[region_name].create_table(
             name=properties["TableName"], **params
