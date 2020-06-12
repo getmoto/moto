@@ -386,6 +386,16 @@ class Table(BaseModel):
             },
         }
 
+    def get_cfn_attribute(self, attribute_name):
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.table_arn
+        elif attribute_name == "StreamArn" and self.stream_specification:
+            return self.describe()["TableDescription"]["LatestStreamArn"]
+
+        raise UnformattedGetAttTemplateException()
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
