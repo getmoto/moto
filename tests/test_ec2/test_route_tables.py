@@ -462,7 +462,7 @@ def test_routes_not_supported():
     # Create
     conn.create_route.when.called_with(
         main_route_table.id, ROUTE_CIDR, interface_id="eni-1234abcd"
-    ).should.throw(NotImplementedError)
+    ).should.throw("InvalidNetworkInterfaceID.NotFound")
 
     # Replace
     igw = conn.create_internet_gateway()
@@ -581,6 +581,32 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
             destination_cidr_block
         )
     )
+
+
+@mock_ec2
+def test_create_route_with_network_interface_id():
+    ec2 = boto3.resource("ec2", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
+    )
+
+    route_table = ec2_client.create_route_table(VpcId=vpc.id)
+
+    route_table_id = route_table["RouteTable"]["RouteTableId"]
+
+    eni1 = ec2_client.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
+    )
+
+    route = ec2_client.create_route(
+        NetworkInterfaceId=eni1["NetworkInterface"]["NetworkInterfaceId"],
+        RouteTableId=route_table_id,
+    )
+
+    route["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_ec2
