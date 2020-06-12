@@ -1,8 +1,5 @@
 from __future__ import unicode_literals
 import json
-from base64 import b64encode
-from datetime import datetime
-import time
 
 from moto.core.responses import BaseResponse
 from .models import sagemaker_backends
