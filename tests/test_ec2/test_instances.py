@@ -211,7 +211,6 @@ def test_instance_iam_instance_profile():
         MinCount=1,
         MaxCount=1,
         IamInstanceProfile={
-            "Name": "fake-instance-profile",
             "Arn": instance_profile_arn,
         },
     )
