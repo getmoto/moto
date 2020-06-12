@@ -1315,7 +1315,7 @@ class S3Backend(BaseBackend):
 
         return self.account_public_access_block
 
-    def set_key(
+    def set_object(
         self, bucket_name, key_name, value, storage=None, etag=None, multipart=None
     ):
         key_name = clean_key_name(key_name)
@@ -1346,11 +1346,11 @@ class S3Backend(BaseBackend):
     def append_to_key(self, bucket_name, key_name, value):
         key_name = clean_key_name(key_name)
 
-        key = self.get_key(bucket_name, key_name)
+        key = self.get_object(bucket_name, key_name)
         key.append_to_value(value)
         return key
 
-    def get_key(self, bucket_name, key_name, version_id=None, part_number=None):
+    def get_object(self, bucket_name, key_name, version_id=None, part_number=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
         key = None
@@ -1385,11 +1385,11 @@ class S3Backend(BaseBackend):
         )
         return key
 
-    def get_bucket_tags(self, bucket_name):
+    def get_bucket_tagging(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return self.tagger.list_tags_for_resource(bucket.arn)
 
-    def put_bucket_tags(self, bucket_name, tags):
+    def put_bucket_tagging(self, bucket_name, tags):
         bucket = self.get_bucket(bucket_name)
         self.tagger.delete_all_tags_for_resource(bucket.arn)
         self.tagger.tag_resource(
@@ -1481,7 +1481,7 @@ class S3Backend(BaseBackend):
             return
         del bucket.multiparts[multipart_id]
 
-        key = self.set_key(
+        key = self.set_object(
             bucket_name, multipart.key_name, value, etag=etag, multipart=multipart
         )
         key.set_metadata(multipart.metadata)
@@ -1521,7 +1521,7 @@ class S3Backend(BaseBackend):
         dest_bucket = self.get_bucket(dest_bucket_name)
         multipart = dest_bucket.multiparts[multipart_id]
 
-        src_value = self.get_key(
+        src_value = self.get_object(
             src_bucket_name, src_key_name, version_id=src_version_id
         ).value
         if start_byte is not None:
@@ -1565,7 +1565,7 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.keys[key_name] = FakeDeleteMarker(key=bucket.keys[key_name])
 
-    def delete_key(self, bucket_name, key_name, version_id=None):
+    def delete_object(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
@@ -1606,7 +1606,7 @@ class S3Backend(BaseBackend):
         src_key_name = clean_key_name(src_key_name)
         dest_key_name = clean_key_name(dest_key_name)
         dest_bucket = self.get_bucket(dest_bucket_name)
-        key = self.get_key(src_bucket_name, src_key_name, version_id=src_version_id)
+        key = self.get_object(src_bucket_name, src_key_name, version_id=src_version_id)
 
         new_key = key.copy(dest_key_name, dest_bucket.is_versioned)
         self.tagger.copy_tags(key.arn, new_key.arn)
@@ -1625,6 +1625,18 @@ class S3Backend(BaseBackend):
     def get_bucket_acl(self, bucket_name):
         bucket = self.get_bucket(bucket_name)
         return bucket.acl
+
+    def get_bucket_cors(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.cors
+
+    def get_bucket_logging(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.logging
+
+    def get_bucket_notification_configuration(self, bucket_name):
+        bucket = self.get_bucket(bucket_name)
+        return bucket.notification_configuration
 
 
 s3_backend = S3Backend()

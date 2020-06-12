@@ -541,7 +541,7 @@ class ResourceMap(collections_abc.Mapping):
                 if name == "AWS::Include":
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
-                    key = s3_backend.get_key(bucket_name, name)
+                    key = s3_backend.get_object(bucket_name, name)
                     self._parsed_resources.update(json.loads(key.value))
 
     def load_parameters(self):
