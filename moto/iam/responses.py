@@ -2106,7 +2106,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% for policy in group.policies %}
             <member>
                 <PolicyName>{{ policy }}</PolicyName>
-                <PolicyDocument>{{ group.get_policy(policy) }}</PolicyDocument>
+                <PolicyDocument>{{ group.policies[policy] }}</PolicyDocument>
             </member>
         {% endfor %}
         </GroupPolicyList>
