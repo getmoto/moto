@@ -602,7 +602,9 @@ def test_create_route_with_network_interface_id():
     )
 
     route = ec2_client.create_route(
-        NetworkInterfaceId=eni1["NetworkInterface"]["NetworkInterfaceId"], RouteTableId=route_table_id)
+        NetworkInterfaceId=eni1["NetworkInterface"]["NetworkInterfaceId"],
+        RouteTableId=route_table_id,
+    )
 
     route["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 

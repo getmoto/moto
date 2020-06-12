@@ -3629,15 +3629,15 @@ class RouteBackend(object):
         super(RouteBackend, self).__init__()
 
     def create_route(
-            self,
-            route_table_id,
-            destination_cidr_block,
-            local=False,
-            gateway_id=None,
-            instance_id=None,
-            nat_gateway_id=None,
-            interface_id=None,
-            vpc_peering_connection_id=None,
+        self,
+        route_table_id,
+        destination_cidr_block,
+        local=False,
+        gateway_id=None,
+        instance_id=None,
+        nat_gateway_id=None,
+        interface_id=None,
+        vpc_peering_connection_id=None,
     ):
         gateway = None
         nat_gateway = None
@@ -3646,7 +3646,7 @@ class RouteBackend(object):
 
         if interface_id:
             # for validating interface Id whether it is valid or not.
-            eni = self.get_network_interface(interface_id)
+            self.get_network_interface(interface_id)
 
         else:
             if gateway_id:
@@ -3656,7 +3656,9 @@ class RouteBackend(object):
                     gateway = self.get_internet_gateway(gateway_id)
 
             try:
-                ipaddress.IPv4Network(six.text_type(destination_cidr_block), strict=False)
+                ipaddress.IPv4Network(
+                    six.text_type(destination_cidr_block), strict=False
+                )
             except ValueError:
                 raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
