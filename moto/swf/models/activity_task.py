@@ -10,9 +10,15 @@ from .timeout import Timeout
 
 
 class ActivityTask(BaseModel):
-
-    def __init__(self, activity_id, activity_type, scheduled_event_id,
-                 workflow_execution, timeouts, input=None):
+    def __init__(
+        self,
+        activity_id,
+        activity_type,
+        scheduled_event_id,
+        workflow_execution,
+        timeouts,
+        input=None,
+    ):
         self.activity_id = activity_id
         self.activity_type = activity_type
         self.details = None
@@ -68,8 +74,9 @@ class ActivityTask(BaseModel):
         if not self.open or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case
-        heartbeat_timeout_at = (self.last_heartbeat_timestamp +
-                                int(self.timeouts["heartbeatTimeout"]))
+        heartbeat_timeout_at = self.last_heartbeat_timestamp + int(
+            self.timeouts["heartbeatTimeout"]
+        )
         _timeout = Timeout(self, heartbeat_timeout_at, "HEARTBEAT")
         if _timeout.reached:
             return _timeout
