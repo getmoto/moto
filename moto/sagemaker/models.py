@@ -5,7 +5,7 @@ from moto.ec2 import ec2_backends
 from moto.ecr.models import BaseObject
 from moto.core import BaseBackend
 
-'''
+"""
 {
    "Containers": [
       {
@@ -41,14 +41,21 @@ from moto.core import BaseBackend
       "Subnets": [ "string" ]
    }
 }
-'''
+"""
 
 
 class Model(BaseObject):
-
-    def __init__(self, model_name, execution_role_arn, primary_container, vpc_config, containers=[], tags=[]):
+    def __init__(
+        self,
+        model_name,
+        execution_role_arn,
+        primary_container,
+        vpc_config,
+        containers=[],
+        tags=[],
+    ):
         self.model_name = model_name
-        self.creation_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.containers = containers
         self.tags = tags
         self.enable_network_isolation = False
@@ -59,19 +66,21 @@ class Model(BaseObject):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        return {k: v for k, v in response_object.items() if v is not None and v != [None]}
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
 
     @property
     def response_create(self):
         return {"ModelArn": self.execution_role_arn}
 
 
-'''
+"""
 {
 "SecurityGroupIds": [ "string" ],
 "Subnets": [ "string" ]
 }
-'''
+"""
 
 
 class VpcConfig(BaseObject):
@@ -82,10 +91,12 @@ class VpcConfig(BaseObject):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        return {k: v for k, v in response_object.items() if v is not None and v != [None]}
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
 
 
-'''
+"""
 {
     "ContainerHostname": "string",
     "Environment": {
@@ -95,12 +106,13 @@ class VpcConfig(BaseObject):
     "ModelDataUrl": "string",
     "ModelPackageName": "string"
 }
-'''
+"""
 
 
 class Container(BaseObject):
-
-    def __init__(self, container_hostname, name, data_url, package_name, image, environment={}):
+    def __init__(
+        self, container_hostname, name, data_url, package_name, image, environment={}
+    ):
         self.container_hostname = container_hostname or "localhost"
         self.model_data_url = data_url
         self.model_package_name = package_name
@@ -110,11 +122,12 @@ class Container(BaseObject):
     @property
     def response_object(self):
         response_object = self.gen_response_object()
-        return {k: v for k, v in response_object.items() if v is not None and v != [None]}
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
 
 
 class SageMakerBackend(BaseBackend):
-
     def __init__(self, region_name=None):
         self._models = {}
         self.region_name = region_name
@@ -126,15 +139,15 @@ class SageMakerBackend(BaseBackend):
 
     def create_model(self, model):
         model_obj = Model(
-            model.get('model_name', 'test'),
-            model.get('execution_role_arn', 'arn:test'),
-            model.get('primary_container', {}),
-            model.get('vpc_config', {}),
-            model.get('containers', []),
-            model.get('tags', [])
+            model.get("model_name", "test"),
+            model.get("execution_role_arn", "arn:test"),
+            model.get("primary_container", {}),
+            model.get("vpc_config", {}),
+            model.get("containers", []),
+            model.get("tags", []),
         )
 
-        self._models[model.get('model_name', 'test')] = model_obj
+        self._models[model.get("model_name", "test")] = model_obj
         return model_obj.response_create
 
     def describe_model(self, model_name=None):

@@ -18,7 +18,7 @@ class SageMakerResponse(BaseResponse):
             return {}
 
     def describe_model(self):
-        model_name = self._get_param('ModelName')
+        model_name = self._get_param("ModelName")
         response = self.sagemaker_backend.describe_model(model_name)
         return json.dumps(response)
 
