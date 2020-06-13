@@ -7,6 +7,8 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 from moto import mock_sagemaker
 
+import sure  # noqa
+
 from moto.sagemaker.models import VpcConfig
 
 
@@ -41,7 +43,7 @@ def test_describe_model():
     )
     test_model.save()
     model = client.describe_model(ModelName="blah")
-    assert model.get("ModelName") == "blah"
+    assert model.get("ModelName").should.equal("blah")
 
 
 @mock_sagemaker
@@ -53,7 +55,7 @@ def test_create_model():
         ModelName="blah", ExecutionRoleArn=arn, VpcConfig=vpc_config.response_object
     )
 
-    assert model["ModelArn"] == arn
+    assert model["ModelArn"].should.equal(arn)
 
 
 @mock_sagemaker
@@ -64,9 +66,9 @@ def test_delete_model():
     test_model = MySageMakerModel(name=name, arn=arn)
     test_model.save()
 
-    assert len(client.list_models()["Models"]) == 1
+    assert len(client.list_models()["Models"]).should.equal(1)
     client.delete_model(ModelName=name)
-    assert len(client.list_models()["Models"]) == 0
+    assert len(client.list_models()["Models"]).should.equal(0)
 
 
 @mock_sagemaker
@@ -75,7 +77,7 @@ def test_delete_model_not_found():
         boto3.client("sagemaker", region_name="us-east-1").delete_model(
             ModelName="blah"
         )
-    assert "NoSuchModel" in err.exception.response["Error"]["Message"]
+    assert err.exception.response["Error"]["Code"].should.equal("404")
 
 
 @mock_sagemaker
@@ -86,10 +88,9 @@ def test_list_models():
     test_model = MySageMakerModel(name=name, arn=arn)
     test_model.save()
     models = client.list_models()
-    assert "Models" in models
-    assert len(models["Models"]) == 1
-    assert models["Models"][0]["ModelName"] == name
-    assert models["Models"][0]["ModelArn"] == arn
+    assert len(models["Models"]).should.equal(1)
+    assert models["Models"][0]["ModelName"].should.equal(name)
+    assert models["Models"][0]["ModelArn"].should.equal(arn)
 
 
 @mock_sagemaker
@@ -106,11 +107,11 @@ def test_list_models_multiple():
     test_model_2 = MySageMakerModel(name=name_model_2, arn=arn_model_2)
     test_model_2.save()
     models = client.list_models()
-    assert len(models["Models"]) == 2
+    assert len(models["Models"]).should.equal(2)
 
 
 @mock_sagemaker
 def test_list_models_none():
     client = boto3.client("sagemaker", region_name="us-east-1")
     models = client.list_models()
-    assert len(models["Models"]) == 0
+    assert len(models["Models"]).should.equal(0)
