@@ -3,46 +3,114 @@ from __future__ import unicode_literals
 
 import boto3
 import tests.backport_assert_raises  # noqa
+from botocore.exceptions import ClientError
+from nose.tools import assert_raises
 from moto import mock_sagemaker
-import sure  # noqa
 
-from moto.sagemaker.models import Model
-from moto.sagemaker.models import Container
+from moto.sagemaker.models import VpcConfig
+
+
+class MySageMakerModel(object):
+    def __init__(self, name, arn, container=None, vpc_config=None):
+        self.name = name
+        self.arn = arn
+        self.container = container if container else {}
+        self.vpc_config = (
+            vpc_config if vpc_config else {"sg-groups": ["sg-123"], "subnets": ["123"]}
+        )
+
+    def save(self):
+        client = boto3.client("sagemaker", region_name="us-east-1")
+        vpc_config = VpcConfig(
+            self.vpc_config.get("sg-groups"), self.vpc_config.get("subnets")
+        )
+        client.create_model(
+            ModelName=self.name,
+            ExecutionRoleArn=self.arn,
+            VpcConfig=vpc_config.response_object,
+        )
 
 
 @mock_sagemaker
 def test_describe_model():
-
-    client = boto3.client('sagemaker', region_name='us-east-1')
-    test_model = MySageMakerModel('blah', 'blah')
-    test_model.save
-    model = client.describe_model('blah')
-    assert model.get('ModelName') == 'blah'
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    test_model = MySageMakerModel(
+        name="blah",
+        arn="arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar",
+        vpc_config={"sg-groups": ["sg-123"], "subnets": ["123"]},
+    )
+    test_model.save()
+    model = client.describe_model(ModelName="blah")
+    assert model.get("ModelName") == "blah"
 
 
 @mock_sagemaker
 def test_create_model():
-    client = boto3.client('sagemaker', region_name='us-east-1')
-    container = Container("localhost", "none", None, None, None)
-    model = Model(
-        'blah', 'arn:blah',
-        container
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    vpc_config = VpcConfig(["sg-foobar"], ["subnet-xxx"])
+    arn = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
+    model = client.create_model(
+        ModelName="blah", ExecutionRoleArn=arn, VpcConfig=vpc_config.response_object
     )
-    client.create_model(model.response_object)
+
+    assert model["ModelArn"] == arn
 
 
-class MySageMakerModel(object):
+@mock_sagemaker
+def test_delete_model():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    name = "blah"
+    arn = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
+    test_model = MySageMakerModel(name=name, arn=arn)
+    test_model.save()
 
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
+    assert len(client.list_models()["Models"]) == 1
+    client.delete_model(ModelName=name)
+    assert len(client.list_models()["Models"]) == 0
 
-    def save(self):
-        sagemaker = boto3.client('sagemaker', region_name='us-east-1')
-        container = Container("localhost", self.value, None, None, None)
-        model = Model(
-            self.name,
-            'arn:blah',
-            container
+
+@mock_sagemaker
+def test_delete_model_not_found():
+    with assert_raises(ClientError) as err:
+        boto3.client("sagemaker", region_name="us-east-1").delete_model(
+            ModelName="blah"
         )
-        sagemaker.create_model(model.__dict__)
+    assert "NoSuchModel" in err.exception.response["Error"]["Message"]
+
+
+@mock_sagemaker
+def test_list_models():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    name = "blah"
+    arn = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
+    test_model = MySageMakerModel(name=name, arn=arn)
+    test_model.save()
+    models = client.list_models()
+    assert "Models" in models
+    assert len(models["Models"]) == 1
+    assert models["Models"][0]["ModelName"] == name
+    assert models["Models"][0]["ModelArn"] == arn
+
+
+@mock_sagemaker
+def test_list_models_multiple():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+
+    name_model_1 = "blah"
+    arn_model_1 = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
+    test_model_1 = MySageMakerModel(name=name_model_1, arn=arn_model_1)
+    test_model_1.save()
+
+    name_model_2 = "blah2"
+    arn_model_2 = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar2"
+    test_model_2 = MySageMakerModel(name=name_model_2, arn=arn_model_2)
+    test_model_2.save()
+    models = client.list_models()
+    assert len(models["Models"]) == 2
+
+
+@mock_sagemaker
+def test_list_models_none():
+    client = boto3.client("sagemaker", region_name="us-east-1")
+    models = client.list_models()
+    assert len(models["Models"]) == 0

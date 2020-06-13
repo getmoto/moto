@@ -23,8 +23,17 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(response)
 
     def create_model(self):
-        response = self.sagemaker_backend.create_model(self.request_params)
+        response = self.sagemaker_backend.create_model(**self.request_params)
         return json.dumps(response)
 
-    def _get_param(self, param):
-        return self.request_params.get(param, None)
+    def delete_model(self):
+        model_name = self._get_param("ModelName")
+        response = self.sagemaker_backend.delete_model(model_name)
+        return json.dumps(response)
+
+    def list_models(self):
+        response = self.sagemaker_backend.list_models(**self.request_params)
+        return json.dumps(response)
+
+    def _get_param(self, param, if_none=None):
+        return self.request_params.get(param, if_none)

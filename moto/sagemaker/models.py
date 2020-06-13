@@ -1,47 +1,10 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
+from .exceptions import MissingModel
 from moto.ec2 import ec2_backends
 from moto.ecr.models import BaseObject
 from moto.core import BaseBackend
-
-"""
-{
-   "Containers": [
-      {
-         "ContainerHostname": "string",
-         "Environment": {
-            "string" : "string"
-         },
-         "Image": "string",
-         "ModelDataUrl": "string",
-         "ModelPackageName": "string"
-      }
-   ],
-   "EnableNetworkIsolation": boolean,
-   "ExecutionRoleArn": "string",
-   "ModelName": "string",
-   "PrimaryContainer": {
-      "ContainerHostname": "string",
-      "Environment": {
-         "string" : "string"
-      },
-      "Image": "string",
-      "ModelDataUrl": "string",
-      "ModelPackageName": "string"
-   },
-   "Tags": [
-      {
-         "Key": "string",
-         "Value": "string"
-      }
-   ],
-   "VpcConfig": {
-      "SecurityGroupIds": [ "string" ],
-      "Subnets": [ "string" ]
-   }
-}
-"""
 
 
 class Model(BaseObject):
@@ -54,14 +17,14 @@ class Model(BaseObject):
         containers=[],
         tags=[],
     ):
-        self.model_name = model_name
+        self.ModelName = model_name
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.containers = containers
-        self.tags = tags
-        self.enable_network_isolation = False
-        self.vpc_config = vpc_config
-        self.primary_container = primary_container
-        self.execution_role_arn = execution_role_arn or "arn:test"
+        self.Containers = containers
+        self.Tags = tags
+        self.EnableNetworkIsolation = False
+        self.VpcConfig = vpc_config
+        self.PrimaryContainer = primary_container
+        self.ExecutionRoleArn = execution_role_arn or "arn:test"
 
     @property
     def response_object(self):
@@ -72,21 +35,13 @@ class Model(BaseObject):
 
     @property
     def response_create(self):
-        return {"ModelArn": self.execution_role_arn}
-
-
-"""
-{
-"SecurityGroupIds": [ "string" ],
-"Subnets": [ "string" ]
-}
-"""
+        return {"ModelArn": self.ExecutionRoleArn}
 
 
 class VpcConfig(BaseObject):
-    def __init__(self, security_group_ids=[], subnets=[]):
-        self.security_group_ids = security_group_ids
-        self.subnets = subnets
+    def __init__(self, security_group_ids, subnets):
+        self.SecurityGroupIds = security_group_ids
+        self.Subnets = subnets
 
     @property
     def response_object(self):
@@ -96,28 +51,13 @@ class VpcConfig(BaseObject):
         }
 
 
-"""
-{
-    "ContainerHostname": "string",
-    "Environment": {
-    "string" : "string"
-    },
-    "Image": "string",
-    "ModelDataUrl": "string",
-    "ModelPackageName": "string"
-}
-"""
-
-
 class Container(BaseObject):
-    def __init__(
-        self, container_hostname, name, data_url, package_name, image, environment={}
-    ):
-        self.container_hostname = container_hostname or "localhost"
-        self.model_data_url = data_url
-        self.model_package_name = package_name
-        self.image = image
-        self.environment = environment
+    def __init__(self, **kwargs):
+        self.ContainerHostname = kwargs.get("container_hostname", "localhost")
+        self.ModelDataUrl = kwargs.get("data_url", "")
+        self.ModelPackageName = kwargs.get("package_name", "pkg")
+        self.Image = kwargs.get("image", "")
+        self.Environment = kwargs.get("environment", {})
 
     @property
     def response_object(self):
@@ -137,25 +77,41 @@ class SageMakerBackend(BaseBackend):
         self.__dict__ = {}
         self.__init__(region_name)
 
-    def create_model(self, model):
+    def create_model(self, **kwargs):
         model_obj = Model(
-            model.get("model_name", "test"),
-            model.get("execution_role_arn", "arn:test"),
-            model.get("primary_container", {}),
-            model.get("vpc_config", {}),
-            model.get("containers", []),
-            model.get("tags", []),
+            kwargs.get("ModelName"),
+            kwargs.get("ExecutionRoleArn"),
+            kwargs.get("PrimaryContainer", {}),
+            kwargs.get("VpcConfig", {}),
+            kwargs.get("Containers", []),
+            kwargs.get("Tags", []),
         )
 
-        self._models[model.get("model_name", "test")] = model_obj
+        self._models[kwargs.get("ModelName")] = model_obj
         return model_obj.response_create
 
     def describe_model(self, model_name=None):
         for model in self._models.values():
             # If a registry_id was supplied, ensure this repository matches
-            if model.model_name != model_name:
+            if model.ModelName != model_name:
                 continue
             return model.response_object
+
+    def list_models(self):
+        return {
+            "Models": [
+                {**model.response_create, **model.response_object}
+                for model in self._models.values()
+            ]
+        }
+
+    def delete_model(self, model_name=None):
+        for model in self._models.values():
+            if model.ModelName == model_name:
+                self._models.pop(model.ModelName)
+                break
+        else:
+            raise MissingModel(model=model_name)
 
 
 sagemaker_backends = {}
