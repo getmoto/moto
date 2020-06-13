@@ -98,12 +98,12 @@ class SageMakerBackend(BaseBackend):
             return model.response_object
 
     def list_models(self):
-        return {
-            "Models": [
-                {**model.response_create, **model.response_object}
-                for model in self._models.values()
-            ]
-        }
+        models = []
+        for model in self._models.values():
+            model_response = model.response_object.copy()
+            model_response.update(model.response_create)
+            models.append(model_response)
+        return {"Models": models}
 
     def delete_model(self, model_name=None):
         for model in self._models.values():
