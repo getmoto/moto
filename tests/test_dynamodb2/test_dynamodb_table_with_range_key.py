@@ -932,6 +932,83 @@ boto3
 
 
 @mock_dynamodb2
+def test_boto3_create_table_with_gsi():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    table = dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "subject", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+    )
+    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
+        [
+            {
+                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+                "IndexName": "test_gsi",
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 0,
+                    "WriteCapacityUnits": 0,
+                },
+            }
+        ]
+    )
+
+    table = dynamodb.create_table(
+        TableName="users2",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "subject", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 3,
+                    "WriteCapacityUnits": 5,
+                },
+            }
+        ],
+    )
+    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
+        [
+            {
+                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+                "IndexName": "test_gsi",
+                "Projection": {"ProjectionType": "ALL"},
+                "IndexStatus": "ACTIVE",
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 3,
+                    "WriteCapacityUnits": 5,
+                },
+            }
+        ]
+    )
+
+
+@mock_dynamodb2
 def test_boto3_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
