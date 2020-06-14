@@ -790,6 +790,7 @@ def test_ami_filter_wildcard():
         Owners=[ACCOUNT_ID], Filters=[{"Name": "name", "Values": ["test*"]}]
     )["Images"]
     my_images.should.have.length_of(1)
+    print("image result", my_images)
 
 
 @mock_ec2
@@ -800,6 +801,7 @@ def test_ami_filter_by_owner_id():
 
     ubuntu_images = client.describe_images(Owners=[ubuntu_id])
     all_images = client.describe_images()
+    print("all images", all_images)
 
     ubuntu_ids = [ami["OwnerId"] for ami in ubuntu_images["Images"]]
     all_ids = [ami["OwnerId"] for ami in all_images["Images"]]
@@ -843,7 +845,8 @@ def test_ami_snapshots_have_correct_owner():
         ]
         existing_snapshot_ids = owner_id_to_snapshot_ids.get(owner_id, [])
         owner_id_to_snapshot_ids[owner_id] = existing_snapshot_ids + snapshot_ids
-
+        # adding an assertion to volumeType
+        assert image.get('BlockDeviceMappings', {})[0].get('Ebs', {}).get('VolumeType') == 'standard'
     for owner_id in owner_id_to_snapshot_ids:
         snapshots_rseponse = ec2_client.describe_snapshots(
             SnapshotIds=owner_id_to_snapshot_ids[owner_id]

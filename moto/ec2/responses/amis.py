@@ -125,7 +125,7 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
                 <snapshotId>{{ image.ebs_snapshot.id }}</snapshotId>
                 <volumeSize>15</volumeSize>
                 <deleteOnTermination>false</deleteOnTermination>
-                <volumeType>{{ image.root_device_type }}</volumeType>
+                <volumeType>standard</volumeType>
               </ebs>
             </item>
           </blockDeviceMapping>
