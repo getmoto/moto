@@ -541,13 +541,14 @@ def test_create_stack_lambda_and_dynamodb():
                         "ReadCapacityUnits": 10,
                         "WriteCapacityUnits": 10,
                     },
+                    "StreamSpecification": {"StreamViewType": "KEYS_ONLY"},
                 },
             },
             "func1mapping": {
                 "Type": "AWS::Lambda::EventSourceMapping",
                 "Properties": {
                     "FunctionName": {"Ref": "func1"},
-                    "EventSourceArn": "arn:aws:dynamodb:region:XXXXXX:table/tab1/stream/2000T00:00:00.000",
+                    "EventSourceArn": {"Fn::GetAtt": ["tab1", "StreamArn"]},
                     "StartingPosition": "0",
                     "BatchSize": 100,
                     "Enabled": True,
