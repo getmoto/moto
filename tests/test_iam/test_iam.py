@@ -1690,11 +1690,15 @@ def test_get_account_authorization_details():
     assert result["RoleDetailList"][0]["AttachedManagedPolicies"][0][
         "PolicyArn"
     ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    assert result["RoleDetailList"][0]["RolePolicyList"][0][
+        "PolicyDocument"
+    ] == json.loads(test_policy)
 
     result = conn.get_account_authorization_details(Filter=["User"])
     assert len(result["RoleDetailList"]) == 0
     assert len(result["UserDetailList"]) == 1
     assert len(result["UserDetailList"][0]["GroupList"]) == 1
+    assert len(result["UserDetailList"][0]["UserPolicyList"]) == 1
     assert len(result["UserDetailList"][0]["AttachedManagedPolicies"]) == 1
     assert len(result["GroupDetailList"]) == 0
     assert len(result["Policies"]) == 0
@@ -1705,6 +1709,9 @@ def test_get_account_authorization_details():
     assert result["UserDetailList"][0]["AttachedManagedPolicies"][0][
         "PolicyArn"
     ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    assert result["UserDetailList"][0]["UserPolicyList"][0][
+        "PolicyDocument"
+    ] == json.loads(test_policy)
 
     result = conn.get_account_authorization_details(Filter=["Group"])
     assert len(result["RoleDetailList"]) == 0
@@ -1720,6 +1727,9 @@ def test_get_account_authorization_details():
     assert result["GroupDetailList"][0]["AttachedManagedPolicies"][0][
         "PolicyArn"
     ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
+    assert result["GroupDetailList"][0]["GroupPolicyList"][0][
+        "PolicyDocument"
+    ] == json.loads(test_policy)
 
     result = conn.get_account_authorization_details(Filter=["LocalManagedPolicy"])
     assert len(result["RoleDetailList"]) == 0
