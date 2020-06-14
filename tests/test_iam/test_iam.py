@@ -1690,7 +1690,6 @@ def test_get_account_authorization_details():
     assert result["RoleDetailList"][0]["AttachedManagedPolicies"][0][
         "PolicyArn"
     ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
-    print(result["RoleDetailList"][0]["RolePolicyList"][0]["PolicyDocument"])
     assert result["RoleDetailList"][0]["RolePolicyList"][0][
         "PolicyDocument"
     ] == json.loads(test_policy)
@@ -1728,7 +1727,6 @@ def test_get_account_authorization_details():
     assert result["GroupDetailList"][0]["AttachedManagedPolicies"][0][
         "PolicyArn"
     ] == "arn:aws:iam::{}:policy/testPolicy".format(ACCOUNT_ID)
-    print(result["GroupDetailList"][0]["GroupPolicyList"][0]["PolicyDocument"])
     assert result["GroupDetailList"][0]["GroupPolicyList"][0][
         "PolicyDocument"
     ] == json.loads(test_policy)
