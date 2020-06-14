@@ -790,7 +790,6 @@ def test_ami_filter_wildcard():
         Owners=[ACCOUNT_ID], Filters=[{"Name": "name", "Values": ["test*"]}]
     )["Images"]
     my_images.should.have.length_of(1)
-    print("image result", my_images)
 
 
 @mock_ec2
@@ -801,7 +800,6 @@ def test_ami_filter_by_owner_id():
 
     ubuntu_images = client.describe_images(Owners=[ubuntu_id])
     all_images = client.describe_images()
-    print("all images", all_images)
 
     ubuntu_ids = [ami["OwnerId"] for ami in ubuntu_images["Images"]]
     all_ids = [ami["OwnerId"] for ami in all_images["Images"]]
