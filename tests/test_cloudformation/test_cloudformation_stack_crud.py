@@ -98,12 +98,12 @@ def test_create_stack_hosted_zone_by_id():
         },
     }
     conn.create_stack(
-        "test_stack", template_body=json.dumps(dummy_template), parameters={}.items()
+        "test_stack1", template_body=json.dumps(dummy_template), parameters={}.items()
     )
     r53_conn = boto.connect_route53()
     zone_id = r53_conn.get_zones()[0].id
     conn.create_stack(
-        "test_stack",
+        "test_stack2",
         template_body=json.dumps(dummy_template2),
         parameters={"ZoneId": zone_id}.items(),
     )
