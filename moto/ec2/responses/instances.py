@@ -283,15 +283,15 @@ class InstanceResponse(BaseResponse):
             device_template["Ebs"]["VolumeSize"] = device_mapping.get(
                 "ebs._volume_size"
             )
-            device_template["Ebs"]["DeleteOnTermination"] = device_mapping.get(
-                "ebs._delete_on_termination", False
+            device_template["Ebs"]["DeleteOnTermination"] = self._convert_to_bool(
+                device_mapping.get("ebs._delete_on_termination", False)
             )
             device_template["Ebs"]["VolumeType"] = device_mapping.get(
                 "ebs._volume_type"
             )
             device_template["Ebs"]["Iops"] = device_mapping.get("ebs._iops")
-            device_template["Ebs"]["Encrypted"] = device_mapping.get(
-                "ebs._encrypted", False
+            device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
+                device_mapping.get("ebs._encrypted", False)
             )
             mappings.append(device_template)
 
@@ -307,6 +307,16 @@ class InstanceResponse(BaseResponse):
             and "ebs._snapshot_id" not in device_mapping
         ):
             raise MissingParameterError("size or snapshotId")
+
+    @staticmethod
+    def _convert_to_bool(bool_str):
+        if isinstance(bool_str, bool):
+            return bool_str
+
+        if isinstance(bool_str, str):
+            return bool_str.lower() == "true"
+
+        return False
 
 
 BLOCK_DEVICE_MAPPING_TEMPLATE = {
