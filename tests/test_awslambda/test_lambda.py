@@ -1451,7 +1451,7 @@ def test_update_event_source_mapping():
     assert mapping["UUID"] == response["UUID"]
     assert mapping["FunctionArn"] == func2["FunctionArn"]
     assert mapping["State"] == "Disabled"
-    assert response["BatchSize"] == 2
+    assert mapping["BatchSize"] == 2
 
 
 @mock_lambda
