@@ -313,8 +313,8 @@ class InstanceResponse(BaseResponse):
         if isinstance(bool_str, bool):
             return bool_str
 
-        if isinstance(bool_str, str):
-            return bool_str.lower() == "true"
+        if isinstance(bool_str, str) or isinstance(bool_str, unicode):
+            return str(bool_str).lower() == "true"
 
         return False
 
