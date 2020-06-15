@@ -15,6 +15,7 @@ from moto.core import ACCOUNT_ID
 from copy import deepcopy
 import six
 
+
 class InstanceResponse(BaseResponse):
     def describe_instances(self):
         filter_dict = filters_from_querystring(self.querystring)
