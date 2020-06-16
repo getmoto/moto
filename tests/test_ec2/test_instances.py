@@ -128,7 +128,35 @@ def test_instance_terminate_discard_volumes():
 
 
 @mock_ec2
-def test_instance_terminate_keep_volumes():
+def test_instance_terminate_keep_volumes_explicit():
+
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {
+                "DeviceName": "/dev/sda1",
+                "Ebs": {"VolumeSize": 50, "DeleteOnTermination": False},
+            }
+        ],
+    )
+    instance = result[0]
+
+    instance_volume_ids = []
+    for volume in instance.volumes.all():
+        instance_volume_ids.append(volume.volume_id)
+
+    instance.terminate()
+    instance.wait_until_terminated()
+
+    assert len(list(ec2_resource.volumes.all())) == 1
+
+
+@mock_ec2
+def test_instance_terminate_keep_volumes_implicit():
     ec2_resource = boto3.resource("ec2", "us-west-1")
 
     result = ec2_resource.create_instances(
