@@ -1200,7 +1200,7 @@ def test_container_overrides():
         )
 
         for event in stream_resp["events"]:
-            if "TEST" in event["message"]:
+            if "TEST" in event["message"] or "AWS" in event["message"]:
                 key, value = tuple(event["message"].split("="))
                 env_var.append({"name": key, "value": value})
 
@@ -1216,8 +1216,9 @@ def test_container_overrides():
     expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST0", "value": "from job"})
     expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST1", "value": "from job definition"})
     expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "TEST2", "value": "from job"})
+    expect(resp_jobs["jobs"][0]["container"]["environment"]).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})
 
     expect(env_var).to.contain({"name": "TEST0", "value": "from job"})
     expect(env_var).to.contain({"name": "TEST1", "value": "from job definition"})
     expect(env_var).to.contain({"name": "TEST2", "value": "from job"})
-
+    expect(env_var).to.contain({"name": "AWS_BATCH_JOB_ID", "value": job_id})
