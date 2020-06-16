@@ -367,6 +367,7 @@ class Job(threading.Thread, BaseModel):
     def _get_container_property(self, p, default):
 
         if p == "environment":
+
             job_env = self.container_overrides.get(p, default)
             jd_env = self.job_definition.container_properties.get(p, default)
 
@@ -376,6 +377,9 @@ class Job(threading.Thread, BaseModel):
             for key in jd_env_dict.keys():
                 if key not in job_env_dict.keys():
                     job_env.append({"name": key, "value": jd_env_dict[key]})
+
+            job_env.append({"name": "AWS_BATCH_JOB_ID", "value": self.job_id})
+
             return job_env
 
         return self.container_overrides.get(
