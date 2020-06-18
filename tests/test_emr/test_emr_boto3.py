@@ -476,6 +476,118 @@ def test_run_job_flow_with_instance_groups():
             _do_assertion_ebs_configuration(x, y)
 
 
+auto_scaling_policy = {
+    "Constraints": {"MinCapacity": 2, "MaxCapacity": 10},
+    "Rules": [
+        {
+            "Name": "Default-scale-out",
+            "Description": "Replicates the default scale-out rule in the console for YARN memory.",
+            "Action": {
+                "SimpleScalingPolicyConfiguration": {
+                    "AdjustmentType": "CHANGE_IN_CAPACITY",
+                    "ScalingAdjustment": 1,
+                    "CoolDown": 300,
+                }
+            },
+            "Trigger": {
+                "CloudWatchAlarmDefinition": {
+                    "ComparisonOperator": "LESS_THAN",
+                    "EvaluationPeriods": 1,
+                    "MetricName": "YARNMemoryAvailablePercentage",
+                    "Namespace": "AWS/ElasticMapReduce",
+                    "Period": 300,
+                    "Threshold": 15.0,
+                    "Statistic": "AVERAGE",
+                    "Unit": "PERCENT",
+                    "Dimensions": [{"Key": "JobFlowId", "Value": "${emr.clusterId}"}],
+                }
+            },
+        }
+    ],
+}
+
+
+@mock_emr
+def test_run_job_flow_with_instance_groups_with_autoscaling():
+    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+
+    input_groups["core"]["AutoScalingPolicy"] = auto_scaling_policy
+    input_groups["task-1"]["AutoScalingPolicy"] = auto_scaling_policy
+
+    client = boto3.client("emr", region_name="us-east-1")
+    args = deepcopy(run_job_flow_args)
+    args["Instances"] = {"InstanceGroups": input_instance_groups}
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    groups = client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
+    for x in groups:
+        y = deepcopy(input_groups[x["Name"]])
+        if "AutoScalingPolicy" in y:
+            x["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
+            returned_policy = deepcopy(x["AutoScalingPolicy"])
+            auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
+                y["AutoScalingPolicy"], cluster_id
+            )
+            del returned_policy["Status"]
+            returned_policy.should.equal(auto_scaling_policy_with_cluster_id)
+
+
+@mock_emr
+def test_put_remove_auto_scaling_policy():
+    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+    client = boto3.client("emr", region_name="us-east-1")
+    args = deepcopy(run_job_flow_args)
+    args["Instances"] = {"InstanceGroups": input_instance_groups}
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+
+    core_instance_group = [
+        ig
+        for ig in client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
+        if ig["InstanceGroupType"] == "CORE"
+    ][0]
+
+    resp = client.put_auto_scaling_policy(
+        ClusterId=cluster_id,
+        InstanceGroupId=core_instance_group["Id"],
+        AutoScalingPolicy=auto_scaling_policy,
+    )
+
+    auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
+        auto_scaling_policy, cluster_id
+    )
+    del resp["AutoScalingPolicy"]["Status"]
+    resp["AutoScalingPolicy"].should.equal(auto_scaling_policy_with_cluster_id)
+
+    core_instance_group = [
+        ig
+        for ig in client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
+        if ig["InstanceGroupType"] == "CORE"
+    ][0]
+
+    ("AutoScalingPolicy" in core_instance_group).should.equal(True)
+
+    client.remove_auto_scaling_policy(
+        ClusterId=cluster_id, InstanceGroupId=core_instance_group["Id"]
+    )
+
+    core_instance_group = [
+        ig
+        for ig in client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
+        if ig["InstanceGroupType"] == "CORE"
+    ][0]
+
+    ("AutoScalingPolicy" not in core_instance_group).should.equal(True)
+
+
+def _patch_cluster_id_placeholder_in_autoscaling_policy(
+    auto_scaling_policy, cluster_id
+):
+    policy_copy = deepcopy(auto_scaling_policy)
+    for rule in policy_copy["Rules"]:
+        for dimension in rule["Trigger"]["CloudWatchAlarmDefinition"]["Dimensions"]:
+            dimension["Value"] = cluster_id
+    return policy_copy
+
+
 @mock_emr
 def test_run_job_flow_with_custom_ami():
     client = boto3.client("emr", region_name="us-east-1")
@@ -619,8 +731,11 @@ def test_instance_groups():
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
     base_instance_count = jf["Instances"]["InstanceCount"]
 
+    instance_groups_to_add = deepcopy(input_instance_groups[2:])
+    instance_groups_to_add[0]["AutoScalingPolicy"] = auto_scaling_policy
+    instance_groups_to_add[1]["AutoScalingPolicy"] = auto_scaling_policy
     client.add_instance_groups(
-        JobFlowId=cluster_id, InstanceGroups=input_instance_groups[2:]
+        JobFlowId=cluster_id, InstanceGroups=instance_groups_to_add
     )
 
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
@@ -629,8 +744,8 @@ def test_instance_groups():
     )
     for x in jf["Instances"]["InstanceGroups"]:
         y = input_groups[x["Name"]]
-        if hasattr(y, "BidPrice"):
-            x["BidPrice"].should.equal("BidPrice")
+        if "BidPrice" in y:
+            x["BidPrice"].should.equal(y["BidPrice"])
         x["CreationDateTime"].should.be.a("datetime.datetime")
         # x['EndDateTime'].should.be.a('datetime.datetime')
         x.should.have.key("InstanceGroupId")
@@ -647,9 +762,18 @@ def test_instance_groups():
 
     groups = client.list_instance_groups(ClusterId=cluster_id)["InstanceGroups"]
     for x in groups:
-        y = input_groups[x["Name"]]
-        if hasattr(y, "BidPrice"):
-            x["BidPrice"].should.equal("BidPrice")
+        y = deepcopy(input_groups[x["Name"]])
+        if "BidPrice" in y:
+            x["BidPrice"].should.equal(y["BidPrice"])
+        if "AutoScalingPolicy" in y:
+            x["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
+            returned_policy = dict(x["AutoScalingPolicy"])
+            del returned_policy["Status"]
+            for dimension in y["AutoScalingPolicy"]["Rules"]["Trigger"][
+                "CloudWatchAlarmDefinition"
+            ]["Dimensions"]:
+                dimension["Value"] = cluster_id
+            returned_policy.should.equal(y["AutoScalingPolicy"])
         if "EbsConfiguration" in y:
             _do_assertion_ebs_configuration(x, y)
         # Configurations

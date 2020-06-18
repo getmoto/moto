@@ -7,7 +7,12 @@ from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
 from moto.emr.exceptions import EmrError
-from .utils import random_instance_group_id, random_cluster_id, random_step_id
+from .utils import (
+    random_instance_group_id,
+    random_cluster_id,
+    random_step_id,
+    CamelToUnderscoresWalker,
+)
 
 
 class FakeApplication(BaseModel):
@@ -28,6 +33,7 @@ class FakeBootstrapAction(BaseModel):
 class FakeInstanceGroup(BaseModel):
     def __init__(
         self,
+        cluster_id,
         instance_count,
         instance_role,
         instance_type,
@@ -36,8 +42,10 @@ class FakeInstanceGroup(BaseModel):
         id=None,
         bid_price=None,
         ebs_configuration=None,
+        auto_scaling_policy=None,
     ):
         self.id = id or random_instance_group_id()
+        self.cluster_id = cluster_id
 
         self.bid_price = bid_price
         self.market = market
@@ -53,7 +61,7 @@ class FakeInstanceGroup(BaseModel):
         self.role = instance_role
         self.type = instance_type
         self.ebs_configuration = ebs_configuration
-
+        self.auto_scaling_policy = auto_scaling_policy
         self.creation_datetime = datetime.now(pytz.utc)
         self.start_datetime = datetime.now(pytz.utc)
         self.ready_datetime = datetime.now(pytz.utc)
@@ -62,6 +70,34 @@ class FakeInstanceGroup(BaseModel):
 
     def set_instance_count(self, instance_count):
         self.num_instances = instance_count
+
+    @property
+    def auto_scaling_policy(self):
+        return self._auto_scaling_policy
+
+    @auto_scaling_policy.setter
+    def auto_scaling_policy(self, value):
+        if value is None:
+            self._auto_scaling_policy = value
+            return
+        self._auto_scaling_policy = CamelToUnderscoresWalker.parse(value)
+        self._auto_scaling_policy["status"] = {"state": "ATTACHED"}
+        # Transform common ${emr.clusterId} placeholder in any dimensions it occurs in.
+        if "rules" in self._auto_scaling_policy:
+            for rule in self._auto_scaling_policy["rules"]:
+                if (
+                    "trigger" in rule
+                    and "cloud_watch_alarm_definition" in rule["trigger"]
+                    and "dimensions" in rule["trigger"]["cloud_watch_alarm_definition"]
+                ):
+                    for dimension in rule["trigger"]["cloud_watch_alarm_definition"][
+                        "dimensions"
+                    ]:
+                        if (
+                            "value" in dimension
+                            and dimension["value"] == "${emr.clusterId}"
+                        ):
+                            dimension["value"] = self.cluster_id
 
 
 class FakeStep(BaseModel):
@@ -319,7 +355,7 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster = self.clusters[cluster_id]
         result_groups = []
         for instance_group in instance_groups:
-            group = FakeInstanceGroup(**instance_group)
+            group = FakeInstanceGroup(cluster_id=cluster_id, **instance_group)
             self.instance_groups[group.id] = group
             cluster.add_instance_group(group)
             result_groups.append(group)
@@ -464,6 +500,25 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.terminate()
             clusters.append(cluster)
         return clusters
+
+    def put_auto_scaling_policy(self, instance_group_id, auto_scaling_policy):
+        instance_groups = self.get_instance_groups(
+            instance_group_ids=[instance_group_id]
+        )
+        if len(instance_groups) == 0:
+            return None
+        instance_group = instance_groups[0]
+        instance_group.auto_scaling_policy = auto_scaling_policy
+        return instance_group
+
+    def remove_auto_scaling_policy(self, cluster_id, instance_group_id):
+        instance_groups = self.get_instance_groups(
+            instance_group_ids=[instance_group_id]
+        )
+        if len(instance_groups) == 0:
+            return None
+        instance_group = instance_groups[0]
+        instance_group.auto_scaling_policy = None
 
 
 emr_backends = {}
