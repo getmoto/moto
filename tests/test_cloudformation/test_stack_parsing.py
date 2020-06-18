@@ -38,6 +38,16 @@ name_type_template = {
     },
 }
 
+name_type_template_with_tabs_json = """
+\t{
+\t\t"AWSTemplateFormatVersion": "2010-09-09",
+\t\t"Description": "Create a multi-az, load balanced, Auto Scaled sample web site. The Auto Scaling trigger is based on the CPU utilization of the web servers. The AMI is chosen based on the region in which the stack is run. This example creates a web service running across all availability zones in a region. The instances are load balanced with a simple health check. The web site is available on port 80, however, the instances can be configured to listen on any port (8888 by default). **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+\t\t"Resources": {
+\t\t\t"Queue": {"Type": "AWS::SQS::Queue", "Properties": {"VisibilityTimeout": 60}}
+\t\t}
+\t}
+"""
+
 output_dict = {
     "Outputs": {
         "Output1": {"Value": {"Ref": "Queue"}, "Description": "This is a description."}
@@ -176,6 +186,21 @@ def test_parse_stack_with_name_type_resource():
         stack_id="test_id",
         name="test_stack",
         template=name_type_template_json,
+        parameters={},
+        region_name="us-west-1",
+    )
+
+    stack.resource_map.should.have.length_of(1)
+    list(stack.resource_map.keys())[0].should.equal("Queue")
+    queue = list(stack.resource_map.values())[0]
+    queue.should.be.a(Queue)
+
+
+def test_parse_stack_with_tabbed_json_template():
+    stack = FakeStack(
+        stack_id="test_id",
+        name="test_stack",
+        template=name_type_template_with_tabs_json,
         parameters={},
         region_name="us-west-1",
     )
