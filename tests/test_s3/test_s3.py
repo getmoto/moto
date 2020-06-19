@@ -1042,7 +1042,7 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
 
 @mock_s3
 def test_streaming_upload_from_file_to_presigned_url():
-    s3 = boto3.resource("s3")
+    s3 = boto3.resource("s3", region_name="us-east-1")
     bucket = s3.Bucket("test-bucket")
     bucket.create()
     bucket.put_object(Body=b"ABCD", Key="file.txt")
