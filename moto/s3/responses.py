@@ -615,6 +615,19 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 pass
         return False
 
+    def _create_bucket_configuration_is_empty(self, body):
+        if body:
+            try:
+                create_bucket_configuration = xmltodict.parse(body)[
+                    "CreateBucketConfiguration"
+                ]
+                del create_bucket_configuration["@xmlns"]
+                if len(create_bucket_configuration) == 0:
+                    return True
+            except KeyError:
+                pass
+        return False
+
     def _parse_pab_config(self, body):
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
@@ -733,6 +746,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             ):
                 raise IllegalLocationConstraintException()
             if body:
+                if self._create_bucket_configuration_is_empty(body):
+                    raise MalformedXML()
+
                 try:
                     forced_region = xmltodict.parse(body)["CreateBucketConfiguration"][
                         "LocationConstraint"

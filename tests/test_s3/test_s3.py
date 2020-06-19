@@ -1980,9 +1980,7 @@ def test_boto3_bucket_create_eu_central():
 def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_error():
     s3 = boto3.resource("s3", region_name="us-east-1")
     with assert_raises(ClientError) as e:
-        s3.create_bucket(
-            Bucket="whatever", CreateBucketConfiguration={}
-        )
+        s3.create_bucket(Bucket="whatever", CreateBucketConfiguration={})
     e.exception.response["Error"]["Code"].should.equal("MalformedXML")
     e.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
