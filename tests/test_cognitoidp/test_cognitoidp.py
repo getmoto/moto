@@ -1379,6 +1379,5 @@ def fetch_public_keys():
     keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
         "us-west-2", "someuserpoolid"
     )
-    response = requests.get(keys_url).text
-    my_keys = json.loads(response.decode("utf-8"))["keys"]
-    return my_keys
+    response = requests.get(keys_url).json()
+    return response["keys"]
