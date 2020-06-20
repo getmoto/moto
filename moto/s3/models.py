@@ -1566,6 +1566,10 @@ class S3Backend(BaseBackend):
         bucket = self.get_bucket(bucket_name)
         bucket.keys[key_name] = FakeDeleteMarker(key=bucket.keys[key_name])
 
+    def delete_object_tagging(self, bucket_name, key_name, version_id=None):
+        key = self.get_object(bucket_name, key_name, version_id=version_id)
+        self.tagger.delete_all_tags_for_resource(key.arn)
+
     def delete_object(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
