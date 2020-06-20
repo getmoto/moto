@@ -36,7 +36,7 @@ class CloudFormationResponse(BaseResponse):
                 bucket_name = template_url_parts.netloc.split(".")[0]
                 key_name = template_url_parts.path.lstrip("/")
 
-        key = s3_backend.get_key(bucket_name, key_name)
+        key = s3_backend.get_object(bucket_name, key_name)
         return key.value.decode("utf-8")
 
     def create_stack(self):
@@ -49,6 +49,12 @@ class CloudFormationResponse(BaseResponse):
             (item["key"], item["value"])
             for item in self._get_list_prefix("Tags.member")
         )
+
+        if self.stack_name_exists(new_stack_name=stack_name):
+            template = self.response_template(
+                CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE
+            )
+            return 400, {"status": 400}, template.render(name=stack_name)
 
         # Hack dict-comprehension
         parameters = dict(
@@ -81,6 +87,12 @@ class CloudFormationResponse(BaseResponse):
         else:
             template = self.response_template(CREATE_STACK_RESPONSE_TEMPLATE)
             return template.render(stack=stack)
+
+    def stack_name_exists(self, new_stack_name):
+        for stack in self.cloudformation_backend.stacks.values():
+            if stack.name == new_stack_name:
+                return True
+        return False
 
     @amzn_request_id
     def create_change_set(self):
@@ -563,6 +575,15 @@ CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
     </ResponseMetadata>
 </CreateStackResponse>
 """
+
+CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>AlreadyExistsException</Code>
+    <Message>Stack [{{ name }}] already exists</Message>
+  </Error>
+  <RequestId>950ff8d7-812a-44b3-bb0c-9b271b954104</RequestId>
+</ErrorResponse>"""
 
 UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <UpdateStackResult>

@@ -387,6 +387,7 @@ class APIGatewayResponse(BaseResponse):
             elif self.method == "PUT":
                 selection_pattern = self._get_param("selectionPattern")
                 response_templates = self._get_param("responseTemplates")
+                content_handling = self._get_param("contentHandling")
                 integration_response = self.backend.create_integration_response(
                     function_id,
                     resource_id,
@@ -394,6 +395,7 @@ class APIGatewayResponse(BaseResponse):
                     status_code,
                     selection_pattern,
                     response_templates,
+                    content_handling,
                 )
             elif self.method == "DELETE":
                 integration_response = self.backend.delete_integration_response(

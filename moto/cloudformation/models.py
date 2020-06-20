@@ -315,8 +315,8 @@ class FakeStack(BaseModel):
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except yaml.parser.ParserError:
-            self.template_dict = json.loads(self.template, Loader=yaml.Loader)
+        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+            self.template_dict = json.loads(self.template)
 
     @property
     def stack_parameters(self):

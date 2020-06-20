@@ -98,12 +98,12 @@ def test_create_stack_hosted_zone_by_id():
         },
     }
     conn.create_stack(
-        "test_stack", template_body=json.dumps(dummy_template), parameters={}.items()
+        "test_stack1", template_body=json.dumps(dummy_template), parameters={}.items()
     )
     r53_conn = boto.connect_route53()
     zone_id = r53_conn.get_zones()[0].id
     conn.create_stack(
-        "test_stack",
+        "test_stack2",
         template_body=json.dumps(dummy_template2),
         parameters={"ZoneId": zone_id}.items(),
     )
@@ -541,13 +541,14 @@ def test_create_stack_lambda_and_dynamodb():
                         "ReadCapacityUnits": 10,
                         "WriteCapacityUnits": 10,
                     },
+                    "StreamSpecification": {"StreamViewType": "KEYS_ONLY"},
                 },
             },
             "func1mapping": {
                 "Type": "AWS::Lambda::EventSourceMapping",
                 "Properties": {
                     "FunctionName": {"Ref": "func1"},
-                    "EventSourceArn": "arn:aws:dynamodb:region:XXXXXX:table/tab1/stream/2000T00:00:00.000",
+                    "EventSourceArn": {"Fn::GetAtt": ["tab1", "StreamArn"]},
                     "StartingPosition": "0",
                     "BatchSize": 100,
                     "Enabled": True,

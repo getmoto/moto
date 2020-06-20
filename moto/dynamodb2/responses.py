@@ -371,6 +371,26 @@ class DynamoHandler(BaseResponse):
 
         results = {"ConsumedCapacity": [], "Responses": {}, "UnprocessedKeys": {}}
 
+        # Validation: Can only request up to 100 items at the same time
+        # Scenario 1: We're requesting more than a 100 keys from a single table
+        for table_name, table_request in table_batches.items():
+            if len(table_request["Keys"]) > 100:
+                return self.error(
+                    "com.amazonaws.dynamodb.v20111205#ValidationException",
+                    "1 validation error detected: Value at 'requestItems."
+                    + table_name
+                    + ".member.keys' failed to satisfy constraint: Member must have length less than or equal to 100",
+                )
+        # Scenario 2: We're requesting more than a 100 keys across all tables
+        nr_of_keys_across_all_tables = sum(
+            [len(req["Keys"]) for _, req in table_batches.items()]
+        )
+        if nr_of_keys_across_all_tables > 100:
+            return self.error(
+                "com.amazonaws.dynamodb.v20111205#ValidationException",
+                "Too many items requested for the BatchGetItem call",
+            )
+
         for table_name, table_request in table_batches.items():
             keys = table_request["Keys"]
             if self._contains_duplicates(keys):
@@ -411,7 +431,6 @@ class DynamoHandler(BaseResponse):
 
     def query(self):
         name = self.body["TableName"]
-        # {u'KeyConditionExpression': u'#n0 = :v0', u'ExpressionAttributeValues': {u':v0': {u'S': u'johndoe'}}, u'ExpressionAttributeNames': {u'#n0': u'username'}}
         key_condition_expression = self.body.get("KeyConditionExpression")
         projection_expression = self.body.get("ProjectionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
@@ -439,7 +458,7 @@ class DynamoHandler(BaseResponse):
             index_name = self.body.get("IndexName")
             if index_name:
                 all_indexes = (table.global_indexes or []) + (table.indexes or [])
-                indexes_by_name = dict((i["IndexName"], i) for i in all_indexes)
+                indexes_by_name = dict((i.name, i) for i in all_indexes)
                 if index_name not in indexes_by_name:
                     er = "com.amazonaws.dynamodb.v20120810#ResourceNotFoundException"
                     return self.error(
@@ -449,7 +468,7 @@ class DynamoHandler(BaseResponse):
                         ),
                     )
 
-                index = indexes_by_name[index_name]["KeySchema"]
+                index = indexes_by_name[index_name].schema
             else:
                 index = table.schema
 

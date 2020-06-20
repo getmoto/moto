@@ -218,7 +218,7 @@ class LambdaFunction(BaseModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(self.code["S3Bucket"], self.code["S3Key"])
+                key = s3_backend.get_object(self.code["S3Bucket"], self.code["S3Key"])
             except MissingBucket:
                 if do_validate_s3():
                     raise InvalidParameterValueException(
@@ -344,7 +344,7 @@ class LambdaFunction(BaseModel):
             key = None
             try:
                 # FIXME: does not validate bucket region
-                key = s3_backend.get_key(
+                key = s3_backend.get_object(
                     updated_spec["S3Bucket"], updated_spec["S3Key"]
                 )
             except MissingBucket:
@@ -555,40 +555,63 @@ class LambdaFunction(BaseModel):
 class EventSourceMapping(BaseModel):
     def __init__(self, spec):
         # required
-        self.function_arn = spec["FunctionArn"]
+        self.function_name = spec["FunctionName"]
         self.event_source_arn = spec["EventSourceArn"]
+
+        # optional
+        self.batch_size = spec.get("BatchSize")
+        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
+        self.enabled = spec.get("Enabled", True)
+        self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+
+        self.function_arn = spec["FunctionArn"]
         self.uuid = str(uuid.uuid4())
         self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
 
-        # BatchSize service default/max mapping
-        batch_size_map = {
+    def _get_service_source_from_arn(self, event_source_arn):
+        return event_source_arn.split(":")[2].lower()
+
+    def _validate_event_source(self, event_source_arn):
+        valid_services = ("dynamodb", "kinesis", "sqs")
+        service = self._get_service_source_from_arn(event_source_arn)
+        return True if service in valid_services else False
+
+    @property
+    def event_source_arn(self):
+        return self._event_source_arn
+
+    @event_source_arn.setter
+    def event_source_arn(self, event_source_arn):
+        if not self._validate_event_source(event_source_arn):
+            raise ValueError(
+                "InvalidParameterValueException", "Unsupported event source type"
+            )
+        self._event_source_arn = event_source_arn
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, batch_size):
+        batch_size_service_map = {
             "kinesis": (100, 10000),
             "dynamodb": (100, 1000),
             "sqs": (10, 10),
         }
-        source_type = self.event_source_arn.split(":")[2].lower()
-        batch_size_entry = batch_size_map.get(source_type)
-        if batch_size_entry:
-            # Use service default if not provided
-            batch_size = int(spec.get("BatchSize", batch_size_entry[0]))
-            if batch_size > batch_size_entry[1]:
-                raise ValueError(
-                    "InvalidParameterValueException",
-                    "BatchSize {} exceeds the max of {}".format(
-                        batch_size, batch_size_entry[1]
-                    ),
-                )
-            else:
-                self.batch_size = batch_size
-        else:
-            raise ValueError(
-                "InvalidParameterValueException", "Unsupported event source type"
-            )
 
-        # optional
-        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
-        self.enabled = spec.get("Enabled", True)
-        self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+        source_type = self._get_service_source_from_arn(self.event_source_arn)
+        batch_size_for_source = batch_size_service_map[source_type]
+
+        if batch_size is None:
+            self._batch_size = batch_size_for_source[0]
+        elif batch_size > batch_size_for_source[1]:
+            error_message = "BatchSize {} exceeds the max of {}".format(
+                batch_size, batch_size_for_source[1]
+            )
+            raise ValueError("InvalidParameterValueException", error_message)
+        else:
+            self._batch_size = int(batch_size)
 
     def get_configuration(self):
         return {
@@ -602,23 +625,42 @@ class EventSourceMapping(BaseModel):
             "StateTransitionReason": "User initiated",
         }
 
+    def delete(self, region_name):
+        lambda_backend = lambda_backends[region_name]
+        lambda_backend.delete_event_source_mapping(self.uuid)
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        func = lambda_backends[region_name].get_function(properties["FunctionName"])
-        spec = {
-            "FunctionArn": func.function_arn,
-            "EventSourceArn": properties["EventSourceArn"],
-            "StartingPosition": properties["StartingPosition"],
-            "BatchSize": properties.get("BatchSize", 100),
-        }
-        optional_properties = "BatchSize Enabled StartingPositionTimestamp".split()
-        for prop in optional_properties:
-            if prop in properties:
-                spec[prop] = properties[prop]
-        return EventSourceMapping(spec)
+        lambda_backend = lambda_backends[region_name]
+        return lambda_backend.create_event_source_mapping(properties)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, new_resource_name, cloudformation_json, original_resource, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        event_source_uuid = original_resource.uuid
+        lambda_backend = lambda_backends[region_name]
+        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        lambda_backend = lambda_backends[region_name]
+        esms = lambda_backend.list_event_source_mappings(
+            event_source_arn=properties["EventSourceArn"],
+            function_name=properties["FunctionName"],
+        )
+
+        for esm in esms:
+            if esm.logical_resource_id in resource_name:
+                lambda_backend.delete_event_source_mapping
+                esm.delete(region_name)
 
 
 class LambdaVersion(BaseModel):
@@ -819,7 +861,7 @@ class LambdaBackend(BaseBackend):
                 )
 
         # Validate function name
-        func = self._lambdas.get_function_by_name_or_arn(spec.pop("FunctionName", ""))
+        func = self._lambdas.get_function_by_name_or_arn(spec.get("FunctionName", ""))
         if not func:
             raise RESTError("ResourceNotFoundException", "Invalid FunctionName")
 
@@ -877,18 +919,20 @@ class LambdaBackend(BaseBackend):
 
     def update_event_source_mapping(self, uuid, spec):
         esm = self.get_event_source_mapping(uuid)
-        if esm:
-            if spec.get("FunctionName"):
-                func = self._lambdas.get_function_by_name_or_arn(
-                    spec.get("FunctionName")
-                )
+        if not esm:
+            return False
+
+        for key, value in spec.items():
+            if key == "FunctionName":
+                func = self._lambdas.get_function_by_name_or_arn(spec[key])
                 esm.function_arn = func.function_arn
-            if "BatchSize" in spec:
-                esm.batch_size = spec["BatchSize"]
-            if "Enabled" in spec:
-                esm.enabled = spec["Enabled"]
-            return esm
-        return False
+            elif key == "BatchSize":
+                esm.batch_size = spec[key]
+            elif key == "Enabled":
+                esm.enabled = spec[key]
+
+        esm.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        return esm
 
     def list_event_source_mappings(self, event_source_arn, function_name):
         esms = list(self._event_source_mappings.values())

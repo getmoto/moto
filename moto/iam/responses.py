@@ -2083,6 +2083,16 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <UserName>{{ user.name }}</UserName>
         <Arn>{{ user.arn }}</Arn>
         <CreateDate>{{ user.created_iso_8601 }}</CreateDate>
+        {% if user.policies %}
+        <UserPolicyList>
+        {% for policy in user.policies %}
+            <member>
+                <PolicyName>{{ policy }}</PolicyName>
+                <PolicyDocument>{{ user.policies[policy] }}</PolicyDocument>
+            </member>
+        {% endfor %}
+        </UserPolicyList>
+        {% endif %}
       </member>
     {% endfor %}
     </UserDetailList>
@@ -2106,7 +2116,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% for policy in group.policies %}
             <member>
                 <PolicyName>{{ policy }}</PolicyName>
-                <PolicyDocument>{{ group.get_policy(policy) }}</PolicyDocument>
+                <PolicyDocument>{{ group.policies[policy] }}</PolicyDocument>
             </member>
         {% endfor %}
         </GroupPolicyList>

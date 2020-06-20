@@ -60,6 +60,16 @@ class Execution(BaseModel):
         self.status = "QUEUED"
 
 
+class NamedQuery(BaseModel):
+    def __init__(self, name, description, database, query_string, workgroup):
+        self.id = str(uuid4())
+        self.name = name
+        self.description = description
+        self.database = database
+        self.query_string = query_string
+        self.workgroup = workgroup
+
+
 class AthenaBackend(BaseBackend):
     region_name = None
 
@@ -68,6 +78,7 @@ class AthenaBackend(BaseBackend):
             self.region_name = region_name
         self.work_groups = {}
         self.executions = {}
+        self.named_queries = {}
 
     def create_work_group(self, name, configuration, description, tags):
         if name in self.work_groups:
@@ -112,6 +123,20 @@ class AthenaBackend(BaseBackend):
     def stop_query_execution(self, exec_id):
         execution = self.executions[exec_id]
         execution.status = "CANCELLED"
+
+    def create_named_query(self, name, description, database, query_string, workgroup):
+        nq = NamedQuery(
+            name=name,
+            description=description,
+            database=database,
+            query_string=query_string,
+            workgroup=workgroup,
+        )
+        self.named_queries[nq.id] = nq
+        return nq.id
+
+    def get_named_query(self, query_id):
+        return self.named_queries[query_id] if query_id in self.named_queries else None
 
 
 athena_backends = {}

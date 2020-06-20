@@ -3639,26 +3639,31 @@ class RouteBackend(object):
         interface_id=None,
         vpc_peering_connection_id=None,
     ):
+        gateway = None
+        nat_gateway = None
+
         route_table = self.get_route_table(route_table_id)
 
         if interface_id:
-            self.raise_not_implemented_error("CreateRoute to NetworkInterfaceId")
+            # for validating interface Id whether it is valid or not.
+            self.get_network_interface(interface_id)
 
-        gateway = None
-        if gateway_id:
-            if EC2_RESOURCE_TO_PREFIX["vpn-gateway"] in gateway_id:
-                gateway = self.get_vpn_gateway(gateway_id)
-            elif EC2_RESOURCE_TO_PREFIX["internet-gateway"] in gateway_id:
-                gateway = self.get_internet_gateway(gateway_id)
+        else:
+            if gateway_id:
+                if EC2_RESOURCE_TO_PREFIX["vpn-gateway"] in gateway_id:
+                    gateway = self.get_vpn_gateway(gateway_id)
+                elif EC2_RESOURCE_TO_PREFIX["internet-gateway"] in gateway_id:
+                    gateway = self.get_internet_gateway(gateway_id)
 
-        try:
-            ipaddress.IPv4Network(six.text_type(destination_cidr_block), strict=False)
-        except ValueError:
-            raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
+            try:
+                ipaddress.IPv4Network(
+                    six.text_type(destination_cidr_block), strict=False
+                )
+            except ValueError:
+                raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
-        nat_gateway = None
-        if nat_gateway_id is not None:
-            nat_gateway = self.nat_gateways.get(nat_gateway_id)
+            if nat_gateway_id is not None:
+                nat_gateway = self.nat_gateways.get(nat_gateway_id)
 
         route = Route(
             route_table,

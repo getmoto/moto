@@ -843,7 +843,11 @@ def test_ami_snapshots_have_correct_owner():
         ]
         existing_snapshot_ids = owner_id_to_snapshot_ids.get(owner_id, [])
         owner_id_to_snapshot_ids[owner_id] = existing_snapshot_ids + snapshot_ids
-
+        # adding an assertion to volumeType
+        assert (
+            image.get("BlockDeviceMappings", {})[0].get("Ebs", {}).get("VolumeType")
+            == "standard"
+        )
     for owner_id in owner_id_to_snapshot_ids:
         snapshots_rseponse = ec2_client.describe_snapshots(
             SnapshotIds=owner_id_to_snapshot_ids[owner_id]

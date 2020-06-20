@@ -12,6 +12,9 @@ from .exceptions import (
     EventDestinationAlreadyExists,
     TemplateNameAlreadyExists,
     TemplateDoesNotExist,
+    RuleSetNameAlreadyExists,
+    RuleSetDoesNotExist,
+    RuleAlreadyExists,
 )
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
@@ -94,6 +97,7 @@ class SESBackend(BaseBackend):
         self.config_set_event_destination = {}
         self.event_destinations = {}
         self.templates = {}
+        self.receipt_rule_set = {}
 
     def _is_verified_address(self, source):
         _, address = parseaddr(source)
@@ -293,6 +297,20 @@ class SESBackend(BaseBackend):
 
     def list_templates(self):
         return list(self.templates.values())
+
+    def create_receipt_rule_set(self, rule_set_name):
+        if self.receipt_rule_set.get(rule_set_name) is not None:
+            raise RuleSetNameAlreadyExists("Duplicate receipt rule set Name.")
+        self.receipt_rule_set[rule_set_name] = []
+
+    def create_receipt_rule(self, rule_set_name, rule):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+        if rule_set is None:
+            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+        if rule in rule_set:
+            raise RuleAlreadyExists("Duplicate Rule Name.")
+        rule_set.append(rule)
+        self.receipt_rule_set[rule_set_name] = rule_set
 
 
 ses_backend = SESBackend()

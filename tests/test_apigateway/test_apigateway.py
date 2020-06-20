@@ -544,6 +544,7 @@ def test_integration_response():
         selectionPattern="foobar",
         responseTemplates={},
     )
+
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
@@ -591,6 +592,63 @@ def test_integration_response():
 
     response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
     response["methodIntegration"]["integrationResponses"].should.equal({})
+
+    # adding a new method and perfomring put intergration with contentHandling as CONVERT_TO_BINARY
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="PUT", authorizationType="none"
+    )
+
+    client.put_method_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="PUT", statusCode="200"
+    )
+
+    client.put_integration(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="PUT",
+        type="HTTP",
+        uri="http://httpbin.org/robots.txt",
+        integrationHttpMethod="POST",
+    )
+
+    response = client.put_integration_response(
+        restApiId=api_id,
+        resourceId=root_id,
+        httpMethod="PUT",
+        statusCode="200",
+        selectionPattern="foobar",
+        responseTemplates={},
+        contentHandling="CONVERT_TO_BINARY",
+    )
+
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "statusCode": "200",
+            "selectionPattern": "foobar",
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "responseTemplates": {"application/json": None},
+            "contentHandling": "CONVERT_TO_BINARY",
+        }
+    )
+
+    response = client.get_integration_response(
+        restApiId=api_id, resourceId=root_id, httpMethod="PUT", statusCode="200"
+    )
+    # this is hard to match against, so remove it
+    response["ResponseMetadata"].pop("HTTPHeaders", None)
+    response["ResponseMetadata"].pop("RetryAttempts", None)
+    response.should.equal(
+        {
+            "statusCode": "200",
+            "selectionPattern": "foobar",
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+            "responseTemplates": {"application/json": None},
+            "contentHandling": "CONVERT_TO_BINARY",
+        }
+    )
 
 
 @mock_apigateway
