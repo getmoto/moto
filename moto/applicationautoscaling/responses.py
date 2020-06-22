@@ -53,7 +53,8 @@ class ApplicationAutoScalingResponse(BaseResponse):
             # }
         } for t in scalable_targets_resp]
         return json.dumps({
-            "ScalableTargets": targets
+            "ScalableTargets": targets,
+            "NextToken": next_token
         })
 
     def describe_scaling_activities(self):

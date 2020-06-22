@@ -28,6 +28,9 @@ def test_describe_scalable_targets_one_ecs_success():
     t.should.have.key("RoleARN").which.should.equal(DEFAULT_ROLE_ARN)
 
 
+# TODO Add a test for NextToken
+
+
 @mock_applicationautoscaling
 def __register_default_scalable_target():
     """ Build a default scalable target object for use in tests. """

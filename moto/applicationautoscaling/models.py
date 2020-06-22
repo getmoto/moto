@@ -23,6 +23,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
     def describe_scalable_targets(self, service_namespace, resource_ids, scalable_dimension):
         """ Describe scalable targets. """
+        # TODO Filter by service_namespace
+        # TODO Only return selected resource_ids
+        # TODO Filter by scalable_dimension
         return list(self.scalable_targets.values())
 
     def describe_scaling_activities(self):
