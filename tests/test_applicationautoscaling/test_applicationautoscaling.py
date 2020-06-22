@@ -14,15 +14,19 @@ DEFAULT_ROLE_ARN = "test:arn"
 
 @mock_applicationautoscaling
 def test_describe_scalable_targets_one_ecs_success():
-    __register_default_scalable_target()
+    __register_scalable_target()
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    response = client.describe_scalable_targets(ServiceNamespace=DEFAULT_SERVICE_NAMESPACE)
+    response = client.describe_scalable_targets(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
+    )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     len(response["ScalableTargets"]).should.equal(1)
     t = response["ScalableTargets"][0]
     t.should.have.key("ServiceNamespace").which.should.equal(DEFAULT_SERVICE_NAMESPACE)
     t.should.have.key("ResourceId").which.should.equal(DEFAULT_RESOURCE_ID)
-    t.should.have.key("ScalableDimension").which.should.equal(DEFAULT_SCALABLE_DIMENSION)
+    t.should.have.key("ScalableDimension").which.should.equal(
+        DEFAULT_SCALABLE_DIMENSION
+    )
     t.should.have.key("MinCapacity").which.should.equal(DEFAULT_MIN_CAPACITY)
     t.should.have.key("MaxCapacity").which.should.equal(DEFAULT_MAX_CAPACITY)
     t.should.have.key("RoleARN").which.should.equal(DEFAULT_ROLE_ARN)
@@ -32,11 +36,25 @@ def test_describe_scalable_targets_one_ecs_success():
 
 
 @mock_applicationautoscaling
-def __register_default_scalable_target():
+def test_describe_scalable_targets_only_return_ecs_targets():
+    # __register_scalable_target(ServiceNamespace="ecs")
+    # __register_scalable_target(ServiceNamespace="ecs")
+    # __register_scalable_target(ServiceNamespace="elasticmapreduce")
+    # client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    # response = client.describe_scalable_targets(
+    #     ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
+    # )
+    # response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    # len(response["ScalableTargets"]).should.equal(1)
+    pass
+
+
+@mock_applicationautoscaling
+def __register_scalable_target(**kwargs):
     """ Build a default scalable target object for use in tests. """
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     client.register_scalable_target(
-        ServiceNamespace="ecs",
+        ServiceNamespace=kwargs.get("ServiceNamespace", DEFAULT_SERVICE_NAMESPACE),
         ResourceId="test",
         ScalableDimension="ecs:service:DesiredCount",
         MinCapacity=1,

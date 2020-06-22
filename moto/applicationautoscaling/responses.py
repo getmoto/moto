@@ -5,7 +5,6 @@ from .models import applicationautoscaling_backends
 
 
 class ApplicationAutoScalingResponse(BaseResponse):
-
     @property
     def applicationautoscaling_backend(self):
         return applicationautoscaling_backends[self.region]
@@ -28,34 +27,34 @@ class ApplicationAutoScalingResponse(BaseResponse):
         scalable_dimension = self._get_param("ScalableDimension")
         max_results = self._get_int_param("MaxResults", 50)
         all_scalable_targets = self.applicationautoscaling_backend.describe_scalable_targets(
-            service_namespace, resource_ids, scalable_dimension
+            service_namespace, resource_ids, scalable_dimension, max_results
         )
         marker = self._get_param("NextToken")
         start = all_scalable_targets.index(marker) + 1 if marker else 0
         next_token = None
-        scalable_targets_resp = all_scalable_targets[start: start + max_results]
+        scalable_targets_resp = all_scalable_targets[start : start + max_results]
         if len(all_scalable_targets) > start + max_results:
             next_token = scalable_targets_resp[-1].name
-        targets = [{
-            # TODO Implement CreationTime support
-            # "CreationTime": t.creation_time,
-            "ServiceNamespace": t.service_namespace,
-            "ResourceId": t.resource_id,
-            "RoleARN": t.role_arn,
-            "ScalableDimension": t.scalable_dimension,
-            "MaxCapacity": t.max_capacity,
-            "MinCapacity": t.min_capacity,
-            # TODO Implement SuspendedState support
-            # "SuspendedState": {
-            #     "DynamicScalingInSuspended": t.suspended_state["dynamic_scaling_in_suspended"],
-            #     "DynamicScalingOutSuspended": t.suspended_state["dynamic_scaling_out_suspended"],
-            #     "ScheduledScalingSuspended": t.suspended_state["scheduled_scaling_suspended"],
-            # }
-        } for t in scalable_targets_resp]
-        return json.dumps({
-            "ScalableTargets": targets,
-            "NextToken": next_token
-        })
+        targets = [
+            {
+                # TODO Implement CreationTime support
+                # "CreationTime": t.creation_time,
+                "ServiceNamespace": t.service_namespace,
+                "ResourceId": t.resource_id,
+                "RoleARN": t.role_arn,
+                "ScalableDimension": t.scalable_dimension,
+                "MaxCapacity": t.max_capacity,
+                "MinCapacity": t.min_capacity,
+                # TODO Implement SuspendedState support
+                # "SuspendedState": {
+                #     "DynamicScalingInSuspended": t.suspended_state["dynamic_scaling_in_suspended"],
+                #     "DynamicScalingOutSuspended": t.suspended_state["dynamic_scaling_out_suspended"],
+                #     "ScheduledScalingSuspended": t.suspended_state["scheduled_scaling_suspended"],
+                # }
+            }
+            for t in scalable_targets_resp
+        ]
+        return json.dumps({"ScalableTargets": targets, "NextToken": next_token})
 
     def describe_scaling_activities(self):
         """ Not yet implemented. """
@@ -94,6 +93,6 @@ class ApplicationAutoScalingResponse(BaseResponse):
             min_capacity=self._get_int_param("MinCapacity"),
             max_capacity=self._get_int_param("MaxCapacity"),
             role_arn=self._get_param("RoleARN"),
-            suspended_state=self._get_param("SuspendedState")
+            suspended_state=self._get_param("SuspendedState"),
         )
         return json.dumps({})

@@ -5,7 +5,6 @@ from boto3 import Session
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
-
     def __init__(self):
         self.scalable_targets = OrderedDict()
 
@@ -21,7 +20,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """ Not yet implemented. """
         pass
 
-    def describe_scalable_targets(self, service_namespace, resource_ids, scalable_dimension):
+    def describe_scalable_targets(
+        self, service_namespace, resource_ids, scalable_dimension, max_results
+    ):
         """ Describe scalable targets. """
         # TODO Filter by service_namespace
         # TODO Only return selected resource_ids
@@ -69,7 +70,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
 
 class FakeScalableTarget(BaseModel):
-
     def __init__(self, backend, **kwargs):
         self.applicationautoscaling_backend = backend
         self.service_namespace = kwargs["service_namespace"]
