@@ -5,7 +5,7 @@ import sure  # noqa
 
 DEFAULT_REGION = "us-east-1"
 DEFAULT_SERVICE_NAMESPACE = "ecs"
-DEFAULT_RESOURCE_ID = "test"
+DEFAULT_RESOURCE_ID = "service/default/sample-webapp"
 DEFAULT_SCALABLE_DIMENSION = "ecs:service:DesiredCount"
 DEFAULT_MIN_CAPACITY = 1
 DEFAULT_MAX_CAPACITY = 1
@@ -14,8 +14,8 @@ DEFAULT_ROLE_ARN = "test:arn"
 
 @mock_applicationautoscaling
 def test_describe_scalable_targets_one_ecs_success():
-    __register_scalable_target()
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    __register_scalable_target(client)
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
     )
@@ -37,25 +37,24 @@ def test_describe_scalable_targets_one_ecs_success():
 
 @mock_applicationautoscaling
 def test_describe_scalable_targets_only_return_ecs_targets():
-    # __register_scalable_target(ServiceNamespace="ecs")
-    # __register_scalable_target(ServiceNamespace="ecs")
-    # __register_scalable_target(ServiceNamespace="elasticmapreduce")
-    # client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    # response = client.describe_scalable_targets(
-    #     ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
-    # )
-    # response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    # len(response["ScalableTargets"]).should.equal(1)
-    pass
-
-
-@mock_applicationautoscaling
-def __register_scalable_target(**kwargs):
-    """ Build a default scalable target object for use in tests. """
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    __register_scalable_target(client, ServiceNamespace="ecs", ResourceId="test1")
+    __register_scalable_target(client, ServiceNamespace="ecs", ResourceId="test2")
+    __register_scalable_target(
+        client, ServiceNamespace="elasticmapreduce", ResourceId="test3"
+    )
+    response = client.describe_scalable_targets(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(response["ScalableTargets"]).should.equal(2)
+
+
+def __register_scalable_target(client, **kwargs):
+    """ Build a default scalable target object for use in tests. """
     client.register_scalable_target(
         ServiceNamespace=kwargs.get("ServiceNamespace", DEFAULT_SERVICE_NAMESPACE),
-        ResourceId="test",
+        ResourceId=kwargs.get("ResourceId", DEFAULT_RESOURCE_ID),
         ScalableDimension="ecs:service:DesiredCount",
         MinCapacity=1,
         MaxCapacity=1,
