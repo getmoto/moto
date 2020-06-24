@@ -42,16 +42,26 @@ class ApplicationAutoscalingBackend(BaseBackend):
             resource_ids = []
         # TODO Only return max_results
         # TODO Validate that if scalable_dimension is supplied then resource_ids must not be empty
-        targets = [
-            t
-            for t in self.scalable_targets.values()
-            if t.service_namespace == service_namespace
-        ]
-        if len(resource_ids) > 0:
-            targets = [t for t in targets if t.resource_id in resource_ids]
+        targets = self._flatten_scalable_targets(service_namespace)
         if scalable_dimension is not None:
             targets = [t for t in targets if t.scalable_dimension == scalable_dimension]
+        if len(resource_ids) > 0:
+            targets = [t for t in targets if t.resource_id in resource_ids]
 
+        return targets
+
+    def _flatten_scalable_targets(self, service_namespace):
+        """ Flatten scalable targets for a given service namespace down to a list. """
+        targets = []
+        for resource_id in self.scalable_targets[service_namespace].keys():
+            for scalable_dimension in self.scalable_targets[service_namespace][
+                resource_id
+            ].keys():
+                targets.append(
+                    self.scalable_targets[service_namespace][resource_id][
+                        scalable_dimension
+                    ]
+                )
         return targets
 
     def describe_scaling_activities(self):
@@ -82,24 +92,56 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """ Not yet implemented. """
         pass
 
-    def register_scalable_target(self, **kwargs):
+    def register_scalable_target(
+        self, service_namespace, resource_id, scalable_dimension, **kwargs
+    ):
         """ Registers or updates a scalable target. """
-        resource_id = kwargs["resource_id"]
-        if resource_id in self.scalable_targets:
-            target = self.scalable_targets[resource_id]
+        if self._scalable_target_exists(
+            service_namespace, resource_id, scalable_dimension
+        ):
+            target = self.scalable_targets[service_namespace][resource_id][
+                scalable_dimension
+            ]
             target.update(kwargs)
         else:
-            target = FakeScalableTarget(self, **kwargs)
-            self.scalable_targets[resource_id] = target
+            target = FakeScalableTarget(
+                self, service_namespace, resource_id, scalable_dimension, **kwargs
+            )
+            self._add_scalable_target(target)
+        return target
+
+    def _scalable_target_exists(
+        self, service_namespace, resource_id, scalable_dimension
+    ):
+        exists = False
+        if (
+            service_namespace in self.scalable_targets
+            and resource_id in self.scalable_targets[service_namespace]
+            and scalable_dimension
+            in self.scalable_targets[service_namespace][resource_id]
+        ):
+            exists = True
+        return exists
+
+    def _add_scalable_target(self, target):
+        if target.service_namespace not in self.scalable_targets:
+            self.scalable_targets[target.service_namespace] = {}
+        if target.resource_id not in self.scalable_targets:
+            self.scalable_targets[target.service_namespace][target.resource_id] = {}
+        self.scalable_targets[target.service_namespace][target.resource_id][
+            target.scalable_dimension
+        ] = target
         return target
 
 
 class FakeScalableTarget(BaseModel):
-    def __init__(self, backend, **kwargs):
+    def __init__(
+        self, backend, service_namespace, resource_id, scalable_dimension, **kwargs
+    ):
         self.applicationautoscaling_backend = backend
-        self.service_namespace = kwargs["service_namespace"]
-        self.resource_id = kwargs["resource_id"]
-        self.scalable_dimension = kwargs["scalable_dimension"]
+        self.service_namespace = service_namespace
+        self.resource_id = resource_id
+        self.scalable_dimension = scalable_dimension
         self.min_capacity = kwargs["min_capacity"]
         self.max_capacity = kwargs["max_capacity"]
         self.role_arn = kwargs["role_arn"]

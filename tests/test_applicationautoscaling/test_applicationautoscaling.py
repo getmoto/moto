@@ -66,3 +66,24 @@ def __register_scalable_target(client, **kwargs):
         #     "ScheduledScalingSuspended": True,
         # }
     )
+
+
+@mock_applicationautoscaling
+def test_next_token_success():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    for i in range(0, 100):
+        __register_scalable_target(client, ServiceNamespace="ecs", ResourceId=str(i))
+    response = client.describe_scalable_targets(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(response["ScalableTargets"]).should.equal(50)
+    response["ScalableTargets"][0]["ResourceId"].should.equal("0")
+    response["NextToken"].should.equal("49")
+    response = client.describe_scalable_targets(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, NextToken=str(response["NextToken"])
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(response["ScalableTargets"]).should.equal(50)
+    response["ScalableTargets"][0]["ResourceId"].should.equal("50")
+    response.should_not.have.key("NextToken")

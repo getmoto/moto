@@ -30,11 +30,11 @@ class ApplicationAutoScalingResponse(BaseResponse):
             service_namespace, resource_ids, scalable_dimension, max_results
         )
         marker = self._get_param("NextToken")
-        start = all_scalable_targets.index(marker) + 1 if marker else 0
+        start = int(marker) + 1 if marker else 0
         next_token = None
         scalable_targets_resp = all_scalable_targets[start : start + max_results]
         if len(all_scalable_targets) > start + max_results:
-            next_token = scalable_targets_resp[-1].name
+            next_token = str(len(scalable_targets_resp) - 1)
         targets = [
             {
                 # TODO Implement CreationTime support
@@ -87,9 +87,9 @@ class ApplicationAutoScalingResponse(BaseResponse):
     def register_scalable_target(self):
         """ Registers or updates a scalable target. """
         self.applicationautoscaling_backend.register_scalable_target(
-            service_namespace=self._get_param("ServiceNamespace"),
-            resource_id=self._get_param("ResourceId"),
-            scalable_dimension=self._get_param("ScalableDimension"),
+            self._get_param("ServiceNamespace"),
+            self._get_param("ResourceId"),
+            self._get_param("ScalableDimension"),
             min_capacity=self._get_int_param("MinCapacity"),
             max_capacity=self._get_int_param("MaxCapacity"),
             role_arn=self._get_param("RoleARN"),
