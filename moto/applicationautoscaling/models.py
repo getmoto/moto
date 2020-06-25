@@ -127,7 +127,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
         if target.service_namespace not in self.scalable_targets:
             self.scalable_targets[target.service_namespace] = OrderedDict()
         if target.resource_id not in self.scalable_targets:
-            self.scalable_targets[target.service_namespace][target.resource_id] = OrderedDict()
+            self.scalable_targets[target.service_namespace][
+                target.resource_id
+            ] = OrderedDict()
         self.scalable_targets[target.service_namespace][target.resource_id][
             target.scalable_dimension
         ] = target

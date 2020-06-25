@@ -7,6 +7,21 @@ from enum import Enum, unique
 
 
 @unique
+class ServiceNamespaceValueSet(Enum):
+    APPSTREAM = "appstream"
+    RDS = "rds"
+    LAMBDA = "lambda"
+    CASSANDRA = "cassandra"
+    DYNAMODB = "dynamodb"
+    CUSTOM_RESOURCE = "custom-resource"
+    ELASTICMAPREDUCE = "elasticmapreduce"
+    EC2 = "ec2"
+    COMPREHEND = "comprehend"
+    ECS = "ecs"
+    SAGEMAKER = "sagemaker"
+
+
+@unique
 class ScalableDimensionValueSet(Enum):
     CASSANDRA_TABLE_READ_CAPACITY_UNITS = "cassandra:table:ReadCapacityUnits"
     CASSANDRA_TABLE_WRITE_CAPACITY_UNITS = "cassandra:table:WriteCapacityUnits"
@@ -54,22 +69,14 @@ class ApplicationAutoScalingResponse(BaseResponse):
         pass
 
     def describe_scalable_targets(self):
+        validation = self._validate_params()
+        if validation is not None:
+            return validation
         service_namespace = self._get_param("ServiceNamespace")
         resource_ids = self._get_param("ResourceIds")
         scalable_dimension = self._get_param("ScalableDimension")
         max_results = self._get_int_param("MaxResults", 50)
         marker = self._get_param("NextToken")
-        if (
-            scalable_dimension is not None
-            and scalable_dimension not in ScalableDimensionValueSet.__members__.items()
-        ):
-            return AWSValidationException(
-                "Value '{}' at 'scalableDimension' "
-                "failed to satisfy constraint: Member must satisfy enum value set: "
-                "{}".format(
-                    scalable_dimension, ScalableDimensionValueSet.__members__.items()
-                )
-            ).response()
         all_scalable_targets = self.applicationautoscaling_backend.describe_scalable_targets(
             service_namespace, resource_ids, scalable_dimension, max_results
         )
@@ -129,6 +136,9 @@ class ApplicationAutoScalingResponse(BaseResponse):
 
     def register_scalable_target(self):
         """ Registers or updates a scalable target. """
+        validation = self._validate_params()
+        if validation is not None:
+            return validation
         self.applicationautoscaling_backend.register_scalable_target(
             self._get_param("ServiceNamespace"),
             self._get_param("ResourceId"),
@@ -139,3 +149,34 @@ class ApplicationAutoScalingResponse(BaseResponse):
             suspended_state=self._get_param("SuspendedState"),
         )
         return json.dumps({})
+
+    def _validate_params(self):
+        namespace = self._get_param("ServiceNamespace")
+        dimension = self._get_param("ScalableDimension")
+        messages = []
+        resp = None
+        dimensions = [dimension.value for dimension in ScalableDimensionValueSet]
+        if dimension is not None and dimension not in dimensions:
+            messages.append(
+                "Value '{}' at 'scalableDimension' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "{}".format(dimension, dimensions)
+            )
+        namespaces = [namespace.value for namespace in ServiceNamespaceValueSet]
+        if namespace is not None and namespace not in namespaces:
+            messages.append(
+                "Value '{}' at 'serviceNamespace' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "{}".format(namespace, namespaces)
+            )
+        if len(messages) == 1:
+            resp = AWSValidationException(
+                "1 validation error detected: {}".format(messages[0])
+            ).response()
+        elif len(messages) > 1:
+            resp = AWSValidationException(
+                "{} validation errors detected: {}".format(
+                    len(messages), " ;".join(messages)
+                )
+            ).response()
+        return resp
