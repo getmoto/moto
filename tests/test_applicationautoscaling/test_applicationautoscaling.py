@@ -121,8 +121,7 @@ def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return
 
     try:
         response = client.describe_scalable_targets(
-            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
-            ScalableDimension="foo",
+            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo",
         )
         print(response)
     except ClientError as err:

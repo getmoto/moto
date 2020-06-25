@@ -16,10 +16,18 @@ class ScalableDimensionValueSet(Enum):
     DYNAMODB_TABLE_WRITE_CAPACITY_UNITS = "dynamodb:table:WriteCapacityUnits"
     RDS_CLUSTER_READ_REPLICA_COUNT = "rds:cluster:ReadReplicaCount"
     RDS_CLUSTER_CAPACITY = "rds:cluster:Capacity"
-    COMPREHEND_DOCUMENT_CLASSIFIER_ENDPOINT_DESIRED_INFERENCE_UNITS = "comprehend:document-classifier-endpoint:DesiredInferenceUnits"
-    ELASTICMAPREDUCE_INSTANCE_FLEET_ON_DEMAND_CAPACITY = "elasticmapreduce:instancefleet:OnDemandCapacity"
-    ELASTICMAPREDUCE_INSTANCE_FLEET_SPOT_CAPACITY = "elasticmapreduce:instancefleet:SpotCapacity"
-    ELASTICMAPREDUCE_INSTANCE_GROUP_INSTANCE_COUNT = "elasticmapreduce:instancegroup:InstanceCount"
+    COMPREHEND_DOCUMENT_CLASSIFIER_ENDPOINT_DESIRED_INFERENCE_UNITS = (
+        "comprehend:document-classifier-endpoint:DesiredInferenceUnits"
+    )
+    ELASTICMAPREDUCE_INSTANCE_FLEET_ON_DEMAND_CAPACITY = (
+        "elasticmapreduce:instancefleet:OnDemandCapacity"
+    )
+    ELASTICMAPREDUCE_INSTANCE_FLEET_SPOT_CAPACITY = (
+        "elasticmapreduce:instancefleet:SpotCapacity"
+    )
+    ELASTICMAPREDUCE_INSTANCE_GROUP_INSTANCE_COUNT = (
+        "elasticmapreduce:instancegroup:InstanceCount"
+    )
     LAMBDA_FUNCTION_PROVISIONED_CONCURRENCY = "lambda:function:ProvisionedConcurrency"
     APPSTREAM_FLEET_DESIRED_CAPACITY = "appstream:fleet:DesiredCapacity"
     CUSTOM_RESOURCE_RESOURCE_TYPE_PROPERTY = "custom-resource:ResourceType:Property"
@@ -51,17 +59,23 @@ class ApplicationAutoScalingResponse(BaseResponse):
         scalable_dimension = self._get_param("ScalableDimension")
         max_results = self._get_int_param("MaxResults", 50)
         marker = self._get_param("NextToken")
-        if scalable_dimension is not None and scalable_dimension not in ScalableDimensionValueSet.__members__.items():
-            return AWSValidationException("Value '{}' at 'scalableDimension' "
-                                          "failed to satisfy constraint: Member must satisfy enum value set: "
-                                          "{}".format(scalable_dimension, ScalableDimensionValueSet.__members__.items())
-                                          ).response()
+        if (
+            scalable_dimension is not None
+            and scalable_dimension not in ScalableDimensionValueSet.__members__.items()
+        ):
+            return AWSValidationException(
+                "Value '{}' at 'scalableDimension' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "{}".format(
+                    scalable_dimension, ScalableDimensionValueSet.__members__.items()
+                )
+            ).response()
         all_scalable_targets = self.applicationautoscaling_backend.describe_scalable_targets(
             service_namespace, resource_ids, scalable_dimension, max_results
         )
         start = int(marker) + 1 if marker else 0
         next_token = None
-        scalable_targets_resp = all_scalable_targets[start: start + max_results]
+        scalable_targets_resp = all_scalable_targets[start : start + max_results]
         if len(all_scalable_targets) > start + max_results:
             next_token = str(len(scalable_targets_resp) - 1)
         targets = [
