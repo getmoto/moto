@@ -278,7 +278,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._resource_tags = defaultdict(lambda: defaultdict(dict))
         self._commands = []
         self._errors = []
-
+        # assigning the default region as us-east-1
+        self._region = "us-east-1"
         # figure out what region we're in
         for region, backend in ssm_backends.items():
             if backend == self:

@@ -12,7 +12,7 @@ import json
 from botocore.exceptions import ClientError, ParamValidationError
 from nose.tools import assert_raises
 
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_ssm, mock_cloudformation, mock_ec2
 
 
 @mock_ssm
@@ -1460,6 +1460,32 @@ def test_send_command():
 
     cmd["CommandId"].should_not.be(None)
     cmd["DocumentName"].should.equal(ssm_document)
+
+
+@mock_ssm
+@mock_ec2
+def test_send_command_with_ec2():
+    ec2_resource = boto3.resource("ec2", "us-west-1")
+    client = boto3.client("ssm")
+
+    ssm_document = "AWS-RunShellScript"
+    params = {"commands": ["ifconfig"]}
+
+    result = ec2_resource.create_instances(
+        ImageId="ami-d3adb33f",
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}}],
+    )
+
+    response = client.send_command(
+        InstanceIds=["{0}".format(result[0])],
+        DocumentName=ssm_document,
+        Parameters=params,
+        Comment="IP config"
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["Command"]["Status"].should.equal("Success")
 
 
 @mock_ssm
