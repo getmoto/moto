@@ -2,6 +2,30 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 import json
 from .models import applicationautoscaling_backends
+from .exceptions import AWSValidationException
+from enum import Enum, unique
+
+
+@unique
+class ScalableDimensionValueSet(Enum):
+    CASSANDRA_TABLE_READ_CAPACITY_UNITS = "cassandra:table:ReadCapacityUnits"
+    CASSANDRA_TABLE_WRITE_CAPACITY_UNITS = "cassandra:table:WriteCapacityUnits"
+    DYNAMODB_INDEX_READ_CAPACITY_UNITS = "dynamodb:index:ReadCapacityUnits"
+    DYNAMODB_INDEX_WRITE_CAPACITY_UNITS = "dynamodb:index:WriteCapacityUnits"
+    DYNAMODB_TABLE_READ_CAPACITY_UNITS = "dynamodb:table:ReadCapacityUnits"
+    DYNAMODB_TABLE_WRITE_CAPACITY_UNITS = "dynamodb:table:WriteCapacityUnits"
+    RDS_CLUSTER_READ_REPLICA_COUNT = "rds:cluster:ReadReplicaCount"
+    RDS_CLUSTER_CAPACITY = "rds:cluster:Capacity"
+    COMPREHEND_DOCUMENT_CLASSIFIER_ENDPOINT_DESIRED_INFERENCE_UNITS = "comprehend:document-classifier-endpoint:DesiredInferenceUnits"
+    ELASTICMAPREDUCE_INSTANCE_FLEET_ON_DEMAND_CAPACITY = "elasticmapreduce:instancefleet:OnDemandCapacity"
+    ELASTICMAPREDUCE_INSTANCE_FLEET_SPOT_CAPACITY = "elasticmapreduce:instancefleet:SpotCapacity"
+    ELASTICMAPREDUCE_INSTANCE_GROUP_INSTANCE_COUNT = "elasticmapreduce:instancegroup:InstanceCount"
+    LAMBDA_FUNCTION_PROVISIONED_CONCURRENCY = "lambda:function:ProvisionedConcurrency"
+    APPSTREAM_FLEET_DESIRED_CAPACITY = "appstream:fleet:DesiredCapacity"
+    CUSTOM_RESOURCE_RESOURCE_TYPE_PROPERTY = "custom-resource:ResourceType:Property"
+    SAGEMAKER_VARIANT_DESIRED_INSTANCE_COUNT = "sagemaker:variant:DesiredInstanceCount"
+    EC2_SPOT_FLEET_REQUEST_TARGET_CAPACITY = "ec2:spot-fleet-request:TargetCapacity"
+    ECS_SERVICE_DESIRED_COUNT = "ecs:service:DesiredCount"
 
 
 class ApplicationAutoScalingResponse(BaseResponse):
@@ -23,16 +47,21 @@ class ApplicationAutoScalingResponse(BaseResponse):
 
     def describe_scalable_targets(self):
         service_namespace = self._get_param("ServiceNamespace")
-        resource_ids = self._get_multi_param("ResourceIds")
+        resource_ids = self._get_param("ResourceIds")
         scalable_dimension = self._get_param("ScalableDimension")
         max_results = self._get_int_param("MaxResults", 50)
+        marker = self._get_param("NextToken")
+        if scalable_dimension is not None and scalable_dimension not in ScalableDimensionValueSet.__members__.items():
+            return AWSValidationException("Value '{}' at 'scalableDimension' "
+                                          "failed to satisfy constraint: Member must satisfy enum value set: "
+                                          "{}".format(scalable_dimension, ScalableDimensionValueSet.__members__.items())
+                                          ).response()
         all_scalable_targets = self.applicationautoscaling_backend.describe_scalable_targets(
             service_namespace, resource_ids, scalable_dimension, max_results
         )
-        marker = self._get_param("NextToken")
         start = int(marker) + 1 if marker else 0
         next_token = None
-        scalable_targets_resp = all_scalable_targets[start : start + max_results]
+        scalable_targets_resp = all_scalable_targets[start: start + max_results]
         if len(all_scalable_targets) > start + max_results:
             next_token = str(len(scalable_targets_resp) - 1)
         targets = [
