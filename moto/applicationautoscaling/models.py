@@ -1,13 +1,14 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from boto3 import Session
+from collections import OrderedDict
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
     def __init__(self, region):
         super(ApplicationAutoscalingBackend, self).__init__()
         self.region = region
-        self.scalable_targets = {}
+        self.scalable_targets = OrderedDict()
 
     def reset(self):
         region = self.region
@@ -47,7 +48,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
             targets = [t for t in targets if t.scalable_dimension == scalable_dimension]
         if len(resource_ids) > 0:
             targets = [t for t in targets if t.resource_id in resource_ids]
-
         return targets
 
     def _flatten_scalable_targets(self, service_namespace):
@@ -125,9 +125,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
     def _add_scalable_target(self, target):
         if target.service_namespace not in self.scalable_targets:
-            self.scalable_targets[target.service_namespace] = {}
+            self.scalable_targets[target.service_namespace] = OrderedDict()
         if target.resource_id not in self.scalable_targets:
-            self.scalable_targets[target.service_namespace][target.resource_id] = {}
+            self.scalable_targets[target.service_namespace][target.resource_id] = OrderedDict()
         self.scalable_targets[target.service_namespace][target.resource_id][
             target.scalable_dimension
         ] = target

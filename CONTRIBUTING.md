@@ -28,12 +28,16 @@ How to teach Moto to support a new AWS endpoint:
 * If one doesn't already exist, create a new issue describing what's missing. This is where we'll all talk about the new addition and help you get it done.
 * Create a [pull request](https://help.github.com/articles/using-pull-requests/) and mention the issue # in the PR description.
 * Try to add a failing test case. For example, if you're trying to implement `boto3.client('acm').import_certificate()` you'll want to add a new method called `def test_import_certificate` to `tests/test_acm/test_acm.py`.
-* If you can also implement the code that gets that test passing that's great. If not, just ask the community for a hand and somebody will assist you.
+* If you can also implement the code that gets that test passing then great! If not, just ask the community for a hand and somebody will assist you.
 
 ## Before pushing changes to GitHub
 
 1. Run `black moto/ tests/` over your code to ensure that it is properly formatted
 1. Run `make test` to ensure your tests are passing
+
+## Python versions
+
+moto currently supports both Python 2 and 3, so make sure your tests pass against both major versions of Python.
 
 ## Maintainers
 
