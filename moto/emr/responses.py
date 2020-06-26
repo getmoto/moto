@@ -74,9 +74,10 @@ class ElasticMapReduceResponse(BaseResponse):
         instance_groups = self._get_list_prefix("InstanceGroups.member")
         for item in instance_groups:
             item["instance_count"] = int(item["instance_count"])
-            # Adding support to EbsConfiguration
-            self._parse_ebs_configuration(item)
-            # Adding support for auto_scaling_policy
+            # The params returned by _get_list_prefix are from querystring, which contain a flattened
+            #  representation of the body params.  That works fine for scalar params,
+            #  but also (inappropriately) flattens struct params.  Here we reconstitute those we need.
+            Unflattener.unflatten_complex_params(item, "ebs_configuration")
             Unflattener.unflatten_complex_params(item, "auto_scaling_policy")
         instance_groups = self.backend.add_instance_groups(jobflow_id, instance_groups)
         template = self.response_template(ADD_INSTANCE_GROUPS_TEMPLATE)
@@ -167,7 +168,10 @@ class ElasticMapReduceResponse(BaseResponse):
         instance_groups, marker = self.backend.list_instance_groups(
             cluster_id, marker=marker
         )
-        template = self.response_template(LIST_INSTANCE_GROUPS_TEMPLATE)
+        template = self.response_template(
+            LIST_INSTANCE_GROUPS_TEMPLATE,
+            {"AUTO_SCALING_POLICY_INCLUDE": AUTO_SCALING_POLICY_INCLUDE},
+        )
         return template.render(instance_groups=instance_groups, marker=marker)
 
     def list_instances(self):
@@ -329,9 +333,7 @@ class ElasticMapReduceResponse(BaseResponse):
         if instance_groups:
             for ig in instance_groups:
                 ig["instance_count"] = int(ig["instance_count"])
-                # Adding support to EbsConfiguration
-                self._parse_ebs_configuration(ig)
-                # Adding support for auto_scaling_policy
+                Unflattener.unflatten_complex_params(ig, "ebs_configuration")
                 Unflattener.unflatten_complex_params(ig, "auto_scaling_policy")
             self.backend.add_instance_groups(cluster.id, instance_groups)
 
@@ -349,79 +351,6 @@ class ElasticMapReduceResponse(BaseResponse):
             if key.startswith(key_prefix):
                 return True
         return False
-
-    def _parse_ebs_configuration(self, instance_group):
-        key_ebs_config = "ebs_configuration"
-        ebs_configuration = dict()
-        # Filter only EBS config keys
-        for key in instance_group:
-            if key.startswith(key_ebs_config):
-                ebs_configuration[key] = instance_group[key]
-
-        if len(ebs_configuration) > 0:
-            # Key that should be extracted
-            ebs_optimized = "ebs_optimized"
-            ebs_block_device_configs = "ebs_block_device_configs"
-            volume_specification = "volume_specification"
-            size_in_gb = "size_in_gb"
-            volume_type = "volume_type"
-            iops = "iops"
-            volumes_per_instance = "volumes_per_instance"
-
-            key_ebs_optimized = "{0}._{1}".format(key_ebs_config, ebs_optimized)
-            # EbsOptimized config
-            if key_ebs_optimized in ebs_configuration:
-                instance_group.pop(key_ebs_optimized)
-                ebs_configuration[ebs_optimized] = ebs_configuration.pop(
-                    key_ebs_optimized
-                )
-
-            # Ebs Blocks
-            ebs_blocks = []
-            idx = 1
-            keyfmt = "{0}._{1}.member.{{}}".format(
-                key_ebs_config, ebs_block_device_configs
-            )
-            key = keyfmt.format(idx)
-            while self._has_key_prefix(key, ebs_configuration):
-                vlespc_keyfmt = "{0}._{1}._{{}}".format(key, volume_specification)
-                vol_size = vlespc_keyfmt.format(size_in_gb)
-                vol_iops = vlespc_keyfmt.format(iops)
-                vol_type = vlespc_keyfmt.format(volume_type)
-
-                ebs_block = dict()
-                ebs_block[volume_specification] = dict()
-                if vol_size in ebs_configuration:
-                    instance_group.pop(vol_size)
-                    ebs_block[volume_specification][size_in_gb] = int(
-                        ebs_configuration.pop(vol_size)
-                    )
-                if vol_iops in ebs_configuration:
-                    instance_group.pop(vol_iops)
-                    ebs_block[volume_specification][iops] = ebs_configuration.pop(
-                        vol_iops
-                    )
-                if vol_type in ebs_configuration:
-                    instance_group.pop(vol_type)
-                    ebs_block[volume_specification][
-                        volume_type
-                    ] = ebs_configuration.pop(vol_type)
-
-                per_instance = "{0}._{1}".format(key, volumes_per_instance)
-                if per_instance in ebs_configuration:
-                    instance_group.pop(per_instance)
-                    ebs_block[volumes_per_instance] = int(
-                        ebs_configuration.pop(per_instance)
-                    )
-
-                if len(ebs_block) > 0:
-                    ebs_blocks.append(ebs_block)
-                idx += 1
-                key = keyfmt.format(idx)
-
-            if len(ebs_blocks) > 0:
-                ebs_configuration[ebs_block_device_configs] = ebs_blocks
-            instance_group[key_ebs_config] = ebs_configuration
 
     @generate_boto3_response("SetTerminationProtection")
     def set_termination_protection(self):
@@ -454,7 +383,10 @@ class ElasticMapReduceResponse(BaseResponse):
         instance_group = self.backend.put_auto_scaling_policy(
             instance_group_id, auto_scaling_policy
         )
-        template = self.response_template(PUT_AUTO_SCALING_POLICY)
+        template = self.response_template(
+            PUT_AUTO_SCALING_POLICY,
+            {"AUTO_SCALING_POLICY_INCLUDE": AUTO_SCALING_POLICY_INCLUDE},
+        )
         return template.render(cluster_id=cluster_id, instance_group=instance_group)
 
     @generate_boto3_response("RemoveAutoScalingPolicy")
@@ -864,7 +796,7 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
         {% if instance_group.ebs_configuration is not none %}
         <EbsBlockDevices>
             {% for ebs_block_device in instance_group.ebs_configuration.ebs_block_device_configs %}
-              {% for i in range(ebs_block_device.volumes_per_instance) %}
+              {% for i in range(ebs_block_device.volumes_per_instance | int) %}
           <member>
             <VolumeSpecification>
               <VolumeType>{{ebs_block_device.volume_specification.volume_type}}</VolumeType>
@@ -877,107 +809,7 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
             {% endfor %}
         </EbsBlockDevices>
         {% endif %}
-        {% if instance_group.auto_scaling_policy is not none %}
-        <AutoScalingPolicy>
-            {% if instance_group.auto_scaling_policy.constraints is not none %}
-            <Constraints>
-                {% if instance_group.auto_scaling_policy.constraints.min_capacity is not none %}
-                <MinCapacity>{{instance_group.auto_scaling_policy.constraints.min_capacity}}</MinCapacity>
-                {% endif %}
-                {% if instance_group.auto_scaling_policy.constraints.max_capacity is not none %}
-                <MaxCapacity>{{instance_group.auto_scaling_policy.constraints.max_capacity}}</MaxCapacity>
-                {% endif %}
-            </Constraints>
-            {% endif %}
-            {% if instance_group.auto_scaling_policy.rules is not none %}
-            <Rules>
-                {% for rule in instance_group.auto_scaling_policy.rules %}
-                <member>
-                    {% if 'name' in rule %}
-                    <Name>{{rule['name']}}</Name>
-                    {% endif %}
-                    {% if 'description' in rule %}
-                    <Description>{{rule['description']}}</Description>
-                    {% endif %}
-                    {% if 'action' in rule %}
-                    <Action>
-                        {% if 'market' in rule['action'] %}
-                        <Market>{{rule['action']['market']}}</Market>
-                        {% endif %}
-                        {% if 'simple_scaling_policy_configuration' in rule['action'] %}
-                        <SimpleScalingPolicyConfiguration>
-                            {% if 'adjustment_type' in rule['action']['simple_scaling_policy_configuration'] %}
-                            <AdjustmentType>{{rule['action']['simple_scaling_policy_configuration']['adjustment_type']}}</AdjustmentType>
-                            {% endif %}
-                            {% if 'scaling_adjustment' in rule['action']['simple_scaling_policy_configuration'] %}
-                            <ScalingAdjustment>{{rule['action']['simple_scaling_policy_configuration']['scaling_adjustment']}}</ScalingAdjustment>
-                            {% endif %}
-                            {% if 'cool_down' in rule['action']['simple_scaling_policy_configuration'] %}
-                            <CoolDown>{{rule['action']['simple_scaling_policy_configuration']['cool_down']}}</CoolDown>
-                            {% endif %}
-                        </SimpleScalingPolicyConfiguration>
-                        {% endif %}
-                    </Action>
-                    {% endif %}
-                    {% if 'trigger' in rule %}
-                    <Trigger>
-                        {% if 'cloud_watch_alarm_definition' in rule['trigger'] %}
-                        <CloudWatchAlarmDefinition>
-                            {% if 'comparison_operator' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <ComparisonOperator>{{rule['trigger']['cloud_watch_alarm_definition']['comparison_operator']}}</ComparisonOperator>
-                            {% endif %}
-                            {% if 'evaluation_periods' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <EvaluationPeriods>{{rule['trigger']['cloud_watch_alarm_definition']['evaluation_periods']}}</EvaluationPeriods>
-                            {% endif %}
-                            {% if 'metric_name' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <MetricName>{{rule['trigger']['cloud_watch_alarm_definition']['metric_name']}}</MetricName>
-                            {% endif %}
-                            {% if 'namespace' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <Namespace>{{rule['trigger']['cloud_watch_alarm_definition']['namespace']}}</Namespace>
-                            {% endif %}
-                            {% if 'period' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <Period>{{rule['trigger']['cloud_watch_alarm_definition']['period']}}</Period>
-                            {% endif %}
-                            {% if 'statistic' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <Statistic>{{rule['trigger']['cloud_watch_alarm_definition']['statistic']}}</Statistic>
-                            {% endif %}
-                            {% if 'threshold' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <Threshold>{{rule['trigger']['cloud_watch_alarm_definition']['threshold']}}</Threshold>
-                            {% endif %}
-                            {% if 'unit' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <Unit>{{rule['trigger']['cloud_watch_alarm_definition']['unit']}}</Unit>
-                            {% endif %}
-                            {% if 'dimensions' in rule['trigger']['cloud_watch_alarm_definition'] %}
-                            <Dimensions>
-                                {% for dimension in rule['trigger']['cloud_watch_alarm_definition']['dimensions'] %}
-                                <member>
-                                    {% if 'key' in dimension %}
-                                    <Key>{{dimension['key']}}</Key>
-                                    {% endif %}
-                                    {% if 'value' in dimension %}
-                                    <Value>{{dimension['value']}}</Value>
-                                    {% endif %}
-                                </member>
-                                {% endfor %}
-                            </Dimensions>
-                            {% endif %}
-                        </CloudWatchAlarmDefinition>
-                        {% endif %}
-                    </Trigger>
-                    {% endif %}
-                </member>
-                {% endfor %}
-            </Rules>
-            {% endif %}
-            {% if instance_group.auto_scaling_policy.status is not none %}
-            <Status>
-                {% if 'state' in instance_group.auto_scaling_policy.status %}
-                <State>{{instance_group.auto_scaling_policy.status['state']}}</State>
-                {% endif %}
-            </Status>
-            {% endif %}
-        </AutoScalingPolicy>
-        {% endif %}
+        {% include 'AUTO_SCALING_POLICY_INCLUDE' %}
         {% if instance_group.ebs_optimized is not none %}
         <EbsOptimized>{{ instance_group.ebs_optimized }}</EbsOptimized>
         {% endif %}
@@ -1114,11 +946,7 @@ TERMINATE_JOB_FLOWS_TEMPLATE = """<TerminateJobFlowsResponse xmlns="http://elast
   </ResponseMetadata>
 </TerminateJobFlowsResponse>"""
 
-PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
-  <PutAutoScalingPolicyResult>
-    <ClusterId>{{cluster_id}}</ClusterId>
-    <InstanceGroupId>{{instance_group.id}}</InstanceGroupId>
-    {% if instance_group.auto_scaling_policy is not none %}
+AUTO_SCALING_POLICY_INCLUDE = """    {% if instance_group.auto_scaling_policy is not none %}
     <AutoScalingPolicy>
         {% if instance_group.auto_scaling_policy.constraints is not none %}
         <Constraints>
@@ -1219,6 +1047,13 @@ PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elastic
         {% endif %}
     </AutoScalingPolicy>
     {% endif %}
+"""
+
+PUT_AUTO_SCALING_POLICY = """<PutAutoScalingPolicyResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <PutAutoScalingPolicyResult>
+    <ClusterId>{{cluster_id}}</ClusterId>
+    <InstanceGroupId>{{instance_group.id}}</InstanceGroupId>
+    {% include 'AUTO_SCALING_POLICY_INCLUDE' %}
   </PutAutoScalingPolicyResult>
   <ResponseMetadata>
     <RequestId>d47379d9-b505-49af-9335-a68950d82535</RequestId>

@@ -99,19 +99,29 @@ class _TemplateEnvironmentMixin(object):
     def contains_template(self, template_id):
         return self.loader.contains(template_id)
 
-    def response_template(self, source):
+    def response_template(self, source, includes={}):
         template_id = id(source)
         if not self.contains_template(template_id):
             collapsed = re.sub(
                 self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
             )
             self.loader.update({template_id: collapsed})
-            self.environment = Environment(
-                loader=self.loader,
-                autoescape=self.should_autoescape,
-                trim_blocks=True,
-                lstrip_blocks=True,
-            )
+
+        for include_name in includes:
+            if not self.contains_template(include_name):
+                collapsed = re.sub(
+                    self.RIGHT_PATTERN,
+                    ">",
+                    re.sub(self.LEFT_PATTERN, "<", includes[include_name]),
+                )
+                self.loader.update({include_name: collapsed})
+
+        self.environment = Environment(
+            loader=self.loader,
+            autoescape=self.should_autoescape,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
         return self.environment.get_template(template_id)
 
 
