@@ -5,6 +5,7 @@ import boto3
 import sure  # noqa
 
 from moto import mock_sagemaker, mock_iam
+from nose.tools import assert_true
 
 @mock_sagemaker
 @mock_iam
@@ -24,4 +25,6 @@ def test_create_notebook_instance():
         "RoleArn": exec_role["Arn"]
     }
     resp = sagemaker.create_notebook_instance(**args)
+    assert_true(resp["NotebookInstanceArn"].startswith("arn:aws:sagemaker"))
+    assert_true(resp["NotebookInstanceArn"].endswith(args["NotebookInstanceName"]))
 
