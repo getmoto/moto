@@ -351,18 +351,21 @@ class CloudFormationResponse(BaseResponse):
         return template.render(exports=exports, next_token=next_token)
 
     def validate_template(self):
-        cfn_lint = self.cloudformation_backend.validate_template(
-            self._get_param("TemplateBody")
-        )
+        template_body = self._get_param("TemplateBody")
+        template_url = self._get_param("TemplateURL")
+        if template_url:
+            template_body = self._get_stack_from_s3_url(template_url)
+
+        cfn_lint = self.cloudformation_backend.validate_template(template_body)
         if cfn_lint:
             raise ValidationError(cfn_lint[0].message)
         description = ""
         try:
-            description = json.loads(self._get_param("TemplateBody"))["Description"]
+            description = json.loads(template_body)["Description"]
         except (ValueError, KeyError):
             pass
         try:
-            description = yaml.load(self._get_param("TemplateBody"))["Description"]
+            description = yaml.load(template_body)["Description"]
         except (yaml.ParserError, KeyError):
             pass
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)

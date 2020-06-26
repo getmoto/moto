@@ -97,6 +97,25 @@ def test_boto3_yaml_validate_successful():
 
 
 @mock_cloudformation
+@mock_s3
+def test_boto3_yaml_validate_template_url_successful():
+    s3 = boto3.client("s3")
+    s3_conn = boto3.resource("s3", region_name="us-east-1")
+    s3_conn.create_bucket(Bucket="foobar")
+
+    s3_conn.Object("foobar", "template-key").put(Body=yaml_template)
+    key_url = s3.generate_presigned_url(
+        ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
+    )
+
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    response = cf_conn.validate_template(TemplateURL=key_url)
+    assert response["Description"] == "Simple CloudFormation Test Template"
+    assert response["Parameters"] == []
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_cloudformation
 def test_boto3_yaml_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     try:
