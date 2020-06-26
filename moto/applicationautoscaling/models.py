@@ -32,16 +32,11 @@ class ApplicationAutoscalingBackend(BaseBackend):
         pass
 
     def describe_scalable_targets(
-        self,
-        service_namespace,
-        resource_ids=None,
-        scalable_dimension=None,
-        max_results=50,
+        self, service_namespace, resource_ids=None, scalable_dimension=None,
     ):
         """ Describe scalable targets. """
         if resource_ids is None:
             resource_ids = []
-        # TODO Only return max_results
         # TODO Validate that if scalable_dimension is supplied then resource_ids must not be empty
         targets = self._flatten_scalable_targets(service_namespace)
         if scalable_dimension is not None:

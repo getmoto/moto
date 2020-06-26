@@ -78,7 +78,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         max_results = self._get_int_param("MaxResults", 50)
         marker = self._get_param("NextToken")
         all_scalable_targets = self.applicationautoscaling_backend.describe_scalable_targets(
-            service_namespace, resource_ids, scalable_dimension, max_results
+            service_namespace, resource_ids, scalable_dimension
         )
         start = int(marker) + 1 if marker else 0
         next_token = None
@@ -155,14 +155,14 @@ class ApplicationAutoScalingResponse(BaseResponse):
         dimension = self._get_param("ScalableDimension")
         messages = []
         resp = None
-        dimensions = [dimension.value for dimension in ScalableDimensionValueSet]
+        dimensions = [d.value for d in ScalableDimensionValueSet]
         if dimension is not None and dimension not in dimensions:
             messages.append(
                 "Value '{}' at 'scalableDimension' "
                 "failed to satisfy constraint: Member must satisfy enum value set: "
                 "{}".format(dimension, dimensions)
             )
-        namespaces = [namespace.value for namespace in ServiceNamespaceValueSet]
+        namespaces = [n.value for n in ServiceNamespaceValueSet]
         if namespace is not None and namespace not in namespaces:
             messages.append(
                 "Value '{}' at 'serviceNamespace' "
@@ -176,7 +176,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         elif len(messages) > 1:
             resp = AWSValidationException(
                 "{} validation errors detected: {}".format(
-                    len(messages), " ;".join(messages)
+                    len(messages), "; ".join(messages)
                 )
             ).response()
         return resp
