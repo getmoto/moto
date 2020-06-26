@@ -87,8 +87,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             next_token = str(len(scalable_targets_resp) - 1)
         targets = [
             {
-                # TODO Implement CreationTime support
-                # "CreationTime": t.creation_time,
+                "CreationTime": t.creation_time,
                 "ServiceNamespace": t.service_namespace,
                 "ResourceId": t.resource_id,
                 "RoleARN": t.role_arn,

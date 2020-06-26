@@ -1,23 +1,27 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
+from moto.ecs import ecs_backends
 from boto3 import Session
 from collections import OrderedDict
+import time
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
-    def __init__(self, region):
+    def __init__(self, region, ecs):
         super(ApplicationAutoscalingBackend, self).__init__()
         self.region = region
-        self.scalable_targets = OrderedDict()
+        self.ecs_backend = ecs
+        self.targets = OrderedDict()
 
     def reset(self):
         region = self.region
+        ecs = self.ecs_backend
         self.__dict__ = {}
-        self.__init__(region)
+        self.__init__(region, ecs_backend)
 
     @property
     def applicationautoscaling_backend(self):
-        return applicationautoscaling_backends[self.region_name]
+        return applicationautoscaling_backends[self.region]
 
     def delete_scaling_policy(self):
         """ Not yet implemented. """
@@ -32,31 +36,25 @@ class ApplicationAutoscalingBackend(BaseBackend):
         pass
 
     def describe_scalable_targets(
-        self, service_namespace, resource_ids=None, scalable_dimension=None,
+        self, namespace, r_ids=None, dimension=None,
     ):
         """ Describe scalable targets. """
-        if resource_ids is None:
-            resource_ids = []
+        if r_ids is None:
+            r_ids = []
         # TODO Validate that if scalable_dimension is supplied then resource_ids must not be empty
-        targets = self._flatten_scalable_targets(service_namespace)
-        if scalable_dimension is not None:
-            targets = [t for t in targets if t.scalable_dimension == scalable_dimension]
-        if len(resource_ids) > 0:
-            targets = [t for t in targets if t.resource_id in resource_ids]
+        targets = self._flatten_scalable_targets(namespace)
+        if dimension is not None:
+            targets = [t for t in targets if t.scalable_dimension == dimension]
+        if len(r_ids) > 0:
+            targets = [t for t in targets if t.resource_id in r_ids]
         return targets
 
-    def _flatten_scalable_targets(self, service_namespace):
+    def _flatten_scalable_targets(self, namespace):
         """ Flatten scalable targets for a given service namespace down to a list. """
         targets = []
-        for resource_id in self.scalable_targets[service_namespace].keys():
-            for scalable_dimension in self.scalable_targets[service_namespace][
-                resource_id
-            ].keys():
-                targets.append(
-                    self.scalable_targets[service_namespace][resource_id][
-                        scalable_dimension
-                    ]
-                )
+        for resource_id in self.targets[namespace].keys():
+            for dimension in self.targets[namespace][resource_id].keys():
+                targets.append(self.targets[namespace][resource_id][dimension])
         return targets
 
     def describe_scaling_activities(self):
@@ -87,45 +85,31 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """ Not yet implemented. """
         pass
 
-    def register_scalable_target(
-        self, service_namespace, resource_id, scalable_dimension, **kwargs
-    ):
+    def register_scalable_target(self, namespace, r_id, dimension, **kwargs):
         """ Registers or updates a scalable target. """
-        if self._scalable_target_exists(
-            service_namespace, resource_id, scalable_dimension
-        ):
-            target = self.scalable_targets[service_namespace][resource_id][
-                scalable_dimension
-            ]
+        # describe_services
+        if self._scalable_target_exists(namespace, r_id, dimension):
+            target = self.targets[namespace][r_id][dimension]
             target.update(kwargs)
         else:
-            target = FakeScalableTarget(
-                self, service_namespace, resource_id, scalable_dimension, **kwargs
-            )
+            target = FakeScalableTarget(self, namespace, r_id, dimension, **kwargs)
             self._add_scalable_target(target)
         return target
 
-    def _scalable_target_exists(
-        self, service_namespace, resource_id, scalable_dimension
-    ):
+    def _scalable_target_exists(self, namespace, r_id, dimension):
         exists = False
-        if (
-            service_namespace in self.scalable_targets
-            and resource_id in self.scalable_targets[service_namespace]
-            and scalable_dimension
-            in self.scalable_targets[service_namespace][resource_id]
-        ):
+        if r_id in self.targets.get(namespace, []) and dimension in self.targets[
+            namespace
+        ].get(r_id, []):
             exists = True
         return exists
 
     def _add_scalable_target(self, target):
-        if target.service_namespace not in self.scalable_targets:
-            self.scalable_targets[target.service_namespace] = OrderedDict()
-        if target.resource_id not in self.scalable_targets:
-            self.scalable_targets[target.service_namespace][
-                target.resource_id
-            ] = OrderedDict()
-        self.scalable_targets[target.service_namespace][target.resource_id][
+        if target.service_namespace not in self.targets:
+            self.targets[target.service_namespace] = OrderedDict()
+        if target.resource_id not in self.targets:
+            self.targets[target.service_namespace][target.resource_id] = OrderedDict()
+        self.targets[target.service_namespace][target.resource_id][
             target.scalable_dimension
         ] = target
         return target
@@ -143,6 +127,7 @@ class FakeScalableTarget(BaseModel):
         self.max_capacity = kwargs["max_capacity"]
         self.role_arn = kwargs["role_arn"]
         self.suspended_state = kwargs["suspended_state"]
+        self.creation_time = time.time()
 
     def update(self, **kwargs):
         if kwargs["min_capacity"] is not None:
@@ -152,7 +137,7 @@ class FakeScalableTarget(BaseModel):
 
 
 applicationautoscaling_backends = {}
-for region_name in Session().get_available_regions("application-autoscaling"):
+for region_name, ecs_backend in ecs_backends.items():
     applicationautoscaling_backends[region_name] = ApplicationAutoscalingBackend(
-        region_name
+        region_name, ecs_backend
     )

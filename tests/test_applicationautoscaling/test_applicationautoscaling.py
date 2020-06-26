@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import boto3
-from moto import mock_applicationautoscaling
+from moto import mock_applicationautoscaling, mock_ecs
 from botocore.exceptions import ParamValidationError
 from boto.exception import JSONResponseError
 from nose.tools import assert_raises
@@ -18,7 +18,29 @@ DEFAULT_ROLE_ARN = "test:arn"
 
 
 @mock_applicationautoscaling
-def test_describe_scalable_targets_one_ecs_success():
+def test_describe_scalable_targets_one_basic_ecs_success():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    client.register_scalable_target(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
+        ResourceId=DEFAULT_RESOURCE_ID,
+        ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
+    )
+    response = client.describe_scalable_targets(
+        ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(response["ScalableTargets"]).should.equal(1)
+    t = response["ScalableTargets"][0]
+    t.should.have.key("ServiceNamespace").which.should.equal(DEFAULT_SERVICE_NAMESPACE)
+    t.should.have.key("ResourceId").which.should.equal(DEFAULT_RESOURCE_ID)
+    t.should.have.key("ScalableDimension").which.should.equal(
+        DEFAULT_SCALABLE_DIMENSION
+    )
+    t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
+
+
+@mock_applicationautoscaling
+def test_describe_scalable_targets_one_full_ecs_success():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     __register_scalable_target(client)
     response = client.describe_scalable_targets(
@@ -35,9 +57,7 @@ def test_describe_scalable_targets_one_ecs_success():
     t.should.have.key("MinCapacity").which.should.equal(DEFAULT_MIN_CAPACITY)
     t.should.have.key("MaxCapacity").which.should.equal(DEFAULT_MAX_CAPACITY)
     t.should.have.key("RoleARN").which.should.equal(DEFAULT_ROLE_ARN)
-
-
-# TODO Add a test for NextToken
+    t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
 
 
 @mock_applicationautoscaling
@@ -61,9 +81,9 @@ def __register_scalable_target(client, **kwargs):
         ServiceNamespace=kwargs.get("ServiceNamespace", DEFAULT_SERVICE_NAMESPACE),
         ResourceId=kwargs.get("ResourceId", DEFAULT_RESOURCE_ID),
         ScalableDimension=kwargs.get("ScalableDimension", DEFAULT_SCALABLE_DIMENSION),
-        MinCapacity=1,
-        MaxCapacity=1,
-        RoleARN="test:arn",
+        MinCapacity=kwargs.get("MinCapacity", DEFAULT_MIN_CAPACITY),
+        MaxCapacity=kwargs.get("MaxCapacity", DEFAULT_MAX_CAPACITY),
+        RoleARN=kwargs.get("RoleARN", DEFAULT_ROLE_ARN),
         # TODO Implement SuspendedState
         # SuspendedState={
         #     "DynamicScalingInSuspended": True,
@@ -170,3 +190,44 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     else:
         raise RuntimeError("Should have raised ValidationException")
+
+
+@mock_applicationautoscaling
+@mock_ecs
+def test_register_scalable_target_ecs_with_non_existent_service_should_return_validation_exception():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+
+    try:
+        __register_scalable_target(client, ServiceNamespace="ecs", ResourceId="foo")
+    except ClientError as err:
+        err.response["Error"]["Code"].should.equal("ValidationException")
+        err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    else:
+        raise RuntimeError("Should have raised ValidationException")
+
+
+# TODO add a test for unsupported resource type (ResourceID) = "foo"
+# TODO add a test for not-supplied MinCapacity or MaxCapacity (ValidationException)
+# TODO test that ECS service actually exists
+
+"""
+{
+  "Error": {
+    "Message": "ECS service doesn't exist: service/default/test-svc",
+    "Code": "ValidationException"
+  },
+  "ResponseMetadata": {
+    "RequestId": "13e2f324-1569-4f1f-a20a-8db48f4b4495",
+    "HTTPStatusCode": 400,
+    "HTTPHeaders": {
+      "x-amzn-requestid": "13e2f324-1569-4f1f-a20a-8db48f4b4495",
+      "content-type": "application/x-amz-json-1.1",
+      "content-length": "96",
+      "date": "Fri, 26 Jun 2020 07:31:36 GMT",
+      "connection": "close"
+    },
+    "RetryAttempts": 0
+  },
+  "Message": "ECS service doesn't exist: service/default/test-svc"
+}
+"""
