@@ -530,7 +530,7 @@ class ELBv2Backend(BaseBackend):
             if field not in ["path-pattern", "host-header"]:
                 raise InvalidConditionFieldError(field)
 
-            values = condition["values"]
+            values = condition["Values"]
             if len(values) == 0:
                 raise InvalidConditionValueError("A condition value must be specified")
             if len(values) > 1:
