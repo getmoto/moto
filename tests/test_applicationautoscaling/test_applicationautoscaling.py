@@ -1,11 +1,14 @@
 from __future__ import unicode_literals
 import boto3
 from moto import mock_applicationautoscaling, mock_ecs
+from moto.applicationautoscaling import models
+from moto.applicationautoscaling.exceptions import AWSValidationException
 from botocore.exceptions import ParamValidationError
 from boto.exception import JSONResponseError
 from nose.tools import assert_raises
 import sure  # noqa
 from botocore.exceptions import ClientError
+from parameterized import parameterized
 
 
 DEFAULT_REGION = "us-east-1"
@@ -63,10 +66,17 @@ def test_describe_scalable_targets_one_full_ecs_success():
 @mock_applicationautoscaling
 def test_describe_scalable_targets_only_return_ecs_targets():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    __register_scalable_target(client, ServiceNamespace="ecs", ResourceId="test1")
-    __register_scalable_target(client, ServiceNamespace="ecs", ResourceId="test2")
     __register_scalable_target(
-        client, ServiceNamespace="elasticmapreduce", ResourceId="test3"
+        client, ServiceNamespace="ecs", ResourceId="service/default/test1"
+    )
+    __register_scalable_target(
+        client, ServiceNamespace="ecs", ResourceId="service/default/test2"
+    )
+    __register_scalable_target(
+        client,
+        ServiceNamespace="elasticmapreduce",
+        ResourceId="instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0",
+        ScalableDimension="elasticmapreduce:instancegroup:InstanceCount",
     )
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
@@ -97,20 +107,22 @@ def __register_scalable_target(client, **kwargs):
 def test_describe_scalable_targets_next_token_success():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     for i in range(0, 100):
-        __register_scalable_target(client, ServiceNamespace="ecs", ResourceId=str(i))
+        __register_scalable_target(
+            client, ServiceNamespace="ecs", ResourceId="service/default/{}".format(i)
+        )
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     len(response["ScalableTargets"]).should.equal(50)
-    response["ScalableTargets"][0]["ResourceId"].should.equal("0")
+    response["ScalableTargets"][0]["ResourceId"].should.equal("service/default/0")
     response.should.have.key("NextToken").which.should.equal("49")
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, NextToken=str(response["NextToken"])
     )
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
     len(response["ScalableTargets"]).should.equal(50)
-    response["ScalableTargets"][0]["ResourceId"].should.equal("50")
+    response["ScalableTargets"][0]["ResourceId"].should.equal("service/default/50")
     response.should_not.have.key("NextToken")
 
 
@@ -204,6 +216,23 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_va
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     else:
         raise RuntimeError("Should have raised ValidationException")
+
+
+@parameterized(
+    [
+        ("ecs", "service/default/test-svc", "ecs:service:DesiredCount", True),
+        ("ecs", "banana/default/test-svc", "ecs:service:DesiredCount", False),
+        ("rds", "service/default/test-svc", "ecs:service:DesiredCount", False),
+    ]
+)
+def test_target_params_are_valid_success(namespace, r_id, dimension, expected):
+    if expected is True:
+        models._target_params_are_valid(namespace, r_id, dimension).should.equal(
+            expected
+        )
+    else:
+        with assert_raises(AWSValidationException):
+            models._target_params_are_valid(namespace, r_id, dimension)
 
 
 # TODO add a test for unsupported resource type (ResourceID) = "foo"

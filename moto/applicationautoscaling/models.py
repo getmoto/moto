@@ -1,9 +1,55 @@
 from __future__ import unicode_literals
 from moto.core import BaseBackend, BaseModel
 from moto.ecs import ecs_backends
-from boto3 import Session
+from .exceptions import AWSValidationException
 from collections import OrderedDict
+from enum import Enum, unique
 import time
+
+
+@unique
+class ServiceNamespaceValueSet(Enum):
+    APPSTREAM = "appstream"
+    RDS = "rds"
+    LAMBDA = "lambda"
+    CASSANDRA = "cassandra"
+    DYNAMODB = "dynamodb"
+    CUSTOM_RESOURCE = "custom-resource"
+    ELASTICMAPREDUCE = "elasticmapreduce"
+    EC2 = "ec2"
+    COMPREHEND = "comprehend"
+    ECS = "ecs"
+    SAGEMAKER = "sagemaker"
+
+
+@unique
+class ScalableDimensionValueSet(Enum):
+    CASSANDRA_TABLE_READ_CAPACITY_UNITS = "cassandra:table:ReadCapacityUnits"
+    CASSANDRA_TABLE_WRITE_CAPACITY_UNITS = "cassandra:table:WriteCapacityUnits"
+    DYNAMODB_INDEX_READ_CAPACITY_UNITS = "dynamodb:index:ReadCapacityUnits"
+    DYNAMODB_INDEX_WRITE_CAPACITY_UNITS = "dynamodb:index:WriteCapacityUnits"
+    DYNAMODB_TABLE_READ_CAPACITY_UNITS = "dynamodb:table:ReadCapacityUnits"
+    DYNAMODB_TABLE_WRITE_CAPACITY_UNITS = "dynamodb:table:WriteCapacityUnits"
+    RDS_CLUSTER_READ_REPLICA_COUNT = "rds:cluster:ReadReplicaCount"
+    RDS_CLUSTER_CAPACITY = "rds:cluster:Capacity"
+    COMPREHEND_DOCUMENT_CLASSIFIER_ENDPOINT_DESIRED_INFERENCE_UNITS = (
+        "comprehend:document-classifier-endpoint:DesiredInferenceUnits"
+    )
+    ELASTICMAPREDUCE_INSTANCE_FLEET_ON_DEMAND_CAPACITY = (
+        "elasticmapreduce:instancefleet:OnDemandCapacity"
+    )
+    ELASTICMAPREDUCE_INSTANCE_FLEET_SPOT_CAPACITY = (
+        "elasticmapreduce:instancefleet:SpotCapacity"
+    )
+    ELASTICMAPREDUCE_INSTANCE_GROUP_INSTANCE_COUNT = (
+        "elasticmapreduce:instancegroup:InstanceCount"
+    )
+    LAMBDA_FUNCTION_PROVISIONED_CONCURRENCY = "lambda:function:ProvisionedConcurrency"
+    APPSTREAM_FLEET_DESIRED_CAPACITY = "appstream:fleet:DesiredCapacity"
+    CUSTOM_RESOURCE_RESOURCE_TYPE_PROPERTY = "custom-resource:ResourceType:Property"
+    SAGEMAKER_VARIANT_DESIRED_INSTANCE_COUNT = "sagemaker:variant:DesiredInstanceCount"
+    EC2_SPOT_FLEET_REQUEST_TARGET_CAPACITY = "ec2:spot-fleet-request:TargetCapacity"
+    ECS_SERVICE_DESIRED_COUNT = "ecs:service:DesiredCount"
 
 
 class ApplicationAutoscalingBackend(BaseBackend):
@@ -87,7 +133,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
 
     def register_scalable_target(self, namespace, r_id, dimension, **kwargs):
         """ Registers or updates a scalable target. """
-        # describe_services
+        _ = _target_params_are_valid(namespace, r_id, dimension)
         if self._scalable_target_exists(namespace, r_id, dimension):
             target = self.targets[namespace][r_id][dimension]
             target.update(kwargs)
@@ -113,6 +159,32 @@ class ApplicationAutoscalingBackend(BaseBackend):
             target.scalable_dimension
         ] = target
         return target
+
+
+def _target_params_are_valid(namespace, r_id, dimension):
+    """ Check whether namespace, resource_id and dimension are valid and consistent with each other. """
+    is_valid = True
+    valid_namespaces = [n.value for n in ServiceNamespaceValueSet]
+    if namespace not in valid_namespaces:
+        is_valid = False
+    valid_dimensions = [d.value for d in ScalableDimensionValueSet]
+    if dimension is not None:
+        if dimension not in valid_dimensions:
+            is_valid = False
+        d_namespace, d_resource_type, scaling_property = dimension.split(":")
+        if d_namespace != namespace:
+            is_valid = False
+        try:
+            resource_type, cluster, service = r_id.split("/")
+            if resource_type != d_resource_type:
+                is_valid = False
+        except ValueError:
+            is_valid = False
+    if is_valid is False:
+        raise AWSValidationException(
+            "Unsupported service namespace, resource type or scalable dimension"
+        )
+    return is_valid
 
 
 class FakeScalableTarget(BaseModel):

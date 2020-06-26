@@ -1,54 +1,12 @@
 from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 import json
-from .models import applicationautoscaling_backends
+from .models import (
+    applicationautoscaling_backends,
+    ScalableDimensionValueSet,
+    ServiceNamespaceValueSet,
+)
 from .exceptions import AWSValidationException
-from enum import Enum, unique
-
-
-@unique
-class ServiceNamespaceValueSet(Enum):
-    APPSTREAM = "appstream"
-    RDS = "rds"
-    LAMBDA = "lambda"
-    CASSANDRA = "cassandra"
-    DYNAMODB = "dynamodb"
-    CUSTOM_RESOURCE = "custom-resource"
-    ELASTICMAPREDUCE = "elasticmapreduce"
-    EC2 = "ec2"
-    COMPREHEND = "comprehend"
-    ECS = "ecs"
-    SAGEMAKER = "sagemaker"
-
-
-@unique
-class ScalableDimensionValueSet(Enum):
-    CASSANDRA_TABLE_READ_CAPACITY_UNITS = "cassandra:table:ReadCapacityUnits"
-    CASSANDRA_TABLE_WRITE_CAPACITY_UNITS = "cassandra:table:WriteCapacityUnits"
-    DYNAMODB_INDEX_READ_CAPACITY_UNITS = "dynamodb:index:ReadCapacityUnits"
-    DYNAMODB_INDEX_WRITE_CAPACITY_UNITS = "dynamodb:index:WriteCapacityUnits"
-    DYNAMODB_TABLE_READ_CAPACITY_UNITS = "dynamodb:table:ReadCapacityUnits"
-    DYNAMODB_TABLE_WRITE_CAPACITY_UNITS = "dynamodb:table:WriteCapacityUnits"
-    RDS_CLUSTER_READ_REPLICA_COUNT = "rds:cluster:ReadReplicaCount"
-    RDS_CLUSTER_CAPACITY = "rds:cluster:Capacity"
-    COMPREHEND_DOCUMENT_CLASSIFIER_ENDPOINT_DESIRED_INFERENCE_UNITS = (
-        "comprehend:document-classifier-endpoint:DesiredInferenceUnits"
-    )
-    ELASTICMAPREDUCE_INSTANCE_FLEET_ON_DEMAND_CAPACITY = (
-        "elasticmapreduce:instancefleet:OnDemandCapacity"
-    )
-    ELASTICMAPREDUCE_INSTANCE_FLEET_SPOT_CAPACITY = (
-        "elasticmapreduce:instancefleet:SpotCapacity"
-    )
-    ELASTICMAPREDUCE_INSTANCE_GROUP_INSTANCE_COUNT = (
-        "elasticmapreduce:instancegroup:InstanceCount"
-    )
-    LAMBDA_FUNCTION_PROVISIONED_CONCURRENCY = "lambda:function:ProvisionedConcurrency"
-    APPSTREAM_FLEET_DESIRED_CAPACITY = "appstream:fleet:DesiredCapacity"
-    CUSTOM_RESOURCE_RESOURCE_TYPE_PROPERTY = "custom-resource:ResourceType:Property"
-    SAGEMAKER_VARIANT_DESIRED_INSTANCE_COUNT = "sagemaker:variant:DesiredInstanceCount"
-    EC2_SPOT_FLEET_REQUEST_TARGET_CAPACITY = "ec2:spot-fleet-request:TargetCapacity"
-    ECS_SERVICE_DESIRED_COUNT = "ecs:service:DesiredCount"
 
 
 class ApplicationAutoScalingResponse(BaseResponse):
@@ -138,15 +96,18 @@ class ApplicationAutoScalingResponse(BaseResponse):
         validation = self._validate_params()
         if validation is not None:
             return validation
-        self.applicationautoscaling_backend.register_scalable_target(
-            self._get_param("ServiceNamespace"),
-            self._get_param("ResourceId"),
-            self._get_param("ScalableDimension"),
-            min_capacity=self._get_int_param("MinCapacity"),
-            max_capacity=self._get_int_param("MaxCapacity"),
-            role_arn=self._get_param("RoleARN"),
-            suspended_state=self._get_param("SuspendedState"),
-        )
+        try:
+            self.applicationautoscaling_backend.register_scalable_target(
+                self._get_param("ServiceNamespace"),
+                self._get_param("ResourceId"),
+                self._get_param("ScalableDimension"),
+                min_capacity=self._get_int_param("MinCapacity"),
+                max_capacity=self._get_int_param("MaxCapacity"),
+                role_arn=self._get_param("RoleARN"),
+                suspended_state=self._get_param("SuspendedState"),
+            )
+        except AWSValidationException as e:
+            return e.response()
         return json.dumps({})
 
     def _validate_params(self):
