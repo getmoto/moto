@@ -554,6 +554,7 @@ def test_put_remove_auto_scaling_policy():
     auto_scaling_policy_with_cluster_id = _patch_cluster_id_placeholder_in_autoscaling_policy(
         auto_scaling_policy, cluster_id
     )
+    resp["AutoScalingPolicy"]["Status"]["State"].should.equal("ATTACHED")
     del resp["AutoScalingPolicy"]["Status"]
     resp["AutoScalingPolicy"].should.equal(auto_scaling_policy_with_cluster_id)
 
