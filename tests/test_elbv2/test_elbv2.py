@@ -994,12 +994,17 @@ def test_handle_listener_rules():
     priority = 100
     host = "xxx.example.com"
     path_pattern = "foobar"
+    pathpatternconfig_pattern = "foobar2"
     created_rule = conn.create_rule(
         ListenerArn=http_listener_arn,
         Priority=priority,
         Conditions=[
             {"Field": "host-header", "Values": [host]},
             {"Field": "path-pattern", "Values": [path_pattern]},
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
+            },
         ],
         Actions=[
             {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}
@@ -1017,6 +1022,10 @@ def test_handle_listener_rules():
         Conditions=[
             {"Field": "host-header", "Values": [host]},
             {"Field": "path-pattern", "Values": [path_pattern]},
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
+            },
         ],
         Actions=[
             {"TargetGroupArn": target_group.get("TargetGroupArn"), "Type": "forward"}
@@ -1031,6 +1040,10 @@ def test_handle_listener_rules():
             Conditions=[
                 {"Field": "host-header", "Values": [host]},
                 {"Field": "path-pattern", "Values": [path_pattern]},
+                {
+                    "Field": "path-pattern",
+                    "PathPatternConfig": {"Values": [pathpatternconfig_pattern]},
+                },
             ],
             Actions=[
                 {
@@ -1079,11 +1092,16 @@ def test_handle_listener_rules():
     # modify rule partially
     new_host = "new.example.com"
     new_path_pattern = "new_path"
+    new_pathpatternconfig_pattern = "new_path2"
     modified_rule = conn.modify_rule(
         RuleArn=first_rule["RuleArn"],
         Conditions=[
             {"Field": "host-header", "Values": [new_host]},
             {"Field": "path-pattern", "Values": [new_path_pattern]},
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": [new_pathpatternconfig_pattern]},
+            },
         ],
     )["Rules"][0]
 
@@ -1092,6 +1110,9 @@ def test_handle_listener_rules():
     modified_rule.should.equal(obtained_rule)
     obtained_rule["Conditions"][0]["Values"][0].should.equal(new_host)
     obtained_rule["Conditions"][1]["Values"][0].should.equal(new_path_pattern)
+    obtained_rule["Conditions"][2]["Values"][0].should.equal(
+        new_pathpatternconfig_pattern
+    )
     obtained_rule["Actions"][0]["TargetGroupArn"].should.equal(
         target_group.get("TargetGroupArn")
     )
