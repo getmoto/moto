@@ -10,6 +10,7 @@ import six
 import types
 from io import BytesIO
 from collections import defaultdict
+from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 from six.moves.urllib.parse import urlparse
@@ -416,6 +417,8 @@ class ServerModeMockAWS(BaseMockAWS):
         import mock
 
         def fake_boto3_client(*args, **kwargs):
+            service, region = args
+            kwargs["config"] = Config(user_agent_extra="region/"+region)
             if "endpoint_url" not in kwargs:
                 kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_client(*args, **kwargs)
