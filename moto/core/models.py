@@ -470,7 +470,7 @@ class ServerModeMockAWS(BaseMockAWS):
     def _get_region(self, *args, **kwargs):
         if "region_name" in kwargs:
             return kwargs["region_name"]
-        if type(args) == tuple:
+        if type(args) == tuple and len(args) == 2:
             service, region = args
             return region
         return None
