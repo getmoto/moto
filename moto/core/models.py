@@ -417,8 +417,9 @@ class ServerModeMockAWS(BaseMockAWS):
         import mock
 
         def fake_boto3_client(*args, **kwargs):
-            service, region = args
-            kwargs["config"] = Config(user_agent_extra="region/" + region)
+            region = self._get_region(*args, **kwargs)
+            if region:
+                kwargs["config"] = Config(user_agent_extra="region/" + region)
             if "endpoint_url" not in kwargs:
                 kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_client(*args, **kwargs)
@@ -465,6 +466,14 @@ class ServerModeMockAWS(BaseMockAWS):
         self._resource_patcher.start()
         if six.PY2:
             self._httplib_patcher.start()
+
+    def _get_region(self, *args, **kwargs):
+        if "region_name" in kwargs:
+            return kwargs["region_name"]
+        if type(args) == tuple:
+            service, region = args
+            return region
+        return None
 
     def disable_patching(self):
         if self._client_patcher:
