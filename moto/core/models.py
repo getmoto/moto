@@ -418,7 +418,7 @@ class ServerModeMockAWS(BaseMockAWS):
 
         def fake_boto3_client(*args, **kwargs):
             service, region = args
-            kwargs["config"] = Config(user_agent_extra="region/"+region)
+            kwargs["config"] = Config(user_agent_extra="region/" + region)
             if "endpoint_url" not in kwargs:
                 kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_client(*args, **kwargs)
