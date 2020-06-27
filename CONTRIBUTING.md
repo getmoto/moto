@@ -28,7 +28,18 @@ How to teach Moto to support a new AWS endpoint:
 * If one doesn't already exist, create a new issue describing what's missing. This is where we'll all talk about the new addition and help you get it done.
 * Create a [pull request](https://help.github.com/articles/using-pull-requests/) and mention the issue # in the PR description.
 * Try to add a failing test case. For example, if you're trying to implement `boto3.client('acm').import_certificate()` you'll want to add a new method called `def test_import_certificate` to `tests/test_acm/test_acm.py`.
+* Implementing the feature itself can be done by creating a method called `import_certificate` in `moto/acm/responses.py`. It's considered good practice to deal with input/output formatting and validation in `responses.py`, and create a method `import_certificate` in `moto/acm/models.py` that handles the actual import logic.
 * If you can also implement the code that gets that test passing that's great. If not, just ask the community for a hand and somebody will assist you.
+
+## Missing services
+
+Implementing a new service from scratch is more work, but still quite straightforward. All the code that intercepts network requests to `*.amazonaws.com` is already handled for you in `moto/core` - all that's necessary for new services to be recognized is to create a new decorator and determine which URLs should be intercepted.
+
+See this PR for an example of what's involved in creating a new service: https://github.com/spulec/moto/pull/2409/files
+
+Note the `urls.py` that redirects all incoming URL requests to a generic `dispatch` method, which in turn will call the appropriate method in `responses.py`. 
+
+If you want more control over incoming requests or their bodies, it is possible to redirect specific requests to a custom method. See this PR for an example: https://github.com/spulec/moto/pull/2957/files
 
 ## Maintainers
 
