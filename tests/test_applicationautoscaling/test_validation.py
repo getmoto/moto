@@ -110,7 +110,9 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_va
         register_scalable_target(client, ServiceNamespace="ecs", ResourceId=resource_id)
     except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
-        err.response["Error"]["Message"].should.equal("ECS service doesn't exist: {}".format(resource_id))
+        err.response["Error"]["Message"].should.equal(
+            "ECS service doesn't exist: {}".format(resource_id)
+        )
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     else:
         raise RuntimeError("Should have raised ValidationException")

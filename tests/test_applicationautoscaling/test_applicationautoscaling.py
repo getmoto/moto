@@ -111,10 +111,14 @@ def test_describe_scalable_targets_only_return_ecs_targets():
     )
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     register_scalable_target(
-        client, ServiceNamespace="ecs", ResourceId="service/{}/test1".format(DEFAULT_ECS_CLUSTER)
+        client,
+        ServiceNamespace="ecs",
+        ResourceId="service/{}/test1".format(DEFAULT_ECS_CLUSTER),
     )
     register_scalable_target(
-        client, ServiceNamespace="ecs", ResourceId="service/{}/test2".format(DEFAULT_ECS_CLUSTER)
+        client,
+        ServiceNamespace="ecs",
+        ResourceId="service/{}/test2".format(DEFAULT_ECS_CLUSTER),
     )
     register_scalable_target(
         client,
@@ -143,7 +147,9 @@ def test_describe_scalable_targets_next_token_success():
             desiredCount=2,
         )
         register_scalable_target(
-            client, ServiceNamespace="ecs", ResourceId="service/{}/{}".format(DEFAULT_ECS_CLUSTER, i)
+            client,
+            ServiceNamespace="ecs",
+            ResourceId="service/{}/{}".format(DEFAULT_ECS_CLUSTER, i),
         )
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
