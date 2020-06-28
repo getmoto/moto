@@ -459,7 +459,7 @@
 
 ## application-autoscaling
 <details>
-<summary>0% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] delete_scaling_policy
 - [ ] delete_scheduled_action
