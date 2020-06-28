@@ -464,13 +464,13 @@
 - [ ] delete_scaling_policy
 - [ ] delete_scheduled_action
 - [ ] deregister_scalable_target
-- [ ] describe_scalable_targets
+- [x] describe_scalable_targets
 - [ ] describe_scaling_activities
 - [ ] describe_scaling_policies
 - [ ] describe_scheduled_actions
 - [ ] put_scaling_policy
 - [ ] put_scheduled_action
-- [ ] register_scalable_target
+- [x] register_scalable_target - includes enhanced validation support for ECS targets
 </details>
 
 ## application-insights

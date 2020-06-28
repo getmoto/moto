@@ -87,7 +87,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """ Describe scalable targets. """
         if r_ids is None:
             r_ids = []
-        # TODO Validate that if scalable_dimension is supplied then resource_ids must not be empty
         targets = self._flatten_scalable_targets(namespace)
         if dimension is not None:
             targets = [t for t in targets if t.scalable_dimension == dimension]

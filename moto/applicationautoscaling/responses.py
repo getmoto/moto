@@ -43,10 +43,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         scalable_targets_resp = all_scalable_targets[start : start + max_results]
         if len(all_scalable_targets) > start + max_results:
             next_token = str(len(scalable_targets_resp) - 1)
-        targets = [
-            _build_target(t)
-            for t in scalable_targets_resp
-        ]
+        targets = [_build_target(t) for t in scalable_targets_resp]
         return json.dumps({"ScalableTargets": targets, "NextToken": next_token})
 
     def describe_scaling_activities(self):
@@ -129,7 +126,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
 
 
 def _build_target(t):
-    return {
+    resp = {
         "CreationTime": t.creation_time,
         "ServiceNamespace": t.service_namespace,
         "ResourceId": t.resource_id,
@@ -137,10 +134,6 @@ def _build_target(t):
         "ScalableDimension": t.scalable_dimension,
         "MaxCapacity": t.max_capacity,
         "MinCapacity": t.min_capacity,
-        # TODO Implement SuspendedState support
-        # "SuspendedState": {
-        #     "DynamicScalingInSuspended": t.suspended_state["dynamic_scaling_in_suspended"],
-        #     "DynamicScalingOutSuspended": t.suspended_state["dynamic_scaling_out_suspended"],
-        #     "ScheduledScalingSuspended": t.suspended_state["scheduled_scaling_suspended"],
-        # }
+        "SuspendedState": t.suspended_state,
     }
+    return resp
