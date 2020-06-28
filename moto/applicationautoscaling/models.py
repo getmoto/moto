@@ -63,7 +63,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         region = self.region
         ecs = self.ecs_backend
         self.__dict__ = {}
-        self.__init__(region, ecs_backend)
+        self.__init__(region, ecs)
 
     @property
     def applicationautoscaling_backend(self):
@@ -98,9 +98,10 @@ class ApplicationAutoscalingBackend(BaseBackend):
     def _flatten_scalable_targets(self, namespace):
         """ Flatten scalable targets for a given service namespace down to a list. """
         targets = []
-        for resource_id in self.targets[namespace].keys():
-            for dimension in self.targets[namespace][resource_id].keys():
-                targets.append(self.targets[namespace][resource_id][dimension])
+        for dimension in self.targets.keys():
+            for resource_id in self.targets[dimension].keys():
+                targets.append(self.targets[dimension][resource_id])
+        targets = [t for t in targets if t.service_namespace == namespace]
         return targets
 
     def describe_scaling_activities(self):
@@ -134,30 +135,38 @@ class ApplicationAutoscalingBackend(BaseBackend):
     def register_scalable_target(self, namespace, r_id, dimension, **kwargs):
         """ Registers or updates a scalable target. """
         _ = _target_params_are_valid(namespace, r_id, dimension)
-        if self._scalable_target_exists(namespace, r_id, dimension):
-            target = self.targets[namespace][r_id][dimension]
+        if namespace == ServiceNamespaceValueSet.ECS.value:
+            _ = self._ecs_service_exists_for_target(r_id)
+        if self._scalable_target_exists(r_id, dimension):
+            target = self.targets[dimension][r_id]
             target.update(kwargs)
         else:
             target = FakeScalableTarget(self, namespace, r_id, dimension, **kwargs)
             self._add_scalable_target(target)
         return target
 
-    def _scalable_target_exists(self, namespace, r_id, dimension):
+    def _scalable_target_exists(self, r_id, dimension):
         exists = False
-        if r_id in self.targets.get(namespace, []) and dimension in self.targets[
-            namespace
-        ].get(r_id, []):
+        if r_id in self.targets.get(dimension, []):
             exists = True
         return exists
 
+    def _ecs_service_exists_for_target(self, r_id):
+        """ Raises a ValidationException if an ECS service does not exist
+            for the specified resource ID.
+        """
+        resource_type, cluster, service = r_id.split("/")
+        result = self.ecs_backend.describe_services(cluster, [service])
+        if len(result) >= 1:
+            return True
+        else:
+            raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
+
     def _add_scalable_target(self, target):
-        if target.service_namespace not in self.targets:
-            self.targets[target.service_namespace] = OrderedDict()
-        if target.resource_id not in self.targets:
-            self.targets[target.service_namespace][target.resource_id] = OrderedDict()
-        self.targets[target.service_namespace][target.resource_id][
-            target.scalable_dimension
-        ] = target
+        if target.scalable_dimension not in self.targets:
+            self.targets[target.scalable_dimension] = OrderedDict()
+        if target.resource_id not in self.targets[target.scalable_dimension]:
+            self.targets[target.scalable_dimension][target.resource_id] = target
         return target
 
 

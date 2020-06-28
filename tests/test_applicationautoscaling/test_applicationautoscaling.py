@@ -1,27 +1,53 @@
 from __future__ import unicode_literals
 import boto3
 from moto import mock_applicationautoscaling, mock_ecs
-from moto.applicationautoscaling import models
-from moto.applicationautoscaling.exceptions import AWSValidationException
-from botocore.exceptions import ParamValidationError
-from boto.exception import JSONResponseError
-from nose.tools import assert_raises
 import sure  # noqa
-from botocore.exceptions import ClientError
-from parameterized import parameterized
-
+from nose.tools import with_setup
 
 DEFAULT_REGION = "us-east-1"
+DEFAULT_ECS_CLUSTER = "default"
+DEFAULT_ECS_TASK = "test_ecs_task"
+DEFAULT_ECS_SERVICE = "sample-webapp"
 DEFAULT_SERVICE_NAMESPACE = "ecs"
-DEFAULT_RESOURCE_ID = "service/default/sample-webapp"
+DEFAULT_RESOURCE_ID = "service/{}/{}".format(DEFAULT_ECS_CLUSTER, DEFAULT_ECS_SERVICE)
 DEFAULT_SCALABLE_DIMENSION = "ecs:service:DesiredCount"
 DEFAULT_MIN_CAPACITY = 1
 DEFAULT_MAX_CAPACITY = 1
 DEFAULT_ROLE_ARN = "test:arn"
 
 
+def _create_ecs_defaults(ecs, create_service=True):
+    _ = ecs.create_cluster(clusterName=DEFAULT_ECS_CLUSTER)
+    _ = ecs.register_task_definition(
+        family=DEFAULT_ECS_TASK,
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    if create_service:
+        _ = ecs.create_service(
+            cluster=DEFAULT_ECS_CLUSTER,
+            serviceName=DEFAULT_ECS_SERVICE,
+            taskDefinition=DEFAULT_ECS_TASK,
+            desiredCount=2,
+        )
+
+
+@mock_ecs
 @mock_applicationautoscaling
 def test_describe_scalable_targets_one_basic_ecs_success():
+    ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
+    _create_ecs_defaults(ecs)
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     client.register_scalable_target(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
@@ -42,10 +68,13 @@ def test_describe_scalable_targets_one_basic_ecs_success():
     t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
 
 
+@mock_ecs
 @mock_applicationautoscaling
 def test_describe_scalable_targets_one_full_ecs_success():
+    ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
+    _create_ecs_defaults(ecs)
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    __register_scalable_target(client)
+    register_scalable_target(client)
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
     )
@@ -63,16 +92,31 @@ def test_describe_scalable_targets_one_full_ecs_success():
     t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
 
 
+@mock_ecs
 @mock_applicationautoscaling
 def test_describe_scalable_targets_only_return_ecs_targets():
+    ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
+    _create_ecs_defaults(ecs, create_service=False)
+    _ = ecs.create_service(
+        cluster=DEFAULT_ECS_CLUSTER,
+        serviceName="test1",
+        taskDefinition=DEFAULT_ECS_TASK,
+        desiredCount=2,
+    )
+    _ = ecs.create_service(
+        cluster=DEFAULT_ECS_CLUSTER,
+        serviceName="test2",
+        taskDefinition=DEFAULT_ECS_TASK,
+        desiredCount=2,
+    )
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    __register_scalable_target(
-        client, ServiceNamespace="ecs", ResourceId="service/default/test1"
+    register_scalable_target(
+        client, ServiceNamespace="ecs", ResourceId="service/{}/test1".format(DEFAULT_ECS_CLUSTER)
     )
-    __register_scalable_target(
-        client, ServiceNamespace="ecs", ResourceId="service/default/test2"
+    register_scalable_target(
+        client, ServiceNamespace="ecs", ResourceId="service/{}/test2".format(DEFAULT_ECS_CLUSTER)
     )
-    __register_scalable_target(
+    register_scalable_target(
         client,
         ServiceNamespace="elasticmapreduce",
         ResourceId="instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0",
@@ -85,30 +129,21 @@ def test_describe_scalable_targets_only_return_ecs_targets():
     len(response["ScalableTargets"]).should.equal(2)
 
 
-def __register_scalable_target(client, **kwargs):
-    """ Build a default scalable target object for use in tests. """
-    return client.register_scalable_target(
-        ServiceNamespace=kwargs.get("ServiceNamespace", DEFAULT_SERVICE_NAMESPACE),
-        ResourceId=kwargs.get("ResourceId", DEFAULT_RESOURCE_ID),
-        ScalableDimension=kwargs.get("ScalableDimension", DEFAULT_SCALABLE_DIMENSION),
-        MinCapacity=kwargs.get("MinCapacity", DEFAULT_MIN_CAPACITY),
-        MaxCapacity=kwargs.get("MaxCapacity", DEFAULT_MAX_CAPACITY),
-        RoleARN=kwargs.get("RoleARN", DEFAULT_ROLE_ARN),
-        # TODO Implement SuspendedState
-        # SuspendedState={
-        #     "DynamicScalingInSuspended": True,
-        #     "DynamicScalingOutSuspended": True,
-        #     "ScheduledScalingSuspended": True,
-        # }
-    )
-
-
+@mock_ecs
 @mock_applicationautoscaling
 def test_describe_scalable_targets_next_token_success():
+    ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
+    _create_ecs_defaults(ecs, create_service=False)
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     for i in range(0, 100):
-        __register_scalable_target(
-            client, ServiceNamespace="ecs", ResourceId="service/default/{}".format(i)
+        _ = ecs.create_service(
+            cluster=DEFAULT_ECS_CLUSTER,
+            serviceName=str(i),
+            taskDefinition=DEFAULT_ECS_TASK,
+            desiredCount=2,
+        )
+        register_scalable_target(
+            client, ServiceNamespace="ecs", ResourceId="service/{}/{}".format(DEFAULT_ECS_CLUSTER, i)
         )
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
@@ -126,137 +161,19 @@ def test_describe_scalable_targets_next_token_success():
     response.should_not.have.key("NextToken")
 
 
-@mock_applicationautoscaling
-def test_describe_scalable_targets_no_params_should_raise_param_validation_errors():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    with assert_raises(ParamValidationError):
-        client.describe_scalable_targets()
-
-
-@mock_applicationautoscaling
-def test_register_scalable_target_no_params_should_raise_param_validation_errors():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    with assert_raises(ParamValidationError):
-        client.register_scalable_target()
-
-
-@mock_applicationautoscaling
-def test_register_scalable_target_with_none_service_namespace_should_raise_param_validation_errors():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    with assert_raises(ParamValidationError):
-        __register_scalable_target(client, ServiceNamespace=None)
-
-
-@mock_applicationautoscaling
-def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return_validation_exception():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-
-    try:
-        response = client.describe_scalable_targets(
-            ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo",
-        )
-        print(response)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ValidationException")
-        err.response["Error"]["Message"].split(":")[0].should.look_like(
-            "1 validation error detected"
-        )
-        err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
-
-
-@mock_applicationautoscaling
-def test_describe_scalable_targets_with_invalid_service_namespace_should_return_validation_exception():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-
-    try:
-        response = client.describe_scalable_targets(
-            ServiceNamespace="foo", ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
-        )
-        print(response)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ValidationException")
-        err.response["Error"]["Message"].split(":")[0].should.look_like(
-            "1 validation error detected"
-        )
-        err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
-
-
-@mock_applicationautoscaling
-def test_describe_scalable_targets_with_multiple_invalid_parameters_should_return_validation_exception():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-
-    try:
-        response = client.describe_scalable_targets(
-            ServiceNamespace="foo", ScalableDimension="bar",
-        )
-        print(response)
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ValidationException")
-        err.response["Error"]["Message"].split(":")[0].should.look_like(
-            "2 validation errors detected"
-        )
-        err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
-
-
-@mock_applicationautoscaling
-@mock_ecs
-def test_register_scalable_target_ecs_with_non_existent_service_should_return_validation_exception():
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-
-    try:
-        __register_scalable_target(client, ServiceNamespace="ecs", ResourceId="foo")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ValidationException")
-        err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
-
-
-@parameterized(
-    [
-        ("ecs", "service/default/test-svc", "ecs:service:DesiredCount", True),
-        ("ecs", "banana/default/test-svc", "ecs:service:DesiredCount", False),
-        ("rds", "service/default/test-svc", "ecs:service:DesiredCount", False),
-    ]
-)
-def test_target_params_are_valid_success(namespace, r_id, dimension, expected):
-    if expected is True:
-        models._target_params_are_valid(namespace, r_id, dimension).should.equal(
-            expected
-        )
-    else:
-        with assert_raises(AWSValidationException):
-            models._target_params_are_valid(namespace, r_id, dimension)
-
-
-# TODO add a test for unsupported resource type (ResourceID) = "foo"
-# TODO add a test for not-supplied MinCapacity or MaxCapacity (ValidationException)
-# TODO test that ECS service actually exists
-
-"""
-{
-  "Error": {
-    "Message": "ECS service doesn't exist: service/default/test-svc",
-    "Code": "ValidationException"
-  },
-  "ResponseMetadata": {
-    "RequestId": "13e2f324-1569-4f1f-a20a-8db48f4b4495",
-    "HTTPStatusCode": 400,
-    "HTTPHeaders": {
-      "x-amzn-requestid": "13e2f324-1569-4f1f-a20a-8db48f4b4495",
-      "content-type": "application/x-amz-json-1.1",
-      "content-length": "96",
-      "date": "Fri, 26 Jun 2020 07:31:36 GMT",
-      "connection": "close"
-    },
-    "RetryAttempts": 0
-  },
-  "Message": "ECS service doesn't exist: service/default/test-svc"
-}
-"""
+def register_scalable_target(client, **kwargs):
+    """ Build a default scalable target object for use in tests. """
+    return client.register_scalable_target(
+        ServiceNamespace=kwargs.get("ServiceNamespace", DEFAULT_SERVICE_NAMESPACE),
+        ResourceId=kwargs.get("ResourceId", DEFAULT_RESOURCE_ID),
+        ScalableDimension=kwargs.get("ScalableDimension", DEFAULT_SCALABLE_DIMENSION),
+        MinCapacity=kwargs.get("MinCapacity", DEFAULT_MIN_CAPACITY),
+        MaxCapacity=kwargs.get("MaxCapacity", DEFAULT_MAX_CAPACITY),
+        RoleARN=kwargs.get("RoleARN", DEFAULT_ROLE_ARN),
+        # TODO Implement SuspendedState
+        # SuspendedState={
+        #     "DynamicScalingInSuspended": True,
+        #     "DynamicScalingOutSuspended": True,
+        #     "ScheduledScalingSuspended": True,
+        # }
+    )
