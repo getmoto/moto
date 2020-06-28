@@ -113,10 +113,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
         """
         resource_type, cluster, service = r_id.split("/")
         result = self.ecs_backend.describe_services(cluster, [service])
-        if len(result) >= 1:
-            return True
-        else:
+        if len(result) != 1:
             raise AWSValidationException("ECS service doesn't exist: {}".format(r_id))
+        return True
 
     def _add_scalable_target(self, target):
         if target.scalable_dimension not in self.targets:
@@ -132,20 +131,20 @@ def _target_params_are_valid(namespace, r_id, dimension):
     valid_namespaces = [n.value for n in ServiceNamespaceValueSet]
     if namespace not in valid_namespaces:
         is_valid = False
-    valid_dimensions = [d.value for d in ScalableDimensionValueSet]
     if dimension is not None:
-        if dimension not in valid_dimensions:
-            is_valid = False
-        d_namespace, d_resource_type, scaling_property = dimension.split(":")
-        if d_namespace != namespace:
-            is_valid = False
         try:
+            valid_dimensions = [d.value for d in ScalableDimensionValueSet]
+            d_namespace, d_resource_type, scaling_property = dimension.split(":")
             resource_type, cluster, service = r_id.split("/")
-            if resource_type != d_resource_type:
+            if (
+                dimension not in valid_dimensions
+                or d_namespace != namespace
+                or resource_type != d_resource_type
+            ):
                 is_valid = False
         except ValueError:
             is_valid = False
-    if is_valid is False:
+    if not is_valid:
         raise AWSValidationException(
             "Unsupported service namespace, resource type or scalable dimension"
         )

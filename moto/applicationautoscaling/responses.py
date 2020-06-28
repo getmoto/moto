@@ -15,9 +15,10 @@ class ApplicationAutoScalingResponse(BaseResponse):
         return applicationautoscaling_backends[self.region]
 
     def describe_scalable_targets(self):
-        validation = self._validate_params()
-        if validation is not None:
-            return validation
+        try:
+            self._validate_params()
+        except AWSValidationException as e:
+            return e.response()
         service_namespace = self._get_param("ServiceNamespace")
         resource_ids = self._get_param("ResourceIds")
         scalable_dimension = self._get_param("ScalableDimension")
@@ -36,10 +37,8 @@ class ApplicationAutoScalingResponse(BaseResponse):
 
     def register_scalable_target(self):
         """ Registers or updates a scalable target. """
-        validation = self._validate_params()
-        if validation is not None:
-            return validation
         try:
+            self._validate_params()
             self.applicationautoscaling_backend.register_scalable_target(
                 self._get_param("ServiceNamespace"),
                 self._get_param("ResourceId"),
@@ -60,8 +59,8 @@ class ApplicationAutoScalingResponse(BaseResponse):
         namespace = self._get_param("ServiceNamespace")
         dimension = self._get_param("ScalableDimension")
         messages = []
-        resp = None
         dimensions = [d.value for d in ScalableDimensionValueSet]
+        message = None
         if dimension is not None and dimension not in dimensions:
             messages.append(
                 "Value '{}' at 'scalableDimension' "
@@ -76,20 +75,17 @@ class ApplicationAutoScalingResponse(BaseResponse):
                 "{}".format(namespace, namespaces)
             )
         if len(messages) == 1:
-            resp = AWSValidationException(
-                "1 validation error detected: {}".format(messages[0])
-            ).response()
+            message = "1 validation error detected: {}".format(messages[0])
         elif len(messages) > 1:
-            resp = AWSValidationException(
-                "{} validation errors detected: {}".format(
-                    len(messages), "; ".join(messages)
-                )
-            ).response()
-        return resp
+            message = "{} validation errors detected: {}".format(
+                len(messages), "; ".join(messages)
+            )
+        if message:
+            raise AWSValidationException(message)
 
 
 def _build_target(t):
-    resp = {
+    return {
         "CreationTime": t.creation_time,
         "ServiceNamespace": t.service_namespace,
         "ResourceId": t.resource_id,
@@ -99,4 +95,3 @@ def _build_target(t):
         "MinCapacity": t.min_capacity,
         "SuspendedState": t.suspended_state,
     }
-    return resp
