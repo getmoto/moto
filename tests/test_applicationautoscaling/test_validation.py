@@ -47,57 +47,45 @@ def test_register_scalable_target_with_none_service_namespace_should_raise_param
 def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return_validation_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
 
-    try:
+    with assert_raises(ClientError) as err:
         response = client.describe_scalable_targets(
             ServiceNamespace=DEFAULT_SERVICE_NAMESPACE, ScalableDimension="foo",
         )
-        print(response)
-    except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].split(":")[0].should.look_like(
             "1 validation error detected"
         )
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
 
 
 @mock_applicationautoscaling
 def test_describe_scalable_targets_with_invalid_service_namespace_should_return_validation_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
 
-    try:
+    with assert_raises(ClientError) as err:
         response = client.describe_scalable_targets(
             ServiceNamespace="foo", ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
         )
-        print(response)
-    except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].split(":")[0].should.look_like(
             "1 validation error detected"
         )
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
 
 
 @mock_applicationautoscaling
 def test_describe_scalable_targets_with_multiple_invalid_parameters_should_return_validation_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
 
-    try:
+    with assert_raises(ClientError) as err:
         response = client.describe_scalable_targets(
             ServiceNamespace="foo", ScalableDimension="bar",
         )
-        print(response)
-    except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].split(":")[0].should.look_like(
             "2 validation errors detected"
         )
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
 
 
 @mock_ecs
@@ -106,16 +94,13 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_va
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     resource_id = "service/{}/foo".format(DEFAULT_ECS_CLUSTER)
 
-    try:
+    with assert_raises(ClientError) as err:
         register_scalable_target(client, ServiceNamespace="ecs", ResourceId=resource_id)
-    except ClientError as err:
         err.response["Error"]["Code"].should.equal("ValidationException")
         err.response["Error"]["Message"].should.equal(
             "ECS service doesn't exist: {}".format(resource_id)
         )
         err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    else:
-        raise RuntimeError("Should have raised ValidationException")
 
 
 @parameterized(

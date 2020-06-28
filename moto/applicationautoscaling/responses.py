@@ -14,18 +14,6 @@ class ApplicationAutoScalingResponse(BaseResponse):
     def applicationautoscaling_backend(self):
         return applicationautoscaling_backends[self.region]
 
-    def delete_scaling_policy(self):
-        """ Not yet implemented. """
-        pass
-
-    def delete_scheduled_action(self):
-        """ Not yet implemented. """
-        pass
-
-    def deregister_scalable_target(self):
-        """ Not yet implemented. """
-        pass
-
     def describe_scalable_targets(self):
         validation = self._validate_params()
         if validation is not None:
@@ -45,34 +33,6 @@ class ApplicationAutoScalingResponse(BaseResponse):
             next_token = str(len(scalable_targets_resp) - 1)
         targets = [_build_target(t) for t in scalable_targets_resp]
         return json.dumps({"ScalableTargets": targets, "NextToken": next_token})
-
-    def describe_scaling_activities(self):
-        """ Not yet implemented. """
-        pass
-
-    def describe_scaling_policies(self):
-        """ Not yet implemented. """
-        pass
-
-    def describe_scheduled_actions(self):
-        """ Not yet implemented. """
-        pass
-
-    def generate_presigned_url(self):
-        """ Not yet implemented. """
-        pass
-
-    def get_waiter(self):
-        """ Not yet implemented. """
-        pass
-
-    def put_scaling_policy(self):
-        """ Not yet implemented. """
-        pass
-
-    def put_scheduled_action(self):
-        """ Not yet implemented. """
-        pass
 
     def register_scalable_target(self):
         """ Registers or updates a scalable target. """

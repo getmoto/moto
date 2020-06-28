@@ -69,18 +69,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
     def applicationautoscaling_backend(self):
         return applicationautoscaling_backends[self.region]
 
-    def delete_scaling_policy(self):
-        """ Not yet implemented. """
-        pass
-
-    def delete_scheduled_action(self):
-        """ Not yet implemented. """
-        pass
-
-    def deregister_scalable_target(self):
-        """ Not yet implemented. """
-        pass
-
     def describe_scalable_targets(
         self, namespace, r_ids=None, dimension=None,
     ):
@@ -103,34 +91,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
         targets = [t for t in targets if t.service_namespace == namespace]
         return targets
 
-    def describe_scaling_activities(self):
-        """ Not yet implemented. """
-        pass
-
-    def describe_scaling_policies(self):
-        """ Not yet implemented. """
-        pass
-
-    def describe_scheduled_actions(self):
-        """ Not yet implemented. """
-        pass
-
-    def generate_presigned_url(self):
-        """ Not yet implemented. """
-        pass
-
-    def get_waiter(self):
-        """ Not yet implemented. """
-        pass
-
-    def put_scaling_policy(self):
-        """ Not yet implemented. """
-        pass
-
-    def put_scheduled_action(self):
-        """ Not yet implemented. """
-        pass
-
     def register_scalable_target(self, namespace, r_id, dimension, **kwargs):
         """ Registers or updates a scalable target. """
         _ = _target_params_are_valid(namespace, r_id, dimension)
@@ -145,10 +105,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         return target
 
     def _scalable_target_exists(self, r_id, dimension):
-        exists = False
-        if r_id in self.targets.get(dimension, []):
-            exists = True
-        return exists
+        return r_id in self.targets.get(dimension, [])
 
     def _ecs_service_exists_for_target(self, r_id):
         """ Raises a ValidationException if an ECS service does not exist
