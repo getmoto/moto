@@ -94,6 +94,9 @@ class ApplicationAutoScalingResponse(BaseResponse):
         return json.dumps({})
 
     def _validate_params(self):
+        """ Validate parameters.
+            TODO Integrate this validation with the validation in models.py
+        """
         namespace = self._get_param("ServiceNamespace")
         dimension = self._get_param("ScalableDimension")
         messages = []
