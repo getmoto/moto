@@ -44,21 +44,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         if len(all_scalable_targets) > start + max_results:
             next_token = str(len(scalable_targets_resp) - 1)
         targets = [
-            {
-                "CreationTime": t.creation_time,
-                "ServiceNamespace": t.service_namespace,
-                "ResourceId": t.resource_id,
-                "RoleARN": t.role_arn,
-                "ScalableDimension": t.scalable_dimension,
-                "MaxCapacity": t.max_capacity,
-                "MinCapacity": t.min_capacity,
-                # TODO Implement SuspendedState support
-                # "SuspendedState": {
-                #     "DynamicScalingInSuspended": t.suspended_state["dynamic_scaling_in_suspended"],
-                #     "DynamicScalingOutSuspended": t.suspended_state["dynamic_scaling_out_suspended"],
-                #     "ScheduledScalingSuspended": t.suspended_state["scheduled_scaling_suspended"],
-                # }
-            }
+            _build_target(t)
             for t in scalable_targets_resp
         ]
         return json.dumps({"ScalableTargets": targets, "NextToken": next_token})
@@ -140,3 +126,21 @@ class ApplicationAutoScalingResponse(BaseResponse):
                 )
             ).response()
         return resp
+
+
+def _build_target(t):
+    return {
+        "CreationTime": t.creation_time,
+        "ServiceNamespace": t.service_namespace,
+        "ResourceId": t.resource_id,
+        "RoleARN": t.role_arn,
+        "ScalableDimension": t.scalable_dimension,
+        "MaxCapacity": t.max_capacity,
+        "MinCapacity": t.min_capacity,
+        # TODO Implement SuspendedState support
+        # "SuspendedState": {
+        #     "DynamicScalingInSuspended": t.suspended_state["dynamic_scaling_in_suspended"],
+        #     "DynamicScalingOutSuspended": t.suspended_state["dynamic_scaling_out_suspended"],
+        #     "ScheduledScalingSuspended": t.suspended_state["scheduled_scaling_suspended"],
+        # }
+    }

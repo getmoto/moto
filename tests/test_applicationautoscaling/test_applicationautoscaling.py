@@ -90,6 +90,7 @@ def test_describe_scalable_targets_one_full_ecs_success():
     t.should.have.key("MaxCapacity").which.should.equal(DEFAULT_MAX_CAPACITY)
     t.should.have.key("RoleARN").which.should.equal(DEFAULT_ROLE_ARN)
     t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
+    # t.should.have.key("SuspendedState")
 
 
 @mock_ecs
@@ -177,9 +178,9 @@ def register_scalable_target(client, **kwargs):
         MaxCapacity=kwargs.get("MaxCapacity", DEFAULT_MAX_CAPACITY),
         RoleARN=kwargs.get("RoleARN", DEFAULT_ROLE_ARN),
         # TODO Implement SuspendedState
-        # SuspendedState={
-        #     "DynamicScalingInSuspended": True,
-        #     "DynamicScalingOutSuspended": True,
-        #     "ScheduledScalingSuspended": True,
-        # }
+        SuspendedState={
+            "DynamicScalingInSuspended": True,
+            "DynamicScalingOutSuspended": True,
+            "ScheduledScalingSuspended": True,
+        }
     )
