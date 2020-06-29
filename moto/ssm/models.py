@@ -270,7 +270,8 @@ class Command(BaseModel):
 
 
 class SimpleSystemManagerBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name=None):
+        super(SimpleSystemManagerBackend, self).__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         self._parameters = defaultdict(list)
@@ -279,10 +280,12 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._commands = []
         self._errors = []
 
-        # figure out what region we're in
-        for region, backend in ssm_backends.items():
-            if backend == self:
-                self._region = region
+        self._region = region_name
+
+    def reset(self):
+        region_name = self._region
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def delete_parameter(self, name):
         return self._parameters.pop(name, None)
@@ -805,4 +808,4 @@ class SimpleSystemManagerBackend(BaseBackend):
 
 ssm_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    ssm_backends[region] = SimpleSystemManagerBackend()
+    ssm_backends[region] = SimpleSystemManagerBackend(region)
