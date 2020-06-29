@@ -35,7 +35,7 @@ class FakeSagemakerNotebookInstance:
         self.subnet_id = subnet_id
         self.security_group_ids = security_group_ids
         self.kms_key_id = kms_key_id
-        self.tags = tags
+        self.tags = tags or []
         self.lifecycle_config_name = lifecycle_config_name
         self.direct_internet_access = direct_internet_access
         self.volume_size_in_gb = volume_size_in_gb
@@ -149,15 +149,15 @@ class SageMakerBackend(BaseBackend):
         instance_type,
         role_arn,
         subnet_id=None,
-        security_group_ids=[],
+        security_group_ids=None,
         kms_key_id=None,
-        tags=[],
+        tags=None,
         lifecycle_config_name=None,
         direct_internet_access="Enabled",
         volume_size_in_gb=5,
         accelerator_types=None,
         default_code_repository=None,
-        additional_code_repositories=[],
+        additional_code_repositories=None,
         root_access=None,
     ):
         self._validate_unique_name(notebook_instance_name)
@@ -204,6 +204,21 @@ class SageMakerBackend(BaseBackend):
                 message=message,
                 template="error_json",
             )
+
+    def get_notebook_instance_by_arn(self, arn):
+        instances = [
+            notebook_instance
+            for notebook_instance in self.notebook_instances.values()
+            if notebook_instance.arn == arn
+        ]
+        if len(instances) == 0:
+            message = "RecordNotFound"
+            raise RESTError(
+                error_type="ValidationException",
+                message=message,
+                template="error_json",
+            )
+        return instances[0]
 
     def delete_notebook_instance(self, notebook_instance_name):
         notebook_instance = self.get_notebook_instance(notebook_instance_name)

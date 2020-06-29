@@ -95,3 +95,14 @@ class SageMakerResponse(BaseResponse):
         notebook_instance_name = self._get_param("NotebookInstanceName")
         self.sagemaker_backend.delete_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
+
+    @amzn_request_id
+    def list_tags(self):
+        arn = self._get_param("ResourceArn")
+        try:
+            notebook_instance = self.sagemaker_backend.get_notebook_instance_by_arn(arn)
+            tags = notebook_instance.tags or []
+        except AWSError:
+            tags = []
+        response = {"Tags": tags}
+        return 200, {}, json.dumps(response)

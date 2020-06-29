@@ -116,6 +116,9 @@ def test_create_notebook_instance_params():
     assert_equal(resp["DefaultCodeRepository"], FAKE_DEFAULT_CODE_REPO)
     assert_equal(resp["AdditionalCodeRepositories"], FAKE_ADDL_CODE_REPOS)
 
+    resp = sagemaker.list_tags(ResourceArn=resp["NotebookInstanceArn"])
+    assert_equal(resp["Tags"], GENERIC_TAGS_PARAM)
+
 
 @mock_sagemaker
 def test_create_notebook_instance_bad_volume_size():
