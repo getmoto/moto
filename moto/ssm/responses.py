@@ -24,7 +24,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         name = self._get_param("Name")
         version_name = self._get_param("VersionName")
         document_type = self._get_param("DocumentType")
-        document_format = self._get_param("DocumentFormat")
+        document_format = self._get_param("DocumentFormat", "JSON")
         target_type = self._get_param("TargetType")
         tags = self._get_param("Tags")
 
@@ -32,9 +32,9 @@ class SimpleSystemManagerResponse(BaseResponse):
                                                   name=name, version_name=version_name, document_type=document_type,
                                                   document_format=document_format, target_type=target_type, tags=tags)
 
-        return {
+        return json.dumps({
             'DocumentDescription': result
-        }
+        })
 
     def delete_document(self):
         name = self._get_param("Name")
@@ -44,18 +44,18 @@ class SimpleSystemManagerResponse(BaseResponse):
         self.ssm_backend.delete_document(name=name, document_version=document_version,
                                          version_name=version_name, force=force)
 
-        return {}
+        return json.dumps({})
 
     def get_document(self):
         name = self._get_param("Name")
         version_name = self._get_param("VersionName")
         document_version = self._get_param("DocumentVersion")
-        document_format = self._get_param("DocumentFormat")
+        document_format = self._get_param("DocumentFormat", "JSON")
 
         document = self.ssm_backend.get_document(name=name, document_version=document_version,
                                                  document_format=document_format, version_name=version_name)
 
-        return document
+        return json.dumps(document)
 
     def describe_document(self):
         name = self._get_param("Name")
@@ -65,9 +65,9 @@ class SimpleSystemManagerResponse(BaseResponse):
         result = self.ssm_backend.describe_document(name=name, document_version=document_version,
                                                     version_name=version_name)
 
-        return {
+        return json.dumps({
             'Document': result
-        }
+        })
 
     def update_document(self):
         content = self._get_param("Content")
@@ -75,39 +75,39 @@ class SimpleSystemManagerResponse(BaseResponse):
         name = self._get_param("Name")
         version_name = self._get_param("VersionName")
         document_version = self._get_param("DocumentVersion")
-        document_format = self._get_param("DocumentFormat")
+        document_format = self._get_param("DocumentFormat", "JSON")
         target_type = self._get_param("TargetType")
 
         result = self.ssm_backend.update_document(content=content, attachments=attachments, name=name,
                                                   version_name=version_name, document_version=document_version,
                                                   document_format=document_format, target_type=target_type)
 
-        return {
+        return json.dumps({
             'DocumentDescription': result
-        }
+        })
 
     def update_document_default_version(self):
         name = self._get_param("Name")
         document_version = self._get_param("DocumentVersion")
 
         result = self.ssm_backend.update_document_default_version(name=name, document_version=document_version)
-        return {
+        return json.dumps({
             'Description': result
-        }
+        })
 
     def list_documents(self):
         document_filter_list = self._get_param("DocumentFilterList")
         filters = self._get_param("Filters")
         max_results = self._get_param("MaxResults", 10)
-        next_token = self._get_param("NextToken")
+        next_token = self._get_param("NextToken", "0")
 
         documents, token = self.ssm_backend.list_documents(document_filter_list=document_filter_list, filters=filters,
                                                            max_results=max_results, next_token=next_token)
 
-        return {
+        return json.dumps({
             "DocumentIdentifiers": documents,
             "NextToken": token
-        }
+        })
 
     def _get_param(self, param, default=None):
         return self.request_params.get(param, default)
