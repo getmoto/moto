@@ -98,6 +98,19 @@ def _validate_document_description(doc_name, doc_description, json_doc, expected
     doc_description["DefaultVersion"].should.equal(expected_default_version)
     doc_description["DocumentFormat"].should.equal(expected_format)
 
+def _get_doc_validator(response, version_name, doc_version, json_doc_content, document_format):
+    response["Name"].should.equal("TestDocument3")
+    if version_name:
+        response["VersionName"].should.equal(version_name)
+    response["DocumentVersion"].should.equal(doc_version)
+    response["Status"].should.equal("Active")
+    if document_format == "JSON":
+        json.loads(response["Content"]).should.equal(json_doc_content)
+    else:
+        yaml.safe_load(response["Content"]).should.equal(json_doc_content)
+    response["DocumentType"].should.equal("Command")
+    response["DocumentFormat"].should.equal(document_format)
+
 # Done
 @mock_ssm
 def test_create_document():
@@ -129,7 +142,7 @@ def test_create_document():
 
     _validate_document_description("TestDocument3", doc_description, json_doc, "1", "1", "1", "JSON")
 
-
+# Done
 @mock_ssm
 def test_get_document():
     template_file = _get_yaml_template()
@@ -149,40 +162,59 @@ def test_get_document():
         VersionName="Base"
     )
 
+    new_json_doc = copy.copy(json_doc)
+    new_json_doc['description'] = "a new description"
+
+    client.update_document(
+        Content=json.dumps(new_json_doc), Name="TestDocument3", DocumentVersion="$LATEST", VersionName="NewBase"
+    )
+
     response = client.get_document(Name="TestDocument3")
-    response["Name"].should.equal("TestDocument3")
-    response["VersionName"].should.equal("Base")
-    response["DocumentVersion"].should.equal("1")
-    response["Status"].should.equal("Active")
-    response["Content"].should.equal(yaml.dump(json_doc))
-    response["DocumentType"].should.equal("Command")
-    response["DocumentFormat"].should.equal("YAML")
+    _get_doc_validator(response, "Base", "1", json_doc, "JSON")
 
     response = client.get_document(Name="TestDocument3", DocumentFormat="YAML")
-    response["Name"].should.equal("TestDocument3")
-    response["VersionName"].should.equal("Base")
-    response["DocumentVersion"].should.equal("1")
-    response["Status"].should.equal("Active")
-    response["Content"].should.equal(yaml.dump(json_doc))
-    response["DocumentType"].should.equal("Command")
-    response["DocumentFormat"].should.equal("YAML")
+    _get_doc_validator(response, "Base", "1", json_doc, "YAML")
 
     response = client.get_document(Name="TestDocument3", DocumentFormat="JSON")
-    response["Name"].should.equal("TestDocument3")
-    response["VersionName"].should.equal("Base")
-    response["DocumentVersion"].should.equal("1")
-    response["Status"].should.equal("Active")
-    response["Content"].should.equal(json.dumps(json_doc))
-    response["DocumentType"].should.equal("Command")
-    response["DocumentFormat"].should.equal("JSON")
+    _get_doc_validator(response, "Base", "1", json_doc, "JSON")
 
-    # response = client.get_document(Name="TestDocument3", VersionName="Base")
-    # response = client.get_document(Name="TestDocument3", DocumentVersion="1")
+    response = client.get_document(Name="TestDocument3", VersionName="Base")
+    _get_doc_validator(response, "Base", "1", json_doc, "JSON")
 
-    # response = client.get_document(Name="TestDocument3", DocumentVersion="2")
-    # response = client.get_document(Name="TestDocument3", VersionName="Base", DocumentVersion="2")
-    # response = client.get_document(Name="TestDocument3", DocumentFormat="YAML")
-    # response = client.get_document(Name="TestDocument3", DocumentFormat="JSON")
+    response = client.get_document(Name="TestDocument3", DocumentVersion="1")
+    _get_doc_validator(response, "Base", "1", json_doc, "JSON")
+
+    response = client.get_document(Name="TestDocument3", DocumentVersion="2")
+    _get_doc_validator(response, "NewBase", "2", new_json_doc, "JSON")
+
+    response = client.get_document(Name="TestDocument3", VersionName="NewBase")
+    _get_doc_validator(response, "NewBase", "2", new_json_doc, "JSON")
+
+    response = client.get_document(Name="TestDocument3", VersionName="NewBase", DocumentVersion="2")
+    _get_doc_validator(response, "NewBase", "2", new_json_doc, "JSON")
+
+    try:
+        response = client.get_document(Name="TestDocument3", VersionName="BadName", DocumentVersion="2")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
+
+    try:
+        response = client.get_document(Name="TestDocument3", DocumentVersion="3")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
+
+    # Updating default should update normal get
+    client.update_document_default_version(
+        Name="TestDocument3",
+        DocumentVersion="2"
+    )
+
+    response = client.get_document(Name="TestDocument3", DocumentFormat="JSON")
+    _get_doc_validator(response, "NewBase", "2", new_json_doc, "JSON")
 
 @mock_ssm
 def test_delete_document():
@@ -190,48 +222,113 @@ def test_delete_document():
     json_doc = yaml.safe_load(template_file)
     client = boto3.client("ssm", region_name="us-east-1")
 
+    try:
+        client.delete_document(Name="DNE")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("DeleteDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
+
     # Test simple
     client.create_document(
         Content=yaml.dump(json_doc), Name="TestDocument3", DocumentType="Command", DocumentFormat="YAML",
         VersionName="Base", TargetType="/AWS::EC2::Instance"
     )
-    response = client.delete_document(Name="TestDocument3")
-    # response = client.get_document(Name="TestDocument3")
-    #
-    # # Test re-use
-    # client.create_document(
-    #     Content=yaml.dump(json_doc), Name="TestDocument3", DocumentType="Command", DocumentFormat="YAML",
-    #     VersionName="Base", TargetType="/AWS::EC2::Instance"
-    # )
-    # response = client.get_document(Name="TestDocument3")
+    client.delete_document(Name="TestDocument3")
 
-    # updates
+    try:
+        client.get_document(Name="TestDocument3")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
 
-    # We update default_version here to test some other cases around deleting specific versions
-    # response = client.update_document_default_version(
-    #     Name="TestDocument3",
-    #     DocumentVersion=2
-    # )
-    #
-    # response = client.delete_document(Name="TestDocument3", DocumentVersion="4")
-    # response = client.get_document(Name="TestDocument3")
-    # response = client.get_document(Name="TestDocument3", DocumentVersion="4")
-    #
-    # # Both filters should match in order to delete
-    # response = client.delete_document(Name="TestDocument3", DocumentVersion="1", VersionName="NotVersion")
-    # response = client.get_document(Name="TestDocument3")
-    # response = client.get_document(Name="TestDocument3", DocumentVersion="1")
-    #
-    # response = client.delete_document(Name="TestDocument3", DocumentVersion="1", VersionName="RealVersion")
-    # response = client.get_document(Name="TestDocument3")
-    # response = client.get_document(Name="TestDocument3", DocumentVersion="1")
-    #
-    # # AWS doesn't allow deletion of default version if other versions are left
-    # response = client.delete_document(Name="TestDocument3", DocumentVersion="2")
-    #
-    # response = client.delete_document(Name="TestDocument3")
-    # response = client.get_document(Name="TestDocument3")
-    # response = client.get_document(Name="TestDocument3", DocumentVersion="3")
+
+    # Delete default version with other version is bad
+    client.create_document(
+        Content=yaml.dump(json_doc), Name="TestDocument3", DocumentType="Command", DocumentFormat="YAML",
+        VersionName="Base", TargetType="/AWS::EC2::Instance"
+    )
+
+    new_json_doc = copy.copy(json_doc)
+    new_json_doc['description'] = "a new description"
+
+    client.update_document(
+        Content=json.dumps(new_json_doc), Name="TestDocument3", DocumentVersion="$LATEST", VersionName="NewBase"
+    )
+
+    new_json_doc['description'] = "a new description2"
+    client.update_document(
+        Content=json.dumps(new_json_doc), Name="TestDocument3", DocumentVersion="$LATEST"
+    )
+
+    new_json_doc['description'] = "a new description3"
+    client.update_document(
+        Content=json.dumps(new_json_doc), Name="TestDocument3", DocumentVersion="$LATEST"
+    )
+
+    new_json_doc['description'] = "a new description4"
+    client.update_document(
+        Content=json.dumps(new_json_doc), Name="TestDocument3", DocumentVersion="$LATEST"
+    )
+
+
+    try:
+        client.delete_document(Name="TestDocument3", DocumentVersion="1")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("DeleteDocument")
+        err.response["Error"]["Message"].should.equal("Default version of the document can't be deleted.")
+
+    try:
+        client.delete_document(Name="TestDocument3", VersionName="Base")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("DeleteDocument")
+        err.response["Error"]["Message"].should.equal("Default version of the document can't be deleted.")
+
+    # Make sure no ill side effects
+    response = client.get_document(Name="TestDocument3")
+    _get_doc_validator(response, "Base", "1", json_doc, "JSON")
+
+    client.delete_document(Name="TestDocument3", DocumentVersion="5")
+
+    # Check that latest version is changed
+    response = client.describe_document(Name="TestDocument3")
+    response["Document"]["LatestVersion"].should.equal("4")
+
+    client.delete_document(Name="TestDocument3", VersionName="NewBase")
+
+    # Make sure other versions okay
+    client.get_document(Name="TestDocument3", DocumentVersion="1")
+    client.get_document(Name="TestDocument3", DocumentVersion="3")
+    client.get_document(Name="TestDocument3", DocumentVersion="4")
+
+    client.delete_document(Name="TestDocument3")
+
+    try:
+        client.get_document(Name="TestDocument3", DocumentVersion="1")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
+
+    try:
+        client.get_document(Name="TestDocument3", DocumentVersion="3")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
+
+    try:
+        client.get_document(Name="TestDocument3", DocumentVersion="4")
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("GetDocument")
+        err.response["Error"]["Message"].should.equal("The specified document does not exist.")
+
+    response = client.list_documents()
+    len(response['DocumentIdentifiers']).should.equal(0)
 
 # Done
 @mock_ssm

@@ -475,7 +475,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             "Status": ssm_document.status,
             "Content": ssm_document.content,
             "DocumentType": ssm_document.document_type,
-            "DocumentFormat": ssm_document.document_format
+            "DocumentFormat": document_format
         }
 
         if document_format == "JSON":
@@ -555,8 +555,13 @@ class SimpleSystemManagerBackend(BaseBackend):
             if document_version or version_name:
                 # We delete only a specific version
                 delete_doc = self._find_document(name, document_version, version_name)
+
+                # we can't delete only the default version
+                if delete_doc and delete_doc.document_version == default_version and len(documents) != 1:
+                    raise InvalidDocumentOperation("Default version of the document can't be deleted.")
+
                 if delete_doc:
-                    keys_to_delete.add(document_version)
+                    keys_to_delete.add(delete_doc.document_version)
                 else:
                     raise InvalidDocument("The specified document does not exist.")
             else:
@@ -564,10 +569,20 @@ class SimpleSystemManagerBackend(BaseBackend):
                 keys_to_delete = set(documents.keys())
 
             for key in keys_to_delete:
-                self._documents[name]["documents"][key] = None
+                del self._documents[name]["documents"][key]
+
+            keys = self._documents[name]["documents"].keys()
 
             if len(self._documents[name]["documents"].keys()) == 0:
-                self._documents[name] = None
+                del self._documents[name]
+            else:
+                old_latest = self._documents[name]["latest_version"]
+                if old_latest not in self._documents[name]["documents"].keys():
+                    leftover_keys = self._documents[name]["documents"].keys()
+                    int_keys = []
+                    for key in leftover_keys:
+                        int_keys.append(int(key))
+                    self._documents[name]["latest_version"] = str(sorted(int_keys)[-1])
         else:
             raise InvalidDocument("The specified document does not exist.")
 
