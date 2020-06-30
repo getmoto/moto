@@ -28,21 +28,31 @@ class SimpleSystemManagerResponse(BaseResponse):
         target_type = self._get_param("TargetType")
         tags = self._get_param("Tags")
 
-        result = self.ssm_backend.create_document(content=content, requires=requires, attachments=attachments,
-                                                  name=name, version_name=version_name, document_type=document_type,
-                                                  document_format=document_format, target_type=target_type, tags=tags)
+        result = self.ssm_backend.create_document(
+            content=content,
+            requires=requires,
+            attachments=attachments,
+            name=name,
+            version_name=version_name,
+            document_type=document_type,
+            document_format=document_format,
+            target_type=target_type,
+            tags=tags,
+        )
 
-        return json.dumps({
-            'DocumentDescription': result
-        })
+        return json.dumps({"DocumentDescription": result})
 
     def delete_document(self):
         name = self._get_param("Name")
         document_version = self._get_param("DocumentVersion")
         version_name = self._get_param("VersionName")
         force = self._get_param("Force", False)
-        self.ssm_backend.delete_document(name=name, document_version=document_version,
-                                         version_name=version_name, force=force)
+        self.ssm_backend.delete_document(
+            name=name,
+            document_version=document_version,
+            version_name=version_name,
+            force=force,
+        )
 
         return json.dumps({})
 
@@ -52,8 +62,12 @@ class SimpleSystemManagerResponse(BaseResponse):
         document_version = self._get_param("DocumentVersion")
         document_format = self._get_param("DocumentFormat", "JSON")
 
-        document = self.ssm_backend.get_document(name=name, document_version=document_version,
-                                                 document_format=document_format, version_name=version_name)
+        document = self.ssm_backend.get_document(
+            name=name,
+            document_version=document_version,
+            document_format=document_format,
+            version_name=version_name,
+        )
 
         return json.dumps(document)
 
@@ -62,12 +76,11 @@ class SimpleSystemManagerResponse(BaseResponse):
         document_version = self._get_param("DocumentVersion")
         version_name = self._get_param("VersionName")
 
-        result = self.ssm_backend.describe_document(name=name, document_version=document_version,
-                                                    version_name=version_name)
+        result = self.ssm_backend.describe_document(
+            name=name, document_version=document_version, version_name=version_name
+        )
 
-        return json.dumps({
-            'Document': result
-        })
+        return json.dumps({"Document": result})
 
     def update_document(self):
         content = self._get_param("Content")
@@ -78,22 +91,26 @@ class SimpleSystemManagerResponse(BaseResponse):
         document_format = self._get_param("DocumentFormat", "JSON")
         target_type = self._get_param("TargetType")
 
-        result = self.ssm_backend.update_document(content=content, attachments=attachments, name=name,
-                                                  version_name=version_name, document_version=document_version,
-                                                  document_format=document_format, target_type=target_type)
+        result = self.ssm_backend.update_document(
+            content=content,
+            attachments=attachments,
+            name=name,
+            version_name=version_name,
+            document_version=document_version,
+            document_format=document_format,
+            target_type=target_type,
+        )
 
-        return json.dumps({
-            'DocumentDescription': result
-        })
+        return json.dumps({"DocumentDescription": result})
 
     def update_document_default_version(self):
         name = self._get_param("Name")
         document_version = self._get_param("DocumentVersion")
 
-        result = self.ssm_backend.update_document_default_version(name=name, document_version=document_version)
-        return json.dumps({
-            'Description': result
-        })
+        result = self.ssm_backend.update_document_default_version(
+            name=name, document_version=document_version
+        )
+        return json.dumps({"Description": result})
 
     def list_documents(self):
         document_filter_list = self._get_param("DocumentFilterList")
@@ -101,13 +118,14 @@ class SimpleSystemManagerResponse(BaseResponse):
         max_results = self._get_param("MaxResults", 10)
         next_token = self._get_param("NextToken", "0")
 
-        documents, token = self.ssm_backend.list_documents(document_filter_list=document_filter_list, filters=filters,
-                                                           max_results=max_results, next_token=next_token)
+        documents, token = self.ssm_backend.list_documents(
+            document_filter_list=document_filter_list,
+            filters=filters,
+            max_results=max_results,
+            next_token=next_token,
+        )
 
-        return json.dumps({
-            "DocumentIdentifiers": documents,
-            "NextToken": token
-        })
+        return json.dumps({"DocumentIdentifiers": documents, "NextToken": token})
 
     def _get_param(self, param, default=None):
         return self.request_params.get(param, default)

@@ -73,7 +73,9 @@ class InvalidDocumentOperation(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super(InvalidDocumentOperation, self).__init__("InvalidDocumentOperation", message)
+        super(InvalidDocumentOperation, self).__init__(
+            "InvalidDocumentOperation", message
+        )
 
 
 class InvalidDocumentContent(JsonRESTError):
@@ -94,12 +96,15 @@ class DuplicateDocumentVersionName(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super(DuplicateDocumentVersionName, self).__init__("DuplicateDocumentVersionName", message)
+        super(DuplicateDocumentVersionName, self).__init__(
+            "DuplicateDocumentVersionName", message
+        )
 
 
 class DuplicateDocumentContent(JsonRESTError):
     code = 400
 
     def __init__(self, message):
-        super(DuplicateDocumentContent, self).__init__("DuplicateDocumentContent", message)
-
+        super(DuplicateDocumentContent, self).__init__(
+            "DuplicateDocumentContent", message
+        )
