@@ -61,7 +61,7 @@ class Unflattener:
         for k in items_to_process.keys():
             del input_dict[k]
 
-        for k in items_to_process.keys():
+        for k in sorted(items_to_process.keys()):
             Unflattener._set_deep(k, input_dict, items_to_process[k])
 
     @staticmethod

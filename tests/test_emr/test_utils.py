@@ -52,7 +52,7 @@ def test_unflattener_list_dicts():
     expected = {
         "a": [
             {"a": {"a": 1, "b": 2}, "b": {"c": 3}},
-            {"d": {"e": 4,},},
+            {"d": {"e": 4}},
             6,
             {"a": [7, {"a": 8}]},
             [9],
