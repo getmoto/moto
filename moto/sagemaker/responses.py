@@ -12,6 +12,34 @@ class SageMakerResponse(BaseResponse):
     def sagemaker_backend(self):
         return sagemaker_backends[self.region]
 
+    @property
+    def request_params(self):
+        try:
+            return json.loads(self.body)
+        except ValueError:
+            return {}
+
+    def describe_model(self):
+        model_name = self._get_param("ModelName")
+        response = self.sagemaker_backend.describe_model(model_name)
+        return json.dumps(response)
+
+    def create_model(self):
+        response = self.sagemaker_backend.create_model(**self.request_params)
+        return json.dumps(response)
+
+    def delete_model(self):
+        model_name = self._get_param("ModelName")
+        response = self.sagemaker_backend.delete_model(model_name)
+        return json.dumps(response)
+
+    def list_models(self):
+        response = self.sagemaker_backend.list_models(**self.request_params)
+        return json.dumps(response)
+
+    def _get_param(self, param, if_none=None):
+        return self.request_params.get(param, if_none)
+
     @amzn_request_id
     def create_notebook_instance(self):
         try:
