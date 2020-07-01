@@ -13,7 +13,7 @@ from nose.tools import assert_true, assert_equal, assert_raises
 TEST_REGION_NAME = "us-east-1"
 FAKE_SUBNET_ID = "subnet-012345678"
 FAKE_SECURITY_GROUP_IDS = ["sg-0123456789abcdef0", "sg-0123456789abcdef1"]
-FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
+FAKE_ROLE_ARN = "arn:aws:iam::{}:role/FakeRole".format(ACCOUNT_ID)
 FAKE_KMS_KEY_ID = "62d4509a-9f96-446c-a9ba-6b1c353c8c58"
 GENERIC_TAGS_PARAM = [
     {"Key": "newkey1", "Value": "newval1"},
@@ -49,7 +49,9 @@ def test_create_notebook_instance_minimal_params():
     assert_true(resp["NotebookInstanceArn"].endswith(args["NotebookInstanceName"]))
     assert_equal(resp["NotebookInstanceName"], NAME_PARAM)
     assert_equal(resp["NotebookInstanceStatus"], "InService")
-    assert_equal(resp["Url"], f"{NAME_PARAM}.notebook.{TEST_REGION_NAME}.sagemaker.aws")
+    assert_equal(
+        resp["Url"], "{}.notebook.{}.sagemaker.aws".format(NAME_PARAM, TEST_REGION_NAME)
+    )
     assert_equal(resp["InstanceType"], INSTANCE_TYPE_PARAM)
     assert_equal(resp["RoleArn"], FAKE_ROLE_ARN)
     assert_true(isinstance(resp["LastModifiedTime"], datetime.datetime))
@@ -98,7 +100,9 @@ def test_create_notebook_instance_params():
     assert_true(resp["NotebookInstanceArn"].endswith(args["NotebookInstanceName"]))
     assert_equal(resp["NotebookInstanceName"], NAME_PARAM)
     assert_equal(resp["NotebookInstanceStatus"], "InService")
-    assert_equal(resp["Url"], f"{NAME_PARAM}.notebook.{TEST_REGION_NAME}.sagemaker.aws")
+    assert_equal(
+        resp["Url"], "{}.notebook.{}.sagemaker.aws".format(NAME_PARAM, TEST_REGION_NAME)
+    )
     assert_equal(resp["InstanceType"], INSTANCE_TYPE_PARAM)
     assert_equal(resp["RoleArn"], FAKE_ROLE_ARN)
     assert_true(isinstance(resp["LastModifiedTime"], datetime.datetime))
@@ -136,7 +140,9 @@ def test_create_notebook_instance_bad_volume_size():
         resp = sagemaker.create_notebook_instance(**args)
     assert_equal(
         ex.exception.args[0],
-        f"Parameter validation failed:\nInvalid range for parameter VolumeSizeInGB, value: {vol_size}, valid range: 5-inf",
+        "Parameter validation failed:\nInvalid range for parameter VolumeSizeInGB, value: {}, valid range: 5-inf".format(
+            vol_size
+        ),
     )
 
 
@@ -154,7 +160,10 @@ def test_create_notebook_instance_invalid_instance_type():
     with assert_raises(ClientError) as ex:
         resp = sagemaker.create_notebook_instance(**args)
     assert_equal(ex.exception.response["Error"]["Code"], "ValidationException")
-    expected_message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: ["
+    expected_message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: [".format(
+        instance_type
+    )
+
     assert_true(expected_message in ex.exception.response["Error"]["Message"])
 
 
@@ -180,7 +189,9 @@ def test_notebook_instance_lifecycle():
     with assert_raises(ClientError) as ex:
         sagemaker.delete_notebook_instance(NotebookInstanceName=NAME_PARAM)
     assert_equal(ex.exception.response["Error"]["Code"], "ValidationException")
-    expected_message = f"Status (InService) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({notebook_instance_arn})"
+    expected_message = "Status (InService) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({})".format(
+        notebook_instance_arn
+    )
     assert_true(expected_message in ex.exception.response["Error"]["Message"])
 
     sagemaker.stop_notebook_instance(NotebookInstanceName=NAME_PARAM)

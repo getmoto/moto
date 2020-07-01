@@ -6,9 +6,8 @@ from moto.ec2 import ec2_backends
 from moto.ecr.models import BaseObject
 from moto.core import BaseBackend
 from moto.core.exceptions import RESTError
+from moto.sagemaker import validators
 from moto.sts.models import ACCOUNT_ID
-
-import moto.sagemaker.validators as validators
 
 
 class Model(BaseObject):
@@ -176,7 +175,9 @@ class FakeSagemakerNotebookInstance:
             "ml.m4.4xlarge",
         ]
         if not validators.is_one_of(instance_type, VALID_INSTANCE_TYPES):
-            message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {VALID_INSTANCE_TYPES}"
+            message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {}".format(
+                instance_type, VALID_INSTANCE_TYPES
+            )
             raise RESTError(
                 error_type="ValidationException",
                 message=message,
@@ -196,8 +197,8 @@ class FakeSagemakerNotebookInstance:
 
     @property
     def url(self):
-        return (
-            f"{self.notebook_instance_name}.notebook.{self.region_name}.sagemaker.aws"
+        return "{}.notebook.{}.sagemaker.aws".format(
+            self.notebook_instance_name, self.region_name
         )
 
     def start(self):
@@ -242,7 +243,9 @@ class SageMakerModelBackend(BaseBackend):
             if model.ModelName != model_name:
                 continue
             return model.response_object
-        message = f"Could not find model '{Model.arn_for_model_name(model_name, self.region_name)}'."
+        message = "Could not find model '{}'.".format(
+            Model.arn_for_model_name(model_name, self.region_name)
+        )
         raise RESTError(
             error_type="ValidationException", message=message, template="error_json",
         )
@@ -307,7 +310,9 @@ class SageMakerModelBackend(BaseBackend):
     def _validate_unique_notebook_instance_name(self, notebook_instance_name):
         if notebook_instance_name in self.notebook_instances:
             duplicate_arn = self.notebook_instances[notebook_instance_name].arn
-            message = f"Cannot create a duplicate Notebook Instance ({duplicate_arn})"
+            message = "Cannot create a duplicate Notebook Instance ({})".format(
+                duplicate_arn
+            )
             raise RESTError(
                 error_type="ValidationException",
                 message=message,
@@ -343,7 +348,9 @@ class SageMakerModelBackend(BaseBackend):
     def delete_notebook_instance(self, notebook_instance_name):
         notebook_instance = self.get_notebook_instance(notebook_instance_name)
         if not notebook_instance.is_deletable:
-            message = f"Status ({notebook_instance.status}) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({notebook_instance.arn})"
+            message = "Status ({}) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({})".format(
+                notebook_instance.status, notebook_instance.arn
+            )
             raise RESTError(
                 error_type="ValidationException",
                 message=message,

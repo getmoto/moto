@@ -51,12 +51,14 @@ def test_create_model():
     client = boto3.client("sagemaker", region_name="us-east-1")
     vpc_config = VpcConfig(["sg-foobar"], ["subnet-xxx"])
     exec_role_arn = "arn:aws:sagemaker:eu-west-1:000000000000:x-x/foobar"
-    name="blah"
+    name = "blah"
     model = client.create_model(
-        ModelName=name, ExecutionRoleArn=exec_role_arn, VpcConfig=vpc_config.response_object
+        ModelName=name,
+        ExecutionRoleArn=exec_role_arn,
+        VpcConfig=vpc_config.response_object,
     )
 
-    model["ModelArn"].should.match(fr"^arn:aws:sagemaker:.*:.*:model/{name}$")
+    model["ModelArn"].should.match(r"^arn:aws:sagemaker:.*:.*:model/{}$".format(name))
 
 
 @mock_sagemaker
@@ -91,7 +93,9 @@ def test_list_models():
     models = client.list_models()
     assert len(models["Models"]).should.equal(1)
     assert models["Models"][0]["ModelName"].should.equal(name)
-    assert models["Models"][0]["ModelArn"].should.match(fr"^arn:aws:sagemaker:.*:.*:model/{name}$")
+    assert models["Models"][0]["ModelArn"].should.match(
+        r"^arn:aws:sagemaker:.*:.*:model/{}$".format(name)
+    )
 
 
 @mock_sagemaker
