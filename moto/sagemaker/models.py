@@ -14,6 +14,7 @@ import moto.sagemaker.validators as validators
 class Model(BaseObject):
     def __init__(
         self,
+        region_name,
         model_name,
         execution_role_arn,
         primary_container,
@@ -29,6 +30,7 @@ class Model(BaseObject):
         self.VpcConfig = vpc_config
         self.PrimaryContainer = primary_container
         self.ExecutionRoleArn = execution_role_arn or "arn:test"
+        self.ModelArn = self.arn_for_model_name(self.ModelName, region_name)
 
     @property
     def response_object(self):
@@ -39,7 +41,18 @@ class Model(BaseObject):
 
     @property
     def response_create(self):
-        return {"ModelArn": self.ExecutionRoleArn}
+        return {"ModelArn": self.ModelArn}
+
+    @staticmethod
+    def arn_for_model_name(model_name, region_name):
+        return (
+            "arn:aws:sagemaker:"
+            + region_name
+            + ":"
+            + str(ACCOUNT_ID)
+            + ":model/"
+            + model_name
+        )
 
 
 class VpcConfig(BaseObject):
@@ -198,7 +211,7 @@ class FakeSagemakerNotebookInstance:
         self.status = "Stopped"
 
 
-class SageMakerBackend(BaseBackend):
+class SageMakerModelBackend(BaseBackend):
     def __init__(self, region_name=None):
         self._models = {}
         self.notebook_instances = {}
@@ -211,6 +224,7 @@ class SageMakerBackend(BaseBackend):
 
     def create_model(self, **kwargs):
         model_obj = Model(
+            self.region_name,
             kwargs.get("ModelName"),
             kwargs.get("ExecutionRoleArn"),
             kwargs.get("PrimaryContainer", {}),
@@ -228,6 +242,10 @@ class SageMakerBackend(BaseBackend):
             if model.ModelName != model_name:
                 continue
             return model.response_object
+        message = f'Could not find model "{Model.arn_for_model_name(model_name, self.region_name)}"'
+        raise RESTError(
+            error_type="ValidationException", message=message, template="error_json",
+        )
 
     def list_models(self):
         models = []
@@ -336,4 +354,5 @@ class SageMakerBackend(BaseBackend):
 
 sagemaker_backends = {}
 for region, ec2_backend in ec2_backends.items():
-    sagemaker_backends[region] = SageMakerBackend(region)
+    sagemaker_backends[region] = SageMakerModelBackend(region)
+
