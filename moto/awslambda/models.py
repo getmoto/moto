@@ -853,6 +853,7 @@ class LambdaBackend(BaseBackend):
         return fn
 
     def create_event_source_mapping(self, spec):
+        print('moto dfunction invoked')
         required = ["EventSourceArn", "FunctionName"]
         for param in required:
             if not spec.get(param):
