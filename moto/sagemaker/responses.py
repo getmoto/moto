@@ -68,7 +68,6 @@ class SageMakerResponse(BaseResponse):
         except AWSError as err:
             return err.response()
 
-
     @amzn_request_id
     def describe_notebook_instance(self):
         notebook_instance_name = self._get_param("NotebookInstanceName")
@@ -101,7 +100,6 @@ class SageMakerResponse(BaseResponse):
         except AWSError as err:
             return err.response()
 
-
     @amzn_request_id
     def start_notebook_instance(self):
         notebook_instance_name = self._get_param("NotebookInstanceName")
@@ -110,7 +108,6 @@ class SageMakerResponse(BaseResponse):
         )
         notebook_instance.start()
         return 200, {}, json.dumps("{}")
-
 
     @amzn_request_id
     def stop_notebook_instance(self):
@@ -121,13 +118,11 @@ class SageMakerResponse(BaseResponse):
         notebook_instance.stop()
         return 200, {}, json.dumps("{}")
 
-
     @amzn_request_id
     def delete_notebook_instance(self):
         notebook_instance_name = self._get_param("NotebookInstanceName")
         self.sagemaker_backend.delete_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
-
 
     @amzn_request_id
     def list_tags(self):

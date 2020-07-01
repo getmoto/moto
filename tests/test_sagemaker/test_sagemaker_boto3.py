@@ -320,5 +320,7 @@ def test_describe_nonexistent_model():
 
     with assert_raises(ClientError) as e:
         resp = sagemaker.describe_model(ModelName="Nonexistent")
-    assert_true("Could not find model" in e.exception.response["Error"]["Message"])
+    assert_true(
+        e.exception.response["Error"]["Message"].startswith("Could not find model")
+    )
     pass

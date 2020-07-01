@@ -242,7 +242,7 @@ class SageMakerModelBackend(BaseBackend):
             if model.ModelName != model_name:
                 continue
             return model.response_object
-        message = f'Could not find model "{Model.arn_for_model_name(model_name, self.region_name)}"'
+        message = f"Could not find model '{Model.arn_for_model_name(model_name, self.region_name)}'."
         raise RESTError(
             error_type="ValidationException", message=message, template="error_json",
         )
@@ -355,4 +355,3 @@ class SageMakerModelBackend(BaseBackend):
 sagemaker_backends = {}
 for region, ec2_backend in ec2_backends.items():
     sagemaker_backends[region] = SageMakerModelBackend(region)
-
