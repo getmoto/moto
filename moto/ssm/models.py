@@ -169,6 +169,11 @@ class Document(BaseModel):
         if document_format == "JSON":
             try:
                 content_json = json.loads(content)
+            except ValueError:
+                # Python2
+                raise InvalidDocumentContent(
+                    "The content for the document is not valid."
+                )
             except json.decoder.JSONDecodeError:
                 raise InvalidDocumentContent(
                     "The content for the document is not valid."
@@ -181,7 +186,7 @@ class Document(BaseModel):
                     "The content for the document is not valid."
                 )
         else:
-            raise ValidationException(f"Invalid document format {document_format}")
+            raise ValidationException("Invalid document format " + str(document_format))
 
         self.content_json = content_json
 
@@ -379,7 +384,7 @@ class Command(BaseModel):
 def _validate_document_format(document_format):
     aws_doc_formats = ["JSON", "YAML"]
     if document_format not in aws_doc_formats:
-        raise ValidationException(f"Invalid document format {document_format}")
+        raise ValidationException("Invalid document format " + str(document_format))
 
 
 def _validate_document_info(content, name, document_type, document_format, strict=True):
@@ -403,14 +408,14 @@ def _validate_document_info(content, name, document_type, document_format, stric
         raise ValidationException("Content is required")
 
     if list(filter(name.startswith, aws_name_reject_list)):
-        raise ValidationException(f"Invalid document name {name}")
+        raise ValidationException("Invalid document name " + str(name))
     ssm_name_pattern = re.compile(aws_ssm_name_regex)
     if not ssm_name_pattern.match(name):
-        raise ValidationException(f"Invalid document name {name}")
+        raise ValidationException("Invalid document name " + str(name))
 
     if strict and document_type not in aws_doc_types:
         # Update document doesn't use document type
-        raise ValidationException(f"Invalid document type {document_type}")
+        raise ValidationException("Invalid document type " + str(document_type))
 
 
 def _document_filter_equal_comparator(keyed_value, filter):
@@ -524,7 +529,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         elif document_format == "YAML":
             base["Content"] = yaml.dump(ssm_document.content_json)
         else:
-            raise ValidationException(f"Invalid document format {document_format}")
+            raise ValidationException("Invalid document format " + str(document_format))
 
         if ssm_document.version_name:
             base["VersionName"] = ssm_document.version_name
@@ -589,7 +594,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         )
 
         if self._documents.get(ssm_document.name):
-            raise DocumentAlreadyExists(f"The specified document already exists.")
+            raise DocumentAlreadyExists("The specified document already exists.")
 
         self._documents[ssm_document.name] = {
             "documents": {ssm_document.document_version: ssm_document},
@@ -663,7 +668,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         self, name, document_version=None, version_name=None, strict=True
     ):
         if not self._documents.get(name):
-            raise InvalidDocument(f"The specified document does not exist.")
+            raise InvalidDocument("The specified document does not exist.")
 
         documents = self._documents[name]["documents"]
         ssm_document = None
@@ -692,7 +697,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                     break
 
         if strict and not ssm_document:
-            raise InvalidDocument(f"The specified document does not exist.")
+            raise InvalidDocument("The specified document does not exist.")
 
         return ssm_document
 
@@ -751,7 +756,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             name, version_name=version_name, strict=False
         ):
             raise DuplicateDocumentVersionName(
-                f"The specified version name is a duplicate."
+                "The specified version name is a duplicate."
             )
 
         old_ssm_document = self._find_document(name)

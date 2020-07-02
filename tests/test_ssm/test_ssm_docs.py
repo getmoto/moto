@@ -1,12 +1,9 @@
 from __future__ import unicode_literals
 
-import string
-
 import boto3
 import botocore.exceptions
 import sure  # noqa
 import datetime
-import uuid
 import json
 import pkg_resources
 import yaml
@@ -14,10 +11,7 @@ import hashlib
 import copy
 from moto.core import ACCOUNT_ID
 
-from botocore.exceptions import ClientError, ParamValidationError
-from nose.tools import assert_raises
-
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_ssm
 
 
 def _get_yaml_template():
@@ -56,6 +50,10 @@ def _validate_document_description(
     doc_description["Status"].should.equal("Active")
     doc_description["DocumentVersion"].should.equal(expected_document_version)
     doc_description["Description"].should.equal(json_doc["description"])
+
+    doc_description["Parameters"] = sorted(
+        doc_description["Parameters"], key=lambda doc: doc["Name"]
+    )
 
     doc_description["Parameters"][0]["Name"].should.equal("Parameter1")
     doc_description["Parameters"][0]["Type"].should.equal("Integer")
@@ -183,6 +181,63 @@ def test_create_document():
     _validate_document_description(
         "TestDocument3", doc_description, json_doc, "1", "1", "1", "JSON"
     )
+
+    try:
+        client.create_document(
+            Content=json.dumps(json_doc),
+            Name="TestDocument3",
+            DocumentType="Command",
+            DocumentFormat="JSON",
+        )
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("CreateDocument")
+        err.response["Error"]["Message"].should.equal(
+            "The specified document already exists."
+        )
+
+    try:
+        client.create_document(
+            Content=yaml.dump(json_doc),
+            Name="TestDocument4",
+            DocumentType="Command",
+            DocumentFormat="JSON",
+        )
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("CreateDocument")
+        err.response["Error"]["Message"].should.equal(
+            "The content for the document is not valid."
+        )
+
+    del json_doc["parameters"]
+    response = client.create_document(
+        Content=yaml.dump(json_doc),
+        Name="EmptyParamDoc",
+        DocumentType="Command",
+        DocumentFormat="YAML",
+    )
+    doc_description = response["DocumentDescription"]
+
+    doc_description["Hash"].should.equal(
+        hashlib.sha256(yaml.dump(json_doc).encode("utf-8")).hexdigest()
+    )
+    doc_description["HashType"].should.equal("Sha256")
+    doc_description["Name"].should.equal("EmptyParamDoc")
+    doc_description["Owner"].should.equal(ACCOUNT_ID)
+
+    difference = datetime.datetime.utcnow() - doc_description["CreatedDate"]
+    if difference.min > datetime.timedelta(minutes=1):
+        assert False
+
+    doc_description["Status"].should.equal("Active")
+    doc_description["DocumentVersion"].should.equal("1")
+    doc_description["Description"].should.equal(json_doc["description"])
+    doc_description["DocumentType"].should.equal("Command")
+    doc_description["SchemaVersion"].should.equal("2.2")
+    doc_description["LatestVersion"].should.equal("1")
+    doc_description["DefaultVersion"].should.equal("1")
+    doc_description["DocumentFormat"].should.equal("YAML")
 
 
 # Done
@@ -508,6 +563,20 @@ def test_update_document():
         VersionName="Base",
     )
 
+    try:
+        client.update_document(
+            Name="TestDocument",
+            Content=json.dumps(json_doc),
+            DocumentVersion="2",
+            DocumentFormat="JSON",
+        )
+        raise RuntimeError("Should fail")
+    except botocore.exceptions.ClientError as err:
+        err.operation_name.should.equal("UpdateDocument")
+        err.response["Error"]["Message"].should.equal(
+            "The document version is not valid or does not exist."
+        )
+
     # Duplicate content throws an error
     try:
         client.update_document(
@@ -639,6 +708,7 @@ def test_list_documents():
         Name="TestDocument3",
         DocumentType="Command",
         DocumentFormat="JSON",
+        TargetType="/AWS::EC2::Instance",
     )
 
     response = client.list_documents()
@@ -682,9 +752,7 @@ def test_list_documents():
         DocumentFormat="JSON",
     )
 
-    response = client.update_document_default_version(
-        Name="TestDocument", DocumentVersion="2"
-    )
+    client.update_document_default_version(Name="TestDocument", DocumentVersion="2")
 
     response = client.list_documents()
     len(response["DocumentIdentifiers"]).should.equal(3)
@@ -697,3 +765,11 @@ def test_list_documents():
     response["DocumentIdentifiers"][2]["Name"].should.equal("TestDocument3")
     response["DocumentIdentifiers"][2]["DocumentVersion"].should.equal("1")
     response["NextToken"].should.equal("")
+
+    response = client.list_documents(Filters=[{"Key": "Owner", "Values": ["Self"]}])
+    len(response["DocumentIdentifiers"]).should.equal(3)
+
+    response = client.list_documents(
+        Filters=[{"Key": "TargetType", "Values": ["/AWS::EC2::Instance"]}]
+    )
+    len(response["DocumentIdentifiers"]).should.equal(1)
