@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 
 import re
+from boto3 import Session
 from collections import defaultdict
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
-from moto.ec2 import ec2_backends
 from moto.cloudformation import cloudformation_backends
 
 import datetime
@@ -807,5 +807,9 @@ class SimpleSystemManagerBackend(BaseBackend):
 
 
 ssm_backends = {}
-for region, ec2_backend in ec2_backends.items():
+for region in Session().get_available_regions("ssm"):
+    ssm_backends[region] = SimpleSystemManagerBackend(region)
+for region in Session().get_available_regions("ssm", partition_name="aws-us-gov"):
+    ssm_backends[region] = SimpleSystemManagerBackend(region)
+for region in Session().get_available_regions("ssm", partition_name="aws-cn"):
     ssm_backends[region] = SimpleSystemManagerBackend(region)
