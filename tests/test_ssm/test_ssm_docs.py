@@ -134,7 +134,6 @@ def _get_doc_validator(
     response["DocumentFormat"].should.equal(document_format)
 
 
-# Done
 @mock_ssm
 def test_create_document():
     template_file = _get_yaml_template()
@@ -240,7 +239,6 @@ def test_create_document():
     doc_description["DocumentFormat"].should.equal("YAML")
 
 
-# Done
 @mock_ssm
 def test_get_document():
     template_file = _get_yaml_template()
@@ -472,7 +470,6 @@ def test_delete_document():
     len(response["DocumentIdentifiers"]).should.equal(0)
 
 
-# Done
 @mock_ssm
 def test_update_document_default_version():
     template_file = _get_yaml_template()
@@ -533,7 +530,6 @@ def test_update_document_default_version():
     response["Description"]["DefaultVersionName"].should.equal("NewBase")
 
 
-# Done
 @mock_ssm
 def test_update_document():
     template_file = _get_yaml_template()
@@ -638,7 +634,6 @@ def test_update_document():
     response["DocumentDescription"]["VersionName"].should.equal("NewBase")
 
 
-# Done
 @mock_ssm
 def test_describe_document():
     template_file = _get_yaml_template()
@@ -683,7 +678,6 @@ def test_describe_document():
     )
 
 
-# Done
 @mock_ssm
 def test_list_documents():
     template_file = _get_yaml_template()
