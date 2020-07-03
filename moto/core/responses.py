@@ -188,6 +188,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     default_region = "us-east-1"
     # to extract region, use [^.]
     region_regex = re.compile(r"\.(?P<region>[a-z]{2}-[a-z]+-\d{1})\.amazonaws\.com")
+    region_from_useragent_regex = re.compile(
+        r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
+    )
     param_list_regex = re.compile(r"(.*)\.(\d+)\.")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
@@ -272,9 +275,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.response_headers = {"server": "amazon.com"}
 
     def get_region_from_url(self, request, full_url):
-        match = self.region_regex.search(full_url)
-        if match:
-            region = match.group(1)
+        url_match = self.region_regex.search(full_url)
+        user_agent_match = self.region_from_useragent_regex.search(
+            request.headers.get("User-Agent", "")
+        )
+        if url_match:
+            region = url_match.group(1)
+        elif user_agent_match:
+            region = user_agent_match.group(1)
         elif (
             "Authorization" in request.headers
             and "AWS4" in request.headers["Authorization"]
