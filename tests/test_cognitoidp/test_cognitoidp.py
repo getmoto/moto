@@ -1244,6 +1244,38 @@ def test_change_password():
 
 
 @mock_cognitoidp
+def test_change_password__using_custom_user_agent_header():
+    # https://github.com/spulec/moto/issues/3098
+    # As the admin_initiate_auth-method is unauthenticated, we use the user-agent header to pass in the region
+    # This test verifies this works, even if we pass in our own user-agent header
+    from botocore.config import Config
+
+    my_config = Config(user_agent_extra="more/info", signature_version="v4")
+    conn = boto3.client("cognito-idp", "us-west-2", config=my_config)
+
+    outputs = authentication_flow(conn)
+
+    # Take this opportunity to test change_password, which requires an access token.
+    newer_password = str(uuid.uuid4())
+    conn.change_password(
+        AccessToken=outputs["access_token"],
+        PreviousPassword=outputs["password"],
+        ProposedPassword=newer_password,
+    )
+
+    # Log in again, which should succeed without a challenge because the user is no
+    # longer in the force-new-password state.
+    result = conn.admin_initiate_auth(
+        UserPoolId=outputs["user_pool_id"],
+        ClientId=outputs["client_id"],
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": outputs["username"], "PASSWORD": newer_password},
+    )
+
+    result["AuthenticationResult"].should_not.be.none
+
+
+@mock_cognitoidp
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 

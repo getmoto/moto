@@ -10,6 +10,7 @@ import six
 import types
 from io import BytesIO
 from collections import defaultdict
+from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 from botocore.awsrequest import AWSResponse
 from six.moves.urllib.parse import urlparse
@@ -416,6 +417,13 @@ class ServerModeMockAWS(BaseMockAWS):
         import mock
 
         def fake_boto3_client(*args, **kwargs):
+            region = self._get_region(*args, **kwargs)
+            if region:
+                if "config" in kwargs:
+                    kwargs["config"].__dict__["user_agent_extra"] += " region/" + region
+                else:
+                    config = Config(user_agent_extra="region/" + region)
+                    kwargs["config"] = config
             if "endpoint_url" not in kwargs:
                 kwargs["endpoint_url"] = "http://localhost:5000"
             return real_boto3_client(*args, **kwargs)
@@ -462,6 +470,14 @@ class ServerModeMockAWS(BaseMockAWS):
         self._resource_patcher.start()
         if six.PY2:
             self._httplib_patcher.start()
+
+    def _get_region(self, *args, **kwargs):
+        if "region_name" in kwargs:
+            return kwargs["region_name"]
+        if type(args) == tuple and len(args) == 2:
+            service, region = args
+            return region
+        return None
 
     def disable_patching(self):
         if self._client_patcher:
