@@ -6,6 +6,10 @@ BACKENDS = {
     "acm": ("acm", "acm_backends"),
     "apigateway": ("apigateway", "apigateway_backends"),
     "athena": ("athena", "athena_backends"),
+    "applicationautoscaling": (
+        "applicationautoscaling",
+        "applicationautoscaling_backends",
+    ),
     "autoscaling": ("autoscaling", "autoscaling_backends"),
     "batch": ("batch", "batch_backends"),
     "cloudformation": ("cloudformation", "cloudformation_backends"),
