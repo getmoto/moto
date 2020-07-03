@@ -825,3 +825,12 @@ def test_describe_classic_link_dns_support_multiple():
     assert response.get("Vpcs").sort(key=lambda x: x["VpcId"]) == expected.sort(
         key=lambda x: x["VpcId"]
     )
+
+
+@mock_ec2
+def test_describe_vpc_end_point_services():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_end_point_services = ec2.describe_vpc_endpoint_services()
+    assert vpc_end_point_services.get("ServiceDetails").should.be.true
+    assert vpc_end_point_services.get("ServiceNames").should.be.true
+    assert vpc_end_point_services.get("ServiceDetails")[0].get("ServiceType", []).should.be.true
