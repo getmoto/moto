@@ -272,7 +272,24 @@ class StreamShard(BaseModel):
         return [i.to_json() for i in self.items[start:end]]
 
 
-class LocalSecondaryIndex(BaseModel):
+class SecondaryIndex(BaseModel):
+    def project(self, item):
+        """
+        Enforces the ProjectionType of this Index (LSI/GSI)
+        Removes any non-wanted attributes from the item
+        :param item:
+        :return:
+        """
+        if self.projection:
+            if self.projection.get("ProjectionType", None) == "KEYS_ONLY":
+                allowed_attributes = ",".join(
+                    [key["AttributeName"] for key in self.schema]
+                )
+                item.filter(allowed_attributes)
+        return item
+
+
+class LocalSecondaryIndex(SecondaryIndex):
     def __init__(self, index_name, schema, projection):
         self.name = index_name
         self.schema = schema
@@ -294,7 +311,7 @@ class LocalSecondaryIndex(BaseModel):
         )
 
 
-class GlobalSecondaryIndex(BaseModel):
+class GlobalSecondaryIndex(SecondaryIndex):
     def __init__(
         self, index_name, schema, projection, status="ACTIVE", throughput=None
     ):
@@ -330,21 +347,6 @@ class GlobalSecondaryIndex(BaseModel):
         self.schema = u.get("KeySchema", self.schema)
         self.projection = u.get("Projection", self.projection)
         self.throughput = u.get("ProvisionedThroughput", self.throughput)
-
-    def project(self, item):
-        """
-        Enforces the ProjectionType of this GSI
-        Removes any non-wanted attributes from the item
-        :param item:
-        :return:
-        """
-        if self.projection:
-            if self.projection.get("ProjectionType", None) == "KEYS_ONLY":
-                allowed_attributes = ",".join(
-                    [key["AttributeName"] for key in self.schema]
-                )
-                item.filter(allowed_attributes)
-        return item
 
 
 class Table(BaseModel):
