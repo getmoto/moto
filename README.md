@@ -65,6 +65,8 @@ It gets even better! Moto isn't just for Python code and it isn't just for S3. L
 |-------------------------------------------------------------------------------------|                             |
 | API Gateway               | @mock_apigateway      | core endpoints done             |                             |
 |-------------------------------------------------------------------------------------|                             |
+| Application Autoscaling   | @mock_applicationautoscaling | basic endpoints done     |                             |
+|-------------------------------------------------------------------------------------|                             |
 | Autoscaling               | @mock_autoscaling     | core endpoints done             |                             |
 |-------------------------------------------------------------------------------------|                             |
 | Cloudformation            | @mock_cloudformation  | core endpoints done             |                             |
