@@ -7093,7 +7093,7 @@
 - [X] delete_bucket_tagging
 - [ ] delete_bucket_website
 - [X] delete_object
-- [ ] delete_object_tagging
+- [x] delete_object_tagging
 - [ ] delete_objects
 - [ ] delete_public_access_block
 - [ ] get_bucket_accelerate_configuration

@@ -1618,6 +1618,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.backend.cancel_multipart(bucket_name, upload_id)
             return 204, {}, ""
         version_id = query.get("versionId", [None])[0]
+        if "tagging" in query:
+            self.backend.delete_object_tagging(
+                bucket_name, key_name, version_id=version_id
+            )
+            template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
+            return 204, {}, template.render(version_id=version_id)
         self.backend.delete_object(bucket_name, key_name, version_id=version_id)
         return 204, {}, ""
 
@@ -1934,6 +1940,12 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </Error>
 {% endfor %}
 </DeleteResult>"""
+
+S3_DELETE_KEY_TAGGING_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DeleteObjectTaggingResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+<VersionId>{{version_id}}</VersionId>
+</DeleteObjectTaggingResult>
+"""
 
 S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
