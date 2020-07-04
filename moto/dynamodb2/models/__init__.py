@@ -272,7 +272,24 @@ class StreamShard(BaseModel):
         return [i.to_json() for i in self.items[start:end]]
 
 
-class LocalSecondaryIndex(BaseModel):
+class SecondaryIndex(BaseModel):
+    def project(self, item):
+        """
+        Enforces the ProjectionType of this Index (LSI/GSI)
+        Removes any non-wanted attributes from the item
+        :param item:
+        :return:
+        """
+        if self.projection:
+            if self.projection.get("ProjectionType", None) == "KEYS_ONLY":
+                allowed_attributes = ",".join(
+                    [key["AttributeName"] for key in self.schema]
+                )
+                item.filter(allowed_attributes)
+        return item
+
+
+class LocalSecondaryIndex(SecondaryIndex):
     def __init__(self, index_name, schema, projection):
         self.name = index_name
         self.schema = schema
@@ -294,7 +311,7 @@ class LocalSecondaryIndex(BaseModel):
         )
 
 
-class GlobalSecondaryIndex(BaseModel):
+class GlobalSecondaryIndex(SecondaryIndex):
     def __init__(
         self, index_name, schema, projection, status="ACTIVE", throughput=None
     ):
@@ -719,6 +736,10 @@ class Table(BaseModel):
             results = [item for item in results if filter_expression.expr(item)]
 
         results = copy.deepcopy(results)
+        if index_name:
+            index = self.get_index(index_name)
+            for result in results:
+                index.project(result)
         if projection_expression:
             for result in results:
                 result.filter(projection_expression)
@@ -739,11 +760,16 @@ class Table(BaseModel):
     def all_indexes(self):
         return (self.global_indexes or []) + (self.indexes or [])
 
-    def has_idx_items(self, index_name):
-
+    def get_index(self, index_name, err=None):
         all_indexes = self.all_indexes()
         indexes_by_name = dict((i.name, i) for i in all_indexes)
-        idx = indexes_by_name[index_name]
+        if err and index_name not in indexes_by_name:
+            raise err
+        return indexes_by_name[index_name]
+
+    def has_idx_items(self, index_name):
+
+        idx = self.get_index(index_name)
         idx_col_set = set([i["AttributeName"] for i in idx.schema])
 
         for hash_set in self.items.values():
@@ -766,14 +792,12 @@ class Table(BaseModel):
     ):
         results = []
         scanned_count = 0
-        all_indexes = self.all_indexes()
-        indexes_by_name = dict((i.name, i) for i in all_indexes)
 
         if index_name:
-            if index_name not in indexes_by_name:
-                raise InvalidIndexNameError(
-                    "The table does not have the specified index: %s" % index_name
-                )
+            err = InvalidIndexNameError(
+                "The table does not have the specified index: %s" % index_name
+            )
+            self.get_index(index_name, err)
             items = self.has_idx_items(index_name)
         else:
             items = self.all_items()
@@ -847,9 +871,7 @@ class Table(BaseModel):
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
 
             if scanned_index:
-                all_indexes = self.all_indexes()
-                indexes_by_name = dict((i.name, i) for i in all_indexes)
-                idx = indexes_by_name[scanned_index]
+                idx = self.get_index(scanned_index)
                 idx_col_list = [i["AttributeName"] for i in idx.schema]
                 for col in idx_col_list:
                     last_evaluated_key[col] = results[-1].attrs[col]
