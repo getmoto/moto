@@ -1944,3 +1944,53 @@ def test_put_organization_conformance_pack_errors():
         "Member must satisfy regular expression pattern: "
         "s3://.*"
     )
+
+
+@mock_config
+def test_describe_organization_conformance_packs():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.describe_organization_conformance_packs(
+        OrganizationConformancePackNames=["test-pack"]
+    )
+
+    # then
+    response["OrganizationConformancePacks"].should.have.length_of(1)
+    pack = response["OrganizationConformancePacks"][0]
+    pack["OrganizationConformancePackName"].should.equal("test-pack")
+    pack["OrganizationConformancePackArn"].should.equal(arn)
+    pack["DeliveryS3Bucket"].should.equal("awsconfigconforms-test-bucket")
+    pack["ConformancePackInputParameters"].should.have.length_of(0)
+    pack["ExcludedAccounts"].should.have.length_of(0)
+    pack["LastUpdateTime"].should.be.a("datetime.datetime")
+
+
+@mock_config
+def test_describe_organization_conformance_packs_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.describe_organization_conformance_packs(
+            OrganizationConformancePackNames=["not-existing"]
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeOrganizationConformancePacks")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "One or more organization conformance packs with specified names are not present. "
+        "Ensure your names are correct and try your request again later."
+    )

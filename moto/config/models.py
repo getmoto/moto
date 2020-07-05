@@ -42,6 +42,7 @@ from moto.config.exceptions import (
     TooManyResourceKeys,
     InvalidResultTokenException,
     ValidationException,
+    NoSuchOrganizationConformancePackException,
 )
 
 from moto.core import BaseBackend, BaseModel
@@ -1178,6 +1179,19 @@ class ConfigBackend(BaseBackend):
         return {
             "OrganizationConformancePackArn": pack.organization_conformance_pack_arn
         }
+
+    def describe_organization_conformance_packs(self, names):
+        packs = []
+
+        for name in names:
+            pack = self.organization_conformance_packs.get(name)
+
+            if not pack:
+                raise NoSuchOrganizationConformancePackException
+
+            packs.append(pack.to_dict())
+
+        return {"OrganizationConformancePacks": packs}
 
 
 config_backends = {}

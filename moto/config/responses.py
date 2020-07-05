@@ -173,3 +173,10 @@ class ConfigResponse(BaseResponse):
         )
 
         return json.dumps(conformance_pack)
+
+    def describe_organization_conformance_packs(self):
+        conformance_packs = self.config_backend.describe_organization_conformance_packs(
+            self._get_param("OrganizationConformancePackNames")
+        )
+
+        return json.dumps(conformance_packs)
