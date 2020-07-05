@@ -41,6 +41,7 @@ from moto.config.exceptions import (
     ResourceNotDiscoveredException,
     TooManyResourceKeys,
     InvalidResultTokenException,
+    ValidationException,
 )
 
 from moto.core import BaseBackend, BaseModel
@@ -367,12 +368,38 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
         self.tags = tags or {}
 
 
+class OrganizationConformancePack(ConfigEmptyDictable):
+    def __init__(
+        self,
+        region,
+        name,
+        delivery_s3_bucket,
+        delivery_s3_key_prefix=None,
+        input_parameters=None,
+        excluded_accounts=None,
+    ):
+        super(OrganizationConformancePack, self).__init__(
+            capitalize_start=True, capitalize_arn=False
+        )
+
+        self.conformance_pack_input_parameters = input_parameters or []
+        self.delivery_s3_bucket = delivery_s3_bucket
+        self.delivery_s3_key_prefix = delivery_s3_key_prefix
+        self.excluded_accounts = excluded_accounts or []
+        self.last_update_time = datetime2int(datetime.utcnow())
+        self.organization_conformance_pack_arn = "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}-{3}".format(
+            region, DEFAULT_ACCOUNT_ID, name, random_string()
+        )
+        self.organization_conformance_pack_name = name
+
+
 class ConfigBackend(BaseBackend):
     def __init__(self):
         self.recorders = {}
         self.delivery_channels = {}
         self.config_aggregators = {}
         self.aggregation_authorizations = {}
+        self.organization_conformance_packs = {}
 
     @staticmethod
     def _validate_resource_types(resource_list):
@@ -1109,6 +1136,48 @@ class ConfigBackend(BaseBackend):
         return {
             "FailedEvaluations": [],
         }  # At this time, moto is not adding failed evaluations.
+
+    def put_organization_conformance_pack(
+        self,
+        region,
+        name,
+        template_s3_uri,
+        template_body,
+        delivery_s3_bucket,
+        delivery_s3_key_prefix,
+        input_parameters,
+        excluded_accounts,
+    ):
+        # a real validation of the content of the template is missing at the moment
+        if not template_s3_uri and not template_body:
+            raise ValidationException("Template body is invalid")
+
+        if not re.match(r"s3://.*", template_s3_uri):
+            raise ValidationException(
+                "1 validation error detected: "
+                "Value '{}' at 'templateS3Uri' failed to satisfy constraint: "
+                "Member must satisfy regular expression pattern: "
+                "s3://.*".format(template_s3_uri)
+            )
+
+        pack = self.organization_conformance_packs.get(name)
+
+        if pack:
+            pack.delivery_s3_bucket = delivery_s3_bucket
+        else:
+            pack = OrganizationConformancePack(
+                region,
+                name,
+                delivery_s3_bucket,
+                delivery_s3_key_prefix=delivery_s3_key_prefix,
+                input_parameters=input_parameters,
+                excluded_accounts=excluded_accounts,
+            )
+            self.organization_conformance_packs[name] = pack
+
+        return {
+            "OrganizationConformancePackArn": pack.organization_conformance_pack_arn
+        }
 
 
 config_backends = {}

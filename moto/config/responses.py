@@ -159,3 +159,17 @@ class ConfigResponse(BaseResponse):
             self._get_param("TestMode"),
         )
         return json.dumps(evaluations)
+
+    def put_organization_conformance_pack(self):
+        conformance_pack = self.config_backend.put_organization_conformance_pack(
+            self.region,
+            self._get_param("OrganizationConformancePackName"),
+            self._get_param("TemplateS3Uri"),
+            self._get_param("TemplateBody"),
+            self._get_param("DeliveryS3Bucket"),
+            self._get_param("DeliveryS3KeyPrefix"),
+            self._get_param("ConformancePackInputParameters"),
+            self._get_param("ExcludedAccounts"),
+        )
+
+        return json.dumps(conformance_pack)

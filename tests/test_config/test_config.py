@@ -1874,3 +1874,73 @@ def test_put_evaluations():
     response.should.equal(
         {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200,},}
     )
+
+
+@mock_config
+def test_put_organization_conformance_pack():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    response = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )
+
+    # then
+    arn = response["OrganizationConformancePackArn"]
+    arn.should.match(
+        r"arn:aws:config:us-east-1:\d{12}:organization-conformance-pack/test-pack-\w{8}"
+    )
+
+    # putting an organization conformance pack with the same name should result in an update
+    # when
+    response = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack-2.yaml",
+    )
+
+    # then
+    response["OrganizationConformancePackArn"].should.equal(arn)
+
+
+@mock_config
+def test_put_organization_conformance_pack_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.put_organization_conformance_pack(
+            DeliveryS3Bucket="awsconfigconforms-test-bucket",
+            OrganizationConformancePackName="test-pack",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("PutOrganizationConformancePack")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal("Template body is invalid")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.put_organization_conformance_pack(
+            DeliveryS3Bucket="awsconfigconforms-test-bucket",
+            OrganizationConformancePackName="test-pack",
+            TemplateS3Uri="invalid-s3-uri",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("PutOrganizationConformancePack")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value 'invalid-s3-uri' at 'templateS3Uri' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern: "
+        "s3://.*"
+    )
