@@ -3544,18 +3544,20 @@ class RouteTableBackend(object):
 
 class Route(object):
     def __init__(
-            self,
-            route_table,
-            destination_cidr_block,
-            destination_ipv6_cidr_block,
-            local=False,
-            gateway=None,
-            instance=None,
-            nat_gateway=None,
-            interface=None,
-            vpc_pcx=None,
+        self,
+        route_table,
+        destination_cidr_block,
+        destination_ipv6_cidr_block,
+        local=False,
+        gateway=None,
+        instance=None,
+        nat_gateway=None,
+        interface=None,
+        vpc_pcx=None,
     ):
-        self.id = generate_route_id(route_table.id, destination_cidr_block, destination_ipv6_cidr_block)
+        self.id = generate_route_id(
+            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
         self.destination_ipv6_cidr_block = destination_ipv6_cidr_block
@@ -3631,16 +3633,16 @@ class RouteBackend(object):
         super(RouteBackend, self).__init__()
 
     def create_route(
-            self,
-            route_table_id,
-            destination_cidr_block,
-            destination_ipv6_cidr_block=None,
-            local=False,
-            gateway_id=None,
-            instance_id=None,
-            nat_gateway_id=None,
-            interface_id=None,
-            vpc_peering_connection_id=None,
+        self,
+        route_table_id,
+        destination_cidr_block,
+        destination_ipv6_cidr_block=None,
+        local=False,
+        gateway_id=None,
+        instance_id=None,
+        nat_gateway_id=None,
+        interface_id=None,
+        vpc_peering_connection_id=None,
     ):
         gateway = None
         nat_gateway = None
