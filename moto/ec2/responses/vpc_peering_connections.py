@@ -86,6 +86,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
      <ownerId>777788889999</ownerId>
      <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
      <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
+     <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
     </requesterVpcInfo>
     <accepterVpcInfo>
      <ownerId>"""
@@ -98,6 +99,7 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = (
         <allowEgressFromLocalVpcToRemoteClassicLink>true</allowEgressFromLocalVpcToRemoteClassicLink>
         <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
+     <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
     </accepterVpcInfo>
      <status>
       <code>{{ vpc_pcx._status.code }}</code>
@@ -128,6 +130,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
       <ownerId>777788889999</ownerId>
       <vpcId>{{ vpc_pcx.vpc.id }}</vpcId>
       <cidrBlock>{{ vpc_pcx.vpc.cidr_block }}</cidrBlock>
+      <region>{{ vpc_pcx.vpc.ec2_backend.region_name }}</region>
     </requesterVpcInfo>
     <accepterVpcInfo>
       <ownerId>"""
@@ -140,6 +143,7 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = (
         <allowEgressFromLocalVpcToRemoteClassicLink>false</allowEgressFromLocalVpcToRemoteClassicLink>
         <allowDnsResolutionFromRemoteVpc>false</allowDnsResolutionFromRemoteVpc>
       </peeringOptions>
+      <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
     </accepterVpcInfo>
     <status>
       <code>{{ vpc_pcx._status.code }}</code>
