@@ -1994,3 +1994,53 @@ def test_describe_organization_conformance_packs_errors():
         "One or more organization conformance packs with specified names are not present. "
         "Ensure your names are correct and try your request again later."
     )
+
+
+@mock_config
+def test_get_organization_conformance_pack_detailed_status():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.get_organization_conformance_pack_detailed_status(
+        OrganizationConformancePackName="test-pack"
+    )
+
+    # then
+    response["OrganizationConformancePackDetailedStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackDetailedStatuses"][0]
+    status["AccountId"].should.equal(ACCOUNT_ID)
+    status["ConformancePackName"].should.equal(
+        "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
+    )
+    status["Status"].should.equal("UPDATE_SUCCESSFUL")
+    status["LastUpdateTime"].should.be.a("datetime.datetime")
+
+
+@mock_config
+def test_get_organization_conformance_pack_detailed_status_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.get_organization_conformance_pack_detailed_status(
+            OrganizationConformancePackName="not-existing"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("GetOrganizationConformancePackDetailedStatus")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "One or more organization conformance packs with specified names are not present. "
+        "Ensure your names are correct and try your request again later."
+    )

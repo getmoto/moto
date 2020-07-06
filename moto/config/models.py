@@ -161,7 +161,8 @@ class ConfigEmptyDictable(BaseModel):
     def to_dict(self):
         data = {}
         for item, value in self.__dict__.items():
-            if value is not None:
+            # ignore private attributes
+            if not item.startswith("_") and value is not None:
                 if isinstance(value, ConfigEmptyDictable):
                     data[
                         snake_to_camels(
@@ -383,13 +384,15 @@ class OrganizationConformancePack(ConfigEmptyDictable):
             capitalize_start=True, capitalize_arn=False
         )
 
+        self._unique_pack_name = "{0}-{1}".format(name, random_string())
+
         self.conformance_pack_input_parameters = input_parameters or []
         self.delivery_s3_bucket = delivery_s3_bucket
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
         self.last_update_time = datetime2int(datetime.utcnow())
-        self.organization_conformance_pack_arn = "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}-{3}".format(
-            region, DEFAULT_ACCOUNT_ID, name, random_string()
+        self.organization_conformance_pack_arn = "arn:aws:config:{0}:{1}:organization-conformance-pack/{2}".format(
+            region, DEFAULT_ACCOUNT_ID, self._unique_pack_name
         )
         self.organization_conformance_pack_name = name
 
@@ -1192,6 +1195,26 @@ class ConfigBackend(BaseBackend):
             packs.append(pack.to_dict())
 
         return {"OrganizationConformancePacks": packs}
+
+    def get_organization_conformance_pack_detailed_status(self, name):
+        pack = self.organization_conformance_packs.get(name)
+
+        if not pack:
+            raise NoSuchOrganizationConformancePackException
+
+        # actually here would be a list of all accounts in the organization
+        statuses = [
+            {
+                "AccountId": DEFAULT_ACCOUNT_ID,
+                "ConformancePackName": "OrgConformsPack-{0}".format(
+                    pack._unique_pack_name
+                ),
+                "Status": "UPDATE_SUCCESSFUL",
+                "LastUpdateTime": datetime2int(datetime.utcnow()),
+            }
+        ]
+
+        return {"OrganizationConformancePackDetailedStatuses": statuses}
 
 
 config_backends = {}
