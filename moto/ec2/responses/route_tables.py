@@ -16,6 +16,7 @@ class RouteTables(BaseResponse):
     def create_route(self):
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
+        destination_ipv6_cidr_block = self._get_param("DestinationIpv6CidrBlock")
         gateway_id = self._get_param("GatewayId")
         instance_id = self._get_param("InstanceId")
         nat_gateway_id = self._get_param("NatGatewayId")
@@ -25,6 +26,7 @@ class RouteTables(BaseResponse):
         self.ec2_backend.create_route(
             route_table_id,
             destination_cidr_block,
+            destination_ipv6_cidr_block,
             gateway_id=gateway_id,
             instance_id=instance_id,
             nat_gateway_id=nat_gateway_id,

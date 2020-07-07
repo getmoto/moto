@@ -3547,6 +3547,7 @@ class Route(object):
         self,
         route_table,
         destination_cidr_block,
+        destination_ipv6_cidr_block,
         local=False,
         gateway=None,
         instance=None,
@@ -3554,9 +3555,12 @@ class Route(object):
         interface=None,
         vpc_pcx=None,
     ):
-        self.id = generate_route_id(route_table.id, destination_cidr_block)
+        self.id = generate_route_id(
+            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
+        self.destination_ipv6_cidr_block = destination_ipv6_cidr_block
         self.local = local
         self.gateway = gateway
         self.instance = instance
@@ -3632,6 +3636,7 @@ class RouteBackend(object):
         self,
         route_table_id,
         destination_cidr_block,
+        destination_ipv6_cidr_block=None,
         local=False,
         gateway_id=None,
         instance_id=None,
@@ -3656,9 +3661,10 @@ class RouteBackend(object):
                     gateway = self.get_internet_gateway(gateway_id)
 
             try:
-                ipaddress.IPv4Network(
-                    six.text_type(destination_cidr_block), strict=False
-                )
+                if destination_cidr_block:
+                    ipaddress.IPv4Network(
+                        six.text_type(destination_cidr_block), strict=False
+                    )
             except ValueError:
                 raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
@@ -3668,6 +3674,7 @@ class RouteBackend(object):
         route = Route(
             route_table,
             destination_cidr_block,
+            destination_ipv6_cidr_block,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
