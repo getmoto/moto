@@ -233,7 +233,8 @@ class CloudFormationResponse(BaseResponse):
         return template.render(change_sets=change_sets)
 
     def list_stacks(self):
-        stacks = self.cloudformation_backend.list_stacks()
+        status_filter = self._get_multi_param("StackStatusFilter.member")
+        stacks = self.cloudformation_backend.list_stacks(status_filter)
         template = self.response_template(LIST_STACKS_RESPONSE)
         return template.render(stacks=stacks)
 
