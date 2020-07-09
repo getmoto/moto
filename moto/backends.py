@@ -58,6 +58,7 @@ BACKENDS = {
     "route53": ("route53", "route53_backends"),
     "s3": ("s3", "s3_backends"),
     "s3bucket_path": ("s3", "s3_backends"),
+    "sagemaker": ("sagemaker", "sagemaker_backends"),
     "secretsmanager": ("secretsmanager", "secretsmanager_backends"),
     "ses": ("ses", "ses_backends"),
     "sns": ("sns", "sns_backends"),
