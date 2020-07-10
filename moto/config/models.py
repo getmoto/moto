@@ -397,6 +397,21 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         )
         self.organization_conformance_pack_name = name
 
+    def update(
+        self,
+        delivery_s3_bucket,
+        delivery_s3_key_prefix,
+        input_parameters,
+        excluded_accounts,
+    ):
+        self._status = "UPDATE_SUCCESSFUL"
+
+        self.conformance_pack_input_parameters = input_parameters
+        self.delivery_s3_bucket = delivery_s3_bucket
+        self.delivery_s3_key_prefix = delivery_s3_key_prefix
+        self.excluded_accounts = excluded_accounts
+        self.last_update_time = datetime2int(datetime.utcnow())
+
 
 class ConfigBackend(BaseBackend):
     def __init__(self):
@@ -1168,17 +1183,17 @@ class ConfigBackend(BaseBackend):
         pack = self.organization_conformance_packs.get(name)
 
         if pack:
-            pack.conformance_pack_input_parameters = input_parameters
-            pack.delivery_s3_bucket = delivery_s3_bucket
-            pack.delivery_s3_key_prefix = delivery_s3_key_prefix
-            pack.excluded_accounts = excluded_accounts
-            pack.last_update_time = datetime2int(datetime.utcnow())
-            pack._status = "UPDATE_SUCCESSFUL"
+            pack.update(
+                delivery_s3_bucket=delivery_s3_bucket,
+                delivery_s3_key_prefix=delivery_s3_key_prefix,
+                input_parameters=input_parameters,
+                excluded_accounts=excluded_accounts,
+            )
         else:
             pack = OrganizationConformancePack(
-                region,
-                name,
-                delivery_s3_bucket,
+                region=region,
+                name=name,
+                delivery_s3_bucket=delivery_s3_bucket,
                 delivery_s3_key_prefix=delivery_s3_key_prefix,
                 input_parameters=input_parameters,
                 excluded_accounts=excluded_accounts,

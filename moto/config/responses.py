@@ -162,14 +162,14 @@ class ConfigResponse(BaseResponse):
 
     def put_organization_conformance_pack(self):
         conformance_pack = self.config_backend.put_organization_conformance_pack(
-            self.region,
-            self._get_param("OrganizationConformancePackName"),
-            self._get_param("TemplateS3Uri"),
-            self._get_param("TemplateBody"),
-            self._get_param("DeliveryS3Bucket"),
-            self._get_param("DeliveryS3KeyPrefix"),
-            self._get_param("ConformancePackInputParameters"),
-            self._get_param("ExcludedAccounts"),
+            region=self.region,
+            name=self._get_param("OrganizationConformancePackName"),
+            template_s3_uri=self._get_param("TemplateS3Uri"),
+            template_body=self._get_param("TemplateBody"),
+            delivery_s3_bucket=self._get_param("DeliveryS3Bucket"),
+            delivery_s3_key_prefix=self._get_param("DeliveryS3KeyPrefix"),
+            input_parameters=self._get_param("ConformancePackInputParameters"),
+            excluded_accounts=self._get_param("ExcludedAccounts"),
         )
 
         return json.dumps(conformance_pack)
