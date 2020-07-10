@@ -319,7 +319,9 @@ def test_parse_stack_with_parameters():
     stack.resource_map.no_echo_parameter_keys.should_not.have("NumberParam")
     stack.resource_map.no_echo_parameter_keys.should_not.have("NumberListParam")
     stack.resource_map.resolved_parameters["NumberParam"].should.equal(42)
-    stack.resource_map.resolved_parameters["NumberListParam"].should.equal([42, 3.14159])
+    stack.resource_map.resolved_parameters["NumberListParam"].should.equal(
+        [42, 3.14159]
+    )
 
 
 def test_parse_equals_condition():
