@@ -384,6 +384,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
             capitalize_start=True, capitalize_arn=False
         )
 
+        self._status = "CREATE_SUCCESSFUL"
         self._unique_pack_name = "{0}-{1}".format(name, random_string())
 
         self.conformance_pack_input_parameters = input_parameters or []
@@ -1172,6 +1173,7 @@ class ConfigBackend(BaseBackend):
             pack.delivery_s3_key_prefix = delivery_s3_key_prefix
             pack.excluded_accounts = excluded_accounts
             pack.last_update_time = datetime2int(datetime.utcnow())
+            pack._status = "UPDATE_SUCCESSFUL"
         else:
             pack = OrganizationConformancePack(
                 region,
@@ -1195,7 +1197,10 @@ class ConfigBackend(BaseBackend):
             pack = self.organization_conformance_packs.get(name)
 
             if not pack:
-                raise NoSuchOrganizationConformancePackException
+                raise NoSuchOrganizationConformancePackException(
+                    "One or more organization conformance packs with specified names are not present. "
+                    "Ensure your names are correct and try your request again later."
+                )
 
             packs.append(pack.to_dict())
 
@@ -1210,7 +1215,10 @@ class ConfigBackend(BaseBackend):
                 pack = self.organization_conformance_packs.get(name)
 
                 if not pack:
-                    raise NoSuchOrganizationConformancePackException
+                    raise NoSuchOrganizationConformancePackException(
+                        "One or more organization conformance packs with specified names are not present. "
+                        "Ensure your names are correct and try your request again later."
+                    )
 
                 packs.append(pack)
         else:
@@ -1220,7 +1228,7 @@ class ConfigBackend(BaseBackend):
             statuses.append(
                 {
                     "OrganizationConformancePackName": pack.organization_conformance_pack_name,
-                    "Status": "CREATE_SUCCESSFUL",
+                    "Status": pack._status,
                     "LastUpdateTime": pack.last_update_time,
                 }
             )
@@ -1231,7 +1239,10 @@ class ConfigBackend(BaseBackend):
         pack = self.organization_conformance_packs.get(name)
 
         if not pack:
-            raise NoSuchOrganizationConformancePackException
+            raise NoSuchOrganizationConformancePackException(
+                "One or more organization conformance packs with specified names are not present. "
+                "Ensure your names are correct and try your request again later."
+            )
 
         # actually here would be a list of all accounts in the organization
         statuses = [
@@ -1240,12 +1251,24 @@ class ConfigBackend(BaseBackend):
                 "ConformancePackName": "OrgConformsPack-{0}".format(
                     pack._unique_pack_name
                 ),
-                "Status": "UPDATE_SUCCESSFUL",
+                "Status": pack._status,
                 "LastUpdateTime": datetime2int(datetime.utcnow()),
             }
         ]
 
         return {"OrganizationConformancePackDetailedStatuses": statuses}
+
+    def delete_organization_conformance_pack(self, name):
+        pack = self.organization_conformance_packs.get(name)
+
+        if not pack:
+            raise NoSuchOrganizationConformancePackException(
+                "Could not find an OrganizationConformancePack for given request with resourceName {}".format(
+                    name
+                )
+            )
+
+        self.organization_conformance_packs.pop(name)
 
 
 config_backends = {}

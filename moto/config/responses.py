@@ -195,3 +195,10 @@ class ConfigResponse(BaseResponse):
         )
 
         return json.dumps(statuses)
+
+    def delete_organization_conformance_pack(self):
+        self.config_backend.delete_organization_conformance_pack(
+            self._get_param("OrganizationConformancePackName")
+        )
+
+        return ""

@@ -388,11 +388,7 @@ class ValidationException(JsonRESTError):
 class NoSuchOrganizationConformancePackException(JsonRESTError):
     code = 400
 
-    def __init__(self):
-        message = (
-            "One or more organization conformance packs with specified names are not present. "
-            "Ensure your names are correct and try your request again later."
-        )
+    def __init__(self, message):
         super(NoSuchOrganizationConformancePackException, self).__init__(
             "NoSuchOrganizationConformancePackException", message
         )

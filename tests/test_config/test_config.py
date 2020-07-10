@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime, timedelta
 
 import boto3
@@ -2029,6 +2030,24 @@ def test_describe_organization_conformance_pack_statuses():
     status["Status"].should.equal("CREATE_SUCCESSFUL")
     status["LastUpdateTime"].should.equal(update_time)
 
+    # when
+    time.sleep(1)
+    client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack-2.yaml",
+    )
+
+    # then
+    response = client.describe_organization_conformance_pack_statuses(
+        OrganizationConformancePackNames=["test-pack"]
+    )
+    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackStatuses"][0]
+    status["OrganizationConformancePackName"].should.equal("test-pack")
+    status["Status"].should.equal("UPDATE_SUCCESSFUL")
+    status["LastUpdateTime"].should.be.greater_than(update_time)
+
 
 @mock_config
 def test_describe_organization_conformance_pack_statuses_errors():
@@ -2076,8 +2095,30 @@ def test_get_organization_conformance_pack_detailed_status():
     status["ConformancePackName"].should.equal(
         "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
     )
+    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    update_time = status["LastUpdateTime"]
+    update_time.should.be.a("datetime.datetime")
+
+    # when
+    time.sleep(1)
+    client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack-2.yaml",
+    )
+
+    # then
+    response = client.get_organization_conformance_pack_detailed_status(
+        OrganizationConformancePackName="test-pack"
+    )
+    response["OrganizationConformancePackDetailedStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackDetailedStatuses"][0]
+    status["AccountId"].should.equal(ACCOUNT_ID)
+    status["ConformancePackName"].should.equal(
+        "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
+    )
     status["Status"].should.equal("UPDATE_SUCCESSFUL")
-    status["LastUpdateTime"].should.be.a("datetime.datetime")
+    status["LastUpdateTime"].should.be.greater_than(update_time)
 
 
 @mock_config
@@ -2101,4 +2142,47 @@ def test_get_organization_conformance_pack_detailed_status_errors():
     ex.response["Error"]["Message"].should.equal(
         "One or more organization conformance packs with specified names are not present. "
         "Ensure your names are correct and try your request again later."
+    )
+
+
+@mock_config
+def test_delete_organization_conformance_pack():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.delete_organization_conformance_pack(
+        OrganizationConformancePackName="test-pack"
+    )
+
+    # then
+    response = client.describe_organization_conformance_pack_statuses()
+    response["OrganizationConformancePackStatuses"].should.have.length_of(0)
+
+
+@mock_config
+def test_delete_organization_conformance_pack_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.delete_organization_conformance_pack(
+            OrganizationConformancePackName="not-existing"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeleteOrganizationConformancePack")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "Could not find an OrganizationConformancePack for given request with resourceName not-existing"
     )
