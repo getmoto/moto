@@ -2423,9 +2423,7 @@ GET_ACCOUNT_PASSWORD_POLICY_TEMPLATE = """<GetAccountPasswordPolicyResponse xmln
     <PasswordPolicy>
       <AllowUsersToChangePassword>{{ password_policy.allow_users_to_change_password | lower }}</AllowUsersToChangePassword>
       <ExpirePasswords>{{ password_policy.expire_passwords | lower }}</ExpirePasswords>
-      {% if password_policy.hard_expiry %}
       <HardExpiry>{{ password_policy.hard_expiry | lower }}</HardExpiry>
-      {% endif %}
       {% if password_policy.max_password_age %}
       <MaxPasswordAge>{{ password_policy.max_password_age }}</MaxPasswordAge>
       {% endif %}
