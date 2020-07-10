@@ -1167,7 +1167,11 @@ class ConfigBackend(BaseBackend):
         pack = self.organization_conformance_packs.get(name)
 
         if pack:
+            pack.conformance_pack_input_parameters = input_parameters
             pack.delivery_s3_bucket = delivery_s3_bucket
+            pack.delivery_s3_key_prefix = delivery_s3_key_prefix
+            pack.excluded_accounts = excluded_accounts
+            pack.last_update_time = datetime2int(datetime.utcnow())
         else:
             pack = OrganizationConformancePack(
                 region,
@@ -1177,7 +1181,8 @@ class ConfigBackend(BaseBackend):
                 input_parameters=input_parameters,
                 excluded_accounts=excluded_accounts,
             )
-            self.organization_conformance_packs[name] = pack
+
+        self.organization_conformance_packs[name] = pack
 
         return {
             "OrganizationConformancePackArn": pack.organization_conformance_pack_arn
@@ -1195,6 +1200,32 @@ class ConfigBackend(BaseBackend):
             packs.append(pack.to_dict())
 
         return {"OrganizationConformancePacks": packs}
+
+    def describe_organization_conformance_pack_statuses(self, names):
+        packs = []
+        statuses = []
+
+        if names:
+            for name in names:
+                pack = self.organization_conformance_packs.get(name)
+
+                if not pack:
+                    raise NoSuchOrganizationConformancePackException
+
+                packs.append(pack)
+        else:
+            packs = list(self.organization_conformance_packs.values())
+
+        for pack in packs:
+            statuses.append(
+                {
+                    "OrganizationConformancePackName": pack.organization_conformance_pack_name,
+                    "Status": "CREATE_SUCCESSFUL",
+                    "LastUpdateTime": pack.last_update_time,
+                }
+            )
+
+        return {"OrganizationConformancePackStatuses": statuses}
 
     def get_organization_conformance_pack_detailed_status(self, name):
         pack = self.organization_conformance_packs.get(name)

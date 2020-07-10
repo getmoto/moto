@@ -1997,6 +1997,64 @@ def test_describe_organization_conformance_packs_errors():
 
 
 @mock_config
+def test_describe_organization_conformance_pack_statuses():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.describe_organization_conformance_pack_statuses(
+        OrganizationConformancePackNames=["test-pack"]
+    )
+
+    # then
+    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackStatuses"][0]
+    status["OrganizationConformancePackName"].should.equal("test-pack")
+    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    update_time = status["LastUpdateTime"]
+    update_time.should.be.a("datetime.datetime")
+
+    # when
+    response = client.describe_organization_conformance_pack_statuses()
+
+    # then
+    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackStatuses"][0]
+    status["OrganizationConformancePackName"].should.equal("test-pack")
+    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    status["LastUpdateTime"].should.equal(update_time)
+
+
+@mock_config
+def test_describe_organization_conformance_pack_statuses_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.describe_organization_conformance_pack_statuses(
+            OrganizationConformancePackNames=["not-existing"]
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeOrganizationConformancePackStatuses")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "One or more organization conformance packs with specified names are not present. "
+        "Ensure your names are correct and try your request again later."
+    )
+
+
+@mock_config
 def test_get_organization_conformance_pack_detailed_status():
     # given
     client = boto3.client("config", region_name="us-east-1")

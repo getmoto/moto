@@ -181,6 +181,13 @@ class ConfigResponse(BaseResponse):
 
         return json.dumps(conformance_packs)
 
+    def describe_organization_conformance_pack_statuses(self):
+        statuses = self.config_backend.describe_organization_conformance_pack_statuses(
+            self._get_param("OrganizationConformancePackNames")
+        )
+
+        return json.dumps(statuses)
+
     def get_organization_conformance_pack_detailed_status(self):
         # 'Filters' parameter is not implemented yet
         statuses = self.config_backend.get_organization_conformance_pack_detailed_status(
