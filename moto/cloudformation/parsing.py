@@ -560,6 +560,23 @@ class ResourceMap(collections_abc.Mapping):
                 if value_type == "CommaDelimitedList" or value_type.startswith("List"):
                     value = value.split(",")
 
+                def _parse_number_parameter(num_string):
+                    """CloudFormation NUMBER types can be an int or float.
+                    Try int first and then fall back to float if that fails
+                    """
+                    try:
+                        return int(num_string)
+                    except ValueError:
+                        return float(num_string)
+
+                if value_type == "List<Number>":
+                    # The if statement directly above already converted
+                    # to a list. Now we convert each element to a number
+                    value = [_parse_number_parameter(v) for v in value]
+
+                if value_type == "Number":
+                    value = _parse_number_parameter(value)
+
                 if parameter_slot.get("NoEcho"):
                     self.no_echo_parameter_keys.append(key)
 
