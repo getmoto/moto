@@ -438,6 +438,18 @@ class Table(BaseModel):
         )
         return table
 
+    @classmethod
+    def delete_from_cloudformation_json(
+            cls, resource_name, cloudformation_json, region_name
+    ):
+        print('resource name', resource_name)
+        properties = cloudformation_json["Properties"]
+
+        table = dynamodb_backends[region_name].delete_table(
+            name=properties["TableName"]
+        )
+        return table
+
     def _generate_arn(self, name):
         return "arn:aws:dynamodb:us-east-1:123456789011:table/" + name
 
