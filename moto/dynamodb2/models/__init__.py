@@ -413,6 +413,10 @@ class Table(BaseModel):
 
         raise UnformattedGetAttTemplateException()
 
+    @property
+    def physical_resource_id(self):
+        return self.name
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
