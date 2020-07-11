@@ -128,8 +128,12 @@ class CognitoIdpUserPool(BaseModel):
             "exp": now + expires_in,
         }
         payload.update(extra_data)
+        headers = {"kid": "dummy"}  # KID as present in jwks-public.json
 
-        return jws.sign(payload, self.json_web_key, algorithm="RS256"), expires_in
+        return (
+            jws.sign(payload, self.json_web_key, headers, algorithm="RS256"),
+            expires_in,
+        )
 
     def create_id_token(self, client_id, username):
         extra_data = self.get_user_extra_data_by_client_id(client_id, username)

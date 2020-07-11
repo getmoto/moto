@@ -365,8 +365,8 @@ class CloudFormationResponse(BaseResponse):
         except (ValueError, KeyError):
             pass
         try:
-            description = yaml.load(template_body)["Description"]
-        except (yaml.ParserError, KeyError):
+            description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
+        except (yaml.parser.ParserError, yaml.scanner.ScannerError, KeyError):
             pass
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
         return template.render(description=description)

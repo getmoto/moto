@@ -40,6 +40,16 @@ json_template = {
     },
 }
 
+json_valid_template_with_tabs = """
+{
+\t"AWSTemplateFormatVersion": "2010-09-09",
+\t"Description": "Stack 2",
+\t"Resources": {
+\t\t"Queue": {"Type": "AWS::SQS::Queue", "Properties": {"VisibilityTimeout": 60}}
+\t}
+}
+"""
+
 # One resource is required
 json_bad_template = {"AWSTemplateFormatVersion": "2010-09-09", "Description": "Stack 1"}
 
@@ -52,6 +62,15 @@ def test_boto3_json_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=dummy_template_json)
     assert response["Description"] == "Stack 1"
+    assert response["Parameters"] == []
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_cloudformation
+def test_boto3_json_with_tabs_validate_successful():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    response = cf_conn.validate_template(TemplateBody=json_valid_template_with_tabs)
+    assert response["Description"] == "Stack 2"
     assert response["Parameters"] == []
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 

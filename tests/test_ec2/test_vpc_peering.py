@@ -160,8 +160,26 @@ def test_vpc_peering_connections_cross_region_accept():
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id]
     )
     acp_pcx_apn1["VpcPeeringConnection"]["Status"]["Code"].should.equal("active")
+    acp_pcx_apn1["VpcPeeringConnection"]["AccepterVpcInfo"]["Region"].should.equal(
+        "ap-northeast-1"
+    )
+    acp_pcx_apn1["VpcPeeringConnection"]["RequesterVpcInfo"]["Region"].should.equal(
+        "us-west-1"
+    )
     des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("active")
+    des_pcx_apn1["VpcPeeringConnections"][0]["AccepterVpcInfo"]["Region"].should.equal(
+        "ap-northeast-1"
+    )
+    des_pcx_apn1["VpcPeeringConnections"][0]["RequesterVpcInfo"]["Region"].should.equal(
+        "us-west-1"
+    )
     des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("active")
+    des_pcx_usw1["VpcPeeringConnections"][0]["AccepterVpcInfo"]["Region"].should.equal(
+        "ap-northeast-1"
+    )
+    des_pcx_usw1["VpcPeeringConnections"][0]["RequesterVpcInfo"]["Region"].should.equal(
+        "us-west-1"
+    )
 
 
 @mock_ec2

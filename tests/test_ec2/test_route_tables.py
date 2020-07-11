@@ -582,6 +582,17 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
         )
     )
 
+    route_table.create_route(
+        DestinationIpv6CidrBlock="2001:db8::/125", GatewayId=internet_gateway.id
+    )
+    new_routes = [
+        route
+        for route in route_table.routes
+        if route.destination_cidr_block != vpc.cidr_block
+    ]
+    new_routes.should.have.length_of(1)
+    new_routes[0].route_table_id.shouldnt.be.equal(None)
+
 
 @mock_ec2
 def test_create_route_with_network_interface_id():

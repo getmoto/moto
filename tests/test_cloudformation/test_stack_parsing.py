@@ -67,6 +67,8 @@ get_availability_zones_output = {"Outputs": {"Output1": {"Value": {"Fn::GetAZs":
 parameters = {
     "Parameters": {
         "Param": {"Type": "String"},
+        "NumberParam": {"Type": "Number"},
+        "NumberListParam": {"Type": "List<Number>"},
         "NoEchoParam": {"Type": "String", "NoEcho": True},
     }
 }
@@ -303,12 +305,23 @@ def test_parse_stack_with_parameters():
         stack_id="test_id",
         name="test_stack",
         template=parameters_template_json,
-        parameters={"Param": "visible value", "NoEchoParam": "hidden value"},
+        parameters={
+            "Param": "visible value",
+            "NumberParam": "42",
+            "NumberListParam": "42,3.14159",
+            "NoEchoParam": "hidden value",
+        },
         region_name="us-west-1",
     )
 
     stack.resource_map.no_echo_parameter_keys.should.have("NoEchoParam")
     stack.resource_map.no_echo_parameter_keys.should_not.have("Param")
+    stack.resource_map.no_echo_parameter_keys.should_not.have("NumberParam")
+    stack.resource_map.no_echo_parameter_keys.should_not.have("NumberListParam")
+    stack.resource_map.resolved_parameters["NumberParam"].should.equal(42)
+    stack.resource_map.resolved_parameters["NumberListParam"].should.equal(
+        [42, 3.14159]
+    )
 
 
 def test_parse_equals_condition():

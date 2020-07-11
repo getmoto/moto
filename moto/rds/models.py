@@ -3,10 +3,10 @@ from __future__ import unicode_literals
 import boto.rds
 from jinja2 import Template
 
-from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
+from moto.rds.exceptions import UnformattedGetAttTemplateException
 from moto.rds2.models import rds2_backends
 
 

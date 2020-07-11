@@ -36,3 +36,13 @@ class DBSubnetGroupNotFoundError(RDSClientError):
             "DBSubnetGroupNotFound",
             "Subnet Group {0} not found.".format(subnet_group_name),
         )
+
+
+class UnformattedGetAttTemplateException(Exception):
+    """Duplicated from CloudFormation to prevent circular deps."""
+
+    description = (
+        "Template error: resource {0} does not support attribute type {1} in Fn::GetAtt"
+    )
+
+    status_code = 400
