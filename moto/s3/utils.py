@@ -75,7 +75,11 @@ def metadata_from_headers(headers):
                 # Check for special metadata that doesn't start with x-amz-meta
                 meta_key = header
             if meta_key:
-                metadata[meta_key] = headers[header]
+                metadata[meta_key] = (
+                    headers[header][0]
+                    if type(headers[header]) == list
+                    else headers[header]
+                )
     return metadata
 
 
