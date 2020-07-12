@@ -751,3 +751,37 @@ def test_update_organizational_unit_duplicate_error():
     exc.response["Error"]["Message"].should.equal(
         "An OU with the same name already exists."
     )
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    # when
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+
+    # enabling the same service again should not result in any error or change
+    # when
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.enable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
+    ex = e.exception
+    ex.operation_name.should.equal("EnableAWSServiceAccess")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
+    )
