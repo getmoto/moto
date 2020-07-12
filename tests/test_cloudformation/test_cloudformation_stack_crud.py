@@ -234,6 +234,19 @@ def test_list_stacks():
 
 
 @mock_cloudformation_deprecated
+def test_list_stacks_with_filter():
+    conn = boto.connect_cloudformation()
+    conn.create_stack("test_stack", template_body=dummy_template_json)
+    conn.create_stack("test_stack2", template_body=dummy_template_json)
+    conn.update_stack("test_stack", template_body=dummy_template_json2)
+    stacks = conn.list_stacks("CREATE_COMPLETE")
+    stacks.should.have.length_of(1)
+    stacks[0].template_description.should.equal("Stack 1")
+    stacks = conn.list_stacks("UPDATE_COMPLETE")
+    stacks.should.have.length_of(1)
+
+
+@mock_cloudformation_deprecated
 def test_delete_stack_by_name():
     conn = boto.connect_cloudformation()
     conn.create_stack("test_stack", template_body=dummy_template_json)
