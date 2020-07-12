@@ -1081,7 +1081,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     return 403, {}, ""
             elif signed_url:
                 # coming in from requests.get(s3.generate_presigned_url())
-                if self._invalid_headers(request.url, dict(headers)):
+                if self._invalid_headers(request.url, dict(request.headers)):
                     return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
 
         if hasattr(request, "body"):

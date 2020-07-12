@@ -4612,6 +4612,7 @@ def test_presigned_url_restrict_parameters():
 def test_presigned_put_url_with_approved_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"
+    content = b"filecontent"
     expected_contenttype = "app/sth"
     conn = boto3.resource("s3", region_name="us-east-1")
     conn.create_bucket(Bucket=bucket)
@@ -4624,26 +4625,26 @@ def test_presigned_put_url_with_approved_headers():
     )
 
     # Verify S3 throws an error when the header is not provided
-    response = requests.put(url, data="filecontent")
+    response = requests.put(url, data=content)
     response.status_code.should.equal(403)
-    response.content.should.contain("<Code>SignatureDoesNotMatch</Code>")
-    response.content.should.contain(
+    str(response.content).should.contain("<Code>SignatureDoesNotMatch</Code>")
+    str(response.content).should.contain(
         "<Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>"
     )
 
     # Verify S3 throws an error when the header has the wrong value
     response = requests.put(
-        url, data="filecontent", headers={"Content-Type": "application/unknown"}
+        url, data=content, headers={"Content-Type": "application/unknown"}
     )
     response.status_code.should.equal(403)
-    response.content.should.contain("<Code>SignatureDoesNotMatch</Code>")
-    response.content.should.contain(
+    str(response.content).should.contain("<Code>SignatureDoesNotMatch</Code>")
+    str(response.content).should.contain(
         "<Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>"
     )
 
     # Verify S3 uploads correctly when providing the meta data
     response = requests.put(
-        url, data="filecontent", headers={"Content-Type": expected_contenttype}
+        url, data=content, headers={"Content-Type": expected_contenttype}
     )
     response.status_code.should.equal(200)
 
@@ -4651,7 +4652,7 @@ def test_presigned_put_url_with_approved_headers():
     obj = s3.get_object(Bucket=bucket, Key=key)
     obj["ContentType"].should.equal(expected_contenttype)
     obj["ContentLength"].should.equal(11)
-    obj["Body"].read().should.equal("filecontent")
+    obj["Body"].read().should.equal(content)
     obj["Metadata"].should.equal({})
 
     s3.delete_object(Bucket=bucket, Key=key)
@@ -4662,6 +4663,7 @@ def test_presigned_put_url_with_approved_headers():
 def test_presigned_put_url_with_custom_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"
+    content = b"filecontent"
     conn = boto3.resource("s3", region_name="us-east-1")
     conn.create_bucket(Bucket=bucket)
     s3 = boto3.client("s3", region_name="us-east-1")
@@ -4673,13 +4675,13 @@ def test_presigned_put_url_with_custom_headers():
     )
 
     # Verify S3 uploads correctly when providing the meta data
-    response = requests.put(url, data="filecontent")
+    response = requests.put(url, data=content)
     response.status_code.should.equal(200)
 
     # Assert the object exists
     obj = s3.get_object(Bucket=bucket, Key=key)
     obj["ContentLength"].should.equal(11)
-    obj["Body"].read().should.equal("filecontent")
+    obj["Body"].read().should.equal(content)
     obj["Metadata"].should.equal({"venue": "123"})
 
     s3.delete_object(Bucket=bucket, Key=key)
