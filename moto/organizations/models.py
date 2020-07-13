@@ -201,7 +201,7 @@ class FakeServiceAccess(BaseModel):
     ]
 
     def __init__(self, **kwargs):
-        if not kwargs["ServicePrincipal"] in self.TRUSTED_SERVICES:
+        if not self.trusted_service(kwargs["ServicePrincipal"]):
             raise InvalidInputException(
                 "You specified an unrecognized service principal."
             )
@@ -214,6 +214,10 @@ class FakeServiceAccess(BaseModel):
             "ServicePrincipal": self.service_principal,
             "DateEnabled": unix_time(self.date_enabled),
         }
+
+    @staticmethod
+    def trusted_service(service_principal):
+        return service_principal in FakeServiceAccess.TRUSTED_SERVICES
 
 
 class OrganizationsBackend(BaseBackend):
@@ -546,6 +550,24 @@ class OrganizationsBackend(BaseBackend):
 
     def list_aws_service_access_for_organization(self):
         return dict(EnabledServicePrincipals=self.services)
+
+    def disable_aws_service_access(self, **kwargs):
+        if not FakeServiceAccess.trusted_service(kwargs["ServicePrincipal"]):
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        service_principal = next(
+            (
+                service
+                for service in self.services
+                if service["ServicePrincipal"] == kwargs["ServicePrincipal"]
+            ),
+            None,
+        )
+
+        if service_principal:
+            self.services.remove(service_principal)
 
 
 organizations_backend = OrganizationsBackend()

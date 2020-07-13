@@ -149,3 +149,8 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_aws_service_access_for_organization()
         )
+
+    def disable_aws_service_access(self):
+        return json.dumps(
+            self.organizations_backend.disable_aws_service_access(**self.request_params)
+        )
