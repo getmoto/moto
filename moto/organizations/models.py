@@ -544,5 +544,8 @@ class OrganizationsBackend(BaseBackend):
 
         self.services.append(service.describe())
 
+    def list_aws_service_access_for_organization(self):
+        return dict(EnabledServicePrincipals=self.services)
+
 
 organizations_backend = OrganizationsBackend()
