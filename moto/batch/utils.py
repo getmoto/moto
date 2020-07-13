@@ -25,9 +25,7 @@ def lowercase_first_key(some_dict):
             if isinstance(value, dict):
                 new_dict[new_key] = lowercase_first_key(value)
             elif all([isinstance(v, dict) for v in value]):
-                new_dict[new_key] = [
-                    lowercase_first_key(v) for v in value
-                ]
+                new_dict[new_key] = [lowercase_first_key(v) for v in value]
             else:
                 new_dict[new_key] = value
         except TypeError:
