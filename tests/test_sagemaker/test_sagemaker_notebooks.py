@@ -225,4 +225,3 @@ def test_describe_nonexistent_model():
     assert_true(
         e.exception.response["Error"]["Message"].startswith("Could not find model")
     )
-    pass

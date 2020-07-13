@@ -103,19 +103,13 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def start_notebook_instance(self):
         notebook_instance_name = self._get_param("NotebookInstanceName")
-        notebook_instance = self.sagemaker_backend.get_notebook_instance(
-            notebook_instance_name
-        )
-        notebook_instance.start()
+        self.sagemaker_backend.start_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
 
     @amzn_request_id
     def stop_notebook_instance(self):
         notebook_instance_name = self._get_param("NotebookInstanceName")
-        notebook_instance = self.sagemaker_backend.get_notebook_instance(
-            notebook_instance_name
-        )
-        notebook_instance.stop()
+        self.sagemaker_backend.stop_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
 
     @amzn_request_id
@@ -127,10 +121,6 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def list_tags(self):
         arn = self._get_param("ResourceArn")
-        try:
-            notebook_instance = self.sagemaker_backend.get_notebook_instance_by_arn(arn)
-            tags = notebook_instance.tags or []
-        except AWSError:
-            tags = []
+        tags = self.sagemaker_backend.get_notebook_instance_tags(arn)
         response = {"Tags": tags}
         return 200, {}, json.dumps(response)

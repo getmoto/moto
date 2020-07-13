@@ -1,13 +1,34 @@
 from __future__ import unicode_literals
 from datetime import datetime
+from copy import deepcopy
 
 from .exceptions import MissingModel
 from moto.ec2 import ec2_backends
-from moto.ecr.models import BaseObject
-from moto.core import BaseBackend
+from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.sagemaker import validators
 from moto.sts.models import ACCOUNT_ID
+
+
+class BaseObject(BaseModel):
+    def camelCase(self, key):
+        words = []
+        for i, word in enumerate(key.split("_")):
+            words.append(word.title())
+        return "".join(words)
+
+    def gen_response_object(self):
+        response_object = dict()
+        for key, value in self.__dict__.items():
+            if "_" in key:
+                response_object[self.camelCase(key)] = value
+            else:
+                response_object[key[0].upper() + key[1:]] = value
+        return response_object
+
+    @property
+    def response_object(self):
+        return self.gen_response_object()
 
 
 class Model(BaseObject):
@@ -21,15 +42,15 @@ class Model(BaseObject):
         containers=[],
         tags=[],
     ):
-        self.ModelName = model_name
+        self.model_name = model_name
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.Containers = containers
-        self.Tags = tags
-        self.EnableNetworkIsolation = False
-        self.VpcConfig = vpc_config
-        self.PrimaryContainer = primary_container
-        self.ExecutionRoleArn = execution_role_arn or "arn:test"
-        self.ModelArn = self.arn_for_model_name(self.ModelName, region_name)
+        self.containers = containers
+        self.tags = tags
+        self.enable_network_isolation = False
+        self.vpc_config = vpc_config
+        self.primary_container = primary_container
+        self.execution_role_arn = execution_role_arn or "arn:test"
+        self.model_arn = self.arn_for_model_name(self.model_name, region_name)
 
     @property
     def response_object(self):
@@ -40,7 +61,7 @@ class Model(BaseObject):
 
     @property
     def response_create(self):
-        return {"ModelArn": self.ModelArn}
+        return {"ModelArn": self.model_arn}
 
     @staticmethod
     def arn_for_model_name(model_name, region_name):
@@ -56,8 +77,8 @@ class Model(BaseObject):
 
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids, subnets):
-        self.SecurityGroupIds = security_group_ids
-        self.Subnets = subnets
+        self.security_group_ids = security_group_ids
+        self.subnets = subnets
 
     @property
     def response_object(self):
@@ -69,11 +90,11 @@ class VpcConfig(BaseObject):
 
 class Container(BaseObject):
     def __init__(self, **kwargs):
-        self.ContainerHostname = kwargs.get("container_hostname", "localhost")
-        self.ModelDataUrl = kwargs.get("data_url", "")
-        self.ModelPackageName = kwargs.get("package_name", "pkg")
-        self.Image = kwargs.get("image", "")
-        self.Environment = kwargs.get("environment", {})
+        self.container_hostname = kwargs.get("container_hostname", "localhost")
+        self.model_data_url = kwargs.get("data_url", "")
+        self.model_package_name = kwargs.get("package_name", "pkg")
+        self.image = kwargs.get("image", "")
+        self.environment = kwargs.get("environment", {})
 
     @property
     def response_object(self):
@@ -225,13 +246,13 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_model(self, **kwargs):
         model_obj = Model(
-            self.region_name,
-            kwargs.get("ModelName"),
-            kwargs.get("ExecutionRoleArn"),
-            kwargs.get("PrimaryContainer", {}),
-            kwargs.get("VpcConfig", {}),
-            kwargs.get("Containers", []),
-            kwargs.get("Tags", []),
+            region_name=self.region_name,
+            model_name=kwargs.get("ModelName"),
+            execution_role_arn=kwargs.get("ExecutionRoleArn"),
+            primary_container=kwargs.get("PrimaryContainer", {}),
+            vpc_config=kwargs.get("VpcConfig", {}),
+            containers=kwargs.get("Containers", []),
+            tags=kwargs.get("Tags", []),
         )
 
         self._models[kwargs.get("ModelName")] = model_obj
@@ -240,7 +261,7 @@ class SageMakerModelBackend(BaseBackend):
     def describe_model(self, model_name=None):
         for model in self._models.values():
             # If a registry_id was supplied, ensure this repository matches
-            if model.ModelName != model_name:
+            if model.model_name != model_name:
                 continue
             return model.response_object
         message = "Could not find model '{}'.".format(
@@ -253,15 +274,15 @@ class SageMakerModelBackend(BaseBackend):
     def list_models(self):
         models = []
         for model in self._models.values():
-            model_response = model.response_object.copy()
-            model_response.update(model.response_create)
+            model_response = deepcopy(model.response_object)
+            model_response.update(deepcopy(model.response_create))
             models.append(model_response)
         return {"Models": models}
 
     def delete_model(self, model_name=None):
         for model in self._models.values():
-            if model.ModelName == model_name:
-                self._models.pop(model.ModelName)
+            if model.model_name == model_name:
+                self._models.pop(model.model_name)
                 break
         else:
             raise MissingModel(model=model_name)
@@ -345,6 +366,14 @@ class SageMakerModelBackend(BaseBackend):
             )
         return instances[0]
 
+    def start_notebook_instance(self, notebook_instance_name):
+        notebook_instance = self.get_notebook_instance(notebook_instance_name)
+        notebook_instance.start()
+
+    def stop_notebook_instance(self, notebook_instance_name):
+        notebook_instance = self.get_notebook_instance(notebook_instance_name)
+        notebook_instance.stop()
+
     def delete_notebook_instance(self, notebook_instance_name):
         notebook_instance = self.get_notebook_instance(notebook_instance_name)
         if not notebook_instance.is_deletable:
@@ -357,6 +386,13 @@ class SageMakerModelBackend(BaseBackend):
                 template="error_json",
             )
         del self.notebook_instances[notebook_instance_name]
+
+    def get_notebook_instance_tags(self, arn):
+        try:
+            notebook_instance = self.get_notebook_instance_by_arn(arn)
+            return notebook_instance.tags or []
+        except RESTError:
+            return []
 
 
 sagemaker_backends = {}
