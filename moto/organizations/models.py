@@ -173,12 +173,60 @@ class FakeServiceControlPolicy(BaseModel):
         }
 
 
+class FakeServiceAccess(BaseModel):
+    # List of trusted services, which support trusted access with Organizations
+    # https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html
+    TRUSTED_SERVICES = [
+        "aws-artifact-account-sync.amazonaws.com",
+        "backup.amazonaws.com",
+        "member.org.stacksets.cloudformation.amazonaws.com",
+        "cloudtrail.amazonaws.com",
+        "compute-optimizer.amazonaws.com",
+        "config.amazonaws.com",
+        "config-multiaccountsetup.amazonaws.com",
+        "controltower.amazonaws.com",
+        "ds.amazonaws.com",
+        "fms.amazonaws.com",
+        "guardduty.amazonaws.com",
+        "access-analyzer.amazonaws.com",
+        "license-manager.amazonaws.com",
+        "license-manager.member-account.amazonaws.com.",
+        "macie.amazonaws.com",
+        "ram.amazonaws.com",
+        "servicecatalog.amazonaws.com",
+        "servicequotas.amazonaws.com",
+        "sso.amazonaws.com",
+        "ssm.amazonaws.com",
+        "tagpolicies.tag.amazonaws.com",
+    ]
+
+    def __init__(self, **kwargs):
+        if not self.trusted_service(kwargs["ServicePrincipal"]):
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        self.service_principal = kwargs["ServicePrincipal"]
+        self.date_enabled = datetime.datetime.utcnow()
+
+    def describe(self):
+        return {
+            "ServicePrincipal": self.service_principal,
+            "DateEnabled": unix_time(self.date_enabled),
+        }
+
+    @staticmethod
+    def trusted_service(service_principal):
+        return service_principal in FakeServiceAccess.TRUSTED_SERVICES
+
+
 class OrganizationsBackend(BaseBackend):
     def __init__(self):
         self.org = None
         self.accounts = []
         self.ou = []
         self.policies = []
+        self.services = []
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs["FeatureSet"])
@@ -459,7 +507,9 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputException
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
 
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         account.tags.update(new_tags)
@@ -468,7 +518,9 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputException
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
 
         tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
         return dict(Tags=tags)
@@ -477,10 +529,45 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputException
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
 
         for key in kwargs["TagKeys"]:
             account.tags.pop(key, None)
+
+    def enable_aws_service_access(self, **kwargs):
+        service = FakeServiceAccess(**kwargs)
+
+        # enabling an existing service results in no changes
+        if any(
+            service["ServicePrincipal"] == kwargs["ServicePrincipal"]
+            for service in self.services
+        ):
+            return
+
+        self.services.append(service.describe())
+
+    def list_aws_service_access_for_organization(self):
+        return dict(EnabledServicePrincipals=self.services)
+
+    def disable_aws_service_access(self, **kwargs):
+        if not FakeServiceAccess.trusted_service(kwargs["ServicePrincipal"]):
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        service_principal = next(
+            (
+                service
+                for service in self.services
+                if service["ServicePrincipal"] == kwargs["ServicePrincipal"]
+            ),
+            None,
+        )
+
+        if service_principal:
+            self.services.remove(service_principal)
 
 
 organizations_backend = OrganizationsBackend()

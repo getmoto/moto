@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from datetime import datetime
+
 import boto3
 import json
 import six
@@ -750,4 +752,110 @@ def test_update_organizational_unit_duplicate_error():
     exc.response["Error"]["Code"].should.contain("DuplicateOrganizationalUnitException")
     exc.response["Error"]["Message"].should.equal(
         "An OU with the same name already exists."
+    )
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    # when
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(1)
+    service = response["EnabledServicePrincipals"][0]
+    service["ServicePrincipal"].should.equal("config.amazonaws.com")
+    date_enabled = service["DateEnabled"]
+    date_enabled["DateEnabled"].should.be.a(datetime)
+
+    # enabling the same service again should not result in any error or change
+    # when
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(1)
+    service = response["EnabledServicePrincipals"][0]
+    service["ServicePrincipal"].should.equal("config.amazonaws.com")
+    service["DateEnabled"].should.equal(date_enabled)
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.enable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
+    ex = e.exception
+    ex.operation_name.should.equal("EnableAWSServiceAccess")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
+    )
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+    client.enable_aws_service_access(ServicePrincipal="ram.amazonaws.com")
+
+    # when
+    response = client.list_aws_service_access_for_organization()
+
+    # then
+    response["EnabledServicePrincipals"].should.have.length_of(2)
+    services = sorted(
+        response["EnabledServicePrincipals"], key=lambda i: i["ServicePrincipal"]
+    )
+    services[0]["ServicePrincipal"].should.equal("config.amazonaws.com")
+    services[0]["DateEnabled"].should.be.a(datetime)
+    services[1]["ServicePrincipal"].should.equal("ram.amazonaws.com")
+    services[1]["DateEnabled"].should.be.a(datetime)
+
+
+@mock_organizations
+def test_disable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # when
+    client.disable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(0)
+
+    # disabling the same service again should not result in any error
+    # when
+    client.disable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(0)
+
+
+@mock_organizations
+def test_disable_aws_service_access_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.disable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
+    ex = e.exception
+    ex.operation_name.should.equal("DisableAWSServiceAccess")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
     )

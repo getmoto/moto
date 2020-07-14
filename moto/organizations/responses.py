@@ -139,3 +139,18 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.untag_resource(**self.request_params)
         )
+
+    def enable_aws_service_access(self):
+        return json.dumps(
+            self.organizations_backend.enable_aws_service_access(**self.request_params)
+        )
+
+    def list_aws_service_access_for_organization(self):
+        return json.dumps(
+            self.organizations_backend.list_aws_service_access_for_organization()
+        )
+
+    def disable_aws_service_access(self):
+        return json.dumps(
+            self.organizations_backend.disable_aws_service_access(**self.request_params)
+        )
