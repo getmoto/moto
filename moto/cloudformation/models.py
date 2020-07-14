@@ -712,11 +712,6 @@ class CloudFormationBackend(BaseBackend):
         if name_or_stack_id in self.stacks:
             # Delete by stack id
             stack = self.stacks.pop(name_or_stack_id, None)
-            template = stack.template_dict
-            for resource_name, resource in template['Resources'].items():
-                parse_and_delete_resource(
-                    resource_name, resource, stack, stack.region_name
-                )
             stack.delete()
             self.deleted_stacks[stack.stack_id] = stack
             [self.exports.pop(export.name) for export in stack.exports]

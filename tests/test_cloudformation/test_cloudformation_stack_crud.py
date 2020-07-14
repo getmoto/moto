@@ -45,6 +45,42 @@ dummy_template3 = {
     },
 }
 
+dummy_template4 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "myDynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "Name",
+                        "AttributeType": "S"
+                    },
+                    {
+                        "AttributeName": "Age",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "Name",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "Age",
+                        "KeyType": "RANGE"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5,
+                },
+                "TableName": "Person"
+            }
+        }
+    }
+}
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_template_json2 = json.dumps(dummy_template2)
 dummy_template_json3 = json.dumps(dummy_template3)
@@ -186,6 +222,14 @@ def test_describe_stack_by_stack_id():
     stack_by_id = conn.describe_stacks(stack.stack_id)[0]
     stack_by_id.stack_id.should.equal(stack.stack_id)
     stack_by_id.stack_name.should.equal("test_stack")
+
+
+@mock_cloudformation_deprecated
+def test_delete_stack_dynamo_template():
+    conn = boto.connect_cloudformation()
+    conn.create_stack("test_stack", template_body=dummy_template4)
+    conn.delete_stack("test_stack")
+    conn.create_stack("test_stack", template_body=dummy_template4)
 
 
 @mock_cloudformation_deprecated
