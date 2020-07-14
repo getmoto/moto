@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import functools
 from collections import defaultdict
 import datetime
+import hashlib
 import json
 import logging
 import re
@@ -83,6 +84,7 @@ class DynamicDictLoader(DictLoader):
 class _TemplateEnvironmentMixin(object):
     LEFT_PATTERN = re.compile(r"[\s\n]+<")
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
+    JINJA_ENV_CACHE = {}
 
     def __init__(self):
         super(_TemplateEnvironmentMixin, self).__init__()
@@ -97,22 +99,25 @@ class _TemplateEnvironmentMixin(object):
         return False
 
     def contains_template(self, template_id):
-        return self.loader.contains(template_id)
+        return (template_id, self.should_autoescape) in self.JINJA_ENV_CACHE
 
     def response_template(self, source):
-        template_id = id(source)
+        template_id = hashlib.sha1(source.encode("utf-8")).hexdigest()
+
         if not self.contains_template(template_id):
             collapsed = re.sub(
                 self.RIGHT_PATTERN, ">", re.sub(self.LEFT_PATTERN, "<", source)
             )
-            self.loader.update({template_id: collapsed})
-            self.environment = Environment(
-                loader=self.loader,
+            loader = DynamicDictLoader({})
+            loader.update({template_id: collapsed})
+            self.JINJA_ENV_CACHE[(template_id, self.should_autoescape)] = Environment(
+                loader=loader,
                 autoescape=self.should_autoescape,
                 trim_blocks=True,
                 lstrip_blocks=True,
             )
-        return self.environment.get_template(template_id)
+
+        return self.JINJA_ENV_CACHE[(template_id, self.should_autoescape)].get_template(template_id)
 
 
 class ActionAuthenticatorMixin(object):

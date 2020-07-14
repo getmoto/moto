@@ -8,6 +8,9 @@ import xmltodict
 
 
 class Route53(BaseResponse):
+
+    CACHE = {}
+
     def list_or_create_hostzone_response(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
 
@@ -164,7 +167,9 @@ class Route53(BaseResponse):
 
         elif method == "GET":
             querystring = parse_qs(parsed_url.query)
-            template = Template(LIST_RRSET_RESPONSE)
+            if LIST_RRSET_RESPONSE not in self.CACHE:
+                self.CACHE[LIST_RRSET_RESPONSE] = Template(LIST_RRSET_RESPONSE)
+            template = self.CACHE[LIST_RRSET_RESPONSE]
             start_type = querystring.get("type", [None])[0]
             start_name = querystring.get("name", [None])[0]
             record_sets = the_zone.get_record_sets(start_type, start_name)
