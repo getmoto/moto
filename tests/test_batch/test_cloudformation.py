@@ -276,4 +276,4 @@ def test_create_job_def_cf():
         "containerProperties"
     ]["linuxParameters"]["devices"][0]["hostPath"]
 
-    job_def_env.should.equal("test-path")
+    job_def_linux_device_host_path.should.equal("test-path")
