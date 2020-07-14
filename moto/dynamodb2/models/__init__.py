@@ -283,17 +283,18 @@ class SecondaryIndex(BaseModel):
         if self.projection:
             if self.projection.get("ProjectionType", None) == "KEYS_ONLY":
                 allowed_attributes = ",".join(
-                    [key["AttributeName"] for key in self.schema]
+                    self.table_key_attrs + [key["AttributeName"] for key in self.schema]
                 )
                 item.filter(allowed_attributes)
         return item
 
 
 class LocalSecondaryIndex(SecondaryIndex):
-    def __init__(self, index_name, schema, projection):
+    def __init__(self, index_name, schema, projection, table_key_attrs):
         self.name = index_name
         self.schema = schema
         self.projection = projection
+        self.table_key_attrs = table_key_attrs
 
     def describe(self):
         return {
@@ -303,21 +304,29 @@ class LocalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct):
+    def create(dct, table_key_attrs):
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
             projection=dct["Projection"],
+            table_key_attrs=table_key_attrs,
         )
 
 
 class GlobalSecondaryIndex(SecondaryIndex):
     def __init__(
-        self, index_name, schema, projection, status="ACTIVE", throughput=None
+        self,
+        index_name,
+        schema,
+        projection,
+        table_key_attrs,
+        status="ACTIVE",
+        throughput=None,
     ):
         self.name = index_name
         self.schema = schema
         self.projection = projection
+        self.table_key_attrs = table_key_attrs
         self.status = status
         self.throughput = throughput or {
             "ReadCapacityUnits": 0,
@@ -334,11 +343,12 @@ class GlobalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct):
+    def create(dct, table_key_attrs):
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
             projection=dct["Projection"],
+            table_key_attrs=table_key_attrs,
             throughput=dct.get("ProvisionedThroughput", None),
         )
 
@@ -374,16 +384,20 @@ class Table(BaseModel):
             else:
                 self.range_key_attr = elem["AttributeName"]
                 self.range_key_type = elem["KeyType"]
+        self.table_key_attrs = [
+            key for key in (self.hash_key_attr, self.range_key_attr) if key
+        ]
         if throughput is None:
             self.throughput = {"WriteCapacityUnits": 10, "ReadCapacityUnits": 10}
         else:
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
         self.indexes = [
-            LocalSecondaryIndex.create(i) for i in (indexes if indexes else [])
+            LocalSecondaryIndex.create(i, self.table_key_attrs)
+            for i in (indexes if indexes else [])
         ]
         self.global_indexes = [
-            GlobalSecondaryIndex.create(i)
+            GlobalSecondaryIndex.create(i, self.table_key_attrs)
             for i in (global_indexes if global_indexes else [])
         ]
         self.created_at = datetime.datetime.utcnow()
@@ -1015,7 +1029,7 @@ class DynamoDBBackend(BaseBackend):
                     )
 
                 gsis_by_name[gsi_to_create["IndexName"]] = GlobalSecondaryIndex.create(
-                    gsi_to_create
+                    gsi_to_create, table.table_key_attrs,
                 )
 
         # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other
