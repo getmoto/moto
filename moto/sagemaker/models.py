@@ -275,7 +275,6 @@ class SageMakerModelBackend(BaseBackend):
         models = []
         for model in self._models.values():
             model_response = deepcopy(model.response_object)
-            model_response.update(deepcopy(model.response_create))
             models.append(model_response)
         return {"Models": models}
 
