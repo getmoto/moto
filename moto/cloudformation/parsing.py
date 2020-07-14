@@ -102,6 +102,10 @@ MODEL_MAP = {
 UNDOCUMENTED_NAME_TYPE_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": "AutoScalingGroupName",
     "AWS::AutoScaling::LaunchConfiguration": "LaunchConfigurationName",
+    "AWS::Batch::ComputeEnvironment": "ComputeEnvironmentName",
+    "AWS::Batch::JobDefinition": "JobDefinitionName",
+    "AWS::Batch::JobQueue": "JobQueueName",
+    "AWS::EC2::LaunchTemplate": "LaunchTemplateName",
     "AWS::IAM::InstanceProfile": "InstanceProfileName",
 }
 
