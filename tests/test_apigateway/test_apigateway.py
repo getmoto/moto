@@ -1987,6 +1987,7 @@ def test_usage_plan_keys():
     key_type = "API_KEY"
     payload = {"usagePlanId": usage_plan_id, "keyId": key_id, "keyType": key_type}
     response = client.create_usage_plan_key(**payload)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equals(201)
     usage_plan_key_id = response["id"]
 
     # Get current plan keys (expect 1)
