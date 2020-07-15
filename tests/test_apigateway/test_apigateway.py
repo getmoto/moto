@@ -1846,6 +1846,7 @@ def test_create_api_key():
     payload = {"value": apikey_value, "name": apikey_name}
 
     response = client.create_api_key(**payload)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
     response["name"].should.equal(apikey_name)
     response["value"].should.equal(apikey_value)
     response["enabled"].should.equal(False)

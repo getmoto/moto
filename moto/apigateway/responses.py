@@ -454,11 +454,10 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
-
+            return 201, {}, json.dumps(apikey_response)
         elif self.method == "GET":
             apikeys_response = self.backend.get_apikeys()
             return 200, {}, json.dumps({"item": apikeys_response})
-        return 200, {}, json.dumps(apikey_response)
 
     def apikey_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
