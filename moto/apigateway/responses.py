@@ -528,12 +528,10 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
-
+            return 201, {}, json.dumps(usage_plan_response)
         elif self.method == "GET":
             usage_plans_response = self.backend.get_usage_plan_keys(usage_plan_id)
             return 200, {}, json.dumps({"item": usage_plans_response})
-
-        return 200, {}, json.dumps(usage_plan_response)
 
     def usage_plan_key_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
