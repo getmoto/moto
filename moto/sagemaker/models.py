@@ -259,10 +259,8 @@ class SageMakerModelBackend(BaseBackend):
         return model_obj.response_create
 
     def describe_model(self, model_name=None):
-        for model in self._models.values():
-            # If a registry_id was supplied, ensure this repository matches
-            if model.model_name != model_name:
-                continue
+        model = self._models.get(model_name)
+        if model:
             return model.response_object
         message = "Could not find model '{}'.".format(
             Model.arn_for_model_name(model_name, self.region_name)
