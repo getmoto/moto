@@ -466,6 +466,7 @@ class APIGatewayResponse(BaseResponse):
         url_path_parts = self.path.split("/")
         apikey = url_path_parts[2]
 
+        status_code = 200
         if self.method == "GET":
             apikey_response = self.backend.get_apikey(apikey)
         elif self.method == "PATCH":
@@ -473,7 +474,9 @@ class APIGatewayResponse(BaseResponse):
             apikey_response = self.backend.update_apikey(apikey, patch_operations)
         elif self.method == "DELETE":
             apikey_response = self.backend.delete_apikey(apikey)
-        return 200, {}, json.dumps(apikey_response)
+            status_code = 202
+
+        return status_code, {}, json.dumps(apikey_response)
 
     def usage_plans(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
