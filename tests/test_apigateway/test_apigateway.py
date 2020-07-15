@@ -1845,7 +1845,11 @@ def test_create_api_key():
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
-    client.create_api_key(**payload)
+    response = client.create_api_key(**payload)
+    response["name"].should.equal(apikey_name)
+    response["value"].should.equal(apikey_value)
+    response["enabled"].should.equal(False)
+    response["stageKeys"].should.equal([])
 
     response = client.get_api_keys()
     len(response["items"]).should.equal(1)
