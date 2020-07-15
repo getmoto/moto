@@ -1906,7 +1906,8 @@ def test_api_keys():
     response = client.get_api_keys()
     len(response["items"]).should.equal(2)
 
-    client.delete_api_key(apiKey=apikey_id)
+    response = client.delete_api_key(apiKey=apikey_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
 
     response = client.get_api_keys()
     len(response["items"]).should.equal(1)
