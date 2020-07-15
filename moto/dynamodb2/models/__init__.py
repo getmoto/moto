@@ -901,8 +901,7 @@ class Table(BaseModel):
         return ret
 
     def delete(self, region_name):
-        dynamodb_backends = DynamoDBBackend(region_name)
-        dynamodb_backends.delete_table(self.name)
+        dynamodb_backends[region_name].delete_table(self.name)
 
 
 class DynamoDBBackend(BaseBackend):

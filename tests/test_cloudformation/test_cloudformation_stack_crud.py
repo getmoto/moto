@@ -4,6 +4,7 @@ import os
 import json
 
 import boto
+import boto3
 import boto.iam
 import boto.s3
 import boto.s3.key
@@ -21,6 +22,7 @@ from moto import (
     mock_s3_deprecated,
     mock_route53_deprecated,
     mock_iam_deprecated,
+    mock_dynamodb2,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -224,11 +226,15 @@ def test_describe_stack_by_stack_id():
     stack_by_id.stack_name.should.equal("test_stack")
 
 
+@mock_dynamodb2
 @mock_cloudformation_deprecated
 def test_delete_stack_dynamo_template():
     conn = boto.connect_cloudformation()
     conn.create_stack("test_stack", template_body=dummy_template4)
     conn.delete_stack("test_stack")
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(0)
     conn.create_stack("test_stack", template_body=dummy_template4)
 
 
