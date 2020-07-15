@@ -213,6 +213,29 @@ def test_create_user_pool_client():
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
     result["UserPoolClient"]["ClientId"].should_not.be.none
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
+    result["UserPoolClient"].should_not.have.key("ClientSecret")
+    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
+    result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
+
+
+@mock_cognitoidp
+def test_create_user_pool_client_returns_secret():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    client_name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    result = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=client_name,
+        GenerateSecret=True,
+        CallbackURLs=[value],
+    )
+
+    result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
+    result["UserPoolClient"]["ClientId"].should_not.be.none
+    result["UserPoolClient"]["ClientName"].should.equal(client_name)
+    result["UserPoolClient"]["ClientSecret"].should_not.be.none
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
     result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
 
