@@ -3,7 +3,6 @@ from .responses import SageMakerResponse
 
 url_bases = [
     "https?://api.sagemaker.(.+).amazonaws.com",
-    "https?://api-fips.sagemaker.(.+).amazonaws.com",
 ]
 
 url_paths = {
