@@ -84,8 +84,9 @@ class CognitoIdpResponse(BaseResponse):
     # User pool client
     def create_user_pool_client(self):
         user_pool_id = self.parameters.pop("UserPoolId")
+        generate_secret = self.parameters.pop("GenerateSecret", False)
         user_pool_client = cognitoidp_backends[self.region].create_user_pool_client(
-            user_pool_id, self.parameters
+            user_pool_id, generate_secret, self.parameters
         )
         return json.dumps({"UserPoolClient": user_pool_client.to_json(extended=True)})
 
