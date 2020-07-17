@@ -6,6 +6,7 @@ import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
+
 import functools
 import nose
 
@@ -729,13 +730,13 @@ def test_submit_job():
     future = datetime.datetime.now() + datetime.timedelta(seconds=30)
 
     while datetime.datetime.now() < future:
+        time.sleep(1)
         resp = batch_client.describe_jobs(jobs=[job_id])
 
         if resp["jobs"][0]["status"] == "FAILED":
             raise RuntimeError("Batch job failed")
         if resp["jobs"][0]["status"] == "SUCCEEDED":
             break
-        time.sleep(0.5)
     else:
         raise RuntimeError("Batch job timed out")
 
@@ -872,7 +873,7 @@ def test_terminate_job():
 
     batch_client.terminate_job(jobId=job_id, reason="test_terminate")
 
-    time.sleep(1)
+    time.sleep(2)
 
     resp = batch_client.describe_jobs(jobs=[job_id])
     resp["jobs"][0]["jobName"].should.equal("test1")
