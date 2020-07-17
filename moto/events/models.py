@@ -340,17 +340,13 @@ class EventsBackend(BaseBackend):
     def put_events(self, events):
         num_events = len(events)
 
-        response = {"FailedEntryCount": 0, "Entries": []}
-        for _ in events:
-            response["Entries"].append({"EventId": str(uuid4())})
-
         if num_events < 1:
             raise JsonRESTError("ValidationError", "Need at least 1 event")
         elif num_events > 10:
             raise JsonRESTError("ValidationError", "Can only submit 10 events at once")
 
         # We dont really need to store the events yet
-        return response
+        return [{"EventId": str(uuid4())} for _ in events]
 
     def remove_targets(self, name, ids):
         rule = self.rules.get(name)

@@ -150,7 +150,13 @@ class EventsHandler(BaseResponse):
     def put_events(self):
         events = self._get_param("Entries")
 
-        response = self.events_backend.put_events(events)
+        entries = self.events_backend.put_events(events)
+
+        failed_count = len([e for e in entries if "ErrorCode" in e])
+        response = {
+            "FailedEntryCount": failed_count,
+            "Entries": entries,
+        }
 
         return json.dumps(response)
 
