@@ -124,6 +124,24 @@ def test_delete_invalid_alarm():
 
 
 @mock_cloudwatch
+def test_describe_alarms_for_metric():
+    conn = boto3.client("cloudwatch", region_name="eu-central-1")
+    conn.put_metric_alarm(
+        AlarmName="testalarm1",
+        MetricName="cpu",
+        Namespace="blah",
+        Period=10,
+        EvaluationPeriods=5,
+        Statistic="Average",
+        Threshold=2,
+        ComparisonOperator="GreaterThanThreshold",
+        ActionsEnabled=True,
+    )
+    alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
+    alarms.get('MetricAlarms').should.have.length_of(1)
+
+
+@mock_cloudwatch
 def test_alarm_state():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 
