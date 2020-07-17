@@ -443,8 +443,8 @@ class Job(threading.Thread, BaseModel):
                 now = datetime.datetime.now()
                 i = 1
                 while container.status == "running" and not self.stop:
-                    time.sleep(0.15)
-                    if i % 10 == 0:
+                    time.sleep(0.2)
+                    if i % 5 == 0:
                         logs_stderr.extend(
                             container.logs(
                                 stdout=False,
