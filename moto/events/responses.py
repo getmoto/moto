@@ -150,14 +150,9 @@ class EventsHandler(BaseResponse):
     def put_events(self):
         events = self._get_param("Entries")
 
-        failed_entries = self.events_backend.put_events(events)
+        response = self.events_backend.put_events(events)
 
-        if failed_entries:
-            return json.dumps(
-                {"FailedEntryCount": len(failed_entries), "Entries": failed_entries}
-            )
-
-        return "", self.response_headers
+        return json.dumps(response)
 
     def put_rule(self):
         name = self._get_param("Name")

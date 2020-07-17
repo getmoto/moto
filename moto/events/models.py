@@ -8,6 +8,8 @@ from moto.core import BaseBackend, BaseModel
 from moto.sts.models import ACCOUNT_ID
 from moto.utilities.tagging_service import TaggingService
 
+from uuid import uuid4
+
 
 class Rule(BaseModel):
     def _generate_arn(self, name):
@@ -338,13 +340,17 @@ class EventsBackend(BaseBackend):
     def put_events(self, events):
         num_events = len(events)
 
+        response = {"FailedEntryCount": 0, "Entries": []}
+        for _ in events:
+            response["Entries"].append({"EventId": str(uuid4())})
+
         if num_events < 1:
             raise JsonRESTError("ValidationError", "Need at least 1 event")
         elif num_events > 10:
             raise JsonRESTError("ValidationError", "Can only submit 10 events at once")
 
         # We dont really need to store the events yet
-        return []
+        return response
 
     def remove_targets(self, name, ids):
         rule = self.rules.get(name)
