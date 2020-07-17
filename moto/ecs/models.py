@@ -931,9 +931,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         return result
 
     def update_service(
-        self, cluster_str, service_name, task_definition_str, desired_count
+        self, cluster_str, service_str, task_definition_str, desired_count
     ):
         cluster_name = cluster_str.split("/")[-1]
+        service_name = service_str.split("/")[-1]
         cluster_service_pair = "{0}:{1}".format(cluster_name, service_name)
         if cluster_service_pair in self.services:
             if task_definition_str is not None:
