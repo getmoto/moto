@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from moto.iam.models import ACCOUNT_ID
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -291,7 +292,9 @@ def get_object_value(obj, attr):
     keys = attr.split(".")
     val = obj
     for key in keys:
-        if hasattr(val, key):
+        if key == "owner_id":
+            return ACCOUNT_ID
+        elif hasattr(val, key):
             val = getattr(val, key)
         elif isinstance(val, dict):
             val = val[key]
@@ -364,6 +367,7 @@ filter_dict_attribute_mapping = {
     "image-id": "image_id",
     "network-interface.private-dns-name": "private_dns",
     "private-dns-name": "private_dns",
+    "owner-id": "owner_id"
 }
 
 
