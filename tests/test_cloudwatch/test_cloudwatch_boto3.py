@@ -138,7 +138,7 @@ def test_describe_alarms_for_metric():
         ActionsEnabled=True,
     )
     alarms = conn.describe_alarms_for_metric(MetricName="cpu", Namespace="blah")
-    alarms.get('MetricAlarms').should.have.length_of(1)
+    alarms.get("MetricAlarms").should.have.length_of(1)
 
 
 @mock_cloudwatch
