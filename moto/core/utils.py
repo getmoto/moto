@@ -8,6 +8,7 @@ import random
 import re
 import six
 import string
+from botocore.exceptions import ClientError
 from six.moves.urllib.parse import urlparse
 
 
@@ -15,9 +16,9 @@ REQUEST_ID_LONG = string.digits + string.ascii_uppercase
 
 
 def camelcase_to_underscores(argument):
-    ''' Converts a camelcase param like theNewAttribute to the equivalent
-    python underscore variable like the_new_attribute'''
-    result = ''
+    """ Converts a camelcase param like theNewAttribute to the equivalent
+    python underscore variable like the_new_attribute"""
+    result = ""
     prev_char_title = True
     if not argument:
         return argument
@@ -41,18 +42,18 @@ def camelcase_to_underscores(argument):
 
 
 def underscores_to_camelcase(argument):
-    ''' Converts a camelcase param like the_new_attribute to the equivalent
+    """ Converts a camelcase param like the_new_attribute to the equivalent
     camelcase version like theNewAttribute. Note that the first letter is
-    NOT capitalized by this function '''
-    result = ''
+    NOT capitalized by this function """
+    result = ""
     previous_was_underscore = False
     for char in argument:
-        if char != '_':
+        if char != "_":
             if previous_was_underscore:
                 result += char.upper()
             else:
                 result += char
-        previous_was_underscore = char == '_'
+        previous_was_underscore = char == "_"
     return result
 
 
@@ -69,12 +70,18 @@ def method_names_from_class(clazz):
 
 
 def get_random_hex(length=8):
-    chars = list(range(10)) + ['a', 'b', 'c', 'd', 'e', 'f']
-    return ''.join(six.text_type(random.choice(chars)) for x in range(length))
+    chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
+    return "".join(six.text_type(random.choice(chars)) for x in range(length))
 
 
 def get_random_message_id():
-    return '{0}-{1}-{2}-{3}-{4}'.format(get_random_hex(8), get_random_hex(4), get_random_hex(4), get_random_hex(4), get_random_hex(12))
+    return "{0}-{1}-{2}-{3}-{4}".format(
+        get_random_hex(8),
+        get_random_hex(4),
+        get_random_hex(4),
+        get_random_hex(4),
+        get_random_hex(12),
+    )
 
 
 def convert_regex_to_flask_path(url_path):
@@ -88,7 +95,7 @@ def convert_regex_to_flask_path(url_path):
         match_name, match_pattern = reg.groups()
         return '<regex("{0}"):{1}>'.format(match_pattern, match_name)
 
-    url_path = re.sub("\(\?P<(.*?)>(.*?)\)", caller, url_path)
+    url_path = re.sub(r"\(\?P<(.*?)>(.*?)\)", caller, url_path)
 
     if url_path.endswith("/?"):
         # Flask does own handling of trailing slashes
@@ -97,7 +104,6 @@ def convert_regex_to_flask_path(url_path):
 
 
 class convert_httpretty_response(object):
-
     def __init__(self, callback):
         self.callback = callback
 
@@ -114,13 +120,12 @@ class convert_httpretty_response(object):
     def __call__(self, request, url, headers, **kwargs):
         result = self.callback(request, url, headers)
         status, headers, response = result
-        if 'server' not in headers:
+        if "server" not in headers:
             headers["server"] = "amazon.com"
         return status, headers, response
 
 
 class convert_flask_to_httpretty_response(object):
-
     def __init__(self, callback):
         self.callback = callback
 
@@ -137,7 +142,10 @@ class convert_flask_to_httpretty_response(object):
     def __call__(self, args=None, **kwargs):
         from flask import request, Response
 
-        result = self.callback(request, request.url, {})
+        try:
+            result = self.callback(request, request.url, {})
+        except ClientError as exc:
+            result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
         if len(result) == 3:
             status, headers, content = result
@@ -145,13 +153,12 @@ class convert_flask_to_httpretty_response(object):
             status, headers, content = 200, {}, result
 
         response = Response(response=content, status=status, headers=headers)
-        if request.method == "HEAD" and 'content-length' in headers:
-            response.headers['Content-Length'] = headers['content-length']
+        if request.method == "HEAD" and "content-length" in headers:
+            response.headers["Content-Length"] = headers["content-length"]
         return response
 
 
 class convert_flask_to_responses_response(object):
-
     def __init__(self, callback):
         self.callback = callback
 
@@ -176,14 +183,14 @@ class convert_flask_to_responses_response(object):
 
 
 def iso_8601_datetime_with_milliseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
+    return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 def iso_8601_datetime_without_milliseconds(datetime):
-    return datetime.strftime("%Y-%m-%dT%H:%M:%S") + 'Z'
+    return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
 
 
-RFC1123 = '%a, %d %b %Y %H:%M:%S GMT'
+RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 
 def rfc_1123_datetime(datetime):
@@ -212,16 +219,16 @@ def gen_amz_crc32(response, headerdict=None):
     crc = str(binascii.crc32(response))
 
     if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({'x-amz-crc32': crc})
+        headerdict.update({"x-amz-crc32": crc})
 
     return crc
 
 
 def gen_amzn_requestid_long(headerdict=None):
-    req_id = ''.join([random.choice(REQUEST_ID_LONG) for _ in range(0, 52)])
+    req_id = "".join([random.choice(REQUEST_ID_LONG) for _ in range(0, 52)])
 
     if headerdict is not None and isinstance(headerdict, dict):
-        headerdict.update({'x-amzn-requestid': req_id})
+        headerdict.update({"x-amzn-requestid": req_id})
 
     return req_id
 
@@ -239,13 +246,13 @@ def amz_crc32(f):
         else:
             if len(response) == 2:
                 body, new_headers = response
-                status = new_headers.get('status', 200)
+                status = new_headers.get("status", 200)
             else:
                 status, new_headers, body = response
             headers.update(new_headers)
             # Cast status to string
             if "status" in headers:
-                headers['status'] = str(headers['status'])
+                headers["status"] = str(headers["status"])
 
         try:
             # Doesnt work on python2 for some odd unicode strings
@@ -271,7 +278,7 @@ def amzn_request_id(f):
         else:
             if len(response) == 2:
                 body, new_headers = response
-                status = new_headers.get('status', 200)
+                status = new_headers.get("status", 200)
             else:
                 status, new_headers, body = response
             headers.update(new_headers)
@@ -280,7 +287,7 @@ def amzn_request_id(f):
 
         # Update request ID in XML
         try:
-            body = re.sub(r'(?<=<RequestId>).*(?=<\/RequestId>)', request_id, body)
+            body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
         except Exception:  # Will just ignore if it cant work on bytes (which are str's on python2)
             pass
 
@@ -293,7 +300,53 @@ def path_url(url):
     parsed_url = urlparse(url)
     path = parsed_url.path
     if not path:
-        path = '/'
+        path = "/"
     if parsed_url.query:
-        path = path + '?' + parsed_url.query
+        path = path + "?" + parsed_url.query
     return path
+
+
+def py2_strip_unicode_keys(blob):
+    """For Python 2 Only -- this will convert unicode keys in nested Dicts, Lists, and Sets to standard strings."""
+    if type(blob) == unicode:  # noqa
+        return str(blob)
+
+    elif type(blob) == dict:
+        for key in list(blob.keys()):
+            value = blob.pop(key)
+            blob[str(key)] = py2_strip_unicode_keys(value)
+
+    elif type(blob) == list:
+        for i in range(0, len(blob)):
+            blob[i] = py2_strip_unicode_keys(blob[i])
+
+    elif type(blob) == set:
+        new_set = set()
+        for value in blob:
+            new_set.add(py2_strip_unicode_keys(value))
+
+        blob = new_set
+
+    return blob
+
+
+def tags_from_query_string(
+    querystring_dict, prefix="Tag", key_suffix="Key", value_suffix="Value"
+):
+    response_values = {}
+    for key, value in querystring_dict.items():
+        if key.startswith(prefix) and key.endswith(key_suffix):
+            tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
+            tag_key = querystring_dict.get(
+                "{prefix}.{index}.{key_suffix}".format(
+                    prefix=prefix, index=tag_index, key_suffix=key_suffix,
+                )
+            )[0]
+            tag_value_key = "{prefix}.{index}.{value_suffix}".format(
+                prefix=prefix, index=tag_index, value_suffix=value_suffix,
+            )
+            if tag_value_key in querystring_dict:
+                response_values[tag_key] = querystring_dict.get(tag_value_key)[0]
+            else:
+                response_values[tag_key] = None
+    return response_values

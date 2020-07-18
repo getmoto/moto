@@ -4,7 +4,7 @@ from werkzeug.exceptions import HTTPException
 from jinja2 import DictLoader, Environment
 
 
-SINGLE_ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
+SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
     <Code>{{error_type}}</Code>
     <Message>{{message}}</Message>
@@ -13,8 +13,8 @@ SINGLE_ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
 </Error>
 """
 
-ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
-  <Response>
+ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+  <ErrorResponse>
     <Errors>
       <Error>
         <Code>{{error_type}}</Code>
@@ -23,10 +23,10 @@ ERROR_RESPONSE = u"""<?xml version="1.0" encoding="UTF-8"?>
       </Error>
     </Errors>
   <RequestID>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestID>
-</Response>
+</ErrorResponse>
 """
 
-ERROR_JSON_RESPONSE = u"""{
+ERROR_JSON_RESPONSE = """{
     "message": "{{message}}",
     "__type": "{{error_type}}"
 }
@@ -37,18 +37,19 @@ class RESTError(HTTPException):
     code = 400
 
     templates = {
-        'single_error': SINGLE_ERROR_RESPONSE,
-        'error': ERROR_RESPONSE,
-        'error_json': ERROR_JSON_RESPONSE,
+        "single_error": SINGLE_ERROR_RESPONSE,
+        "error": ERROR_RESPONSE,
+        "error_json": ERROR_JSON_RESPONSE,
     }
 
-    def __init__(self, error_type, message, template='error', **kwargs):
+    def __init__(self, error_type, message, template="error", **kwargs):
         super(RESTError, self).__init__()
         env = Environment(loader=DictLoader(self.templates))
         self.error_type = error_type
         self.message = message
         self.description = env.get_template(template).render(
-            error_type=error_type, message=message, **kwargs)
+            error_type=error_type, message=message, **kwargs
+        )
 
 
 class DryRunClientError(RESTError):
@@ -56,12 +57,11 @@ class DryRunClientError(RESTError):
 
 
 class JsonRESTError(RESTError):
-    def __init__(self, error_type, message, template='error_json', **kwargs):
-        super(JsonRESTError, self).__init__(
-            error_type, message, template, **kwargs)
+    def __init__(self, error_type, message, template="error_json", **kwargs):
+        super(JsonRESTError, self).__init__(error_type, message, template, **kwargs)
 
     def get_headers(self, *args, **kwargs):
-        return [('Content-Type', 'application/json')]
+        return [("Content-Type", "application/json")]
 
     def get_body(self, *args, **kwargs):
         return self.description
@@ -72,8 +72,9 @@ class SignatureDoesNotMatchError(RESTError):
 
     def __init__(self):
         super(SignatureDoesNotMatchError, self).__init__(
-            'SignatureDoesNotMatch',
-            "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details.")
+            "SignatureDoesNotMatch",
+            "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details.",
+        )
 
 
 class InvalidClientTokenIdError(RESTError):
@@ -81,8 +82,9 @@ class InvalidClientTokenIdError(RESTError):
 
     def __init__(self):
         super(InvalidClientTokenIdError, self).__init__(
-            'InvalidClientTokenId',
-            "The security token included in the request is invalid.")
+            "InvalidClientTokenId",
+            "The security token included in the request is invalid.",
+        )
 
 
 class AccessDeniedError(RESTError):
@@ -90,11 +92,11 @@ class AccessDeniedError(RESTError):
 
     def __init__(self, user_arn, action):
         super(AccessDeniedError, self).__init__(
-            'AccessDenied',
+            "AccessDenied",
             "User: {user_arn} is not authorized to perform: {operation}".format(
-                user_arn=user_arn,
-                operation=action
-            ))
+                user_arn=user_arn, operation=action
+            ),
+        )
 
 
 class AuthFailureError(RESTError):
@@ -102,5 +104,17 @@ class AuthFailureError(RESTError):
 
     def __init__(self):
         super(AuthFailureError, self).__init__(
-            'AuthFailure',
-            "AWS was not able to validate the provided access credentials")
+            "AuthFailure",
+            "AWS was not able to validate the provided access credentials",
+        )
+
+
+class InvalidNextTokenException(JsonRESTError):
+    """For AWS Config resource listing. This will be used by many different resource types, and so it is in moto.core."""
+
+    code = 400
+
+    def __init__(self):
+        super(InvalidNextTokenException, self).__init__(
+            "InvalidNextTokenException", "The nextToken provided is invalid"
+        )

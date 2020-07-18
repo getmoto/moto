@@ -1,11 +1,21 @@
 from __future__ import unicode_literals
 
+import datetime
 import email
 from email.utils import parseaddr
 
 from moto.core import BaseBackend, BaseModel
 from moto.sns.models import sns_backends
-from .exceptions import MessageRejectedError
+from .exceptions import (
+    MessageRejectedError,
+    ConfigurationSetDoesNotExist,
+    EventDestinationAlreadyExists,
+    TemplateNameAlreadyExists,
+    TemplateDoesNotExist,
+    RuleSetNameAlreadyExists,
+    RuleSetDoesNotExist,
+    RuleAlreadyExists,
+)
 from .utils import get_random_message_id
 from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
@@ -40,7 +50,6 @@ class SESFeedback(BaseModel):
 
 
 class Message(BaseModel):
-
     def __init__(self, message_id, source, subject, body, destinations):
         self.id = message_id
         self.source = source
@@ -49,8 +58,16 @@ class Message(BaseModel):
         self.destinations = destinations
 
 
-class RawMessage(BaseModel):
+class TemplateMessage(BaseModel):
+    def __init__(self, message_id, source, template, template_data, destinations):
+        self.id = message_id
+        self.source = source
+        self.template = template
+        self.template_data = template_data
+        self.destinations = destinations
 
+
+class RawMessage(BaseModel):
     def __init__(self, message_id, source, destinations, raw_data):
         self.id = message_id
         self.source = source
@@ -59,7 +76,6 @@ class RawMessage(BaseModel):
 
 
 class SESQuota(BaseModel):
-
     def __init__(self, sent):
         self.sent = sent
 
@@ -69,26 +85,33 @@ class SESQuota(BaseModel):
 
 
 class SESBackend(BaseBackend):
-
     def __init__(self):
         self.addresses = []
         self.email_addresses = []
         self.domains = []
         self.sent_messages = []
         self.sent_message_count = 0
+        self.rejected_messages_count = 0
         self.sns_topics = {}
+        self.config_set = {}
+        self.config_set_event_destination = {}
+        self.event_destinations = {}
+        self.templates = {}
+        self.receipt_rule_set = {}
 
     def _is_verified_address(self, source):
         _, address = parseaddr(source)
         if address in self.addresses:
             return True
-        user, host = address.split('@', 1)
+        user, host = address.split("@", 1)
         return host in self.domains
 
     def verify_email_identity(self, address):
+        _, address = parseaddr(address)
         self.addresses.append(address)
 
     def verify_email_address(self, address):
+        _, address = parseaddr(address)
         self.email_addresses.append(address)
 
     def verify_domain(self, domain):
@@ -101,7 +124,7 @@ class SESBackend(BaseBackend):
         return self.email_addresses
 
     def delete_identity(self, identity):
-        if '@' in identity:
+        if "@" in identity:
             self.addresses.remove(identity)
         else:
             self.domains.remove(identity)
@@ -109,11 +132,10 @@ class SESBackend(BaseBackend):
     def send_email(self, source, subject, body, destinations, region):
         recipient_count = sum(map(len, destinations.values()))
         if recipient_count > RECIPIENT_LIMIT:
-            raise MessageRejectedError('Too many recipients.')
+            raise MessageRejectedError("Too many recipients.")
         if not self._is_verified_address(source):
-            raise MessageRejectedError(
-                "Email address not verified %s" % source
-            )
+            self.rejected_messages_count += 1
+            raise MessageRejectedError("Email address not verified %s" % source)
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -123,10 +145,38 @@ class SESBackend(BaseBackend):
         self.sent_message_count += recipient_count
         return message
 
+    def send_templated_email(
+        self, source, template, template_data, destinations, region
+    ):
+        recipient_count = sum(map(len, destinations.values()))
+        if recipient_count > RECIPIENT_LIMIT:
+            raise MessageRejectedError("Too many recipients.")
+        if not self._is_verified_address(source):
+            self.rejected_messages_count += 1
+            raise MessageRejectedError("Email address not verified %s" % source)
+
+        self.__process_sns_feedback__(source, destinations, region)
+
+        message_id = get_random_message_id()
+        message = TemplateMessage(
+            message_id, source, template, template_data, destinations
+        )
+        self.sent_messages.append(message)
+        self.sent_message_count += recipient_count
+        return message
+
     def __type_of_message__(self, destinations):
-        """Checks the destination for any special address that could indicate delivery, complaint or bounce
-        like in SES simualtor"""
-        alladdress = destinations.get("ToAddresses", []) + destinations.get("CcAddresses", []) + destinations.get("BccAddresses", [])
+        """Checks the destination for any special address that could indicate delivery,
+        complaint or bounce like in SES simulator"""
+        if isinstance(destinations, list):
+            alladdress = destinations
+        else:
+            alladdress = (
+                destinations.get("ToAddresses", [])
+                + destinations.get("CcAddresses", [])
+                + destinations.get("BccAddresses", [])
+            )
+
         for addr in alladdress:
             if SESFeedback.SUCCESS_ADDR in addr:
                 return SESFeedback.DELIVERY
@@ -157,32 +207,31 @@ class SESBackend(BaseBackend):
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
             _, source_email_address = parseaddr(source)
-            if source_email_address not in self.addresses:
+            if not self._is_verified_address(source_email_address):
                 raise MessageRejectedError(
-                    "Did not have authority to send from email %s" % source_email_address
+                    "Did not have authority to send from email %s"
+                    % source_email_address
                 )
 
         recipient_count = len(destinations)
         message = email.message_from_string(raw_data)
         if source is None:
-            if message['from'] is None:
+            if message["from"] is None:
+                raise MessageRejectedError("Source not specified")
+
+            _, source_email_address = parseaddr(message["from"])
+            if not self._is_verified_address(source_email_address):
                 raise MessageRejectedError(
-                    "Source not specified"
+                    "Did not have authority to send from email %s"
+                    % source_email_address
                 )
 
-            _, source_email_address = parseaddr(message['from'])
-            if source_email_address not in self.addresses:
-                raise MessageRejectedError(
-                    "Did not have authority to send from email %s" % source_email_address
-                )
-
-        for header in 'TO', 'CC', 'BCC':
+        for header in "TO", "CC", "BCC":
             recipient_count += sum(
-                d.strip() and 1 or 0
-                for d in message.get(header, '').split(',')
+                d.strip() and 1 or 0 for d in message.get(header, "").split(",")
             )
         if recipient_count > RECIPIENT_LIMIT:
-            raise MessageRejectedError('Too many recipients.')
+            raise MessageRejectedError("Too many recipients.")
 
         self.__process_sns_feedback__(source, destinations, region)
 
@@ -205,6 +254,63 @@ class SESBackend(BaseBackend):
         self.sns_topics[identity] = identity_sns_topics
 
         return {}
+
+    def create_configuration_set(self, configuration_set_name):
+        self.config_set[configuration_set_name] = 1
+        return {}
+
+    def create_configuration_set_event_destination(
+        self, configuration_set_name, event_destination
+    ):
+
+        if self.config_set.get(configuration_set_name) is None:
+            raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")
+
+        if self.event_destinations.get(event_destination["Name"]):
+            raise EventDestinationAlreadyExists("Duplicate Event destination Name.")
+
+        self.config_set_event_destination[configuration_set_name] = event_destination
+        self.event_destinations[event_destination["Name"]] = 1
+
+        return {}
+
+    def get_send_statistics(self):
+
+        statistics = {}
+        statistics["DeliveryAttempts"] = self.sent_message_count
+        statistics["Rejects"] = self.rejected_messages_count
+        statistics["Complaints"] = 0
+        statistics["Bounces"] = 0
+        statistics["Timestamp"] = datetime.datetime.utcnow()
+        return statistics
+
+    def add_template(self, template_info):
+        template_name = template_info["template_name"]
+        if self.templates.get(template_name, None):
+            raise TemplateNameAlreadyExists("Duplicate Template Name.")
+        self.templates[template_name] = template_info
+
+    def get_template(self, template_name):
+        if not self.templates.get(template_name, None):
+            raise TemplateDoesNotExist("Invalid Template Name.")
+        return self.templates[template_name]
+
+    def list_templates(self):
+        return list(self.templates.values())
+
+    def create_receipt_rule_set(self, rule_set_name):
+        if self.receipt_rule_set.get(rule_set_name) is not None:
+            raise RuleSetNameAlreadyExists("Duplicate receipt rule set Name.")
+        self.receipt_rule_set[rule_set_name] = []
+
+    def create_receipt_rule(self, rule_set_name, rule):
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+        if rule_set is None:
+            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+        if rule in rule_set:
+            raise RuleAlreadyExists("Duplicate Rule Name.")
+        rule_set.append(rule)
+        self.receipt_rule_set[rule_set_name] = rule_set
 
 
 ses_backend = SESBackend()

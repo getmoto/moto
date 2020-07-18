@@ -24,8 +24,7 @@ For example, we have the following code we want to test:
 
 .. sourcecode:: python
 
-    import boto
-    from boto.s3.key import Key
+    import boto3
 
     class MyModel(object):
         def __init__(self, name, value):
@@ -33,11 +32,8 @@ For example, we have the following code we want to test:
             self.value = value
 
         def save(self):
-            conn = boto.connect_s3()
-            bucket = conn.get_bucket('mybucket')
-            k = Key(bucket)
-            k.key = self.name
-            k.set_contents_from_string(self.value)
+            s3 = boto3.client('s3', region_name='us-east-1')
+            s3.put_object(Bucket='mybucket', Key=self.name, Body=self.value)
 
 There are several ways to do this, but you should keep in mind that Moto creates a full, blank environment.
 
@@ -48,20 +44,23 @@ With a decorator wrapping, all the calls to S3 are automatically mocked out.
 
 .. sourcecode:: python
 
-    import boto
+    import boto3
     from moto import mock_s3
     from mymodule import MyModel
 
     @mock_s3
     def test_my_model_save():
-        conn = boto.connect_s3()
+        conn = boto3.resource('s3', region_name='us-east-1')
         # We need to create the bucket since this is all in Moto's 'virtual' AWS account
-        conn.create_bucket('mybucket')
+        conn.create_bucket(Bucket='mybucket')
 
         model_instance = MyModel('steve', 'is awesome')
         model_instance.save()
 
-        assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+        body = conn.Object('mybucket', 'steve').get()[
+            'Body'].read().decode("utf-8")
+
+        assert body == 'is awesome'
 
 Context manager
 ~~~~~~~~~~~~~~~
@@ -72,13 +71,16 @@ Same as the Decorator, every call inside the ``with`` statement is mocked out.
 
     def test_my_model_save():
         with mock_s3():
-            conn = boto.connect_s3()
-            conn.create_bucket('mybucket')
+            conn = boto3.resource('s3', region_name='us-east-1')
+            conn.create_bucket(Bucket='mybucket')
 
             model_instance = MyModel('steve', 'is awesome')
             model_instance.save()
 
-            assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+            body = conn.Object('mybucket', 'steve').get()[
+                'Body'].read().decode("utf-8")
+
+            assert body == 'is awesome'
 
 Raw
 ~~~
@@ -91,13 +93,16 @@ You can also start and stop the mocking manually.
         mock = mock_s3()
         mock.start()
 
-        conn = boto.connect_s3()
-        conn.create_bucket('mybucket')
+        conn = boto3.resource('s3', region_name='us-east-1')
+        conn.create_bucket(Bucket='mybucket')
 
         model_instance = MyModel('steve', 'is awesome')
         model_instance.save()
 
-        assert conn.get_bucket('mybucket').get_key('steve').get_contents_as_string() == 'is awesome'
+        body = conn.Object('mybucket', 'steve').get()[
+            'Body'].read().decode("utf-8")
+
+        assert body == 'is awesome'
 
         mock.stop()
 

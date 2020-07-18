@@ -1,5 +1,5 @@
-from moto.core.utils import get_random_hex
+from uuid import uuid4
 
 
 def get_random_identity_id(region):
-    return "{0}:{1}".format(region, get_random_hex(length=19))
+    return "{0}:{1}".format(region, uuid4())

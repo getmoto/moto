@@ -10,23 +10,21 @@ import sure  # noqa
 from nose import tools
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
+from moto.core import ACCOUNT_ID
 
 
 @mock_ses
 def test_enable_disable_ses_sns_communication():
-    conn = boto3.client('ses', region_name='us-east-1')
+    conn = boto3.client("ses", region_name="us-east-1")
     conn.set_identity_notification_topic(
-        Identity='test.com',
-        NotificationType='Bounce',
-        SnsTopic='the-arn'
+        Identity="test.com", NotificationType="Bounce", SnsTopic="the-arn"
     )
-    conn.set_identity_notification_topic(
-        Identity='test.com',
-        NotificationType='Bounce'
-    )
+    conn.set_identity_notification_topic(Identity="test.com", NotificationType="Bounce")
 
 
-def __setup_feedback_env__(ses_conn, sns_conn, sqs_conn, domain, topic, queue, region, expected_msg):
+def __setup_feedback_env__(
+    ses_conn, sns_conn, sqs_conn, domain, topic, queue, region, expected_msg
+):
     """Setup the AWS environment to test the SES SNS Feedback"""
     # Environment setup
     # Create SQS queue
@@ -35,30 +33,34 @@ def __setup_feedback_env__(ses_conn, sns_conn, sqs_conn, domain, topic, queue, r
     create_topic_response = sns_conn.create_topic(Name=topic)
     topic_arn = create_topic_response["TopicArn"]
     # Subscribe the SNS topic to the SQS queue
-    sns_conn.subscribe(TopicArn=topic_arn,
-                   Protocol="sqs",
-                   Endpoint="arn:aws:sqs:%s:123456789012:%s" % (region, queue))
+    sns_conn.subscribe(
+        TopicArn=topic_arn,
+        Protocol="sqs",
+        Endpoint="arn:aws:sqs:%s:%s:%s" % (region, ACCOUNT_ID, queue),
+    )
     # Verify SES domain
     ses_conn.verify_domain_identity(Domain=domain)
+    # Specify email address to allow for raw e-mails to be processed
+    ses_conn.verify_email_identity(EmailAddress="test@example.com")
     # Setup SES notification topic
     if expected_msg is not None:
         ses_conn.set_identity_notification_topic(
-            Identity=domain,
-            NotificationType=expected_msg,
-            SnsTopic=topic_arn
+            Identity=domain, NotificationType=expected_msg, SnsTopic=topic_arn
         )
 
 
-def __test_sns_feedback__(addr, expected_msg):
+def __test_sns_feedback__(addr, expected_msg, raw_email=False):
     region_name = "us-east-1"
-    ses_conn = boto3.client('ses', region_name=region_name)
-    sns_conn = boto3.client('sns', region_name=region_name)
-    sqs_conn = boto3.resource('sqs', region_name=region_name)
+    ses_conn = boto3.client("ses", region_name=region_name)
+    sns_conn = boto3.client("sns", region_name=region_name)
+    sqs_conn = boto3.resource("sqs", region_name=region_name)
     domain = "example.com"
     topic = "bounce-arn-feedback"
     queue = "feedback-test-queue"
 
-    __setup_feedback_env__(ses_conn, sns_conn, sqs_conn, domain, topic, queue, region_name, expected_msg)
+    __setup_feedback_env__(
+        ses_conn, sns_conn, sqs_conn, domain, topic, queue, region_name, expected_msg
+    )
 
     # Send the message
     kwargs = dict(
@@ -70,10 +72,21 @@ def __test_sns_feedback__(addr, expected_msg):
         },
         Message={
             "Subject": {"Data": "test subject"},
-            "Body": {"Text": {"Data": "test body"}}
-        }
+            "Body": {"Text": {"Data": "test body"}},
+        },
     )
-    ses_conn.send_email(**kwargs)
+    if raw_email:
+        kwargs.pop("Message")
+        kwargs.pop("Destination")
+        kwargs.update(
+            {
+                "Destinations": [addr + "@" + domain],
+                "RawMessage": {"Data": bytearray("raw_email", "utf-8")},
+            }
+        )
+        ses_conn.send_raw_email(**kwargs)
+    else:
+        ses_conn.send_email(**kwargs)
 
     # Wait for messages in the queues
     queue = sqs_conn.get_queue_by_name(QueueName=queue)
@@ -112,3 +125,12 @@ def test_sns_feedback_complaint():
 @mock_ses
 def test_sns_feedback_delivery():
     __test_sns_feedback__(SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY)
+
+
+@mock_sqs
+@mock_sns
+@mock_ses
+def test_sns_feedback_delivery_raw_email():
+    __test_sns_feedback__(
+        SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY, raw_email=True
+    )

@@ -4,71 +4,70 @@ from moto.ec2.utils import filters_from_querystring
 
 
 class ElasticNetworkInterfaces(BaseResponse):
-
     def create_network_interface(self):
-        subnet_id = self._get_param('SubnetId')
-        private_ip_address = self._get_param('PrivateIpAddress')
-        groups = self._get_multi_param('SecurityGroupId')
+        subnet_id = self._get_param("SubnetId")
+        private_ip_address = self._get_param("PrivateIpAddress")
+        private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
+        groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
-        description = self._get_param('Description')
-        if self.is_not_dryrun('CreateNetworkInterface'):
+        description = self._get_param("Description")
+        if self.is_not_dryrun("CreateNetworkInterface"):
             eni = self.ec2_backend.create_network_interface(
-                subnet, private_ip_address, groups, description)
-            template = self.response_template(
-                CREATE_NETWORK_INTERFACE_RESPONSE)
+                subnet, private_ip_address, private_ip_addresses, groups, description
+            )
+            template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
             return template.render(eni=eni)
 
     def delete_network_interface(self):
-        eni_id = self._get_param('NetworkInterfaceId')
-        if self.is_not_dryrun('DeleteNetworkInterface'):
+        eni_id = self._get_param("NetworkInterfaceId")
+        if self.is_not_dryrun("DeleteNetworkInterface"):
             self.ec2_backend.delete_network_interface(eni_id)
-            template = self.response_template(
-                DELETE_NETWORK_INTERFACE_RESPONSE)
+            template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
             return template.render()
 
     def describe_network_interface_attribute(self):
         raise NotImplementedError(
-            'ElasticNetworkInterfaces(AmazonVPC).describe_network_interface_attribute is not yet implemented')
+            "ElasticNetworkInterfaces(AmazonVPC).describe_network_interface_attribute is not yet implemented"
+        )
 
     def describe_network_interfaces(self):
-        eni_ids = self._get_multi_param('NetworkInterfaceId')
+        eni_ids = self._get_multi_param("NetworkInterfaceId")
         filters = filters_from_querystring(self.querystring)
         enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)
 
     def attach_network_interface(self):
-        eni_id = self._get_param('NetworkInterfaceId')
-        instance_id = self._get_param('InstanceId')
-        device_index = self._get_param('DeviceIndex')
-        if self.is_not_dryrun('AttachNetworkInterface'):
+        eni_id = self._get_param("NetworkInterfaceId")
+        instance_id = self._get_param("InstanceId")
+        device_index = self._get_param("DeviceIndex")
+        if self.is_not_dryrun("AttachNetworkInterface"):
             attachment_id = self.ec2_backend.attach_network_interface(
-                eni_id, instance_id, device_index)
-            template = self.response_template(
-                ATTACH_NETWORK_INTERFACE_RESPONSE)
+                eni_id, instance_id, device_index
+            )
+            template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
             return template.render(attachment_id=attachment_id)
 
     def detach_network_interface(self):
-        attachment_id = self._get_param('AttachmentId')
-        if self.is_not_dryrun('DetachNetworkInterface'):
+        attachment_id = self._get_param("AttachmentId")
+        if self.is_not_dryrun("DetachNetworkInterface"):
             self.ec2_backend.detach_network_interface(attachment_id)
-            template = self.response_template(
-                DETACH_NETWORK_INTERFACE_RESPONSE)
+            template = self.response_template(DETACH_NETWORK_INTERFACE_RESPONSE)
             return template.render()
 
     def modify_network_interface_attribute(self):
         # Currently supports modifying one and only one security group
-        eni_id = self._get_param('NetworkInterfaceId')
-        group_id = self._get_param('SecurityGroupId.1')
-        if self.is_not_dryrun('ModifyNetworkInterface'):
-            self.ec2_backend.modify_network_interface_attribute(
-                eni_id, group_id)
+        eni_id = self._get_param("NetworkInterfaceId")
+        group_id = self._get_param("SecurityGroupId.1")
+        if self.is_not_dryrun("ModifyNetworkInterface"):
+            self.ec2_backend.modify_network_interface_attribute(eni_id, group_id)
             return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
 
     def reset_network_interface_attribute(self):
-        if self.is_not_dryrun('ResetNetworkInterface'):
+        if self.is_not_dryrun("ResetNetworkInterface"):
             raise NotImplementedError(
-                'ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented')
+                "ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented"
+            )
 
 
 CREATE_NETWORK_INTERFACE_RESPONSE = """

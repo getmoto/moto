@@ -4,9 +4,11 @@ import json
 import yaml
 import uuid
 
-import boto.cloudformation
+from boto3 import Session
+
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 
 from .parsing import ResourceMap, OutputMap
 from .utils import (
@@ -21,11 +23,19 @@ from .exceptions import ValidationError
 
 
 class FakeStackSet(BaseModel):
-
-    def __init__(self, stackset_id, name, template, region='us-east-1',
-            status='ACTIVE', description=None, parameters=None, tags=None,
-            admin_role='AWSCloudFormationStackSetAdministrationRole',
-            execution_role='AWSCloudFormationStackSetExecutionRole'):
+    def __init__(
+        self,
+        stackset_id,
+        name,
+        template,
+        region="us-east-1",
+        status="ACTIVE",
+        description=None,
+        parameters=None,
+        tags=None,
+        admin_role="AWSCloudFormationStackSetAdministrationRole",
+        execution_role="AWSCloudFormationStackSetExecutionRole",
+    ):
         self.id = stackset_id
         self.arn = generate_stackset_arn(stackset_id, region)
         self.name = name
@@ -42,12 +52,14 @@ class FakeStackSet(BaseModel):
 
     def _create_operation(self, operation_id, action, status, accounts=[], regions=[]):
         operation = {
-            'OperationId': str(operation_id),
-            'Action': action,
-            'Status': status,
-            'CreationTimestamp': datetime.now(),
-            'EndTimestamp': datetime.now() + timedelta(minutes=2),
-            'Instances': [{account: region} for account in accounts for region in regions],
+            "OperationId": str(operation_id),
+            "Action": action,
+            "Status": status,
+            "CreationTimestamp": datetime.now(),
+            "EndTimestamp": datetime.now() + timedelta(minutes=2),
+            "Instances": [
+                {account: region} for account in accounts for region in regions
+            ],
         }
 
         self.operations += [operation]
@@ -55,20 +67,30 @@ class FakeStackSet(BaseModel):
 
     def get_operation(self, operation_id):
         for operation in self.operations:
-            if operation_id == operation['OperationId']:
+            if operation_id == operation["OperationId"]:
                 return operation
         raise ValidationError(operation_id)
 
     def update_operation(self, operation_id, status):
         operation = self.get_operation(operation_id)
-        operation['Status'] = status
+        operation["Status"] = status
         return operation_id
 
     def delete(self):
-        self.status = 'DELETED'
+        self.status = "DELETED"
 
-    def update(self, template, description, parameters, tags, admin_role,
-            execution_role, accounts, regions, operation_id=None):
+    def update(
+        self,
+        template,
+        description,
+        parameters,
+        tags,
+        admin_role,
+        execution_role,
+        accounts,
+        regions,
+        operation_id=None,
+    ):
         if not operation_id:
             operation_id = uuid.uuid4()
 
@@ -82,9 +104,13 @@ class FakeStackSet(BaseModel):
         if accounts and regions:
             self.update_instances(accounts, regions, self.parameters)
 
-        operation = self._create_operation(operation_id=operation_id,
-                action='UPDATE', status='SUCCEEDED', accounts=accounts,
-                regions=regions)
+        operation = self._create_operation(
+            operation_id=operation_id,
+            action="UPDATE",
+            status="SUCCEEDED",
+            accounts=accounts,
+            regions=regions,
+        )
         return operation
 
     def create_stack_instances(self, accounts, regions, parameters, operation_id=None):
@@ -94,8 +120,13 @@ class FakeStackSet(BaseModel):
             parameters = self.parameters
 
         self.instances.create_instances(accounts, regions, parameters, operation_id)
-        self._create_operation(operation_id=operation_id, action='CREATE',
-                status='SUCCEEDED', accounts=accounts, regions=regions)
+        self._create_operation(
+            operation_id=operation_id,
+            action="CREATE",
+            status="SUCCEEDED",
+            accounts=accounts,
+            regions=regions,
+        )
 
     def delete_stack_instances(self, accounts, regions, operation_id=None):
         if not operation_id:
@@ -103,8 +134,13 @@ class FakeStackSet(BaseModel):
 
         self.instances.delete(accounts, regions)
 
-        operation = self._create_operation(operation_id=operation_id, action='DELETE',
-                status='SUCCEEDED', accounts=accounts, regions=regions)
+        operation = self._create_operation(
+            operation_id=operation_id,
+            action="DELETE",
+            status="SUCCEEDED",
+            accounts=accounts,
+            regions=regions,
+        )
         return operation
 
     def update_instances(self, accounts, regions, parameters, operation_id=None):
@@ -112,9 +148,13 @@ class FakeStackSet(BaseModel):
             operation_id = uuid.uuid4()
 
         self.instances.update(accounts, regions, parameters)
-        operation = self._create_operation(operation_id=operation_id,
-                action='UPDATE', status='SUCCEEDED', accounts=accounts,
-                regions=regions)
+        operation = self._create_operation(
+            operation_id=operation_id,
+            action="UPDATE",
+            status="SUCCEEDED",
+            accounts=accounts,
+            regions=regions,
+        )
         return operation
 
 
@@ -131,12 +171,12 @@ class FakeStackInstances(BaseModel):
         for region in regions:
             for account in accounts:
                 instance = {
-                    'StackId': generate_stack_id(self.stack_name, region, account),
-                    'StackSetId': self.stackset_id,
-                    'Region': region,
-                    'Account': account,
-                    'Status': "CURRENT",
-                    'ParameterOverrides': parameters if parameters else [],
+                    "StackId": generate_stack_id(self.stack_name, region, account),
+                    "StackSetId": self.stackset_id,
+                    "Region": region,
+                    "Account": account,
+                    "Status": "CURRENT",
+                    "ParameterOverrides": parameters if parameters else [],
                 }
                 new_instances.append(instance)
         self.stack_instances += new_instances
@@ -147,28 +187,44 @@ class FakeStackInstances(BaseModel):
             for region in regions:
                 instance = self.get_instance(account, region)
                 if parameters:
-                    instance['ParameterOverrides'] = parameters
+                    instance["ParameterOverrides"] = parameters
                 else:
-                    instance['ParameterOverrides'] = []
+                    instance["ParameterOverrides"] = []
 
     def delete(self, accounts, regions):
         for i, instance in enumerate(self.stack_instances):
-            if instance['Region'] in regions and instance['Account'] in accounts:
+            if instance["Region"] in regions and instance["Account"] in accounts:
                 self.stack_instances.pop(i)
 
     def get_instance(self, account, region):
         for i, instance in enumerate(self.stack_instances):
-            if instance['Region'] == region and instance['Account'] == account:
+            if instance["Region"] == region and instance["Account"] == account:
                 return self.stack_instances[i]
 
 
 class FakeStack(BaseModel):
-
-    def __init__(self, stack_id, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, cross_stack_resources=None, create_change_set=False):
+    def __init__(
+        self,
+        stack_id,
+        name,
+        template,
+        parameters,
+        region_name,
+        notification_arns=None,
+        tags=None,
+        role_arn=None,
+        cross_stack_resources=None,
+        create_change_set=False,
+    ):
         self.stack_id = stack_id
         self.name = name
         self.template = template
-        self._parse_template()
+        if template != {}:
+            self._parse_template()
+            self.description = self.template_dict.get("Description")
+        else:
+            self.template_dict = {}
+            self.description = None
         self.parameters = parameters
         self.region_name = region_name
         self.notification_arns = notification_arns if notification_arns else []
@@ -176,23 +232,36 @@ class FakeStack(BaseModel):
         self.tags = tags if tags else {}
         self.events = []
         if create_change_set:
-            self._add_stack_event("REVIEW_IN_PROGRESS",
-                                  resource_status_reason="User Initiated")
+            self._add_stack_event(
+                "REVIEW_IN_PROGRESS", resource_status_reason="User Initiated"
+            )
         else:
-            self._add_stack_event("CREATE_IN_PROGRESS",
-                                  resource_status_reason="User Initiated")
+            self._add_stack_event(
+                "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
+            )
 
-        self.description = self.template_dict.get('Description')
         self.cross_stack_resources = cross_stack_resources or {}
         self.resource_map = self._create_resource_map()
         self.output_map = self._create_output_map()
-        self._add_stack_event("CREATE_COMPLETE")
-        self.status = 'CREATE_COMPLETE'
+        if create_change_set:
+            self.status = "CREATE_COMPLETE"
+            self.execution_status = "AVAILABLE"
+        else:
+            self.create_resources()
+            self._add_stack_event("CREATE_COMPLETE")
+        self.creation_time = datetime.utcnow()
 
     def _create_resource_map(self):
         resource_map = ResourceMap(
-            self.stack_id, self.name, self.parameters, self.tags, self.region_name, self.template_dict, self.cross_stack_resources)
-        resource_map.create()
+            self.stack_id,
+            self.name,
+            self.parameters,
+            self.tags,
+            self.region_name,
+            self.template_dict,
+            self.cross_stack_resources,
+        )
+        resource_map.load()
         return resource_map
 
     def _create_output_map(self):
@@ -200,38 +269,54 @@ class FakeStack(BaseModel):
         output_map.create()
         return output_map
 
-    def _add_stack_event(self, resource_status, resource_status_reason=None, resource_properties=None):
-        self.events.append(FakeEvent(
-            stack_id=self.stack_id,
-            stack_name=self.name,
-            logical_resource_id=self.name,
-            physical_resource_id=self.stack_id,
-            resource_type="AWS::CloudFormation::Stack",
-            resource_status=resource_status,
-            resource_status_reason=resource_status_reason,
-            resource_properties=resource_properties,
-        ))
+    @property
+    def creation_time_iso_8601(self):
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
-    def _add_resource_event(self, logical_resource_id, resource_status, resource_status_reason=None, resource_properties=None):
+    def _add_stack_event(
+        self, resource_status, resource_status_reason=None, resource_properties=None
+    ):
+        self.events.append(
+            FakeEvent(
+                stack_id=self.stack_id,
+                stack_name=self.name,
+                logical_resource_id=self.name,
+                physical_resource_id=self.stack_id,
+                resource_type="AWS::CloudFormation::Stack",
+                resource_status=resource_status,
+                resource_status_reason=resource_status_reason,
+                resource_properties=resource_properties,
+            )
+        )
+
+    def _add_resource_event(
+        self,
+        logical_resource_id,
+        resource_status,
+        resource_status_reason=None,
+        resource_properties=None,
+    ):
         # not used yet... feel free to help yourself
         resource = self.resource_map[logical_resource_id]
-        self.events.append(FakeEvent(
-            stack_id=self.stack_id,
-            stack_name=self.name,
-            logical_resource_id=logical_resource_id,
-            physical_resource_id=resource.physical_resource_id,
-            resource_type=resource.type,
-            resource_status=resource_status,
-            resource_status_reason=resource_status_reason,
-            resource_properties=resource_properties,
-        ))
+        self.events.append(
+            FakeEvent(
+                stack_id=self.stack_id,
+                stack_name=self.name,
+                logical_resource_id=logical_resource_id,
+                physical_resource_id=resource.physical_resource_id,
+                resource_type=resource.type,
+                resource_status=resource_status,
+                resource_status_reason=resource_status_reason,
+                resource_properties=resource_properties,
+            )
+        )
 
     def _parse_template(self):
-        yaml.add_multi_constructor('', yaml_tag_constructor)
+        yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
-        except yaml.parser.ParserError:
-            self.template_dict = json.loads(self.template, Loader=yaml.Loader)
+        except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+            self.template_dict = json.loads(self.template)
 
     @property
     def stack_parameters(self):
@@ -249,8 +334,16 @@ class FakeStack(BaseModel):
     def exports(self):
         return self.output_map.exports
 
+    def create_resources(self):
+        self.resource_map.create(self.template_dict)
+        # Set the description of the stack
+        self.description = self.template_dict.get("Description")
+        self.status = "CREATE_COMPLETE"
+
     def update(self, template, role_arn=None, parameters=None, tags=None):
-        self._add_stack_event("UPDATE_IN_PROGRESS", resource_status_reason="User Initiated")
+        self._add_stack_event(
+            "UPDATE_IN_PROGRESS", resource_status_reason="User Initiated"
+        )
         self.template = template
         self._parse_template()
         self.resource_map.update(self.template_dict, parameters)
@@ -264,15 +357,15 @@ class FakeStack(BaseModel):
             # TODO: update tags in the resource map
 
     def delete(self):
-        self._add_stack_event("DELETE_IN_PROGRESS",
-                              resource_status_reason="User Initiated")
+        self._add_stack_event(
+            "DELETE_IN_PROGRESS", resource_status_reason="User Initiated"
+        )
         self.resource_map.delete()
         self._add_stack_event("DELETE_COMPLETE")
         self.status = "DELETE_COMPLETE"
 
 
 class FakeChange(BaseModel):
-
     def __init__(self, action, logical_resource_id, resource_type):
         self.action = action
         self.logical_resource_id = logical_resource_id
@@ -280,8 +373,21 @@ class FakeChange(BaseModel):
 
 
 class FakeChangeSet(FakeStack):
-
-    def __init__(self, stack_id, stack_name, stack_template, change_set_id, change_set_name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, cross_stack_resources=None):
+    def __init__(
+        self,
+        stack_id,
+        stack_name,
+        stack_template,
+        change_set_id,
+        change_set_name,
+        template,
+        parameters,
+        region_name,
+        notification_arns=None,
+        tags=None,
+        role_arn=None,
+        cross_stack_resources=None,
+    ):
         super(FakeChangeSet, self).__init__(
             stack_id,
             stack_name,
@@ -298,6 +404,9 @@ class FakeChangeSet(FakeStack):
         self.change_set_id = change_set_id
         self.change_set_name = change_set_name
         self.changes = self.diff(template=template, parameters=parameters)
+        if self.description is None:
+            self.description = self.template_dict.get("Description")
+        self.creation_time = datetime.utcnow()
 
     def diff(self, template, parameters=None):
         self.template = template
@@ -306,17 +415,28 @@ class FakeChangeSet(FakeStack):
         resources_by_action = self.resource_map.diff(self.template_dict, parameters)
         for action, resources in resources_by_action.items():
             for resource_name, resource in resources.items():
-                changes.append(FakeChange(
-                    action=action,
-                    logical_resource_id=resource_name,
-                    resource_type=resource['ResourceType'],
-                ))
+                changes.append(
+                    FakeChange(
+                        action=action,
+                        logical_resource_id=resource_name,
+                        resource_type=resource["ResourceType"],
+                    )
+                )
         return changes
 
 
 class FakeEvent(BaseModel):
-
-    def __init__(self, stack_id, stack_name, logical_resource_id, physical_resource_id, resource_type, resource_status, resource_status_reason=None, resource_properties=None):
+    def __init__(
+        self,
+        stack_id,
+        stack_name,
+        logical_resource_id,
+        physical_resource_id,
+        resource_type,
+        resource_status,
+        resource_status_reason=None,
+        resource_properties=None,
+    ):
         self.stack_id = stack_id
         self.stack_name = stack_name
         self.logical_resource_id = logical_resource_id
@@ -329,8 +449,17 @@ class FakeEvent(BaseModel):
         self.event_id = uuid.uuid4()
 
 
-class CloudFormationBackend(BaseBackend):
+def filter_stacks(all_stacks, status_filter):
+    filtered_stacks = []
+    if not status_filter:
+        return all_stacks
+    for stack in all_stacks:
+        if stack.status in status_filter:
+            filtered_stacks.append(stack)
+    return filtered_stacks
 
+
+class CloudFormationBackend(BaseBackend):
     def __init__(self):
         self.stacks = OrderedDict()
         self.stacksets = OrderedDict()
@@ -338,7 +467,17 @@ class CloudFormationBackend(BaseBackend):
         self.exports = OrderedDict()
         self.change_sets = OrderedDict()
 
-    def create_stack_set(self, name, template, parameters, tags=None, description=None, region='us-east-1', admin_role=None, execution_role=None):
+    def create_stack_set(
+        self,
+        name,
+        template,
+        parameters,
+        tags=None,
+        description=None,
+        region="us-east-1",
+        admin_role=None,
+        execution_role=None,
+    ):
         stackset_id = generate_stackset_id(name)
         new_stackset = FakeStackSet(
             stackset_id=stackset_id,
@@ -366,7 +505,9 @@ class CloudFormationBackend(BaseBackend):
             if self.stacksets[stackset].name == name:
                 self.stacksets[stackset].delete()
 
-    def create_stack_instances(self, stackset_name, accounts, regions, parameters, operation_id=None):
+    def create_stack_instances(
+        self, stackset_name, accounts, regions, parameters, operation_id=None
+    ):
         stackset = self.get_stack_set(stackset_name)
 
         stackset.create_stack_instances(
@@ -377,9 +518,19 @@ class CloudFormationBackend(BaseBackend):
         )
         return stackset
 
-    def update_stack_set(self, stackset_name, template=None, description=None,
-            parameters=None, tags=None, admin_role=None, execution_role=None,
-            accounts=None, regions=None, operation_id=None):
+    def update_stack_set(
+        self,
+        stackset_name,
+        template=None,
+        description=None,
+        parameters=None,
+        tags=None,
+        admin_role=None,
+        execution_role=None,
+        accounts=None,
+        regions=None,
+        operation_id=None,
+    ):
         stackset = self.get_stack_set(stackset_name)
         update = stackset.update(
             template=template,
@@ -390,16 +541,28 @@ class CloudFormationBackend(BaseBackend):
             execution_role=execution_role,
             accounts=accounts,
             regions=regions,
-            operation_id=operation_id
+            operation_id=operation_id,
         )
         return update
 
-    def delete_stack_instances(self, stackset_name, accounts, regions, operation_id=None):
+    def delete_stack_instances(
+        self, stackset_name, accounts, regions, operation_id=None
+    ):
         stackset = self.get_stack_set(stackset_name)
         stackset.delete_stack_instances(accounts, regions, operation_id)
         return stackset
 
-    def create_stack(self, name, template, parameters, region_name, notification_arns=None, tags=None, role_arn=None, create_change_set=False):
+    def create_stack(
+        self,
+        name,
+        template,
+        parameters,
+        region_name,
+        notification_arns=None,
+        tags=None,
+        role_arn=None,
+        create_change_set=False,
+    ):
         stack_id = generate_stack_id(name)
         new_stack = FakeStack(
             stack_id=stack_id,
@@ -419,10 +582,21 @@ class CloudFormationBackend(BaseBackend):
             self.exports[export.name] = export
         return new_stack
 
-    def create_change_set(self, stack_name, change_set_name, template, parameters, region_name, change_set_type, notification_arns=None, tags=None, role_arn=None):
+    def create_change_set(
+        self,
+        stack_name,
+        change_set_name,
+        template,
+        parameters,
+        region_name,
+        change_set_type,
+        notification_arns=None,
+        tags=None,
+        role_arn=None,
+    ):
         stack_id = None
         stack_template = None
-        if change_set_type == 'UPDATE':
+        if change_set_type == "UPDATE":
             stacks = self.stacks.values()
             stack = None
             for s in stacks:
@@ -433,8 +607,8 @@ class CloudFormationBackend(BaseBackend):
             if stack is None:
                 raise ValidationError(stack_name)
         else:
-            stack_id = generate_stack_id(stack_name)
-            stack_template = template
+            stack_id = generate_stack_id(stack_name, region_name)
+            stack_template = {}
 
         change_set_id = generate_changeset_id(change_set_name, region_name)
         new_change_set = FakeChangeSet(
@@ -449,7 +623,7 @@ class CloudFormationBackend(BaseBackend):
             notification_arns=notification_arns,
             tags=tags,
             role_arn=role_arn,
-            cross_stack_resources=self.exports
+            cross_stack_resources=self.exports,
         )
         self.change_sets[change_set_id] = new_change_set
         self.stacks[stack_id] = new_change_set
@@ -488,11 +662,15 @@ class CloudFormationBackend(BaseBackend):
                     stack = self.change_sets[cs]
         if stack is None:
             raise ValidationError(stack_name)
-        if stack.events[-1].resource_status == 'REVIEW_IN_PROGRESS':
-            stack._add_stack_event('CREATE_COMPLETE')
+        if stack.events[-1].resource_status == "REVIEW_IN_PROGRESS":
+            stack._add_stack_event(
+                "CREATE_IN_PROGRESS", resource_status_reason="User Initiated"
+            )
+            stack._add_stack_event("CREATE_COMPLETE")
         else:
-            stack._add_stack_event('UPDATE_IN_PROGRESS')
-            stack._add_stack_event('UPDATE_COMPLETE')
+            stack._add_stack_event("UPDATE_IN_PROGRESS")
+            stack._add_stack_event("UPDATE_COMPLETE")
+        stack.create_resources()
         return True
 
     def describe_stacks(self, name_or_stack_id):
@@ -513,12 +691,11 @@ class CloudFormationBackend(BaseBackend):
     def list_change_sets(self):
         return self.change_sets.values()
 
-    def list_stacks(self):
-        return [
-            v for v in self.stacks.values()
-        ] + [
+    def list_stacks(self, status_filter=None):
+        total_stacks = [v for v in self.stacks.values()] + [
             v for v in self.deleted_stacks.values()
         ]
+        return filter_stacks(total_stacks, status_filter)
 
     def get_stack(self, name_or_stack_id):
         all_stacks = dict(self.deleted_stacks, **self.stacks)
@@ -538,6 +715,8 @@ class CloudFormationBackend(BaseBackend):
 
     def list_stack_resources(self, stack_name_or_id):
         stack = self.get_stack(stack_name_or_id)
+        if stack is None:
+            return None
         return stack.stack_resources
 
     def delete_stack(self, name_or_stack_id):
@@ -558,10 +737,10 @@ class CloudFormationBackend(BaseBackend):
         all_exports = list(self.exports.values())
         if token is None:
             exports = all_exports[0:100]
-            next_token = '100' if len(all_exports) > 100 else None
+            next_token = "100" if len(all_exports) > 100 else None
         else:
             token = int(token)
-            exports = all_exports[token:token + 100]
+            exports = all_exports[token : token + 100]
             next_token = str(token + 100) if len(all_exports) > token + 100 else None
         return exports, next_token
 
@@ -572,9 +751,20 @@ class CloudFormationBackend(BaseBackend):
         new_stack_export_names = [x.name for x in stack.exports]
         export_names = self.exports.keys()
         if not set(export_names).isdisjoint(new_stack_export_names):
-            raise ValidationError(stack.stack_id, message='Export names must be unique across a given region')
+            raise ValidationError(
+                stack.stack_id,
+                message="Export names must be unique across a given region",
+            )
 
 
 cloudformation_backends = {}
-for region in boto.cloudformation.regions():
-    cloudformation_backends[region.name] = CloudFormationBackend()
+for region in Session().get_available_regions("cloudformation"):
+    cloudformation_backends[region] = CloudFormationBackend()
+for region in Session().get_available_regions(
+    "cloudformation", partition_name="aws-us-gov"
+):
+    cloudformation_backends[region] = CloudFormationBackend()
+for region in Session().get_available_regions(
+    "cloudformation", partition_name="aws-cn"
+):
+    cloudformation_backends[region] = CloudFormationBackend()

@@ -6,6 +6,4 @@ url_bases = [
     "https?://elasticmapreduce.(.+).amazonaws.com",
 ]
 
-url_paths = {
-    '{0}/$': ElasticMapReduceResponse.dispatch,
-}
+url_paths = {"{0}/$": ElasticMapReduceResponse.dispatch}

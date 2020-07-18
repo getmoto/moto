@@ -3,20 +3,19 @@ from moto.core.responses import BaseResponse
 
 
 class General(BaseResponse):
-
     def get_console_output(self):
-        instance_id = self._get_param('InstanceId')
+        instance_id = self._get_param("InstanceId")
         if not instance_id:
             # For compatibility with boto.
             # See: https://github.com/spulec/moto/pull/1152#issuecomment-332487599
-            instance_id = self._get_multi_param('InstanceId')[0]
+            instance_id = self._get_multi_param("InstanceId")[0]
 
         instance = self.ec2_backend.get_instance(instance_id)
         template = self.response_template(GET_CONSOLE_OUTPUT_RESULT)
         return template.render(instance=instance)
 
 
-GET_CONSOLE_OUTPUT_RESULT = '''
+GET_CONSOLE_OUTPUT_RESULT = """
 <GetConsoleOutputResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
@@ -29,4 +28,4 @@ R0hNRU0gYXZhaWxhYmxlLgo3MjdNQiBMT1dNRU0gYXZhaWxhYmxlLgpOWCAoRXhlY3V0ZSBEaXNh
 YmxlKSBwcm90ZWN0aW9uOiBhY3RpdmUKSVJRIGxvY2t1cCBkZXRlY3Rpb24gZGlzYWJsZWQKQnVp
 bHQgMSB6b25lbGlzdHMKS2VybmVsIGNvbW1hbmQgbGluZTogcm9vdD0vZGV2L3NkYTEgcm8gNApF
 bmFibGluZyBmYXN0IEZQVSBzYXZlIGFuZCByZXN0b3JlLi4uIGRvbmUuCg==</output>
-</GetConsoleOutputResponse>'''
+</GetConsoleOutputResponse>"""

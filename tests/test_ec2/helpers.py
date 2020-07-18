@@ -9,7 +9,8 @@ def rsa_check_private_key(private_key_material):
     assert isinstance(private_key_material, six.string_types)
 
     private_key = serialization.load_pem_private_key(
-        data=private_key_material.encode('ascii'),
+        data=private_key_material.encode("ascii"),
         backend=default_backend(),
-        password=None)
+        password=None,
+    )
     assert isinstance(private_key, rsa.RSAPrivateKey)
