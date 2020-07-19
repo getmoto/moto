@@ -1513,6 +1513,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             raise TaskSetNotFoundException
 
+        # TODO: add logic for `force` to raise an exception if `PRIMARY` task has not been scaled to 0.
+
         return deleted_task_set
 
     def update_task_set(self, cluster, service, task_set, scale):
