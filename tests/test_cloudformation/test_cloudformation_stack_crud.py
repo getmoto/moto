@@ -4,6 +4,7 @@ import os
 import json
 
 import boto
+import boto3
 import boto.iam
 import boto.s3
 import boto.s3.key
@@ -21,6 +22,8 @@ from moto import (
     mock_s3_deprecated,
     mock_route53_deprecated,
     mock_iam_deprecated,
+    mock_dynamodb2,
+    mock_cloudformation,
 )
 from moto.cloudformation import cloudformation_backends
 
@@ -42,6 +45,30 @@ dummy_template3 = {
     "Description": "Stack 3",
     "Resources": {
         "VPC": {"Properties": {"CidrBlock": "192.168.0.0/16"}, "Type": "AWS::EC2::VPC"}
+    },
+}
+
+dummy_template4 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "myDynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {"AttributeName": "Name", "AttributeType": "S"},
+                    {"AttributeName": "Age", "AttributeType": "S"},
+                ],
+                "KeySchema": [
+                    {"AttributeName": "Name", "KeyType": "HASH"},
+                    {"AttributeName": "Age", "KeyType": "RANGE"},
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5,
+                },
+                "TableName": "Person",
+            },
+        }
     },
 }
 
@@ -186,6 +213,34 @@ def test_describe_stack_by_stack_id():
     stack_by_id = conn.describe_stacks(stack.stack_id)[0]
     stack_by_id.stack_id.should.equal(stack.stack_id)
     stack_by_id.stack_name.should.equal("test_stack")
+
+
+@mock_dynamodb2
+@mock_cloudformation_deprecated
+def test_delete_stack_dynamo_template():
+    conn = boto.connect_cloudformation()
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    conn.create_stack("test_stack", template_body=dummy_template4)
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(1)
+    conn.delete_stack("test_stack")
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(0)
+    conn.create_stack("test_stack", template_body=dummy_template4)
+
+
+@mock_dynamodb2
+@mock_cloudformation
+def test_delete_stack_dynamo_template():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template4))
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(1)
+    conn.delete_stack(StackName="test_stack")
+    table_desc = dynamodb_client.list_tables()
+    len(table_desc.get("TableNames")).should.equal(0)
+    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template4))
 
 
 @mock_cloudformation_deprecated
