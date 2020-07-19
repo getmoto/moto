@@ -2670,15 +2670,37 @@ def test_create_task_set():
         desiredCount=2,
         deploymentController={"type": "EXTERNAL"},
     )
+    load_balancers = [
+        {
+            "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a",
+            "containerName": "hello_world",
+            "containerPort": 8080,
+        },
+    ]
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
+        loadBalancers=load_balancers,
     )["taskSet"]
 
     cluster_arn = client.describe_clusters(clusters=[cluster_name])["clusters"][0][
         "clusterArn"
     ]
+    service_arn = client.describe_services(
+        cluster=cluster_name, services=[service_name]
+    )["services"][0]["serviceArn"]
     assert task_set["clusterArn"] == cluster_arn
+    assert task_set["serviceArn"] == service_arn
+    assert task_set["taskDefinition"].endswith("{0}:1".format(task_def_name))
+    assert task_set["scale"] == {"value": 100.0, "unit": "PERCENT"}
+    assert (
+        task_set["loadBalancers"][0]["targetGroupArn"]
+        == "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a"
+    )
+    assert task_set["loadBalancers"][0]["containerPort"] == 8080
+    assert task_set["loadBalancers"][0]["containerName"] == "hello_world"
 
 
 @mock_ecs
@@ -2713,18 +2735,51 @@ def test_describe_task_sets():
         deploymentController={"type": "EXTERNAL"},
     )
 
-    _ = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
-    )
-    task_sets = client.describe_task_sets(cluster=cluster_name, service=service_name,)[
-        "taskSets"
+    load_balancers = [
+        {
+            "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a",
+            "containerName": "hello_world",
+            "containerPort": 8080,
+        }
     ]
 
+    _ = client.create_task_set(
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
+        loadBalancers=load_balancers,
+    )
+    task_sets = client.describe_task_sets(cluster=cluster_name, service=service_name)[
+        "taskSets"
+    ]
+    assert "tags" not in task_sets[0]
+
+    task_sets = client.describe_task_sets(
+        cluster=cluster_name, service=service_name, include=["TAGS"],
+    )["taskSets"]
+
+    cluster_arn = client.describe_clusters(clusters=[cluster_name])["clusters"][0][
+        "clusterArn"
+    ]
+
+    service_arn = client.describe_services(
+        cluster=cluster_name, services=[service_name]
+    )["services"][0]["serviceArn"]
+
+    assert "tags" in task_sets[0]
     assert len(task_sets) == 1
     assert task_sets[0]["taskDefinition"].endswith("{0}:1".format(task_def_name))
-    assert task_sets[0]["clusterArn"].endswith(cluster_name)
+    assert task_sets[0]["clusterArn"] == cluster_arn
+    assert task_sets[0]["serviceArn"] == service_arn
     assert task_sets[0]["serviceArn"].endswith(service_name)
     assert task_sets[0]["scale"] == {"value": 100.0, "unit": "PERCENT"}
+    assert task_sets[0]["taskSetArn"].endswith(task_sets[0]["id"])
+    assert (
+        task_sets[0]["loadBalancers"][0]["targetGroupArn"]
+        == "arn:aws:elasticloadbalancing:us-east-1:01234567890:targetgroup/c26b93c1bc35466ba792d5b08fe6a5bc/ec39113f8831453a"
+    )
+    assert task_sets[0]["loadBalancers"][0]["containerPort"] == 8080
+    assert task_sets[0]["loadBalancers"][0]["containerName"] == "hello_world"
 
 
 @mock_ecs

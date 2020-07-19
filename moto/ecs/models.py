@@ -551,13 +551,14 @@ class TaskSet(BaseObject):
         self.createdAt = datetime.now(pytz.utc)
         self.updatedAt = datetime.now(pytz.utc)
         self.stabilityStatusAt = datetime.now(pytz.utc)
+        self.id = "ecs-svc/{}".format(randint(0, 32 ** 12))
         self.service_arn = ""
         self.cluster_arn = ""
 
         cluster_name = self.cluster.split("/")[-1]
         service_name = self.service.split("/")[-1]
         self.task_set_arn = "arn:aws:ecs:{0}:012345678910:task-set/{1}/{2}/{3}".format(
-            region_name, cluster_name, service_name, id(self)
+            region_name, cluster_name, service_name, self.id
         )
 
     @property
@@ -1524,15 +1525,17 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_set_obj
 
     def update_service_primary_task_set(self, cluster, service, primary_task_set):
+        """ Updates task sets be PRIMARY or ACTIVE for given cluster:service task sets """
         cluster_name = cluster.split("/")[-1]
         service_name = service.split("/")[-1]
         task_set_obj = self.describe_task_sets(
             cluster_name, service_name, task_sets=[primary_task_set]
         )[0]
-        service_obj = self.describe_services(cluster, [service])[0]
 
+        service_obj = self.describe_services(cluster, [service])[0]
         service_obj.load_balancers = task_set_obj.load_balancers
         service_obj.task_definition = task_set_obj.task_definition
+
         for task_set in service_obj.task_sets:
             if task_set.task_set_arn == primary_task_set:
                 task_set.status = "PRIMARY"

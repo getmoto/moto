@@ -386,12 +386,16 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster")
         service_str = self._get_param("service")
         task_sets = self._get_param("taskSets")
-        include = self._get_param("include")
+        include = self._get_param("include", [])
         task_set_objs = self.ecs_backend.describe_task_sets(
             cluster_str, service_str, task_sets, include
         )
-        # TODO: filter tags based on include parameter
-        return json.dumps({"taskSets": [t.response_object for t in task_set_objs]})
+
+        response_objs = [t.response_object for t in task_set_objs]
+        if "TAGS" not in include:
+            for ro in response_objs:
+                del ro["tags"]
+        return json.dumps({"taskSets": response_objs})
 
     def delete_task_set(self):
         cluster_str = self._get_param("cluster")
