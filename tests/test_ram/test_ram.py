@@ -52,6 +52,9 @@ def test_create_resource_share():
     )
     resource["status"].should.equal("ACTIVE")
 
+    response = client.get_resource_shares(resourceOwner="SELF")
+    response["resourceShares"].should.have.length_of(2)
+
 
 @mock_ram
 def test_create_resource_share_errors():
@@ -170,6 +173,7 @@ def test_create_resource_share_with_organization_errors():
     ex.response["Error"]["Message"].should.equal(
         "Organization o-unknown could not be found."
     )
+
     # unknown OU
     # when
     with assert_raises(ClientError) as e:
@@ -186,4 +190,47 @@ def test_create_resource_share_with_organization_errors():
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
     ex.response["Error"]["Message"].should.equal(
         "OrganizationalUnit ou-unknown in unknown organization could not be found."
+    )
+
+
+@mock_ram
+def test_get_resource_shares():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+    client.create_resource_share(name="test")
+
+    # when
+    response = client.get_resource_shares(resourceOwner="SELF")
+
+    # then
+    response["resourceShares"].should.have.length_of(1)
+    resource = response["resourceShares"][0]
+    resource["allowExternalPrincipals"].should.be.ok
+    resource["creationTime"].should.be.a(datetime)
+    resource["featureSet"].should.equal("STANDARD")
+    resource["lastUpdatedTime"].should.be.a(datetime)
+    resource["name"].should.equal("test")
+    resource["owningAccountId"].should.equal("123456789012")
+    resource["resourceShareArn"].should.match(
+        r"arn:aws:ram:us-east-1:123456789012:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    )
+    resource["status"].should.equal("ACTIVE")
+
+
+@mock_ram
+def test_get_resource_shares_errors():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+
+    # invalid resource owner
+    # when
+    with assert_raises(ClientError) as e:
+        client.get_resource_shares(resourceOwner="invalid")
+    ex = e.exception
+    ex.operation_name.should.equal("GetResourceShares")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+    ex.response["Error"]["Message"].should.equal(
+        "invalid is not a valid resource owner. "
+        "Specify either SELF or OTHER-ACCOUNTS and try again."
     )

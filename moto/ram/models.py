@@ -154,7 +154,7 @@ class ResourceAccessManagerBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(ResourceAccessManagerBackend, self).__init__()
         self.region_name = region_name
-        self.resource_share = []
+        self.resource_shares = []
 
     def reset(self):
         region_name = self.region_name
@@ -166,12 +166,30 @@ class ResourceAccessManagerBackend(BaseBackend):
         resource.add_principals(kwargs.get("principals", []))
         resource.add_resouces(kwargs.get("resourceArns", []))
 
-        self.resource_share.append(resource.describe())
+        self.resource_shares.append(resource)
 
         response = resource.describe()
         response.pop("featureSet")
 
         return dict(resourceShare=response)
+
+    def get_resource_shares(self, **kwargs):
+        owner = kwargs["resourceOwner"]
+
+        if owner not in ["SELF", "OTHER-ACCOUNTS"]:
+            raise InvalidParameterException(
+                "{} is not a valid resource owner. "
+                "Specify either SELF or OTHER-ACCOUNTS and try again.".format(owner)
+            )
+
+        if owner == "OTHER-ACCOUNTS":
+            raise NotImplementedError(
+                "Value 'OTHER-ACCOUNTS' for parameter 'resourceOwner' not implemented."
+            )
+
+        resouces = [resource.describe() for resource in self.resource_shares]
+
+        return dict(resourceShares=resouces)
 
 
 ram_backends = {}

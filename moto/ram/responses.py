@@ -20,3 +20,6 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     def create_resource_share(self):
         return json.dumps(self.ram_backend.create_resource_share(**self.request_params))
+
+    def get_resource_shares(self):
+        return json.dumps(self.ram_backend.get_resource_shares(**self.request_params))
