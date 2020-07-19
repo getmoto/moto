@@ -14,6 +14,9 @@ class ResourceAccessManagerResponse(BaseResponse):
     @property
     def request_params(self):
         try:
+            if self.method == "DELETE":
+                return None
+
             return json.loads(self.body)
         except ValueError:
             return {}
@@ -26,3 +29,8 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     def update_resource_share(self):
         return json.dumps(self.ram_backend.update_resource_share(**self.request_params))
+
+    def delete_resource_share(self):
+        return json.dumps(
+            self.ram_backend.delete_resource_share(self._get_param("resourceShareArn"))
+        )

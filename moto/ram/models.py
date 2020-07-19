@@ -105,7 +105,7 @@ class ResourceShare(BaseModel):
         for principal in principals:
             self.principals.append(principal)
 
-    def add_resouces(self, resource_arns):
+    def add_resources(self, resource_arns):
         for resource in resource_arns:
             match = re.search(
                 r"^arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:([a-z-]+)[/:].*$", resource
@@ -123,6 +123,10 @@ class ResourceShare(BaseModel):
 
         for resource in resource_arns:
             self.resource_arns.append(resource)
+
+    def delete(self):
+        self.last_updated_time = datetime.utcnow()
+        self.status = "DELETED"
 
     def describe(self):
         return {
@@ -171,7 +175,7 @@ class ResourceAccessManagerBackend(BaseBackend):
     def create_resource_share(self, **kwargs):
         resource = ResourceShare(self.region_name, **kwargs)
         resource.add_principals(kwargs.get("principals", []))
-        resource.add_resouces(kwargs.get("resourceArns", []))
+        resource.add_resources(kwargs.get("resourceArns", []))
 
         self.resource_shares.append(resource)
 
@@ -216,6 +220,21 @@ class ResourceAccessManagerBackend(BaseBackend):
         response.pop("featureSet")
 
         return dict(resourceShare=response)
+
+    def delete_resource_share(self, arn):
+        resource = next(
+            (resource for resource in self.resource_shares if arn == resource.arn),
+            None,
+        )
+
+        if not resource:
+            raise UnknownResourceException(
+                "ResourceShare {} could not be found.".format(arn)
+            )
+
+        resource.delete()
+
+        return dict(returnValue=True)
 
 
 ram_backends = {}
