@@ -1,0 +1,22 @@
+from __future__ import unicode_literals
+from moto.core.responses import BaseResponse
+from .models import ram_backends
+import json
+
+
+class ResourceAccessManagerResponse(BaseResponse):
+    SERVICE_NAME = "ram"
+
+    @property
+    def ram_backend(self):
+        return ram_backends[self.region]
+
+    @property
+    def request_params(self):
+        try:
+            return json.loads(self.body)
+        except ValueError:
+            return {}
+
+    def create_resource_share(self):
+        return json.dumps(self.ram_backend.create_resource_share(**self.request_params))
