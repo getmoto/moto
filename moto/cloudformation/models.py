@@ -10,7 +10,7 @@ from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 
-from .parsing import ResourceMap, OutputMap, parse_and_delete_resource
+from .parsing import ResourceMap, OutputMap
 from .utils import (
     generate_changeset_id,
     generate_stack_id,

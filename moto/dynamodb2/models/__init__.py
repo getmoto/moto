@@ -440,9 +440,8 @@ class Table(BaseModel):
 
     @classmethod
     def delete_from_cloudformation_json(
-            cls, resource_name, cloudformation_json, region_name
+        cls, resource_name, cloudformation_json, region_name
     ):
-        print('resource name', resource_name)
         properties = cloudformation_json["Properties"]
 
         table = dynamodb_backends[region_name].delete_table(

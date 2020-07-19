@@ -55,33 +55,21 @@ dummy_template4 = {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
                 "AttributeDefinitions": [
-                    {
-                        "AttributeName": "Name",
-                        "AttributeType": "S"
-                    },
-                    {
-                        "AttributeName": "Age",
-                        "AttributeType": "S"
-                    }
+                    {"AttributeName": "Name", "AttributeType": "S"},
+                    {"AttributeName": "Age", "AttributeType": "S"},
                 ],
                 "KeySchema": [
-                    {
-                        "AttributeName": "Name",
-                        "KeyType": "HASH"
-                    },
-                    {
-                        "AttributeName": "Age",
-                        "KeyType": "RANGE"
-                    }
+                    {"AttributeName": "Name", "KeyType": "HASH"},
+                    {"AttributeName": "Age", "KeyType": "RANGE"},
                 ],
                 "ProvisionedThroughput": {
                     "ReadCapacityUnits": 5,
                     "WriteCapacityUnits": 5,
                 },
-                "TableName": "Person"
-            }
+                "TableName": "Person",
+            },
         }
-    }
+    },
 }
 
 dummy_template_json = json.dumps(dummy_template)
