@@ -206,7 +206,6 @@ def test_delete_endpoint():
     assert_true(
         e.exception.response["Error"]["Message"].startswith("Could not find endpoint")
     )
-    pass
 
 
 def _create_model(boto_client, model_name):
