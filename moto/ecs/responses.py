@@ -163,8 +163,6 @@ class EC2ContainerServiceResponse(BaseResponse):
         scheduling_strategy = self._get_param("schedulingStrategy")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
-        print(task_definition_str)
-        print(desired_count)
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -389,10 +387,11 @@ class EC2ContainerServiceResponse(BaseResponse):
         service_str = self._get_param("service")
         task_sets = self._get_param("taskSets")
         include = self._get_param("include")
-        task_sets = self.ecs_backend.describe_task_sets(
+        task_set_objs = self.ecs_backend.describe_task_sets(
             cluster_str, service_str, task_sets, include
         )
-        return json.dumps({"taskSets": [t.response_object for t in task_sets]})
+        # TODO: filter tags based on include parameter
+        return json.dumps({"taskSets": [t.response_object for t in task_set_objs]})
 
     def delete_task_set(self):
         cluster_str = self._get_param("cluster")
@@ -401,6 +400,17 @@ class EC2ContainerServiceResponse(BaseResponse):
         force = self._get_param("force")
         task_set = self.ecs_backend.delete_task_set(
             cluster_str, service_str, task_set, force
+        )
+        return json.dumps({"taskSet": task_set.response_object})
+
+    def update_task_set(self):
+        cluster_str = self._get_param("cluster")
+        service_str = self._get_param("service")
+        task_set = self._get_param("taskSet")
+        scale = self._get_param("scale")
+
+        task_set = self.ecs_backend.update_task_set(
+            cluster_str, service_str, task_set, scale
         )
         return json.dumps({"taskSet": task_set.response_object})
 

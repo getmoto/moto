@@ -17,6 +17,7 @@ from .exceptions import (
     ServiceNotFoundException,
     TaskDefinitionNotFoundException,
     TaskSetNotFoundException,
+    ClusterNotFoundException,
 )
 
 
@@ -543,7 +544,7 @@ class TaskSet(BaseObject):
         self.launch_type = launch_type
         self.capacity_provider_strategy = capacity_provider_strategy or []
         self.platform_version = platform_version or ""
-        self.scale = scale or {}
+        self.scale = scale or {"value": 100.0, "unit": "PERCENT"}
         self.client_token = client_token or ""
         self.tags = tags or []
         self.stabilityStatus = "STEADY_STATE"
@@ -1193,9 +1194,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def put_attributes(self, cluster_name, attributes=None):
         if cluster_name is None or cluster_name not in self.clusters:
-            raise JsonRESTError(
-                "ClusterNotFoundException", "Cluster not found", status=400
-            )
+            raise ClusterNotFoundException
 
         if attributes is None:
             raise JsonRESTError(
@@ -1284,9 +1283,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def delete_attributes(self, cluster_name, attributes=None):
         if cluster_name is None or cluster_name not in self.clusters:
-            raise JsonRESTError(
-                "ClusterNotFoundException", "Cluster not found", status=400
-            )
+            raise ClusterNotFoundException
 
         if attributes is None:
             raise JsonRESTError(
@@ -1461,15 +1458,14 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         cluster_obj = self.clusters.get(cluster_name)
         if not cluster_obj:
-            raise JsonRESTError(
-                "ClusterNotFoundException", "Cluster not found", status=400
-            )
+            raise ClusterNotFoundException
 
+        task_set.task_definition = self.describe_task_definition(task_definition).arn
         task_set.service_arn = service_obj.arn
         task_set.cluster_arn = cluster_obj.arn
 
         service_obj.task_sets.append(task_set)
-        service_obj
+        # TODO: validate load balancers
 
         return task_set
 
@@ -1487,9 +1483,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         cluster_obj = self.clusters.get(cluster_name)
         if not cluster_obj:
-            raise JsonRESTError(
-                "ClusterNotFoundException", "Cluster not found", status=400
-            )
+            raise ClusterNotFoundException
 
         task_set_results = []
         if task_sets:
@@ -1520,20 +1514,31 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return deleted_task_set
 
-    def update_service_primary_task_set(self, cluster, service, primary_task_set):
+    def update_task_set(self, cluster, service, task_set, scale):
+        cluster_name = cluster.split("/")[-1]
+        service_name = service.split("/")[-1]
         task_set_obj = self.describe_task_sets(
-            cluster, service, task_sets=[primary_task_set]
+            cluster_name, service_name, task_sets=[task_set]
+        )[0]
+        task_set_obj.scale = scale
+        return task_set_obj
+
+    def update_service_primary_task_set(self, cluster, service, primary_task_set):
+        cluster_name = cluster.split("/")[-1]
+        service_name = service.split("/")[-1]
+        task_set_obj = self.describe_task_sets(
+            cluster_name, service_name, task_sets=[primary_task_set]
         )[0]
         service_obj = self.describe_services(cluster, [service])[0]
 
         service_obj.load_balancers = task_set_obj.load_balancers
         service_obj.task_definition = task_set_obj.task_definition
-        task_set_obj.status = "PRIMARY"
+        for task_set in service_obj.task_sets:
+            if task_set.task_set_arn == primary_task_set:
+                task_set.status = "PRIMARY"
+            else:
+                task_set.status = "ACTIVE"
         return task_set_obj
-
-    # @TODO: update_task_set
-    # @TODO: update_service_primary_task_set
-    # @TODO: deploymentController !-= ECS, no initial deployments
 
 
 ecs_backends = {}
