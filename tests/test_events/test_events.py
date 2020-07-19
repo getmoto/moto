@@ -312,8 +312,10 @@ def test_put_events():
         "DetailType": "myDetailType",
     }
 
-    client.put_events(Entries=[event])
+    response = client.put_events(Entries=[event])
     # Boto3 would error if it didn't return 200 OK
+    response["FailedEntryCount"].should.equal(0)
+    response["Entries"].should.have.length_of(1)
 
     with assert_raises(ClientError):
         client.put_events(Entries=[event] * 20)
