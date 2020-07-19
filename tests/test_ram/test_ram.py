@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 
 import boto3
@@ -233,4 +234,52 @@ def test_get_resource_shares_errors():
     ex.response["Error"]["Message"].should.equal(
         "invalid is not a valid resource owner. "
         "Specify either SELF or OTHER-ACCOUNTS and try again."
+    )
+
+
+@mock_ram
+def test_update_resource_share():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+    arn = client.create_resource_share(name="test")["resourceShare"]["resourceShareArn"]
+
+    # when
+    time.sleep(1)
+    response = client.update_resource_share(resourceShareArn=arn, name="test-update")
+
+    # then
+    resource = response["resourceShare"]
+    resource["allowExternalPrincipals"].should.be.ok
+    resource["name"].should.equal("test-update")
+    resource["owningAccountId"].should.equal("123456789012")
+    resource["resourceShareArn"].should.match(
+        r"arn:aws:ram:us-east-1:123456789012:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    )
+    resource["status"].should.equal("ACTIVE")
+    resource.should_not.have.key("featureSet")
+    creation_time = resource["creationTime"]
+    resource["lastUpdatedTime"].should.be.greater_than(creation_time)
+
+    response = client.get_resource_shares(resourceOwner="SELF")
+    response["resourceShares"].should.have.length_of(1)
+
+
+@mock_ram
+def test_update_resource_share_errors():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+
+    # invalid resource owner
+    # when
+    with assert_raises(ClientError) as e:
+        client.update_resource_share(
+            resourceShareArn="arn:aws:ram:us-east-1:123456789012:resource-share/not-existing",
+            name="test-update",
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("UpdateResourceShare")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("UnknownResourceException")
+    ex.response["Error"]["Message"].should.equal(
+        "ResourceShare arn:aws:ram:us-east-1:123456789012:resource-share/not-existing could not be found."
     )

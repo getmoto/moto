@@ -136,6 +136,13 @@ class ResourceShare(BaseModel):
             "status": self.status,
         }
 
+    def update(self, **kwargs):
+        self.allow_external_principals = kwargs.get(
+            "allowExternalPrincipals", self.allow_external_principals
+        )
+        self.last_updated_time = datetime.utcnow()
+        self.name = kwargs.get("name", self.name)
+
     def _create_arn(self):
         id = "{0}-{1}-{2}-{3}-{4}".format(
             random_resource_id(8),
@@ -190,6 +197,25 @@ class ResourceAccessManagerBackend(BaseBackend):
         resouces = [resource.describe() for resource in self.resource_shares]
 
         return dict(resourceShares=resouces)
+
+    def update_resource_share(self, **kwargs):
+        arn = kwargs["resourceShareArn"]
+
+        resource = next(
+            (resource for resource in self.resource_shares if arn == resource.arn),
+            None,
+        )
+
+        if not resource:
+            raise UnknownResourceException(
+                "ResourceShare {} could not be found.".format(arn)
+            )
+
+        resource.update(**kwargs)
+        response = resource.describe()
+        response.pop("featureSet")
+
+        return dict(resourceShare=response)
 
 
 ram_backends = {}
