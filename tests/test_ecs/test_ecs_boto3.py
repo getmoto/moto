@@ -2962,9 +2962,7 @@ def test_update_task_set():
     )
 
     updated_task_set = client.describe_task_sets(
-        cluster=cluster_name,
-        service=service_name,
-        taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
     )["taskSets"][0]
     assert updated_task_set["scale"]["value"] == 25.0
     assert updated_task_set["scale"]["unit"] == "PERCENT"
