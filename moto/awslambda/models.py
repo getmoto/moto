@@ -401,6 +401,7 @@ class LambdaFunction(BaseModel):
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
+                    self.docker_client.ping()  # Verify Docker is running
                     run_kwargs = (
                         dict(links={"motoserver": "motoserver"})
                         if settings.TEST_SERVER_MODE
@@ -463,6 +464,9 @@ class LambdaFunction(BaseModel):
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
             return resp, False, logs
+        except docker.errors.DockerException as e:
+            # Docker itself is probably not running - there will be no Lambda-logs to handle
+            return "error running docker: {}".format(e), True, ""
         except BaseException as e:
             traceback.print_exc()
             logs = os.linesep.join(
