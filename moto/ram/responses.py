@@ -34,3 +34,6 @@ class ResourceAccessManagerResponse(BaseResponse):
         return json.dumps(
             self.ram_backend.delete_resource_share(self._get_param("resourceShareArn"))
         )
+
+    def enable_sharing_with_aws_organization(self):
+        return json.dumps(self.ram_backend.enable_sharing_with_aws_organization())

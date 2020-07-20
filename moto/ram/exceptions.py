@@ -18,6 +18,18 @@ class MalformedArnException(JsonRESTError):
         super(MalformedArnException, self).__init__("MalformedArnException", message)
 
 
+class OperationNotPermittedException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(OperationNotPermittedException, self).__init__(
+            "OperationNotPermittedException",
+            "Unable to enable sharing with AWS Organizations. "
+            "Received AccessDeniedException from AWSOrganizations with the following error message: "
+            "You don't have permissions to access this resource.",
+        )
+
+
 class UnknownResourceException(JsonRESTError):
     code = 400
 

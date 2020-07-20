@@ -244,7 +244,7 @@ def test_update_resource_share():
     arn = client.create_resource_share(name="test")["resourceShare"]["resourceShareArn"]
 
     # when
-    time.sleep(1)
+    time.sleep(0.1)
     response = client.update_resource_share(resourceShareArn=arn, name="test-update")
 
     # then
@@ -292,7 +292,7 @@ def test_delete_resource_share():
     arn = client.create_resource_share(name="test")["resourceShare"]["resourceShareArn"]
 
     # when
-    time.sleep(1)
+    time.sleep(0.1)
     response = client.delete_resource_share(resourceShareArn=arn)
 
     # then
@@ -323,4 +323,40 @@ def test_delete_resource_share_errors():
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
     ex.response["Error"]["Message"].should.equal(
         "ResourceShare arn:aws:ram:us-east-1:123456789012:resource-share/not-existing could not be found."
+    )
+
+
+@mock_ram
+@mock_organizations
+def test_enable_sharing_with_aws_organization():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    client = boto3.client("ram", region_name="us-east-1")
+
+    # when
+    response = client.enable_sharing_with_aws_organization()
+
+    # then
+    response["returnValue"].should.be.ok
+
+
+@mock_ram
+@mock_organizations
+def test_enable_sharing_with_aws_organization_errors():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+
+    # no Organization defined
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_sharing_with_aws_organization()
+    ex = e.exception
+    ex.operation_name.should.equal("EnableSharingWithAwsOrganization")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("OperationNotPermittedException")
+    ex.response["Error"]["Message"].should.equal(
+        "Unable to enable sharing with AWS Organizations. "
+        "Received AccessDeniedException from AWSOrganizations with the following error message: "
+        "You don't have permissions to access this resource."
     )

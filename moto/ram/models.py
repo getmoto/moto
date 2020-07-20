@@ -11,6 +11,7 @@ from moto.ram.exceptions import (
     MalformedArnException,
     InvalidParameterException,
     UnknownResourceException,
+    OperationNotPermittedException,
 )
 
 
@@ -167,6 +168,10 @@ class ResourceAccessManagerBackend(BaseBackend):
         self.region_name = region_name
         self.resource_shares = []
 
+    @property
+    def organizations_backend(self):
+        return organizations_backends["global"]
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
@@ -233,6 +238,12 @@ class ResourceAccessManagerBackend(BaseBackend):
             )
 
         resource.delete()
+
+        return dict(returnValue=True)
+
+    def enable_sharing_with_aws_organization(self):
+        if not self.organizations_backend.org:
+            raise OperationNotPermittedException
 
         return dict(returnValue=True)
 
