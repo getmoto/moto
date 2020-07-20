@@ -4973,6 +4973,14 @@ class VpnGateway(TaggedEC2Resource):
         super(VpnGateway, self).__init__()
 
     def get_filter_value(self, filter_name):
+        if filter_name == "attachment.vpc-id":
+            return self.attachments.keys()
+        elif filter_name == "attachment.state":
+            return [attachment.state for attachment in self.attachments.values()]
+        elif filter_name == "vpn-gateway-id":
+            return self.id
+        elif filter_name == "type":
+            return self.type
         return super(VpnGateway, self).get_filter_value(
             filter_name, "DescribeVpnGateways"
         )
