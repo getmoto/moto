@@ -21,7 +21,7 @@ from .exceptions import (
     ResourceNotFoundError,
     UserNotFoundError,
     UsernameExistsException,
-    InvalidParameterException
+    InvalidParameterException,
 )
 
 UserStatus = {
@@ -352,9 +352,7 @@ class CognitoResourceServer(BaseModel):
         }
 
         if len(self.scopes) != 0:
-            res.update({
-                "Scopes": self.scopes
-            })
+            res.update({"Scopes": self.scopes})
 
         return res
 
@@ -795,7 +793,8 @@ class CognitoIdpBackend(BaseBackend):
 
         if identifier in user_pool.resource_servers:
             raise InvalidParameterException(
-                "%s already exists in user pool %s." % (identifier, user_pool_id))
+                "%s already exists in user pool %s." % (identifier, user_pool_id)
+            )
 
         resource_server = CognitoResourceServer(user_pool_id, identifier, name, scopes)
         user_pool.resource_servers[identifier] = resource_server

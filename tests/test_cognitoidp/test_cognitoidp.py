@@ -1356,19 +1356,13 @@ def test_resource_server():
     identifier = "http://localhost.localdomain"
     name = "local server"
     scopes = [
-        {
-            'ScopeName': 'app:write',
-            'ScopeDescription': 'write scope'
-        },
-        {
-            'ScopeName': 'app:read',
-            'ScopeDescription':  'read scope'
-        },
+        {"ScopeName": "app:write", "ScopeDescription": "write scope"},
+        {"ScopeName": "app:read", "ScopeDescription": "read scope"},
     ]
 
     res = client.create_resource_server(
-        UserPoolId=user_pool_id, Identifier=identifier,
-        Name=name, Scopes=scopes)
+        UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+    )
 
     res["ResourceServer"]["UserPoolId"].should.equal(user_pool_id)
     res["ResourceServer"]["Identifier"].should.equal(identifier)
@@ -1377,15 +1371,15 @@ def test_resource_server():
 
     with assert_raises(ClientError) as ex:
         client.create_resource_server(
-            UserPoolId=user_pool_id, Identifier=identifier,
-            Name=name, Scopes=scopes)
+            UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+        )
 
     ex.exception.operation_name.should.equal("CreateResourceServer")
     ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
     ex.exception.response["Error"]["Message"].should.equal(
-        "%s already exists in user pool %s." % (identifier, user_pool_id))
+        "%s already exists in user pool %s." % (identifier, user_pool_id)
+    )
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
