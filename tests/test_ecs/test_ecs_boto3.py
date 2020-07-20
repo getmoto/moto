@@ -2922,7 +2922,7 @@ def test_update_task_set():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
     _ = client.register_task_definition(
-        family="test_ecs_task",
+        family=task_def_name,
         containerDefinitions=[
             {
                 "name": "hello_world",
@@ -2962,8 +2962,8 @@ def test_update_task_set():
     )
 
     updated_task_set = client.describe_task_sets(
-        cluster="test_ecs_cluster",
-        service="test_ecs_service",
+        cluster=cluster_name,
+        service=service_name,
         taskSets=[task_set["taskSetArn"]],
     )["taskSets"][0]
     assert updated_task_set["scale"]["value"] == 25.0

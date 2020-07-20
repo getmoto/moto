@@ -335,7 +335,7 @@ class Service(BaseObject):
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_service(
-            cluster, service_name, desired_count, task_definition
+            cluster, service_name, desired_count, task_definition_str=task_definition
         )
 
     @classmethod
@@ -1438,16 +1438,16 @@ class EC2ContainerServiceBackend(BaseBackend):
             cluster,
             task_definition,
             self.region_name,
-            external_id,
-            network_configuration,
-            load_balancers,
-            service_registries,
-            launch_type,
-            capacity_provider_strategy,
-            platform_version,
-            scale,
-            client_token,
-            tags,
+            external_id=external_id,
+            network_configuration=network_configuration,
+            load_balancers=load_balancers,
+            service_registries=service_registries,
+            launch_type=launch_type,
+            capacity_provider_strategy=capacity_provider_strategy,
+            platform_version=platform_version,
+            scale=scale,
+            client_token=client_token,
+            tags=tags,
         )
 
         cluster_name = cluster.split("/")[-1]
