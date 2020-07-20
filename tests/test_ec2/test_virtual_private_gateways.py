@@ -118,6 +118,7 @@ def test_describe_vpn_connections_id_filter_match():
     gateways["VpnGateways"].should.have.length_of(1)
     gateways["VpnGateways"][0]["VpnGatewayId"].should.equal(gateway_id)
 
+
 @mock_ec2
 def test_describe_vpn_connections_id_filter_miss():
     """ describe_vpn_gateways vpn-gateway-id filter - don't match """
