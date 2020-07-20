@@ -363,7 +363,10 @@ class Service(BaseObject):
                 cluster_name, int(random() * 10 ** 6)
             )
             return ecs_backend.create_service(
-                cluster_name, new_service_name, desired_count, task_definition
+                cluster_name,
+                new_service_name,
+                desired_count,
+                task_definition_str=task_definition,
             )
         else:
             return ecs_backend.update_service(
