@@ -379,6 +379,17 @@ class CognitoIdpResponse(BaseResponse):
         )
         return ""
 
+    # Resource Server
+    def create_resource_server(self):
+        user_pool_id = self._get_param("UserPoolId")
+        identifier = self._get_param("Identifier")
+        name = self._get_param("Name")
+        scopes = self._get_param("Scopes")
+        resource_server = cognitoidp_backends[self.region].create_resource_server(
+            user_pool_id, identifier, name, scopes
+        )
+        return json.dumps({"ResourceServer": resource_server.to_json()})
+
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
     def __init__(self):

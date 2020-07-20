@@ -1398,6 +1398,44 @@ def test_admin_update_user_attributes():
             val.should.equal("Jane")
 
 
+@mock_cognitoidp
+def test_resource_server():
+
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    res = client.create_user_pool(PoolName=name)
+
+    user_pool_id = res["UserPool"]["Id"]
+    identifier = "http://localhost.localdomain"
+    name = "local server"
+    scopes = [
+        {"ScopeName": "app:write", "ScopeDescription": "write scope"},
+        {"ScopeName": "app:read", "ScopeDescription": "read scope"},
+    ]
+
+    res = client.create_resource_server(
+        UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+    )
+
+    res["ResourceServer"]["UserPoolId"].should.equal(user_pool_id)
+    res["ResourceServer"]["Identifier"].should.equal(identifier)
+    res["ResourceServer"]["Name"].should.equal(name)
+    res["ResourceServer"]["Scopes"].should.equal(scopes)
+
+    with assert_raises(ClientError) as ex:
+        client.create_resource_server(
+            UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+        )
+
+    ex.exception.operation_name.should.equal("CreateResourceServer")
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "%s already exists in user pool %s." % (identifier, user_pool_id)
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
 # which isnt mocked in ServerMode
 if not settings.TEST_SERVER_MODE:

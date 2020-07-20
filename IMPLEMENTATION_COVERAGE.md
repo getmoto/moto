@@ -1664,7 +1664,7 @@
 
 ## cognito-idp
 <details>
-<summary>37% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -1700,7 +1700,7 @@
 - [ ] confirm_sign_up
 - [X] create_group
 - [X] create_identity_provider
-- [ ] create_resource_server
+- [X] create_resource_server
 - [ ] create_user_import_job
 - [X] create_user_pool
 - [X] create_user_pool_client
