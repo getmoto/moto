@@ -1031,13 +1031,15 @@ class SimpleSystemManagerBackend(BaseBackend):
                             )
                         )
 
-            if key != "Path" and option not in ["Equals", "BeginsWith"]:
-                if not (key == "Name" and option in ["Contains"]):
-                    raise InvalidFilterOption(
-                        "The following filter option is not valid: {option}. Valid options include: [BeginsWith, Equals].".format(
-                            option=option
-                        )
+            allowed_options = ["Equals", "BeginsWith"]
+            if key == "Name":
+                allowed_options += ["Contains"]
+            if key != "Path" and option not in allowed_options:
+                raise InvalidFilterOption(
+                    "The following filter option is not valid: {option}. Valid options include: [BeginsWith, Equals].".format(
+                        option=option
                     )
+                )
 
             filter_keys.append(key)
 
