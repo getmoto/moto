@@ -2,6 +2,7 @@ import re
 import string
 from datetime import datetime
 import random
+from uuid import uuid4
 
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
@@ -42,7 +43,9 @@ class ResourceShare(BaseModel):
         self.region = region
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
-        self.arn = self._create_arn()
+        self.arn = "arn:aws:ram:{0}:{1}:resource-share/{2}".format(
+            self.region, ACCOUNT_ID, uuid4()
+        )
         self.creation_time = datetime.utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = datetime.utcnow()
@@ -147,19 +150,6 @@ class ResourceShare(BaseModel):
         )
         self.last_updated_time = datetime.utcnow()
         self.name = kwargs.get("name", self.name)
-
-    def _create_arn(self):
-        id = "{0}-{1}-{2}-{3}-{4}".format(
-            random_resource_id(8),
-            random_resource_id(4),
-            random_resource_id(4),
-            random_resource_id(4),
-            random_resource_id(12),
-        )
-
-        return "arn:aws:ram:{0}:{1}:resource-share/{2}".format(
-            self.region, ACCOUNT_ID, id
-        )
 
 
 class ResourceAccessManagerBackend(BaseBackend):

@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 from moto import mock_ram, mock_organizations
+from moto.core import ACCOUNT_ID
 
 
 @mock_ram
@@ -23,9 +24,9 @@ def test_create_resource_share():
     resource["creationTime"].should.be.a(datetime)
     resource["lastUpdatedTime"].should.be.a(datetime)
     resource["name"].should.equal("test")
-    resource["owningAccountId"].should.equal("123456789012")
+    resource["owningAccountId"].should.equal(ACCOUNT_ID)
     resource["resourceShareArn"].should.match(
-        r"arn:aws:ram:us-east-1:123456789012:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        r"arn:aws:ram:us-east-1:\d{12}:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
     )
     resource["status"].should.equal("ACTIVE")
     resource.should_not.have.key("featureSet")
@@ -37,7 +38,7 @@ def test_create_resource_share():
         name="test",
         allowExternalPrincipals=False,
         resourceArns=[
-            "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-123456789"
+            "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(ACCOUNT_ID)
         ],
     )
 
@@ -47,9 +48,9 @@ def test_create_resource_share():
     resource["creationTime"].should.be.a(datetime)
     resource["lastUpdatedTime"].should.be.a(datetime)
     resource["name"].should.equal("test")
-    resource["owningAccountId"].should.equal("123456789012")
+    resource["owningAccountId"].should.equal(ACCOUNT_ID)
     resource["resourceShareArn"].should.match(
-        r"arn:aws:ram:us-east-1:123456789012:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        r"arn:aws:ram:us-east-1:\d{12}:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
     )
     resource["status"].should.equal("ACTIVE")
 
@@ -79,7 +80,7 @@ def test_create_resource_share_errors():
     # when
     with assert_raises(ClientError) as e:
         client.create_resource_share(
-            name="test", resourceArns=["arn:aws:iam::123456789012:role/test"]
+            name="test", resourceArns=["arn:aws:iam::{}:role/test".format(ACCOUNT_ID)]
         )
     ex = e.exception
     ex.operation_name.should.equal("CreateResourceShare")
@@ -96,7 +97,9 @@ def test_create_resource_share_errors():
             name="test",
             principals=["invalid"],
             resourceArns=[
-                "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-123456789"
+                "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(
+                    ACCOUNT_ID
+                )
             ],
         )
     ex = e.exception
@@ -126,7 +129,7 @@ def test_create_resource_share_with_organization():
         name="test",
         principals=[org_arn],
         resourceArns=[
-            "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-123456789"
+            "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(ACCOUNT_ID)
         ],
     )
 
@@ -139,7 +142,7 @@ def test_create_resource_share_with_organization():
         name="test",
         principals=[ou_arn],
         resourceArns=[
-            "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-123456789"
+            "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(ACCOUNT_ID)
         ],
     )
 
@@ -162,9 +165,13 @@ def test_create_resource_share_with_organization_errors():
     with assert_raises(ClientError) as e:
         client.create_resource_share(
             name="test",
-            principals=["arn:aws:organizations::123456789012:organization/o-unknown"],
+            principals=[
+                "arn:aws:organizations::{}:organization/o-unknown".format(ACCOUNT_ID)
+            ],
             resourceArns=[
-                "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-123456789"
+                "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(
+                    ACCOUNT_ID
+                )
             ],
         )
     ex = e.exception
@@ -180,9 +187,13 @@ def test_create_resource_share_with_organization_errors():
     with assert_raises(ClientError) as e:
         client.create_resource_share(
             name="test",
-            principals=["arn:aws:organizations::123456789012:ou/o-unknown/ou-unknown"],
+            principals=[
+                "arn:aws:organizations::{}:ou/o-unknown/ou-unknown".format(ACCOUNT_ID)
+            ],
             resourceArns=[
-                "arn:aws:ec2:us-east-1:123456789012:transit-gateway/tgw-123456789"
+                "arn:aws:ec2:us-east-1:{}:transit-gateway/tgw-123456789".format(
+                    ACCOUNT_ID
+                )
             ],
         )
     ex = e.exception
@@ -211,9 +222,9 @@ def test_get_resource_shares():
     resource["featureSet"].should.equal("STANDARD")
     resource["lastUpdatedTime"].should.be.a(datetime)
     resource["name"].should.equal("test")
-    resource["owningAccountId"].should.equal("123456789012")
+    resource["owningAccountId"].should.equal(ACCOUNT_ID)
     resource["resourceShareArn"].should.match(
-        r"arn:aws:ram:us-east-1:123456789012:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        r"arn:aws:ram:us-east-1:\d{12}:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
     )
     resource["status"].should.equal("ACTIVE")
 
@@ -251,9 +262,9 @@ def test_update_resource_share():
     resource = response["resourceShare"]
     resource["allowExternalPrincipals"].should.be.ok
     resource["name"].should.equal("test-update")
-    resource["owningAccountId"].should.equal("123456789012")
+    resource["owningAccountId"].should.equal(ACCOUNT_ID)
     resource["resourceShareArn"].should.match(
-        r"arn:aws:ram:us-east-1:123456789012:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+        r"arn:aws:ram:us-east-1:\d{12}:resource-share/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
     )
     resource["status"].should.equal("ACTIVE")
     resource.should_not.have.key("featureSet")
@@ -273,7 +284,9 @@ def test_update_resource_share_errors():
     # when
     with assert_raises(ClientError) as e:
         client.update_resource_share(
-            resourceShareArn="arn:aws:ram:us-east-1:123456789012:resource-share/not-existing",
+            resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
+                ACCOUNT_ID
+            ),
             name="test-update",
         )
     ex = e.exception
@@ -281,7 +294,9 @@ def test_update_resource_share_errors():
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
     ex.response["Error"]["Message"].should.equal(
-        "ResourceShare arn:aws:ram:us-east-1:123456789012:resource-share/not-existing could not be found."
+        "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
+            ACCOUNT_ID
+        )
     )
 
 
@@ -315,14 +330,18 @@ def test_delete_resource_share_errors():
     # when
     with assert_raises(ClientError) as e:
         client.delete_resource_share(
-            resourceShareArn="arn:aws:ram:us-east-1:123456789012:resource-share/not-existing"
+            resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
+                ACCOUNT_ID
+            )
         )
     ex = e.exception
     ex.operation_name.should.equal("DeleteResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
     ex.response["Error"]["Message"].should.equal(
-        "ResourceShare arn:aws:ram:us-east-1:123456789012:resource-share/not-existing could not be found."
+        "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
+            ACCOUNT_ID
+        )
     )
 
 
