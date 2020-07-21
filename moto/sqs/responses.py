@@ -291,6 +291,16 @@ class SQSResponse(BaseResponse):
                         [None],
                     )[0],
                     "MessageAttributes": message_attributes,
+                    "MessageGroupId": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageGroupId".format(index),
+                        [None],
+                    )[0],
+                    "MessageDeduplicationId": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageDeduplicationId".format(
+                            index
+                        ),
+                        [None],
+                    )[0],
                 }
 
         if entries == {}:

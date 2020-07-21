@@ -1044,6 +1044,8 @@ def test_send_message_batch():
                         "DataType": "String",
                     }
                 },
+                "MessageGroupId": "message_group_id_1",
+                "MessageDeduplicationId": "message_deduplication_id_1",
             },
             {
                 "Id": "id_2",
@@ -1052,6 +1054,8 @@ def test_send_message_batch():
                 "MessageAttributes": {
                     "attribute_name_2": {"StringValue": "123", "DataType": "Number"}
                 },
+                "MessageGroupId": "message_group_id_2",
+                "MessageDeduplicationId": "message_deduplication_id_2",
             },
         ],
     )
@@ -1066,9 +1070,21 @@ def test_send_message_batch():
     response["Messages"][0]["MessageAttributes"].should.equal(
         {"attribute_name_1": {"StringValue": "attribute_value_1", "DataType": "String"}}
     )
+    response["Messages"][0]["Attributes"]["MessageGroupId"].should.equal(
+        "message_group_id_1"
+    )
+    response["Messages"][0]["Attributes"]["MessageDeduplicationId"].should.equal(
+        "message_deduplication_id_1"
+    )
     response["Messages"][1]["Body"].should.equal("body_2")
     response["Messages"][1]["MessageAttributes"].should.equal(
         {"attribute_name_2": {"StringValue": "123", "DataType": "Number"}}
+    )
+    response["Messages"][1]["Attributes"]["MessageGroupId"].should.equal(
+        "message_group_id_2"
+    )
+    response["Messages"][1]["Attributes"]["MessageDeduplicationId"].should.equal(
+        "message_deduplication_id_2"
     )
 
 
