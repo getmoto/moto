@@ -1,4 +1,7 @@
 from __future__ import unicode_literals
+
+import os
+
 import boto
 from boto.exception import EC2ResponseError
 import sure  # noqa
@@ -7,7 +10,7 @@ import unittest
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_ec2_deprecated, mock_s3_deprecated
+from moto import mock_ec2_deprecated, mock_s3_deprecated, mock_s3
 
 """
 Test the different ways that the decorator can be used
@@ -94,3 +97,15 @@ class TesterWithStaticmethod(object):
 
     def test_no_instance_sent_to_staticmethod(self):
         self.static()
+
+
+@mock_s3
+class MotoUpdateBrokeTest(unittest.TestCase):
+    def setUp(self) -> None:
+        os.environ["GLUE_JOB_NAME"] = "glue-job"
+
+    def tearDown(self):
+        pass
+
+    def test_env_is_set(self):
+        self.assertEqual(os.environ["GLUE_JOB_NAME"], "glue-job")
