@@ -280,7 +280,7 @@ class FakeMultipart(BaseModel):
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
-        self.id = rand_b64.decode("utf-8").replace("=", "").replace("+", "")
+        self.id = rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
 
     def complete(self, body):
         decode_hex = codecs.getdecoder("hex_codec")
