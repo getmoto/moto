@@ -10,7 +10,7 @@ import unittest
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
-from moto import mock_ec2_deprecated, mock_s3_deprecated, mock_s3
+from moto import mock_ec2_deprecated, mock_s3_deprecated, mock_s3, mock_nono_moto
 
 """
 Test the different ways that the decorator can be used
@@ -101,6 +101,7 @@ class TesterWithStaticmethod(object):
 
 @mock_s3
 class MotoUpdateBrokeTest(unittest.TestCase):
+    @mock_nono_moto
     def setUp(self) -> None:
         os.environ["GLUE_JOB_NAME"] = "glue-job"
 
