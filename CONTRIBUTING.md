@@ -59,3 +59,12 @@ You'll need a PyPi account and a DockerHub account to release Moto. After we rel
 * First, `scripts/bump_version` modifies the version and opens a PR
 * Then, merge the new pull request
 * Finally, generate and ship the new artifacts with `make publish`
+
+## Windows Developers
+
+### lxml not working?
+[lxml](https://lxml.de/installation.html)
+
+[windows-binaries](https://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml)
+
+requirements-dev changes: lxml==4.5.2 since they do not provide any older versions
