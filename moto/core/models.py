@@ -119,15 +119,24 @@ class BaseMockAWS(object):
             if inspect.ismethod(attr_value) and attr_value.__self__ is klass:
                 continue
 
-            # Check if this is a staticmethod. If so, skip patching
+            # Check conditions on each class in the mro hierarchy
+            mro_continue = False
             for cls in inspect.getmro(klass):
+                # attr not in class
                 if attr_value.__name__ not in cls.__dict__:
                     continue
                 bound_attr_value = cls.__dict__[attr_value.__name__]
+                if mro_continue or hasattr(
+                    bound_attr_value, MOTO_NONO_ATTR
+                ):  # super class without annotation is passing the above condition...
+                    mro_continue = True
+                    continue
+                # Check if this is a staticmethod. If so, skip patching
                 if not isinstance(bound_attr_value, staticmethod):
                     break
             else:
                 # It is a staticmethod, skip patching
+                # It is a nono annotated method, skip patching
                 continue
 
             try:
