@@ -965,6 +965,13 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "The following filter key is not valid: Label. Valid filter keys include: [Path, Name, Type, KeyId, Tier]."
                 )
 
+            if by_path and key in ["Name", "Path", "Tier"]:
+                raise InvalidFilterKey(
+                    "The following filter key is not valid: {key}. Valid filter keys include: [Type, KeyId].".format(
+                        key=key
+                    )
+                )
+
             if not values:
                 raise InvalidFilterValue(
                     "The following filter values are missing : null for filter key Name."
@@ -1085,6 +1092,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         max_results=10,
     ):
         """Implement the get-parameters-by-path-API in the backend."""
+
+        self._validate_parameter_filters(filters, by_path=True)
+
         result = []
         # path could be with or without a trailing /. we handle this
         # difference here.

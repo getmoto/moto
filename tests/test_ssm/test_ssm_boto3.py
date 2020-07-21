@@ -198,6 +198,33 @@ def test_get_parameters_by_path():
     len(response["Parameters"]).should.equal(1)
     response.should_not.have.key("NextToken")
 
+    filters = [{"Key": "Name", "Values": ["error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Name. "
+        "Valid filter keys include: [Type, KeyId]."
+    )
+
+    filters = [{"Key": "Path", "Values": ["/error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Path. "
+        "Valid filter keys include: [Type, KeyId]."
+    )
+
+    filters = [{"Key": "Tier", "Values": ["Standard"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Tier. "
+        "Valid filter keys include: [Type, KeyId]."
+    )
+
 @mock_ssm
 def test_put_parameter():
     client = boto3.client("ssm", region_name="us-east-1")
