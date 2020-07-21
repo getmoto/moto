@@ -48,6 +48,7 @@ BACKENDS = {
     "opsworks": ("opsworks", "opsworks_backends"),
     "organizations": ("organizations", "organizations_backends"),
     "polly": ("polly", "polly_backends"),
+    "ram": ("ram", "ram_backends"),
     "rds": ("rds2", "rds2_backends"),
     "redshift": ("redshift", "redshift_backends"),
     "resource-groups": ("resourcegroups", "resourcegroups_backends"),
