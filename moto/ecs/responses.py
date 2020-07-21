@@ -162,14 +162,16 @@ class EC2ContainerServiceResponse(BaseResponse):
         load_balancers = self._get_param("loadBalancers")
         scheduling_strategy = self._get_param("schedulingStrategy")
         tags = self._get_param("tags")
+        deployment_controller = self._get_param("deploymentController")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
-            task_definition_str,
             desired_count,
+            task_definition_str,
             load_balancers,
             scheduling_strategy,
             tags,
+            deployment_controller,
         )
         return json.dumps({"service": service.response_object})
 
@@ -189,6 +191,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster")
         service_names = self._get_param("services")
         services = self.ecs_backend.describe_services(cluster_str, service_names)
+
         return json.dumps(
             {
                 "services": [service.response_object for service in services],
@@ -347,3 +350,80 @@ class EC2ContainerServiceResponse(BaseResponse):
         tag_keys = self._get_param("tagKeys")
         results = self.ecs_backend.untag_resource(resource_arn, tag_keys)
         return json.dumps(results)
+
+    def create_task_set(self):
+        service_str = self._get_param("service")
+        cluster_str = self._get_param("cluster")
+        task_definition = self._get_param("taskDefinition")
+        external_id = self._get_param("externalId")
+        network_configuration = self._get_param("networkConfiguration")
+        load_balancers = self._get_param("loadBalancers")
+        service_registries = self._get_param("serviceRegistries")
+        launch_type = self._get_param("launchType")
+        capacity_provider_strategy = self._get_param("capacityProviderStrategy")
+        platform_version = self._get_param("platformVersion")
+        scale = self._get_param("scale")
+        client_token = self._get_param("clientToken")
+        tags = self._get_param("tags")
+        task_set = self.ecs_backend.create_task_set(
+            service_str,
+            cluster_str,
+            task_definition,
+            external_id=external_id,
+            network_configuration=network_configuration,
+            load_balancers=load_balancers,
+            service_registries=service_registries,
+            launch_type=launch_type,
+            capacity_provider_strategy=capacity_provider_strategy,
+            platform_version=platform_version,
+            scale=scale,
+            client_token=client_token,
+            tags=tags,
+        )
+        return json.dumps({"taskSet": task_set.response_object})
+
+    def describe_task_sets(self):
+        cluster_str = self._get_param("cluster")
+        service_str = self._get_param("service")
+        task_sets = self._get_param("taskSets")
+        include = self._get_param("include", [])
+        task_set_objs = self.ecs_backend.describe_task_sets(
+            cluster_str, service_str, task_sets, include
+        )
+
+        response_objs = [t.response_object for t in task_set_objs]
+        if "TAGS" not in include:
+            for ro in response_objs:
+                del ro["tags"]
+        return json.dumps({"taskSets": response_objs})
+
+    def delete_task_set(self):
+        cluster_str = self._get_param("cluster")
+        service_str = self._get_param("service")
+        task_set = self._get_param("taskSet")
+        force = self._get_param("force")
+        task_set = self.ecs_backend.delete_task_set(
+            cluster_str, service_str, task_set, force
+        )
+        return json.dumps({"taskSet": task_set.response_object})
+
+    def update_task_set(self):
+        cluster_str = self._get_param("cluster")
+        service_str = self._get_param("service")
+        task_set = self._get_param("taskSet")
+        scale = self._get_param("scale")
+
+        task_set = self.ecs_backend.update_task_set(
+            cluster_str, service_str, task_set, scale
+        )
+        return json.dumps({"taskSet": task_set.response_object})
+
+    def update_service_primary_task_set(self):
+        cluster_str = self._get_param("cluster")
+        service_str = self._get_param("service")
+        primary_task_set = self._get_param("primaryTaskSet")
+
+        task_set = self.ecs_backend.update_service_primary_task_set(
+            cluster_str, service_str, primary_task_set
+        )
+        return json.dumps({"taskSet": task_set.response_object})
