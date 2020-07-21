@@ -1159,9 +1159,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 what.startswith(value) for value in values
             ):
                 return False
-            elif option == "Contains" and not any(
-                value in what for value in values
-            ):
+            elif option == "Contains" and not any(value in what for value in values):
                 return False
             elif option == "Equals" and not any(what == value for value in values):
                 return False

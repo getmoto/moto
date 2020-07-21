@@ -204,7 +204,7 @@ def test_get_parameters_by_path():
     ).should.throw(
         ClientError,
         "The following filter key is not valid: Name. "
-        "Valid filter keys include: [Type, KeyId]."
+        "Valid filter keys include: [Type, KeyId].",
     )
 
     filters = [{"Key": "Path", "Values": ["/error"]}]
@@ -213,7 +213,7 @@ def test_get_parameters_by_path():
     ).should.throw(
         ClientError,
         "The following filter key is not valid: Path. "
-        "Valid filter keys include: [Type, KeyId]."
+        "Valid filter keys include: [Type, KeyId].",
     )
 
     filters = [{"Key": "Tier", "Values": ["Standard"]}]
@@ -222,8 +222,9 @@ def test_get_parameters_by_path():
     ).should.throw(
         ClientError,
         "The following filter key is not valid: Tier. "
-        "Valid filter keys include: [Type, KeyId]."
+        "Valid filter keys include: [Type, KeyId].",
     )
+
 
 @mock_ssm
 def test_put_parameter():
