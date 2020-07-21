@@ -1025,11 +1025,12 @@ class SimpleSystemManagerBackend(BaseBackend):
                         )
 
             if key != "Path" and option not in ["Equals", "BeginsWith"]:
-                raise InvalidFilterOption(
-                    "The following filter option is not valid: {option}. Valid options include: [BeginsWith, Equals].".format(
-                        option=option
+                if not (key == "Name" and option in ["Contains"]):
+                    raise InvalidFilterOption(
+                        "The following filter option is not valid: {option}. Valid options include: [BeginsWith, Equals].".format(
+                            option=option
+                        )
                     )
-                )
 
             filter_keys.append(key)
 
@@ -1134,7 +1135,8 @@ class SimpleSystemManagerBackend(BaseBackend):
                 what = parameter.keyid
             elif key == "Name":
                 what = "/" + parameter.name.lstrip("/")
-                values = ["/" + value.lstrip("/") for value in values]
+                if option != "Contains":
+                    values = ["/" + value.lstrip("/") for value in values]
             elif key == "Path":
                 what = "/" + parameter.name.lstrip("/")
                 values = ["/" + value.strip("/") for value in values]
@@ -1145,6 +1147,10 @@ class SimpleSystemManagerBackend(BaseBackend):
                 return False
             elif option == "BeginsWith" and not any(
                 what.startswith(value) for value in values
+            ):
+                return False
+            elif option == "Contains" and not any(
+                value in what for value in values
             ):
                 return False
             elif option == "Equals" and not any(what == value for value in values):
