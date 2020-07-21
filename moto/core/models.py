@@ -28,6 +28,7 @@ from .utils import (
 
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
+MOTO_NONO_ATTR = "__moto_nono__"
 
 
 class BaseMockAWS(object):

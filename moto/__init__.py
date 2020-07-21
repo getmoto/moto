@@ -112,7 +112,7 @@ mock_swf_deprecated = lazy_load(".swf", "mock_swf_deprecated")
 XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
-
+mock_nono_moto = lazy_load(".utilities", "mock_nono_moto")
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
