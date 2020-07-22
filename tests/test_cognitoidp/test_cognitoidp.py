@@ -17,6 +17,7 @@ from jose import jws, jwk, jwt
 from nose.tools import assert_raises
 
 from moto import mock_cognitoidp, settings
+from moto.cognitoidp.utils import create_id
 from moto.core import ACCOUNT_ID
 
 
@@ -1336,9 +1337,7 @@ def test_change_password__using_custom_user_agent_header():
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    result = conn.forgot_password(
-        ClientId=str(uuid.uuid4()), Username=str(uuid.uuid4())
-    )
+    result = conn.forgot_password(ClientId=create_id(), Username=str(uuid.uuid4()))
     result["CodeDeliveryDetails"].should_not.be.none
 
 
