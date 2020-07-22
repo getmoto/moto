@@ -71,6 +71,15 @@ class BaseMockAWS(object):
     def __exit__(self, *args):
         self.stop()
 
+    def reset(self):
+        pass
+
+    def enable_patching(self):
+        pass
+
+    def disable_patching(self):
+        pass
+
     def start(self, reset=True):
         self.default_session_mock.start()
         self.env_variables_mocks.start()
