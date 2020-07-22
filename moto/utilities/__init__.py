@@ -8,7 +8,7 @@ class NoNoBackend(BaseMockAWS):
         raise NotImplementedError()
 
     def decorate_callable(self, func, reset):
-        wrapped = super().decorate_callable(func, reset)
+        wrapped = super(NoNoBackend, self).decorate_callable(func, reset)
         setattr(wrapped, MOTO_NONO_ATTR, True)
         return wrapped
 
