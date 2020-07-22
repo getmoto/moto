@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import json
 import os
 import random
+import re
+
 import requests
 import uuid
 
@@ -211,7 +213,7 @@ def test_create_user_pool_client():
     )
 
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
-    result["UserPoolClient"]["ClientId"].should_not.be.none
+    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
     result["UserPoolClient"].should_not.have.key("ClientSecret")
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
@@ -233,7 +235,7 @@ def test_create_user_pool_client_returns_secret():
     )
 
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
-    result["UserPoolClient"]["ClientId"].should_not.be.none
+    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
     result["UserPoolClient"]["ClientSecret"].should_not.be.none
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
