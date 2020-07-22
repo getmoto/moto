@@ -102,7 +102,7 @@ class TesterWithStaticmethod(object):
 @mock_s3
 class MotoUpdateBrokeTest(unittest.TestCase):
     @mock_nono_moto
-    def setUp(self) -> None:
+    def setUp(self):
         os.environ["GLUE_JOB_NAME"] = "glue-job"
 
     def tearDown(self):
