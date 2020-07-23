@@ -647,6 +647,21 @@ def test_boto3_create_stack():
 
 
 @mock_cloudformation
+def test_boto3_create_stack_s3_long_name():
+    cf_conn = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyLongStackName01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012"
+
+    template = '{"Resources":{"HelloBucket":{"Type":"AWS::S3::Bucket"}}}'
+
+    cf_conn.create_stack(StackName=stack_name, TemplateBody=template)
+
+    cf_conn.get_template(StackName=stack_name)["TemplateBody"].should.equal(
+        json.loads(template, object_pairs_hook=OrderedDict)
+    )
+
+
+@mock_cloudformation
 def test_boto3_create_stack_with_yaml():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_yaml)
