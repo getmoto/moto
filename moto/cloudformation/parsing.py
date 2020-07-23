@@ -322,7 +322,7 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         max_stack_name_portion_len = 63 - len(right_hand_part_of_name)
         return "{0}{1}".format(
             stack_name[:max_stack_name_portion_len], right_hand_part_of_name
-        )
+        ).lower()
     else:
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 

@@ -659,6 +659,16 @@ def test_boto3_create_stack_s3_long_name():
     cf_conn.get_template(StackName=stack_name)["TemplateBody"].should.equal(
         json.loads(template, object_pairs_hook=OrderedDict)
     )
+    provisioned_resource = cf_conn.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    provisioned_bucket_name = provisioned_resource["PhysicalResourceId"]
+    len(provisioned_bucket_name).should.be.lower_than(64)
+    logical_name_lower_case = provisioned_resource["LogicalResourceId"].lower()
+    bucket_name_stack_name_prefix = provisioned_bucket_name[
+        : provisioned_bucket_name.index("-" + logical_name_lower_case)
+    ]
+    stack_name.lower().should.contain(bucket_name_stack_name_prefix)
 
 
 @mock_cloudformation
