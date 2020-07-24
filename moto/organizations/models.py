@@ -11,6 +11,7 @@ from moto.organizations import utils
 from moto.organizations.exceptions import (
     InvalidInputException,
     DuplicateOrganizationalUnitException,
+    DuplicatePolicyException,
 )
 
 
@@ -409,6 +410,9 @@ class OrganizationsBackend(BaseBackend):
 
     def create_policy(self, **kwargs):
         new_policy = FakeServiceControlPolicy(self.org, **kwargs)
+        for policy in self.policies:
+            if kwargs["Name"] == policy.name:
+                raise DuplicatePolicyException
         self.policies.append(new_policy)
         return new_policy.describe()
 
