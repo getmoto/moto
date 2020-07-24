@@ -480,6 +480,44 @@ def test_attach_policy_exception():
 
 
 @mock_organizations
+def test_update_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+
+    policy_dict = dict(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )
+    policy_id = client.create_policy(**policy_dict)["Policy"]["PolicySummary"]["Id"]
+
+    for key in ("Description", "Name"):
+        response = client.update_policy(**{"PolicyId": policy_id, key: "foobar"})
+        policy = client.describe_policy(PolicyId=policy_id)
+        policy["Policy"]["PolicySummary"][key].should.equal("foobar")
+        validate_service_control_policy(org, response["Policy"])
+
+    response = client.update_policy(PolicyId=policy_id, Content="foobar")
+    policy = client.describe_policy(PolicyId=policy_id)
+    policy["Policy"]["Content"].should.equal("foobar")
+    validate_service_control_policy(org, response["Policy"])
+
+
+@mock_organizations
+def test_update_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    non_existent_policy_id = utils.make_random_service_control_policy_id()
+    with assert_raises(ClientError) as e:
+        response = client.update_policy(PolicyId=non_existent_policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal("UpdatePolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
+
+
+@mock_organizations
 def test_list_polices():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]

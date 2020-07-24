@@ -6152,7 +6152,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit
-- [ ] update_policy
+- [X] update_policy
 </details>
 
 ## outposts

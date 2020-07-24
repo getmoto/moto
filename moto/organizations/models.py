@@ -430,6 +430,24 @@ class OrganizationsBackend(BaseBackend):
             raise RESTError("InvalidInputException", "You specified an invalid value.")
         return policy.describe()
 
+    def get_policy_by_id(self, policy_id):
+        policy = next(
+            (policy for policy in self.policies if policy.id == policy_id), None
+        )
+        if policy is None:
+            raise RESTError(
+                "PolicyNotFoundException",
+                "We can't find a policy with the PolicyId that you specified.",
+            )
+        return policy
+
+    def update_policy(self, **kwargs):
+        policy = self.get_policy_by_id(kwargs["PolicyId"])
+        policy.name = kwargs.get("Name", policy.name)
+        policy.description = kwargs.get("Description", policy.description)
+        policy.content = kwargs.get("Content", policy.content)
+        return policy.describe()
+
     def attach_policy(self, **kwargs):
         policy = next((p for p in self.policies if p.id == kwargs["PolicyId"]), None)
         if re.compile(utils.ROOT_ID_REGEX).match(kwargs["TargetId"]) or re.compile(
