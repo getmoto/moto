@@ -18,6 +18,7 @@ from .exceptions import (
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
+from .secret_filter import matches
 
 
 class SecretsManager(BaseModel):
@@ -442,35 +443,35 @@ class SecretsManagerBackend(BaseBackend):
 
         return response
 
-    def list_secrets(self, max_results, next_token):
+    def list_secrets(self, filters, max_results, next_token):
         # TODO implement pagination and limits
 
         secret_list = []
         for secret in self.secrets.values():
+            if matches(secret, filters):
+                versions_to_stages = {}
+                for version_id, version in secret["versions"].items():
+                    versions_to_stages[version_id] = version["version_stages"]
 
-            versions_to_stages = {}
-            for version_id, version in secret["versions"].items():
-                versions_to_stages[version_id] = version["version_stages"]
-
-            secret_list.append(
-                {
-                    "ARN": secret_arn(self.region, secret["secret_id"]),
-                    "DeletedDate": secret.get("deleted_date", None),
-                    "Description": secret.get("description", ""),
-                    "KmsKeyId": "",
-                    "LastAccessedDate": None,
-                    "LastChangedDate": None,
-                    "LastRotatedDate": None,
-                    "Name": secret["name"],
-                    "RotationEnabled": secret["rotation_enabled"],
-                    "RotationLambdaARN": secret["rotation_lambda_arn"],
-                    "RotationRules": {
-                        "AutomaticallyAfterDays": secret["auto_rotate_after_days"]
-                    },
-                    "SecretVersionsToStages": versions_to_stages,
-                    "Tags": secret["tags"],
-                }
-            )
+                secret_list.append(
+                    {
+                        "ARN": secret_arn(self.region, secret["secret_id"]),
+                        "DeletedDate": secret.get("deleted_date", None),
+                        "Description": secret.get("description", ""),
+                        "KmsKeyId": "",
+                        "LastAccessedDate": None,
+                        "LastChangedDate": None,
+                        "LastRotatedDate": None,
+                        "Name": secret["name"],
+                        "RotationEnabled": secret["rotation_enabled"],
+                        "RotationLambdaARN": secret["rotation_lambda_arn"],
+                        "RotationRules": {
+                            "AutomaticallyAfterDays": secret["auto_rotate_after_days"]
+                        },
+                        "SecretVersionsToStages": versions_to_stages,
+                        "Tags": secret["tags"],
+                    }
+                )
 
         return secret_list, None
 
