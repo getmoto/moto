@@ -449,7 +449,7 @@ class OrganizationsBackend(BaseBackend):
         return policy.describe()
 
     def attach_policy(self, **kwargs):
-        policy = next((p for p in self.policies if p.id == kwargs["PolicyId"]), None)
+        policy = self.get_policy_by_id(kwargs["PolicyId"])
         if re.compile(utils.ROOT_ID_REGEX).match(kwargs["TargetId"]) or re.compile(
             utils.OU_ID_REGEX
         ).match(kwargs["TargetId"]):
@@ -482,6 +482,21 @@ class OrganizationsBackend(BaseBackend):
     def list_policies(self, **kwargs):
         return dict(
             Policies=[p.describe()["Policy"]["PolicySummary"] for p in self.policies]
+        )
+
+    def delete_policy(self, **kwargs):
+        for idx, policy in enumerate(self.policies):
+            if policy.id == kwargs["PolicyId"]:
+                if self.list_targets_for_policy(PolicyId=policy.id)["Targets"]:
+                    raise RESTError(
+                        "PolicyInUseException",
+                        "The policy is attached to one or more entities. You must detach it from all roots, OUs, and accounts before performing this operation.",
+                    )
+                del self.policies[idx]
+                return
+        raise RESTError(
+            "PolicyNotFoundException",
+            "We can't find a policy with the PolicyId that you specified.",
         )
 
     def list_policies_for_target(self, **kwargs):

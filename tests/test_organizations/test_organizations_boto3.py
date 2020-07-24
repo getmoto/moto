@@ -420,18 +420,56 @@ def test_attach_policy():
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
+
+
+@mock_organizations
+def test_delete_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    base_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
+    base_policies.should.have.length_of(1)
     policy_id = client.create_policy(
         Content=json.dumps(policy_doc01),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
-    response = client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    new_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
+    new_policies.should.have.length_of(2)
+    response = client.delete_policy(PolicyId=policy_id)
     response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    new_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
+    new_policies.should.equal(base_policies)
+    new_policies.should.have.length_of(1)
+
+
+@mock_organizations
+def test_delete_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    non_existent_policy_id = utils.make_random_service_control_policy_id()
+    with assert_raises(ClientError) as e:
+        response = client.delete_policy(PolicyId=non_existent_policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal("DeletePolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
+
+    # Attempt to delete an attached policy
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    with assert_raises(ClientError) as e:
+        response = client.delete_policy(PolicyId=policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal("DeletePolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("PolicyInUseException")
 
 
 @mock_organizations
