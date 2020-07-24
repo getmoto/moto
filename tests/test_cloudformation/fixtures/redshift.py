@@ -26,14 +26,14 @@ template = {
             "Default": "dw1.xlarge",
             "AllowedValues": ["dw1.xlarge", "dw1.8xlarge", "dw2.large", "dw2.8xlarge"],
         },
-        "MasterUsername": {
-            "Description": "The user name that is associated with the master user account for the cluster that is being created",
+        "MainUsername": {
+            "Description": "The user name that is associated with the main user account for the cluster that is being created",
             "Type": "String",
             "Default": "defaultuser",
             "AllowedPattern": "([a-z])([a-z]|[0-9])*",
         },
-        "MasterUserPassword": {
-            "Description": "The password that is associated with the master user account for the cluster that is being created.",
+        "MainUserPassword": {
+            "Description": "The password that is associated with the main user account for the cluster that is being created.",
             "Type": "String",
             "NoEcho": "true",
         },
@@ -70,8 +70,8 @@ template = {
                 },
                 "NodeType": {"Ref": "NodeType"},
                 "DBName": {"Ref": "DatabaseName"},
-                "MasterUsername": {"Ref": "MasterUsername"},
-                "MasterUserPassword": {"Ref": "MasterUserPassword"},
+                "MainUsername": {"Ref": "MainUsername"},
+                "MainUserPassword": {"Ref": "MainUserPassword"},
                 "ClusterParameterGroupName": {"Ref": "RedshiftClusterParameterGroup"},
                 "VpcSecurityGroupIds": [{"Ref": "SecurityGroup"}],
                 "ClusterSubnetGroupName": {"Ref": "RedshiftClusterSubnetGroup"},

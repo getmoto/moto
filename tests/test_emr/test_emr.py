@@ -19,16 +19,16 @@ run_jobflow_args = dict(
     job_flow_role="EMR_EC2_DefaultRole",
     keep_alive=True,
     log_uri="s3://some_bucket/jobflow_logs",
-    master_instance_type="c1.medium",
+    main_instance_type="c1.medium",
     name="My jobflow",
     num_instances=2,
     service_role="EMR_DefaultRole",
-    slave_instance_type="c1.medium",
+    subordinate_instance_type="c1.medium",
 )
 
 
 input_instance_groups = [
-    InstanceGroup(1, "MASTER", "c1.medium", "ON_DEMAND", "master"),
+    InstanceGroup(1, "MASTER", "c1.medium", "ON_DEMAND", "main"),
     InstanceGroup(3, "CORE", "c1.medium", "ON_DEMAND", "core"),
     InstanceGroup(6, "TASK", "c1.large", "SPOT", "task-1", "0.07"),
     InstanceGroup(10, "TASK", "c1.xlarge", "SPOT", "task-2", "0.05"),
@@ -49,7 +49,7 @@ def test_describe_cluster():
                 "Configurations.member.1.Properties.entry.1.value": "somevalue",
                 "Configurations.member.1.Properties.entry.2.key": "someotherproperty",
                 "Configurations.member.1.Properties.entry.2.value": "someothervalue",
-                "Instances.EmrManagedMasterSecurityGroup": "master-security-group",
+                "Instances.EmrManagedMainSecurityGroup": "main-security-group",
                 "Instances.Ec2SubnetId": "subnet-8be41cec",
             },
             availability_zone="us-east-2b",
@@ -74,19 +74,19 @@ def test_describe_cluster():
     # configurations appear not be supplied as attributes?
 
     attrs = cluster.ec2instanceattributes
-    # AdditionalMasterSecurityGroups
-    # AdditionalSlaveSecurityGroups
+    # AdditionalMainSecurityGroups
+    # AdditionalSubordinateSecurityGroups
     attrs.ec2availabilityzone.should.equal(args["availability_zone"])
     attrs.ec2keyname.should.equal(args["ec2_keyname"])
     attrs.ec2subnetid.should.equal(args["api_params"]["Instances.Ec2SubnetId"])
-    # EmrManagedMasterSecurityGroups
-    # EmrManagedSlaveSecurityGroups
+    # EmrManagedMainSecurityGroups
+    # EmrManagedSubordinateSecurityGroups
     attrs.iaminstanceprofile.should.equal(args["job_flow_role"])
     # ServiceAccessSecurityGroup
 
     cluster.id.should.equal(cluster_id)
     cluster.loguri.should.equal(args["log_uri"])
-    cluster.masterpublicdnsname.should.be.a(six.string_types)
+    cluster.mainpublicdnsname.should.be.a(six.string_types)
     cluster.name.should.equal(args["name"])
     int(cluster.normalizedinstancehours).should.equal(0)
     # cluster.release_label
@@ -173,7 +173,7 @@ def test_describe_jobflow():
                 #'Configurations.member.1.Classification': 'yarn-site',
                 #'Configurations.member.1.Properties.entry.1.key': 'someproperty',
                 #'Configurations.member.1.Properties.entry.1.value': 'somevalue',
-                #'Instances.EmrManagedMasterSecurityGroup': 'master-security-group',
+                #'Instances.EmrManagedMainSecurityGroup': 'main-security-group',
                 "Instances.Ec2SubnetId": "subnet-8be41cec"
             },
             ec2_keyname="mykey",
@@ -181,8 +181,8 @@ def test_describe_jobflow():
             name="My jobflow",
             log_uri="s3://some_bucket/jobflow_logs",
             keep_alive=True,
-            master_instance_type="c1.medium",
-            slave_instance_type="c1.medium",
+            main_instance_type="c1.medium",
+            subordinate_instance_type="c1.medium",
             num_instances=2,
             availability_zone="us-west-2b",
             job_flow_role="EMR_EC2_DefaultRole",
@@ -222,12 +222,12 @@ def test_describe_jobflow():
         ig.state.should.equal("RUNNING")
 
     jf.keepjobflowalivewhennosteps.should.equal("true")
-    jf.masterinstanceid.should.be.a(six.string_types)
-    jf.masterinstancetype.should.equal(args["master_instance_type"])
-    jf.masterpublicdnsname.should.be.a(six.string_types)
+    jf.maininstanceid.should.be.a(six.string_types)
+    jf.maininstancetype.should.equal(args["main_instance_type"])
+    jf.mainpublicdnsname.should.be.a(six.string_types)
     int(jf.normalizedinstancehours).should.equal(0)
     jf.availabilityzone.should.equal(args["availability_zone"])
-    jf.slaveinstancetype.should.equal(args["slave_instance_type"])
+    jf.subordinateinstancetype.should.equal(args["subordinate_instance_type"])
     jf.terminationprotected.should.equal("false")
 
     jf.jobflowid.should.equal(cluster_id)
@@ -319,8 +319,8 @@ def test_run_jobflow():
     job_flow.state.should.equal("WAITING")
     job_flow.jobflowid.should.equal(job_id)
     job_flow.name.should.equal(args["name"])
-    job_flow.masterinstancetype.should.equal(args["master_instance_type"])
-    job_flow.slaveinstancetype.should.equal(args["slave_instance_type"])
+    job_flow.maininstancetype.should.equal(args["main_instance_type"])
+    job_flow.subordinateinstancetype.should.equal(args["subordinate_instance_type"])
     job_flow.loguri.should.equal(args["log_uri"])
     job_flow.visibletoallusers.should.equal("false")
     int(job_flow.normalizedinstancehours).should.equal(0)
@@ -471,7 +471,7 @@ def test_instance_groups():
 
     conn = boto.connect_emr()
     args = run_jobflow_args.copy()
-    for key in ["master_instance_type", "slave_instance_type", "num_instances"]:
+    for key in ["main_instance_type", "subordinate_instance_type", "num_instances"]:
         del args[key]
     args["instance_groups"] = input_instance_groups[:2]
     job_id = conn.run_jobflow(**args)

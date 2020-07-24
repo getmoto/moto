@@ -374,8 +374,8 @@ def test_redshift_stack():
             ("ClusterType", "multi-node"),
             ("NumberOfNodes", 2),
             ("NodeType", "dw1.xlarge"),
-            ("MasterUsername", "myuser"),
-            ("MasterUserPassword", "mypass"),
+            ("MainUsername", "myuser"),
+            ("MainUserPassword", "mypass"),
             ("InboundTraffic", "10.0.0.1/16"),
             ("PortNumber", 5439),
         ],
@@ -392,7 +392,7 @@ def test_redshift_stack():
     cluster["DBName"].should.equal("mydb")
     cluster["NumberOfNodes"].should.equal(2)
     cluster["NodeType"].should.equal("dw1.xlarge")
-    cluster["MasterUsername"].should.equal("myuser")
+    cluster["MainUsername"].should.equal("myuser")
     cluster["Port"].should.equal(5439)
     cluster["VpcSecurityGroups"].should.have.length_of(1)
     security_group_id = cluster["VpcSecurityGroups"][0]["VpcSecurityGroupId"]
@@ -731,7 +731,7 @@ def test_rds_db_parameter_groups():
         Parameters=[
             {"ParameterKey": key, "ParameterValue": value}
             for key, value in [
-                ("DBInstanceIdentifier", "master_db"),
+                ("DBInstanceIdentifier", "main_db"),
                 ("DBName", "my_db"),
                 ("DBUser", "my_user"),
                 ("DBPassword", "my_password"),
@@ -777,7 +777,7 @@ def test_rds_mysql_with_read_replica():
         "test_stack",
         template_body=template_json,
         parameters=[
-            ("DBInstanceIdentifier", "master_db"),
+            ("DBInstanceIdentifier", "main_db"),
             ("DBName", "my_db"),
             ("DBUser", "my_user"),
             ("DBPassword", "my_password"),
@@ -790,8 +790,8 @@ def test_rds_mysql_with_read_replica():
 
     rds_conn = boto.rds.connect_to_region("us-west-1")
 
-    primary = rds_conn.get_all_dbinstances("master_db")[0]
-    primary.master_username.should.equal("my_user")
+    primary = rds_conn.get_all_dbinstances("main_db")[0]
+    primary.main_username.should.equal("my_user")
     primary.allocated_storage.should.equal(20)
     primary.instance_class.should.equal("db.m1.medium")
     primary.multi_az.should.equal(True)
@@ -816,7 +816,7 @@ def test_rds_mysql_with_read_replica_in_vpc():
         "test_stack",
         template_body=template_json,
         parameters=[
-            ("DBInstanceIdentifier", "master_db"),
+            ("DBInstanceIdentifier", "main_db"),
             ("DBName", "my_db"),
             ("DBUser", "my_user"),
             ("DBPassword", "my_password"),
@@ -827,7 +827,7 @@ def test_rds_mysql_with_read_replica_in_vpc():
     )
 
     rds_conn = boto.rds.connect_to_region("eu-central-1")
-    primary = rds_conn.get_all_dbinstances("master_db")[0]
+    primary = rds_conn.get_all_dbinstances("main_db")[0]
 
     subnet_group_name = primary.subnet_group.name
     subnet_group = rds_conn.get_all_db_subnet_groups(subnet_group_name)[0]

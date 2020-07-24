@@ -107,7 +107,7 @@ def test_create_queue_kms():
     new_queue = sqs.create_queue(
         QueueName="test-queue",
         Attributes={
-            "KmsMasterKeyId": "master-key-id",
+            "KmsMainKeyId": "main-key-id",
             "KmsDataKeyReusePeriodSeconds": "600",
         },
     )
@@ -115,7 +115,7 @@ def test_create_queue_kms():
 
     queue = sqs.get_queue_by_name(QueueName="test-queue")
 
-    queue.attributes.get("KmsMasterKeyId").should.equal("master-key-id")
+    queue.attributes.get("KmsMainKeyId").should.equal("main-key-id")
     queue.attributes.get("KmsDataKeyReusePeriodSeconds").should.equal("600")
 
 
@@ -417,7 +417,7 @@ def test_get_queue_attributes():
 
     # should not return any attributes, if it was not set before
     response = client.get_queue_attributes(
-        QueueUrl=queue_url, AttributeNames=["KmsMasterKeyId"]
+        QueueUrl=queue_url, AttributeNames=["KmsMainKeyId"]
     )
 
     response.should_not.have.key("Attributes")

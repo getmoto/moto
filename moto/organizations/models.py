@@ -19,19 +19,19 @@ class FakeOrganization(BaseModel):
         self.id = utils.make_random_org_id()
         self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
-        self.master_account_id = utils.MASTER_ACCOUNT_ID
-        self.master_account_email = utils.MASTER_ACCOUNT_EMAIL
+        self.main_account_id = utils.MASTER_ACCOUNT_ID
+        self.main_account_email = utils.MASTER_ACCOUNT_EMAIL
         self.available_policy_types = [
             {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
         ]
 
     @property
     def arn(self):
-        return utils.ORGANIZATION_ARN_FORMAT.format(self.master_account_id, self.id)
+        return utils.ORGANIZATION_ARN_FORMAT.format(self.main_account_id, self.id)
 
     @property
-    def master_account_arn(self):
-        return utils.MASTER_ACCOUNT_ARN_FORMAT.format(self.master_account_id, self.id)
+    def main_account_arn(self):
+        return utils.MASTER_ACCOUNT_ARN_FORMAT.format(self.main_account_id, self.id)
 
     def describe(self):
         return {
@@ -39,9 +39,9 @@ class FakeOrganization(BaseModel):
                 "Id": self.id,
                 "Arn": self.arn,
                 "FeatureSet": self.feature_set,
-                "MasterAccountArn": self.master_account_arn,
-                "MasterAccountId": self.master_account_id,
-                "MasterAccountEmail": self.master_account_email,
+                "MainAccountArn": self.main_account_arn,
+                "MainAccountId": self.main_account_id,
+                "MainAccountEmail": self.main_account_email,
                 "AvailablePolicyTypes": self.available_policy_types,
             }
         }
@@ -51,7 +51,7 @@ class FakeAccount(BaseModel):
     def __init__(self, organization, **kwargs):
         self.type = "ACCOUNT"
         self.organization_id = organization.id
-        self.master_account_id = organization.master_account_id
+        self.main_account_id = organization.main_account_id
         self.create_account_status_id = utils.make_random_create_account_status_id()
         self.id = utils.make_random_account_id()
         self.name = kwargs["AccountName"]
@@ -66,7 +66,7 @@ class FakeAccount(BaseModel):
     @property
     def arn(self):
         return utils.ACCOUNT_ARN_FORMAT.format(
-            self.master_account_id, self.organization_id, self.id
+            self.main_account_id, self.organization_id, self.id
         )
 
     @property
@@ -100,7 +100,7 @@ class FakeOrganizationalUnit(BaseModel):
     def __init__(self, organization, **kwargs):
         self.type = "ORGANIZATIONAL_UNIT"
         self.organization_id = organization.id
-        self.master_account_id = organization.master_account_id
+        self.main_account_id = organization.main_account_id
         self.id = utils.make_random_ou_id(organization.root_id)
         self.name = kwargs.get("Name")
         self.parent_id = kwargs.get("ParentId")
@@ -110,7 +110,7 @@ class FakeOrganizationalUnit(BaseModel):
     @property
     def arn(self):
         return self._arn_format.format(
-            self.master_account_id, self.organization_id, self.id
+            self.main_account_id, self.organization_id, self.id
         )
 
     def describe(self):
@@ -147,14 +147,14 @@ class FakeServiceControlPolicy(BaseModel):
         self.id = utils.make_random_service_control_policy_id()
         self.aws_managed = False
         self.organization_id = organization.id
-        self.master_account_id = organization.master_account_id
+        self.main_account_id = organization.main_account_id
         self._arn_format = utils.SCP_ARN_FORMAT
         self.attachments = []
 
     @property
     def arn(self):
         return self._arn_format.format(
-            self.master_account_id, self.organization_id, self.id
+            self.main_account_id, self.organization_id, self.id
         )
 
     def describe(self):
@@ -232,11 +232,11 @@ class OrganizationsBackend(BaseBackend):
         self.org = FakeOrganization(kwargs["FeatureSet"])
         root_ou = FakeRoot(self.org)
         self.ou.append(root_ou)
-        master_account = FakeAccount(
-            self.org, AccountName="master", Email=self.org.master_account_email
+        main_account = FakeAccount(
+            self.org, AccountName="main", Email=self.org.main_account_email
         )
-        master_account.id = self.org.master_account_id
-        self.accounts.append(master_account)
+        main_account.id = self.org.main_account_id
+        self.accounts.append(main_account)
         default_policy = FakeServiceControlPolicy(
             self.org,
             Name="FullAWSAccess",
@@ -253,7 +253,7 @@ class OrganizationsBackend(BaseBackend):
         default_policy.aws_managed = True
         self.policies.append(default_policy)
         self.attach_policy(PolicyId=default_policy.id, TargetId=root_ou.id)
-        self.attach_policy(PolicyId=default_policy.id, TargetId=master_account.id)
+        self.attach_policy(PolicyId=default_policy.id, TargetId=main_account.id)
         return self.org.describe()
 
     def describe_organization(self):

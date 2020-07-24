@@ -18,9 +18,9 @@ run_job_flow_args = dict(
     Instances={
         "InstanceCount": 3,
         "KeepJobFlowAliveWhenNoSteps": True,
-        "MasterInstanceType": "c3.medium",
+        "MainInstanceType": "c3.medium",
         "Placement": {"AvailabilityZone": "us-east-1a"},
-        "SlaveInstanceType": "c3.xlarge",
+        "SubordinateInstanceType": "c3.xlarge",
     },
     JobFlowRole="EMR_EC2_DefaultRole",
     LogUri="s3://mybucket/log",
@@ -36,7 +36,7 @@ input_instance_groups = [
         "InstanceRole": "MASTER",
         "InstanceType": "c1.medium",
         "Market": "ON_DEMAND",
-        "Name": "master",
+        "Name": "main",
     },
     {
         "InstanceCount": 3,
@@ -98,12 +98,12 @@ def test_describe_cluster():
             ],
         },
     ]
-    args["Instances"]["AdditionalMasterSecurityGroups"] = ["additional-master"]
-    args["Instances"]["AdditionalSlaveSecurityGroups"] = ["additional-slave"]
+    args["Instances"]["AdditionalMainSecurityGroups"] = ["additional-main"]
+    args["Instances"]["AdditionalSubordinateSecurityGroups"] = ["additional-subordinate"]
     args["Instances"]["Ec2KeyName"] = "mykey"
     args["Instances"]["Ec2SubnetId"] = "subnet-8be41cec"
-    args["Instances"]["EmrManagedMasterSecurityGroup"] = "master-security-group"
-    args["Instances"]["EmrManagedSlaveSecurityGroup"] = "slave-security-group"
+    args["Instances"]["EmrManagedMainSecurityGroup"] = "main-security-group"
+    args["Instances"]["EmrManagedSubordinateSecurityGroup"] = "subordinate-security-group"
     args["Instances"]["KeepJobFlowAliveWhenNoSteps"] = False
     args["Instances"]["ServiceAccessSecurityGroup"] = "service-access-security-group"
     args["Tags"] = [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
@@ -124,20 +124,20 @@ def test_describe_cluster():
     nested_config["Properties"].should.equal(args["Configurations"][1]["Properties"])
 
     attrs = cl["Ec2InstanceAttributes"]
-    attrs["AdditionalMasterSecurityGroups"].should.equal(
-        args["Instances"]["AdditionalMasterSecurityGroups"]
+    attrs["AdditionalMainSecurityGroups"].should.equal(
+        args["Instances"]["AdditionalMainSecurityGroups"]
     )
-    attrs["AdditionalSlaveSecurityGroups"].should.equal(
-        args["Instances"]["AdditionalSlaveSecurityGroups"]
+    attrs["AdditionalSubordinateSecurityGroups"].should.equal(
+        args["Instances"]["AdditionalSubordinateSecurityGroups"]
     )
     attrs["Ec2AvailabilityZone"].should.equal("us-east-1a")
     attrs["Ec2KeyName"].should.equal(args["Instances"]["Ec2KeyName"])
     attrs["Ec2SubnetId"].should.equal(args["Instances"]["Ec2SubnetId"])
-    attrs["EmrManagedMasterSecurityGroup"].should.equal(
-        args["Instances"]["EmrManagedMasterSecurityGroup"]
+    attrs["EmrManagedMainSecurityGroup"].should.equal(
+        args["Instances"]["EmrManagedMainSecurityGroup"]
     )
-    attrs["EmrManagedSlaveSecurityGroup"].should.equal(
-        args["Instances"]["EmrManagedSlaveSecurityGroup"]
+    attrs["EmrManagedSubordinateSecurityGroup"].should.equal(
+        args["Instances"]["EmrManagedSubordinateSecurityGroup"]
     )
     attrs["IamInstanceProfile"].should.equal(args["JobFlowRole"])
     attrs["ServiceAccessSecurityGroup"].should.equal(
@@ -145,7 +145,7 @@ def test_describe_cluster():
     )
     cl["Id"].should.equal(cluster_id)
     cl["LogUri"].should.equal(args["LogUri"])
-    cl["MasterPublicDnsName"].should.be.a(six.string_types)
+    cl["MainPublicDnsName"].should.be.a(six.string_types)
     cl["Name"].should.equal(args["Name"])
     cl["NormalizedInstanceHours"].should.equal(0)
     # cl['ReleaseLabel'].should.equal('emr-5.0.0')
@@ -283,14 +283,14 @@ def test_describe_job_flow():
         ig["StartDateTime"].should.be.a("datetime.datetime")
         ig["State"].should.equal("RUNNING")
     attrs["KeepJobFlowAliveWhenNoSteps"].should.equal(True)
-    # attrs['MasterInstanceId'].should.be.a(six.string_types)
-    attrs["MasterInstanceType"].should.equal(args["Instances"]["MasterInstanceType"])
-    attrs["MasterPublicDnsName"].should.be.a(six.string_types)
+    # attrs['MainInstanceId'].should.be.a(six.string_types)
+    attrs["MainInstanceType"].should.equal(args["Instances"]["MainInstanceType"])
+    attrs["MainPublicDnsName"].should.be.a(six.string_types)
     attrs["NormalizedInstanceHours"].should.equal(0)
     attrs["Placement"]["AvailabilityZone"].should.equal(
         args["Instances"]["Placement"]["AvailabilityZone"]
     )
-    attrs["SlaveInstanceType"].should.equal(args["Instances"]["SlaveInstanceType"])
+    attrs["SubordinateInstanceType"].should.equal(args["Instances"]["SubordinateInstanceType"])
     attrs["TerminationProtected"].should.equal(False)
     jf["JobFlowId"].should.equal(cluster_id)
     jf["JobFlowRole"].should.equal(args["JobFlowRole"])
@@ -380,11 +380,11 @@ def test_run_job_flow():
     resp["ExecutionStatusDetail"]["State"].should.equal("WAITING")
     resp["JobFlowId"].should.equal(cluster_id)
     resp["Name"].should.equal(args["Name"])
-    resp["Instances"]["MasterInstanceType"].should.equal(
-        args["Instances"]["MasterInstanceType"]
+    resp["Instances"]["MainInstanceType"].should.equal(
+        args["Instances"]["MainInstanceType"]
     )
-    resp["Instances"]["SlaveInstanceType"].should.equal(
-        args["Instances"]["SlaveInstanceType"]
+    resp["Instances"]["SubordinateInstanceType"].should.equal(
+        args["Instances"]["SubordinateInstanceType"]
     )
     resp["LogUri"].should.equal(args["LogUri"])
     resp["VisibleToAllUsers"].should.equal(args["VisibleToAllUsers"])
@@ -611,7 +611,7 @@ def test_instance_groups():
 
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
-    for key in ["MasterInstanceType", "SlaveInstanceType", "InstanceCount"]:
+    for key in ["MainInstanceType", "SubordinateInstanceType", "InstanceCount"]:
         del args["Instances"][key]
     args["Instances"]["InstanceGroups"] = input_instance_groups[:2]
     cluster_id = client.run_job_flow(**args)["JobFlowId"]

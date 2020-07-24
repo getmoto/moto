@@ -12,12 +12,12 @@ from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 from moto.iam.models import ACCOUNT_ID
 
-from .utils import decrypt, encrypt, generate_key_id, generate_master_key
+from .utils import decrypt, encrypt, generate_key_id, generate_main_key
 
 
 class Key(BaseModel):
     def __init__(
-        self, policy, key_usage, customer_master_key_spec, description, region
+        self, policy, key_usage, customer_main_key_spec, description, region
     ):
         self.id = generate_key_id()
         self.creation_date = unix_time()
@@ -30,10 +30,10 @@ class Key(BaseModel):
         self.account_id = ACCOUNT_ID
         self.key_rotation_status = False
         self.deletion_date = None
-        self.key_material = generate_master_key()
+        self.key_material = generate_main_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
-        self.customer_master_key_spec = customer_master_key_spec or "SYMMETRIC_DEFAULT"
+        self.customer_main_key_spec = customer_main_key_spec or "SYMMETRIC_DEFAULT"
 
     @property
     def physical_resource_id(self):
@@ -49,7 +49,7 @@ class Key(BaseModel):
     def encryption_algorithms(self):
         if self.key_usage == "SIGN_VERIFY":
             return None
-        elif self.customer_master_key_spec == "SYMMETRIC_DEFAULT":
+        elif self.customer_main_key_spec == "SYMMETRIC_DEFAULT":
             return ["SYMMETRIC_DEFAULT"]
         else:
             return ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
@@ -58,11 +58,11 @@ class Key(BaseModel):
     def signing_algorithms(self):
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None
-        elif self.customer_master_key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
+        elif self.customer_main_key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
             return ["ECDSA_SHA_256"]
-        elif self.customer_master_key_spec == "ECC_NIST_P384":
+        elif self.customer_main_key_spec == "ECC_NIST_P384":
             return ["ECDSA_SHA_384"]
-        elif self.customer_master_key_spec == "ECC_NIST_P521":
+        elif self.customer_main_key_spec == "ECC_NIST_P521":
             return ["ECDSA_SHA_512"]
         else:
             return [
@@ -80,7 +80,7 @@ class Key(BaseModel):
                 "AWSAccountId": self.account_id,
                 "Arn": self.arn,
                 "CreationDate": self.creation_date,
-                "CustomerMasterKeySpec": self.customer_master_key_spec,
+                "CustomerMainKeySpec": self.customer_main_key_spec,
                 "Description": self.description,
                 "Enabled": self.enabled,
                 "EncryptionAlgorithms": self.encryption_algorithms,
@@ -109,7 +109,7 @@ class Key(BaseModel):
         key = kms_backend.create_key(
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
-            customer_master_key_spec="SYMMETRIC_DEFAULT",
+            customer_main_key_spec="SYMMETRIC_DEFAULT",
             description=properties["Description"],
             tags=properties.get("Tags", []),
             region=region_name,
@@ -134,9 +134,9 @@ class KmsBackend(BaseBackend):
         self.tagger = TaggingService(keyName="TagKey", valueName="TagValue")
 
     def create_key(
-        self, policy, key_usage, customer_master_key_spec, description, tags, region
+        self, policy, key_usage, customer_main_key_spec, description, tags, region
     ):
-        key = Key(policy, key_usage, customer_master_key_spec, description, region)
+        key = Key(policy, key_usage, customer_main_key_spec, description, region)
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
             self.tag_resource(key.id, tags)
@@ -261,7 +261,7 @@ class KmsBackend(BaseBackend):
         key_id = self.any_id_to_key_id(key_id)
 
         ciphertext_blob = encrypt(
-            master_keys=self.keys,
+            main_keys=self.keys,
             key_id=key_id,
             plaintext=plaintext,
             encryption_context=encryption_context,
@@ -271,7 +271,7 @@ class KmsBackend(BaseBackend):
 
     def decrypt(self, ciphertext_blob, encryption_context):
         plaintext, key_id = decrypt(
-            master_keys=self.keys,
+            main_keys=self.keys,
             ciphertext_blob=ciphertext_blob,
             encryption_context=encryption_context,
         )

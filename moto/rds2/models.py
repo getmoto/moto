@@ -59,8 +59,8 @@ class Database(BaseModel):
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
             self.storage_type = Database.default_storage_type(iops=self.iops)
-        self.master_username = kwargs.get("master_username")
-        self.master_user_password = kwargs.get("master_user_password")
+        self.main_username = kwargs.get("main_username")
+        self.main_user_password = kwargs.get("main_user_password")
         self.auto_minor_version_upgrade = kwargs.get("auto_minor_version_upgrade")
         if self.auto_minor_version_upgrade is None:
             self.auto_minor_version_upgrade = True
@@ -275,7 +275,7 @@ class Database(BaseModel):
               <StorageType>{{ database.storage_type }}</StorageType>
               {% endif %}
               <DBInstanceClass>{{ database.db_instance_class }}</DBInstanceClass>
-              <MasterUsername>{{ database.master_username }}</MasterUsername>
+              <MainUsername>{{ database.main_username }}</MainUsername>
               <Endpoint>
                 <Address>{{ database.address }}</Address>
                 <Port>{{ database.port }}</Port>
@@ -384,8 +384,8 @@ class Database(BaseModel):
             "engine_version": properties.get("EngineVersion"),
             "iops": properties.get("Iops"),
             "kms_key_id": properties.get("KmsKeyId"),
-            "master_user_password": properties.get("MasterUserPassword"),
-            "master_username": properties.get("MasterUsername"),
+            "main_user_password": properties.get("MainUserPassword"),
+            "main_username": properties.get("MainUsername"),
             "multi_az": properties.get("MultiAZ"),
             "db_parameter_group_name": properties.get("DBParameterGroupName"),
             "port": properties.get("Port", 3306),
@@ -439,7 +439,7 @@ class Database(BaseModel):
         "EngineVersion": "{{ database.engine_version }}",
         "LatestRestorableTime": null,
         "LicenseModel": "{{ database.license_model }}",
-        "MasterUsername": "{{ database.master_username }}",
+        "MainUsername": "{{ database.main_username }}",
         "MultiAZ": "{{ database.multi_az }}",{% if database.option_group_name %}
         "OptionGroupMemberships": [{
           "OptionGroupMembership": {
@@ -447,7 +447,7 @@ class Database(BaseModel):
             "Status": "in-sync"
           }
         }],{%- endif %}
-        "PendingModifiedValues": { "MasterUserPassword": "****" },
+        "PendingModifiedValues": { "MainUserPassword": "****" },
         "PreferredBackupWindow": "{{ database.preferred_backup_window }}",
         "PreferredMaintenanceWindow": "{{ database.preferred_maintenance_window }}",
         "PubliclyAccessible": "{{ database.publicly_accessible }}",
@@ -527,7 +527,7 @@ class Snapshot(BaseModel):
               <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
               <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
               <InstanceCreateTime>{{ snapshot.created_at }}</InstanceCreateTime>
-              <MasterUsername>{{ database.master_username }}</MasterUsername>
+              <MainUsername>{{ database.main_username }}</MainUsername>
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
               <LicenseModel>{{ database.license_model }}</LicenseModel>
               <SnapshotType>manual</SnapshotType>

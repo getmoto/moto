@@ -203,8 +203,8 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("RunJobFlow")
     def run_job_flow(self):
         instance_attrs = dict(
-            master_instance_type=self._get_param("Instances.MasterInstanceType"),
-            slave_instance_type=self._get_param("Instances.SlaveInstanceType"),
+            main_instance_type=self._get_param("Instances.MainInstanceType"),
+            subordinate_instance_type=self._get_param("Instances.SubordinateInstanceType"),
             instance_count=self._get_int_param("Instances.InstanceCount", 1),
             ec2_key_name=self._get_param("Instances.Ec2KeyName"),
             ec2_subnet_id=self._get_param("Instances.Ec2SubnetId"),
@@ -218,20 +218,20 @@ class ElasticMapReduceResponse(BaseResponse):
             termination_protected=self._get_bool_param(
                 "Instances.TerminationProtected", False
             ),
-            emr_managed_master_security_group=self._get_param(
-                "Instances.EmrManagedMasterSecurityGroup"
+            emr_managed_main_security_group=self._get_param(
+                "Instances.EmrManagedMainSecurityGroup"
             ),
-            emr_managed_slave_security_group=self._get_param(
-                "Instances.EmrManagedSlaveSecurityGroup"
+            emr_managed_subordinate_security_group=self._get_param(
+                "Instances.EmrManagedSubordinateSecurityGroup"
             ),
             service_access_security_group=self._get_param(
                 "Instances.ServiceAccessSecurityGroup"
             ),
-            additional_master_security_groups=self._get_multi_param(
-                "Instances.AdditionalMasterSecurityGroups.member."
+            additional_main_security_groups=self._get_multi_param(
+                "Instances.AdditionalMainSecurityGroups.member."
             ),
-            additional_slave_security_groups=self._get_multi_param(
-                "Instances.AdditionalSlaveSecurityGroups.member."
+            additional_subordinate_security_groups=self._get_multi_param(
+                "Instances.AdditionalSubordinateSecurityGroups.member."
             ),
         )
 
@@ -506,27 +506,27 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       <CustomAmiId>{{ cluster.custom_ami_id }}</CustomAmiId>
       {% endif %}
       <Ec2InstanceAttributes>
-        <AdditionalMasterSecurityGroups>
-        {% for each in cluster.additional_master_security_groups %}
+        <AdditionalMainSecurityGroups>
+        {% for each in cluster.additional_main_security_groups %}
           <member>{{ each }}</member>
         {% endfor %}
-        </AdditionalMasterSecurityGroups>
-        <AdditionalSlaveSecurityGroups>
-        {% for each in cluster.additional_slave_security_groups %}
+        </AdditionalMainSecurityGroups>
+        <AdditionalSubordinateSecurityGroups>
+        {% for each in cluster.additional_subordinate_security_groups %}
           <member>{{ each }}</member>
         {% endfor %}
-        </AdditionalSlaveSecurityGroups>
+        </AdditionalSubordinateSecurityGroups>
         <Ec2AvailabilityZone>{{ cluster.availability_zone }}</Ec2AvailabilityZone>
         <Ec2KeyName>{{ cluster.ec2_key_name }}</Ec2KeyName>
         <Ec2SubnetId>{{ cluster.ec2_subnet_id }}</Ec2SubnetId>
         <IamInstanceProfile>{{ cluster.role }}</IamInstanceProfile>
-        <EmrManagedMasterSecurityGroup>{{ cluster.master_security_group }}</EmrManagedMasterSecurityGroup>
-        <EmrManagedSlaveSecurityGroup>{{ cluster.slave_security_group }}</EmrManagedSlaveSecurityGroup>
+        <EmrManagedMainSecurityGroup>{{ cluster.main_security_group }}</EmrManagedMainSecurityGroup>
+        <EmrManagedSubordinateSecurityGroup>{{ cluster.subordinate_security_group }}</EmrManagedSubordinateSecurityGroup>
         <ServiceAccessSecurityGroup>{{ cluster.service_access_security_group }}</ServiceAccessSecurityGroup>
       </Ec2InstanceAttributes>
       <Id>{{ cluster.id }}</Id>
       <LogUri>{{ cluster.log_uri }}</LogUri>
-      <MasterPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MasterPublicDnsName>
+      <MainPublicDnsName>ec2-184-0-0-1.us-west-1.compute.amazonaws.com</MainPublicDnsName>
       <Name>{{ cluster.name }}</Name>
       <NormalizedInstanceHours>{{ cluster.normalized_instance_hours }}</NormalizedInstanceHours>
       {% if cluster.release_label is not none %}
@@ -657,14 +657,14 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
             {% endfor %}
           </InstanceGroups>
           <KeepJobFlowAliveWhenNoSteps>{{ cluster.keep_job_flow_alive_when_no_steps|lower }}</KeepJobFlowAliveWhenNoSteps>
-          <MasterInstanceId>{{ cluster.master_instance_id }}</MasterInstanceId>
-          <MasterInstanceType>{{ cluster.master_instance_type }}</MasterInstanceType>
-          <MasterPublicDnsName>ec2-184-0-0-1.{{ cluster.region }}.compute.amazonaws.com</MasterPublicDnsName>
+          <MainInstanceId>{{ cluster.main_instance_id }}</MainInstanceId>
+          <MainInstanceType>{{ cluster.main_instance_type }}</MainInstanceType>
+          <MainPublicDnsName>ec2-184-0-0-1.{{ cluster.region }}.compute.amazonaws.com</MainPublicDnsName>
           <NormalizedInstanceHours>{{ cluster.normalized_instance_hours }}</NormalizedInstanceHours>
           <Placement>
             <AvailabilityZone>{{ cluster.availability_zone }}</AvailabilityZone>
           </Placement>
-          <SlaveInstanceType>{{ cluster.slave_instance_type }}</SlaveInstanceType>
+          <SubordinateInstanceType>{{ cluster.subordinate_instance_type }}</SubordinateInstanceType>
           <TerminationProtected>{{ cluster.termination_protected|lower }}</TerminationProtected>
         </Instances>
         <JobFlowId>{{ cluster.id }}</JobFlowId>

@@ -37,8 +37,8 @@ def generate_data_key(number_of_bytes):
     return os.urandom(number_of_bytes)
 
 
-def generate_master_key():
-    """Generate a master key."""
+def generate_main_key():
+    """Generate a main key."""
     return generate_data_key(MASTER_KEY_LEN)
 
 
@@ -81,21 +81,21 @@ def _serialize_encryption_context(encryption_context):
     return aad.getvalue()
 
 
-def encrypt(master_keys, key_id, plaintext, encryption_context):
-    """Encrypt data using a master key material.
+def encrypt(main_keys, key_id, plaintext, encryption_context):
+    """Encrypt data using a main key material.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.
 
     NOTE: This function is NOT compatible with KMS APIs.
-    :param dict master_keys: Mapping of a KmsBackend's known master keys
-    :param str key_id: Key ID of moto master key
+    :param dict main_keys: Mapping of a KmsBackend's known main keys
+    :param str key_id: Key ID of moto main key
     :param bytes plaintext: Plaintext data to encrypt
     :param dict[str, str] encryption_context: KMS-style encryption context
-    :returns: Moto-structured ciphertext blob encrypted under a moto master key in master_keys
+    :returns: Moto-structured ciphertext blob encrypted under a moto main key in main_keys
     :rtype: bytes
     """
     try:
-        key = master_keys[key_id]
+        key = main_keys[key_id]
     except KeyError:
         is_alias = key_id.startswith("alias/") or ":alias/" in key_id
         raise NotFoundException(
@@ -119,15 +119,15 @@ def encrypt(master_keys, key_id, plaintext, encryption_context):
     )
 
 
-def decrypt(master_keys, ciphertext_blob, encryption_context):
-    """Decrypt a ciphertext blob using a master key material.
+def decrypt(main_keys, ciphertext_blob, encryption_context):
+    """Decrypt a ciphertext blob using a main key material.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.
 
     NOTE: This function is NOT compatible with KMS APIs.
 
-    :param dict master_keys: Mapping of a KmsBackend's known master keys
-    :param bytes ciphertext_blob: moto-structured ciphertext blob encrypted under a moto master key in master_keys
+    :param dict main_keys: Mapping of a KmsBackend's known main keys
+    :param bytes ciphertext_blob: moto-structured ciphertext blob encrypted under a moto main key in main_keys
     :param dict[str, str] encryption_context: KMS-style encryption context
     :returns: plaintext bytes and moto key ID
     :rtype: bytes and str
@@ -140,10 +140,10 @@ def decrypt(master_keys, ciphertext_blob, encryption_context):
     aad = _serialize_encryption_context(encryption_context=encryption_context)
 
     try:
-        key = master_keys[ciphertext.key_id]
+        key = main_keys[ciphertext.key_id]
     except KeyError:
         raise AccessDeniedException(
-            "The ciphertext refers to a customer master key that does not exist, "
+            "The ciphertext refers to a customer main key that does not exist, "
             "does not exist in this region, or you are not allowed to access."
         )
 

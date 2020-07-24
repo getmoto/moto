@@ -15,16 +15,16 @@ def test_create_database():
     conn = boto.rds.connect_to_region("us-west-2")
 
     database = conn.create_dbinstance(
-        "db-master-1", 10, "db.m1.small", "root", "hunter2", security_groups=["my_sg"]
+        "db-main-1", 10, "db.m1.small", "root", "hunter2", security_groups=["my_sg"]
     )
 
     database.status.should.equal("available")
-    database.id.should.equal("db-master-1")
+    database.id.should.equal("db-main-1")
     database.allocated_storage.should.equal(10)
     database.instance_class.should.equal("db.m1.small")
-    database.master_username.should.equal("root")
+    database.main_username.should.equal("root")
     database.endpoint.should.equal(
-        ("db-master-1.aaaaaaaaaa.us-west-2.rds.amazonaws.com", 3306)
+        ("db-main-1.aaaaaaaaaa.us-west-2.rds.amazonaws.com", 3306)
     )
     database.security_groups[0].name.should.equal("my_sg")
 
@@ -35,15 +35,15 @@ def test_get_databases():
 
     list(conn.get_all_dbinstances()).should.have.length_of(0)
 
-    conn.create_dbinstance("db-master-1", 10, "db.m1.small", "root", "hunter2")
-    conn.create_dbinstance("db-master-2", 10, "db.m1.small", "root", "hunter2")
+    conn.create_dbinstance("db-main-1", 10, "db.m1.small", "root", "hunter2")
+    conn.create_dbinstance("db-main-2", 10, "db.m1.small", "root", "hunter2")
 
     list(conn.get_all_dbinstances()).should.have.length_of(2)
 
-    databases = conn.get_all_dbinstances("db-master-1")
+    databases = conn.get_all_dbinstances("db-main-1")
     list(databases).should.have.length_of(1)
 
-    databases[0].id.should.equal("db-master-1")
+    databases[0].id.should.equal("db-main-1")
 
 
 @mock_rds
@@ -78,10 +78,10 @@ def test_delete_database():
     conn = boto.rds.connect_to_region("us-west-2")
     list(conn.get_all_dbinstances()).should.have.length_of(0)
 
-    conn.create_dbinstance("db-master-1", 10, "db.m1.small", "root", "hunter2")
+    conn.create_dbinstance("db-main-1", 10, "db.m1.small", "root", "hunter2")
     list(conn.get_all_dbinstances()).should.have.length_of(1)
 
-    conn.delete_dbinstance("db-master-1")
+    conn.delete_dbinstance("db-main-1")
     list(conn.get_all_dbinstances()).should.have.length_of(0)
 
 
@@ -163,7 +163,7 @@ def test_add_security_group_to_database():
     conn = boto.rds.connect_to_region("us-west-2")
 
     database = conn.create_dbinstance(
-        "db-master-1", 10, "db.m1.small", "root", "hunter2"
+        "db-main-1", 10, "db.m1.small", "root", "hunter2"
     )
     security_group = conn.create_dbsecurity_group("db_sg", "DB Security Group")
     database.modify(security_groups=[security_group])
@@ -239,7 +239,7 @@ def test_create_database_in_subnet_group():
     conn.create_db_subnet_group("db_subnet1", "my db subnet", [subnet.id])
 
     database = conn.create_dbinstance(
-        "db-master-1",
+        "db-main-1",
         10,
         "db.m1.small",
         "root",
@@ -247,7 +247,7 @@ def test_create_database_in_subnet_group():
         db_subnet_group_name="db_subnet1",
     )
 
-    database = conn.get_all_dbinstances("db-master-1")[0]
+    database = conn.get_all_dbinstances("db-main-1")[0]
     database.subnet_group.name.should.equal("db_subnet1")
 
 
@@ -256,11 +256,11 @@ def test_create_database_replica():
     conn = boto.rds.connect_to_region("us-west-2")
 
     primary = conn.create_dbinstance(
-        "db-master-1", 10, "db.m1.small", "root", "hunter2"
+        "db-main-1", 10, "db.m1.small", "root", "hunter2"
     )
 
     replica = conn.create_dbinstance_read_replica(
-        "replica", "db-master-1", "db.m1.small"
+        "replica", "db-main-1", "db.m1.small"
     )
     replica.id.should.equal("replica")
     replica.instance_class.should.equal("db.m1.small")
@@ -269,12 +269,12 @@ def test_create_database_replica():
     status_info.status_type.should.equal("read replication")
     status_info.status.should.equal("replicating")
 
-    primary = conn.get_all_dbinstances("db-master-1")[0]
+    primary = conn.get_all_dbinstances("db-main-1")[0]
     primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
 
     conn.delete_dbinstance("replica")
 
-    primary = conn.get_all_dbinstances("db-master-1")[0]
+    primary = conn.get_all_dbinstances("db-main-1")[0]
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
 
 
@@ -284,15 +284,15 @@ def test_create_cross_region_database_replica():
     west_2_conn = boto.rds.connect_to_region("us-west-2")
 
     primary = west_1_conn.create_dbinstance(
-        "db-master-1", 10, "db.m1.small", "root", "hunter2"
+        "db-main-1", 10, "db.m1.small", "root", "hunter2"
     )
 
-    primary_arn = "arn:aws:rds:us-west-1:1234567890:db:db-master-1"
+    primary_arn = "arn:aws:rds:us-west-1:1234567890:db:db-main-1"
     replica = west_2_conn.create_dbinstance_read_replica(
         "replica", primary_arn, "db.m1.small"
     )
 
-    primary = west_1_conn.get_all_dbinstances("db-master-1")[0]
+    primary = west_1_conn.get_all_dbinstances("db-main-1")[0]
     primary.read_replica_dbinstance_identifiers[0].should.equal("replica")
 
     replica = west_2_conn.get_all_dbinstances("replica")[0]
@@ -300,7 +300,7 @@ def test_create_cross_region_database_replica():
 
     west_2_conn.delete_dbinstance("replica")
 
-    primary = west_1_conn.get_all_dbinstances("db-master-1")[0]
+    primary = west_1_conn.get_all_dbinstances("db-main-1")[0]
     list(primary.read_replica_dbinstance_identifiers).should.have.length_of(0)
 
 
@@ -312,16 +312,16 @@ def test_connecting_to_us_east_1():
     conn = boto.rds.connect_to_region("us-east-1")
 
     database = conn.create_dbinstance(
-        "db-master-1", 10, "db.m1.small", "root", "hunter2", security_groups=["my_sg"]
+        "db-main-1", 10, "db.m1.small", "root", "hunter2", security_groups=["my_sg"]
     )
 
     database.status.should.equal("available")
-    database.id.should.equal("db-master-1")
+    database.id.should.equal("db-main-1")
     database.allocated_storage.should.equal(10)
     database.instance_class.should.equal("db.m1.small")
-    database.master_username.should.equal("root")
+    database.main_username.should.equal("root")
     database.endpoint.should.equal(
-        ("db-master-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com", 3306)
+        ("db-main-1.aaaaaaaaaa.us-east-1.rds.amazonaws.com", 3306)
     )
     database.security_groups[0].name.should.equal("my_sg")
 
@@ -331,7 +331,7 @@ def test_create_database_with_iops():
     conn = boto.rds.connect_to_region("us-west-2")
 
     database = conn.create_dbinstance(
-        "db-master-1", 10, "db.m1.small", "root", "hunter2", iops=6000
+        "db-main-1", 10, "db.m1.small", "root", "hunter2", iops=6000
     )
 
     database.status.should.equal("available")

@@ -77,7 +77,7 @@ template = {
             "ConstraintDescription": "must be a valid security group name.",
         },
         "MultiAZ": {
-            "Description": "Multi-AZ master database",
+            "Description": "Multi-AZ main database",
             "Type": "String",
             "Default": "false",
             "AllowedValues": ["true", "false"],
@@ -145,7 +145,7 @@ template = {
                 "SubnetIds": [{"Ref": "EC2Subnet"}],
             },
         },
-        "MasterDB": {
+        "MainDB": {
             "Type": "AWS::RDS::DBInstance",
             "Properties": {
                 "DBInstanceIdentifier": {"Ref": "DBInstanceIdentifier"},
@@ -160,10 +160,10 @@ template = {
                         {"Ref": "AWS::NoValue"},
                     ]
                 },
-                "MasterUsername": {"Ref": "DBUser"},
-                "MasterUserPassword": {"Ref": "DBPassword"},
+                "MainUsername": {"Ref": "DBUser"},
+                "MainUserPassword": {"Ref": "DBPassword"},
                 "MultiAZ": {"Ref": "MultiAZ"},
-                "Tags": [{"Key": "Name", "Value": "Master Database"}],
+                "Tags": [{"Key": "Name", "Value": "Main Database"}],
                 "VPCSecurityGroups": {
                     "Fn::If": [
                         "Is-EC2-VPC",
@@ -184,7 +184,7 @@ template = {
         "ReplicaDB": {
             "Type": "AWS::RDS::DBInstance",
             "Properties": {
-                "SourceDBInstanceIdentifier": {"Ref": "MasterDB"},
+                "SourceDBInstanceIdentifier": {"Ref": "MainDB"},
                 "DBInstanceClass": {"Ref": "DBInstanceClass"},
                 "Tags": [{"Key": "Name", "Value": "Read Replica Database"}],
             },
@@ -195,16 +195,16 @@ template = {
             "Description": "Platform in which this stack is deployed",
             "Value": {"Fn::If": ["Is-EC2-VPC", "EC2-VPC", "EC2-Classic"]},
         },
-        "MasterJDBCConnectionString": {
-            "Description": "JDBC connection string for the master database",
+        "MainJDBCConnectionString": {
+            "Description": "JDBC connection string for the main database",
             "Value": {
                 "Fn::Join": [
                     "",
                     [
                         "jdbc:mysql://",
-                        {"Fn::GetAtt": ["MasterDB", "Endpoint.Address"]},
+                        {"Fn::GetAtt": ["MainDB", "Endpoint.Address"]},
                         ":",
-                        {"Fn::GetAtt": ["MasterDB", "Endpoint.Port"]},
+                        {"Fn::GetAtt": ["MainDB", "Endpoint.Port"]},
                         "/",
                         {"Ref": "DBName"},
                     ],

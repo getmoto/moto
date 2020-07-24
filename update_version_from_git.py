@@ -4,7 +4,7 @@ Adapted from https://github.com/pygame/pygameweb/blob/master/pygameweb/builds/up
 For updating the version from git.
 __init__.py contains a __version__ field.
 Update that.
-If we are on master, we want to update the version as a pre-release.
+If we are on main, we want to update the version as a pre-release.
 git describe --tags
 With these:
     __init__.py
@@ -49,10 +49,10 @@ def migrate_version(target_file, new_version):
     migrate_source_attribute('__version__', "'{new_version}'".format(new_version=new_version), target_file, regex)
 
 
-def is_master_branch():
+def is_main_branch():
     cmd = ('git rev-parse --abbrev-ref HEAD')
     tag_branch = subprocess.check_output(cmd, shell=True)
-    return tag_branch in [b'master\n']
+    return tag_branch in [b'main\n']
 
 def git_tag_name():
     cmd = ('git describe --tags')
@@ -99,10 +99,10 @@ def get_version():
 
 def release_version_correct():
     """Makes sure the:
-    - prerelease verion for master is correct.
+    - prerelease verion for main is correct.
     - release version is correct for tags.
     """
-    if is_master_branch():
+    if is_main_branch():
         # update for a pre release version.
         initpy = os.path.abspath("moto/__init__.py")
 
@@ -111,7 +111,7 @@ def release_version_correct():
         assert len(new_version.split('.')) >= 4, 'moto/__init__.py version should be like 0.0.2.dev'
         migrate_version(initpy, new_version)
     else:
-        assert False, "No non-master deployments yet"
+        assert False, "No non-main deployments yet"
         # check that we are a tag with the same version as in __init__.py
         assert get_version() == git_tag_name(), 'git tag/branch name not the same as moto/__init__.py __verion__'
 

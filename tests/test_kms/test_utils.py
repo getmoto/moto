@@ -15,7 +15,7 @@ from moto.kms.utils import (
     _serialize_ciphertext_blob,
     _serialize_encryption_context,
     generate_data_key,
-    generate_master_key,
+    generate_main_key,
     MASTER_KEY_LEN,
     encrypt,
     decrypt,
@@ -67,8 +67,8 @@ def test_generate_data_key():
     len(test).should.equal(123)
 
 
-def test_generate_master_key():
-    test = generate_master_key()
+def test_generate_main_key():
+    test = generate_main_key()
 
     test.should.be.a(bytes)
     len(test).should.equal(MASTER_KEY_LEN)
@@ -102,30 +102,30 @@ def test_deserialize_ciphertext_blob(raw, serialized):
 @parameterized(((ec[0],) for ec in ENCRYPTION_CONTEXT_VECTORS))
 def test_encrypt_decrypt_cycle(encryption_context):
     plaintext = b"some secret plaintext"
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
-    master_key_map = {master_key.id: master_key}
+    main_key = Key("nop", "nop", "nop", "nop", "nop")
+    main_key_map = {main_key.id: main_key}
 
     ciphertext_blob = encrypt(
-        master_keys=master_key_map,
-        key_id=master_key.id,
+        main_keys=main_key_map,
+        key_id=main_key.id,
         plaintext=plaintext,
         encryption_context=encryption_context,
     )
     ciphertext_blob.should_not.equal(plaintext)
 
     decrypted, decrypting_key_id = decrypt(
-        master_keys=master_key_map,
+        main_keys=main_key_map,
         ciphertext_blob=ciphertext_blob,
         encryption_context=encryption_context,
     )
     decrypted.should.equal(plaintext)
-    decrypting_key_id.should.equal(master_key.id)
+    decrypting_key_id.should.equal(main_key.id)
 
 
 def test_encrypt_unknown_key_id():
     with assert_raises(NotFoundException):
         encrypt(
-            master_keys={},
+            main_keys={},
             key_id="anything",
             plaintext=b"secrets",
             encryption_context={},
@@ -133,11 +133,11 @@ def test_encrypt_unknown_key_id():
 
 
 def test_decrypt_invalid_ciphertext_format():
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
-    master_key_map = {master_key.id: master_key}
+    main_key = Key("nop", "nop", "nop", "nop", "nop")
+    main_key_map = {main_key.id: main_key}
 
     with assert_raises(InvalidCiphertextException):
-        decrypt(master_keys=master_key_map, ciphertext_blob=b"", encryption_context={})
+        decrypt(main_keys=main_key_map, ciphertext_blob=b"", encryption_context={})
 
 
 def test_decrypt_unknwown_key_id():
@@ -149,21 +149,21 @@ def test_decrypt_unknwown_key_id():
     )
 
     with assert_raises(AccessDeniedException):
-        decrypt(master_keys={}, ciphertext_blob=ciphertext_blob, encryption_context={})
+        decrypt(main_keys={}, ciphertext_blob=ciphertext_blob, encryption_context={})
 
 
 def test_decrypt_invalid_ciphertext():
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
-    master_key_map = {master_key.id: master_key}
+    main_key = Key("nop", "nop", "nop", "nop", "nop")
+    main_key_map = {main_key.id: main_key}
     ciphertext_blob = (
-        master_key.id.encode("utf-8") + b"123456789012"
+        main_key.id.encode("utf-8") + b"123456789012"
         b"1234567890123456"
         b"some ciphertext"
     )
 
     with assert_raises(InvalidCiphertextException):
         decrypt(
-            master_keys=master_key_map,
+            main_keys=main_key_map,
             ciphertext_blob=ciphertext_blob,
             encryption_context={},
         )
@@ -171,19 +171,19 @@ def test_decrypt_invalid_ciphertext():
 
 def test_decrypt_invalid_encryption_context():
     plaintext = b"some secret plaintext"
-    master_key = Key("nop", "nop", "nop", "nop", "nop")
-    master_key_map = {master_key.id: master_key}
+    main_key = Key("nop", "nop", "nop", "nop", "nop")
+    main_key_map = {main_key.id: main_key}
 
     ciphertext_blob = encrypt(
-        master_keys=master_key_map,
-        key_id=master_key.id,
+        main_keys=main_key_map,
+        key_id=main_key.id,
         plaintext=plaintext,
         encryption_context={"some": "encryption", "context": "here"},
     )
 
     with assert_raises(InvalidCiphertextException):
         decrypt(
-            master_keys=master_key_map,
+            main_keys=main_key_map,
             ciphertext_blob=ciphertext_blob,
             encryption_context={},
         )

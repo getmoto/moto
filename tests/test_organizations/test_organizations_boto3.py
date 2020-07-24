@@ -31,7 +31,7 @@ def test_create_organization():
 
     response = client.list_accounts()
     len(response["Accounts"]).should.equal(1)
-    response["Accounts"][0]["Name"].should.equal("master")
+    response["Accounts"][0]["Name"].should.equal("main")
     response["Accounts"][0]["Id"].should.equal(utils.MASTER_ACCOUNT_ID)
     response["Accounts"][0]["Email"].should.equal(utils.MASTER_ACCOUNT_EMAIL)
 
@@ -45,8 +45,8 @@ def test_create_organization():
     len(response["Targets"]).should.equal(2)
     root_ou = [t for t in response["Targets"] if t["Type"] == "ROOT"][0]
     root_ou["Name"].should.equal("Root")
-    master_account = [t for t in response["Targets"] if t["Type"] == "ACCOUNT"][0]
-    master_account["Name"].should.equal("master")
+    main_account = [t for t in response["Targets"] if t["Type"] == "ACCOUNT"][0]
+    main_account["Name"].should.equal("main")
 
 
 @mock_organizations
