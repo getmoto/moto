@@ -946,6 +946,14 @@ class AccountSummary(BaseModel):
         return len(self._iam_backend.users)
 
 
+def filter_items_with_path_prefix(path_prefix, items):
+    filtered_items = []
+    for role in items:
+        if role.path.startswith(path_prefix):
+            filtered_items.append(role)
+    return filtered_items
+
+
 class IAMBackend(BaseBackend):
     def __init__(self):
         self.instance_profiles = {}
@@ -1491,6 +1499,9 @@ class IAMBackend(BaseBackend):
         users = None
         try:
             users = self.users.values()
+            if path_prefix:
+                users = filter_items_with_path_prefix(path_prefix, users)
+
         except KeyError:
             raise IAMNotFoundException(
                 "Users {0}, {1}, {2} not found".format(path_prefix, marker, max_items)
