@@ -178,22 +178,6 @@ def test_create_role_and_instance_profile():
     profile = conn.create_instance_profile("my-other-profile")
     profile.path.should.equal("/")
 
-    conn.create_role(
-        "my-role1", assume_role_policy_document="some policy1", path="/my-path"
-    )
-
-    result = conn.list_roles(path_prefix='/')
-    result.roles[0].role_name.should.equal("my-role1")
-    result.roles[0].path.should.equal("/my-path")
-
-    result = conn.list_roles(path_prefix='/my')
-    result.roles[0].role_name.should.equal("my-role1")
-    result.roles[0].path.should.equal("/my-path")
-
-    result = conn.list_roles(path_prefix='my')
-    result.roles[0].role_name.should.equal("my-role")
-    result.roles[0].path.should.equal("my-path")
-
 
 @mock_iam
 def test_create_instance_profile_should_throw_when_name_is_not_unique():
