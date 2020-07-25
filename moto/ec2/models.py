@@ -1524,7 +1524,7 @@ class AmiBackend(object):
             instance=None,
             source_ami=None,
             name=name,
-            description=description
+            description=description,
         )
         self.amis[ami_id] = ami
         return ami
