@@ -35,6 +35,14 @@ dummy_template = {
     },
 }
 
+dummy_template3 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 3",
+    "Resources": {
+        "VPC": {"Properties": {"CidrBlock": "192.168.0.0/16"}, "Type": "AWS::EC2::VPC"}
+    },
+}
+
 dummy_template_yaml = """---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack1 with yaml template
@@ -666,6 +674,48 @@ def test_boto3_create_stack_with_short_form_func_yaml():
     cf_conn.get_template(StackName="test_stack")["TemplateBody"].should.equal(
         dummy_template_yaml_with_short_form_func
     )
+
+
+@mock_s3
+@mock_cloudformation
+def test_get_template_summary():
+    s3 = boto3.client("s3")
+    s3_conn = boto3.resource("s3", region_name="us-east-1")
+
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    result = conn.get_template_summary(TemplateBody=json.dumps(dummy_template3))
+
+    result['ResourceTypes'].should.equal(['AWS::EC2::VPC'])
+    result['Version'].should.equal('2010-09-09')
+    result['Description'].should.equal('Stack 3')
+
+    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template3))
+
+    result = conn.get_template_summary(StackName='test_stack')
+
+    result['ResourceTypes'].should.equal(['AWS::EC2::VPC'])
+    result['Version'].should.equal('2010-09-09')
+    result['Description'].should.equal('Stack 3')
+
+    s3_conn.create_bucket(Bucket="foobar")
+    s3_conn.Object("foobar", "template-key").put(Body=json.dumps(dummy_template3))
+
+    key_url = s3.generate_presigned_url(
+        ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
+    )
+
+    conn.create_stack(StackName="stack_from_url", TemplateURL=key_url)
+    result = conn.get_template_summary(TemplateURL=key_url)
+    result['ResourceTypes'].should.equal(['AWS::EC2::VPC'])
+    result['Version'].should.equal('2010-09-09')
+    result['Description'].should.equal('Stack 3')
+
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    result = conn.get_template_summary(TemplateBody=dummy_template_yaml)
+
+    result['ResourceTypes'].should.equal(['AWS::EC2::Instance'])
+    result['Version'].should.equal('2010-09-09')
+    result['Description'].should.equal('Stack1 with yaml template')
 
 
 @mock_cloudformation

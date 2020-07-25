@@ -10,6 +10,31 @@ from moto.s3 import s3_backend
 from moto.core import ACCOUNT_ID
 from .models import cloudformation_backends
 from .exceptions import ValidationError
+from .utils import yaml_tag_constructor
+
+
+def get_template_summary_response_from_template(template_body):
+    def get_resource_types(template_dict):
+        resources = {}
+        for key, value in template_dict.items():
+            if key == "Resources":
+                resources = value
+
+        resource_types = []
+        for key, value in resources.items():
+            resource_types.append(value["Type"])
+        return resource_types
+
+    yaml.add_multi_constructor("", yaml_tag_constructor)
+
+    try:
+        template_dict = yaml.load(template_body, Loader=yaml.Loader)
+    except (yaml.parser.ParserError, yaml.scanner.ScannerError):
+        template_dict = json.loads(template_body)
+
+    resources_types = get_resource_types(template_dict)
+    template_dict["resourceTypes"] = resources_types
+    return template_dict
 
 
 class CloudFormationResponse(BaseResponse):
@@ -268,6 +293,20 @@ class CloudFormationResponse(BaseResponse):
         else:
             template = self.response_template(GET_TEMPLATE_RESPONSE_TEMPLATE)
             return template.render(stack=stack)
+
+    def get_template_summary(self):
+        stack_name = self._get_param("StackName")
+        template_url = self._get_param("TemplateURL")
+        stack_body = self._get_param("TemplateBody")
+
+        if stack_name:
+            stack_body = self.cloudformation_backend.get_stack(stack_name).template
+        elif template_url:
+            stack_body = self._get_stack_from_s3_url(template_url)
+
+        template_summary = get_template_summary_response_from_template(stack_body)
+        template = self.response_template(GET_TEMPLATE_SUMMARY_TEMPLATE)
+        return template.render(template_summary=template_summary)
 
     def update_stack(self):
         stack_name = self._get_param("StackName")
@@ -743,7 +782,6 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
   </DescribeStacksResult>
 </DescribeStacksResponse>"""
 
-
 DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
   <DescribeStackResourceResult>
     <StackResourceDetail>
@@ -757,7 +795,6 @@ DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
     </StackResourceDetail>
   </DescribeStackResourceResult>
 </DescribeStackResourceResponse>"""
-
 
 DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
     <DescribeStackResourcesResult>
@@ -776,7 +813,6 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
       </StackResources>
     </DescribeStackResourcesResult>
 </DescribeStackResourcesResponse>"""
-
 
 DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <DescribeStackEventsResult>
@@ -802,7 +838,6 @@ DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://c
   </ResponseMetadata>
 </DescribeStackEventsResponse>"""
 
-
 LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
  <ListChangeSetsResult>
   <Summaries>
@@ -823,7 +858,6 @@ LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
  </ListChangeSetsResult>
 </ListChangeSetsResponse>"""
 
-
 LIST_STACKS_RESPONSE = """<ListStacksResponse>
  <ListStacksResult>
   <StackSummaries>
@@ -839,7 +873,6 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
   </StackSummaries>
  </ListStacksResult>
 </ListStacksResponse>"""
-
 
 LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
   <ListStackResourcesResult>
@@ -860,7 +893,6 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
   </ResponseMetadata>
 </ListStackResourcesResponse>"""
 
-
 GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   <GetTemplateResult>
     <TemplateBody>{{ stack.template }}</TemplateBody>
@@ -870,14 +902,12 @@ GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   </ResponseMetadata>
 </GetTemplateResponse>"""
 
-
 DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
   <ResponseMetadata>
     <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
   </ResponseMetadata>
 </DeleteStackResponse>
 """
-
 
 LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <ListExportsResult>
@@ -1139,3 +1169,19 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = (
 </ListStackSetOperationResultsResponse>
 """
 )
+
+GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+  <GetTemplateSummaryResult>
+    <Description>{{ template_summary.Description }}</Description>
+    {% for resource in template_summary.resourceTypes %}
+      <ResourceTypes>
+        <ResourceType>{{ resource }}</ResourceType>
+      </ResourceTypes>
+    {% endfor %} 
+    <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
+  </GetTemplateSummaryResult>
+  <ResponseMetadata>
+    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
+  </ResponseMetadata>
+</GetTemplateSummaryResponse>
+"""
