@@ -336,8 +336,7 @@ class IamResponse(BaseResponse):
         return template.render()
 
     def list_roles(self):
-        prefix = self._get_param("PathPrefix")
-        roles = iam_backend.get_roles(prefix)
+        roles = iam_backend.get_roles()
         template = self.response_template(LIST_ROLES_TEMPLATE)
         return template.render(roles=roles)
 
