@@ -188,7 +188,7 @@ def iso_8601_datetime_with_milliseconds(datetime):
 
 def iso_8601_datetime_without_milliseconds(datetime):
     return (
-        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z"
+        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
     )
 
 
