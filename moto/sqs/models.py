@@ -255,9 +255,7 @@ class Queue(BaseModel):
 
         # Check some conditions
         if self.fifo_queue and not self.name.endswith(".fifo"):
-            raise MessageAttributesInvalid(
-                "Queue name must end in .fifo for FIFO queues"
-            )
+            raise InvalidParameterValue("Queue name must end in .fifo for FIFO queues")
 
     @property
     def pending_messages(self):

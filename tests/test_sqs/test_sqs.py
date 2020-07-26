@@ -270,6 +270,29 @@ def test_message_with_attributes_have_labels():
 
 
 @mock_sqs
+def test_message_with_attributes_invalid_datatype():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+
+    with assert_raises(ClientError) as e:
+        queue.send_message(
+            MessageBody="derp",
+            MessageAttributes={
+                "timestamp": {
+                    "DataType": "InvalidNumber",
+                    "StringValue": "149314735990a",
+                }
+            },
+        )
+    ex = e.exception
+    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
+    ex.response["Error"]["Message"].should.equal(
+        "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
+        "prefixes is Binary, Number, and String."
+    )
+
+
+@mock_sqs
 def test_send_message_with_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
