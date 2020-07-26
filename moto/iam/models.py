@@ -947,11 +947,7 @@ class AccountSummary(BaseModel):
 
 
 def filter_items_with_path_prefix(path_prefix, items):
-    filtered_items = []
-    for role in items:
-        if role.path.startswith(path_prefix):
-            filtered_items.append(role)
-    return filtered_items
+    return [role for role in items if role.path.startswith(path_prefix)]
 
 
 class IAMBackend(BaseBackend):
@@ -1498,6 +1494,7 @@ class IAMBackend(BaseBackend):
     def list_users(self, path_prefix, marker, max_items):
         users = None
         try:
+
             users = self.users.values()
             if path_prefix:
                 users = filter_items_with_path_prefix(path_prefix, users)
