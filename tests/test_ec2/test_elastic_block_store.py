@@ -562,6 +562,22 @@ def test_snapshot_attribute():
     cm.exception.status.should.equal(400)
     cm.exception.request_id.should_not.be.none
 
+    ADD_USERID_ARGS = {
+        "snapshot_id": snapshot.id,
+        "attribute": "createVolumePermission",
+        "operation": "add",
+        "groups": "all",
+        "user_ids": ["user"],
+    }
+
+    REMOVE_USERID_ARGS = {
+        "snapshot_id": snapshot.id,
+        "attribute": "createVolumePermission",
+        "operation": "remove",
+        "user_ids": "user",
+        "groups": ["all"],
+    }
+
     # Error: Add or remove with user ID instead of group
     conn.modify_snapshot_attribute.when.called_with(
         snapshot.id,
