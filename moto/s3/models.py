@@ -22,7 +22,7 @@ import six
 
 from bisect import insort
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
+from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -79,7 +79,7 @@ class FakeDeleteMarker(BaseModel):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime_with_milliseconds(self.last_modified)
+        return iso_8601_datetime_without_milliseconds_s3(self.last_modified)
 
     @property
     def version_id(self):
@@ -206,7 +206,7 @@ class FakeKey(BaseModel):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime_with_milliseconds(self.last_modified)
+        return iso_8601_datetime_without_milliseconds_s3(self.last_modified)
 
     @property
     def last_modified_RFC1123(self):
