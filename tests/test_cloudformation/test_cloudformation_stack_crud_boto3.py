@@ -685,17 +685,17 @@ def test_get_template_summary():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     result = conn.get_template_summary(TemplateBody=json.dumps(dummy_template3))
 
-    result['ResourceTypes'].should.equal(['AWS::EC2::VPC'])
-    result['Version'].should.equal('2010-09-09')
-    result['Description'].should.equal('Stack 3')
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
 
     conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template3))
 
-    result = conn.get_template_summary(StackName='test_stack')
+    result = conn.get_template_summary(StackName="test_stack")
 
-    result['ResourceTypes'].should.equal(['AWS::EC2::VPC'])
-    result['Version'].should.equal('2010-09-09')
-    result['Description'].should.equal('Stack 3')
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
 
     s3_conn.create_bucket(Bucket="foobar")
     s3_conn.Object("foobar", "template-key").put(Body=json.dumps(dummy_template3))
@@ -706,16 +706,16 @@ def test_get_template_summary():
 
     conn.create_stack(StackName="stack_from_url", TemplateURL=key_url)
     result = conn.get_template_summary(TemplateURL=key_url)
-    result['ResourceTypes'].should.equal(['AWS::EC2::VPC'])
-    result['Version'].should.equal('2010-09-09')
-    result['Description'].should.equal('Stack 3')
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
 
     conn = boto3.client("cloudformation", region_name="us-east-1")
     result = conn.get_template_summary(TemplateBody=dummy_template_yaml)
 
-    result['ResourceTypes'].should.equal(['AWS::EC2::Instance'])
-    result['Version'].should.equal('2010-09-09')
-    result['Description'].should.equal('Stack1 with yaml template')
+    result["ResourceTypes"].should.equal(["AWS::EC2::Instance"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack1 with yaml template")
 
 
 @mock_cloudformation

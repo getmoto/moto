@@ -1177,7 +1177,7 @@ GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://clo
       <ResourceTypes>
         <ResourceType>{{ resource }}</ResourceType>
       </ResourceTypes>
-    {% endfor %} 
+    {% endfor %}
     <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
   </GetTemplateSummaryResult>
   <ResponseMetadata>
