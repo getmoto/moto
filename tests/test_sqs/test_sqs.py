@@ -249,6 +249,27 @@ def test_message_with_complex_attributes():
 
 
 @mock_sqs
+def test_message_with_attributes_has_labels():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "timestamp": {
+                "DataType": "Number.java.lang.Long",
+                "StringValue": "1493147359900",
+            }
+        },
+    )
+    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
+    msg.get("MD5OfMessageAttributes").should.equal("235c5c510d26fb653d073faed50ae77c")
+    msg.get("MessageId").should_not.contain(" \n")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
 def test_send_message_with_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
