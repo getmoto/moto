@@ -43,6 +43,7 @@ from .exceptions import (
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
 )
+from .cloud_formation import cfn_to_api_encryption
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -1075,7 +1076,33 @@ class FakeBucket(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         bucket = s3_backend.create_bucket(resource_name, region_name)
+
+        properties = cloudformation_json["Properties"]
+
+        if "BucketEncryption" in properties:
+            bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
+            s3_backend.put_bucket_encryption(
+                bucket_name=resource_name, encryption=[bucket_encryption]
+            )
+
         return bucket
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        # Need to sort out when a new resource is created vs an in-place update.
+        #  Is there an issue insofar as new_resource_name is always provided?
+
+        if "BucketEncryption" in properties:
+            bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
+            s3_backend.put_bucket_encryption(
+                bucket_name=original_resource.name, encryption=[bucket_encryption]
+            )
+
+        return original_resource
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
