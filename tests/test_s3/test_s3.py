@@ -4583,3 +4583,106 @@ def test_encryption():
     conn.delete_bucket_encryption(Bucket="mybucket")
     with assert_raises(ClientError) as exc:
         conn.get_bucket_encryption(Bucket="mybucket")
+
+
+@mock_s3
+def test_presigned_url_restrict_parameters():
+    # Only specific params can be set
+    # Ensure error is thrown when adding custom metadata this way
+    bucket = str(uuid.uuid4())
+    key = "file.txt"
+    conn = boto3.resource("s3", region_name="us-east-1")
+    conn.create_bucket(Bucket=bucket)
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    # Create a pre-signed url with some metadata.
+    with assert_raises(botocore.exceptions.ParamValidationError) as err:
+        s3.generate_presigned_url(
+            ClientMethod="put_object",
+            Params={"Bucket": bucket, "Key": key, "Unknown": "metadata"},
+        )
+    assert str(err.exception).should.equal(
+        'Parameter validation failed:\nUnknown parameter in input: "Unknown", must be one of: ACL, Body, Bucket, CacheControl, ContentDisposition, ContentEncoding, ContentLanguage, ContentLength, ContentMD5, ContentType, Expires, GrantFullControl, GrantRead, GrantReadACP, GrantWriteACP, Key, Metadata, ServerSideEncryption, StorageClass, WebsiteRedirectLocation, SSECustomerAlgorithm, SSECustomerKey, SSECustomerKeyMD5, SSEKMSKeyId, SSEKMSEncryptionContext, RequestPayer, Tagging, ObjectLockMode, ObjectLockRetainUntilDate, ObjectLockLegalHoldStatus'
+    )
+
+    s3.delete_bucket(Bucket=bucket)
+
+
+@mock_s3
+def test_presigned_put_url_with_approved_headers():
+    bucket = str(uuid.uuid4())
+    key = "file.txt"
+    content = b"filecontent"
+    expected_contenttype = "app/sth"
+    conn = boto3.resource("s3", region_name="us-east-1")
+    conn.create_bucket(Bucket=bucket)
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    # Create a pre-signed url with some metadata.
+    url = s3.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={"Bucket": bucket, "Key": key, "ContentType": expected_contenttype},
+    )
+
+    # Verify S3 throws an error when the header is not provided
+    response = requests.put(url, data=content)
+    response.status_code.should.equal(403)
+    str(response.content).should.contain("<Code>SignatureDoesNotMatch</Code>")
+    str(response.content).should.contain(
+        "<Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>"
+    )
+
+    # Verify S3 throws an error when the header has the wrong value
+    response = requests.put(
+        url, data=content, headers={"Content-Type": "application/unknown"}
+    )
+    response.status_code.should.equal(403)
+    str(response.content).should.contain("<Code>SignatureDoesNotMatch</Code>")
+    str(response.content).should.contain(
+        "<Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>"
+    )
+
+    # Verify S3 uploads correctly when providing the meta data
+    response = requests.put(
+        url, data=content, headers={"Content-Type": expected_contenttype}
+    )
+    response.status_code.should.equal(200)
+
+    # Assert the object exists
+    obj = s3.get_object(Bucket=bucket, Key=key)
+    obj["ContentType"].should.equal(expected_contenttype)
+    obj["ContentLength"].should.equal(11)
+    obj["Body"].read().should.equal(content)
+    obj["Metadata"].should.equal({})
+
+    s3.delete_object(Bucket=bucket, Key=key)
+    s3.delete_bucket(Bucket=bucket)
+
+
+@mock_s3
+def test_presigned_put_url_with_custom_headers():
+    bucket = str(uuid.uuid4())
+    key = "file.txt"
+    content = b"filecontent"
+    conn = boto3.resource("s3", region_name="us-east-1")
+    conn.create_bucket(Bucket=bucket)
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    # Create a pre-signed url with some metadata.
+    url = s3.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={"Bucket": bucket, "Key": key, "Metadata": {"venue": "123"}},
+    )
+
+    # Verify S3 uploads correctly when providing the meta data
+    response = requests.put(url, data=content)
+    response.status_code.should.equal(200)
+
+    # Assert the object exists
+    obj = s3.get_object(Bucket=bucket, Key=key)
+    obj["ContentLength"].should.equal(11)
+    obj["Body"].read().should.equal(content)
+    obj["Metadata"].should.equal({"venue": "123"})
+
+    s3.delete_object(Bucket=bucket, Key=key)
+    s3.delete_bucket(Bucket=bucket)

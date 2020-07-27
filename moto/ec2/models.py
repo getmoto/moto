@@ -1516,6 +1516,19 @@ class AmiBackend(object):
 
         return True
 
+    def register_image(self, name=None, description=None):
+        ami_id = random_ami_id()
+        ami = Ami(
+            self,
+            ami_id,
+            instance=None,
+            source_ami=None,
+            name=name,
+            description=description,
+        )
+        self.amis[ami_id] = ami
+        return ami
+
     def remove_launch_permission(self, ami_id, user_ids=None, group=None):
         ami = self.describe_images(ami_ids=[ami_id])[0]
         self.validate_permission_targets(user_ids=user_ids, group=group)
