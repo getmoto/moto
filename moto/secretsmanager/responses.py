@@ -4,6 +4,7 @@ from moto.core.responses import BaseResponse
 from moto.secretsmanager.exceptions import InvalidRequestException
 
 from .models import secretsmanager_backends
+import moto.secretsmanager.secret_filter as secret_filter
 
 import json
 
@@ -103,6 +104,11 @@ class SecretsManagerResponse(BaseResponse):
 
     def list_secrets(self):
         filters = self._get_param("Filters", if_none=[])
+        for filter_key in map(lambda f: f["Key"], filters):
+            if filter_key not in secret_filter.keys():
+                raise InvalidRequestException(
+                    "TODO something something not valid filter."
+                )
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
         secret_list, next_token = secretsmanager_backends[self.region].list_secrets(

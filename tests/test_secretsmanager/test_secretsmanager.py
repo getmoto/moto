@@ -584,32 +584,39 @@ def test_list_secrets_with_all_filter():
 def test_list_secrets_with_invalid_filter():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    # TODO find out what error is raised
-    with assert_raises(ClientError):
-        secrets = conn.list_secrets(Filters=[
+    with assert_raises(ClientError) as ire:
+        conn.list_secrets(Filters=[
             {
                 "Key": "invalid",
                 "Values": ["foo"]
             }
         ])
 
+    ire.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
+    # TODO find out what error is raised
+    ire.exception.response["Error"]["Message"].should.equal(
+        "???."
+    )
+
 
 @mock_secretsmanager
 def test_list_secrets_with_multiple_filters():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    # TODO find out how multiple filters combine
-    # conn.create_secret(Name="foo", SecretString="secret", Description="one two three")
-    # conn.create_secret(Name="bar", SecretString="secret")
+    # Multiple filters combine with an implicit AND operator
+    conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "right", "Value": "right"}])
+    conn.create_secret(Name="bar", SecretString="secret", Tags=[{"Key": "right", "Value": "wrong"}])
+    conn.create_secret(Name="baz", SecretString="secret", Tags=[{"Key": "wrong", "Value": "right"}])
+    conn.create_secret(Name="qux", SecretString="secret", Tags=[{"Key": "wrong", "Value": "wrong"}])
 
     secrets = conn.list_secrets(Filters=[
         {
-            "Key": "name",
-            "Values": "foo"
+            "Key": "tag-key",
+            "Values": ["right"]
         },
         {
-            "Key": "description",
-            "Values": ["two"]
+            "Key": "tag-value",
+            "Values": ["right"]
         }
     ])
 
