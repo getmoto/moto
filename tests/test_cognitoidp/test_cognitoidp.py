@@ -3,6 +3,9 @@ from __future__ import unicode_literals
 import json
 import os
 import random
+import re
+
+import requests
 import uuid
 
 import boto3
@@ -10,10 +13,11 @@ import boto3
 # noinspection PyUnresolvedReferences
 import sure  # noqa
 from botocore.exceptions import ClientError
-from jose import jws
+from jose import jws, jwk, jwt
 from nose.tools import assert_raises
 
-from moto import mock_cognitoidp
+from moto import mock_cognitoidp, settings
+from moto.cognitoidp.utils import create_id
 from moto.core import ACCOUNT_ID
 
 
@@ -210,8 +214,31 @@ def test_create_user_pool_client():
     )
 
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
-    result["UserPoolClient"]["ClientId"].should_not.be.none
+    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
+    result["UserPoolClient"].should_not.have.key("ClientSecret")
+    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
+    result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
+
+
+@mock_cognitoidp
+def test_create_user_pool_client_returns_secret():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    client_name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    result = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=client_name,
+        GenerateSecret=True,
+        CallbackURLs=[value],
+    )
+
+    result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
+    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
+    result["UserPoolClient"]["ClientName"].should.equal(client_name)
+    result["UserPoolClient"]["ClientSecret"].should_not.be.none
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
     result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
 
@@ -330,6 +357,37 @@ def test_update_user_pool_client():
     )
 
     result["UserPoolClient"]["ClientName"].should.equal(new_client_name)
+    result["UserPoolClient"].should_not.have.key("ClientSecret")
+    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
+    result["UserPoolClient"]["CallbackURLs"][0].should.equal(new_value)
+
+
+@mock_cognitoidp
+def test_update_user_pool_client_returns_secret():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    old_client_name = str(uuid.uuid4())
+    new_client_name = str(uuid.uuid4())
+    old_value = str(uuid.uuid4())
+    new_value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_details = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=old_client_name,
+        GenerateSecret=True,
+        CallbackURLs=[old_value],
+    )
+    client_secret = client_details["UserPoolClient"]["ClientSecret"]
+
+    result = conn.update_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientId=client_details["UserPoolClient"]["ClientId"],
+        ClientName=new_client_name,
+        CallbackURLs=[new_value],
+    )
+
+    result["UserPoolClient"]["ClientName"].should.equal(new_client_name)
+    result["UserPoolClient"]["ClientSecret"].should.equal(client_secret)
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
     result["UserPoolClient"]["CallbackURLs"][0].should.equal(new_value)
 
@@ -1279,9 +1337,7 @@ def test_change_password__using_custom_user_agent_header():
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    result = conn.forgot_password(
-        ClientId=str(uuid.uuid4()), Username=str(uuid.uuid4())
-    )
+    result = conn.forgot_password(ClientId=create_id(), Username=str(uuid.uuid4()))
     result["CodeDeliveryDetails"].should_not.be.none
 
 
@@ -1341,3 +1397,118 @@ def test_admin_update_user_attributes():
             val.should.equal("Doe")
         elif attr["Name"] == "given_name":
             val.should.equal("Jane")
+
+
+@mock_cognitoidp
+def test_resource_server():
+
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    res = client.create_user_pool(PoolName=name)
+
+    user_pool_id = res["UserPool"]["Id"]
+    identifier = "http://localhost.localdomain"
+    name = "local server"
+    scopes = [
+        {"ScopeName": "app:write", "ScopeDescription": "write scope"},
+        {"ScopeName": "app:read", "ScopeDescription": "read scope"},
+    ]
+
+    res = client.create_resource_server(
+        UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+    )
+
+    res["ResourceServer"]["UserPoolId"].should.equal(user_pool_id)
+    res["ResourceServer"]["Identifier"].should.equal(identifier)
+    res["ResourceServer"]["Name"].should.equal(name)
+    res["ResourceServer"]["Scopes"].should.equal(scopes)
+
+    with assert_raises(ClientError) as ex:
+        client.create_resource_server(
+            UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+        )
+
+    ex.exception.operation_name.should.equal("CreateResourceServer")
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "%s already exists in user pool %s." % (identifier, user_pool_id)
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+# Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
+# which isnt mocked in ServerMode
+if not settings.TEST_SERVER_MODE:
+
+    @mock_cognitoidp
+    def test_idtoken_contains_kid_header():
+        # https://github.com/spulec/moto/issues/3078
+        # Setup
+        cognito = boto3.client("cognito-idp", "us-west-2")
+        user_pool_id = cognito.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"][
+            "Id"
+        ]
+        client = cognito.create_user_pool_client(
+            UserPoolId=user_pool_id,
+            ExplicitAuthFlows=[
+                "ALLOW_ADMIN_USER_PASSWORD_AUTH",
+                "ALLOW_REFRESH_TOKEN_AUTH",
+                "ALLOW_ADMIN_NO_SRP_AUTH",
+            ],
+            AllowedOAuthFlows=["code", "implicit"],
+            ClientName=str(uuid.uuid4()),
+            CallbackURLs=["https://example.com"],
+        )
+        client_id = client["UserPoolClient"]["ClientId"]
+        username = str(uuid.uuid4())
+        temporary_password = "1TemporaryP@ssword"
+        cognito.admin_create_user(
+            UserPoolId=user_pool_id,
+            Username=username,
+            TemporaryPassword=temporary_password,
+        )
+        result = cognito.admin_initiate_auth(
+            UserPoolId=user_pool_id,
+            ClientId=client_id,
+            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+        )
+
+        # A newly created user is forced to set a new password
+        # This sets a new password and logs the user in (creates tokens)
+        password = "1F@kePassword"
+        result = cognito.respond_to_auth_challenge(
+            Session=result["Session"],
+            ClientId=client_id,
+            ChallengeName="NEW_PASSWORD_REQUIRED",
+            ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": password},
+        )
+        #
+        id_token = result["AuthenticationResult"]["IdToken"]
+
+        # Verify the KID header is present in the token, and corresponds to the KID supplied by the public JWT
+        verify_kid_header(id_token)
+
+
+def verify_kid_header(token):
+    """Verifies the kid-header is corresponds with the public key"""
+    headers = jwt.get_unverified_headers(token)
+    kid = headers["kid"]
+
+    key_index = -1
+    keys = fetch_public_keys()
+    for i in range(len(keys)):
+        if kid == keys[i]["kid"]:
+            key_index = i
+            break
+    if key_index == -1:
+        raise Exception("Public key (kid) not found in jwks.json")
+
+
+def fetch_public_keys():
+    keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
+        "us-west-2", "someuserpoolid"
+    )
+    response = requests.get(keys_url).json()
+    return response["keys"]

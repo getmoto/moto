@@ -454,11 +454,10 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
-
+            return 201, {}, json.dumps(apikey_response)
         elif self.method == "GET":
             apikeys_response = self.backend.get_apikeys()
             return 200, {}, json.dumps({"item": apikeys_response})
-        return 200, {}, json.dumps(apikey_response)
 
     def apikey_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -466,6 +465,7 @@ class APIGatewayResponse(BaseResponse):
         url_path_parts = self.path.split("/")
         apikey = url_path_parts[2]
 
+        status_code = 200
         if self.method == "GET":
             apikey_response = self.backend.get_apikey(apikey)
         elif self.method == "PATCH":
@@ -473,7 +473,9 @@ class APIGatewayResponse(BaseResponse):
             apikey_response = self.backend.update_apikey(apikey, patch_operations)
         elif self.method == "DELETE":
             apikey_response = self.backend.delete_apikey(apikey)
-        return 200, {}, json.dumps(apikey_response)
+            status_code = 202
+
+        return status_code, {}, json.dumps(apikey_response)
 
     def usage_plans(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)
@@ -526,12 +528,10 @@ class APIGatewayResponse(BaseResponse):
                         error.message, error.error_type
                     ),
                 )
-
+            return 201, {}, json.dumps(usage_plan_response)
         elif self.method == "GET":
             usage_plans_response = self.backend.get_usage_plan_keys(usage_plan_id)
             return 200, {}, json.dumps({"item": usage_plans_response})
-
-        return 200, {}, json.dumps(usage_plan_response)
 
     def usage_plan_key_individual(self, request, full_url, headers):
         self.setup_class(request, full_url, headers)

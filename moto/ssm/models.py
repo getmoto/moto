@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 
 import re
+from boto3 import Session
 from collections import defaultdict
 
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
-from moto.ec2 import ec2_backends
 from moto.cloudformation import cloudformation_backends
 
 import datetime
@@ -469,7 +469,8 @@ def _document_filter_match(filters, ssm_doc):
 
 
 class SimpleSystemManagerBackend(BaseBackend):
-    def __init__(self):
+    def __init__(self, region_name=None):
+        super(SimpleSystemManagerBackend, self).__init__()
         # each value is a list of all of the versions for a parameter
         # to get the current value, grab the last item of the list
         self._parameters = defaultdict(list)
@@ -479,10 +480,12 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._errors = []
         self._documents = defaultdict(dict)
 
-        # figure out what region we're in
-        for region, backend in ssm_backends.items():
-            if backend == self:
-                self._region = region
+        self._region = region_name
+
+    def reset(self):
+        region_name = self._region
+        self.__dict__ = {}
+        self.__init__(region_name)
 
     def _generate_document_description(self, document):
 
@@ -1346,5 +1349,9 @@ class SimpleSystemManagerBackend(BaseBackend):
 
 
 ssm_backends = {}
-for region, ec2_backend in ec2_backends.items():
-    ssm_backends[region] = SimpleSystemManagerBackend()
+for region in Session().get_available_regions("ssm"):
+    ssm_backends[region] = SimpleSystemManagerBackend(region)
+for region in Session().get_available_regions("ssm", partition_name="aws-us-gov"):
+    ssm_backends[region] = SimpleSystemManagerBackend(region)
+for region in Session().get_available_regions("ssm", partition_name="aws-cn"):
+    ssm_backends[region] = SimpleSystemManagerBackend(region)

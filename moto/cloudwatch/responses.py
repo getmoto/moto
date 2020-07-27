@@ -161,9 +161,23 @@ class CloudWatchResponse(BaseResponse):
     def describe_alarm_history(self):
         raise NotImplementedError()
 
+    @staticmethod
+    def filter_alarms(alarms, metric_name, namespace):
+        metric_filtered_alarms = []
+
+        for alarm in alarms:
+            if alarm.metric_name == metric_name and alarm.namespace == namespace:
+                metric_filtered_alarms.append(alarm)
+        return metric_filtered_alarms
+
     @amzn_request_id
     def describe_alarms_for_metric(self):
-        raise NotImplementedError()
+        alarms = self.cloudwatch_backend.get_all_alarms()
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        filtered_alarms = self.filter_alarms(alarms, metric_name, namespace)
+        template = self.response_template(DESCRIBE_METRIC_ALARMS_TEMPLATE)
+        return template.render(alarms=filtered_alarms)
 
     @amzn_request_id
     def disable_alarm_actions(self):
@@ -281,6 +295,57 @@ DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.a
         </MetricAlarms>
     </DescribeAlarmsResult>
 </DescribeAlarmsResponse>"""
+
+DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DescribeAlarmsForMetricResult>
+        <MetricAlarms>
+            {% for alarm in alarms %}
+            <member>
+                <ActionsEnabled>{{ alarm.actions_enabled }}</ActionsEnabled>
+                <AlarmActions>
+                    {% for action in alarm.alarm_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </AlarmActions>
+                <AlarmArn>{{ alarm.arn }}</AlarmArn>
+                <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
+                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
+                <AlarmName>{{ alarm.name }}</AlarmName>
+                <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
+                <Dimensions>
+                    {% for dimension in alarm.dimensions %}
+                    <member>
+                        <Name>{{ dimension.name }}</Name>
+                        <Value>{{ dimension.value }}</Value>
+                    </member>
+                    {% endfor %}
+                </Dimensions>
+                <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
+                <InsufficientDataActions>
+                    {% for action in alarm.insufficient_data_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </InsufficientDataActions>
+                <MetricName>{{ alarm.metric_name }}</MetricName>
+                <Namespace>{{ alarm.namespace }}</Namespace>
+                <OKActions>
+                    {% for action in alarm.ok_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </OKActions>
+                <Period>{{ alarm.period }}</Period>
+                <StateReason>{{ alarm.state_reason }}</StateReason>
+                <StateReasonData>{{ alarm.state_reason_data }}</StateReasonData>
+                <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
+                <StateValue>{{ alarm.state_value }}</StateValue>
+                <Statistic>{{ alarm.statistic }}</Statistic>
+                <Threshold>{{ alarm.threshold }}</Threshold>
+                <Unit>{{ alarm.unit }}</Unit>
+            </member>
+            {% endfor %}
+        </MetricAlarms>
+    </DescribeAlarmsForMetricResult>
+</DescribeAlarmsForMetricResponse>"""
 
 DELETE_METRIC_ALARMS_TEMPLATE = """<DeleteMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>

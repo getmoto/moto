@@ -11,6 +11,7 @@ from moto.organizations import utils
 from moto.organizations.exceptions import (
     InvalidInputException,
     DuplicateOrganizationalUnitException,
+    DuplicatePolicyException,
 )
 
 
@@ -173,12 +174,60 @@ class FakeServiceControlPolicy(BaseModel):
         }
 
 
+class FakeServiceAccess(BaseModel):
+    # List of trusted services, which support trusted access with Organizations
+    # https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html
+    TRUSTED_SERVICES = [
+        "aws-artifact-account-sync.amazonaws.com",
+        "backup.amazonaws.com",
+        "member.org.stacksets.cloudformation.amazonaws.com",
+        "cloudtrail.amazonaws.com",
+        "compute-optimizer.amazonaws.com",
+        "config.amazonaws.com",
+        "config-multiaccountsetup.amazonaws.com",
+        "controltower.amazonaws.com",
+        "ds.amazonaws.com",
+        "fms.amazonaws.com",
+        "guardduty.amazonaws.com",
+        "access-analyzer.amazonaws.com",
+        "license-manager.amazonaws.com",
+        "license-manager.member-account.amazonaws.com.",
+        "macie.amazonaws.com",
+        "ram.amazonaws.com",
+        "servicecatalog.amazonaws.com",
+        "servicequotas.amazonaws.com",
+        "sso.amazonaws.com",
+        "ssm.amazonaws.com",
+        "tagpolicies.tag.amazonaws.com",
+    ]
+
+    def __init__(self, **kwargs):
+        if not self.trusted_service(kwargs["ServicePrincipal"]):
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        self.service_principal = kwargs["ServicePrincipal"]
+        self.date_enabled = datetime.datetime.utcnow()
+
+    def describe(self):
+        return {
+            "ServicePrincipal": self.service_principal,
+            "DateEnabled": unix_time(self.date_enabled),
+        }
+
+    @staticmethod
+    def trusted_service(service_principal):
+        return service_principal in FakeServiceAccess.TRUSTED_SERVICES
+
+
 class OrganizationsBackend(BaseBackend):
     def __init__(self):
         self.org = None
         self.accounts = []
         self.ou = []
         self.policies = []
+        self.services = []
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs["FeatureSet"])
@@ -361,6 +410,9 @@ class OrganizationsBackend(BaseBackend):
 
     def create_policy(self, **kwargs):
         new_policy = FakeServiceControlPolicy(self.org, **kwargs)
+        for policy in self.policies:
+            if kwargs["Name"] == policy.name:
+                raise DuplicatePolicyException
         self.policies.append(new_policy)
         return new_policy.describe()
 
@@ -378,8 +430,26 @@ class OrganizationsBackend(BaseBackend):
             raise RESTError("InvalidInputException", "You specified an invalid value.")
         return policy.describe()
 
+    def get_policy_by_id(self, policy_id):
+        policy = next(
+            (policy for policy in self.policies if policy.id == policy_id), None
+        )
+        if policy is None:
+            raise RESTError(
+                "PolicyNotFoundException",
+                "We can't find a policy with the PolicyId that you specified.",
+            )
+        return policy
+
+    def update_policy(self, **kwargs):
+        policy = self.get_policy_by_id(kwargs["PolicyId"])
+        policy.name = kwargs.get("Name", policy.name)
+        policy.description = kwargs.get("Description", policy.description)
+        policy.content = kwargs.get("Content", policy.content)
+        return policy.describe()
+
     def attach_policy(self, **kwargs):
-        policy = next((p for p in self.policies if p.id == kwargs["PolicyId"]), None)
+        policy = self.get_policy_by_id(kwargs["PolicyId"])
         if re.compile(utils.ROOT_ID_REGEX).match(kwargs["TargetId"]) or re.compile(
             utils.OU_ID_REGEX
         ).match(kwargs["TargetId"]):
@@ -412,6 +482,21 @@ class OrganizationsBackend(BaseBackend):
     def list_policies(self, **kwargs):
         return dict(
             Policies=[p.describe()["Policy"]["PolicySummary"] for p in self.policies]
+        )
+
+    def delete_policy(self, **kwargs):
+        for idx, policy in enumerate(self.policies):
+            if policy.id == kwargs["PolicyId"]:
+                if self.list_targets_for_policy(PolicyId=policy.id)["Targets"]:
+                    raise RESTError(
+                        "PolicyInUseException",
+                        "The policy is attached to one or more entities. You must detach it from all roots, OUs, and accounts before performing this operation.",
+                    )
+                del self.policies[idx]
+                return
+        raise RESTError(
+            "PolicyNotFoundException",
+            "We can't find a policy with the PolicyId that you specified.",
         )
 
     def list_policies_for_target(self, **kwargs):
@@ -459,7 +544,9 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputException
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
 
         new_tags = {tag["Key"]: tag["Value"] for tag in kwargs["Tags"]}
         account.tags.update(new_tags)
@@ -468,7 +555,9 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputException
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
 
         tags = [{"Key": key, "Value": value} for key, value in account.tags.items()]
         return dict(Tags=tags)
@@ -477,10 +566,45 @@ class OrganizationsBackend(BaseBackend):
         account = next((a for a in self.accounts if a.id == kwargs["ResourceId"]), None)
 
         if account is None:
-            raise InvalidInputException
+            raise InvalidInputException(
+                "You provided a value that does not match the required pattern."
+            )
 
         for key in kwargs["TagKeys"]:
             account.tags.pop(key, None)
+
+    def enable_aws_service_access(self, **kwargs):
+        service = FakeServiceAccess(**kwargs)
+
+        # enabling an existing service results in no changes
+        if any(
+            service["ServicePrincipal"] == kwargs["ServicePrincipal"]
+            for service in self.services
+        ):
+            return
+
+        self.services.append(service.describe())
+
+    def list_aws_service_access_for_organization(self):
+        return dict(EnabledServicePrincipals=self.services)
+
+    def disable_aws_service_access(self, **kwargs):
+        if not FakeServiceAccess.trusted_service(kwargs["ServicePrincipal"]):
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        service_principal = next(
+            (
+                service
+                for service in self.services
+                if service["ServicePrincipal"] == kwargs["ServicePrincipal"]
+            ),
+            None,
+        )
+
+        if service_principal:
+            self.services.remove(service_principal)
 
 
 organizations_backend = OrganizationsBackend()

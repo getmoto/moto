@@ -449,6 +449,16 @@ class FakeEvent(BaseModel):
         self.event_id = uuid.uuid4()
 
 
+def filter_stacks(all_stacks, status_filter):
+    filtered_stacks = []
+    if not status_filter:
+        return all_stacks
+    for stack in all_stacks:
+        if stack.status in status_filter:
+            filtered_stacks.append(stack)
+    return filtered_stacks
+
+
 class CloudFormationBackend(BaseBackend):
     def __init__(self):
         self.stacks = OrderedDict()
@@ -681,10 +691,11 @@ class CloudFormationBackend(BaseBackend):
     def list_change_sets(self):
         return self.change_sets.values()
 
-    def list_stacks(self):
-        return [v for v in self.stacks.values()] + [
+    def list_stacks(self, status_filter=None):
+        total_stacks = [v for v in self.stacks.values()] + [
             v for v in self.deleted_stacks.values()
         ]
+        return filter_stacks(total_stacks, status_filter)
 
     def get_stack(self, name_or_stack_id):
         all_stacks = dict(self.deleted_stacks, **self.stacks)

@@ -1516,6 +1516,19 @@ class AmiBackend(object):
 
         return True
 
+    def register_image(self, name=None, description=None):
+        ami_id = random_ami_id()
+        ami = Ami(
+            self,
+            ami_id,
+            instance=None,
+            source_ami=None,
+            name=name,
+            description=description,
+        )
+        self.amis[ami_id] = ami
+        return ami
+
     def remove_launch_permission(self, ami_id, user_ids=None, group=None):
         ami = self.describe_images(ami_ids=[ami_id])[0]
         self.validate_permission_targets(user_ids=user_ids, group=group)
@@ -3547,6 +3560,7 @@ class Route(object):
         self,
         route_table,
         destination_cidr_block,
+        destination_ipv6_cidr_block,
         local=False,
         gateway=None,
         instance=None,
@@ -3554,9 +3568,12 @@ class Route(object):
         interface=None,
         vpc_pcx=None,
     ):
-        self.id = generate_route_id(route_table.id, destination_cidr_block)
+        self.id = generate_route_id(
+            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
+        )
         self.route_table = route_table
         self.destination_cidr_block = destination_cidr_block
+        self.destination_ipv6_cidr_block = destination_ipv6_cidr_block
         self.local = local
         self.gateway = gateway
         self.instance = instance
@@ -3632,6 +3649,7 @@ class RouteBackend(object):
         self,
         route_table_id,
         destination_cidr_block,
+        destination_ipv6_cidr_block=None,
         local=False,
         gateway_id=None,
         instance_id=None,
@@ -3656,9 +3674,10 @@ class RouteBackend(object):
                     gateway = self.get_internet_gateway(gateway_id)
 
             try:
-                ipaddress.IPv4Network(
-                    six.text_type(destination_cidr_block), strict=False
-                )
+                if destination_cidr_block:
+                    ipaddress.IPv4Network(
+                        six.text_type(destination_cidr_block), strict=False
+                    )
             except ValueError:
                 raise InvalidDestinationCIDRBlockParameterError(destination_cidr_block)
 
@@ -3668,6 +3687,7 @@ class RouteBackend(object):
         route = Route(
             route_table,
             destination_cidr_block,
+            destination_ipv6_cidr_block,
             local=local,
             gateway=gateway,
             instance=self.get_instance(instance_id) if instance_id else None,
@@ -4966,6 +4986,14 @@ class VpnGateway(TaggedEC2Resource):
         super(VpnGateway, self).__init__()
 
     def get_filter_value(self, filter_name):
+        if filter_name == "attachment.vpc-id":
+            return self.attachments.keys()
+        elif filter_name == "attachment.state":
+            return [attachment.state for attachment in self.attachments.values()]
+        elif filter_name == "vpn-gateway-id":
+            return self.id
+        elif filter_name == "type":
+            return self.type
         return super(VpnGateway, self).get_filter_value(
             filter_name, "DescribeVpnGateways"
         )

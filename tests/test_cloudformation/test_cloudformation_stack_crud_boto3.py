@@ -14,6 +14,7 @@ from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
 from moto.core import ACCOUNT_ID
+from .test_cloudformation_stack_crud import dummy_template_json2
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -31,6 +32,14 @@ dummy_template = {
                 ],
             },
         }
+    },
+}
+
+dummy_template3 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Stack 3",
+    "Resources": {
+        "VPC": {"Properties": {"CidrBlock": "192.168.0.0/16"}, "Type": "AWS::EC2::VPC"}
     },
 }
 
@@ -216,6 +225,18 @@ def test_boto3_list_stacksets_length():
     )
     stacksets = cf_conn.list_stack_sets()
     stacksets.should.have.length_of(2)
+
+
+@mock_cloudformation
+def test_boto3_filter_stacks():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+    conn.create_stack(StackName="test_stack2", TemplateBody=dummy_template_json)
+    conn.update_stack(StackName="test_stack", TemplateBody=dummy_template_json2)
+    stacks = conn.list_stacks(StackStatusFilter=["CREATE_COMPLETE"])
+    stacks.get("StackSummaries").should.have.length_of(1)
+    stacks = conn.list_stacks(StackStatusFilter=["UPDATE_COMPLETE"])
+    stacks.get("StackSummaries").should.have.length_of(1)
 
 
 @mock_cloudformation
@@ -653,6 +674,48 @@ def test_boto3_create_stack_with_short_form_func_yaml():
     cf_conn.get_template(StackName="test_stack")["TemplateBody"].should.equal(
         dummy_template_yaml_with_short_form_func
     )
+
+
+@mock_s3
+@mock_cloudformation
+def test_get_template_summary():
+    s3 = boto3.client("s3")
+    s3_conn = boto3.resource("s3", region_name="us-east-1")
+
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    result = conn.get_template_summary(TemplateBody=json.dumps(dummy_template3))
+
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
+
+    conn.create_stack(StackName="test_stack", TemplateBody=json.dumps(dummy_template3))
+
+    result = conn.get_template_summary(StackName="test_stack")
+
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
+
+    s3_conn.create_bucket(Bucket="foobar")
+    s3_conn.Object("foobar", "template-key").put(Body=json.dumps(dummy_template3))
+
+    key_url = s3.generate_presigned_url(
+        ClientMethod="get_object", Params={"Bucket": "foobar", "Key": "template-key"}
+    )
+
+    conn.create_stack(StackName="stack_from_url", TemplateURL=key_url)
+    result = conn.get_template_summary(TemplateURL=key_url)
+    result["ResourceTypes"].should.equal(["AWS::EC2::VPC"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack 3")
+
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    result = conn.get_template_summary(TemplateBody=dummy_template_yaml)
+
+    result["ResourceTypes"].should.equal(["AWS::EC2::Instance"])
+    result["Version"].should.equal("2010-09-09")
+    result["Description"].should.equal("Stack1 with yaml template")
 
 
 @mock_cloudformation

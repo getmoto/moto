@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from datetime import datetime
+
 import boto3
 import json
 import six
@@ -433,6 +435,56 @@ def test_attach_policy():
 
 
 @mock_organizations
+def test_delete_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    base_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
+    base_policies.should.have.length_of(1)
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    new_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
+    new_policies.should.have.length_of(2)
+    response = client.delete_policy(PolicyId=policy_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    new_policies = client.list_policies(Filter="SERVICE_CONTROL_POLICY")["Policies"]
+    new_policies.should.equal(base_policies)
+    new_policies.should.have.length_of(1)
+
+
+@mock_organizations
+def test_delete_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    non_existent_policy_id = utils.make_random_service_control_policy_id()
+    with assert_raises(ClientError) as e:
+        response = client.delete_policy(PolicyId=non_existent_policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal("DeletePolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
+
+    # Attempt to delete an attached policy
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    with assert_raises(ClientError) as e:
+        response = client.delete_policy(PolicyId=policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal("DeletePolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("PolicyInUseException")
+
+
+@mock_organizations
 def test_attach_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
@@ -475,6 +527,44 @@ def test_attach_policy_exception():
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("InvalidInputException")
+
+
+@mock_organizations
+def test_update_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+
+    policy_dict = dict(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )
+    policy_id = client.create_policy(**policy_dict)["Policy"]["PolicySummary"]["Id"]
+
+    for key in ("Description", "Name"):
+        response = client.update_policy(**{"PolicyId": policy_id, key: "foobar"})
+        policy = client.describe_policy(PolicyId=policy_id)
+        policy["Policy"]["PolicySummary"][key].should.equal("foobar")
+        validate_service_control_policy(org, response["Policy"])
+
+    response = client.update_policy(PolicyId=policy_id, Content="foobar")
+    policy = client.describe_policy(PolicyId=policy_id)
+    policy["Policy"]["Content"].should.equal("foobar")
+    validate_service_control_policy(org, response["Policy"])
+
+
+@mock_organizations
+def test_update_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    non_existent_policy_id = utils.make_random_service_control_policy_id()
+    with assert_raises(ClientError) as e:
+        response = client.update_policy(PolicyId=non_existent_policy_id)
+    ex = e.exception
+    ex.operation_name.should.equal("UpdatePolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
 
 
 @mock_organizations
@@ -750,4 +840,110 @@ def test_update_organizational_unit_duplicate_error():
     exc.response["Error"]["Code"].should.contain("DuplicateOrganizationalUnitException")
     exc.response["Error"]["Message"].should.equal(
         "An OU with the same name already exists."
+    )
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    # when
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(1)
+    service = response["EnabledServicePrincipals"][0]
+    service["ServicePrincipal"].should.equal("config.amazonaws.com")
+    date_enabled = service["DateEnabled"]
+    date_enabled["DateEnabled"].should.be.a(datetime)
+
+    # enabling the same service again should not result in any error or change
+    # when
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(1)
+    service = response["EnabledServicePrincipals"][0]
+    service["ServicePrincipal"].should.equal("config.amazonaws.com")
+    service["DateEnabled"].should.equal(date_enabled)
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.enable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
+    ex = e.exception
+    ex.operation_name.should.equal("EnableAWSServiceAccess")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
+    )
+
+
+@mock_organizations
+def test_enable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+    client.enable_aws_service_access(ServicePrincipal="ram.amazonaws.com")
+
+    # when
+    response = client.list_aws_service_access_for_organization()
+
+    # then
+    response["EnabledServicePrincipals"].should.have.length_of(2)
+    services = sorted(
+        response["EnabledServicePrincipals"], key=lambda i: i["ServicePrincipal"]
+    )
+    services[0]["ServicePrincipal"].should.equal("config.amazonaws.com")
+    services[0]["DateEnabled"].should.be.a(datetime)
+    services[1]["ServicePrincipal"].should.equal("ram.amazonaws.com")
+    services[1]["DateEnabled"].should.be.a(datetime)
+
+
+@mock_organizations
+def test_disable_aws_service_access():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    client.enable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # when
+    client.disable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(0)
+
+    # disabling the same service again should not result in any error
+    # when
+    client.disable_aws_service_access(ServicePrincipal="config.amazonaws.com")
+
+    # then
+    response = client.list_aws_service_access_for_organization()
+    response["EnabledServicePrincipals"].should.have.length_of(0)
+
+
+@mock_organizations
+def test_disable_aws_service_access_errors():
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    with assert_raises(ClientError) as e:
+        client.disable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
+    ex = e.exception
+    ex.operation_name.should.equal("DisableAWSServiceAccess")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
     )

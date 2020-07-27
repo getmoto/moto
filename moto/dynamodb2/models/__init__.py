@@ -272,11 +272,29 @@ class StreamShard(BaseModel):
         return [i.to_json() for i in self.items[start:end]]
 
 
-class LocalSecondaryIndex(BaseModel):
-    def __init__(self, index_name, schema, projection):
+class SecondaryIndex(BaseModel):
+    def project(self, item):
+        """
+        Enforces the ProjectionType of this Index (LSI/GSI)
+        Removes any non-wanted attributes from the item
+        :param item:
+        :return:
+        """
+        if self.projection:
+            if self.projection.get("ProjectionType", None) == "KEYS_ONLY":
+                allowed_attributes = ",".join(
+                    self.table_key_attrs + [key["AttributeName"] for key in self.schema]
+                )
+                item.filter(allowed_attributes)
+        return item
+
+
+class LocalSecondaryIndex(SecondaryIndex):
+    def __init__(self, index_name, schema, projection, table_key_attrs):
         self.name = index_name
         self.schema = schema
         self.projection = projection
+        self.table_key_attrs = table_key_attrs
 
     def describe(self):
         return {
@@ -286,21 +304,29 @@ class LocalSecondaryIndex(BaseModel):
         }
 
     @staticmethod
-    def create(dct):
+    def create(dct, table_key_attrs):
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
             projection=dct["Projection"],
+            table_key_attrs=table_key_attrs,
         )
 
 
-class GlobalSecondaryIndex(BaseModel):
+class GlobalSecondaryIndex(SecondaryIndex):
     def __init__(
-        self, index_name, schema, projection, status="ACTIVE", throughput=None
+        self,
+        index_name,
+        schema,
+        projection,
+        table_key_attrs,
+        status="ACTIVE",
+        throughput=None,
     ):
         self.name = index_name
         self.schema = schema
         self.projection = projection
+        self.table_key_attrs = table_key_attrs
         self.status = status
         self.throughput = throughput or {
             "ReadCapacityUnits": 0,
@@ -317,11 +343,12 @@ class GlobalSecondaryIndex(BaseModel):
         }
 
     @staticmethod
-    def create(dct):
+    def create(dct, table_key_attrs):
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
             projection=dct["Projection"],
+            table_key_attrs=table_key_attrs,
             throughput=dct.get("ProvisionedThroughput", None),
         )
 
@@ -357,16 +384,20 @@ class Table(BaseModel):
             else:
                 self.range_key_attr = elem["AttributeName"]
                 self.range_key_type = elem["KeyType"]
+        self.table_key_attrs = [
+            key for key in (self.hash_key_attr, self.range_key_attr) if key
+        ]
         if throughput is None:
             self.throughput = {"WriteCapacityUnits": 10, "ReadCapacityUnits": 10}
         else:
             self.throughput = throughput
         self.throughput["NumberOfDecreasesToday"] = 0
         self.indexes = [
-            LocalSecondaryIndex.create(i) for i in (indexes if indexes else [])
+            LocalSecondaryIndex.create(i, self.table_key_attrs)
+            for i in (indexes if indexes else [])
         ]
         self.global_indexes = [
-            GlobalSecondaryIndex.create(i)
+            GlobalSecondaryIndex.create(i, self.table_key_attrs)
             for i in (global_indexes if global_indexes else [])
         ]
         self.created_at = datetime.datetime.utcnow()
@@ -396,6 +427,10 @@ class Table(BaseModel):
 
         raise UnformattedGetAttTemplateException()
 
+    @property
+    def physical_resource_id(self):
+        return self.name
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -418,6 +453,17 @@ class Table(BaseModel):
 
         table = dynamodb_backends[region_name].create_table(
             name=properties["TableName"], **params
+        )
+        return table
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        table = dynamodb_backends[region_name].delete_table(
+            name=properties["TableName"]
         )
         return table
 
@@ -719,6 +765,10 @@ class Table(BaseModel):
             results = [item for item in results if filter_expression.expr(item)]
 
         results = copy.deepcopy(results)
+        if index_name:
+            index = self.get_index(index_name)
+            for result in results:
+                index.project(result)
         if projection_expression:
             for result in results:
                 result.filter(projection_expression)
@@ -739,11 +789,16 @@ class Table(BaseModel):
     def all_indexes(self):
         return (self.global_indexes or []) + (self.indexes or [])
 
-    def has_idx_items(self, index_name):
-
+    def get_index(self, index_name, err=None):
         all_indexes = self.all_indexes()
         indexes_by_name = dict((i.name, i) for i in all_indexes)
-        idx = indexes_by_name[index_name]
+        if err and index_name not in indexes_by_name:
+            raise err
+        return indexes_by_name[index_name]
+
+    def has_idx_items(self, index_name):
+
+        idx = self.get_index(index_name)
         idx_col_set = set([i["AttributeName"] for i in idx.schema])
 
         for hash_set in self.items.values():
@@ -766,14 +821,12 @@ class Table(BaseModel):
     ):
         results = []
         scanned_count = 0
-        all_indexes = self.all_indexes()
-        indexes_by_name = dict((i.name, i) for i in all_indexes)
 
         if index_name:
-            if index_name not in indexes_by_name:
-                raise InvalidIndexNameError(
-                    "The table does not have the specified index: %s" % index_name
-                )
+            err = InvalidIndexNameError(
+                "The table does not have the specified index: %s" % index_name
+            )
+            self.get_index(index_name, err)
             items = self.has_idx_items(index_name)
         else:
             items = self.all_items()
@@ -847,9 +900,7 @@ class Table(BaseModel):
                 last_evaluated_key[self.range_key_attr] = results[-1].range_key
 
             if scanned_index:
-                all_indexes = self.all_indexes()
-                indexes_by_name = dict((i.name, i) for i in all_indexes)
-                idx = indexes_by_name[scanned_index]
+                idx = self.get_index(scanned_index)
                 idx_col_list = [i["AttributeName"] for i in idx.schema]
                 for col in idx_col_list:
                     last_evaluated_key[col] = results[-1].attrs[col]
@@ -865,6 +916,9 @@ class Table(BaseModel):
         if not ret.keys():
             return None
         return ret
+
+    def delete(self, region_name):
+        dynamodb_backends[region_name].delete_table(self.name)
 
 
 class DynamoDBBackend(BaseBackend):
@@ -993,7 +1047,7 @@ class DynamoDBBackend(BaseBackend):
                     )
 
                 gsis_by_name[gsi_to_create["IndexName"]] = GlobalSecondaryIndex.create(
-                    gsi_to_create
+                    gsi_to_create, table.table_key_attrs,
                 )
 
         # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other

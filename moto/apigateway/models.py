@@ -400,10 +400,10 @@ class ApiKey(BaseModel, dict):
         self,
         name=None,
         description=None,
-        enabled=True,
+        enabled=False,
         generateDistinctId=False,
         value=None,
-        stageKeys=None,
+        stageKeys=[],
         tags=None,
         customerId=None,
     ):

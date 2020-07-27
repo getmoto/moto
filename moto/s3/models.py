@@ -22,7 +22,7 @@ import six
 
 from bisect import insort
 from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, rfc_1123_datetime
+from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
@@ -79,7 +79,7 @@ class FakeDeleteMarker(BaseModel):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime_with_milliseconds(self.last_modified)
+        return iso_8601_datetime_without_milliseconds_s3(self.last_modified)
 
     @property
     def version_id(self):
@@ -206,7 +206,7 @@ class FakeKey(BaseModel):
 
     @property
     def last_modified_ISO8601(self):
-        return iso_8601_datetime_with_milliseconds(self.last_modified)
+        return iso_8601_datetime_without_milliseconds_s3(self.last_modified)
 
     @property
     def last_modified_RFC1123(self):
@@ -280,7 +280,9 @@ class FakeMultipart(BaseModel):
         self.parts = {}
         self.partlist = []  # ordered list of part ID's
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
-        self.id = rand_b64.decode("utf-8").replace("=", "").replace("+", "")
+        self.id = (
+            rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
+        )
 
     def complete(self, body):
         decode_hex = codecs.getdecoder("hex_codec")
@@ -1565,6 +1567,10 @@ class S3Backend(BaseBackend):
     def _set_delete_marker(self, bucket_name, key_name):
         bucket = self.get_bucket(bucket_name)
         bucket.keys[key_name] = FakeDeleteMarker(key=bucket.keys[key_name])
+
+    def delete_object_tagging(self, bucket_name, key_name, version_id=None):
+        key = self.get_object(bucket_name, key_name, version_id=version_id)
+        self.tagger.delete_all_tags_for_resource(key.arn)
 
     def delete_object(self, bucket_name, key_name, version_id=None):
         key_name = clean_key_name(key_name)

@@ -1079,6 +1079,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             if key:
                 if not key.acl.public_read and not signed_url:
                     return 403, {}, ""
+            elif signed_url:
+                # coming in from requests.get(s3.generate_presigned_url())
+                if self._invalid_headers(request.url, dict(request.headers)):
+                    return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
 
         if hasattr(request, "body"):
             # Boto
@@ -1287,6 +1291,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             request.streaming = True
             metadata = metadata_from_headers(request.headers)
+            metadata.update(metadata_from_headers(query))
             new_key.set_metadata(metadata)
             new_key.set_acl(acl)
             new_key.website_redirect_location = request.headers.get(
@@ -1618,6 +1623,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.backend.cancel_multipart(bucket_name, upload_id)
             return 204, {}, ""
         version_id = query.get("versionId", [None])[0]
+        if "tagging" in query:
+            self.backend.delete_object_tagging(
+                bucket_name, key_name, version_id=version_id
+            )
+            template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
+            return 204, {}, template.render(version_id=version_id)
         self.backend.delete_object(bucket_name, key_name, version_id=version_id)
         return 204, {}, ""
 
@@ -1665,6 +1676,29 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             raise NotImplementedError(
                 "Method POST had only been implemented for multipart uploads and restore operations, so far"
             )
+
+    def _invalid_headers(self, url, headers):
+        """
+        Verify whether the provided metadata in the URL is also present in the headers
+        :param url: .../file.txt&content-type=app%2Fjson&Signature=..
+        :param headers: Content-Type=app/json
+        :return: True or False
+        """
+        metadata_to_check = {
+            "content-disposition": "Content-Disposition",
+            "content-encoding": "Content-Encoding",
+            "content-language": "Content-Language",
+            "content-length": "Content-Length",
+            "content-md5": "Content-MD5",
+            "content-type": "Content-Type",
+        }
+        for url_key, header_key in metadata_to_check.items():
+            metadata_in_url = re.search(url_key + "=(.+?)(&.+$|$)", url)
+            if metadata_in_url:
+                url_value = unquote(metadata_in_url.group(1))
+                if header_key not in headers or (url_value != headers[header_key]):
+                    return True
+        return False
 
 
 S3ResponseInstance = ResponseObject(s3_backend)
@@ -1935,6 +1969,12 @@ S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 {% endfor %}
 </DeleteResult>"""
 
+S3_DELETE_KEY_TAGGING_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DeleteObjectTaggingResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
+<VersionId>{{version_id}}</VersionId>
+</DeleteObjectTaggingResult>
+"""
+
 S3_OBJECT_ACL_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <AccessControlPolicy xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
       <Owner>
@@ -2200,6 +2240,15 @@ S3_ENCRYPTION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
         </Rule>
     {% endfor %}
 </BucketEncryptionStatus>
+"""
+
+S3_INVALID_PRESIGNED_PARAMETERS = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>SignatureDoesNotMatch</Code>
+  <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+  <RequestId>0D68A23BB2E2215B</RequestId>
+  <HostId>9Gjjt1m+cjU4OPvX9O9/8RuvnG41MRb/18Oux2o5H5MY7ISNTlXN+Dz9IG62/ILVxhAGI0qyPfg=</HostId>
+</Error>
 """
 
 S3_NO_ENCRYPTION = """<?xml version="1.0" encoding="UTF-8"?>

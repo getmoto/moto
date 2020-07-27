@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime, timedelta
 
 import boto3
@@ -1873,4 +1874,315 @@ def test_put_evaluations():
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
         {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200,},}
+    )
+
+
+@mock_config
+def test_put_organization_conformance_pack():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    response = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )
+
+    # then
+    arn = response["OrganizationConformancePackArn"]
+    arn.should.match(
+        r"arn:aws:config:us-east-1:\d{12}:organization-conformance-pack/test-pack-\w{8}"
+    )
+
+    # putting an organization conformance pack with the same name should result in an update
+    # when
+    response = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack-2.yaml",
+    )
+
+    # then
+    response["OrganizationConformancePackArn"].should.equal(arn)
+
+
+@mock_config
+def test_put_organization_conformance_pack_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.put_organization_conformance_pack(
+            DeliveryS3Bucket="awsconfigconforms-test-bucket",
+            OrganizationConformancePackName="test-pack",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("PutOrganizationConformancePack")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal("Template body is invalid")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.put_organization_conformance_pack(
+            DeliveryS3Bucket="awsconfigconforms-test-bucket",
+            OrganizationConformancePackName="test-pack",
+            TemplateS3Uri="invalid-s3-uri",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("PutOrganizationConformancePack")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ValidationException")
+    ex.response["Error"]["Message"].should.equal(
+        "1 validation error detected: "
+        "Value 'invalid-s3-uri' at 'templateS3Uri' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern: "
+        "s3://.*"
+    )
+
+
+@mock_config
+def test_describe_organization_conformance_packs():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.describe_organization_conformance_packs(
+        OrganizationConformancePackNames=["test-pack"]
+    )
+
+    # then
+    response["OrganizationConformancePacks"].should.have.length_of(1)
+    pack = response["OrganizationConformancePacks"][0]
+    pack["OrganizationConformancePackName"].should.equal("test-pack")
+    pack["OrganizationConformancePackArn"].should.equal(arn)
+    pack["DeliveryS3Bucket"].should.equal("awsconfigconforms-test-bucket")
+    pack["ConformancePackInputParameters"].should.have.length_of(0)
+    pack["ExcludedAccounts"].should.have.length_of(0)
+    pack["LastUpdateTime"].should.be.a("datetime.datetime")
+
+
+@mock_config
+def test_describe_organization_conformance_packs_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.describe_organization_conformance_packs(
+            OrganizationConformancePackNames=["not-existing"]
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeOrganizationConformancePacks")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "One or more organization conformance packs with specified names are not present. "
+        "Ensure your names are correct and try your request again later."
+    )
+
+
+@mock_config
+def test_describe_organization_conformance_pack_statuses():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.describe_organization_conformance_pack_statuses(
+        OrganizationConformancePackNames=["test-pack"]
+    )
+
+    # then
+    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackStatuses"][0]
+    status["OrganizationConformancePackName"].should.equal("test-pack")
+    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    update_time = status["LastUpdateTime"]
+    update_time.should.be.a("datetime.datetime")
+
+    # when
+    response = client.describe_organization_conformance_pack_statuses()
+
+    # then
+    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackStatuses"][0]
+    status["OrganizationConformancePackName"].should.equal("test-pack")
+    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    status["LastUpdateTime"].should.equal(update_time)
+
+    # when
+    time.sleep(1)
+    client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack-2.yaml",
+    )
+
+    # then
+    response = client.describe_organization_conformance_pack_statuses(
+        OrganizationConformancePackNames=["test-pack"]
+    )
+    response["OrganizationConformancePackStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackStatuses"][0]
+    status["OrganizationConformancePackName"].should.equal("test-pack")
+    status["Status"].should.equal("UPDATE_SUCCESSFUL")
+    status["LastUpdateTime"].should.be.greater_than(update_time)
+
+
+@mock_config
+def test_describe_organization_conformance_pack_statuses_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.describe_organization_conformance_pack_statuses(
+            OrganizationConformancePackNames=["not-existing"]
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DescribeOrganizationConformancePackStatuses")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "One or more organization conformance packs with specified names are not present. "
+        "Ensure your names are correct and try your request again later."
+    )
+
+
+@mock_config
+def test_get_organization_conformance_pack_detailed_status():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.get_organization_conformance_pack_detailed_status(
+        OrganizationConformancePackName="test-pack"
+    )
+
+    # then
+    response["OrganizationConformancePackDetailedStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackDetailedStatuses"][0]
+    status["AccountId"].should.equal(ACCOUNT_ID)
+    status["ConformancePackName"].should.equal(
+        "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
+    )
+    status["Status"].should.equal("CREATE_SUCCESSFUL")
+    update_time = status["LastUpdateTime"]
+    update_time.should.be.a("datetime.datetime")
+
+    # when
+    time.sleep(1)
+    client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack-2.yaml",
+    )
+
+    # then
+    response = client.get_organization_conformance_pack_detailed_status(
+        OrganizationConformancePackName="test-pack"
+    )
+    response["OrganizationConformancePackDetailedStatuses"].should.have.length_of(1)
+    status = response["OrganizationConformancePackDetailedStatuses"][0]
+    status["AccountId"].should.equal(ACCOUNT_ID)
+    status["ConformancePackName"].should.equal(
+        "OrgConformsPack-{}".format(arn[arn.rfind("/") + 1 :])
+    )
+    status["Status"].should.equal("UPDATE_SUCCESSFUL")
+    status["LastUpdateTime"].should.be.greater_than(update_time)
+
+
+@mock_config
+def test_get_organization_conformance_pack_detailed_status_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.get_organization_conformance_pack_detailed_status(
+            OrganizationConformancePackName="not-existing"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("GetOrganizationConformancePackDetailedStatus")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "One or more organization conformance packs with specified names are not present. "
+        "Ensure your names are correct and try your request again later."
+    )
+
+
+@mock_config
+def test_delete_organization_conformance_pack():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+    arn = client.put_organization_conformance_pack(
+        DeliveryS3Bucket="awsconfigconforms-test-bucket",
+        OrganizationConformancePackName="test-pack",
+        TemplateS3Uri="s3://test-bucket/test-pack.yaml",
+    )["OrganizationConformancePackArn"]
+
+    # when
+    response = client.delete_organization_conformance_pack(
+        OrganizationConformancePackName="test-pack"
+    )
+
+    # then
+    response = client.describe_organization_conformance_pack_statuses()
+    response["OrganizationConformancePackStatuses"].should.have.length_of(0)
+
+
+@mock_config
+def test_delete_organization_conformance_pack_errors():
+    # given
+    client = boto3.client("config", region_name="us-east-1")
+
+    # when
+    with assert_raises(ClientError) as e:
+        client.delete_organization_conformance_pack(
+            OrganizationConformancePackName="not-existing"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeleteOrganizationConformancePack")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain(
+        "NoSuchOrganizationConformancePackException"
+    )
+    ex.response["Error"]["Message"].should.equal(
+        "Could not find an OrganizationConformancePack for given request with resourceName not-existing"
     )

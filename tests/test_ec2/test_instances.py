@@ -537,6 +537,20 @@ def test_get_instances_filtering_by_image_id():
 
 
 @mock_ec2
+def test_get_instances_filtering_by_account_id():
+    image_id = "ami-1234abcd"
+    client = boto3.client("ec2", region_name="us-east-1")
+    conn = boto3.resource("ec2", "us-east-1")
+    conn.create_instances(ImageId=image_id, MinCount=1, MaxCount=1)
+
+    reservations = client.describe_instances(
+        Filters=[{"Name": "owner-id", "Values": ["123456789012"]}]
+    )["Reservations"]
+
+    reservations[0]["Instances"].should.have.length_of(1)
+
+
+@mock_ec2
 def test_get_instances_filtering_by_private_dns():
     image_id = "ami-1234abcd"
     client = boto3.client("ec2", region_name="us-east-1")
