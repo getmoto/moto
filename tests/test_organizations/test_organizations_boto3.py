@@ -420,6 +420,18 @@ def test_attach_policy():
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    response = client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response = client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
 
 @mock_organizations
