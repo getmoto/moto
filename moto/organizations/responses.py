@@ -105,6 +105,11 @@ class OrganizationsResponse(BaseResponse):
             self.organizations_backend.describe_policy(**self.request_params)
         )
 
+    def update_policy(self):
+        return json.dumps(
+            self.organizations_backend.update_policy(**self.request_params)
+        )
+
     def attach_policy(self):
         return json.dumps(
             self.organizations_backend.attach_policy(**self.request_params)
@@ -114,6 +119,10 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.list_policies(**self.request_params)
         )
+
+    def delete_policy(self):
+        self.organizations_backend.delete_policy(**self.request_params)
+        return json.dumps({})
 
     def list_policies_for_target(self):
         return json.dumps(

@@ -6113,7 +6113,7 @@
 - [ ] decline_handshake
 - [ ] delete_organization
 - [ ] delete_organizational_unit
-- [ ] delete_policy
+- [X] delete_policy
 - [ ] deregister_delegated_administrator
 - [X] describe_account
 - [X] describe_create_account_status
@@ -6152,7 +6152,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit
-- [ ] update_policy
+- [X] update_policy
 </details>
 
 ## outposts
