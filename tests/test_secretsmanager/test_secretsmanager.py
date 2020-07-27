@@ -15,6 +15,10 @@ from six import b
 DEFAULT_SECRET_NAME = "test-secret"
 
 
+def boto_client():
+    return boto3.client("secretsmanager", region_name="us-west-2")
+
+
 @mock_secretsmanager
 def test_get_secret_value():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
@@ -461,7 +465,7 @@ def test_describe_secret_that_does_not_match():
 
 @mock_secretsmanager
 def test_list_secrets_empty():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     secrets = conn.list_secrets()
 
@@ -470,7 +474,7 @@ def test_list_secrets_empty():
 
 @mock_secretsmanager
 def test_list_secrets():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
@@ -491,7 +495,7 @@ def test_list_secrets():
 
 @mock_secretsmanager
 def test_list_secrets_with_name_filter():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     conn.create_secret(Name="foo", SecretString="secret")
     conn.create_secret(Name="bar", SecretString="secret")
@@ -509,7 +513,7 @@ def test_list_secrets_with_name_filter():
 
 @mock_secretsmanager
 def test_list_secrets_with_tag_key_filter():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "baz", "Value": "1"}])
     conn.create_secret(Name="bar", SecretString="secret")
@@ -527,7 +531,7 @@ def test_list_secrets_with_tag_key_filter():
 
 @mock_secretsmanager
 def test_list_secrets_with_tag_value_filter():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "1", "Value": "baz"}])
     conn.create_secret(Name="bar", SecretString="secret")
@@ -545,7 +549,7 @@ def test_list_secrets_with_tag_value_filter():
 
 @mock_secretsmanager
 def test_list_secrets_with_description_filter():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     conn.create_secret(Name="foo", SecretString="secret", Description="baz qux")
     conn.create_secret(Name="bar", SecretString="secret")
@@ -563,11 +567,14 @@ def test_list_secrets_with_description_filter():
 
 @mock_secretsmanager
 def test_list_secrets_with_all_filter():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
-    # TODO find out how 'all' filter works
-    # conn.create_secret(Name="foo", SecretString="secret")
-    # conn.create_secret(Name="bar", SecretString="secret")
+    conn.create_secret(Name="foo", SecretString="secret")
+    conn.create_secret(Name="bar", SecretString="secret", Description="foo")
+    conn.create_secret(Name="baz", SecretString="secret", Tags=[{"Key": "foo", "Value": "1"}])
+    conn.create_secret(Name="qux", SecretString="secret", Tags=[{"Key": "1", "Value": "foo"}])
+    conn.create_secret(Name="multi", SecretString="secret", Tags=[{"Key": "foo", "Value": "foo"}])
+    conn.create_secret(Name="none", SecretString="secret")
 
     secrets = conn.list_secrets(Filters=[
         {
@@ -577,12 +584,12 @@ def test_list_secrets_with_all_filter():
     ])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert secret_names == ["foo"]
+    assert secret_names == ["foo", "bar", "baz", "qux", "multi"]
 
 
 @mock_secretsmanager
 def test_list_secrets_with_invalid_filter():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     with assert_raises(ClientError) as ire:
         conn.list_secrets(Filters=[
@@ -601,7 +608,7 @@ def test_list_secrets_with_invalid_filter():
 
 @mock_secretsmanager
 def test_list_secrets_with_multiple_filters():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn = boto_client()
 
     # Multiple filters combine with an implicit AND operator
     conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "right", "Value": "right"}])
@@ -622,6 +629,46 @@ def test_list_secrets_with_multiple_filters():
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert secret_names == ["foo"]
+
+
+@mock_secretsmanager
+def test_list_secrets_with_filter_with_multiple_values():
+    conn = boto_client()
+
+    conn.create_secret(Name="foo", SecretString="secret")
+    conn.create_secret(Name="bar", SecretString="secret")
+    conn.create_secret(Name="baz", SecretString="secret")
+
+    secrets = conn.list_secrets(Filters=[
+        {
+            "Key": "name",
+            "Values": ["foo", "bar"]
+        }
+    ])
+
+    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    assert secret_names == ["foo", "bar"]
+
+
+@mock_secretsmanager
+def test_list_secrets_with_filter_with_value_with_multiple_words():
+    conn = boto_client()
+
+    conn.create_secret(Name="foo", SecretString="secret", Description="one two")
+    conn.create_secret(Name="bar", SecretString="secret", Description="one and two")
+    conn.create_secret(Name="baz", SecretString="secret", Description="one")
+    conn.create_secret(Name="qux", SecretString="secret", Description="two")
+    conn.create_secret(Name="none", SecretString="secret", Description="unrelated")
+
+    secrets = conn.list_secrets(Filters=[
+        {
+            "Key": "description",
+            "Values": ["one two"]
+        }
+    ])
+
+    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    assert secret_names == ["foo", "bar", "baz", "qux"]
 
 
 @mock_secretsmanager
