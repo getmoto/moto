@@ -13,7 +13,6 @@ from moto.cloudwatch import models as cloudwatch_models
 from moto.cognitoidentity import models as cognitoidentity_models
 from moto.compat import collections_abc
 from moto.datapipeline import models as datapipeline_models
-from moto.dynamodb2 import models as dynamodb2_models
 from moto.ec2 import models as ec2_models
 from moto.ecs import models as ecs_models
 from moto.elb import models as elb_models
@@ -30,7 +29,7 @@ from moto.s3 import models as s3_models, s3_backend
 from moto.s3.utils import bucket_and_name_from_url
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
-from moto.core import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, CloudFormationModel
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,
@@ -40,13 +39,14 @@ from .exceptions import (
 )
 from boto.cloudformation.stack import Output
 
+# List of supported CloudFormation models
+MODEL_LIST = CloudFormationModel.__subclasses__()
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
     "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
     "AWS::Batch::JobDefinition": batch_models.JobDefinition,
     "AWS::Batch::JobQueue": batch_models.JobQueue,
     "AWS::Batch::ComputeEnvironment": batch_models.ComputeEnvironment,
-    "AWS::DynamoDB::Table": dynamodb2_models.Table,
     "AWS::Kinesis::Stream": kinesis_models.Stream,
     "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
     "AWS::Lambda::Function": lambda_models.LambdaFunction,
@@ -110,7 +110,6 @@ NAME_TYPE_MAP = {
     "AWS::ApiGateway::ApiKey": "Name",
     "AWS::ApiGateway::Model": "Name",
     "AWS::CloudWatch::Alarm": "AlarmName",
-    "AWS::DynamoDB::Table": "TableName",
     "AWS::ElasticBeanstalk::Application": "ApplicationName",
     "AWS::ElasticBeanstalk::Environment": "EnvironmentName",
     "AWS::CodeDeploy::Application": "ApplicationName",
@@ -292,6 +291,9 @@ def clean_json(resource_json, resources_map):
 def resource_class_from_type(resource_type):
     if resource_type in NULL_MODELS:
         return None
+    for model in MODEL_LIST:
+        if model.cloudformation_type() == resource_type:
+            return model
     if resource_type not in MODEL_MAP:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None
@@ -299,6 +301,9 @@ def resource_class_from_type(resource_type):
 
 
 def resource_name_property_from_type(resource_type):
+    for model in MODEL_LIST:
+        if model.cloudformation_type() == resource_type:
+            return model.cloudformation_name_type()
     return NAME_TYPE_MAP.get(resource_type)
 
 
