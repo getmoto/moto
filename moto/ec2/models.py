@@ -2995,6 +2995,29 @@ class VPCBackend(object):
 
         return vpc_end_point
 
+    def get_vpc_end_point_services(self):
+        vpc_end_point_services = self.vpc_end_points.values()
+
+        services = []
+        for value in vpc_end_point_services:
+            services.append(value.service_name)
+            print(".".join(reversed(value.service_name.split("."))))
+
+        availability_zones = [
+            "us-east-1a",
+            "us-east-1b",
+            "us-east-1c",
+            "us-east-1d",
+            "us-east-1e",
+            "us-east-1f",
+        ]
+
+        return {
+            "servicesDetails": vpc_end_point_services,
+            "services": services,
+            "availability_zones": availability_zones,
+        }
+
 
 class VPCPeeringConnectionStatus(object):
     def __init__(self, code="initiating-request", message=""):

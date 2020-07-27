@@ -192,8 +192,9 @@ class VPCs(BaseResponse):
         return template.render(vpc_end_point=vpc_end_point)
 
     def describe_vpc_endpoint_services(self):
+        vpc_end_point_services = self.ec2_backend.get_vpc_end_point_services()
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
-        return template.render()
+        return template.render(vpc_end_points=vpc_end_point_services)
 
 
 CREATE_VPC_RESPONSE = """
@@ -457,214 +458,31 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
 DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
     <serviceNameSet>
-        <item>com.amazonaws.us-east-1.dynamodb</item>
-        <item>com.amazonaws.us-east-1.ec2</item>
-        <item>com.amazonaws.us-east-1.ec2messages</item>
-        <item>com.amazonaws.us-east-1.elasticloadbalancing</item>
-        <item>com.amazonaws.us-east-1.kinesis-streams</item>
-        <item>com.amazonaws.us-east-1.s3</item>
-        <item>com.amazonaws.us-east-1.ssm</item>
+        {% for serviceName in vpc_end_points.services %}
+            <item>{{ serviceName }}</item>
+        {% endfor %}
     </serviceNameSet>
     <serviceDetailSet>
         <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Gateway</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>dynamodb.us-east-1.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-                <item>us-east-1f</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.dynamodb</serviceName>
-            <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Interface</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>ec2.us-east-1.vpce.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <privateDnsName>ec2.us-east-1.amazonaws.com</privateDnsName>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-                <item>us-east-1f</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.ec2</serviceName>
-            <vpcEndpointPolicySupported>false</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Interface</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>ec2messages.us-east-1.vpce.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <privateDnsName>ec2messages.us-east-1.amazonaws.com</privateDnsName>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-                <item>us-east-1f</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.ec2messages</serviceName>
-            <vpcEndpointPolicySupported>false</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Interface</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>elasticloadbalancing.us-east-1.vpce.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <privateDnsName>elasticloadbalancing.us-east-1.amazonaws.com</privateDnsName>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-                <item>us-east-1f</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.elasticloadbalancing</serviceName>
-            <vpcEndpointPolicySupported>false</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Interface</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>kinesis.us-east-1.vpce.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <privateDnsName>kinesis.us-east-1.amazonaws.com</privateDnsName>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-                <item>us-east-1f</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.kinesis-streams</serviceName>
-            <vpcEndpointPolicySupported>false</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Gateway</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>s3.us-east-1.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-                <item>us-east-1f</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.s3</serviceName>
-            <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <owner>amazon</owner>
-            <serviceType>
-                <item>
-                    <serviceType>Interface</serviceType>
-                </item>
-            </serviceType>
-            <baseEndpointDnsNameSet>
-                <item>ssm.us-east-1.vpce.amazonaws.com</item>
-            </baseEndpointDnsNameSet>
-            <acceptanceRequired>false</acceptanceRequired>
-            <privateDnsName>ssm.us-east-1.amazonaws.com</privateDnsName>
-            <availabilityZoneSet>
-                <item>us-east-1a</item>
-                <item>us-east-1b</item>
-                <item>us-east-1c</item>
-                <item>us-east-1d</item>
-                <item>us-east-1e</item>
-            </availabilityZoneSet>
-            <serviceName>com.amazonaws.us-east-1.ssm</serviceName>
-            <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>TeamA</value>
-                </item>
-            </tagSet>
+            {% for service in vpc_end_points.servicesDetails %}
+                <owner>amazon</owner>
+                <serviceType>
+                    <item>
+                        <serviceType>{{ service.type }}</serviceType>
+                    </item>
+                </serviceType>
+                <baseEndpointDnsNameSet>
+                    <item>{{ ".".join((service.service_name.split(".")[::-1])) }}</item>
+                </baseEndpointDnsNameSet>
+                <acceptanceRequired>false</acceptanceRequired>
+                <availabilityZoneSet>
+                    {% for zone in vpc_end_points.availability_zones %}
+                        <item>{{ zone }}</item>
+                    {% endfor %}
+                </availabilityZoneSet>
+                <serviceName>{{ service.service_name }}</serviceName>
+                <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
+            {% endfor %}
         </item>
     </serviceDetailSet>
 </DescribeVpcEndpointServicesResponse>"""
