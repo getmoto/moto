@@ -2603,19 +2603,19 @@ class EBSBackend(object):
         snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_userids
 
-    def add_create_volume_permission(self, snapshot_id, user_id=None, group='all'):
+    def add_create_volume_permission(self, snapshot_id, user_ids=None, group='all'):
         snapshot = self.get_snapshot(snapshot_id)
-        if user_id:
-            snapshot.create_volume_permission_userids.add(user_id)
+        if user_ids:
+            snapshot.create_volume_permission_userids.update(user_ids)
         if group != "all":
             raise InvalidAMIAttributeItemValueError("UserGroup", group)
         snapshot.create_volume_permission_groups.add(group)
         return True
 
-    def remove_create_volume_permission(self, snapshot_id, user_id=None, group='all'):
+    def remove_create_volume_permission(self, snapshot_id, user_ids=None, group='all'):
         snapshot = self.get_snapshot(snapshot_id)
-        if user_id:
-            snapshot.create_volume_permission_userids.discard(user_id)
+        if user_ids:
+            snapshot.create_volume_permission_userids.difference_update(user_id)
         if group != "all":
             raise InvalidAMIAttributeItemValueError("UserGroup", group)
         snapshot.create_volume_permission_groups.discard(group)

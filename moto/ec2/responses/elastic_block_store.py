@@ -122,16 +122,18 @@ class ElasticBlockStore(BaseResponse):
     def modify_snapshot_attribute(self):
         snapshot_id = self._get_param("SnapshotId")
         operation_type = self._get_param("OperationType")
-        group = self._get_param("UserGroup.1")
-        user_id = self._get_param("UserId.1")
+        group = self._get_multi_param("GroupNames")
+        user_ids = self._get_multi_param("UserIds")
+        print(group)
+        print(user_ids)
         if self.is_not_dryrun("ModifySnapshotAttribute"):
             if operation_type == "add":
                 self.ec2_backend.add_create_volume_permission(
-                    snapshot_id, user_id=user_id, group=group
+                    snapshot_id, user_ids=user_ids, group=group
                 )
             elif operation_type == "remove":
                 self.ec2_backend.remove_create_volume_permission(
-                    snapshot_id, user_id=user_id, group=group
+                    snapshot_id, user_ids=user_ids, group=group
                 )
             return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
