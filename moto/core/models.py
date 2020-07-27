@@ -8,6 +8,7 @@ import os
 import re
 import six
 import types
+from abc import abstractmethod
 from io import BytesIO
 from collections import defaultdict
 from botocore.config import Config
@@ -532,6 +533,20 @@ class BaseModel(object):
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)
         return instance
+
+
+# Parent class for every Model that can be instantiated by CloudFormation
+# On subclasses, implement the two methods as @staticmethod to ensure correct behaviour of the CF parser
+class CloudFormationModel(BaseModel):
+    @abstractmethod
+    def cloudformation_name_type(self):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
+        pass
+
+    @abstractmethod
+    def cloudformation_type(self):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::SERVICE::RESOURCE"
 
 
 class BaseBackend(object):
