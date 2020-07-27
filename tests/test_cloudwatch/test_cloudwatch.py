@@ -128,6 +128,22 @@ def test_describe_alarms():
 
 
 @mock_cloudwatch_deprecated
+def test_describe_alarms_for_metric():
+    conn = boto.connect_cloudwatch()
+
+    conn.create_alarm(alarm_fixture(name="nfoobar", action="afoobar"))
+    conn.create_alarm(alarm_fixture(name="nfoobaz", action="afoobaz"))
+    conn.create_alarm(alarm_fixture(name="nbarfoo", action="abarfoo"))
+    conn.create_alarm(alarm_fixture(name="nbazfoo", action="abazfoo"))
+
+    alarms = conn.describe_alarms_for_metric("nbarfoo_metric", "nbarfoo_namespace")
+    alarms.should.have.length_of(1)
+
+    alarms = conn.describe_alarms_for_metric("nbazfoo_metric", "nbazfoo_namespace")
+    alarms.should.have.length_of(1)
+
+
+@mock_cloudwatch_deprecated
 def test_get_metric_statistics():
     conn = boto.connect_cloudwatch()
 

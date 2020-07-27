@@ -2608,6 +2608,7 @@ def test_update_account_password_policy():
             "RequireNumbers": False,
             "RequireSymbols": False,
             "RequireUppercaseCharacters": False,
+            "HardExpiry": False,
         }
     )
 

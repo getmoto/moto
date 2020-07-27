@@ -5358,14 +5358,23 @@ def test_gsi_projection_type_keys_only():
         IndexName="GSI-K1",
     )["Items"]
     items.should.have.length_of(1)
-    # Item should only include GSI Keys, as per the ProjectionType
-    items[0].should.equal({"gsiK1PartitionKey": "gsi-pk", "gsiK1SortKey": "gsi-sk"})
+    # Item should only include GSI Keys and Table Keys, as per the ProjectionType
+    items[0].should.equal(
+        {
+            "gsiK1PartitionKey": "gsi-pk",
+            "gsiK1SortKey": "gsi-sk",
+            "partitionKey": "pk-1",
+        }
+    )
 
 
 @mock_dynamodb2
 def test_lsi_projection_type_keys_only():
     table_schema = {
-        "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        "KeySchema": [
+            {"AttributeName": "partitionKey", "KeyType": "HASH"},
+            {"AttributeName": "sortKey", "KeyType": "RANGE"},
+        ],
         "LocalSecondaryIndexes": [
             {
                 "IndexName": "LSI",
@@ -5378,12 +5387,14 @@ def test_lsi_projection_type_keys_only():
         ],
         "AttributeDefinitions": [
             {"AttributeName": "partitionKey", "AttributeType": "S"},
+            {"AttributeName": "sortKey", "AttributeType": "S"},
             {"AttributeName": "lsiK1SortKey", "AttributeType": "S"},
         ],
     }
 
     item = {
         "partitionKey": "pk-1",
+        "sortKey": "sk-1",
         "lsiK1SortKey": "lsi-sk",
         "someAttribute": "lore ipsum",
     }
@@ -5399,5 +5410,7 @@ def test_lsi_projection_type_keys_only():
         KeyConditionExpression=Key("partitionKey").eq("pk-1"), IndexName="LSI",
     )["Items"]
     items.should.have.length_of(1)
-    # Item should only include GSI Keys, as per the ProjectionType
-    items[0].should.equal({"partitionKey": "pk-1", "lsiK1SortKey": "lsi-sk"})
+    # Item should only include GSI Keys and Table Keys, as per the ProjectionType
+    items[0].should.equal(
+        {"partitionKey": "pk-1", "sortKey": "sk-1", "lsiK1SortKey": "lsi-sk"}
+    )

@@ -21,7 +21,9 @@ from .exceptions import (
     ResourceNotFoundError,
     UserNotFoundError,
     UsernameExistsException,
+    InvalidParameterException,
 )
+from .utils import create_id
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
@@ -83,6 +85,7 @@ class CognitoIdpUserPool(BaseModel):
         self.identity_providers = OrderedDict()
         self.groups = OrderedDict()
         self.users = OrderedDict()
+        self.resource_servers = OrderedDict()
         self.refresh_tokens = {}
         self.access_tokens = {}
         self.id_tokens = {}
@@ -210,10 +213,11 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
 
 class CognitoIdpUserPoolClient(BaseModel):
-    def __init__(self, user_pool_id, extended_config):
+    def __init__(self, user_pool_id, generate_secret, extended_config):
         self.user_pool_id = user_pool_id
-        self.id = str(uuid.uuid4())
+        self.id = create_id()
         self.secret = str(uuid.uuid4())
+        self.generate_secret = generate_secret or False
         self.extended_config = extended_config or {}
 
     def _base_json(self):
@@ -225,6 +229,8 @@ class CognitoIdpUserPoolClient(BaseModel):
 
     def to_json(self, extended=False):
         user_pool_client_json = self._base_json()
+        if self.generate_secret:
+            user_pool_client_json.update({"ClientSecret": self.secret})
         if extended:
             user_pool_client_json.update(self.extended_config)
 
@@ -334,6 +340,27 @@ class CognitoIdpUser(BaseModel):
         self.attributes = expand_attrs(flat_attributes)
 
 
+class CognitoResourceServer(BaseModel):
+    def __init__(self, user_pool_id, identifier, name, scopes):
+
+        self.user_pool_id = user_pool_id
+        self.identifier = identifier
+        self.name = name
+        self.scopes = scopes
+
+    def to_json(self):
+        res = {
+            "UserPoolId": self.user_pool_id,
+            "Identifier": self.identifier,
+            "Name": self.name,
+        }
+
+        if len(self.scopes) != 0:
+            res.update({"Scopes": self.scopes})
+
+        return res
+
+
 class CognitoIdpBackend(BaseBackend):
     def __init__(self, region):
         super(CognitoIdpBackend, self).__init__()
@@ -402,12 +429,14 @@ class CognitoIdpBackend(BaseBackend):
         return user_pool_domain
 
     # User pool client
-    def create_user_pool_client(self, user_pool_id, extended_config):
+    def create_user_pool_client(self, user_pool_id, generate_secret, extended_config):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
             raise ResourceNotFoundError(user_pool_id)
 
-        user_pool_client = CognitoIdpUserPoolClient(user_pool_id, extended_config)
+        user_pool_client = CognitoIdpUserPoolClient(
+            user_pool_id, generate_secret, extended_config
+        )
         user_pool.clients[user_pool_client.id] = user_pool_client
         return user_pool_client
 
@@ -762,6 +791,20 @@ class CognitoIdpBackend(BaseBackend):
 
         user = user_pool.users[username]
         user.update_attributes(attributes)
+
+    def create_resource_server(self, user_pool_id, identifier, name, scopes):
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(user_pool_id)
+
+        if identifier in user_pool.resource_servers:
+            raise InvalidParameterException(
+                "%s already exists in user pool %s." % (identifier, user_pool_id)
+            )
+
+        resource_server = CognitoResourceServer(user_pool_id, identifier, name, scopes)
+        user_pool.resource_servers[identifier] = resource_server
+        return resource_server
 
 
 cognitoidp_backends = {}

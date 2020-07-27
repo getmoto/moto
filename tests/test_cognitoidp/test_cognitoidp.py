@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import json
 import os
 import random
+import re
+
 import requests
 import uuid
 
@@ -15,6 +17,7 @@ from jose import jws, jwk, jwt
 from nose.tools import assert_raises
 
 from moto import mock_cognitoidp, settings
+from moto.cognitoidp.utils import create_id
 from moto.core import ACCOUNT_ID
 
 
@@ -211,8 +214,31 @@ def test_create_user_pool_client():
     )
 
     result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
-    result["UserPoolClient"]["ClientId"].should_not.be.none
+    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
     result["UserPoolClient"]["ClientName"].should.equal(client_name)
+    result["UserPoolClient"].should_not.have.key("ClientSecret")
+    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
+    result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
+
+
+@mock_cognitoidp
+def test_create_user_pool_client_returns_secret():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    client_name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    result = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=client_name,
+        GenerateSecret=True,
+        CallbackURLs=[value],
+    )
+
+    result["UserPoolClient"]["UserPoolId"].should.equal(user_pool_id)
+    bool(re.match(r"^[0-9a-z]{26}$", result["UserPoolClient"]["ClientId"])).should.be.ok
+    result["UserPoolClient"]["ClientName"].should.equal(client_name)
+    result["UserPoolClient"]["ClientSecret"].should_not.be.none
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
     result["UserPoolClient"]["CallbackURLs"][0].should.equal(value)
 
@@ -331,6 +357,37 @@ def test_update_user_pool_client():
     )
 
     result["UserPoolClient"]["ClientName"].should.equal(new_client_name)
+    result["UserPoolClient"].should_not.have.key("ClientSecret")
+    result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
+    result["UserPoolClient"]["CallbackURLs"][0].should.equal(new_value)
+
+
+@mock_cognitoidp
+def test_update_user_pool_client_returns_secret():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    old_client_name = str(uuid.uuid4())
+    new_client_name = str(uuid.uuid4())
+    old_value = str(uuid.uuid4())
+    new_value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_details = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=old_client_name,
+        GenerateSecret=True,
+        CallbackURLs=[old_value],
+    )
+    client_secret = client_details["UserPoolClient"]["ClientSecret"]
+
+    result = conn.update_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientId=client_details["UserPoolClient"]["ClientId"],
+        ClientName=new_client_name,
+        CallbackURLs=[new_value],
+    )
+
+    result["UserPoolClient"]["ClientName"].should.equal(new_client_name)
+    result["UserPoolClient"]["ClientSecret"].should.equal(client_secret)
     result["UserPoolClient"]["CallbackURLs"].should.have.length_of(1)
     result["UserPoolClient"]["CallbackURLs"][0].should.equal(new_value)
 
@@ -1280,9 +1337,7 @@ def test_change_password__using_custom_user_agent_header():
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    result = conn.forgot_password(
-        ClientId=str(uuid.uuid4()), Username=str(uuid.uuid4())
-    )
+    result = conn.forgot_password(ClientId=create_id(), Username=str(uuid.uuid4()))
     result["CodeDeliveryDetails"].should_not.be.none
 
 
@@ -1342,6 +1397,44 @@ def test_admin_update_user_attributes():
             val.should.equal("Doe")
         elif attr["Name"] == "given_name":
             val.should.equal("Jane")
+
+
+@mock_cognitoidp
+def test_resource_server():
+
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    res = client.create_user_pool(PoolName=name)
+
+    user_pool_id = res["UserPool"]["Id"]
+    identifier = "http://localhost.localdomain"
+    name = "local server"
+    scopes = [
+        {"ScopeName": "app:write", "ScopeDescription": "write scope"},
+        {"ScopeName": "app:read", "ScopeDescription": "read scope"},
+    ]
+
+    res = client.create_resource_server(
+        UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+    )
+
+    res["ResourceServer"]["UserPoolId"].should.equal(user_pool_id)
+    res["ResourceServer"]["Identifier"].should.equal(identifier)
+    res["ResourceServer"]["Name"].should.equal(name)
+    res["ResourceServer"]["Scopes"].should.equal(scopes)
+
+    with assert_raises(ClientError) as ex:
+        client.create_resource_server(
+            UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
+        )
+
+    ex.exception.operation_name.should.equal("CreateResourceServer")
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "%s already exists in user pool %s." % (identifier, user_pool_id)
+    )
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,

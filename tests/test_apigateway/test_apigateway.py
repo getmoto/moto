@@ -1845,7 +1845,12 @@ def test_create_api_key():
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
-    client.create_api_key(**payload)
+    response = client.create_api_key(**payload)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    response["name"].should.equal(apikey_name)
+    response["value"].should.equal(apikey_value)
+    response["enabled"].should.equal(False)
+    response["stageKeys"].should.equal([])
 
     response = client.get_api_keys()
     len(response["items"]).should.equal(1)
@@ -1902,7 +1907,8 @@ def test_api_keys():
     response = client.get_api_keys()
     len(response["items"]).should.equal(2)
 
-    client.delete_api_key(apiKey=apikey_id)
+    response = client.delete_api_key(apiKey=apikey_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(202)
 
     response = client.get_api_keys()
     len(response["items"]).should.equal(1)
@@ -1983,6 +1989,7 @@ def test_usage_plan_keys():
     key_type = "API_KEY"
     payload = {"usagePlanId": usage_plan_id, "keyId": key_id, "keyType": key_type}
     response = client.create_usage_plan_key(**payload)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equals(201)
     usage_plan_key_id = response["id"]
 
     # Get current plan keys (expect 1)

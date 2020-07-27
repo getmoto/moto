@@ -14,6 +14,7 @@ from nose.tools import assert_raises
 
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
 from moto.core import ACCOUNT_ID
+from .test_cloudformation_stack_crud import dummy_template_json2
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -216,6 +217,18 @@ def test_boto3_list_stacksets_length():
     )
     stacksets = cf_conn.list_stack_sets()
     stacksets.should.have.length_of(2)
+
+
+@mock_cloudformation
+def test_boto3_filter_stacks():
+    conn = boto3.client("cloudformation", region_name="us-east-1")
+    conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
+    conn.create_stack(StackName="test_stack2", TemplateBody=dummy_template_json)
+    conn.update_stack(StackName="test_stack", TemplateBody=dummy_template_json2)
+    stacks = conn.list_stacks(StackStatusFilter=["CREATE_COMPLETE"])
+    stacks.get("StackSummaries").should.have.length_of(1)
+    stacks = conn.list_stacks(StackStatusFilter=["UPDATE_COMPLETE"])
+    stacks.get("StackSummaries").should.have.length_of(1)
 
 
 @mock_cloudformation

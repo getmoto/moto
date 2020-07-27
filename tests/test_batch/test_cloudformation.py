@@ -234,6 +234,7 @@ def test_create_job_def_cf():
                         "Vcpus": 2,
                         "Memory": 2000,
                         "Command": ["echo", "Hello world"],
+                        "LinuxParameters": {"Devices": [{"HostPath": "test-path"}]},
                     },
                     "RetryStrategy": {"Attempts": 1},
                 },
@@ -262,3 +263,17 @@ def test_create_job_def_cf():
     job_def_resource["PhysicalResourceId"].startswith("arn:aws:batch:")
     job_def_resource["PhysicalResourceId"].should.contain("test_stack-JobDef")
     job_def_resource["PhysicalResourceId"].should.contain("job-definition/")
+
+    # Test the linux parameter device host path
+    # This ensures that batch is parsing the parameter dictionaries
+    # correctly by recursively converting the first character of all
+    # dict keys to lowercase.
+    batch_conn = boto3.client("batch", DEFAULT_REGION)
+    response = batch_conn.describe_job_definitions(
+        jobDefinitions=[job_def_resource["PhysicalResourceId"]]
+    )
+    job_def_linux_device_host_path = response.get("jobDefinitions")[0][
+        "containerProperties"
+    ]["linuxParameters"]["devices"][0]["hostPath"]
+
+    job_def_linux_device_host_path.should.equal("test-path")

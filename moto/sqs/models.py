@@ -685,6 +685,8 @@ class SQSBackend(BaseBackend):
                 entry["MessageBody"],
                 message_attributes=entry["MessageAttributes"],
                 delay_seconds=entry["DelaySeconds"],
+                group_id=entry.get("MessageGroupId"),
+                deduplication_id=entry.get("MessageDeduplicationId"),
             )
             message.user_id = entry["Id"]
 

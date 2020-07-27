@@ -376,3 +376,19 @@ class InvalidResultTokenException(JsonRESTError):
         super(InvalidResultTokenException, self).__init__(
             "InvalidResultTokenException", message
         )
+
+
+class ValidationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ValidationException, self).__init__("ValidationException", message)
+
+
+class NoSuchOrganizationConformancePackException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(NoSuchOrganizationConformancePackException, self).__init__(
+            "NoSuchOrganizationConformancePackException", message
+        )

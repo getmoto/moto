@@ -1664,7 +1664,7 @@
 
 ## cognito-idp
 <details>
-<summary>37% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -1700,7 +1700,7 @@
 - [ ] confirm_sign_up
 - [X] create_group
 - [X] create_identity_provider
-- [ ] create_resource_server
+- [X] create_resource_server
 - [ ] create_user_import_job
 - [X] create_user_pool
 - [X] create_user_pool_client
@@ -3031,17 +3031,17 @@
 
 ## ecs
 <details>
-<summary>62% implemented</summary>
+<summary>73% implemented</summary>
 
 - [ ] create_capacity_provider
 - [X] create_cluster
 - [X] create_service
-- [ ] create_task_set
+- [X] create_task_set
 - [ ] delete_account_setting
 - [X] delete_attributes
 - [X] delete_cluster
 - [X] delete_service
-- [ ] delete_task_set
+- [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
 - [ ] describe_capacity_providers
@@ -3049,7 +3049,7 @@
 - [X] describe_container_instances
 - [X] describe_services
 - [X] describe_task_definition
-- [ ] describe_task_sets
+- [X] describe_task_sets
 - [X] describe_tasks
 - [ ] discover_poll_endpoint
 - [ ] list_account_settings
@@ -3079,8 +3079,8 @@
 - [ ] update_container_agent
 - [X] update_container_instances_state
 - [X] update_service
-- [ ] update_service_primary_task_set
-- [ ] update_task_set
+- [X] update_service_primary_task_set
+- [X] update_task_set
 </details>
 
 ## efs
@@ -6113,7 +6113,7 @@
 - [ ] decline_handshake
 - [ ] delete_organization
 - [ ] delete_organizational_unit
-- [ ] delete_policy
+- [X] delete_policy
 - [ ] deregister_delegated_administrator
 - [X] describe_account
 - [X] describe_create_account_status
@@ -6152,7 +6152,7 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_organizational_unit
-- [ ] update_policy
+- [X] update_policy
 </details>
 
 ## outposts
