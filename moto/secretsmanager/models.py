@@ -18,7 +18,33 @@ from .exceptions import (
     ClientError,
 )
 from .utils import random_password, secret_arn, get_secret_name_from_arn
-from .secret_filter import matches
+from .list_secrets.filters import all, tag_key, tag_value, description, name
+
+
+_filter_functions = {
+    "all": all,
+    "name": name,
+    "description": description,
+    "tag-key": tag_key,
+    "tag-value": tag_value
+}
+
+
+def filter_keys():
+    return _filter_functions.keys()
+
+
+def _matches(secret, filters):
+    is_match = True
+
+    for f in filters:
+        # Filter names are pre-validated in the resource layer
+        filter_function = _filter_functions.get(f["Key"])
+        is_match = is_match and filter_function(secret, f["Values"])
+
+    return is_match
+
+
 
 
 class SecretsManager(BaseModel):
@@ -448,7 +474,7 @@ class SecretsManagerBackend(BaseBackend):
 
         secret_list = []
         for secret in self.secrets.values():
-            if matches(secret, filters):
+            if _matches(secret, filters):
                 versions_to_stages = {}
                 for version_id, version in secret["versions"].items():
                     versions_to_stages[version_id] = version["version_stages"]

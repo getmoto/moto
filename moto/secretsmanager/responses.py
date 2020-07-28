@@ -3,8 +3,7 @@ from __future__ import unicode_literals
 from moto.core.responses import BaseResponse
 from moto.secretsmanager.exceptions import InvalidRequestException
 
-from .models import secretsmanager_backends
-import moto.secretsmanager.secret_filter as secret_filter
+from .models import secretsmanager_backends, filter_keys
 
 import json
 
@@ -104,8 +103,8 @@ class SecretsManagerResponse(BaseResponse):
 
     def list_secrets(self):
         filters = self._get_param("Filters", if_none=[])
-        for filter_key in map(lambda f: f["Key"], filters):
-            if filter_key not in secret_filter.keys():
+        for filter_key in map(lambda f: f.get("Key", ""), filters):
+            if filter_key not in filter_keys():
                 raise InvalidRequestException(
                     "TODO something something not valid filter."
                 )
