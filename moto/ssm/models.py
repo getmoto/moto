@@ -27,6 +27,7 @@ from .exceptions import (
     ParameterNotFound,
     DocumentAlreadyExists,
     InvalidDocumentOperation,
+    AccessDeniedException,
     InvalidDocument,
     InvalidDocumentContent,
     InvalidDocumentVersion,
@@ -1254,6 +1255,23 @@ class SimpleSystemManagerBackend(BaseBackend):
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite
     ):
+        if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
+            "/"
+        ).startswith("ssm"):
+            is_path = name.count("/") > 1
+            if name.lower().startswith("/aws") and is_path:
+                raise AccessDeniedException(
+                    "No access to reserved parameter name: {name}.".format(name=name)
+                )
+            if not is_path:
+                invalid_prefix_error = 'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
+            else:
+                invalid_prefix_error = (
+                    'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). '
+                    "If formed as a path, it can consist of sub-paths divided by slash symbol; each sub-path can be "
+                    "formed as a mix of letters, numbers and the following 3 symbols .-_"
+                )
+            raise ValidationException(invalid_prefix_error)
         previous_parameter_versions = self._parameters[name]
         if len(previous_parameter_versions) == 0:
             previous_parameter = None
