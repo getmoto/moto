@@ -459,7 +459,7 @@ def test_snapshot_attribute():
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     response = ec2_client.create_volume(Size=80, AvailabilityZone="us-east-1a")
-    volume = boto3.resource("ec2").Volume(response["VolumeId"])
+    volume = boto3.resource("ec2", region_name="us-east-1").Volume(response["VolumeId"])
     snapshot = volume.create_snapshot()
 
     # Baseline
