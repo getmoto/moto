@@ -87,7 +87,19 @@ class Message(BaseModel):
         struct_format = "!I".encode("ascii")  # ensure it's a bytestring
         for name in sorted(self.message_attributes.keys()):
             attr = self.message_attributes[name]
-            data_type = attr["data_type"]
+            data_type_parts = attr["data_type"].split(".")
+            data_type = data_type_parts[0]
+
+            if data_type not in [
+                "String",
+                "Binary",
+                "Number",
+            ]:
+                raise MessageAttributesInvalid(
+                    "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
+                        name[0]
+                    )
+                )
 
             encoded = utf8("")
             # Each part of each attribute is encoded right after it's
@@ -243,9 +255,7 @@ class Queue(BaseModel):
 
         # Check some conditions
         if self.fifo_queue and not self.name.endswith(".fifo"):
-            raise MessageAttributesInvalid(
-                "Queue name must end in .fifo for FIFO queues"
-            )
+            raise InvalidParameterValue("Queue name must end in .fifo for FIFO queues")
 
     @property
     def pending_messages(self):

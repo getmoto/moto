@@ -249,6 +249,50 @@ def test_message_with_complex_attributes():
 
 
 @mock_sqs
+def test_message_with_attributes_have_labels():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "timestamp": {
+                "DataType": "Number.java.lang.Long",
+                "StringValue": "1493147359900",
+            }
+        },
+    )
+    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
+    msg.get("MD5OfMessageAttributes").should.equal("235c5c510d26fb653d073faed50ae77c")
+    msg.get("MessageId").should_not.contain(" \n")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_message_with_attributes_invalid_datatype():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+
+    with assert_raises(ClientError) as e:
+        queue.send_message(
+            MessageBody="derp",
+            MessageAttributes={
+                "timestamp": {
+                    "DataType": "InvalidNumber",
+                    "StringValue": "149314735990a",
+                }
+            },
+        )
+    ex = e.exception
+    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
+    ex.response["Error"]["Message"].should.equal(
+        "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
+        "prefixes is Binary, Number, and String."
+    )
+
+
+@mock_sqs
 def test_send_message_with_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -511,6 +555,54 @@ def test_send_receive_message_with_attributes():
         MessageBody=body_two,
         MessageAttributes={
             "timestamp": {"StringValue": "1493147359901", "DataType": "Number"}
+        },
+    )
+
+    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)[
+        "Messages"
+    ]
+
+    message1 = messages[0]
+    message2 = messages[1]
+
+    message1.get("Body").should.equal(body_one)
+    message2.get("Body").should.equal(body_two)
+
+    message1.get("MD5OfMessageAttributes").should.equal(
+        "235c5c510d26fb653d073faed50ae77c"
+    )
+    message2.get("MD5OfMessageAttributes").should.equal(
+        "994258b45346a2cc3f9cbb611aa7af30"
+    )
+
+
+@mock_sqs
+def test_send_receive_message_with_attributes_with_labels():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    body_one = "this is a test message"
+    body_two = "this is another test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        },
+    )
+
+    queue.send_message(
+        MessageBody=body_two,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359901",
+                "DataType": "Number.java.lang.Long",
+            }
         },
     )
 
