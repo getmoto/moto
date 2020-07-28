@@ -459,15 +459,16 @@ def test_snapshot_attribute():
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     response = ec2_client.create_volume(Size=80, AvailabilityZone="us-east-1a")
-    volume = boto3.resource("ec2").Volume(response['VolumeId'])
+    volume = boto3.resource("ec2").Volume(response["VolumeId"])
     snapshot = volume.create_snapshot()
 
     # Baseline
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    print(attributes)
-    assert not attributes['CreateVolumePermissions'], "Snapshot should have no permissions."
+    assert not attributes[
+        "CreateVolumePermissions"
+    ], "Snapshot should have no permissions."
 
     ADD_GROUP_ARGS = {
         "SnapshotId": snapshot.id,
@@ -484,7 +485,6 @@ def test_snapshot_attribute():
     }
 
     # Add 'all' group and confirm
-
     with assert_raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"DryRun": True}))
 
@@ -497,84 +497,131 @@ def test_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    attributes.attrs["groups"].should.have.length_of(1)
-    attributes.attrs["groups"].should.equal(["all"])
+    assert attributes["CreateVolumePermissions"] == [
+        {"Group": "all"}
+    ], "This snapshot should have public group permissions."
 
     # Add is idempotent
-    ec2_client.modify_snapshot_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(
-        EC2ResponseError
-    )
+    ec2_client.modify_snapshot_attribute.when.called_with(
+        **ADD_GROUP_ARGS
+    ).should_not.throw(ClientError)
+    assert attributes["CreateVolumePermissions"] == [
+        {"Group": "all"}
+    ], "This snapshot should have public group permissions."
 
     # Remove 'all' group and confirm
-    with assert_raises(EC2ResponseError) as ex:
-        ec2_client.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{"dry_run": True}))
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
-        "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    with assert_raises(ClientError) as ex:
+        ec2_client.modify_snapshot_attribute(
+            **dict(REMOVE_GROUP_ARGS, **{"DryRun": True})
+        )
+    cm.exception.response["Error"]["Code"].should.equal("DryRunOperation")
+    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
 
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    attributes.attrs.should.have.length_of(0)
+    assert not attributes[
+        "CreateVolumePermissions"
+    ], "This snapshot should have no permissions."
 
     # Remove is idempotent
     ec2_client.modify_snapshot_attribute.when.called_with(
         **REMOVE_GROUP_ARGS
-    ).should_not.throw(EC2ResponseError)
+    ).should_not.throw(ClientError)
+    assert not attributes[
+        "CreateVolumePermissions"
+    ], "This snapshot should have no permissions."
 
     # Error: Add with group != 'all'
-    with assert_raises(EC2ResponseError) as cm:
+    with assert_raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(
             SnapshotId=snapshot.id,
             Attribute="createVolumePermission",
-            Operation="add",
+            OperationType="add",
             GroupNames=["everyone"],
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.exception.response["Error"]["Code"].should.equal("InvalidAMIAttributeItemValue")
+    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Error: Add with invalid snapshot ID
-    with assert_raises(EC2ResponseError) as cm:
+    with assert_raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(
             SnapshotId="snapshot-abcd1234",
             Attribute="createVolumePermission",
             OperationType="add",
             GroupNames=["all"],
         )
-    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Error: Remove with invalid snapshot ID
-    with assert_raises(EC2ResponseError) as cm:
+    with assert_raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(
             SnapshotId="snapshot-abcd1234",
             Attribute="createVolumePermission",
             OperationType="remove",
-            GroupNames="all",
+            GroupNames=["all"],
         )
-    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
-    # Error: Add or remove with user ID instead of group
-    ec2_client.modify_snapshot_attribute.when.called_with(
+    # Test adding user id
+    ec2_client.modify_snapshot_attribute(
         SnapshotId=snapshot.id,
         Attribute="createVolumePermission",
         OperationType="add",
-        UserIds=["user", "ha"],
-    ).should.throw(NotImplementedError)
-    ec2_client.modify_snapshot_attribute.when.called_with(
+        UserIds=["1234567891"],
+    )
+
+    attributes = ec2_client.describe_snapshot_attribute(
+        SnapshotId=snapshot.id, Attribute="createVolumePermission"
+    )
+    assert len(attributes["CreateVolumePermissions"]) == 1
+
+    # Test adding user id again along with additional.
+    ec2_client.modify_snapshot_attribute(
+        SnapshotId=snapshot.id,
+        Attribute="createVolumePermission",
+        OperationType="add",
+        UserIds=["1234567891", "2345678912"],
+    )
+
+    attributes = ec2_client.describe_snapshot_attribute(
+        SnapshotId=snapshot.id, Attribute="createVolumePermission"
+    )
+    assert len(attributes["CreateVolumePermissions"]) == 2
+
+    # Test removing both user IDs.
+    ec2_client.modify_snapshot_attribute(
         SnapshotId=snapshot.id,
         Attribute="createVolumePermission",
         OperationType="remove",
-        UserIds=["user", "ha"],
-    ).should.throw(NotImplementedError)
+        UserIds=["1234567891", "2345678912"],
+    )
+
+    attributes = ec2_client.describe_snapshot_attribute(
+        SnapshotId=snapshot.id, Attribute="createVolumePermission"
+    )
+    assert len(attributes["CreateVolumePermissions"]) == 0
+
+    # Idempotency when removing users.
+    ec2_client.modify_snapshot_attribute(
+        SnapshotId=snapshot.id,
+        Attribute="createVolumePermission",
+        OperationType="remove",
+        UserIds=["1234567891"],
+    )
+
+    attributes = ec2_client.describe_snapshot_attribute(
+        SnapshotId=snapshot.id, Attribute="createVolumePermission"
+    )
+    assert len(attributes["CreateVolumePermissions"]) == 0
 
 
 @mock_ec2_deprecated
