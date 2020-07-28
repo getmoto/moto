@@ -303,6 +303,64 @@ def test_get_parameter():
 
 
 @mock_ssm
+def test_get_parameter_with_version_and_labels():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    client.put_parameter(
+        Name="test-1", Description="A test parameter", Value="value", Type="String"
+    )
+    client.put_parameter(
+        Name="test-2", Description="A test parameter", Value="value", Type="String"
+    )
+
+    client.label_parameter_version(
+        Name="test-2", ParameterVersion=1, Labels=["test-label"]
+    )
+
+    response = client.get_parameter(Name="test-1:1", WithDecryption=False)
+
+    response["Parameter"]["Name"].should.equal("test-1")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-1"
+    )
+
+    response = client.get_parameter(Name="test-2:1", WithDecryption=False)
+    response["Parameter"]["Name"].should.equal("test-2")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+    )
+
+    response = client.get_parameter(Name="test-2:test-label", WithDecryption=False)
+    response["Parameter"]["Name"].should.equal("test-2")
+    response["Parameter"]["Value"].should.equal("value")
+    response["Parameter"]["Type"].should.equal("String")
+    response["Parameter"]["LastModifiedDate"].should.be.a(datetime.datetime)
+    response["Parameter"]["ARN"].should.equal(
+        "arn:aws:ssm:us-east-1:1234567890:parameter/test-2"
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.get_parameter(Name="test-2:2:3", WithDecryption=False)
+    ex.exception.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Parameter test-2:2:3 not found."
+    )
+
+    with assert_raises(ClientError) as ex:
+        client.get_parameter(Name="test-2:2", WithDecryption=False)
+    ex.exception.response["Error"]["Code"].should.equal("ParameterNotFound")
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Parameter test-2:2 not found."
+    )
+
+
+@mock_ssm
 def test_get_parameters_errors():
     client = boto3.client("ssm", region_name="us-east-1")
 
