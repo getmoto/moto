@@ -328,14 +328,14 @@ def test_put_parameter_invalid_names():
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
     ).should.throw(
-        ClientError, f"No access to reserved parameter name: {aws_path}.",
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
     )
 
     aws_path = "/AWS/PATH/TO/VAR"
     client.put_parameter.when.called_with(
         Name=aws_path, Value="value", Type="String"
     ).should.throw(
-        ClientError, f"No access to reserved parameter name: {aws_path}.",
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
     )
 
 

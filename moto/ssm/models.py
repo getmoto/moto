@@ -1245,7 +1245,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             is_path = name.count("/") > 1
             if name.lower().startswith("/aws") and is_path:
                 raise AccessDeniedException(
-                    f"No access to reserved parameter name: {name}."
+                    "No access to reserved parameter name: {name}.".format(name=name)
                 )
             if not is_path:
                 invalid_prefix_error = 'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
