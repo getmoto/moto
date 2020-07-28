@@ -359,8 +359,7 @@ class Queue(BaseModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = deepcopy(cloudformation_json["Properties"])
-        # we remove Tags from properties otherwise it will be used in _set_attributes
-        # and override the tags value
+        # remove Tags from properties and convert from list to dict
         tags = properties.pop("Tags", [])
         tags_dict = tags_from_cloudformation_tags_list(tags)
 
