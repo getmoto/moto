@@ -1189,8 +1189,33 @@ class SimpleSystemManagerBackend(BaseBackend):
         return True
 
     def get_parameter(self, name, with_decryption):
-        if name in self._parameters:
-            return self._parameters[name][-1]
+        name_parts = name.split(":")
+        name_prefix = name_parts[0]
+
+        if len(name_parts) > 2:
+            return None
+
+        if name_prefix in self._parameters:
+            if len(name_parts) == 1:
+                return self._parameters[name][-1]
+
+            if len(name_parts) == 2:
+                version_or_label = name_parts[1]
+                parameters = self._parameters[name_prefix]
+
+                if version_or_label.isdigit():
+                    result = list(
+                        filter(lambda x: str(x.version) == version_or_label, parameters)
+                    )
+                    if len(result) > 0:
+                        return result[-1]
+
+                result = list(
+                    filter(lambda x: version_or_label in x.labels, parameters)
+                )
+                if len(result) > 0:
+                    return result[-1]
+
         return None
 
     def label_parameter_version(self, name, version, labels):
