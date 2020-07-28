@@ -965,6 +965,13 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "The following filter key is not valid: Label. Valid filter keys include: [Path, Name, Type, KeyId, Tier]."
                 )
 
+            if by_path and key in ["Name", "Path", "Tier"]:
+                raise InvalidFilterKey(
+                    "The following filter key is not valid: {key}. Valid filter keys include: [Type, KeyId].".format(
+                        key=key
+                    )
+                )
+
             if not values:
                 raise InvalidFilterValue(
                     "The following filter values are missing : null for filter key Name."
@@ -1024,7 +1031,10 @@ class SimpleSystemManagerBackend(BaseBackend):
                             )
                         )
 
-            if key != "Path" and option not in ["Equals", "BeginsWith"]:
+            allowed_options = ["Equals", "BeginsWith"]
+            if key == "Name":
+                allowed_options += ["Contains"]
+            if key != "Path" and option not in allowed_options:
                 raise InvalidFilterOption(
                     "The following filter option is not valid: {option}. Valid options include: [BeginsWith, Equals].".format(
                         option=option
@@ -1084,6 +1094,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         max_results=10,
     ):
         """Implement the get-parameters-by-path-API in the backend."""
+
+        self._validate_parameter_filters(filters, by_path=True)
+
         result = []
         # path could be with or without a trailing /. we handle this
         # difference here.
@@ -1134,7 +1147,8 @@ class SimpleSystemManagerBackend(BaseBackend):
                 what = parameter.keyid
             elif key == "Name":
                 what = "/" + parameter.name.lstrip("/")
-                values = ["/" + value.lstrip("/") for value in values]
+                if option != "Contains":
+                    values = ["/" + value.lstrip("/") for value in values]
             elif key == "Path":
                 what = "/" + parameter.name.lstrip("/")
                 values = ["/" + value.strip("/") for value in values]
@@ -1146,6 +1160,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             elif option == "BeginsWith" and not any(
                 what.startswith(value) for value in values
             ):
+                return False
+            elif option == "Contains" and not any(value in what for value in values):
                 return False
             elif option == "Equals" and not any(what == value for value in values):
                 return False
