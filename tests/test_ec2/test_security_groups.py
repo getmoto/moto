@@ -691,6 +691,31 @@ def test_add_same_rule_twice_throws_error():
 
 
 @mock_ec2
+def test_description_in_ip_permissions():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = conn.create_security_group(
+        GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
+    )
+
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27017,
+            "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "testDescription"}],
+        }
+    ]
+    conn.authorize_security_group_ingress(GroupId=sg['GroupId'], IpPermissions=ip_permissions)
+
+    result = conn.describe_security_groups(GroupIds=[sg['GroupId']])
+
+    assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['Description'] == "testDescription"
+    assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['CidrIp'] == "1.2.3.4/32"
+
+
+@mock_ec2
 def test_security_group_tagging_boto3():
     conn = boto3.client("ec2", region_name="us-east-1")
 

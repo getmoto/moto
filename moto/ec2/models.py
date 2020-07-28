@@ -2089,13 +2089,14 @@ class SecurityGroupBackend(object):
         source_group_names=None,
         source_group_ids=None,
         vpc_id=None,
+
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-            ip_ranges = [ip_ranges]
+            ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr):
+                if not is_valid_cidr(cidr['CidrIp']):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(

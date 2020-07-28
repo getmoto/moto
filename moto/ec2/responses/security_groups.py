@@ -20,7 +20,10 @@ def parse_sg_attributes_from_dict(sg_attributes):
     ip_ranges = []
     ip_ranges_tree = sg_attributes.get("IpRanges") or {}
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
-        ip_ranges.append(ip_ranges_tree[ip_range_idx]["CidrIp"][0])
+        ip_range = {'CidrIp': ip_ranges_tree[ip_range_idx]["CidrIp"][0],
+                    'Description': ip_ranges_tree[ip_range_idx]["Description"][0]}
+
+        ip_ranges.append(ip_range)
 
     source_groups = []
     source_group_ids = []
@@ -211,7 +214,8 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                        <ipRanges>
                           {% for ip_range in rule.ip_ranges %}
                               <item>
-                                 <cidrIp>{{ ip_range }}</cidrIp>
+                                 <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                 <description>{{ ip_range['Description'] }}</description>
                               </item>
                           {% endfor %}
                        </ipRanges>
