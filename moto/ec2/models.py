@@ -3001,16 +3001,8 @@ class VPCBackend(object):
         services = []
         for value in vpc_end_point_services:
             services.append(value.service_name)
-            print(".".join(reversed(value.service_name.split("."))))
 
-        availability_zones = [
-            "us-east-1a",
-            "us-east-1b",
-            "us-east-1c",
-            "us-east-1d",
-            "us-east-1e",
-            "us-east-1f",
-        ]
+        availability_zones = EC2Backend.describe_availability_zones(self)
 
         return {
             "servicesDetails": vpc_end_point_services,

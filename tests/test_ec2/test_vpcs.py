@@ -852,3 +852,4 @@ def test_describe_vpc_end_point_services():
             .get("ServiceType")
             == "gateway"
     )
+    assert vpc_end_point_services.get("ServiceDetails")[0].get("AvailabilityZones") == ['us-west-1a', 'us-west-1b']

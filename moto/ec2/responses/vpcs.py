@@ -477,7 +477,7 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="
                 <acceptanceRequired>false</acceptanceRequired>
                 <availabilityZoneSet>
                     {% for zone in vpc_end_points.availability_zones %}
-                        <item>{{ zone }}</item>
+                        <item>{{ zone.name }}</item>
                     {% endfor %}
                 </availabilityZoneSet>
                 <serviceName>{{ service.service_name }}</serviceName>
