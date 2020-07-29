@@ -847,9 +847,12 @@ def test_describe_vpc_end_point_services():
     assert vpc_end_point_services.get("ServiceNames").should.be.true
     assert vpc_end_point_services.get("ServiceNames") == ["com.amazonaws.us-east-1.s3"]
     assert (
-            vpc_end_point_services.get("ServiceDetails")[0]
-            .get("ServiceType", [])[0]
-            .get("ServiceType")
-            == "gateway"
+        vpc_end_point_services.get("ServiceDetails")[0]
+        .get("ServiceType", [])[0]
+        .get("ServiceType")
+        == "gateway"
     )
-    assert vpc_end_point_services.get("ServiceDetails")[0].get("AvailabilityZones") == ['us-west-1a', 'us-west-1b']
+    assert vpc_end_point_services.get("ServiceDetails")[0].get("AvailabilityZones") == [
+        "us-west-1a",
+        "us-west-1b",
+    ]
