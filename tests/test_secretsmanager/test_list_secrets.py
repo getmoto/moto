@@ -8,8 +8,6 @@ from botocore.exceptions import ClientError
 import sure  # noqa
 from nose.tools import assert_raises, assert_equal
 
-DEFAULT_SECRET_NAME = "test-secret"
-
 
 def boto_client():
     return boto3.client("secretsmanager", region_name="us-west-2")
@@ -52,12 +50,7 @@ def test_with_name_filter():
     conn.create_secret(Name="foo", SecretString="secret")
     conn.create_secret(Name="bar", SecretString="secret")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "name",
-            "Values": ["foo"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "name", "Values": ["foo"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo"])
@@ -67,15 +60,12 @@ def test_with_name_filter():
 def test_with_tag_key_filter():
     conn = boto_client()
 
-    conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "baz", "Value": "1"}])
+    conn.create_secret(
+        Name="foo", SecretString="secret", Tags=[{"Key": "baz", "Value": "1"}]
+    )
     conn.create_secret(Name="bar", SecretString="secret")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "tag-key",
-            "Values": ["baz"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "tag-key", "Values": ["baz"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo"])
@@ -85,15 +75,12 @@ def test_with_tag_key_filter():
 def test_with_tag_value_filter():
     conn = boto_client()
 
-    conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "1", "Value": "baz"}])
+    conn.create_secret(
+        Name="foo", SecretString="secret", Tags=[{"Key": "1", "Value": "baz"}]
+    )
     conn.create_secret(Name="bar", SecretString="secret")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "tag-value",
-            "Values": ["baz"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "tag-value", "Values": ["baz"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo"])
@@ -106,12 +93,7 @@ def test_with_description_filter():
     conn.create_secret(Name="foo", SecretString="secret", Description="baz qux")
     conn.create_secret(Name="bar", SecretString="secret")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "description",
-            "Values": ["baz"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["baz"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo"])
@@ -125,17 +107,18 @@ def test_with_all_filter():
 
     conn.create_secret(Name="foo", SecretString="secret")
     conn.create_secret(Name="bar", SecretString="secret", Description="foo")
-    conn.create_secret(Name="baz", SecretString="secret", Tags=[{"Key": "foo", "Value": "1"}])
-    conn.create_secret(Name="qux", SecretString="secret", Tags=[{"Key": "1", "Value": "foo"}])
-    conn.create_secret(Name="multi", SecretString="secret", Tags=[{"Key": "foo", "Value": "foo"}])
+    conn.create_secret(
+        Name="baz", SecretString="secret", Tags=[{"Key": "foo", "Value": "1"}]
+    )
+    conn.create_secret(
+        Name="qux", SecretString="secret", Tags=[{"Key": "1", "Value": "foo"}]
+    )
+    conn.create_secret(
+        Name="multi", SecretString="secret", Tags=[{"Key": "foo", "Value": "foo"}]
+    )
     conn.create_secret(Name="none", SecretString="secret")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "all",
-            "Values": ["foo"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["foo"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo", "bar", "baz", "qux", "multi"])
@@ -146,16 +129,10 @@ def test_with_no_filter_key():
     conn = boto_client()
 
     with assert_raises(ClientError) as ire:
-        conn.list_secrets(Filters=[
-            {
-                "Values": ["foo"]
-            }
-        ])
+        conn.list_secrets(Filters=[{"Values": ["foo"]}])
 
     ire.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ire.exception.response["Error"]["Message"].should.equal(
-        "Invalid filter key"
-    )
+    ire.exception.response["Error"]["Message"].should.equal("Invalid filter key")
 
 
 @mock_secretsmanager
@@ -163,12 +140,7 @@ def test_with_invalid_filter_key():
     conn = boto_client()
 
     with assert_raises(ClientError) as ire:
-        conn.list_secrets(Filters=[
-            {
-                "Key": "invalid",
-                "Values": ["foo"]
-            }
-        ])
+        conn.list_secrets(Filters=[{"Key": "invalid", "Values": ["foo"]}])
 
     ire.exception.response["Error"]["Code"].should.equal("ValidationException")
     ire.exception.response["Error"]["Message"].should.equal(
@@ -188,16 +160,12 @@ def test_with_duplicate_filter_keys():
     conn.create_secret(Name="baz", SecretString="secret", Description="two")
     conn.create_secret(Name="qux", SecretString="secret", Description="unrelated")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "description",
-            "Values": ["one"]
-        },
-        {
-            "Key": "description",
-            "Values": ["two"]
-        }
-    ])
+    secrets = conn.list_secrets(
+        Filters=[
+            {"Key": "description", "Values": ["one"]},
+            {"Key": "description", "Values": ["two"]},
+        ]
+    )
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo"])
@@ -209,21 +177,25 @@ def test_with_multiple_filters():
 
     conn = boto_client()
 
-    conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "right", "Value": "right"}])
-    conn.create_secret(Name="bar", SecretString="secret", Tags=[{"Key": "right", "Value": "wrong"}])
-    conn.create_secret(Name="baz", SecretString="secret", Tags=[{"Key": "wrong", "Value": "right"}])
-    conn.create_secret(Name="qux", SecretString="secret", Tags=[{"Key": "wrong", "Value": "wrong"}])
+    conn.create_secret(
+        Name="foo", SecretString="secret", Tags=[{"Key": "right", "Value": "right"}]
+    )
+    conn.create_secret(
+        Name="bar", SecretString="secret", Tags=[{"Key": "right", "Value": "wrong"}]
+    )
+    conn.create_secret(
+        Name="baz", SecretString="secret", Tags=[{"Key": "wrong", "Value": "right"}]
+    )
+    conn.create_secret(
+        Name="qux", SecretString="secret", Tags=[{"Key": "wrong", "Value": "wrong"}]
+    )
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "tag-key",
-            "Values": ["right"]
-        },
-        {
-            "Key": "tag-value",
-            "Values": ["right"]
-        }
-    ])
+    secrets = conn.list_secrets(
+        Filters=[
+            {"Key": "tag-key", "Values": ["right"]},
+            {"Key": "tag-value", "Values": ["right"]},
+        ]
+    )
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo"])
@@ -237,12 +209,7 @@ def test_with_filter_with_multiple_values():
     conn.create_secret(Name="bar", SecretString="secret")
     conn.create_secret(Name="baz", SecretString="secret")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "name",
-            "Values": ["foo", "bar"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "name", "Values": ["foo", "bar"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo", "bar"])
@@ -258,12 +225,7 @@ def test_with_filter_with_value_with_multiple_words():
     conn.create_secret(Name="qux", SecretString="secret", Description="two")
     conn.create_secret(Name="none", SecretString="secret", Description="unrelated")
 
-    secrets = conn.list_secrets(Filters=[
-        {
-            "Key": "description",
-            "Values": ["one two"]
-        }
-    ])
+    secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["one two"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert_equal(secret_names, ["foo", "bar"])

@@ -26,7 +26,7 @@ _filter_functions = {
     "name": name,
     "description": description,
     "tag-key": tag_key,
-    "tag-value": tag_value
+    "tag-value": tag_value,
 }
 
 
@@ -43,8 +43,6 @@ def _matches(secret, filters):
         is_match = is_match and filter_function(secret, f["Values"])
 
     return is_match
-
-
 
 
 class SecretsManager(BaseModel):

@@ -1,7 +1,11 @@
 from __future__ import unicode_literals
 
 from moto.core.responses import BaseResponse
-from moto.secretsmanager.exceptions import InvalidRequestException, InvalidParameterException, ValidationException
+from moto.secretsmanager.exceptions import (
+    InvalidRequestException,
+    InvalidParameterException,
+    ValidationException,
+)
 
 from .models import secretsmanager_backends, filter_keys
 
@@ -109,8 +113,10 @@ class SecretsManagerResponse(BaseResponse):
             if filter_key not in filter_keys():
                 raise ValidationException(
                     "1 validation error detected: Value '{}' at 'filters.{}.member.key' failed to satisfy constraint: "
-                    "Member must satisfy enum value set: [all, name, tag-key, description, tag-value]"
-                    .format(filter_key, idx + 1))
+                    "Member must satisfy enum value set: [all, name, tag-key, description, tag-value]".format(
+                        filter_key, idx + 1
+                    )
+                )
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
         secret_list, next_token = secretsmanager_backends[self.region].list_secrets(

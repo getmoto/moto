@@ -36,4 +36,9 @@ def tag_value(secret, tag_values):
 
 
 def all(secret, values):
-    return name(secret, values) or description(secret, values) or tag_key(secret, values) or tag_value(secret, values)
+    return (
+        name(secret, values)
+        or description(secret, values)
+        or tag_key(secret, values)
+        or tag_value(secret, values)
+    )
