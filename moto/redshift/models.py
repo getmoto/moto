@@ -163,7 +163,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-cluster.html
         return "AWS::Redshift::Cluster"
 
     @classmethod
@@ -358,7 +358,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-clustersubnetgroup.html
         return "AWS::Redshift::ClusterSubnetGroup"
 
     @classmethod
@@ -454,7 +454,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-clusterparametergroup.html
         return "AWS::Redshift::ClusterParameterGroup"
 
     @classmethod

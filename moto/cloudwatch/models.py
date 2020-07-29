@@ -503,7 +503,7 @@ class LogGroup(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
         return "AWS::Logs::LogGroup"
 
     @classmethod

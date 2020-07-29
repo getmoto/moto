@@ -149,7 +149,7 @@ class FakeTargetGroup(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html
         return "AWS::ElasticLoadBalancingV2::TargetGroup"
 
     @classmethod
@@ -243,7 +243,7 @@ class FakeListener(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listener.html
         return "AWS::ElasticLoadBalancingV2::Listener"
 
     @classmethod
@@ -426,7 +426,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html
         return "AWS::ElasticLoadBalancingV2::LoadBalancer"
 
     @classmethod

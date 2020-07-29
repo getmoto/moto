@@ -75,7 +75,7 @@ class Cluster(BaseObject, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-cluster.html
         return "AWS::ECS::Cluster"
 
     @classmethod
@@ -174,7 +174,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html
         return "AWS::ECS::TaskDefinition"
 
     @classmethod
@@ -339,7 +339,7 @@ class Service(BaseObject, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-service.html
         return "AWS::ECS::Service"
 
     @classmethod

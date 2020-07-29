@@ -133,7 +133,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-launchconfiguration.html
         return "AWS::AutoScaling::LaunchConfiguration"
 
     @classmethod
@@ -324,7 +324,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-autoscalinggroup.html
         return "AWS::AutoScaling::AutoScalingGroup"
 
     @classmethod

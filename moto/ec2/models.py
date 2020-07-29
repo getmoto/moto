@@ -274,7 +274,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-networkinterface.html
         return "AWS::EC2::NetworkInterface"
 
     @classmethod
@@ -636,7 +636,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-instance.html
         return "AWS::EC2::Instance"
 
     @classmethod
@@ -1885,7 +1885,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-securitygroup.html
         return "AWS::EC2::SecurityGroup"
 
     @classmethod
@@ -2298,7 +2298,7 @@ class SecurityGroupIngress(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-securitygroupingress.html
         return "AWS::EC2::SecurityGroupIngress"
 
     @classmethod
@@ -2378,7 +2378,7 @@ class VolumeAttachment(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volumeattachment.html
         return "AWS::EC2::VolumeAttachment"
 
     @classmethod
@@ -2418,7 +2418,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volume.html
         return "AWS::EC2::Volume"
 
     @classmethod
@@ -2716,7 +2716,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
         return "AWS::EC2::VPC"
 
     @classmethod
@@ -3098,7 +3098,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcpeeringconnection.html
         return "AWS::EC2::VPCPeeringConnection"
 
     @classmethod
@@ -3228,7 +3228,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnet.html
         return "AWS::EC2::Subnet"
 
     @classmethod
@@ -3469,7 +3469,7 @@ class SubnetRouteTableAssociation(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnetroutetableassociation.html
         return "AWS::EC2::SubnetRouteTableAssociation"
 
     @classmethod
@@ -3516,7 +3516,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-routetable.html
         return "AWS::EC2::RouteTable"
 
     @classmethod
@@ -3686,7 +3686,7 @@ class Route(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html
         return "AWS::EC2::Route"
 
     @classmethod
@@ -3868,7 +3868,7 @@ class InternetGateway(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-internetgateway.html
         return "AWS::EC2::InternetGateway"
 
     @classmethod
@@ -3954,7 +3954,7 @@ class VPCGatewayAttachment(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcgatewayattachment.html
         return "AWS::EC2::VPCGatewayAttachment"
 
     @classmethod
@@ -4232,7 +4232,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-spotfleet.html
         return "AWS::EC2::SpotFleet"
 
     @classmethod
@@ -4476,7 +4476,7 @@ class ElasticAddress(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-eip.html
         return "AWS::EC2::EIP"
 
     @classmethod
@@ -5283,7 +5283,7 @@ class NatGateway(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html
         return "AWS::EC2::NatGateway"
 
     @classmethod

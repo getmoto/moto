@@ -125,7 +125,7 @@ class FakeLoadBalancer(CloudFormationModel):
 
     @staticmethod
     def cloudformation_type():
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancing-loadbalancer.html
         return "AWS::ElasticLoadBalancing::LoadBalancer"
 
     @classmethod
