@@ -177,3 +177,10 @@ class OrganizationsResponse(BaseResponse):
                 **self.request_params
             )
         )
+
+    def list_delegated_services_for_account(self):
+        return json.dumps(
+            self.organizations_backend.list_delegated_services_for_account(
+                **self.request_params
+            )
+        )

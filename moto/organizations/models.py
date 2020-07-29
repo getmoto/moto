@@ -15,6 +15,8 @@ from moto.organizations.exceptions import (
     AccountNotFoundException,
     ConstraintViolationException,
     AccountAlreadyRegisteredException,
+    AWSOrganizationsNotInUseException,
+    AccountNotRegisteredException,
 )
 
 
@@ -237,10 +239,10 @@ class FakeDelegatedAdministrator(BaseModel):
     def __init__(self, account):
         self.account = account
         self.enabled_date = datetime.datetime.utcnow()
-        self.service_principals = []
+        self.services = {}
 
     def add_service_principal(self, service_principal):
-        if service_principal in self.service_principals:
+        if service_principal in self.services:
             raise AccountAlreadyRegisteredException
 
         if not self.supported_service(service_principal):
@@ -248,7 +250,10 @@ class FakeDelegatedAdministrator(BaseModel):
                 "You specified an unrecognized service principal."
             )
 
-        self.service_principals.append(service_principal)
+        self.services[service_principal] = {
+            "ServicePrincipal": service_principal,
+            "DelegationEnabledDate": unix_time(datetime.datetime.utcnow()),
+        }
 
     def describe(self):
         return {
@@ -300,10 +305,7 @@ class OrganizationsBackend(BaseBackend):
 
     def describe_organization(self):
         if not self.org:
-            raise RESTError(
-                "AWSOrganizationsNotInUseException",
-                "Your account is not a member of an organization.",
-            )
+            raise AWSOrganizationsNotInUseException
         return self.org.describe()
 
     def list_roots(self):
@@ -662,11 +664,34 @@ class OrganizationsBackend(BaseBackend):
                     "You specified an unrecognized service principal."
                 )
 
-            admins = [admin for admin in admins if service in admin.service_principals]
+            admins = [admin for admin in admins if service in admin.services]
 
         delegated_admins = [admin.describe() for admin in admins]
 
         return dict(DelegatedAdministrators=delegated_admins)
+
+    def list_delegated_services_for_account(self, **kwargs):
+        admin = next(
+            (admin for admin in self.admins if admin.account.id == kwargs["AccountId"]),
+            None,
+        )
+        if admin is None:
+            account = next(
+                (
+                    account
+                    for account in self.accounts
+                    if account.id == kwargs["AccountId"]
+                ),
+                None,
+            )
+            if account:
+                raise AccountNotRegisteredException
+
+            raise AWSOrganizationsNotInUseException
+
+        services = [service for service in admin.services.values()]
+
+        return dict(DelegatedServices=services)
 
 
 organizations_backend = OrganizationsBackend()

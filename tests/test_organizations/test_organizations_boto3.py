@@ -65,8 +65,11 @@ def test_describe_organization_exception():
         response = client.describe_organization()
     ex = e.exception
     ex.operation_name.should.equal("DescribeOrganization")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("AWSOrganizationsNotInUseException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AWSOrganizationsNotInUseException")
+    ex.response["Error"]["Message"].should.equal(
+        "Your account is not a member of an organization."
+    )
 
 
 # Organizational Units
@@ -1140,4 +1143,64 @@ def test_list_delegated_administrators_erros():
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You specified an unrecognized service principal."
+    )
+
+
+@mock_organizations
+def test_list_delegated_services_for_account():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.register_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+    )
+    client.register_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="guardduty.amazonaws.com"
+    )
+
+    # when
+    response = client.list_delegated_services_for_account(AccountId=account_id)
+
+    # then
+    response["DelegatedServices"].should.have.length_of(2)
+    sorted(
+        [service["ServicePrincipal"] for service in response["DelegatedServices"]]
+    ).should.equal(["guardduty.amazonaws.com", "ssm.amazonaws.com"])
+
+
+@mock_organizations
+def test_list_delegated_services_for_account_erros():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    # list services for not existing Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.list_delegated_services_for_account(AccountId="000000000000")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("ListDelegatedServicesForAccount")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AWSOrganizationsNotInUseException")
+    ex.response["Error"]["Message"].should.equal(
+        "Your account is not a member of an organization."
+    )
+
+    # list services for not registered Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.list_delegated_services_for_account(AccountId=ACCOUNT_ID)
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("ListDelegatedServicesForAccount")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotRegisteredException")
+    ex.response["Error"]["Message"].should.equal(
+        "The provided account is not a registered delegated administrator for your organization."
     )
