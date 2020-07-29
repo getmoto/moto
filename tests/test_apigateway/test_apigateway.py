@@ -1868,7 +1868,7 @@ def test_create_api_headers():
     payload = {"value": apikey_value, "name": apikey_name}
 
     response = client.create_api_key(**payload)
-    response["ResponseMetadata"]['HTTPHeaders'].should.equal({})
+    response.get("ResponseMetadata", {}).get('HTTPHeaders', {}).should.equal({})
 
 
 @mock_apigateway
