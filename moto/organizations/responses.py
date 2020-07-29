@@ -184,3 +184,10 @@ class OrganizationsResponse(BaseResponse):
                 **self.request_params
             )
         )
+
+    def deregister_delegated_administrator(self):
+        return json.dumps(
+            self.organizations_backend.deregister_delegated_administrator(
+                **self.request_params
+            )
+        )

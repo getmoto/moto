@@ -255,6 +255,14 @@ class FakeDelegatedAdministrator(BaseModel):
             "DelegationEnabledDate": unix_time(datetime.datetime.utcnow()),
         }
 
+    def remove_service_principal(self, service_principal):
+        if service_principal not in self.services:
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        self.services.pop(service_principal)
+
     def describe(self):
         return {
             **self.account.describe(),
@@ -692,6 +700,38 @@ class OrganizationsBackend(BaseBackend):
         services = [service for service in admin.services.values()]
 
         return dict(DelegatedServices=services)
+
+    def deregister_delegated_administrator(self, **kwargs):
+        account_id = kwargs["AccountId"]
+        service = kwargs["ServicePrincipal"]
+
+        if account_id == ACCOUNT_ID:
+            raise ConstraintViolationException(
+                "You cannot register master account/yourself as delegated administrator for your organization."
+            )
+
+        admin = next(
+            (admin for admin in self.admins if admin.account.id == account_id), None,
+        )
+        if admin is None:
+            account = next(
+                (
+                    account
+                    for account in self.accounts
+                    if account.id == kwargs["AccountId"]
+                ),
+                None,
+            )
+            if account:
+                raise AccountNotRegisteredException
+
+            raise AccountNotFoundException
+
+        admin.remove_service_principal(service)
+
+        # remove account, when no services attached
+        if not admin.services:
+            self.admins.remove(admin)
 
 
 organizations_backend = OrganizationsBackend()

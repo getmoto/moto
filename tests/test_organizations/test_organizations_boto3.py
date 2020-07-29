@@ -1015,7 +1015,7 @@ def test_register_delegated_administrator_errors():
     # when
     with assert_raises(ClientError) as e:
         client.register_delegated_administrator(
-            AccountId=ACCOUNT_ID, ServicePrincipal="ram.amazonaws.com"
+            AccountId=ACCOUNT_ID, ServicePrincipal="ssm.amazonaws.com"
         )
 
     # then
@@ -1031,7 +1031,7 @@ def test_register_delegated_administrator_errors():
     # when
     with assert_raises(ClientError) as e:
         client.register_delegated_administrator(
-            AccountId="000000000000", ServicePrincipal="ram.amazonaws.com"
+            AccountId="000000000000", ServicePrincipal="ssm.amazonaws.com"
         )
 
     # then
@@ -1203,4 +1203,105 @@ def test_list_delegated_services_for_account_erros():
     ex.response["Error"]["Code"].should.contain("AccountNotRegisteredException")
     ex.response["Error"]["Message"].should.equal(
         "The provided account is not a registered delegated administrator for your organization."
+    )
+
+
+@mock_organizations
+def test_deregister_delegated_administrator():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.register_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+    )
+
+    # when
+    client.deregister_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+    )
+
+    # then
+    response = client.list_delegated_administrators()
+    response["DelegatedAdministrators"].should.have.length_of(0)
+
+
+@mock_organizations
+def test_deregister_delegated_administrator_erros():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+
+    # deregister master Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.deregister_delegated_administrator(
+            AccountId=ACCOUNT_ID, ServicePrincipal="ssm.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ConstraintViolationException")
+    ex.response["Error"]["Message"].should.equal(
+        "You cannot register master account/yourself as delegated administrator for your organization."
+    )
+
+    # deregister not existing Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.deregister_delegated_administrator(
+            AccountId="000000000000", ServicePrincipal="ssm.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
+
+    # deregister not registered Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.deregister_delegated_administrator(
+            AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotRegisteredException")
+    ex.response["Error"]["Message"].should.equal(
+        "The provided account is not a registered delegated administrator for your organization."
+    )
+
+    # given
+    client.register_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+    )
+
+    # deregister not registered service
+    # when
+    with assert_raises(ClientError) as e:
+        client.deregister_delegated_administrator(
+            AccountId=account_id, ServicePrincipal="guardduty.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
     )
