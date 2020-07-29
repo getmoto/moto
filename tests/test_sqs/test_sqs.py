@@ -23,7 +23,7 @@ from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
 
-sqs_template_with_tags ="""
+sqs_template_with_tags = """
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Resources": {
@@ -44,6 +44,7 @@ sqs_template_with_tags ="""
         }
     }
 }"""
+
 
 @mock_sqs
 def test_create_fifo_queue_fail():
