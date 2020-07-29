@@ -119,6 +119,8 @@ def test_with_description_filter():
 
 @mock_secretsmanager
 def test_with_all_filter():
+    """The 'all' filter will match a secret that contains ANY field with the criteria. In other words an implicit OR."""
+
     conn = boto_client()
 
     conn.create_secret(Name="foo", SecretString="secret")
@@ -150,9 +152,9 @@ def test_with_no_filter_key():
             }
         ])
 
-    ire.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ire.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
     ire.exception.response["Error"]["Message"].should.equal(
-        "???."
+        "Invalid filter key"
     )
 
 
@@ -168,14 +170,17 @@ def test_with_invalid_filter_key():
             }
         ])
 
-    ire.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ire.exception.response["Error"]["Code"].should.equal("ValidationException")
     ire.exception.response["Error"]["Message"].should.equal(
-        "???."
+        "1 validation error detected: Value 'invalid' at 'filters.1.member.key' failed to satisfy constraint: Member "
+        "must satisfy enum value set: [all, name, tag-key, description, tag-value]"
     )
 
 
 @mock_secretsmanager
 def test_with_duplicate_filter_keys():
+    """Multiple filters with the same key combine with an implicit AND operator"""
+
     conn = boto_client()
 
     conn.create_secret(Name="foo", SecretString="secret", Description="one two")
@@ -195,15 +200,15 @@ def test_with_duplicate_filter_keys():
     ])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    # TODO find out what the behavior is
-    assert_equal(secret_names, ["???"])
+    assert_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
 def test_with_multiple_filters():
+    """Multiple filters combine with an implicit AND operator"""
+
     conn = boto_client()
 
-    # Multiple filters combine with an implicit AND operator
     conn.create_secret(Name="foo", SecretString="secret", Tags=[{"Key": "right", "Value": "right"}])
     conn.create_secret(Name="bar", SecretString="secret", Tags=[{"Key": "right", "Value": "wrong"}])
     conn.create_secret(Name="baz", SecretString="secret", Tags=[{"Key": "wrong", "Value": "right"}])

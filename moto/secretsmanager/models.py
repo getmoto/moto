@@ -31,7 +31,7 @@ _filter_functions = {
 
 
 def filter_keys():
-    return _filter_functions.keys()
+    return list(_filter_functions.keys())
 
 
 def _matches(secret, filters):
