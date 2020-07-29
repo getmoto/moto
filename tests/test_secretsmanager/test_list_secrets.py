@@ -6,7 +6,12 @@ import boto3
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
 import sure  # noqa
-from nose.tools import assert_raises, assert_equal, assert_count_equal  # noqa
+from nose.tools import assert_raises
+
+try:
+    from nose.tools import assert_items_equal
+except ImportError:
+    from nose.tools import assert_count_equal as assert_items_equal
 
 
 def boto_client():
@@ -19,7 +24,7 @@ def test_empty():
 
     secrets = conn.list_secrets()
 
-    assert_count_equal(secrets["SecretList"], [])
+    assert_items_equal(secrets["SecretList"], [])
 
 
 @mock_secretsmanager
@@ -53,7 +58,7 @@ def test_with_name_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "name", "Values": ["foo"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo"])
+    assert_items_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
@@ -68,7 +73,7 @@ def test_with_tag_key_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "tag-key", "Values": ["baz"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo"])
+    assert_items_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
@@ -83,7 +88,7 @@ def test_with_tag_value_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "tag-value", "Values": ["baz"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo"])
+    assert_items_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
@@ -96,7 +101,7 @@ def test_with_description_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["baz"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo"])
+    assert_items_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
@@ -121,7 +126,7 @@ def test_with_all_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["foo"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo", "bar", "baz", "qux", "multi"])
+    assert_items_equal(secret_names, ["foo", "bar", "baz", "qux", "multi"])
 
 
 @mock_secretsmanager
@@ -168,7 +173,7 @@ def test_with_duplicate_filter_keys():
     )
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo"])
+    assert_items_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
@@ -198,7 +203,7 @@ def test_with_multiple_filters():
     )
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo"])
+    assert_items_equal(secret_names, ["foo"])
 
 
 @mock_secretsmanager
@@ -212,7 +217,7 @@ def test_with_filter_with_multiple_values():
     secrets = conn.list_secrets(Filters=[{"Key": "name", "Values": ["foo", "bar"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo", "bar"])
+    assert_items_equal(secret_names, ["foo", "bar"])
 
 
 @mock_secretsmanager
@@ -228,4 +233,4 @@ def test_with_filter_with_value_with_multiple_words():
     secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["one two"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert_count_equal(secret_names, ["foo", "bar"])
+    assert_items_equal(secret_names, ["foo", "bar"])
