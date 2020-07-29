@@ -762,6 +762,12 @@ def test_list_users():
     user["Path"].should.equal("/")
     user["Arn"].should.equal("arn:aws:iam::{}:user/my-user".format(ACCOUNT_ID))
 
+    conn.create_user(UserName="my-user-1", Path="myUser")
+    response = conn.list_users(PathPrefix="my")
+    user = response["Users"][0]
+    user["UserName"].should.equal("my-user-1")
+    user["Path"].should.equal("myUser")
+
 
 @mock_iam()
 def test_user_policies():

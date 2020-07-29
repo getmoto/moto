@@ -17,3 +17,12 @@ class DuplicateOrganizationalUnitException(JsonRESTError):
             "DuplicateOrganizationalUnitException",
             "An OU with the same name already exists.",
         )
+
+
+class DuplicatePolicyException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(DuplicatePolicyException, self).__init__(
+            "DuplicatePolicyException", "A policy with the same name already exists."
+        )
