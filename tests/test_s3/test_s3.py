@@ -4744,7 +4744,9 @@ def test_s3_bucket_cloudformation_with_properties():
     s3.head_bucket(Bucket=bucket_name)
 
     encryption = s3.get_bucket_encryption(Bucket=bucket_name)
-    encryption["ServerSideEncryptionConfiguration"]["Rules"][0]["ApplyServerSideEncryptionByDefault"]["SSEAlgorithm"].should.equal("AES256")
+    encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
+        "ApplyServerSideEncryptionByDefault"
+    ]["SSEAlgorithm"].should.equal("AES256")
 
 
 @mock_s3
@@ -4801,11 +4803,7 @@ def test_s3_bucket_cloudformation_update_replacement():
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "testInstance": {
-                "Type": "AWS::S3::Bucket"
-            }
-        },
+        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket"}},
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
@@ -4818,9 +4816,7 @@ def test_s3_bucket_cloudformation_update_replacement():
         "Resources": {
             "testInstance": {
                 "Type": "AWS::S3::Bucket",
-                "Properties": {
-                    "BucketName": "MyNewBucketName"
-                },
+                "Properties": {"BucketName": "MyNewBucketName"},
             }
         },
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
