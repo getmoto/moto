@@ -3285,7 +3285,14 @@ class SubnetBackend(object):
                 return subnets[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
 
-    def create_subnet(self, vpc_id, cidr_block, availability_zone, context=None):
+    def create_subnet(
+            self,
+            vpc_id,
+            cidr_block,
+            availability_zone=None,
+            availability_zone_id=None,
+            context=None,
+    ):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(
             vpc_id
@@ -3313,15 +3320,25 @@ class SubnetBackend(object):
         # consider it the default
         default_for_az = str(availability_zone not in self.subnets).lower()
         map_public_ip_on_launch = default_for_az
-        if availability_zone is None:
+
+        if availability_zone is None and not availability_zone_id:
             availability_zone = "us-east-1a"
         try:
-            availability_zone_data = next(
-                zone
-                for zones in RegionsAndZonesBackend.zones.values()
-                for zone in zones
-                if zone.name == availability_zone
-            )
+            if availability_zone:
+                availability_zone_data = next(
+                    zone
+                    for zones in RegionsAndZonesBackend.zones.values()
+                    for zone in zones
+                    if zone.name == availability_zone
+                )
+            elif availability_zone_id:
+                availability_zone_data = next(
+                    zone
+                    for zones in RegionsAndZonesBackend.zones.values()
+                    for zone in zones
+                    if zone.zone_id == availability_zone_id
+                )
+
         except StopIteration:
             raise InvalidAvailabilityZoneError(
                 availability_zone,
