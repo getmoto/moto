@@ -7,7 +7,7 @@ import random
 import uuid
 from jinja2 import Template
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits

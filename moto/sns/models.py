@@ -103,7 +103,7 @@ class Topic(CloudFormationModel):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
 
-        topic = sns_backend.create_topic(properties.get(self.cloudformation_name_type()))
+        topic = sns_backend.create_topic(properties.get(cls.cloudformation_name_type()))
         for subscription in properties.get("Subscription", []):
             sns_backend.subscribe(
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]

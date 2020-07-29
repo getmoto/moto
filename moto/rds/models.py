@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import boto.rds
 from jinja2 import Template
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
 from moto.rds.exceptions import UnformattedGetAttTemplateException
@@ -33,7 +33,7 @@ class Database(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get(self.cloudformation_name_type())
+        db_instance_identifier = properties.get(cls.cloudformation_name_type())
         if not db_instance_identifier:
             db_instance_identifier = resource_name.lower() + get_random_hex(12)
         db_security_groups = properties.get("DBSecurityGroups")
@@ -303,7 +303,7 @@ class SubnetGroup(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        subnet_name = properties.get(self.cloudformation_name_type())
+        subnet_name = properties.get(cls.cloudformation_name_type())
         if not subnet_name:
             subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties["DBSubnetGroupDescription"]

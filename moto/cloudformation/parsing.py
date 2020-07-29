@@ -177,7 +177,7 @@ def clean_json(resource_json, resources_map):
 def resource_class_from_type(resource_type):
     if resource_type in NULL_MODELS:
         return None
-    
+
     if resource_type not in MODEL_MAP:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None

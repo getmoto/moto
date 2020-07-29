@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError

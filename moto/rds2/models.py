@@ -371,7 +371,7 @@ class Database(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get(self.cloudformation_name_type())
+        db_instance_identifier = properties.get(cls.cloudformation_name_type())
         if not db_instance_identifier:
             db_instance_identifier = resource_name.lower() + get_random_hex(12)
         db_security_groups = properties.get("DBSecurityGroups")
@@ -759,7 +759,7 @@ class SubnetGroup(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        subnet_name = properties.get(self.cloudformation_name_type())
+        subnet_name = properties.get(cls.cloudformation_name_type())
         if not subnet_name:
             subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties["DBSubnetGroupDescription"]

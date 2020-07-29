@@ -129,7 +129,7 @@ class Shard(BaseModel):
         }
 
 
-class Stream(CloudformationModel):
+class Stream(CloudFormationModel):
     def __init__(self, stream_name, shard_count, region):
         self.stream_name = stream_name
         self.shard_count = shard_count

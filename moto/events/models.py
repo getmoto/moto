@@ -4,7 +4,7 @@ import json
 from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.sts.models import ACCOUNT_ID
 from moto.utilities.tagging_service import TaggingService
 
