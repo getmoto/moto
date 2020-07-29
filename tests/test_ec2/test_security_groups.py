@@ -273,7 +273,7 @@ def test_authorize_ip_range_and_revoke():
     # the default outbound rule and the new one
     int(egress_security_group.rules_egress[1].to_port).should.equal(2222)
     egress_security_group.rules_egress[1].grants[0].cidr_ip.should.equal(
-        "123.123.123.123/32"
+        "{'CidrIp': '123.123.123.123/32'}"
     )
 
     # Wrong Cidr should throw error
@@ -729,6 +729,7 @@ def test_description_in_ip_permissions():
     conn.authorize_security_group_ingress(GroupId=sg['GroupId'], IpPermissions=ip_permissions)
 
     result = conn.describe_security_groups(GroupIds=[sg['GroupId']])
+    print(result)
     assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0].get('Description') is None
     assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['CidrIp'] == "1.2.3.4/32"
 
@@ -911,7 +912,7 @@ def test_revoke_security_group_egress():
             {
                 "FromPort": 0,
                 "IpProtocol": "-1",
-                "IpRanges": [{"CidrIp": "0.0.0.0/0"},],
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "ToPort": 123,
             },
         ]

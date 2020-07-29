@@ -542,6 +542,7 @@ class ResourceMap(collections_abc.Mapping):
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
                     key = s3_backend.get_object(bucket_name, name)
+                    print(key.value)
                     self._parsed_resources.update(json.loads(key.value))
 
     def load_parameters(self):
