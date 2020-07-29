@@ -194,8 +194,11 @@ def test_describe_account_exception():
         response = client.describe_account(AccountId=utils.make_random_account_id())
     ex = e.exception
     ex.operation_name.should.equal("DescribeAccount")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("AccountNotFoundException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
 
 
 @mock_organizations
@@ -341,8 +344,9 @@ def test_list_children_exception():
         response = client.list_children(ParentId=root_id, ChildType="BLEE")
     ex = e.exception
     ex.operation_name.should.equal("ListChildren")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
 
 
 # Service Control Policies
@@ -406,8 +410,9 @@ def test_describe_policy_exception():
         response = client.describe_policy(PolicyId="meaninglessstring")
     ex = e.exception
     ex.operation_name.should.equal("DescribePolicy")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
 
 
 @mock_organizations
@@ -518,16 +523,20 @@ def test_attach_policy_exception():
         response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
     ex = e.exception
     ex.operation_name.should.equal("AttachPolicy")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("AccountNotFoundException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
     with assert_raises(ClientError) as e:
         response = client.attach_policy(
             PolicyId=policy_id, TargetId="meaninglessstring"
         )
     ex = e.exception
     ex.operation_name.should.equal("AttachPolicy")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
 
 
 @mock_organizations
@@ -637,16 +646,20 @@ def test_list_policies_for_target_exception():
         )
     ex = e.exception
     ex.operation_name.should.equal("ListPoliciesForTarget")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("AccountNotFoundException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
     with assert_raises(ClientError) as e:
         response = client.list_policies_for_target(
             TargetId="meaninglessstring", Filter="SERVICE_CONTROL_POLICY"
         )
     ex = e.exception
     ex.operation_name.should.equal("ListPoliciesForTarget")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
 
 
 @mock_organizations
@@ -695,8 +708,9 @@ def test_list_targets_for_policy_exception():
         response = client.list_targets_for_policy(PolicyId="meaninglessstring")
     ex = e.exception
     ex.operation_name.should.equal("ListTargetsForPolicy")
-    ex.response["Error"]["Code"].should.equal("400")
-    ex.response["Error"]["Message"].should.contain("InvalidInputException")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
 
 
 @mock_organizations
@@ -954,7 +968,7 @@ def test_disable_aws_service_access_errors():
 def test_register_delegated_administrator():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
-    client.create_organization(FeatureSet="ALL")
+    org_id = client.create_organization(FeatureSet="ALL")["Organization"]["Id"]
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
@@ -965,6 +979,21 @@ def test_register_delegated_administrator():
     )
 
     # then
+    response = client.list_delegated_administrators()
+    response["DelegatedAdministrators"].should.have.length_of(1)
+    admin = response["DelegatedAdministrators"][0]
+    admin["Id"].should.equal(account_id)
+    admin["Arn"].should.equal(
+        "arn:aws:organizations::{0}:account/{1}/{2}".format(
+            ACCOUNT_ID, org_id, account_id
+        )
+    )
+    admin["Email"].should.equal(mockemail)
+    admin["Name"].should.equal(mockname)
+    admin["Status"].should.equal("ACTIVE")
+    admin["JoinedMethod"].should.equal("CREATED")
+    admin["JoinedTimestamp"].should.be.a(datetime)
+    admin["DelegationEnabledDate"].should.be.a(datetime)
 
 
 @mock_organizations
@@ -1041,4 +1070,74 @@ def test_register_delegated_administrator_errors():
     ex.response["Error"]["Code"].should.contain("AccountAlreadyRegisteredException")
     ex.response["Error"]["Message"].should.equal(
         "The provided account is already a delegated administrator for your organization."
+    )
+
+
+@mock_organizations
+def test_list_delegated_administrators():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    org_id = client.create_organization(FeatureSet="ALL")["Organization"]["Id"]
+    account_id_1 = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    account_id_2 = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.register_delegated_administrator(
+        AccountId=account_id_1, ServicePrincipal="ssm.amazonaws.com"
+    )
+    client.register_delegated_administrator(
+        AccountId=account_id_2, ServicePrincipal="guardduty.amazonaws.com"
+    )
+
+    # when
+    response = client.list_delegated_administrators()
+
+    # then
+    response["DelegatedAdministrators"].should.have.length_of(2)
+    sorted([admin["Id"] for admin in response["DelegatedAdministrators"]]).should.equal(
+        sorted([account_id_1, account_id_2])
+    )
+
+    # when
+    response = client.list_delegated_administrators(
+        ServicePrincipal="ssm.amazonaws.com"
+    )
+
+    # then
+    response["DelegatedAdministrators"].should.have.length_of(1)
+    admin = response["DelegatedAdministrators"][0]
+    admin["Id"].should.equal(account_id_1)
+    admin["Arn"].should.equal(
+        "arn:aws:organizations::{0}:account/{1}/{2}".format(
+            ACCOUNT_ID, org_id, account_id_1
+        )
+    )
+    admin["Email"].should.equal(mockemail)
+    admin["Name"].should.equal(mockname)
+    admin["Status"].should.equal("ACTIVE")
+    admin["JoinedMethod"].should.equal("CREATED")
+    admin["JoinedTimestamp"].should.be.a(datetime)
+    admin["DelegationEnabledDate"].should.be.a(datetime)
+
+
+@mock_organizations
+def test_list_delegated_administrators_erros():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    # list not supported service
+    # when
+    with assert_raises(ClientError) as e:
+        client.list_delegated_administrators(ServicePrincipal="moto.amazonaws.com")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("ListDelegatedAdministrators")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
     )

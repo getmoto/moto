@@ -88,15 +88,13 @@ class FakeAccount(BaseModel):
 
     def describe(self):
         return {
-            "Account": {
-                "Id": self.id,
-                "Arn": self.arn,
-                "Email": self.email,
-                "Name": self.name,
-                "Status": self.status,
-                "JoinedMethod": self.joined_method,
-                "JoinedTimestamp": unix_time(self.create_time),
-            }
+            "Id": self.id,
+            "Arn": self.arn,
+            "Email": self.email,
+            "Name": self.name,
+            "Status": self.status,
+            "JoinedMethod": self.joined_method,
+            "JoinedTimestamp": unix_time(self.create_time),
         }
 
 
@@ -236,20 +234,31 @@ class FakeDelegatedAdministrator(BaseModel):
         "ssm.amazonaws.com",
     ]
 
-    def __init__(self, account_id):
-        self.account_id = account_id
+    def __init__(self, account):
+        self.account = account
+        self.enabled_date = datetime.datetime.utcnow()
         self.service_principals = []
 
     def add_service_principal(self, service_principal):
         if service_principal in self.service_principals:
             raise AccountAlreadyRegisteredException
 
-        if service_principal not in self.SUPPORTED_SERVICES:
+        if not self.supported_service(service_principal):
             raise InvalidInputException(
                 "You specified an unrecognized service principal."
             )
 
         self.service_principals.append(service_principal)
+
+    def describe(self):
+        return {
+            **self.account.describe(),
+            "DelegationEnabledDate": unix_time(self.enabled_date),
+        }
+
+    @staticmethod
+    def supported_service(service_principal):
+        return service_principal in FakeDelegatedAdministrator.SUPPORTED_SERVICES
 
 
 class OrganizationsBackend(BaseBackend):
@@ -375,7 +384,7 @@ class OrganizationsBackend(BaseBackend):
 
     def describe_account(self, **kwargs):
         account = self.get_account_by_id(kwargs["AccountId"])
-        return account.describe()
+        return dict(Account=account.describe())
 
     def describe_create_account_status(self, **kwargs):
         account = self.get_account_by_attr(
@@ -384,15 +393,13 @@ class OrganizationsBackend(BaseBackend):
         return account.create_account_status
 
     def list_accounts(self):
-        return dict(
-            Accounts=[account.describe()["Account"] for account in self.accounts]
-        )
+        return dict(Accounts=[account.describe() for account in self.accounts])
 
     def list_accounts_for_parent(self, **kwargs):
         parent_id = self.validate_parent_id(kwargs["ParentId"])
         return dict(
             Accounts=[
-                account.describe()["Account"]
+                account.describe()
                 for account in self.accounts
                 if account.parent_id == parent_id
             ]
@@ -634,17 +641,32 @@ class OrganizationsBackend(BaseBackend):
                 "You cannot register master account/yourself as delegated administrator for your organization."
             )
 
-        # check if account exists
-        self.get_account_by_id(account_id)
+        account = self.get_account_by_id(account_id)
 
         admin = next(
-            (admin for admin in self.admins if admin.account_id == account_id), None
+            (admin for admin in self.admins if admin.account.id == account_id), None
         )
         if admin is None:
-            admin = FakeDelegatedAdministrator(account_id)
+            admin = FakeDelegatedAdministrator(account)
             self.admins.append(admin)
 
         admin.add_service_principal(kwargs["ServicePrincipal"])
+
+    def list_delegated_administrators(self, **kwargs):
+        admins = self.admins
+        service = kwargs.get("ServicePrincipal")
+
+        if service:
+            if not FakeDelegatedAdministrator.supported_service(service):
+                raise InvalidInputException(
+                    "You specified an unrecognized service principal."
+                )
+
+            admins = [admin for admin in admins if service in admin.service_principals]
+
+        delegated_admins = [admin.describe() for admin in admins]
+
+        return dict(DelegatedAdministrators=delegated_admins)
 
 
 organizations_backend = OrganizationsBackend()

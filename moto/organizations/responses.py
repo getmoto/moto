@@ -170,3 +170,10 @@ class OrganizationsResponse(BaseResponse):
                 **self.request_params
             )
         )
+
+    def list_delegated_administrators(self):
+        return json.dumps(
+            self.organizations_backend.list_delegated_administrators(
+                **self.request_params
+            )
+        )
