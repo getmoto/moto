@@ -26,11 +26,11 @@ from moto.rds import models as rds_models
 from moto.rds2 import models as rds2_models
 from moto.redshift import models as redshift_models
 from moto.route53 import models as route53_models
-from moto.s3 import models as s3_models, s3_backend
+from moto.s3 import s3_backend
 from moto.s3.utils import bucket_and_name_from_url
 from moto.sns import models as sns_models
 from moto.sqs import models as sqs_models
-from moto.core import ACCOUNT_ID
+from moto.core import ACCOUNT_ID, CloudFormationModel
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,
@@ -39,6 +39,8 @@ from .exceptions import (
     ValidationError,
 )
 from boto.cloudformation.stack import Output
+
+MODEL_LIST = CloudFormationModel.__subclasses__()
 
 MODEL_MAP = {
     "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
@@ -93,7 +95,6 @@ MODEL_MAP = {
     "AWS::Route53::RecordSet": route53_models.RecordSet,
     "AWS::Route53::RecordSetGroup": route53_models.RecordSetGroup,
     "AWS::SNS::Topic": sns_models.Topic,
-    "AWS::S3::Bucket": s3_models.FakeBucket,
     "AWS::SQS::Queue": sqs_models.Queue,
     "AWS::Events::Rule": events_models.Rule,
     "AWS::Events::EventBus": events_models.EventBus,
@@ -134,7 +135,6 @@ NAME_TYPE_MAP = {
     "AWS::IAM::User": "UserName",
     "AWS::Lambda::Function": "FunctionName",
     "AWS::RDS::DBInstance": "DBInstanceIdentifier",
-    "AWS::S3::Bucket": "BucketName",
     "AWS::SNS::Topic": "TopicName",
     "AWS::SQS::Queue": "QueueName",
 }
@@ -292,6 +292,9 @@ def clean_json(resource_json, resources_map):
 def resource_class_from_type(resource_type):
     if resource_type in NULL_MODELS:
         return None
+    for model in MODEL_LIST:
+        if model.cloudformation_type() == resource_type:
+            return model
     if resource_type not in MODEL_MAP:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None
@@ -299,6 +302,9 @@ def resource_class_from_type(resource_type):
 
 
 def resource_name_property_from_type(resource_type):
+    for model in MODEL_LIST:
+        if model.cloudformation_type() == resource_type:
+            return model.cloudformation_name_type()
     return NAME_TYPE_MAP.get(resource_type)
 
 
@@ -327,7 +333,9 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
-def parse_resource(logical_id, resource_json, resources_map):
+def parse_resource(
+    logical_id, resource_json, resources_map, add_name_to_resource_json=True
+):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
@@ -339,21 +347,20 @@ def parse_resource(logical_id, resource_json, resources_map):
         return None
 
     resource_json = clean_json(resource_json, resources_map)
+    resource_name = generate_resource_name(
+        resource_type, resources_map.get("AWS::StackName"), logical_id
+    )
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
         if "Properties" not in resource_json:
             resource_json["Properties"] = dict()
-        if resource_name_property not in resource_json["Properties"]:
-            resource_json["Properties"][
-                resource_name_property
-            ] = generate_resource_name(
-                resource_type, resources_map.get("AWS::StackName"), logical_id
-            )
-        resource_name = resource_json["Properties"][resource_name_property]
-    else:
-        resource_name = generate_resource_name(
-            resource_type, resources_map.get("AWS::StackName"), logical_id
-        )
+        if (
+            add_name_to_resource_json
+            and resource_name_property not in resource_json["Properties"]
+        ):
+            resource_json["Properties"][resource_name_property] = resource_name
+        if resource_name_property in resource_json["Properties"]:
+            resource_name = resource_json["Properties"][resource_name_property]
 
     return resource_class, resource_json, resource_name
 
@@ -379,12 +386,12 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
     resource_class, new_resource_json, new_resource_name = parse_resource(
-        logical_id, resource_json, resources_map
+        logical_id, resource_json, resources_map, False
     )
     original_resource = resources_map[logical_id]
     new_resource = resource_class.update_from_cloudformation_json(
         original_resource=original_resource,
-        new_resource_name=new_resource_name,
+        candidate_resource_name=new_resource_name,
         cloudformation_json=new_resource_json,
         region_name=region_name,
     )

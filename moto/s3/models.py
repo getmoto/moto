@@ -21,7 +21,7 @@ import uuid
 import six
 
 from bisect import insort
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
@@ -43,7 +43,7 @@ from .exceptions import (
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
 )
-from .cloud_formation import cfn_to_api_encryption
+from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -764,7 +764,7 @@ class PublicAccessBlock(BaseModel):
         }
 
 
-class FakeBucket(BaseModel):
+class FakeBucket(CloudFormationModel):
     def __init__(self, name, region_name):
         self.name = name
         self.region_name = region_name
@@ -783,6 +783,14 @@ class FakeBucket(BaseModel):
         self.creation_date = datetime.datetime.now(tz=pytz.utc)
         self.public_access_block = None
         self.encryption = None
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "BucketName"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::S3::Bucket"
 
     @property
     def location(self):
@@ -1089,20 +1097,42 @@ class FakeBucket(BaseModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name
+        cls,
+        original_resource,
+        candidate_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
-        # Need to sort out when a new resource is created vs an in-place update.
-        #  Is there an issue insofar as new_resource_name is always provided?
-
-        if "BucketEncryption" in properties:
-            bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backend.put_bucket_encryption(
-                bucket_name=original_resource.name, encryption=[bucket_encryption]
+        if is_replacement_update(properties):
+            resource_name_property = cls.cloudformation_name_type()
+            if resource_name_property not in properties:
+                properties[resource_name_property] = candidate_resource_name
+            new_resource = cls.create_from_cloudformation_json(
+                properties[resource_name_property], cloudformation_json, region_name
             )
+            properties[resource_name_property] = original_resource.name
+            cls.delete_from_cloudformation_json(original_resource.name, cloudformation_json, region_name)
+            return new_resource
 
-        return original_resource
+        else:  # No Interruption
+            if "BucketEncryption" in properties:
+                bucket_encryption = cfn_to_api_encryption(
+                    properties["BucketEncryption"]
+                )
+                s3_backend.put_bucket_encryption(
+                    bucket_name=original_resource.name, encryption=[bucket_encryption]
+                )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        bucket_name = properties[cls.cloudformation_name_type()]
+        s3_backend.delete_bucket(bucket_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.

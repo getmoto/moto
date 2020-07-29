@@ -21,3 +21,11 @@ def cfn_to_api_encryption(bucket_encryption_properties):
     )
     bucket_encryption["Rule"] = rule
     return bucket_encryption
+
+
+def is_replacement_update(properties):
+    properties_requiring_replacement_update = ["BucketName", "ObjectLockEnabled"]
+    return any(
+        [property_requiring_replacement in properties
+         for property_requiring_replacement in properties_requiring_replacement_update]
+    )
