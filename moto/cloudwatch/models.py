@@ -3,7 +3,7 @@ import json
 from boto3 import Session
 
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.logs import logs_backends
 from datetime import datetime, timedelta
@@ -490,12 +490,21 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
 
-class LogGroup(BaseModel):
+class LogGroup(CloudFormationModel):
     def __init__(self, spec):
         # required
         self.name = spec["LogGroupName"]
         # optional
         self.tags = spec.get("Tags", [])
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LogGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::Logs::LogGroup"
 
     @classmethod
     def create_from_cloudformation_json(

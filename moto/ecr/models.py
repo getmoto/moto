@@ -7,7 +7,7 @@ from random import random
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2 import ec2_backends
 from moto.ecr.exceptions import ImageNotFoundException, RepositoryNotFoundException
 
@@ -38,7 +38,7 @@ class BaseObject(BaseModel):
         return self.gen_response_object()
 
 
-class Repository(BaseObject):
+class Repository(BaseObject, CloudFormationModel):
     def __init__(self, repository_name):
         self.registry_id = DEFAULT_REGISTRY_ID
         self.arn = "arn:aws:ecr:us-east-1:{0}:repository/{1}".format(
@@ -66,6 +66,15 @@ class Repository(BaseObject):
         # response_object['createdAt'] = self.created
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "RepositoryName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::ECR::Repository"
 
     @classmethod
     def create_from_cloudformation_json(

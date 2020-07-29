@@ -4,7 +4,7 @@ import datetime
 from boto3 import Session
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 
 
@@ -18,7 +18,7 @@ class PipelineObject(BaseModel):
         return {"fields": self.fields, "id": self.object_id, "name": self.name}
 
 
-class Pipeline(BaseModel):
+class Pipeline(CloudFormationModel):
     def __init__(self, name, unique_id, **kwargs):
         self.name = name
         self.unique_id = unique_id
@@ -73,6 +73,15 @@ class Pipeline(BaseModel):
 
     def activate(self):
         self.status = "SCHEDULED"
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::DataPipeline::Pipeline"
 
     @classmethod
     def create_from_cloudformation_json(

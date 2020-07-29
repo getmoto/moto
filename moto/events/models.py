@@ -4,14 +4,14 @@ import json
 from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.sts.models import ACCOUNT_ID
 from moto.utilities.tagging_service import TaggingService
 
 from uuid import uuid4
 
 
-class Rule(BaseModel):
+class Rule(CloudFormationModel):
     def _generate_arn(self, name):
         return "arn:aws:events:{region_name}:111111111111:rule/{name}".format(
             region_name=self.region_name, name=name
@@ -73,6 +73,15 @@ class Rule(BaseModel):
 
         raise UnformattedGetAttTemplateException()
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::Events::Rule"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -101,7 +110,7 @@ class Rule(BaseModel):
         event_backend.delete_rule(name=event_name)
 
 
-class EventBus(BaseModel):
+class EventBus(CloudFormationModel):
     def __init__(self, region_name, name):
         self.region = region_name
         self.name = name
@@ -151,6 +160,15 @@ class EventBus(BaseModel):
             return self.policy
 
         raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::Events::EventBus"
 
     @classmethod
     def create_from_cloudformation_json(

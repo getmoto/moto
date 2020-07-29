@@ -8,7 +8,7 @@ import pytz
 from boto3 import Session
 
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.ec2 import ec2_backends
 from copy import copy
@@ -44,7 +44,7 @@ class BaseObject(BaseModel):
         return self.gen_response_object()
 
 
-class Cluster(BaseObject):
+class Cluster(BaseObject, CloudFormationModel):
     def __init__(self, cluster_name, region_name):
         self.active_services_count = 0
         self.arn = "arn:aws:ecs:{0}:012345678910:cluster/{1}".format(
@@ -68,6 +68,15 @@ class Cluster(BaseObject):
         response_object["clusterName"] = self.name
         del response_object["arn"], response_object["name"]
         return response_object
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "ClusterName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::ECS::Cluster"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -116,7 +125,7 @@ class Cluster(BaseObject):
         raise UnformattedGetAttTemplateException()
 
 
-class TaskDefinition(BaseObject):
+class TaskDefinition(BaseObject, CloudFormationModel):
     def __init__(
         self,
         family,
@@ -158,6 +167,15 @@ class TaskDefinition(BaseObject):
     @property
     def physical_resource_id(self):
         return self.arn
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::ECS::TaskDefinition"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -235,7 +253,7 @@ class Task(BaseObject):
         return response_object
 
 
-class Service(BaseObject):
+class Service(BaseObject, CloudFormationModel):
     def __init__(
         self,
         cluster,
@@ -314,6 +332,15 @@ class Service(BaseObject):
                 )
 
         return response_object
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "ServiceName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::ECS::Service"
 
     @classmethod
     def create_from_cloudformation_json(

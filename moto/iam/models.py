@@ -15,7 +15,7 @@ from six.moves.urllib.parse import urlparse
 from uuid import uuid4
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
@@ -299,7 +299,7 @@ class InlinePolicy(Policy):
     """TODO: is this needed?"""
 
 
-class Role(BaseModel):
+class Role(CloudFormationModel):
     def __init__(
         self,
         role_id,
@@ -326,6 +326,15 @@ class Role(BaseModel):
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "RoleName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::IAM::Role"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -384,7 +393,7 @@ class Role(BaseModel):
         return [self.tags[tag] for tag in self.tags]
 
 
-class InstanceProfile(BaseModel):
+class InstanceProfile(CloudFormationModel):
     def __init__(self, instance_profile_id, name, path, roles):
         self.id = instance_profile_id
         self.name = name
@@ -395,6 +404,15 @@ class InstanceProfile(BaseModel):
     @property
     def created_iso_8601(self):
         return iso_8601_datetime_with_milliseconds(self.create_date)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "InstanceProfileName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::IAM::InstanceProfile"
 
     @classmethod
     def create_from_cloudformation_json(

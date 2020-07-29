@@ -3,14 +3,14 @@ from __future__ import unicode_literals
 import boto.rds
 from jinja2 import Template
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
 from moto.rds.exceptions import UnformattedGetAttTemplateException
 from moto.rds2.models import rds2_backends
 
 
-class Database(BaseModel):
+class Database(CloudFormationModel):
     def get_cfn_attribute(self, attribute_name):
         if attribute_name == "Endpoint.Address":
             return self.address
@@ -18,13 +18,22 @@ class Database(BaseModel):
             return self.port
         raise UnformattedGetAttTemplateException()
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "DBInstanceIdentifier"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::RDS::DBInstance"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get("DBInstanceIdentifier")
+        db_instance_identifier = properties.get(self.cloudformation_name_type())
         if not db_instance_identifier:
             db_instance_identifier = resource_name.lower() + get_random_hex(12)
         db_security_groups = properties.get("DBSecurityGroups")
@@ -163,7 +172,7 @@ class Database(BaseModel):
         backend.delete_database(self.db_instance_identifier)
 
 
-class SecurityGroup(BaseModel):
+class SecurityGroup(CloudFormationModel):
     def __init__(self, group_name, description):
         self.group_name = group_name
         self.description = description
@@ -206,6 +215,15 @@ class SecurityGroup(BaseModel):
     def authorize_security_group(self, security_group):
         self.ec2_security_groups.append(security_group)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::RDS::DBSecurityGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -239,7 +257,7 @@ class SecurityGroup(BaseModel):
         backend.delete_security_group(self.group_name)
 
 
-class SubnetGroup(BaseModel):
+class SubnetGroup(CloudFormationModel):
     def __init__(self, subnet_name, description, subnets):
         self.subnet_name = subnet_name
         self.description = description
@@ -271,13 +289,23 @@ class SubnetGroup(BaseModel):
         )
         return template.render(subnet_group=self)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "DBSubnetGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::RDS::DBSubnetGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-
-        subnet_name = resource_name.lower() + get_random_hex(12)
+        subnet_name = properties.get(self.cloudformation_name_type())
+        if not subnet_name:
+            subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties["DBSubnetGroupDescription"]
         subnet_ids = properties["SubnetIds"]
         tags = properties.get("Tags")
