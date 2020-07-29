@@ -356,3 +356,14 @@ def tags_from_query_string(
             else:
                 response_values[tag_key] = None
     return response_values
+
+
+def tags_from_cloudformation_tags_list(tags_list):
+    """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
+    tags = {}
+    for entry in tags_list:
+        key = entry["Key"]
+        value = entry["Value"]
+        tags[key] = value
+
+    return tags

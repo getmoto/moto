@@ -18,6 +18,7 @@ from moto.core.utils import (
     get_random_message_id,
     unix_time,
     unix_time_millis,
+    tags_from_cloudformation_tags_list,
 )
 from .utils import generate_receipt_handle
 from .exceptions import (
@@ -357,11 +358,17 @@ class Queue(BaseModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
+        properties = deepcopy(cloudformation_json["Properties"])
+        # remove Tags from properties and convert tags list to dict
+        tags = properties.pop("Tags", [])
+        tags_dict = tags_from_cloudformation_tags_list(tags)
 
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
-            name=properties["QueueName"], region=region_name, **properties
+            name=properties["QueueName"],
+            tags=tags_dict,
+            region=region_name,
+            **properties
         )
 
     @classmethod
