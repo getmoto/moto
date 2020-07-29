@@ -163,3 +163,10 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.disable_aws_service_access(**self.request_params)
         )
+
+    def register_delegated_administrator(self):
+        return json.dumps(
+            self.organizations_backend.register_delegated_administrator(
+                **self.request_params
+            )
+        )

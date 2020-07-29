@@ -4,7 +4,7 @@ import datetime
 import re
 import json
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, ACCOUNT_ID
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time
 from moto.organizations import utils
@@ -12,6 +12,9 @@ from moto.organizations.exceptions import (
     InvalidInputException,
     DuplicateOrganizationalUnitException,
     DuplicatePolicyException,
+    AccountNotFoundException,
+    ConstraintViolationException,
+    AccountAlreadyRegisteredException,
 )
 
 
@@ -221,6 +224,34 @@ class FakeServiceAccess(BaseModel):
         return service_principal in FakeServiceAccess.TRUSTED_SERVICES
 
 
+class FakeDelegatedAdministrator(BaseModel):
+    # List of services, which support a different Account to ba a delegated administrator
+    # https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html
+    SUPPORTED_SERVICES = [
+        "config-multiaccountsetup.amazonaws.com",
+        "guardduty.amazonaws.com",
+        "access-analyzer.amazonaws.com",
+        "macie.amazonaws.com",
+        "servicecatalog.amazonaws.com",
+        "ssm.amazonaws.com",
+    ]
+
+    def __init__(self, account_id):
+        self.account_id = account_id
+        self.service_principals = []
+
+    def add_service_principal(self, service_principal):
+        if service_principal in self.service_principals:
+            raise AccountAlreadyRegisteredException
+
+        if service_principal not in self.SUPPORTED_SERVICES:
+            raise InvalidInputException(
+                "You specified an unrecognized service principal."
+            )
+
+        self.service_principals.append(service_principal)
+
+
 class OrganizationsBackend(BaseBackend):
     def __init__(self):
         self.org = None
@@ -228,6 +259,7 @@ class OrganizationsBackend(BaseBackend):
         self.ou = []
         self.policies = []
         self.services = []
+        self.admins = []
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs["FeatureSet"])
@@ -325,10 +357,7 @@ class OrganizationsBackend(BaseBackend):
             (account for account in self.accounts if account.id == account_id), None
         )
         if account is None:
-            raise RESTError(
-                "AccountNotFoundException",
-                "You specified an account that doesn't exist.",
-            )
+            raise AccountNotFoundException
         return account
 
     def get_account_by_attr(self, attr, value):
@@ -341,10 +370,7 @@ class OrganizationsBackend(BaseBackend):
             None,
         )
         if account is None:
-            raise RESTError(
-                "AccountNotFoundException",
-                "You specified an account that doesn't exist.",
-            )
+            raise AccountNotFoundException
         return account
 
     def describe_account(self, **kwargs):
@@ -399,7 +425,7 @@ class OrganizationsBackend(BaseBackend):
         elif kwargs["ChildType"] == "ORGANIZATIONAL_UNIT":
             obj_list = self.ou
         else:
-            raise RESTError("InvalidInputException", "You specified an invalid value.")
+            raise InvalidInputException("You specified an invalid value.")
         return dict(
             Children=[
                 {"Id": obj.id, "Type": kwargs["ChildType"]}
@@ -427,7 +453,7 @@ class OrganizationsBackend(BaseBackend):
                     "You specified a policy that doesn't exist.",
                 )
         else:
-            raise RESTError("InvalidInputException", "You specified an invalid value.")
+            raise InvalidInputException("You specified an invalid value.")
         return policy.describe()
 
     def get_policy_by_id(self, policy_id):
@@ -472,12 +498,9 @@ class OrganizationsBackend(BaseBackend):
                     account.attached_policies.append(policy)
                     policy.attachments.append(account)
             else:
-                raise RESTError(
-                    "AccountNotFoundException",
-                    "You specified an account that doesn't exist.",
-                )
+                raise AccountNotFoundException
         else:
-            raise RESTError("InvalidInputException", "You specified an invalid value.")
+            raise InvalidInputException("You specified an invalid value.")
 
     def list_policies(self, **kwargs):
         return dict(
@@ -510,12 +533,9 @@ class OrganizationsBackend(BaseBackend):
         elif re.compile(utils.ACCOUNT_ID_REGEX).match(kwargs["TargetId"]):
             obj = next((a for a in self.accounts if a.id == kwargs["TargetId"]), None)
             if obj is None:
-                raise RESTError(
-                    "AccountNotFoundException",
-                    "You specified an account that doesn't exist.",
-                )
+                raise AccountNotFoundException
         else:
-            raise RESTError("InvalidInputException", "You specified an invalid value.")
+            raise InvalidInputException("You specified an invalid value.")
         return dict(
             Policies=[
                 p.describe()["Policy"]["PolicySummary"] for p in obj.attached_policies
@@ -533,7 +553,7 @@ class OrganizationsBackend(BaseBackend):
                     "You specified a policy that doesn't exist.",
                 )
         else:
-            raise RESTError("InvalidInputException", "You specified an invalid value.")
+            raise InvalidInputException("You specified an invalid value.")
         objects = [
             {"TargetId": obj.id, "Arn": obj.arn, "Name": obj.name, "Type": obj.type}
             for obj in policy.attachments
@@ -605,6 +625,26 @@ class OrganizationsBackend(BaseBackend):
 
         if service_principal:
             self.services.remove(service_principal)
+
+    def register_delegated_administrator(self, **kwargs):
+        account_id = kwargs["AccountId"]
+
+        if account_id == ACCOUNT_ID:
+            raise ConstraintViolationException(
+                "You cannot register master account/yourself as delegated administrator for your organization."
+            )
+
+        # check if account exists
+        self.get_account_by_id(account_id)
+
+        admin = next(
+            (admin for admin in self.admins if admin.account_id == account_id), None
+        )
+        if admin is None:
+            admin = FakeDelegatedAdministrator(account_id)
+            self.admins.append(admin)
+
+        admin.add_service_principal(kwargs["ServicePrincipal"])
 
 
 organizations_backend = OrganizationsBackend()

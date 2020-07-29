@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 
 from moto import mock_organizations
+from moto.core import ACCOUNT_ID
 from moto.organizations import utils
 from .organizations_test_utils import (
     validate_organization,
@@ -946,4 +947,98 @@ def test_disable_aws_service_access_errors():
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
     ex.response["Error"]["Message"].should.equal(
         "You specified an unrecognized service principal."
+    )
+
+
+@mock_organizations
+def test_register_delegated_administrator():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+
+    # when
+    client.register_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+    )
+
+    # then
+
+
+@mock_organizations
+def test_register_delegated_administrator_errors():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    client.register_delegated_administrator(
+        AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+    )
+
+    # register master Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.register_delegated_administrator(
+            AccountId=ACCOUNT_ID, ServicePrincipal="ram.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("RegisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("ConstraintViolationException")
+    ex.response["Error"]["Message"].should.equal(
+        "You cannot register master account/yourself as delegated administrator for your organization."
+    )
+
+    # register not existing Account
+    # when
+    with assert_raises(ClientError) as e:
+        client.register_delegated_administrator(
+            AccountId="000000000000", ServicePrincipal="ram.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("RegisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
+
+    # register not supported service
+    # when
+    with assert_raises(ClientError) as e:
+        client.register_delegated_administrator(
+            AccountId=account_id, ServicePrincipal="moto.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("RegisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an unrecognized service principal."
+    )
+
+    # register service again
+    # when
+    with assert_raises(ClientError) as e:
+        client.register_delegated_administrator(
+            AccountId=account_id, ServicePrincipal="ssm.amazonaws.com"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("RegisterDelegatedAdministrator")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountAlreadyRegisteredException")
+    ex.response["Error"]["Message"].should.equal(
+        "The provided account is already a delegated administrator for your organization."
     )
