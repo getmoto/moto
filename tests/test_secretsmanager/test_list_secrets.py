@@ -106,7 +106,7 @@ def test_with_description_filter():
 
 @mock_secretsmanager
 def test_with_all_filter():
-    """The 'all' filter will match a secret that contains ANY field with the criteria. In other words an implicit OR."""
+    # The 'all' filter will match a secret that contains ANY field with the criteria. In other words an implicit OR.
 
     conn = boto_client()
 
@@ -156,7 +156,7 @@ def test_with_invalid_filter_key():
 
 @mock_secretsmanager
 def test_with_duplicate_filter_keys():
-    """Multiple filters with the same key combine with an implicit AND operator"""
+    # Multiple filters with the same key combine with an implicit AND operator
 
     conn = boto_client()
 
@@ -178,7 +178,7 @@ def test_with_duplicate_filter_keys():
 
 @mock_secretsmanager
 def test_with_multiple_filters():
-    """Multiple filters combine with an implicit AND operator"""
+    # Multiple filters combine with an implicit AND operator
 
     conn = boto_client()
 
