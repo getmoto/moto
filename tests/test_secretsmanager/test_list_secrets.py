@@ -6,7 +6,7 @@ import boto3
 from moto import mock_secretsmanager
 from botocore.exceptions import ClientError
 import sure  # noqa
-from nose.tools import assert_raises, assert_equal, assert_count_equal # noqa
+from nose.tools import assert_raises, assert_equal, assert_count_equal  # noqa
 
 
 def boto_client():
