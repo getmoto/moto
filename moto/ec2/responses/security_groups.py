@@ -20,8 +20,9 @@ def parse_sg_attributes_from_dict(sg_attributes):
     ip_ranges = []
     ip_ranges_tree = sg_attributes.get("IpRanges") or {}
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
-        ip_range = {'CidrIp': ip_ranges_tree[ip_range_idx]["CidrIp"][0],
-                    'Description': ip_ranges_tree[ip_range_idx]["Description"][0]}
+        ip_range = {"CidrIp": ip_ranges_tree[ip_range_idx]["CidrIp"][0]}
+        if ip_ranges_tree[ip_range_idx].get("Description"):
+            ip_range["Description"] = ip_ranges_tree[ip_range_idx].get("Description")[0]
 
         ip_ranges.append(ip_range)
 
@@ -64,6 +65,7 @@ class SecurityGroups(BaseResponse):
                 source_groups,
                 source_group_ids,
             ) = parse_sg_attributes_from_dict(querytree)
+
             yield (
                 group_name_or_id,
                 ip_protocol,
@@ -176,14 +178,14 @@ DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazon
 </DeleteSecurityGroupResponse>"""
 
 DESCRIBE_SECURITY_GROUPS_RESPONSE = (
-    """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+        """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <securityGroupInfo>
       {% for group in groups %}
           <item>
              <ownerId>"""
-    + ACCOUNT_ID
-    + """</ownerId>
+        + ACCOUNT_ID
+        + """</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -204,8 +206,8 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for source_group in rule.source_groups %}
                               <item>
                                  <userId>"""
-    + ACCOUNT_ID
-    + """</userId>
+        + ACCOUNT_ID
+        + """</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -215,7 +217,9 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for ip_range in rule.ip_ranges %}
                               <item>
                                  <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
-                                 <description>{{ ip_range['Description'] }}</description>
+                                    {% if ip_range['Description'] %}
+                                        <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
                               </item>
                           {% endfor %}
                        </ipRanges>
@@ -236,8 +240,8 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for source_group in rule.source_groups %}
                               <item>
                                  <userId>"""
-    + ACCOUNT_ID
-    + """</userId>
+        + ACCOUNT_ID
+        + """</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>

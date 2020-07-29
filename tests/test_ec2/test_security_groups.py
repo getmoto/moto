@@ -714,6 +714,24 @@ def test_description_in_ip_permissions():
     assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['Description'] == "testDescription"
     assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['CidrIp'] == "1.2.3.4/32"
 
+    sg = conn.create_security_group(
+        GroupName="sg2", Description="Test security group sg1", VpcId=vpc.id
+    )
+
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27017,
+            "IpRanges": [{"CidrIp": "1.2.3.4/32"}],
+        }
+    ]
+    conn.authorize_security_group_ingress(GroupId=sg['GroupId'], IpPermissions=ip_permissions)
+
+    result = conn.describe_security_groups(GroupIds=[sg['GroupId']])
+    assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0].get('Description') is None
+    assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['CidrIp'] == "1.2.3.4/32"
+
 
 @mock_ec2
 def test_security_group_tagging_boto3():
