@@ -60,9 +60,6 @@ NAME_TYPE_MAP = {
     for model in MODEL_LIST
 }
 
-for model_type in sorted(list(MODEL_MAP.keys())):
-    print(model_type)
-
 # Just ignore these models types for now
 NULL_MODELS = [
     "AWS::CloudFormation::WaitCondition",
