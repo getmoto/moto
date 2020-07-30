@@ -7,8 +7,39 @@ import warnings
 import re
 
 from moto.compat import collections_abc
+
+# This ugly section of imports is necessary because we
+# build the list of CloudFormationModel subclasses using
+# CloudFormationModel.__subclasses__(). However, if the class
+# definition of a subclass hasn't been executed yet - for example, if
+# the subclass's module hasn't been imported yet - then that subclass
+# doesn't exist yet, and __subclasses__ won't find it.
+# So we import here to populate the list of subclasses.
+from moto.autoscaling import models as autoscaling_models  # noqa
+from moto.awslambda import models as awslambda_models  # noqa
+from moto.batch import models as batch_models  # noqa
+from moto.cloudwatch import models as cloudwatch_models  # noqa
+from moto.datapipeline import models as datapipeline_models  # noqa
+from moto.dynamodb2 import models as dynamodb2_models  # noqa
+from moto.ecr import models as ecr_models  # noqa
+from moto.ecs import models as ecs_models  # noqa
+from moto.elb import models as elb_models  # noqa
+from moto.elbv2 import models as elbv2_models  # noqa
+from moto.events import models as events_models  # noqa
+from moto.iam import models as iam_models  # noqa
+from moto.kinesis import models as kinesis_models  # noqa
+from moto.kms import models as kms_models  # noqa
+from moto.rds import models as rds_models  # noqa
+from moto.rds2 import models as rds2_models  # noqa
+from moto.redshift import models as redshift_models  # noqa
+from moto.route53 import models as route53_models  # noqa
+from moto.s3 import models as s3_models  # noqa
+from moto.sns import models as sns_models  # noqa
+from moto.sqs import models as sqs_models  # noqa
+# End ugly list of imports
+
 from moto.ec2 import models as ec2_models
-from moto.s3 import models as s3_backend
+from moto.s3 import models as _, s3_backend
 from moto.s3.utils import bucket_and_name_from_url
 from moto.core import ACCOUNT_ID, CloudFormationModel
 from .utils import random_suffix
@@ -27,6 +58,9 @@ NAME_TYPE_MAP = {
     model.cloudformation_type(): model.cloudformation_name_type()
     for model in MODEL_LIST
 }
+
+for model_type in sorted(list(MODEL_MAP.keys())):
+    print(model_type)
 
 # Just ignore these models types for now
 NULL_MODELS = [
