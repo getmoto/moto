@@ -36,6 +36,7 @@ from moto.route53 import models as route53_models  # noqa
 from moto.s3 import models as s3_models  # noqa
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
+
 # End ugly list of imports
 
 from moto.ec2 import models as ec2_models
