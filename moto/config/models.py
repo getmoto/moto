@@ -47,8 +47,8 @@ from moto.config.exceptions import (
 
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_account_public_access_block_query, s3_config_query
-
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+from moto.iam.config import role_config_query, policy_config_query
 
 POP_STRINGS = [
     "capitalizeStart",
@@ -64,6 +64,8 @@ DEFAULT_PAGE_SIZE = 100
 RESOURCE_MAP = {
     "AWS::S3::Bucket": s3_config_query,
     "AWS::S3::AccountPublicAccessBlock": s3_account_public_access_block_query,
+    "AWS::IAM::Role": role_config_query,
+    "AWS::IAM::Policy": policy_config_query,
 }
 
 

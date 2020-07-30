@@ -23,8 +23,8 @@ However, this will only work on resource types that have this enabled.
 
 ### Current enabled resource types:
 
-1. S3
-
+1. S3 (all)
+1. IAM (Role, Policy)
 
 ## Developer Guide
 

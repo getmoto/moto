@@ -19,6 +19,7 @@ from nose.tools import raises
 from datetime import datetime
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
+from six.moves.urllib import parse
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -2882,3 +2883,450 @@ def test_delete_role_with_instance_profiles_present():
     role_names = [role["RoleName"] for role in iam.list_roles()["Roles"]]
     assert "Role1" in role_names
     assert "Role2" not in role_names
+
+
+@mock_iam
+def test_delete_account_password_policy_errors():
+    client = boto3.client("iam", region_name="us-east-1")
+
+    client.delete_account_password_policy.when.called_with().should.throw(
+        ClientError, "The account policy with name PasswordPolicy cannot be found."
+    )
+
+
+@mock_iam
+def test_role_list_config_discovered_resources():
+    from moto.iam.config import role_config_query
+    from moto.iam.utils import random_resource_id
+
+    # Without any roles
+    assert role_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    # Create a role
+    role_config_query.backends["global"].create_role(
+        role_name="something",
+        assume_role_policy_document=None,
+        path="/",
+        permissions_boundary=None,
+        description="something",
+        tags=[],
+        max_session_duration=3600,
+    )
+
+    result = role_config_query.list_config_service_resources(None, None, 100, None)[0]
+    assert len(result) == 1
+
+    # The role gets a random ID, so we have to grab it
+    role = result[0]
+    assert role["type"] == "AWS::IAM::Role"
+    assert len(role["id"]) == len(random_resource_id())
+    assert role["id"] == role["name"]
+    assert role["region"] == "global"
+
+
+@mock_iam
+def test_policy_list_config_discovered_resources():
+    from moto.iam.config import policy_config_query
+
+    # Without any policies
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Action": ["ec2:DeleteKeyPair"], "Effect": "Deny", "Resource": "*"}
+        ],
+    }
+
+    # Create a role
+    policy_config_query.backends["global"].create_policy(
+        description="mypolicy",
+        path="",
+        policy_document=json.dumps(basic_policy),
+        policy_name="mypolicy",
+    )
+
+    result = policy_config_query.list_config_service_resources(None, None, 100, None)[0]
+    assert len(result) == 1
+
+    policy = result[0]
+    assert policy["type"] == "AWS::IAM::Policy"
+    assert policy["id"] == policy["name"] == "arn:aws:iam::123456789012:policy/mypolicy"
+    assert policy["region"] == "global"
+
+
+@mock_iam
+def test_role_config_dict():
+    from moto.iam.config import role_config_query, policy_config_query
+    from moto.iam.utils import random_resource_id
+
+    # Without any roles
+    assert not role_config_query.get_config_resource("something")
+    assert role_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_assume_role = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Effect": "Allow", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}
+        ],
+    }
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Action": ["ec2:*"], "Effect": "Allow", "Resource": "*"}],
+    }
+
+    # Create a policy for use in role permissions boundary
+    policy_config_query.backends["global"].create_policy(
+        description="basic_policy",
+        path="/",
+        policy_document=json.dumps(basic_policy),
+        policy_name="basic_policy",
+    )
+
+    policy_arn = policy_config_query.list_config_service_resources(
+        None, None, 100, None
+    )[0][0]["id"]
+    assert policy_arn is not None
+
+    # Create some roles (and grab them repeatedly since they create with random names)
+    role_config_query.backends["global"].create_role(
+        role_name="plain_role",
+        assume_role_policy_document=None,
+        path="/",
+        permissions_boundary=None,
+        description="plain_role",
+        tags=[{"Key": "foo", "Value": "bar"}],
+        max_session_duration=3600,
+    )
+
+    plain_role = role_config_query.list_config_service_resources(None, None, 100, None)[
+        0
+    ][0]
+    assert plain_role is not None
+    assert len(plain_role["id"]) == len(random_resource_id())
+
+    role_config_query.backends["global"].create_role(
+        role_name="assume_role",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=None,
+        description="assume_role",
+        tags=[],
+        max_session_duration=3600,
+    )
+
+    assume_role = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"] not in [plain_role["id"]]
+    )
+    assert assume_role is not None
+    assert len(assume_role["id"]) == len(random_resource_id())
+    assert assume_role["id"] is not plain_role["id"]
+
+    role_config_query.backends["global"].create_role(
+        role_name="assume_and_permission_boundary_role",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=policy_arn,
+        description="assume_and_permission_boundary_role",
+        tags=[],
+        max_session_duration=3600,
+    )
+
+    assume_and_permission_boundary_role = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"] not in [plain_role["id"], assume_role["id"]]
+    )
+    assert assume_and_permission_boundary_role is not None
+    assert len(assume_and_permission_boundary_role["id"]) == len(random_resource_id())
+    assert assume_and_permission_boundary_role["id"] is not plain_role["id"]
+    assert assume_and_permission_boundary_role["id"] is not assume_role["id"]
+
+    role_config_query.backends["global"].create_role(
+        role_name="role_with_attached_policy",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=None,
+        description="role_with_attached_policy",
+        tags=[],
+        max_session_duration=3600,
+    )
+    role_config_query.backends["global"].attach_role_policy(
+        policy_arn, "role_with_attached_policy"
+    )
+    role_with_attached_policy = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"]
+        not in [
+            plain_role["id"],
+            assume_role["id"],
+            assume_and_permission_boundary_role["id"],
+        ]
+    )
+    assert role_with_attached_policy is not None
+    assert len(role_with_attached_policy["id"]) == len(random_resource_id())
+    assert role_with_attached_policy["id"] is not plain_role["id"]
+    assert role_with_attached_policy["id"] is not assume_role["id"]
+    assert (
+        role_with_attached_policy["id"] is not assume_and_permission_boundary_role["id"]
+    )
+
+    role_config_query.backends["global"].create_role(
+        role_name="role_with_inline_policy",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=None,
+        description="role_with_inline_policy",
+        tags=[],
+        max_session_duration=3600,
+    )
+    role_config_query.backends["global"].put_role_policy(
+        "role_with_inline_policy", "inline_policy", json.dumps(basic_policy)
+    )
+
+    role_with_inline_policy = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"]
+        not in [
+            plain_role["id"],
+            assume_role["id"],
+            assume_and_permission_boundary_role["id"],
+            role_with_attached_policy["id"],
+        ]
+    )
+    assert role_with_inline_policy is not None
+    assert len(role_with_inline_policy["id"]) == len(random_resource_id())
+    assert role_with_inline_policy["id"] is not plain_role["id"]
+    assert role_with_inline_policy["id"] is not assume_role["id"]
+    assert (
+        role_with_inline_policy["id"] is not assume_and_permission_boundary_role["id"]
+    )
+    assert role_with_inline_policy["id"] is not role_with_attached_policy["id"]
+
+    # plain role
+    plain_role_config = (
+        role_config_query.backends["global"].roles[plain_role["id"]].to_config_dict()
+    )
+    assert plain_role_config["version"] == "1.3"
+    assert plain_role_config["configurationItemStatus"] == "ResourceDiscovered"
+    assert plain_role_config["configurationStateId"] is not None
+    assert plain_role_config["arn"] == "arn:aws:iam::123456789012:role/plain_role"
+    assert plain_role_config["resourceType"] == "AWS::IAM::Role"
+    assert plain_role_config["resourceId"] == "plain_role"
+    assert plain_role_config["resourceName"] == "plain_role"
+    assert plain_role_config["awsRegion"] == "global"
+    assert plain_role_config["availabilityZone"] == "Not Applicable"
+    assert plain_role_config["resourceCreationTime"] is not None
+    assert plain_role_config["tags"] == {"foo": {"Key": "foo", "Value": "bar"}}
+    assert plain_role_config["configuration"]["path"] == "/"
+    assert plain_role_config["configuration"]["roleName"] == "plain_role"
+    assert plain_role_config["configuration"]["roleId"] == plain_role["id"]
+    assert plain_role_config["configuration"]["arn"] == plain_role_config["arn"]
+    assert plain_role_config["configuration"]["assumeRolePolicyDocument"] is None
+    assert plain_role_config["configuration"]["instanceProfileList"] == []
+    assert plain_role_config["configuration"]["rolePolicyList"] == []
+    assert plain_role_config["configuration"]["attachedManagedPolicies"] == []
+    assert plain_role_config["configuration"]["permissionsBoundary"] is None
+    assert plain_role_config["configuration"]["tags"] == [
+        {"key": "foo", "value": "bar"}
+    ]
+    assert plain_role_config["supplementaryConfiguration"] == {}
+
+    # assume_role
+    assume_role_config = (
+        role_config_query.backends["global"].roles[assume_role["id"]].to_config_dict()
+    )
+    assert assume_role_config["arn"] == "arn:aws:iam::123456789012:role/assume_role"
+    assert assume_role_config["resourceId"] == "assume_role"
+    assert assume_role_config["resourceName"] == "assume_role"
+    assert assume_role_config["configuration"][
+        "assumeRolePolicyDocument"
+    ] == parse.quote(json.dumps(basic_assume_role))
+
+    # assume_and_permission_boundary_role
+    assume_and_permission_boundary_role_config = (
+        role_config_query.backends["global"]
+        .roles[assume_and_permission_boundary_role["id"]]
+        .to_config_dict()
+    )
+    assert (
+        assume_and_permission_boundary_role_config["arn"]
+        == "arn:aws:iam::123456789012:role/assume_and_permission_boundary_role"
+    )
+    assert (
+        assume_and_permission_boundary_role_config["resourceId"]
+        == "assume_and_permission_boundary_role"
+    )
+    assert (
+        assume_and_permission_boundary_role_config["resourceName"]
+        == "assume_and_permission_boundary_role"
+    )
+    assert assume_and_permission_boundary_role_config["configuration"][
+        "assumeRolePolicyDocument"
+    ] == parse.quote(json.dumps(basic_assume_role))
+    assert (
+        assume_and_permission_boundary_role_config["configuration"][
+            "permissionsBoundary"
+        ]
+        == policy_arn
+    )
+
+    # role_with_attached_policy
+    role_with_attached_policy_config = (
+        role_config_query.backends["global"]
+        .roles[role_with_attached_policy["id"]]
+        .to_config_dict()
+    )
+    assert (
+        role_with_attached_policy_config["arn"]
+        == "arn:aws:iam::123456789012:role/role_with_attached_policy"
+    )
+    assert role_with_attached_policy_config["configuration"][
+        "attachedManagedPolicies"
+    ] == [{"policyArn": policy_arn, "policyName": "basic_policy"}]
+
+    # role_with_inline_policy
+    role_with_inline_policy_config = (
+        role_config_query.backends["global"]
+        .roles[role_with_inline_policy["id"]]
+        .to_config_dict()
+    )
+    assert (
+        role_with_inline_policy_config["arn"]
+        == "arn:aws:iam::123456789012:role/role_with_inline_policy"
+    )
+    assert role_with_inline_policy_config["configuration"]["rolePolicyList"] == [
+        {
+            "policyName": "inline_policy",
+            "policyDocument": parse.quote(json.dumps(basic_policy)),
+        }
+    ]
+
+
+@mock_iam
+def test_policy_config_dict():
+    from moto.iam.config import role_config_query, policy_config_query
+    from moto.iam.utils import random_policy_id
+
+    # Without any roles
+    assert not policy_config_query.get_config_resource(
+        "arn:aws:iam::123456789012:policy/basic_policy"
+    )
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Action": ["ec2:*"], "Effect": "Allow", "Resource": "*"}],
+    }
+
+    basic_policy_v2 = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Action": ["ec2:*", "s3:*"], "Effect": "Allow", "Resource": "*"}
+        ],
+    }
+
+    policy_config_query.backends["global"].create_policy(
+        description="basic_policy",
+        path="/",
+        policy_document=json.dumps(basic_policy),
+        policy_name="basic_policy",
+    )
+
+    policy_arn = policy_config_query.list_config_service_resources(
+        None, None, 100, None
+    )[0][0]["id"]
+    assert policy_arn == "arn:aws:iam::123456789012:policy/basic_policy"
+    assert (
+        policy_config_query.get_config_resource(
+            "arn:aws:iam::123456789012:policy/basic_policy"
+        )
+        is not None
+    )
+
+    # Create a new version
+    policy_config_query.backends["global"].create_policy_version(
+        policy_arn, json.dumps(basic_policy_v2), "true"
+    )
+
+    # Create role to trigger attachment
+    role_config_query.backends["global"].create_role(
+        role_name="role_with_attached_policy",
+        assume_role_policy_document=None,
+        path="/",
+        permissions_boundary=None,
+        description="role_with_attached_policy",
+        tags=[],
+        max_session_duration=3600,
+    )
+    role_config_query.backends["global"].attach_role_policy(
+        policy_arn, "role_with_attached_policy"
+    )
+
+    policy = (
+        role_config_query.backends["global"]
+        .managed_policies["arn:aws:iam::123456789012:policy/basic_policy"]
+        .to_config_dict()
+    )
+    assert policy["version"] == "1.3"
+    assert policy["configurationItemCaptureTime"] is not None
+    assert policy["configurationItemStatus"] == "OK"
+    assert policy["configurationStateId"] is not None
+    assert policy["arn"] == "arn:aws:iam::123456789012:policy/basic_policy"
+    assert policy["resourceType"] == "AWS::IAM::Policy"
+    assert len(policy["resourceId"]) == len(random_policy_id())
+    assert policy["resourceName"] == "basic_policy"
+    assert policy["awsRegion"] == "global"
+    assert policy["availabilityZone"] == "Not Applicable"
+    assert policy["resourceCreationTime"] is not None
+    assert policy["configuration"]["policyName"] == policy["resourceName"]
+    assert policy["configuration"]["policyId"] == policy["resourceId"]
+    assert policy["configuration"]["arn"] == policy["arn"]
+    assert policy["configuration"]["path"] == "/"
+    assert policy["configuration"]["defaultVersionId"] == "v2"
+    assert policy["configuration"]["attachmentCount"] == 1
+    assert policy["configuration"]["permissionsBoundaryUsageCount"] == 0
+    assert policy["configuration"]["isAttachable"] == True
+    assert policy["configuration"]["description"] == "basic_policy"
+    assert policy["configuration"]["createDate"] is not None
+    assert policy["configuration"]["updateDate"] is not None
+    assert policy["configuration"]["policyVersionList"] == [
+        {
+            "document": str(parse.quote(json.dumps(basic_policy))),
+            "versionId": "v1",
+            "isDefaultVersion": False,
+            "createDate": policy["configuration"]["policyVersionList"][0]["createDate"],
+        },
+        {
+            "document": str(parse.quote(json.dumps(basic_policy_v2))),
+            "versionId": "v2",
+            "isDefaultVersion": True,
+            "createDate": policy["configuration"]["policyVersionList"][1]["createDate"],
+        },
+    ]
+    assert policy["supplementaryConfiguration"] == {}

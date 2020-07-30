@@ -766,6 +766,27 @@ class ConfigQueryModel(object):
         """
         raise NotImplementedError()
 
+    def aggregate_regions(self, path, backend_region, resource_region):
+        """
+        Returns a list of "region\1eresourcename" strings
+        """
+
+        filter_region = backend_region or resource_region
+        if filter_region:
+            filter_resources = list(self.backends[filter_region].__dict__[path].keys())
+            return map(
+                lambda resource: "{}\1e{}".format(filter_region, resource),
+                filter_resources,
+            )
+
+        # If we don't have a filter region
+        ret = []
+        for region in self.backends:
+            this_region_resources = list(self.backends[region].__dict__[path].keys())
+            for resource in this_region_resources:
+                ret.append("{}\1e{}".format(region, resource))
+        return ret
+
 
 class base_decorator(object):
     mock_backend = MockAWS
