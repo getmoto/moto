@@ -39,7 +39,7 @@ from moto.sqs import models as sqs_models  # noqa
 # End ugly list of imports
 
 from moto.ec2 import models as ec2_models
-from moto.s3 import models as _, s3_backend
+from moto.s3 import models as _, s3_backend  # noqa
 from moto.s3.utils import bucket_and_name_from_url
 from moto.core import ACCOUNT_ID, CloudFormationModel
 from .utils import random_suffix
