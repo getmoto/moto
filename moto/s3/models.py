@@ -1097,18 +1097,14 @@ class FakeBucket(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls,
-        original_resource,
-        candidate_resource_name,
-        cloudformation_json,
-        region_name,
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
     ):
         properties = cloudformation_json["Properties"]
 
         if is_replacement_update(properties):
             resource_name_property = cls.cloudformation_name_type()
             if resource_name_property not in properties:
-                properties[resource_name_property] = candidate_resource_name
+                properties[resource_name_property] = new_resource_name
             new_resource = cls.create_from_cloudformation_json(
                 properties[resource_name_property], cloudformation_json, region_name
             )
