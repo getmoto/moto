@@ -264,10 +264,10 @@ class FakeDelegatedAdministrator(BaseModel):
         self.services.pop(service_principal)
 
     def describe(self):
-        return {
-            **self.account.describe(),
-            "DelegationEnabledDate": unix_time(self.enabled_date),
-        }
+        admin = self.account.describe()
+        admin["DelegationEnabledDate"] = unix_time(self.enabled_date)
+
+        return admin
 
     @staticmethod
     def supported_service(service_principal):
