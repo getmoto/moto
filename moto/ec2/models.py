@@ -3286,12 +3286,12 @@ class SubnetBackend(object):
         raise InvalidSubnetIdError(subnet_id)
 
     def create_subnet(
-            self,
-            vpc_id,
-            cidr_block,
-            availability_zone=None,
-            availability_zone_id=None,
-            context=None,
+        self,
+        vpc_id,
+        cidr_block,
+        availability_zone=None,
+        availability_zone_id=None,
+        context=None,
     ):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(
