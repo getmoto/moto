@@ -12,6 +12,25 @@ from .models import secretsmanager_backends, filter_keys
 import json
 
 
+def _validate_filters(filters):
+    for idx, f in enumerate(filters):
+        filter_key = f.get("Key", None)
+        filter_values = f.get("Values", None)
+        if filter_key is None:
+            raise InvalidParameterException("Invalid filter key")
+        if filter_key not in filter_keys():
+            raise ValidationException(
+                "1 validation error detected: Value '{}' at 'filters.{}.member.key' failed to satisfy constraint: "
+                "Member must satisfy enum value set: [all, name, tag-key, description, tag-value]".format(
+                    filter_key, idx + 1
+                )
+            )
+        if filter_values is None:
+            raise InvalidParameterException(
+                "Invalid filter values for key: {}".format(filter_key)
+            )
+
+
 class SecretsManagerResponse(BaseResponse):
     def get_secret_value(self):
         secret_id = self._get_param("SecretId")
@@ -107,16 +126,7 @@ class SecretsManagerResponse(BaseResponse):
 
     def list_secrets(self):
         filters = self._get_param("Filters", if_none=[])
-        for idx, filter_key in enumerate(map(lambda f: f.get("Key", None), filters)):
-            if filter_key is None:
-                raise InvalidParameterException("Invalid filter key")
-            if filter_key not in filter_keys():
-                raise ValidationException(
-                    "1 validation error detected: Value '{}' at 'filters.{}.member.key' failed to satisfy constraint: "
-                    "Member must satisfy enum value set: [all, name, tag-key, description, tag-value]".format(
-                        filter_key, idx + 1
-                    )
-                )
+        _validate_filters(filters)
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
         secret_list, next_token = secretsmanager_backends[self.region].list_secrets(

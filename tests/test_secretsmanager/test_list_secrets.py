@@ -141,6 +141,21 @@ def test_with_no_filter_key():
 
 
 @mock_secretsmanager
+def test_with_no_filter_values():
+    conn = boto_client()
+
+    conn.create_secret(Name="foo", SecretString="secret", Description="hello")
+
+    with assert_raises(ClientError) as ire:
+        conn.list_secrets(Filters=[{"Key": "description"}])
+
+    ire.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ire.exception.response["Error"]["Message"].should.equal(
+        "Invalid filter values for key: description"
+    )
+
+
+@mock_secretsmanager
 def test_with_invalid_filter_key():
     conn = boto_client()
 
