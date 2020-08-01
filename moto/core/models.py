@@ -540,6 +540,7 @@ class BaseModel(object):
 class CloudFormationModel(BaseModel):
     @abstractmethod
     def cloudformation_name_type(self):
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
         # This must be implemented as a staticmethod with no parameters
         # Return None for resources that do not have a name property
         pass
