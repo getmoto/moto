@@ -116,22 +116,23 @@ class ElasticBlockStore(BaseResponse):
     def describe_snapshot_attribute(self):
         snapshot_id = self._get_param("SnapshotId")
         groups = self.ec2_backend.get_create_volume_permission_groups(snapshot_id)
+        user_ids = self.ec2_backend.get_create_volume_permission_userids(snapshot_id)
         template = self.response_template(DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE)
-        return template.render(snapshot_id=snapshot_id, groups=groups)
+        return template.render(snapshot_id=snapshot_id, groups=groups, userIds=user_ids)
 
     def modify_snapshot_attribute(self):
         snapshot_id = self._get_param("SnapshotId")
         operation_type = self._get_param("OperationType")
-        group = self._get_param("UserGroup.1")
-        user_id = self._get_param("UserId.1")
+        groups = self._get_multi_param("UserGroup")
+        user_ids = self._get_multi_param("UserId")
         if self.is_not_dryrun("ModifySnapshotAttribute"):
             if operation_type == "add":
                 self.ec2_backend.add_create_volume_permission(
-                    snapshot_id, user_id=user_id, group=group
+                    snapshot_id, user_ids=user_ids, groups=groups
                 )
             elif operation_type == "remove":
                 self.ec2_backend.remove_create_volume_permission(
-                    snapshot_id, user_id=user_id, group=group
+                    snapshot_id, user_ids=user_ids, groups=groups
                 )
             return MODIFY_SNAPSHOT_ATTRIBUTE_RESPONSE
 
@@ -311,18 +312,18 @@ DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
 <DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
     <requestId>a9540c9f-161a-45d8-9cc1-1182b89ad69f</requestId>
     <snapshotId>snap-a0332ee0</snapshotId>
-   {% if not groups %}
-      <createVolumePermission/>
-   {% endif %}
-   {% if groups %}
-      <createVolumePermission>
-         {% for group in groups %}
-            <item>
-               <group>{{ group }}</group>
-            </item>
-         {% endfor %}
-      </createVolumePermission>
-   {% endif %}
+    <createVolumePermission>
+       {% for group in groups %}
+          <item>
+             <group>{{ group }}</group>
+          </item>
+       {% endfor %}
+       {% for userId in userIds %}
+          <item>
+             <userId>{{ userId }}</userId>
+          </item>
+       {% endfor %}
+    </createVolumePermission>
 </DescribeSnapshotAttributeResponse>
 """
 

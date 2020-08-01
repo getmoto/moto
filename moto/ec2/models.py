@@ -2488,6 +2488,7 @@ class Snapshot(TaggedEC2Resource):
         self.description = description
         self.start_time = utc_date_and_time()
         self.create_volume_permission_groups = set()
+        self.create_volume_permission_userids = set()
         self.ec2_backend = ec2_backend
         self.status = "completed"
         self.encrypted = encrypted
@@ -2652,28 +2653,32 @@ class EBSBackend(object):
         snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_groups
 
-    def add_create_volume_permission(self, snapshot_id, user_id=None, group=None):
-        if user_id:
-            self.raise_not_implemented_error(
-                "The UserId parameter for ModifySnapshotAttribute"
-            )
-
-        if group != "all":
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+    def get_create_volume_permission_userids(self, snapshot_id):
         snapshot = self.get_snapshot(snapshot_id)
-        snapshot.create_volume_permission_groups.add(group)
+        return snapshot.create_volume_permission_userids
+
+    def add_create_volume_permission(self, snapshot_id, user_ids=None, groups=None):
+        snapshot = self.get_snapshot(snapshot_id)
+        if user_ids:
+            snapshot.create_volume_permission_userids.update(user_ids)
+
+        if groups and groups != ["all"]:
+            raise InvalidAMIAttributeItemValueError("UserGroup", groups)
+        else:
+            snapshot.create_volume_permission_groups.update(groups)
+
         return True
 
-    def remove_create_volume_permission(self, snapshot_id, user_id=None, group=None):
-        if user_id:
-            self.raise_not_implemented_error(
-                "The UserId parameter for ModifySnapshotAttribute"
-            )
-
-        if group != "all":
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+    def remove_create_volume_permission(self, snapshot_id, user_ids=None, groups=None):
         snapshot = self.get_snapshot(snapshot_id)
-        snapshot.create_volume_permission_groups.discard(group)
+        if user_ids:
+            snapshot.create_volume_permission_userids.difference_update(user_ids)
+
+        if groups and groups != ["all"]:
+            raise InvalidAMIAttributeItemValueError("UserGroup", groups)
+        else:
+            snapshot.create_volume_permission_groups.difference_update(groups)
+
         return True
 
 
