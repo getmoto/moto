@@ -20,6 +20,7 @@ from moto.organizations.exceptions import (
     RootNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
+    TargetNotFoundException,
 )
 
 
@@ -161,7 +162,7 @@ class FakeRoot(FakeOrganizationalUnit):
         self.policy_types.append({"Type": policy_type, "Status": "ENABLED"})
 
     def remove_policy_type(self, policy_type):
-        if policy_type not in self.SUPPORTED_POLICY_TYPES:
+        if not FakePolicy.supported_policy_type(policy_type):
             raise InvalidInputException("You specified an invalid value.")
 
         if all(type["Type"] != policy_type for type in self.policy_types):
@@ -170,18 +171,35 @@ class FakeRoot(FakeOrganizationalUnit):
         self.policy_types.remove({"Type": policy_type, "Status": "ENABLED"})
 
 
-class FakeServiceControlPolicy(BaseModel):
+class FakePolicy(BaseModel):
+    SUPPORTED_POLICY_TYPES = [
+        "AISERVICES_OPT_OUT_POLICY",
+        "BACKUP_POLICY",
+        "SERVICE_CONTROL_POLICY",
+        "TAG_POLICY",
+    ]
+
     def __init__(self, organization, **kwargs):
         self.content = kwargs.get("Content")
         self.description = kwargs.get("Description")
         self.name = kwargs.get("Name")
         self.type = kwargs.get("Type")
-        self.id = utils.make_random_service_control_policy_id()
+        self.id = utils.make_random_policy_id()
         self.aws_managed = False
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
-        self._arn_format = utils.SCP_ARN_FORMAT
         self.attachments = []
+
+        if not FakePolicy.supported_policy_type(self.type):
+            raise InvalidInputException("You specified an invalid value.")
+        elif self.type == "AISERVICES_OPT_OUT_POLICY":
+            self._arn_format = utils.AI_POLICY_ARN_FORMAT
+        elif self.type == "SERVICE_CONTROL_POLICY":
+            self._arn_format = utils.SCP_ARN_FORMAT
+        else:
+            raise NotImplementedError(
+                "The {0} policy type has not been implemented".format(self.type)
+            )
 
     @property
     def arn(self):
@@ -203,6 +221,10 @@ class FakeServiceControlPolicy(BaseModel):
                 "Content": self.content,
             }
         }
+
+    @staticmethod
+    def supported_policy_type(policy_type):
+        return policy_type in FakePolicy.SUPPORTED_POLICY_TYPES
 
 
 class FakeServiceAccess(BaseModel):
@@ -327,7 +349,7 @@ class OrganizationsBackend(BaseBackend):
         )
         master_account.id = self.org.master_account_id
         self.accounts.append(master_account)
-        default_policy = FakeServiceControlPolicy(
+        default_policy = FakePolicy(
             self.org,
             Name="FullAWSAccess",
             Description="Allows access to every operation",
@@ -487,7 +509,7 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def create_policy(self, **kwargs):
-        new_policy = FakeServiceControlPolicy(self.org, **kwargs)
+        new_policy = FakePolicy(self.org, **kwargs)
         for policy in self.policies:
             if kwargs["Name"] == policy.name:
                 raise DuplicatePolicyException
@@ -495,7 +517,7 @@ class OrganizationsBackend(BaseBackend):
         return new_policy.describe()
 
     def describe_policy(self, **kwargs):
-        if re.compile(utils.SCP_ID_REGEX).match(kwargs["PolicyId"]):
+        if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
             policy = next(
                 (p for p in self.policies if p.id == kwargs["PolicyId"]), None
             )
@@ -575,7 +597,13 @@ class OrganizationsBackend(BaseBackend):
         )
 
     def list_policies_for_target(self, **kwargs):
-        if re.compile(utils.OU_ID_REGEX).match(kwargs["TargetId"]):
+        filter = kwargs["Filter"]
+
+        if re.match(utils.ROOT_ID_REGEX, kwargs["TargetId"]):
+            obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
+            if obj is None:
+                raise TargetNotFoundException
+        elif re.compile(utils.OU_ID_REGEX).match(kwargs["TargetId"]):
             obj = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
             if obj is None:
                 raise RESTError(
@@ -588,14 +616,25 @@ class OrganizationsBackend(BaseBackend):
                 raise AccountNotFoundException
         else:
             raise InvalidInputException("You specified an invalid value.")
+
+        if not FakePolicy.supported_policy_type(filter):
+            raise InvalidInputException("You specified an invalid value.")
+
+        if filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
+            raise NotImplementedError(
+                "The {0} policy type has not been implemented".format(filter)
+            )
+
         return dict(
             Policies=[
-                p.describe()["Policy"]["PolicySummary"] for p in obj.attached_policies
+                p.describe()["Policy"]["PolicySummary"]
+                for p in obj.attached_policies
+                if p.type == filter
             ]
         )
 
     def list_targets_for_policy(self, **kwargs):
-        if re.compile(utils.SCP_ID_REGEX).match(kwargs["PolicyId"]):
+        if re.compile(utils.POLICY_ID_REGEX).match(kwargs["PolicyId"]):
             policy = next(
                 (p for p in self.policies if p.id == kwargs["PolicyId"]), None
             )

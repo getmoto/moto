@@ -103,3 +103,12 @@ class RootNotFoundException(JsonRESTError):
         super(RootNotFoundException, self).__init__(
             "RootNotFoundException", "You specified a root that doesn't exist."
         )
+
+
+class TargetNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(TargetNotFoundException, self).__init__(
+            "TargetNotFoundException", "You specified a target that doesn't exist."
+        )
