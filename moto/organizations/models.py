@@ -19,6 +19,7 @@ from moto.organizations.exceptions import (
     AccountNotRegisteredException,
     RootNotFoundException,
     PolicyTypeAlreadyEnabledException,
+    PolicyTypeNotEnabledException,
 )
 
 
@@ -151,13 +152,22 @@ class FakeRoot(FakeOrganizationalUnit):
         }
 
     def add_policy_type(self, policy_type):
-        if any(type["Type"] == policy_type for type in self.policy_types):
-            raise PolicyTypeAlreadyEnabledException
-
         if policy_type not in self.SUPPORTED_POLICY_TYPES:
             raise InvalidInputException("You specified an invalid value.")
 
+        if any(type["Type"] == policy_type for type in self.policy_types):
+            raise PolicyTypeAlreadyEnabledException
+
         self.policy_types.append({"Type": policy_type, "Status": "ENABLED"})
+
+    def remove_policy_type(self, policy_type):
+        if policy_type not in self.SUPPORTED_POLICY_TYPES:
+            raise InvalidInputException("You specified an invalid value.")
+
+        if all(type["Type"] != policy_type for type in self.policy_types):
+            raise PolicyTypeNotEnabledException
+
+        self.policy_types.remove({"Type": policy_type, "Status": "ENABLED"})
 
 
 class FakeServiceControlPolicy(BaseModel):
@@ -762,6 +772,13 @@ class OrganizationsBackend(BaseBackend):
         root = self._get_root_by_id(kwargs["RootId"])
 
         root.add_policy_type(kwargs["PolicyType"])
+
+        return dict(Root=root.describe())
+
+    def disable_policy_type(self, **kwargs):
+        root = self._get_root_by_id(kwargs["RootId"])
+
+        root.remove_policy_type(kwargs["PolicyType"])
 
         return dict(Root=root.describe())
 

@@ -86,6 +86,16 @@ class PolicyTypeAlreadyEnabledException(JsonRESTError):
         )
 
 
+class PolicyTypeNotEnabledException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(PolicyTypeNotEnabledException, self).__init__(
+            "PolicyTypeNotEnabledException",
+            "This operation can be performed only for enabled policy types.",
+        )
+
+
 class RootNotFoundException(JsonRESTError):
     code = 400
 
