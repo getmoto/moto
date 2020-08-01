@@ -21,7 +21,7 @@ import uuid
 import six
 
 from bisect import insort
-from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds_s3, rfc_1123_datetime
 from moto.cloudwatch.models import MetricDatum
 from moto.utilities.tagging_service import TaggingService
@@ -763,7 +763,7 @@ class PublicAccessBlock(BaseModel):
         }
 
 
-class FakeBucket(BaseModel):
+class FakeBucket(CloudFormationModel):
     def __init__(self, name, region_name):
         self.name = name
         self.region_name = region_name
@@ -1069,6 +1069,15 @@ class FakeBucket(BaseModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "BucketName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-bucket.html
+        return "AWS::S3::Bucket"
 
     @classmethod
     def create_from_cloudformation_json(
