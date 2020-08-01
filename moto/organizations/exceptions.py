@@ -2,6 +2,54 @@ from __future__ import unicode_literals
 from moto.core.exceptions import JsonRESTError
 
 
+class AccountAlreadyRegisteredException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(AccountAlreadyRegisteredException, self).__init__(
+            "AccountAlreadyRegisteredException",
+            "The provided account is already a delegated administrator for your organization.",
+        )
+
+
+class AccountNotRegisteredException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(AccountNotRegisteredException, self).__init__(
+            "AccountNotRegisteredException",
+            "The provided account is not a registered delegated administrator for your organization.",
+        )
+
+
+class AccountNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(AccountNotFoundException, self).__init__(
+            "AccountNotFoundException", "You specified an account that doesn't exist."
+        )
+
+
+class AWSOrganizationsNotInUseException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(AWSOrganizationsNotInUseException, self).__init__(
+            "AWSOrganizationsNotInUseException",
+            "Your account is not a member of an organization.",
+        )
+
+
+class ConstraintViolationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(ConstraintViolationException, self).__init__(
+            "ConstraintViolationException", message
+        )
+
+
 class InvalidInputException(JsonRESTError):
     code = 400
 

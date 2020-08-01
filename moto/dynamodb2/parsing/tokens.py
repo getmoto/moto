@@ -109,7 +109,7 @@ class ExpressionTokenizer(object):
 
     @classmethod
     def is_expression_attribute(cls, input_string):
-        return re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match(input_string) is not None
+        return re.compile("^[a-zA-Z0-9][a-zA-Z0-9_]*$").match(input_string) is not None
 
     @classmethod
     def is_expression_attribute_name(cls, input_string):

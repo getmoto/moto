@@ -9,7 +9,7 @@ import uuid
 
 from boto3 import Session
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb2.comparisons import get_filter_expression
@@ -359,7 +359,7 @@ class GlobalSecondaryIndex(SecondaryIndex):
         self.throughput = u.get("ProvisionedThroughput", self.throughput)
 
 
-class Table(BaseModel):
+class Table(CloudFormationModel):
     def __init__(
         self,
         table_name,
@@ -430,6 +430,15 @@ class Table(BaseModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "TableName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::DynamoDB::Table"
 
     @classmethod
     def create_from_cloudformation_json(

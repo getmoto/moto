@@ -6,7 +6,7 @@ import datetime
 from boto3 import Session
 from botocore.exceptions import ClientError
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
 from .exceptions import (
@@ -63,7 +63,7 @@ class TaggableResourceMixin(object):
         return self.tags
 
 
-class Cluster(TaggableResourceMixin, BaseModel):
+class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     resource_type = "cluster"
 
@@ -157,6 +157,15 @@ class Cluster(TaggableResourceMixin, BaseModel):
         self.iam_roles_arn = iam_roles_arn or []
         self.restored_from_snapshot = restored_from_snapshot
 
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-cluster.html
+        return "AWS::Redshift::Cluster"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -170,6 +179,7 @@ class Cluster(TaggableResourceMixin, BaseModel):
             ].cluster_subnet_group_name
         else:
             subnet_group_name = None
+
         cluster = redshift_backend.create_cluster(
             cluster_identifier=resource_name,
             node_type=properties.get("NodeType"),
@@ -321,7 +331,7 @@ class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
         }
 
 
-class SubnetGroup(TaggableResourceMixin, BaseModel):
+class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
 
     resource_type = "subnetgroup"
 
@@ -341,6 +351,15 @@ class SubnetGroup(TaggableResourceMixin, BaseModel):
         self.subnet_ids = subnet_ids
         if not self.subnets:
             raise InvalidSubnetError(subnet_ids)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-clustersubnetgroup.html
+        return "AWS::Redshift::ClusterSubnetGroup"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -412,7 +431,7 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
         }
 
 
-class ParameterGroup(TaggableResourceMixin, BaseModel):
+class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     resource_type = "parametergroup"
 
@@ -428,6 +447,15 @@ class ParameterGroup(TaggableResourceMixin, BaseModel):
         self.cluster_parameter_group_name = cluster_parameter_group_name
         self.group_family = group_family
         self.description = description
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-redshift-clusterparametergroup.html
+        return "AWS::Redshift::ClusterParameterGroup"
 
     @classmethod
     def create_from_cloudformation_json(
