@@ -453,8 +453,118 @@ def test_snapshot_filters():
     )
 
 
-@mock_ec2
+@mock_ec2_deprecated
 def test_snapshot_attribute():
+    import copy
+
+    conn = boto.ec2.connect_to_region("us-east-1")
+    volume = conn.create_volume(80, "us-east-1a")
+    snapshot = volume.create_snapshot()
+
+    # Baseline
+    attributes = conn.get_snapshot_attribute(
+        snapshot.id, attribute="createVolumePermission"
+    )
+    attributes.name.should.equal("create_volume_permission")
+    attributes.attrs.should.have.length_of(0)
+
+    ADD_GROUP_ARGS = {
+        "snapshot_id": snapshot.id,
+        "attribute": "createVolumePermission",
+        "operation": "add",
+        "groups": "all",
+    }
+
+    REMOVE_GROUP_ARGS = {
+        "snapshot_id": snapshot.id,
+        "attribute": "createVolumePermission",
+        "operation": "remove",
+        "groups": "all",
+    }
+
+    # Add 'all' group and confirm
+
+    with assert_raises(EC2ResponseError) as ex:
+        conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
+    ex.exception.error_code.should.equal("DryRunOperation")
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal(
+        "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    conn.modify_snapshot_attribute(**ADD_GROUP_ARGS)
+
+    attributes = conn.get_snapshot_attribute(
+        snapshot.id, attribute="createVolumePermission"
+    )
+    attributes.attrs["groups"].should.have.length_of(1)
+    attributes.attrs["groups"].should.equal(["all"])
+
+    # Add is idempotent
+    conn.modify_snapshot_attribute.when.called_with(**ADD_GROUP_ARGS).should_not.throw(
+        EC2ResponseError
+    )
+
+    # Remove 'all' group and confirm
+    with assert_raises(EC2ResponseError) as ex:
+        conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{"dry_run": True}))
+    ex.exception.error_code.should.equal("DryRunOperation")
+    ex.exception.status.should.equal(400)
+    ex.exception.message.should.equal(
+        "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    conn.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
+
+    attributes = conn.get_snapshot_attribute(
+        snapshot.id, attribute="createVolumePermission"
+    )
+    attributes.attrs.should.have.length_of(0)
+
+    # Remove is idempotent
+    conn.modify_snapshot_attribute.when.called_with(
+        **REMOVE_GROUP_ARGS
+    ).should_not.throw(EC2ResponseError)
+
+    # Error: Add with group != 'all'
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_snapshot_attribute(
+            snapshot.id,
+            attribute="createVolumePermission",
+            operation="add",
+            groups="everyone",
+        )
+    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Add with invalid snapshot ID
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_snapshot_attribute(
+            "snapshot-abcd1234",
+            attribute="createVolumePermission",
+            operation="add",
+            groups="all",
+        )
+    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+    # Error: Remove with invalid snapshot ID
+    with assert_raises(EC2ResponseError) as cm:
+        conn.modify_snapshot_attribute(
+            "snapshot-abcd1234",
+            attribute="createVolumePermission",
+            operation="remove",
+            groups="all",
+        )
+    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
+    cm.exception.status.should.equal(400)
+    cm.exception.request_id.should_not.be.none
+
+
+@mock_ec2
+def test_modify_snapshot_attribute():
     import copy
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
