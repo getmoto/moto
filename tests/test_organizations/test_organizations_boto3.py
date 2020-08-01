@@ -1305,3 +1305,80 @@ def test_deregister_delegated_administrator_erros():
     ex.response["Error"]["Message"].should.equal(
         "You specified an unrecognized service principal."
     )
+
+
+@mock_organizations
+def test_enable_policy_type():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+
+    # when
+    response = client.enable_policy_type(
+        RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY"
+    )
+
+    # then
+    root = response["Root"]
+    root["Id"].should.equal(root_id)
+    root["Arn"].should.equal(
+        utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
+    )
+    root["Name"].should.equal("Root")
+    sorted(root["PolicyTypes"], key=lambda x: x["Type"]).should.equal(
+        [
+            {"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"},
+            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"},
+        ]
+    )
+
+
+@mock_organizations
+def test_enable_policy_type_errors():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+
+    # not existing root
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_policy_type(
+            RootId="r-0000", PolicyType="AISERVICES_OPT_OUT_POLICY"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("EnablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RootNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a root that doesn't exist."
+    )
+
+    # enable policy again ('SERVICE_CONTROL_POLICY' is enabled by default)
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("EnablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("PolicyTypeAlreadyEnabledException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified policy type is already enabled."
+    )
+
+    # invalid policy type
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_policy_type(RootId=root_id, PolicyType="MOTO")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("EnablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")

@@ -17,6 +17,8 @@ from moto.organizations.exceptions import (
     AccountAlreadyRegisteredException,
     AWSOrganizationsNotInUseException,
     AccountNotRegisteredException,
+    RootNotFoundException,
+    PolicyTypeAlreadyEnabledException,
 )
 
 
@@ -124,6 +126,13 @@ class FakeOrganizationalUnit(BaseModel):
 
 
 class FakeRoot(FakeOrganizationalUnit):
+    SUPPORTED_POLICY_TYPES = [
+        "AISERVICES_OPT_OUT_POLICY",
+        "BACKUP_POLICY",
+        "SERVICE_CONTROL_POLICY",
+        "TAG_POLICY",
+    ]
+
     def __init__(self, organization, **kwargs):
         super(FakeRoot, self).__init__(organization, **kwargs)
         self.type = "ROOT"
@@ -140,6 +149,15 @@ class FakeRoot(FakeOrganizationalUnit):
             "Name": self.name,
             "PolicyTypes": self.policy_types,
         }
+
+    def add_policy_type(self, policy_type):
+        if any(type["Type"] == policy_type for type in self.policy_types):
+            raise PolicyTypeAlreadyEnabledException
+
+        if policy_type not in self.SUPPORTED_POLICY_TYPES:
+            raise InvalidInputException("You specified an invalid value.")
+
+        self.policy_types.append({"Type": policy_type, "Status": "ENABLED"})
 
 
 class FakeServiceControlPolicy(BaseModel):
@@ -282,6 +300,13 @@ class OrganizationsBackend(BaseBackend):
         self.policies = []
         self.services = []
         self.admins = []
+
+    def _get_root_by_id(self, root_id):
+        root = next((ou for ou in self.ou if ou.id == root_id), None)
+        if not root:
+            raise RootNotFoundException
+
+        return root
 
     def create_organization(self, **kwargs):
         self.org = FakeOrganization(kwargs["FeatureSet"])
@@ -732,6 +757,13 @@ class OrganizationsBackend(BaseBackend):
         # remove account, when no services attached
         if not admin.services:
             self.admins.remove(admin)
+
+    def enable_policy_type(self, **kwargs):
+        root = self._get_root_by_id(kwargs["RootId"])
+
+        root.add_policy_type(kwargs["PolicyType"])
+
+        return dict(Root=root.describe())
 
 
 organizations_backend = OrganizationsBackend()

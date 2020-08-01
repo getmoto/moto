@@ -74,3 +74,22 @@ class DuplicatePolicyException(JsonRESTError):
         super(DuplicatePolicyException, self).__init__(
             "DuplicatePolicyException", "A policy with the same name already exists."
         )
+
+
+class PolicyTypeAlreadyEnabledException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(PolicyTypeAlreadyEnabledException, self).__init__(
+            "PolicyTypeAlreadyEnabledException",
+            "The specified policy type is already enabled.",
+        )
+
+
+class RootNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super(RootNotFoundException, self).__init__(
+            "RootNotFoundException", "You specified a root that doesn't exist."
+        )
