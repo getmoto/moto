@@ -818,13 +818,25 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     <instanceTypeSet>
     {% for instance_type in instance_types %}
         <item>
-            <name>{{ instance_type.name }}</name>
-            <vcpu>{{ instance_type.cores }}</vcpu>
-            <memory>{{ instance_type.memory }}</memory>
-            <storageSize>{{ instance_type.disk }}</storageSize>
-            <storageCount>{{ instance_type.storageCount }}</storageCount>
-            <maxIpAddresses>{{ instance_type.maxIpAddresses }}</maxIpAddresses>
-            <ebsOptimizedAvailable>{{ instance_type.ebsOptimizedAvailable }}</ebsOptimizedAvailable>
+            <instanceType>{{ instance_type.name }}</instanceType>
+            <vCpuInfo>
+                <defaultVCpus>{{ instance_type.cores }}</defaultVCpus>
+                <defaultCores>{{ instance_type.cores }}</defaultCores>
+                <defaultThreadsPerCore>1</defaultThreadsPerCore>
+            </vCpuInfo>
+            <memoryInfo>
+                <sizeInMiB>{{ instance_type.memory }}</sizeInMiB>
+            </memoryInfo>
+            <instanceStorageInfo>
+                <totalSizeInGB>{{ instance_type.disk }}</totalSizeInGB>
+            </instanceStorageInfo>
+            <processorInfo>
+                <supportedArchitectures>
+                    <item>
+                        x86_64
+                    </item>
+                </supportedArchitectures>
+            </processorInfo>
         </item>
     {% endfor %}
     </instanceTypeSet>
