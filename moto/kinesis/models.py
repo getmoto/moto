@@ -12,7 +12,7 @@ from hashlib import md5
 from boto3 import Session
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
 from .exceptions import (
@@ -129,7 +129,7 @@ class Shard(BaseModel):
         }
 
 
-class Stream(BaseModel):
+class Stream(CloudFormationModel):
     def __init__(self, stream_name, shard_count, region):
         self.stream_name = stream_name
         self.shard_count = shard_count
@@ -215,6 +215,15 @@ class Stream(BaseModel):
                 "OpenShardCount": self.shard_count,
             }
         }
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesis-stream.html
+        return "AWS::Kinesis::Stream"
 
     @classmethod
     def create_from_cloudformation_json(

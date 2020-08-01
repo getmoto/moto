@@ -784,14 +784,6 @@ class FakeBucket(CloudFormationModel):
         self.public_access_block = None
         self.encryption = None
 
-    @staticmethod
-    def cloudformation_name_type():
-        return "BucketName"
-
-    @staticmethod
-    def cloudformation_type():
-        return "AWS::S3::Bucket"
-
     @property
     def location(self):
         return self.region_name
@@ -1078,6 +1070,15 @@ class FakeBucket(CloudFormationModel):
     @property
     def physical_resource_id(self):
         return self.name
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "BucketName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-bucket.html
+        return "AWS::S3::Bucket"
 
     @classmethod
     def create_from_cloudformation_json(

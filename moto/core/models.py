@@ -541,12 +541,40 @@ class CloudFormationModel(BaseModel):
     @abstractmethod
     def cloudformation_name_type(self):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
+        # This must be implemented as a staticmethod with no parameters
+        # Return None for resources that do not have a name property
         pass
 
     @abstractmethod
     def cloudformation_type(self):
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        # This must be implemented as a staticmethod with no parameters
+        # See for example https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
         return "AWS::SERVICE::RESOURCE"
+
+    @abstractmethod
+    def create_from_cloudformation_json(self):
+        # This must be implemented as a classmethod with parameters:
+        # cls, resource_name, cloudformation_json, region_name
+        # Extract the resource parameters from the cloudformation json
+        # and return an instance of the resource class
+        pass
+
+    @abstractmethod
+    def update_from_cloudformation_json(self):
+        # This must be implemented as a classmethod with parameters:
+        # cls, original_resource, new_resource_name, cloudformation_json, region_name
+        # Extract the resource parameters from the cloudformation json,
+        # delete the old resource and return the new one. Optionally inspect
+        # the change in parameters and no-op when nothing has changed.
+        pass
+
+    @abstractmethod
+    def delete_from_cloudformation_json(self):
+        # This must be implemented as a classmethod with parameters:
+        # cls, resource_name, cloudformation_json, region_name
+        # Extract the resource parameters from the cloudformation json
+        # and delete the resource. Do not include a return statement.
+        pass
 
 
 class BaseBackend(object):

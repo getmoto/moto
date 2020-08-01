@@ -4,7 +4,7 @@ import datetime
 import json
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.core import ACCOUNT_ID
 from .comparisons import get_comparison_func
@@ -82,7 +82,7 @@ class Item(BaseModel):
         return {"Item": included}
 
 
-class Table(BaseModel):
+class Table(CloudFormationModel):
     def __init__(
         self,
         name,
@@ -134,6 +134,15 @@ class Table(BaseModel):
                 "AttributeType": self.range_key_type,
             }
         return results
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "TableName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
+        return "AWS::DynamoDB::Table"
 
     @classmethod
     def create_from_cloudformation_json(
