@@ -1867,8 +1867,10 @@ def test_create_api_headers():
     apikey_name = "TESTKEY1"
     payload = {"value": apikey_value, "name": apikey_name}
 
-    response = client.create_api_key(**payload)
-    response.get("ResponseMetadata", {}).get('HTTPHeaders', {}).should.equal({})
+    client.create_api_key(**payload)
+    with assert_raises(ClientError) as ex:
+        client.create_api_key(**payload)
+    ex.exception.response["Error"]["Code"].should.equal("ConflictException")
 
 
 @mock_apigateway
