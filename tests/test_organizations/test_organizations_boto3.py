@@ -380,6 +380,30 @@ def test_create_policy():
 
 
 @mock_organizations
+def test_create_policy_errors():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+
+    # invalid policy type
+    # when
+    with assert_raises(ClientError) as e:
+        client.create_policy(
+            Content=json.dumps(policy_doc01),
+            Description="moto",
+            Name="moto",
+            Type="MOTO",
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("CreatePolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
+
+
+@mock_organizations
 def test_describe_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -468,7 +492,7 @@ def test_delete_policy():
 def test_delete_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
-    non_existent_policy_id = utils.make_random_service_control_policy_id()
+    non_existent_policy_id = utils.make_random_policy_id()
     with assert_raises(ClientError) as e:
         response = client.delete_policy(PolicyId=non_existent_policy_id)
     ex = e.exception
@@ -571,7 +595,7 @@ def test_update_policy():
 def test_update_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
-    non_existent_policy_id = utils.make_random_service_control_policy_id()
+    non_existent_policy_id = utils.make_random_policy_id()
     with assert_raises(ClientError) as e:
         response = client.update_policy(PolicyId=non_existent_policy_id)
     ex = e.exception
@@ -631,6 +655,7 @@ def test_list_policies_for_target():
 def test_list_policies_for_target_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
     ou_id = "ou-gi99-i7r8eh2i2"
     account_id = "126644886543"
     with assert_raises(ClientError) as e:
@@ -658,6 +683,34 @@ def test_list_policies_for_target_exception():
         response = client.list_policies_for_target(
             TargetId="meaninglessstring", Filter="SERVICE_CONTROL_POLICY"
         )
+    ex = e.exception
+    ex.operation_name.should.equal("ListPoliciesForTarget")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
+
+    # not existing root
+    # when
+    with assert_raises(ClientError) as e:
+        client.list_policies_for_target(
+            TargetId="r-0000", Filter="SERVICE_CONTROL_POLICY"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("ListPoliciesForTarget")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a target that doesn't exist."
+    )
+
+    # invalid policy type
+    # when
+    with assert_raises(ClientError) as e:
+        client.list_policies_for_target(TargetId=root_id, Filter="MOTO")
+
+    # then
     ex = e.exception
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
@@ -1305,3 +1358,211 @@ def test_deregister_delegated_administrator_erros():
     ex.response["Error"]["Message"].should.equal(
         "You specified an unrecognized service principal."
     )
+
+
+@mock_organizations
+def test_enable_policy_type():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+
+    # when
+    response = client.enable_policy_type(
+        RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY"
+    )
+
+    # then
+    root = response["Root"]
+    root["Id"].should.equal(root_id)
+    root["Arn"].should.equal(
+        utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
+    )
+    root["Name"].should.equal("Root")
+    sorted(root["PolicyTypes"], key=lambda x: x["Type"]).should.equal(
+        [
+            {"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"},
+            {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"},
+        ]
+    )
+
+
+@mock_organizations
+def test_enable_policy_type_errors():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+
+    # not existing root
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_policy_type(
+            RootId="r-0000", PolicyType="AISERVICES_OPT_OUT_POLICY"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("EnablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RootNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a root that doesn't exist."
+    )
+
+    # enable policy again ('SERVICE_CONTROL_POLICY' is enabled by default)
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("EnablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("PolicyTypeAlreadyEnabledException")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified policy type is already enabled."
+    )
+
+    # invalid policy type
+    # when
+    with assert_raises(ClientError) as e:
+        client.enable_policy_type(RootId=root_id, PolicyType="MOTO")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("EnablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
+
+
+@mock_organizations
+def test_disable_policy_type():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    client.enable_policy_type(RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY")
+
+    # when
+    response = client.disable_policy_type(
+        RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY"
+    )
+
+    # then
+    root = response["Root"]
+    root["Id"].should.equal(root_id)
+    root["Arn"].should.equal(
+        utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
+    )
+    root["Name"].should.equal("Root")
+    root["PolicyTypes"].should.equal(
+        [{"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}]
+    )
+
+
+@mock_organizations
+def test_disable_policy_type_errors():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    client.create_organization(FeatureSet="ALL")
+    root_id = client.list_roots()["Roots"][0]["Id"]
+
+    # not existing root
+    # when
+    with assert_raises(ClientError) as e:
+        client.disable_policy_type(
+            RootId="r-0000", PolicyType="AISERVICES_OPT_OUT_POLICY"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DisablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("RootNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified a root that doesn't exist."
+    )
+
+    # disable not enabled policy
+    # when
+    with assert_raises(ClientError) as e:
+        client.disable_policy_type(
+            RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY"
+        )
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DisablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("PolicyTypeNotEnabledException")
+    ex.response["Error"]["Message"].should.equal(
+        "This operation can be performed only for enabled policy types."
+    )
+
+    # invalid policy type
+    # when
+    with assert_raises(ClientError) as e:
+        client.disable_policy_type(RootId=root_id, PolicyType="MOTO")
+
+    # then
+    ex = e.exception
+    ex.operation_name.should.equal("DisablePolicyType")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
+
+
+@mock_organizations
+def test_aiservices_opt_out_policy():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    client.enable_policy_type(RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY")
+    ai_policy = {
+        "services": {
+            "@@operators_allowed_for_child_policies": ["@@none"],
+            "default": {
+                "@@operators_allowed_for_child_policies": ["@@none"],
+                "opt_out_policy": {
+                    "@@operators_allowed_for_child_policies": ["@@none"],
+                    "@@assign": "optOut",
+                },
+            },
+        }
+    }
+
+    # when
+    response = client.create_policy(
+        Content=json.dumps(ai_policy),
+        Description="Opt out of all AI services",
+        Name="ai-opt-out",
+        Type="AISERVICES_OPT_OUT_POLICY",
+    )
+
+    # then
+    summary = response["Policy"]["PolicySummary"]
+    policy_id = summary["Id"]
+    summary["Id"].should.match(utils.POLICY_ID_REGEX)
+    summary["Arn"].should.equal(
+        utils.AI_POLICY_ARN_FORMAT.format(
+            org["MasterAccountId"], org["Id"], summary["Id"]
+        )
+    )
+    summary["Name"].should.equal("ai-opt-out")
+    summary["Description"].should.equal("Opt out of all AI services")
+    summary["Type"].should.equal("AISERVICES_OPT_OUT_POLICY")
+    summary["AwsManaged"].should_not.be.ok
+    json.loads(response["Policy"]["Content"]).should.equal(ai_policy)
+
+    # when
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+
+    # then
+    response = client.list_policies_for_target(
+        TargetId=root_id, Filter="AISERVICES_OPT_OUT_POLICY"
+    )
+    response["Policies"].should.have.length_of(1)
+    response["Policies"][0]["Id"].should.equal(policy_id)
