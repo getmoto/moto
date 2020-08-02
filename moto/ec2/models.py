@@ -2091,13 +2091,10 @@ class SecurityGroupBackend(object):
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-            if isinstance(ip_ranges, str):
-                ip_ranges = [{'CidrIp': ip_ranges}]
-            else:
-                ip_ranges = [json.loads(ip_ranges)]
+            ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr['CidrIp']):
+                if not is_valid_cidr(cidr["CidrIp"]):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2175,7 +2172,11 @@ class SecurityGroupBackend(object):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-            ip_ranges = [ip_ranges]
+
+            if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
+                ip_ranges = [{"CidrIp": ip_ranges}]
+            else:
+                ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
                 if not is_valid_cidr(cidr['CidrIp']):
@@ -2233,13 +2234,14 @@ class SecurityGroupBackend(object):
             source_group = self.get_security_group_from_id(source_group_id)
             if source_group:
                 source_groups.append(source_group)
-        print(ip_ranges)
+
+        for ip in ip_ranges:
+            ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
+
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
-        print(security_rule.ip_ranges)
-        for rule in group.egress_rules:
-            print(rule.ip_ranges)
+
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
             return security_rule

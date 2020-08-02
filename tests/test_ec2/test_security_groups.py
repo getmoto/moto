@@ -729,7 +729,7 @@ def test_description_in_ip_permissions():
     conn.authorize_security_group_ingress(GroupId=sg['GroupId'], IpPermissions=ip_permissions)
 
     result = conn.describe_security_groups(GroupIds=[sg['GroupId']])
-    print(result)
+
     assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0].get('Description') is None
     assert result["SecurityGroups"][0]['IpPermissions'][0]['IpRanges'][0]['CidrIp'] == "1.2.3.4/32"
 
