@@ -17,11 +17,33 @@ from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_sqs, mock_sqs_deprecated, settings
+from moto import mock_sqs, mock_sqs_deprecated, mock_cloudformation, settings
 from nose import SkipTest
 from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
 from moto.core import ACCOUNT_ID
+
+sqs_template_with_tags = """
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "SQSQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "Tags" : [
+                    {
+                        "Key" : "keyname1",
+                        "Value" : "value1"
+                    },
+                    {
+                        "Key" : "keyname2",
+                        "Value" : "value2"
+                    }
+                ]
+            }
+        }
+    }
+}"""
 
 
 @mock_sqs
@@ -246,6 +268,50 @@ def test_message_with_complex_attributes():
 
     messages = queue.receive_messages()
     messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_message_with_attributes_have_labels():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+    msg = queue.send_message(
+        MessageBody="derp",
+        MessageAttributes={
+            "timestamp": {
+                "DataType": "Number.java.lang.Long",
+                "StringValue": "1493147359900",
+            }
+        },
+    )
+    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
+    msg.get("MD5OfMessageAttributes").should.equal("235c5c510d26fb653d073faed50ae77c")
+    msg.get("MessageId").should_not.contain(" \n")
+
+    messages = queue.receive_messages()
+    messages.should.have.length_of(1)
+
+
+@mock_sqs
+def test_message_with_attributes_invalid_datatype():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="blah")
+
+    with assert_raises(ClientError) as e:
+        queue.send_message(
+            MessageBody="derp",
+            MessageAttributes={
+                "timestamp": {
+                    "DataType": "InvalidNumber",
+                    "StringValue": "149314735990a",
+                }
+            },
+        )
+    ex = e.exception
+    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
+    ex.response["Error"]["Message"].should.equal(
+        "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
+        "prefixes is Binary, Number, and String."
+    )
 
 
 @mock_sqs
@@ -511,6 +577,54 @@ def test_send_receive_message_with_attributes():
         MessageBody=body_two,
         MessageAttributes={
             "timestamp": {"StringValue": "1493147359901", "DataType": "Number"}
+        },
+    )
+
+    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)[
+        "Messages"
+    ]
+
+    message1 = messages[0]
+    message2 = messages[1]
+
+    message1.get("Body").should.equal(body_one)
+    message2.get("Body").should.equal(body_two)
+
+    message1.get("MD5OfMessageAttributes").should.equal(
+        "235c5c510d26fb653d073faed50ae77c"
+    )
+    message2.get("MD5OfMessageAttributes").should.equal(
+        "994258b45346a2cc3f9cbb611aa7af30"
+    )
+
+
+@mock_sqs
+def test_send_receive_message_with_attributes_with_labels():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    body_one = "this is a test message"
+    body_two = "this is another test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        },
+    )
+
+    queue.send_message(
+        MessageBody=body_two,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359901",
+                "DataType": "Number.java.lang.Long",
+            }
         },
     )
 
@@ -1841,3 +1955,17 @@ def test_send_messages_to_fifo_without_message_group_id():
     ex.response["Error"]["Message"].should.equal(
         "The request must contain the parameter MessageGroupId."
     )
+
+
+@mock_sqs
+@mock_cloudformation
+def test_create_from_cloudformation_json_with_tags():
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    cf.create_stack(StackName="test-sqs", TemplateBody=sqs_template_with_tags)
+
+    queue_url = client.list_queues()["QueueUrls"][0]
+
+    queue_tags = client.list_queue_tags(QueueUrl=queue_url)["Tags"]
+    queue_tags.should.equal({"keyname1": "value1", "keyname2": "value2"})

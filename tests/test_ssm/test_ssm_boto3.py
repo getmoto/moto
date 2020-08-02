@@ -198,6 +198,33 @@ def test_get_parameters_by_path():
     len(response["Parameters"]).should.equal(1)
     response.should_not.have.key("NextToken")
 
+    filters = [{"Key": "Name", "Values": ["error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Name. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
+    filters = [{"Key": "Path", "Values": ["/error"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Path. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
+    filters = [{"Key": "Tier", "Values": ["Standard"]}]
+    client.get_parameters_by_path.when.called_with(
+        Path="/baz", ParameterFilters=filters
+    ).should.throw(
+        ClientError,
+        "The following filter key is not valid: Tier. "
+        "Valid filter keys include: [Type, KeyId].",
+    )
+
 
 @mock_ssm
 def test_put_parameter():
@@ -269,6 +296,73 @@ def test_put_parameter():
     )
     response["Parameters"][0]["ARN"].should.equal(
         "arn:aws:ssm:us-east-1:1234567890:parameter/test"
+    )
+
+
+@mock_ssm
+def test_put_parameter_invalid_names():
+    client = boto3.client("ssm", region_name="us-east-1")
+
+    invalid_prefix_err = (
+        'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
+    )
+
+    client.put_parameter.when.called_with(
+        Name="ssm_test", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="SSM_TEST", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="aws_test", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    client.put_parameter.when.called_with(
+        Name="AWS_TEST", Value="value", Type="String"
+    ).should.throw(
+        ClientError, invalid_prefix_err,
+    )
+
+    ssm_path = "/ssm_test/path/to/var"
+    client.put_parameter.when.called_with(
+        Name=ssm_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError,
+        'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). If formed as a path, it can consist of '
+        "sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following "
+        "3 symbols .-_",
+    )
+
+    ssm_path = "/SSM/PATH/TO/VAR"
+    client.put_parameter.when.called_with(
+        Name=ssm_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError,
+        'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). If formed as a path, it can consist of '
+        "sub-paths divided by slash symbol; each sub-path can be formed as a mix of letters, numbers and the following "
+        "3 symbols .-_",
+    )
+
+    aws_path = "/aws_test/path/to/var"
+    client.put_parameter.when.called_with(
+        Name=aws_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
+    )
+
+    aws_path = "/AWS/PATH/TO/VAR"
+    client.put_parameter.when.called_with(
+        Name=aws_path, Value="value", Type="String"
+    ).should.throw(
+        ClientError, "No access to reserved parameter name: {}.".format(aws_path),
     )
 
 
@@ -562,6 +656,9 @@ def test_describe_parameters_with_parameter_filters_name():
     client = boto3.client("ssm", region_name="us-east-1")
     client.put_parameter(Name="param", Value="value", Type="String")
     client.put_parameter(Name="/param-2", Value="value-2", Type="String")
+    client.put_parameter(Name="/tangent-3", Value="value-3", Type="String")
+    client.put_parameter(Name="tangram-4", Value="value-4", Type="String")
+    client.put_parameter(Name="standby-5", Value="value-5", Type="String")
 
     response = client.describe_parameters(
         ParameterFilters=[{"Key": "Name", "Values": ["param"]}]
@@ -595,6 +692,22 @@ def test_describe_parameters_with_parameter_filters_name():
 
     response = client.describe_parameters(
         ParameterFilters=[{"Key": "Name", "Option": "BeginsWith", "Values": ["param"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(2)
+    response.should_not.have.key("NextToken")
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Contains", "Values": ["ram"]}]
+    )
+
+    parameters = response["Parameters"]
+    parameters.should.have.length_of(3)
+    response.should_not.have.key("NextToken")
+
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Contains", "Values": ["/tan"]}]
     )
 
     parameters = response["Parameters"]

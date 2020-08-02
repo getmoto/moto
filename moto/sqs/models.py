@@ -12,12 +12,13 @@ from xml.sax.saxutils import escape
 from boto3 import Session
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_message_id,
     unix_time,
     unix_time_millis,
+    tags_from_cloudformation_tags_list,
 )
 from .utils import generate_receipt_handle
 from .exceptions import (
@@ -87,7 +88,19 @@ class Message(BaseModel):
         struct_format = "!I".encode("ascii")  # ensure it's a bytestring
         for name in sorted(self.message_attributes.keys()):
             attr = self.message_attributes[name]
-            data_type = attr["data_type"]
+            data_type_parts = attr["data_type"].split(".")
+            data_type = data_type_parts[0]
+
+            if data_type not in [
+                "String",
+                "Binary",
+                "Number",
+            ]:
+                raise MessageAttributesInvalid(
+                    "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
+                        name[0]
+                    )
+                )
 
             encoded = utf8("")
             # Each part of each attribute is encoded right after it's
@@ -175,7 +188,7 @@ class Message(BaseModel):
         return False
 
 
-class Queue(BaseModel):
+class Queue(CloudFormationModel):
     BASE_ATTRIBUTES = [
         "ApproximateNumberOfMessages",
         "ApproximateNumberOfMessagesDelayed",
@@ -243,9 +256,7 @@ class Queue(BaseModel):
 
         # Check some conditions
         if self.fifo_queue and not self.name.endswith(".fifo"):
-            raise MessageAttributesInvalid(
-                "Queue name must end in .fifo for FIFO queues"
-            )
+            raise InvalidParameterValue("Queue name must end in .fifo for FIFO queues")
 
     @property
     def pending_messages(self):
@@ -343,15 +354,30 @@ class Queue(BaseModel):
                 ),
             )
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "QueueName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sqs-queue.html
+        return "AWS::SQS::Queue"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
+        properties = deepcopy(cloudformation_json["Properties"])
+        # remove Tags from properties and convert tags list to dict
+        tags = properties.pop("Tags", [])
+        tags_dict = tags_from_cloudformation_tags_list(tags)
 
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
-            name=properties["QueueName"], region=region_name, **properties
+            name=properties["QueueName"],
+            tags=tags_dict,
+            region=region_name,
+            **properties
         )
 
     @classmethod

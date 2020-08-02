@@ -16,11 +16,13 @@ class ReceiptHandleIsInvalid(RESTError):
         )
 
 
-class MessageAttributesInvalid(Exception):
-    status_code = 400
+class MessageAttributesInvalid(RESTError):
+    code = 400
 
     def __init__(self, description):
-        self.description = description
+        super(MessageAttributesInvalid, self).__init__(
+            "MessageAttributesInvalid", description
+        )
 
 
 class QueueDoesNotExist(RESTError):
