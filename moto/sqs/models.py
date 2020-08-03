@@ -844,6 +844,7 @@ class SQSBackend(BaseBackend):
     def purge_queue(self, queue_name):
         queue = self.get_queue(queue_name)
         queue._messages = []
+        queue._pending_messages = set()
 
     def list_dead_letter_source_queues(self, queue_name):
         dlq = self.get_queue(queue_name)
