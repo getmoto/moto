@@ -338,6 +338,7 @@ def test_get_random_exclude_characters_and_symbols():
         PasswordLength=20, ExcludeCharacters="xyzDje@?!."
     )
     assert any(c in "xyzDje@?!." for c in random_password["RandomPassword"]) == False
+    assert len(random_password["RandomPassword"]) == 20
 
 
 @mock_secretsmanager
