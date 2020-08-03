@@ -768,12 +768,12 @@ class ConfigQueryModel(object):
 
     def aggregate_regions(self, path, backend_region, resource_region):
         """
-        This method will is called for both aggregated and non-aggregated calls for config resources. 
+        This method will is called for both aggregated and non-aggregated calls for config resources.
         It will figure out how to return the full list of resources for a given regional backend and append them to a final list.
         It produces a list of both the region and the resource name with a delimiter character (CONFIG_BACKEND_DELIM, ASCII Record separator, \x1e).
-        IE: "us-east-1\x1ei-1234567800" 
-        
-        Each config-enabled resource has a method named `list_config_service_resources` which has to parse the delimiter  
+        IE: "us-east-1\x1ei-1234567800"
+
+        Each config-enabled resource has a method named `list_config_service_resources` which has to parse the delimiter
         ...
         :param path: - A dict accessor string applied to the backend that locates the resource.
         :param backend_region:
