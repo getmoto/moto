@@ -178,14 +178,14 @@ DELETE_GROUP_RESPONSE = """<DeleteSecurityGroupResponse xmlns="http://ec2.amazon
 </DeleteSecurityGroupResponse>"""
 
 DESCRIBE_SECURITY_GROUPS_RESPONSE = (
-        """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    """<DescribeSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <securityGroupInfo>
       {% for group in groups %}
           <item>
              <ownerId>"""
-        + ACCOUNT_ID
-        + """</ownerId>
+    + ACCOUNT_ID
+    + """</ownerId>
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
@@ -206,8 +206,8 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for source_group in rule.source_groups %}
                               <item>
                                  <userId>"""
-        + ACCOUNT_ID
-        + """</userId>
+    + ACCOUNT_ID
+    + """</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
@@ -240,8 +240,8 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                           {% for source_group in rule.source_groups %}
                               <item>
                                  <userId>"""
-        + ACCOUNT_ID
-        + """</userId>
+    + ACCOUNT_ID
+    + """</userId>
                                  <groupId>{{ source_group.id }}</groupId>
                                  <groupName>{{ source_group.name }}</groupName>
                               </item>
