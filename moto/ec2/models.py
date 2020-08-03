@@ -2090,8 +2090,10 @@ class SecurityGroupBackend(object):
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if ip_ranges:
-            if isinstance(ip_ranges, str):
-                ip_ranges = [{"CidrIp": ip_ranges}]
+            if isinstance(ip_ranges, str) or (
+                six.PY2 and isinstance(ip_ranges, unicode)  # noqa
+            ):
+                ip_ranges = [{"CidrIp": str(ip_ranges)}]
             elif not isinstance(ip_ranges, list):
                 ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
