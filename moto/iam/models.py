@@ -565,7 +565,7 @@ class Group(BaseModel):
         return self.policies.keys()
 
 
-class User(BaseModel):
+class User(CloudFormationModel):
     def __init__(self, name, path=None, tags=None):
         self.name = name
         self.id = random_resource_id()
@@ -677,7 +677,7 @@ class User(BaseModel):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
-            raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "Arn" ]"')
+            return self.arn
         raise UnformattedGetAttTemplateException()
 
     def to_csv(self):
@@ -751,6 +751,70 @@ class User(BaseModel):
             access_key_2_last_rotated,
             access_key_2_last_used,
         )
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "UserName"
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::Iam::User"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json.get("Properties", {})
+        path = properties.get("Path")
+        name = properties.get("Name", resource_name)
+
+        return iam_backend.create_user(name, path)
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        properties = cloudformation_json["Properties"]
+
+        if cls.is_replacement_update(properties):
+            resource_name_property = cls.cloudformation_name_type()
+            if resource_name_property not in properties:
+                properties[resource_name_property] = new_resource_name
+            new_resource = cls.create_from_cloudformation_json(
+                properties[resource_name_property], cloudformation_json, region_name
+            )
+            properties[resource_name_property] = original_resource.name
+            cls.delete_from_cloudformation_json(
+                original_resource.name, cloudformation_json, region_name
+            )
+            return new_resource
+
+        else:  # No Interruption
+            if "Path" in properties:
+                original_resource.path = properties["Path"]
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json.get("Properties", {})
+        stream_name = properties.get(cls.cloudformation_name_type(), resource_name)
+        iam_backend.delete_user(stream_name)
+
+    @staticmethod
+    def is_replacement_update(properties):
+        properties_requiring_replacement_update = ["UserName"]
+        return any(
+            [
+                property_requiring_replacement in properties
+                for property_requiring_replacement in properties_requiring_replacement_update
+            ]
+        )
+
+    @property
+    def physical_resource_id(self):
+        return self.name
 
 
 class AccountPasswordPolicy(BaseModel):

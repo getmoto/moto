@@ -5,12 +5,9 @@ import json
 import boto
 import boto3
 import csv
-import os
 import sure  # noqa
-import sys
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 
 from moto import mock_iam, mock_iam_deprecated, settings
 from moto.core import ACCOUNT_ID
