@@ -4,6 +4,8 @@ from moto.core.exceptions import InvalidNextTokenException
 from moto.core.models import ConfigQueryModel
 from moto.iam import iam_backends
 
+CONFIG_BACKEND_DELIM = "\x1e"  # Record Seperator "RS" ASCII Character
+
 
 class RoleConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
@@ -15,18 +17,17 @@ class RoleConfigQuery(ConfigQueryModel):
         backend_region=None,
         resource_region=None,
     ):
-        # For aggregation -- did we get both a resource ID and a resource name?
-        if resource_ids and resource_name:
-            # If the values are different, then return an empty list:
-            if resource_name not in resource_ids:
-                return [], None
+        # IAM roles are "global" and aren't assigned into any availability zone
+        # The resource ID is a AWS-assigned random string like "AROA0BSVNSZKXVHS00SBJ"
+        # The resource name is a user-assigned string like "MyDevelopmentAdminRole"
 
-        role_list = self.aggregate_regions("roles", backend_region, resource_region)
+        # Grab roles from backend
+        role_list = self.aggregate_regions("roles", "global", None)
 
         if not role_list:
             return [], None
 
-        # Pagination logic:
+        # Pagination logic
         sorted_roles = sorted(role_list)
         new_token = None
 
@@ -34,7 +35,7 @@ class RoleConfigQuery(ConfigQueryModel):
         if not next_token:
             start = 0
         else:
-            # "Tokens" are region + \00 + resource ID.
+            # "Tokens" are region + \x1e + resource ID.
             if next_token not in sorted_roles:
                 raise InvalidNextTokenException()
 
@@ -46,13 +47,16 @@ class RoleConfigQuery(ConfigQueryModel):
         if len(sorted_roles) > (start + limit):
             new_token = sorted_roles[start + limit]
 
+        # Each element is a string of "region\x1eresource_id"
         return (
             [
                 {
                     "type": "AWS::IAM::Role",
-                    "id": role.split("\1e")[1],
-                    "name": role.split("\1e")[1],
-                    "region": role.split("\1e")[0],
+                    "id": role.split(CONFIG_BACKEND_DELIM)[1],
+                    "name": self.backends["global"]
+                    .roles[role.split(CONFIG_BACKEND_DELIM)[1]]
+                    .name,
+                    "region": role.split(CONFIG_BACKEND_DELIM)[0],
                 }
                 for role in role_list
             ],
@@ -71,7 +75,7 @@ class RoleConfigQuery(ConfigQueryModel):
         if resource_name and role.name != resource_name:
             return
 
-        # Format the bucket to the AWS Config format:
+        # Format the role to the AWS Config format:
         config_data = role.to_config_dict()
 
         # The 'configuration' field is also a JSON string:
@@ -95,16 +99,19 @@ class PolicyConfigQuery(ConfigQueryModel):
         backend_region=None,
         resource_region=None,
     ):
-        # For aggregation -- did we get both a resource ID and a resource name?
-        if resource_ids and resource_name:
-            # If the values are different, then return an empty list:
-            if resource_name not in resource_ids:
-                return [], None
+        # IAM policies are "global" and aren't assigned into any availability zone
+        # The resource ID is a AWS-assigned random string like "ANPA0BSVNSZK00SJSPVUJ"
+        # The resource name is a user-assigned string like "my-development-policy"
 
-        # We don't want to include AWS Managed Policies
+        # We don't want to include AWS Managed Policies. This technically needs to
+        # respect the configuration recorder's 'includeGlobalResourceTypes' setting,
+        # but it's default set be default, and moto's config doesn't yet support
+        # custom configuration recorders, we'll just behave as default.
         policy_list = filter(
-            lambda policy: not policy.split("\1e")[1].startswith("arn:aws:iam::aws"),
-            self.aggregate_regions("managed_policies", backend_region, resource_region),
+            lambda policy: not policy.split(CONFIG_BACKEND_DELIM)[1].startswith(
+                "arn:aws:iam::aws"
+            ),
+            self.aggregate_regions("managed_policies", "global", None),
         )
 
         if not policy_list:
@@ -118,7 +125,7 @@ class PolicyConfigQuery(ConfigQueryModel):
         if not next_token:
             start = 0
         else:
-            # "Tokens" are region + \00 + resource ID.
+            # "Tokens" are region + \x1e + resource ID.
             if next_token not in sorted_policies:
                 raise InvalidNextTokenException()
 
@@ -134,9 +141,13 @@ class PolicyConfigQuery(ConfigQueryModel):
             [
                 {
                     "type": "AWS::IAM::Policy",
-                    "id": policy.split("\1e")[1],
-                    "name": policy.split("\1e")[1],
-                    "region": policy.split("\1e")[0],
+                    "id": self.backends["global"]
+                    .managed_policies[policy.split(CONFIG_BACKEND_DELIM)[1]]
+                    .id,
+                    "name": self.backends["global"]
+                    .managed_policies[policy.split(CONFIG_BACKEND_DELIM)[1]]
+                    .name,
+                    "region": policy.split(CONFIG_BACKEND_DELIM)[0],
                 }
                 for policy in policy_list
             ],
@@ -155,7 +166,7 @@ class PolicyConfigQuery(ConfigQueryModel):
         if resource_name and policy.name != resource_name:
             return
 
-        # Format the bucket to the AWS Config format:
+        # Format the policy to the AWS Config format:
         config_data = policy.to_config_dict()
 
         # The 'configuration' field is also a JSON string:

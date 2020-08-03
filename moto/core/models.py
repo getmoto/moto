@@ -27,8 +27,8 @@ from .utils import (
     convert_flask_to_responses_response,
 )
 
-
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
+CONFIG_BACKEND_DELIM = "\x1e"  # Record Seperator "RS" ASCII Character
 
 
 class BaseMockAWS(object):
@@ -768,15 +768,29 @@ class ConfigQueryModel(object):
 
     def aggregate_regions(self, path, backend_region, resource_region):
         """
-        Returns a list of "region\1eresourcename" strings
+        This method will is called for both aggregated and non-aggregated calls for config resources. 
+        It will figure out how to return the full list of resources for a given regional backend and append them to a final list.
+        It produces a list of both the region and the resource name with a delimiter character (CONFIG_BACKEND_DELIM, ASCII Record separator, \x1e).
+        IE: "us-east-1\x1ei-1234567800" 
+        
+        Each config-enabled resource has a method named `list_config_service_resources` which has to parse the delimiter  
+        ...
+        :param path: - A dict accessor string applied to the backend that locates the resource.
+        :param backend_region:
+        :param resource_region:
+        :return: - Returns a list of "region\x1eresourcename" strings
         """
 
         filter_region = backend_region or resource_region
         if filter_region:
             filter_resources = list(self.backends[filter_region].__dict__[path].keys())
-            return map(
-                lambda resource: "{}\1e{}".format(filter_region, resource),
-                filter_resources,
+            return list(
+                map(
+                    lambda resource: "{}{}{}".format(
+                        filter_region, CONFIG_BACKEND_DELIM, resource
+                    ),
+                    filter_resources,
+                )
             )
 
         # If we don't have a filter region
@@ -784,7 +798,7 @@ class ConfigQueryModel(object):
         for region in self.backends:
             this_region_resources = list(self.backends[region].__dict__[path].keys())
             for resource in this_region_resources:
-                ret.append("{}\1e{}".format(region, resource))
+                ret.append("{}{}{}".format(region, CONFIG_BACKEND_DELIM, resource))
         return ret
 
 

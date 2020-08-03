@@ -9,7 +9,7 @@ import sure  # noqa
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_iam_deprecated, settings
+from moto import mock_config, mock_iam, mock_iam_deprecated, settings
 from moto.core import ACCOUNT_ID
 from moto.iam.models import aws_managed_policies
 from moto.backends import get_backend
@@ -2923,48 +2923,14 @@ def test_role_list_config_discovered_resources():
     role = result[0]
     assert role["type"] == "AWS::IAM::Role"
     assert len(role["id"]) == len(random_resource_id())
-    assert role["id"] == role["name"]
+    assert role["name"] == "something"
     assert role["region"] == "global"
-
-
-@mock_iam
-def test_policy_list_config_discovered_resources():
-    from moto.iam.config import policy_config_query
-
-    # Without any policies
-    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
-        [],
-        None,
-    )
-
-    basic_policy = {
-        "Version": "2012-10-17",
-        "Statement": [
-            {"Action": ["ec2:DeleteKeyPair"], "Effect": "Deny", "Resource": "*"}
-        ],
-    }
-
-    # Create a role
-    policy_config_query.backends["global"].create_policy(
-        description="mypolicy",
-        path="",
-        policy_document=json.dumps(basic_policy),
-        policy_name="mypolicy",
-    )
-
-    result = policy_config_query.list_config_service_resources(None, None, 100, None)[0]
-    assert len(result) == 1
-
-    policy = result[0]
-    assert policy["type"] == "AWS::IAM::Policy"
-    assert policy["id"] == policy["name"] == "arn:aws:iam::123456789012:policy/mypolicy"
-    assert policy["region"] == "global"
 
 
 @mock_iam
 def test_role_config_dict():
     from moto.iam.config import role_config_query, policy_config_query
-    from moto.iam.utils import random_resource_id
+    from moto.iam.utils import random_resource_id, random_policy_id
 
     # Without any roles
     assert not role_config_query.get_config_resource("something")
@@ -2986,17 +2952,21 @@ def test_role_config_dict():
     }
 
     # Create a policy for use in role permissions boundary
-    policy_config_query.backends["global"].create_policy(
-        description="basic_policy",
-        path="/",
-        policy_document=json.dumps(basic_policy),
-        policy_name="basic_policy",
+    policy_arn = (
+        policy_config_query.backends["global"]
+        .create_policy(
+            description="basic_policy",
+            path="/",
+            policy_document=json.dumps(basic_policy),
+            policy_name="basic_policy",
+        )
+        .arn
     )
 
-    policy_arn = policy_config_query.list_config_service_resources(
+    policy_id = policy_config_query.list_config_service_resources(
         None, None, 100, None
     )[0][0]["id"]
-    assert policy_arn is not None
+    assert len(policy_id) == len(random_policy_id())
 
     # Create some roles (and grab them repeatedly since they create with random names)
     role_config_query.backends["global"].create_role(
@@ -3226,6 +3196,141 @@ def test_role_config_dict():
 
 
 @mock_iam
+@mock_config
+def test_role_config_client():
+    from moto.iam.models import ACCOUNT_ID
+    from moto.iam.utils import random_resource_id
+
+    iam_client = boto3.client("iam", region_name="us-west-2")
+    config_client = boto3.client("config", region_name="us-west-2")
+
+    account_aggregation_source = {
+        "AccountIds": [ACCOUNT_ID],
+        "AllAwsRegions": True,
+    }
+
+    config_client.put_configuration_aggregator(
+        ConfigurationAggregatorName="test_aggregator",
+        AccountAggregationSources=[account_aggregation_source],
+    )
+
+    result = config_client.list_discovered_resources(resourceType="AWS::IAM::Role")
+    assert not result["resourceIdentifiers"]
+
+    role_id = iam_client.create_role(
+        Path="/",
+        RoleName="mytestrole",
+        Description="mytestrole",
+        AssumeRolePolicyDocument=json.dumps("{ }"),
+    )["Role"]["RoleId"]
+
+    iam_client.create_role(
+        Path="/",
+        RoleName="mytestrole2",
+        Description="zmytestrole",
+        AssumeRolePolicyDocument=json.dumps("{ }"),
+    )
+
+    # Test non-aggregated query: (everything is getting a random id, so we can't test names by ordering)
+    result = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Role", limit=1
+    )
+    first_result = result["resourceIdentifiers"][0]["resourceId"]
+    assert result["resourceIdentifiers"][0]["resourceType"] == "AWS::IAM::Role"
+    assert len(first_result) == len(random_resource_id())
+
+    # Test non-aggregated pagination
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
+        )["resourceIdentifiers"][0]["resourceId"]
+    ) != first_result
+
+    # Test aggregated query: (everything is getting a random id, so we can't test names by ordering)
+    agg_result = config_client.list_aggregate_discovered_resources(
+        ResourceType="AWS::IAM::Role",
+        ConfigurationAggregatorName="test_aggregator",
+        Limit=1,
+    )
+    first_agg_result = agg_result["ResourceIdentifiers"][0]["ResourceId"]
+    assert agg_result["ResourceIdentifiers"][0]["ResourceType"] == "AWS::IAM::Role"
+    assert len(first_agg_result) == len(random_resource_id())
+    assert agg_result["ResourceIdentifiers"][0]["SourceAccountId"] == ACCOUNT_ID
+    assert agg_result["ResourceIdentifiers"][0]["SourceRegion"] == "global"
+
+    # Test aggregated pagination
+    assert (
+        config_client.list_aggregate_discovered_resources(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceType="AWS::IAM::Role",
+            Limit=1,
+            NextToken=agg_result["NextToken"],
+        )["ResourceIdentifiers"][0]["ResourceId"]
+        != first_agg_result
+    )
+
+    # Test non-aggregated batch get
+    assert (
+        config_client.batch_get_resource_config(
+            resourceKeys=[{"resourceType": "AWS::IAM::Role", "resourceId": role_id}]
+        )["baseConfigurationItems"][0]["resourceName"]
+        == "mytestrole"
+    )
+
+    # Test aggregated batch get
+    assert (
+        config_client.batch_get_aggregate_resource_config(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceIdentifiers=[
+                {
+                    "SourceAccountId": ACCOUNT_ID,
+                    "SourceRegion": "global",
+                    "ResourceId": role_id,
+                    "ResourceType": "AWS::IAM::Role",
+                }
+            ],
+        )["BaseConfigurationItems"][0]["resourceName"]
+        == "mytestrole"
+    )
+
+
+@mock_iam
+def test_policy_list_config_discovered_resources():
+    from moto.iam.config import policy_config_query
+    from moto.iam.utils import random_policy_id
+
+    # Without any policies
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Action": ["ec2:DeleteKeyPair"], "Effect": "Deny", "Resource": "*"}
+        ],
+    }
+
+    # Create a role
+    policy_config_query.backends["global"].create_policy(
+        description="mypolicy",
+        path="",
+        policy_document=json.dumps(basic_policy),
+        policy_name="mypolicy",
+    )
+
+    result = policy_config_query.list_config_service_resources(None, None, 100, None)[0]
+    assert len(result) == 1
+
+    policy = result[0]
+    assert policy["type"] == "AWS::IAM::Policy"
+    assert len(policy["id"]) == len(random_policy_id())
+    assert policy["name"] == "mypolicy"
+    assert policy["region"] == "global"
+
+
+@mock_iam
 def test_policy_config_dict():
     from moto.iam.config import role_config_query, policy_config_query
     from moto.iam.utils import random_policy_id
@@ -3251,17 +3356,24 @@ def test_policy_config_dict():
         ],
     }
 
-    policy_config_query.backends["global"].create_policy(
-        description="basic_policy",
-        path="/",
-        policy_document=json.dumps(basic_policy),
-        policy_name="basic_policy",
+    policy_arn = (
+        policy_config_query.backends["global"]
+        .create_policy(
+            description="basic_policy",
+            path="/",
+            policy_document=json.dumps(basic_policy),
+            policy_name="basic_policy",
+        )
+        .arn
     )
 
-    policy_arn = policy_config_query.list_config_service_resources(
+    policy_id = policy_config_query.list_config_service_resources(
         None, None, 100, None
     )[0][0]["id"]
+    assert len(policy_id) == len(random_policy_id())
+
     assert policy_arn == "arn:aws:iam::123456789012:policy/basic_policy"
+
     assert (
         policy_config_query.get_config_resource(
             "arn:aws:iam::123456789012:policy/basic_policy"
@@ -3330,3 +3442,9 @@ def test_policy_config_dict():
         },
     ]
     assert policy["supplementaryConfiguration"] == {}
+
+
+@mock_iam
+@mock_config
+def test_policy_config_client():
+    assert 1 == 1
