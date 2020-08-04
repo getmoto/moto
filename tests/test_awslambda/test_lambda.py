@@ -1763,12 +1763,16 @@ def test_delete_function_concurrency():
         MemorySize=128,
         Publish=True,
     )
-    conn.put_function_concurrency(FunctionName=function_name, ReservedConcurrentExecutions=15)
+    conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=15
+    )
 
     conn.delete_function_concurrency(FunctionName=function_name)
     result = conn.get_function(FunctionName=function_name)
 
-    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(
+        expected_concurrency
+    )
 
 
 @mock_lambda
@@ -1788,7 +1792,9 @@ def test_get_function_concurrency():
         MemorySize=128,
         Publish=True,
     )
-    conn.put_function_concurrency(FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency)
+    conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency
+    )
 
     result = conn.get_function_concurrency(FunctionName=function_name)
 
