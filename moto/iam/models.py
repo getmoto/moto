@@ -620,12 +620,13 @@ class SigningCertificate(BaseModel):
         return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
-class AccessKey(BaseModel):
-    def __init__(self, user_name):
+class AccessKey(CloudFormationModel):
+    def __init__(self, key_id, user_name, status="Active"):
+        self.id = key_id
         self.user_name = user_name
         self.access_key_id = "AKIA" + random_access_key()
         self.secret_access_key = random_alphanumeric(40)
-        self.status = "Active"
+        self.status = status
         self.create_date = datetime.utcnow()
         self.last_used = None
 
@@ -643,6 +644,68 @@ class AccessKey(BaseModel):
         if attribute_name == "SecretAccessKey":
             return self.secret_access_key
         raise UnformattedGetAttTemplateException()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None  # Resource never gets named after by template PolicyName!
+
+    @staticmethod
+    def cloudformation_type():
+        return "AWS::IAM::AccessKey"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json.get("Properties", {})
+        user_name = properties.get("UserName")
+        status = properties.get("Status", "Active")
+
+        return iam_backend.create_access_key(
+            user_name, status=status, cfn_resource_name=resource_name
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        properties = cloudformation_json["Properties"]
+
+        if cls.is_replacement_update(properties):
+            new_resource = cls.create_from_cloudformation_json(
+                new_resource_name, cloudformation_json, region_name
+            )
+            cls.delete_from_cloudformation_json(
+                original_resource.id, cloudformation_json, region_name
+            )
+            return new_resource
+
+        else:  # No Interruption
+            properties = cloudformation_json.get("Properties", {})
+            status = properties.get("Status")
+            return iam_backend.update_access_key(
+                original_resource.user_name, original_resource.access_key_id, status
+            )
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        iam_backend.delete_access_key_by_id(resource_name)
+
+    @staticmethod
+    def is_replacement_update(properties):
+        properties_requiring_replacement_update = ["Serial", "UserName"]
+        return any(
+            [
+                property_requiring_replacement in properties
+                for property_requiring_replacement in properties_requiring_replacement_update
+            ]
+        )
+
+    @property
+    def physical_resource_id(self):
+        return self.access_key_id
 
 
 class SshPublicKey(BaseModel):
@@ -765,8 +828,8 @@ class User(CloudFormationModel):
 
         del self.policies[policy_name]
 
-    def create_access_key(self):
-        access_key = AccessKey(self.name)
+    def create_access_key(self, status="Active", cfn_key_id=None):
+        access_key = AccessKey(cfn_key_id, self.name, status)
         self.access_keys.append(access_key)
         return access_key
 
@@ -784,9 +847,11 @@ class User(CloudFormationModel):
         key = self.get_access_key_by_id(access_key_id)
         self.access_keys.remove(key)
 
-    def update_access_key(self, access_key_id, status):
+    def update_access_key(self, access_key_id, status=None):
         key = self.get_access_key_by_id(access_key_id)
-        key.status = status
+        if status is not None:
+            key.status = status
+        return key
 
     def get_access_key_by_id(self, access_key_id):
         for key in self.access_keys:
@@ -796,6 +861,15 @@ class User(CloudFormationModel):
             raise IAMNotFoundException(
                 "The Access Key with id {0} cannot be found".format(access_key_id)
             )
+
+    def has_access_key(self, access_key_id):
+        return any(
+            [
+                access_key
+                for access_key in self.access_keys
+                if access_key.access_key_id == access_key_id
+            ]
+        )
 
     def upload_ssh_public_key(self, ssh_public_key_body):
         pubkey = SshPublicKey(self.name, ssh_public_key_body)
@@ -1200,6 +1274,7 @@ class IAMBackend(BaseBackend):
         self.account_password_policy = None
         self.account_summary = AccountSummary(self)
         self.inline_policies = {}
+        self.access_keys = {}
         super(IAMBackend, self).__init__()
 
     def _init_managed_policies(self):
@@ -1894,14 +1969,17 @@ class IAMBackend(BaseBackend):
     def delete_policy(self, policy_arn):
         del self.managed_policies[policy_arn]
 
-    def create_access_key(self, user_name=None):
+    def create_access_key(
+        self, user_name=None, status="Active", cfn_resource_name=random_resource_id()
+    ):
         user = self.get_user(user_name)
-        key = user.create_access_key()
+        key = user.create_access_key(status, cfn_key_id=cfn_resource_name)
+        self.access_keys[cfn_resource_name] = key
         return key
 
-    def update_access_key(self, user_name, access_key_id, status):
+    def update_access_key(self, user_name, access_key_id, status=None):
         user = self.get_user(user_name)
-        user.update_access_key(access_key_id, status)
+        return user.update_access_key(access_key_id, status)
 
     def get_access_key_last_used(self, access_key_id):
         access_keys_list = self.get_all_access_keys_for_all_users()
@@ -1926,7 +2004,14 @@ class IAMBackend(BaseBackend):
 
     def delete_access_key(self, access_key_id, user_name):
         user = self.get_user(user_name)
-        user.delete_access_key(access_key_id)
+        access_key = user.get_access_key_by_id(access_key_id)
+        self.delete_access_key_by_id(access_key.id)
+
+    def delete_access_key_by_id(self, resource_id):
+        key = self.access_keys[resource_id]
+        user = self.get_user(key.user_name)
+        user.delete_access_key(key.access_key_id)
+        del self.access_keys[resource_id]
 
     def upload_ssh_public_key(self, user_name, ssh_public_key_body):
         user = self.get_user(user_name)

@@ -5,7 +5,7 @@ import sure  # noqa
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_cloudformation, mock_s3
+from moto import mock_iam, mock_cloudformation, mock_s3, mock_sts
 
 # AWS::IAM::User Tests
 @mock_iam
@@ -800,3 +800,333 @@ Resources:
     iam_client.get_group_policy.when.called_with(
         GroupName=group_name, PolicyName=policy_name
     ).should.throw(iam_client.exceptions.NoSuchEntityException)
+
+
+# AWS::IAM::User AccessKeys
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_user_with_access_key():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+  TheAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref TheUser
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+
+    provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheUser"
+    ][0]
+    user_name = provisioned_user["PhysicalResourceId"]
+
+    provisioned_access_key = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheAccessKey"
+    ][0]
+    access_key_id = provisioned_access_key["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    user = iam_client.get_user(UserName=user_name)
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+
+
+@mock_sts
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_access_key_get_attr():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+  TheAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref TheUser
+Outputs:
+  AccessKeyId:
+    Value: !Ref TheAccessKey
+  SecretKey:
+    Value: !GetAtt TheAccessKey.SecretAccessKey
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheUser"
+    ][0]
+    user_name = provisioned_user["PhysicalResourceId"]
+
+    stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
+    output_access_key_id = [
+        output["OutputValue"]
+        for output in stack_description["Outputs"]
+        if output["OutputKey"] == "AccessKeyId"
+    ][0]
+    output_secret_key = [
+        output["OutputValue"]
+        for output in stack_description["Outputs"]
+        if output["OutputKey"] == "SecretKey"
+    ][0]
+
+    sts_client = boto3.client(
+        "sts",
+        aws_access_key_id=output_access_key_id,
+        aws_secret_access_key=output_secret_key,
+    )
+    caller_identity = sts_client.get_caller_identity()
+    caller_identity["Arn"].split("/")[1].should.equal(user_name)
+    pass
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_delete_users_access_key():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+    Resources:
+      TheUser:
+        Type: AWS::IAM::User
+      TheAccessKey:
+        Type: AWS::IAM::AccessKey
+        Properties:
+          UserName: !Ref TheUser
+    """.strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+
+    provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheUser"
+    ][0]
+    user_name = provisioned_user["PhysicalResourceId"]
+
+    provisioned_access_key = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheAccessKey"
+    ][0]
+    access_key_id = provisioned_access_key["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    user = iam_client.get_user(UserName=user_name)
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+
+    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+
+    cf_client.delete_stack(StackName=stack_name)
+
+    iam_client.get_user.when.called_with(UserName=user_name).should.throw(
+        iam_client.exceptions.NoSuchEntityException
+    )
+    iam_client.list_access_keys.when.called_with(UserName=user_name).should.throw(
+        iam_client.exceptions.NoSuchEntityException
+    )
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_delete_users_access_key():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+    Resources:
+      TheUser:
+        Type: AWS::IAM::User
+      TheAccessKey:
+        Type: AWS::IAM::AccessKey
+        Properties:
+          UserName: !Ref TheUser
+    """.strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+
+    provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheUser"
+    ][0]
+    user_name = provisioned_user["PhysicalResourceId"]
+
+    provisioned_access_key = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheAccessKey"
+    ][0]
+    access_key_id = provisioned_access_key["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    user = iam_client.get_user(UserName=user_name)
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+
+    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+
+    cf_client.delete_stack(StackName=stack_name)
+
+    iam_client.get_user.when.called_with(UserName=user_name).should.throw(
+        iam_client.exceptions.NoSuchEntityException
+    )
+    iam_client.list_access_keys.when.called_with(UserName=user_name).should.throw(
+        iam_client.exceptions.NoSuchEntityException
+    )
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_update_users_access_key_no_interruption():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+  TheAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref TheUser
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+
+    provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheUser"
+    ][0]
+    user_name = provisioned_user["PhysicalResourceId"]
+
+    provisioned_access_key = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheAccessKey"
+    ][0]
+    access_key_id = provisioned_access_key["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    user = iam_client.get_user(UserName=user_name)
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+  TheAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      Status: Inactive
+""".strip()
+
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template)
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+    access_keys["AccessKeyMetadata"][0]["Status"].should.equal("Inactive")
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_update_users_access_key_replacement():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+  TheAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref TheUser
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+
+    provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheUser"
+    ][0]
+    user_name = provisioned_user["PhysicalResourceId"]
+
+    provisioned_access_key = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheAccessKey"
+    ][0]
+    access_key_id = provisioned_access_key["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    user = iam_client.get_user(UserName=user_name)
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+
+    other_user_name = "MyUser"
+    iam_client.create_user(UserName=other_user_name)
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+  TheAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: {0}
+""".strip().format(
+        other_user_name
+    )
+
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template)
+
+    access_keys = iam_client.list_access_keys(UserName=user_name)
+    len(access_keys["AccessKeyMetadata"]).should.equal(0)
+
+    access_keys = iam_client.list_access_keys(UserName=other_user_name)
+    access_key_id.should_not.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
