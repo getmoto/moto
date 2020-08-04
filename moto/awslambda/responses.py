@@ -374,7 +374,13 @@ class LambdaResponse(BaseResponse):
             return 404, {}, "{}"
 
     def _get_function_concurrency(self, request):
-        pass
+        function_name = self.path.rsplit("/", 2)[-2]
+        resp = self.lambda_backend.get_function_concurrency(function_name)
+
+        if resp:
+            return 200, {}, json.dumps(resp)
+        else:
+            return 404, {}, "{}"
 
     def _delete_function_concurrency(self, request):
         function_name = self.path.rsplit("/", 2)[-2]

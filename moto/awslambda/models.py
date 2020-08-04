@@ -1176,6 +1176,10 @@ class LambdaBackend(BaseBackend):
         fn.reserved_concurrency = 0
         return None
 
+    def get_function_concurrency(self, function_name):
+        fn = self.get_function(function_name)
+        return {"ReservedConcurrentExecutions": fn.reserved_concurrency}
+
 
 def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
