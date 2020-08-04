@@ -141,6 +141,19 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
+    def function_concurrency(self, request, full_url, headers):
+        http_method = request.method
+        self.setup_class(request, full_url, headers)  # No idea about this
+
+        if http_method == "GET":
+            return self._get_function_concurrency(request)
+        elif http_method == "DELETE":
+            return self._delete_function_concurrency(request)
+        elif http_method == "PUT":
+            return self._put_function_concurrency(request)
+        else:
+            raise ValueError("Cannot handle request")
+
     def _add_policy(self, request, full_url, headers):
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = path.split("/")[-2]
@@ -354,6 +367,22 @@ class LambdaResponse(BaseResponse):
         resp = self.lambda_backend.update_function_code(
             function_name, qualifier, body=self.json_body
         )
+
+        if resp:
+            return 200, {}, json.dumps(resp)
+        else:
+            return 404, {}, "{}"
+
+    def _get_function_concurrency(self, request):
+        pass
+
+    def _delete_function_concurrency(self, request):
+        pass
+
+    def _put_function_concurrency(self, request):
+        function_name = self.path.rsplit("/", 2)[-2]
+        concurrency = self._get_param("ReservedConcurrentExecutions", None)
+        resp = self.lambda_backend.put_function_concurrency(function_name, concurrency)
 
         if resp:
             return 200, {}, json.dumps(resp)
