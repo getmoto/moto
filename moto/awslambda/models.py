@@ -165,7 +165,7 @@ class LambdaFunction(CloudFormationModel):
         self.docker_client = docker.from_env()
         self.policy = None
         self.state = "Active"
-        self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", 0)
+        self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -286,7 +286,7 @@ class LambdaFunction(CloudFormationModel):
         return config
 
     def get_code(self):
-        return {
+        code = {
             "Code": {
                 "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/{1}".format(
                     self.region, self.code["S3Key"]
@@ -294,8 +294,16 @@ class LambdaFunction(CloudFormationModel):
                 "RepositoryType": "S3",
             },
             "Configuration": self.get_configuration(),
-            "Concurrency": {"ReservedConcurrentExecutions": self.reserved_concurrency,},
         }
+        if self.reserved_concurrency:
+            code.update(
+                {
+                    "Concurrency": {
+                        "ReservedConcurrentExecutions": self.reserved_concurrency
+                    }
+                }
+            )
+        return code
 
     def update_configuration(self, config_updates):
         for key, value in config_updates.items():
@@ -1173,7 +1181,7 @@ class LambdaBackend(BaseBackend):
 
     def delete_function_concurrency(self, function_name):
         fn = self.get_function(function_name)
-        fn.reserved_concurrency = 0
+        fn.reserved_concurrency = None
         return None
 
     def get_function_concurrency(self, function_name):

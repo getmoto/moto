@@ -488,7 +488,6 @@ def test_get_function():
     result["Configuration"]["Environment"]["Variables"].should.equal(
         {"test_variable": "test_value"}
     )
-    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(0)
 
     # Test get function with qualifier
     result = conn.get_function(FunctionName="testFunction", Qualifier="$LATEST")
@@ -1748,7 +1747,6 @@ def test_put_function_concurrency():
 
 @mock_lambda
 def test_delete_function_concurrency():
-    expected_concurrency = 0
     function_name = "test"
 
     conn = boto3.client("lambda", _lambda_region)
@@ -1770,9 +1768,7 @@ def test_delete_function_concurrency():
     conn.delete_function_concurrency(FunctionName=function_name)
     result = conn.get_function(FunctionName=function_name)
 
-    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(
-        expected_concurrency
-    )
+    result.doesnt.have.key("Concurrency")
 
 
 @mock_lambda
