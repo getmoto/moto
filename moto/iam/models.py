@@ -709,6 +709,12 @@ class Group(BaseModel):
     def list_policies(self):
         return self.policies.keys()
 
+    def delete_policy(self, policy_name):
+        if policy_name not in self.policies:
+            raise IAMNotFoundException("Policy {0} not found".format(policy_name))
+
+        del self.policies[policy_name]
+
 
 class User(CloudFormationModel):
     def __init__(self, name, path=None, tags=None):
