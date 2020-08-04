@@ -1733,15 +1733,18 @@ def test_put_function_concurrency():
         Runtime="python3.8",
         Role=(get_role_name()),
         Handler="lambda_function.handler",
-        Code={"ZipFile":  get_test_zip_file1()},
+        Code={"ZipFile": get_test_zip_file1()},
         Description="test lambda function",
         Timeout=3,
         MemorySize=128,
         Publish=True,
     )
-    result = conn.put_function_concurrency(FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency)
+    result = conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency
+    )
 
     result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+
 
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)

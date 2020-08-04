@@ -165,7 +165,7 @@ class LambdaFunction(CloudFormationModel):
         self.docker_client = docker.from_env()
         self.policy = None
         self.state = "Active"
-        self.reserved_concurrency = 0
+        self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", 0)
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -294,9 +294,7 @@ class LambdaFunction(CloudFormationModel):
                 "RepositoryType": "S3",
             },
             "Configuration": self.get_configuration(),
-            "Concurrency": {
-                "ReservedConcurrentExecutions": self.reserved_concurrency,
-            }
+            "Concurrency": {"ReservedConcurrentExecutions": self.reserved_concurrency,},
         }
 
     def update_configuration(self, config_updates):
@@ -515,6 +513,15 @@ class LambdaFunction(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        optional_properties = (
+            "Description",
+            "MemorySize",
+            "Publish",
+            "Timeout",
+            "VpcConfig",
+            "Environment",
+            "ReservedConcurrentExecutions",
+        )
 
         # required
         spec = {
@@ -524,9 +531,7 @@ class LambdaFunction(CloudFormationModel):
             "Role": properties["Role"],
             "Runtime": properties["Runtime"],
         }
-        optional_properties = (
-            "Description MemorySize Publish Timeout VpcConfig Environment".split()
-        )
+
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
         # default logic
         for prop in optional_properties:
@@ -1165,6 +1170,7 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         fn.reserved_concurrency = reserved_concurrency
         return {"ReservedConcurrentExecutions": fn.reserved_concurrency}
+
 
 def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
