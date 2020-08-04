@@ -165,6 +165,7 @@ class LambdaFunction(CloudFormationModel):
         self.docker_client = docker.from_env()
         self.policy = None
         self.state = "Active"
+        self.reserved_concurrency = 0
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -1157,6 +1158,10 @@ class LambdaBackend(BaseBackend):
         else:
             return None
 
+    def put_function_concurrency(self, function_name, reserved_concurrency):
+        fn = self.get_function(function_name)
+        fn.reserved_concurrency = reserved_concurrency
+        return {"ReservedConcurrentExecutions": fn.reserved_concurrency}
 
 def do_validate_s3():
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]
