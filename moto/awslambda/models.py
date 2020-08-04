@@ -294,6 +294,9 @@ class LambdaFunction(CloudFormationModel):
                 "RepositoryType": "S3",
             },
             "Configuration": self.get_configuration(),
+            "Concurrency": {
+                "ReservedConcurrentExecutions": self.reserved_concurrency,
+            }
         }
 
     def update_configuration(self, config_updates):

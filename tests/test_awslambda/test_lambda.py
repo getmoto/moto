@@ -488,8 +488,9 @@ def test_get_function():
     result["Configuration"]["Environment"]["Variables"].should.equal(
         {"test_variable": "test_value"}
     )
+    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(0)
 
-    # Test get function with
+    # Test get function with qualifier
     result = conn.get_function(FunctionName="testFunction", Qualifier="$LATEST")
     result["Configuration"]["Version"].should.equal("$LATEST")
     result["Configuration"]["FunctionArn"].should.equal(
@@ -1738,7 +1739,6 @@ def test_put_function_concurrency():
         MemorySize=128,
         Publish=True,
     )
-
     result = conn.put_function_concurrency(FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency)
 
     result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
