@@ -1,12 +1,13 @@
 import boto3
+import yaml
 import sure  # noqa
 
 from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_cloudformation
+from moto import mock_iam, mock_cloudformation, mock_s3
 
-
+# AWS::IAM::User Tests
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_create_user():
@@ -18,7 +19,7 @@ def test_iam_cloudformation_create_user():
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
     Properties:
       UserName: {0}
 """.strip().format(
@@ -44,7 +45,7 @@ def test_iam_cloudformation_update_user_no_interruption():
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
 """.strip()
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
@@ -61,7 +62,7 @@ Resources:
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
     Properties:
       Path: {0}
 """.strip().format(
@@ -84,7 +85,7 @@ def test_iam_cloudformation_update_user_replacement():
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
 """.strip()
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
@@ -101,7 +102,7 @@ Resources:
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
     Properties:
       UserName: {0}
 """.strip().format(
@@ -128,7 +129,7 @@ def test_iam_cloudformation_delete_user():
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
     Properties:
       UserName: {}
 """.strip().format(
@@ -149,7 +150,37 @@ Resources:
 
 @mock_iam
 @mock_cloudformation
-def test_iam_cloudformation_get_attr():
+def test_iam_cloudformation_delete_user_having_generated_name():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  TheUser:
+    Type: AWS::IAM::User
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    provisioned_resource["LogicalResourceId"].should.equal("TheUser")
+    user_name = provisioned_resource["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    user = iam_client.get_user(UserName=user_name)
+
+    cf_client.delete_stack(StackName=stack_name)
+
+    with assert_raises(ClientError) as e:
+        user = iam_client.get_user(UserName=user_name)
+    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+
+
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_user_get_attr():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
     stack_name = "MyStack"
@@ -158,7 +189,7 @@ def test_iam_cloudformation_get_attr():
     template = """
 Resources:
   TheUser:
-    Type: AWS::Iam::User
+    Type: AWS::IAM::User
     Properties:
       UserName: {0}
 Outputs:
@@ -186,3 +217,198 @@ Outputs:
     iam_client = boto3.client("iam")
     user_description = iam_client.get_user(UserName=output_user_name)["User"]
     output_user_arn.should.equal(user_description["Arn"])
+
+
+# AWS::IAM::Policy Tests
+@mock_s3
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_create_user_policy():
+    iam_client = boto3.client("iam")
+    user_name = "MyUser"
+    iam_client.create_user(UserName=user_name)
+
+    s3_client = boto3.client("s3")
+    bucket_name = "my-bucket"
+    bucket = s3_client.create_bucket(Bucket=bucket_name)
+    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    policy_name = "MyPolicy"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: {0}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: {1}
+      Users:
+        - {2}
+""".strip().format(
+        policy_name, bucket_arn, user_name
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
+        logical_resource_id
+    ]["Properties"]["PolicyDocument"]
+    policy = iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
+    policy["PolicyDocument"].should.equal(original_policy_document)
+
+
+@mock_s3
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_update_user_policy():
+    iam_client = boto3.client("iam")
+    user_name_1 = "MyUser1"
+    iam_client.create_user(UserName=user_name_1)
+    user_name_2 = "MyUser2"
+    iam_client.create_user(UserName=user_name_2)
+
+    s3_client = boto3.client("s3")
+    bucket_name = "my-bucket"
+    s3_client.create_bucket(Bucket=bucket_name)
+    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    policy_name = "MyPolicy"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: {0}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: {1}
+      Users:
+        - {2}
+""".strip().format(
+        policy_name, bucket_arn, user_name_1
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
+        logical_resource_id
+    ]["Properties"]["PolicyDocument"]
+    policy = iam_client.get_user_policy(UserName=user_name_1, PolicyName=policy_name)
+    policy["PolicyDocument"].should.equal(original_policy_document)
+
+    # Change template and user
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: {0}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:ListBuckets
+          Resource: {1}
+      Users:
+        - {2}
+""".strip().format(
+        policy_name, bucket_arn, user_name_2
+    )
+
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
+        logical_resource_id
+    ]["Properties"]["PolicyDocument"]
+    policy = iam_client.get_user_policy(UserName=user_name_2, PolicyName=policy_name)
+    policy["PolicyDocument"].should.equal(original_policy_document)
+
+    iam_client.get_user_policy.when.called_with(
+        UserName=user_name_1, PolicyName=policy_name
+    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+
+
+@mock_s3
+@mock_iam
+@mock_cloudformation
+def test_iam_cloudformation_delete_user_policy_having_generated_name():
+    iam_client = boto3.client("iam")
+    user_name = "MyUser"
+    iam_client.create_user(UserName=user_name)
+
+    s3_client = boto3.client("s3")
+    bucket_name = "my-bucket"
+    bucket = s3_client.create_bucket(Bucket=bucket_name)
+    bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
+
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+    stack_name = "MyStack"
+    policy_name = "MyPolicy"
+
+    template = """
+Resources:
+  ThePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: MyPolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: s3:*
+          Resource: {0}
+      Users:
+        - {1}
+""".strip().format(
+        bucket_arn, user_name
+    )
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ][0]
+    logical_resource_id = provisioned_resource["LogicalResourceId"]
+    logical_resource_id.should.equal("ThePolicy")
+
+    original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
+        logical_resource_id
+    ]["Properties"]["PolicyDocument"]
+    policy = iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
+    policy["PolicyDocument"].should.equal(original_policy_document)
+
+    cf_client.delete_stack(StackName=stack_name)
+    iam_client.get_user_policy.when.called_with(
+        UserName=user_name, PolicyName=policy_name
+    ).should.throw(iam_client.exceptions.NoSuchEntityException)

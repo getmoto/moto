@@ -246,12 +246,18 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         return "{0}{1}".format(
             stack_name[:max_stack_name_portion_len], right_hand_part_of_name
         ).lower()
+    elif resource_type == "AWS::IAM::Policy":
+        return "{0}-{1}-{2}".format(stack_name[:5], logical_id[:4], random_suffix())
     else:
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
 def parse_resource(
-    logical_id, resource_json, resources_map, add_name_to_resource_json=True
+    logical_id,
+    resource_json,
+    resources_map,
+    add_name_to_resource_json=True,
+    generate_name=True,
 ):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
@@ -264,9 +270,12 @@ def parse_resource(
         return None
 
     resource_json = clean_json(resource_json, resources_map)
-    resource_name = generate_resource_name(
-        resource_type, resources_map.get("AWS::StackName"), logical_id
-    )
+    if generate_name:
+        resource_name = generate_resource_name(
+            resource_type, resources_map.get("AWS::StackName"), logical_id
+        )
+    else:
+        resource_name = logical_id
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
         if "Properties" not in resource_json:
@@ -317,9 +326,11 @@ def parse_and_update_resource(logical_id, resource_json, resources_map, region_n
     return new_resource
 
 
-def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
+def parse_and_delete_resource(
+    logical_id, resource_json, resources_map, region_name, generate_name=True
+):
     resource_class, resource_json, resource_name = parse_resource(
-        logical_id, resource_json, resources_map
+        logical_id, resource_json, resources_map, generate_name=generate_name
     )
     resource_class.delete_from_cloudformation_json(
         resource_name, resource_json, region_name
@@ -655,16 +666,37 @@ class ResourceMap(collections_abc.Mapping):
                             if hasattr(parsed_resource, "cloudformation_name_type")
                             else resource_name_property_from_type(parsed_resource.type)
                         )
-                        if resource_name_attribute:
-                            resource_json = self._resource_json_map[
-                                parsed_resource.logical_resource_id
-                            ]
+                        resource_json = self._resource_json_map[
+                            parsed_resource.logical_resource_id
+                        ]
+
+                        if (
+                            "Properties" in resource_json
+                            and resource_json["Properties"]
+                            and resource_name_attribute in resource_json["Properties"]
+                        ):
                             resource_name = resource_json["Properties"][
                                 resource_name_attribute
                             ]
+                            generate_name = True
                             parse_and_delete_resource(
-                                resource_name, resource_json, self, self._region_name
+                                resource_name,
+                                resource_json,
+                                self,
+                                self._region_name,
+                                generate_name,
                             )
+                        else:
+                            if hasattr(parsed_resource, "name"):
+                                resource_name = parsed_resource.name
+                                generate_name = False
+                                parse_and_delete_resource(
+                                    resource_name,
+                                    resource_json,
+                                    self,
+                                    self._region_name,
+                                    generate_name,
+                                )
                         self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
