@@ -3373,13 +3373,7 @@ def test_policy_config_dict():
     assert len(policy_id) == len(random_policy_id())
 
     assert policy_arn == "arn:aws:iam::123456789012:policy/basic_policy"
-
-    assert (
-        policy_config_query.get_config_resource(
-            "arn:aws:iam::123456789012:policy/basic_policy"
-        )
-        is not None
-    )
+    assert policy_config_query.get_config_resource(policy_id) is not None
 
     # Create a new version
     policy_config_query.backends["global"].create_policy_version(
@@ -3447,4 +3441,103 @@ def test_policy_config_dict():
 @mock_iam
 @mock_config
 def test_policy_config_client():
-    assert 1 == 1
+    from moto.iam.models import ACCOUNT_ID
+    from moto.iam.utils import random_policy_id
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Action": ["ec2:*"], "Effect": "Allow", "Resource": "*"}],
+    }
+
+    iam_client = boto3.client("iam", region_name="us-west-2")
+    config_client = boto3.client("config", region_name="us-west-2")
+
+    account_aggregation_source = {
+        "AccountIds": [ACCOUNT_ID],
+        "AllAwsRegions": True,
+    }
+
+    config_client.put_configuration_aggregator(
+        ConfigurationAggregatorName="test_aggregator",
+        AccountAggregationSources=[account_aggregation_source],
+    )
+
+    result = config_client.list_discovered_resources(resourceType="AWS::IAM::Policy")
+    assert not result["resourceIdentifiers"]
+
+    policy_id = iam_client.create_policy(
+        PolicyName="mypolicy",
+        Path="/",
+        PolicyDocument=json.dumps(basic_policy),
+        Description="mypolicy",
+    )["Policy"]["PolicyId"]
+
+    # second policy
+    iam_client.create_policy(
+        PolicyName="zmypolicy",
+        Path="/",
+        PolicyDocument=json.dumps(basic_policy),
+        Description="zmypolicy",
+    )
+
+    # Test non-aggregated query: (everything is getting a random id, so we can't test names by ordering)
+    result = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Policy", limit=1
+    )
+    first_result = result["resourceIdentifiers"][0]["resourceId"]
+    assert result["resourceIdentifiers"][0]["resourceType"] == "AWS::IAM::Policy"
+    assert len(first_result) == len(random_policy_id())
+
+    # Test non-aggregated pagination
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
+        )["resourceIdentifiers"][0]["resourceId"]
+    ) != first_result
+
+    # Test aggregated query: (everything is getting a random id, so we can't test names by ordering)
+    agg_result = config_client.list_aggregate_discovered_resources(
+        ResourceType="AWS::IAM::Policy",
+        ConfigurationAggregatorName="test_aggregator",
+        Limit=1,
+    )
+    first_agg_result = agg_result["ResourceIdentifiers"][0]["ResourceId"]
+    assert agg_result["ResourceIdentifiers"][0]["ResourceType"] == "AWS::IAM::Policy"
+    assert len(first_agg_result) == len(random_policy_id())
+    assert agg_result["ResourceIdentifiers"][0]["SourceAccountId"] == ACCOUNT_ID
+    assert agg_result["ResourceIdentifiers"][0]["SourceRegion"] == "global"
+
+    # Test aggregated pagination
+    assert (
+        config_client.list_aggregate_discovered_resources(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceType="AWS::IAM::Policy",
+            Limit=1,
+            NextToken=agg_result["NextToken"],
+        )["ResourceIdentifiers"][0]["ResourceId"]
+        != first_agg_result
+    )
+
+    # Test non-aggregated batch get
+    assert (
+        config_client.batch_get_resource_config(
+            resourceKeys=[{"resourceType": "AWS::IAM::Policy", "resourceId": policy_id}]
+        )["baseConfigurationItems"][0]["resourceName"]
+        == "mypolicy"
+    )
+
+    # Test aggregated batch get
+    assert (
+        config_client.batch_get_aggregate_resource_config(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceIdentifiers=[
+                {
+                    "SourceAccountId": ACCOUNT_ID,
+                    "SourceRegion": "global",
+                    "ResourceId": policy_id,
+                    "ResourceType": "AWS::IAM::Policy",
+                }
+            ],
+        )["BaseConfigurationItems"][0]["resourceName"]
+        == "mypolicy"
+    )

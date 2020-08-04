@@ -157,8 +157,14 @@ class PolicyConfigQuery(ConfigQueryModel):
     def get_config_resource(
         self, resource_id, resource_name=None, backend_region=None, resource_region=None
     ):
-
-        policy = self.backends["global"].managed_policies.get(resource_id, {})
+        # policies are listed in the backend as arns, but we have to accept the PolicyID as the resource_id
+        # we'll make a really crude search for it
+        policy = None
+        for arn in self.backends["global"].managed_policies.keys():
+            policy_candidate = self.backends["global"].managed_policies[arn]
+            if policy_candidate.id == resource_id:
+                policy = policy_candidate
+                break
 
         if not policy:
             return
