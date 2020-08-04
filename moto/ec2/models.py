@@ -160,7 +160,6 @@ AMIS = _load_resource(
     or resource_filename(__name__, "resources/amis.json"),
 )
 
-
 OWNER_ID = ACCOUNT_ID
 
 
@@ -1405,7 +1404,6 @@ class Ami(TaggedEC2Resource):
 
 
 class AmiBackend(object):
-
     AMI_REGEX = re.compile("ami-[a-z0-9]+")
 
     def __init__(self):
@@ -2118,11 +2116,16 @@ class SecurityGroupBackend(object):
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
-        if ip_ranges and not isinstance(ip_ranges, list):
-            ip_ranges = [ip_ranges]
+        if ip_ranges:
+            if isinstance(ip_ranges, str) or (
+                six.PY2 and isinstance(ip_ranges, unicode)  # noqa
+            ):
+                ip_ranges = [{"CidrIp": str(ip_ranges)}]
+            elif not isinstance(ip_ranges, list):
+                ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr):
+                if not is_valid_cidr(cidr["CidrIp"]):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2200,10 +2203,14 @@ class SecurityGroupBackend(object):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-            ip_ranges = [ip_ranges]
+
+            if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
+                ip_ranges = [{"CidrIp": ip_ranges}]
+            else:
+                ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr):
+                if not is_valid_cidr(cidr["CidrIp"]):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2259,9 +2266,13 @@ class SecurityGroupBackend(object):
             if source_group:
                 source_groups.append(source_group)
 
+        for ip in ip_ranges:
+            ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
+
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
+
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
             return security_rule
@@ -3737,7 +3748,6 @@ class VPCEndPoint(TaggedEC2Resource):
         tag_specifications=None,
         private_dns_enabled=None,
     ):
-
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name
