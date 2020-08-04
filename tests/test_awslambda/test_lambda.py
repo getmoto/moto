@@ -1721,6 +1721,28 @@ def test_remove_function_permission():
     policy["Statement"].should.equal([])
 
 
+@mock_lambda
+def test_put_function_concurrency():
+    expected_concurrency = 15
+    function_name = "test"
+
+    conn = boto3.client("lambda", _lambda_region)
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.8",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile":  get_test_zip_file1()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    result = conn.put_function_concurrency(FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency)
+
+    result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
