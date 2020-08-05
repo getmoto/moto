@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import random
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import filters_from_querystring
@@ -10,7 +11,10 @@ class Subnets(BaseResponse):
         cidr_block = self._get_param("CidrBlock")
         availability_zone = self._get_param("AvailabilityZone")
         availability_zone_id = self._get_param("AvailabilityZoneId")
-
+        if not availability_zone and not availability_zone_id:
+            availability_zone = random.choice(
+                self.ec2_backend.describe_availability_zones()
+            ).name
         subnet = self.ec2_backend.create_subnet(
             vpc_id, cidr_block, availability_zone, availability_zone_id, context=self
         )
