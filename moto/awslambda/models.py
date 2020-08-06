@@ -685,9 +685,12 @@ class EventSourceMapping(CloudFormationModel):
         )
 
         for esm in esms:
-            if esm.logical_resource_id in resource_name:
-                lambda_backend.delete_event_source_mapping
+            if esm.uuid == resource_name:
                 esm.delete(region_name)
+
+    @property
+    def physical_resource_id(self):
+        return self.uuid
 
 
 class LambdaVersion(CloudFormationModel):

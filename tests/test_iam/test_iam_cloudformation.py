@@ -120,6 +120,68 @@ Resources:
 
 @mock_iam
 @mock_cloudformation
+def test_iam_cloudformation_update_drop_user():
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    stack_name = "MyStack"
+
+    template = """
+Resources:
+  TheFirstUser:
+    Type: AWS::IAM::User
+  TheSecondUser:
+    Type: AWS::IAM::User
+""".strip()
+
+    cf_client.create_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    first_provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheFirstUser"
+    ][0]
+    second_provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheSecondUser"
+    ][0]
+    first_user_name = first_provisioned_user["PhysicalResourceId"]
+    second_user_name = second_provisioned_user["PhysicalResourceId"]
+
+    iam_client = boto3.client("iam")
+    iam_client.get_user(UserName=first_user_name)
+    iam_client.get_user(UserName=second_user_name)
+
+    template = """
+Resources:
+  TheSecondUser:
+    Type: AWS::IAM::User
+""".strip()
+
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template)
+
+    provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
+        "StackResourceSummaries"
+    ]
+    len(provisioned_resources).should.equal(1)
+    second_provisioned_user = [
+        resource
+        for resource in provisioned_resources
+        if resource["LogicalResourceId"] == "TheSecondUser"
+    ][0]
+    second_user_name.should.equal(second_provisioned_user["PhysicalResourceId"])
+
+    iam_client.get_user(UserName=second_user_name)
+    with assert_raises(ClientError) as e:
+        iam_client.get_user(UserName=first_user_name)
+    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+
+
+@mock_iam
+@mock_cloudformation
 def test_iam_cloudformation_delete_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -833,17 +895,18 @@ Resources:
     ][0]
     user_name = provisioned_user["PhysicalResourceId"]
 
-    provisioned_access_key = [
+    provisioned_access_keys = [
         resource
         for resource in provisioned_resources
         if resource["LogicalResourceId"] == "TheAccessKey"
-    ][0]
-    access_key_id = provisioned_access_key["PhysicalResourceId"]
+    ]
+    len(provisioned_access_keys).should.equal(1)
 
     iam_client = boto3.client("iam")
-    user = iam_client.get_user(UserName=user_name)
+    user = iam_client.get_user(UserName=user_name)["User"]
+    user["UserName"].should.equal(user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+    access_keys["AccessKeyMetadata"][0]["UserName"].should.equal(user_name)
 
 
 @mock_sts
@@ -986,18 +1049,18 @@ def test_iam_cloudformation_delete_users_access_key():
     ][0]
     user_name = provisioned_user["PhysicalResourceId"]
 
-    provisioned_access_key = [
+    provisioned_access_keys = [
         resource
         for resource in provisioned_resources
         if resource["LogicalResourceId"] == "TheAccessKey"
-    ][0]
-    access_key_id = provisioned_access_key["PhysicalResourceId"]
+    ]
+    len(provisioned_access_keys).should.equal(1)
 
     iam_client = boto3.client("iam")
-    user = iam_client.get_user(UserName=user_name)
+    user = iam_client.get_user(UserName=user_name)["User"]
+    user["UserName"].should.equal(user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
-
-    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+    access_keys["AccessKeyMetadata"][0]["UserName"].should.equal(user_name)
 
     cf_client.delete_stack(StackName=stack_name)
 

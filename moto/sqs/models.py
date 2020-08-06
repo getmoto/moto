@@ -374,10 +374,7 @@ class Queue(CloudFormationModel):
 
         sqs_backend = sqs_backends[region_name]
         return sqs_backend.create_queue(
-            name=properties["QueueName"],
-            tags=tags_dict,
-            region=region_name,
-            **properties
+            name=resource_name, tags=tags_dict, region=region_name, **properties
         )
 
     @classmethod
@@ -402,10 +399,8 @@ class Queue(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-        queue_name = properties["QueueName"]
         sqs_backend = sqs_backends[region_name]
-        sqs_backend.delete_queue(queue_name)
+        sqs_backend.delete_queue(resource_name)
 
     @property
     def approximate_number_of_messages_delayed(self):

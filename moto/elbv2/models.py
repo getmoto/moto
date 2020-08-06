@@ -160,7 +160,6 @@ class FakeTargetGroup(CloudFormationModel):
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get("Name")
         vpc_id = properties.get("VpcId")
         protocol = properties.get("Protocol")
         port = properties.get("Port")
@@ -175,7 +174,7 @@ class FakeTargetGroup(CloudFormationModel):
         target_type = properties.get("TargetType")
 
         target_group = elbv2_backend.create_target_group(
-            name=name,
+            name=resource_name,
             vpc_id=vpc_id,
             protocol=protocol,
             port=port,

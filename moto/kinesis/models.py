@@ -276,9 +276,7 @@ class Stream(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         backend = kinesis_backends[region_name]
-        properties = cloudformation_json.get("Properties", {})
-        stream_name = properties.get(cls.cloudformation_name_type(), resource_name)
-        backend.delete_stream(stream_name)
+        backend.delete_stream(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):

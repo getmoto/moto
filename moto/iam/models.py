@@ -12,7 +12,6 @@ import re
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from six.moves.urllib.parse import urlparse
-from uuid import uuid4
 
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
@@ -341,17 +340,17 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json.get("Properties", {})
         policy_document = properties.get("PolicyDocument")
-        policy_name = properties.get("PolicyName", resource_name)
+        policy_name = properties.get("PolicyName")
         user_names = properties.get("Users")
         role_names = properties.get("Roles")
         group_names = properties.get("Groups")
 
         return iam_backend.create_inline_policy(
-            resource_name,
+            resource_physical_name,
             policy_name,
             policy_document,
             group_names,
@@ -483,11 +482,13 @@ class Role(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
         role_name = (
-            properties["RoleName"] if "RoleName" in properties else str(uuid4())[0:5]
+            properties["RoleName"]
+            if "RoleName" in properties
+            else resource_physical_name
         )
 
         role = iam_backend.create_role(
@@ -561,13 +562,15 @@ class InstanceProfile(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
 
         role_ids = properties["Roles"]
         return iam_backend.create_instance_profile(
-            name=resource_name, path=properties.get("Path", "/"), role_ids=role_ids
+            name=resource_physical_name,
+            path=properties.get("Path", "/"),
+            role_ids=role_ids,
         )
 
     @property
@@ -621,8 +624,7 @@ class SigningCertificate(BaseModel):
 
 
 class AccessKey(CloudFormationModel):
-    def __init__(self, key_id, user_name, status="Active"):
-        self.id = key_id
+    def __init__(self, user_name, status="Active"):
         self.user_name = user_name
         self.access_key_id = "AKIA" + random_access_key()
         self.secret_access_key = random_alphanumeric(40)
@@ -655,15 +657,13 @@ class AccessKey(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json.get("Properties", {})
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
 
-        return iam_backend.create_access_key(
-            user_name, status=status, cfn_resource_name=resource_name
-        )
+        return iam_backend.create_access_key(user_name, status=status,)
 
     @classmethod
     def update_from_cloudformation_json(
@@ -676,7 +676,7 @@ class AccessKey(CloudFormationModel):
                 new_resource_name, cloudformation_json, region_name
             )
             cls.delete_from_cloudformation_json(
-                original_resource.id, cloudformation_json, region_name
+                original_resource.physical_resource_id, cloudformation_json, region_name
             )
             return new_resource
 
@@ -691,7 +691,7 @@ class AccessKey(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        iam_backend.delete_access_key_by_id(resource_name)
+        iam_backend.delete_access_key_by_name(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -828,8 +828,8 @@ class User(CloudFormationModel):
 
         del self.policies[policy_name]
 
-    def create_access_key(self, status="Active", cfn_key_id=None):
-        access_key = AccessKey(cfn_key_id, self.name, status)
+    def create_access_key(self, status="Active"):
+        access_key = AccessKey(self.name, status)
         self.access_keys.append(access_key)
         return access_key
 
@@ -987,13 +987,11 @@ class User(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(
-        cls, resource_name, cloudformation_json, region_name
+        cls, resource_physical_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        name = properties.get("Name", resource_name)
-
-        return iam_backend.create_user(name, path)
+        return iam_backend.create_user(resource_physical_name, path)
 
     @classmethod
     def update_from_cloudformation_json(
@@ -1023,9 +1021,7 @@ class User(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json.get("Properties", {})
-        stream_name = properties.get(cls.cloudformation_name_type(), resource_name)
-        iam_backend.delete_user(stream_name)
+        iam_backend.delete_user(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -1969,12 +1965,10 @@ class IAMBackend(BaseBackend):
     def delete_policy(self, policy_arn):
         del self.managed_policies[policy_arn]
 
-    def create_access_key(
-        self, user_name=None, status="Active", cfn_resource_name=random_resource_id()
-    ):
+    def create_access_key(self, user_name=None, status="Active"):
         user = self.get_user(user_name)
-        key = user.create_access_key(status, cfn_key_id=cfn_resource_name)
-        self.access_keys[cfn_resource_name] = key
+        key = user.create_access_key(status)
+        self.access_keys[key.physical_resource_id] = key
         return key
 
     def update_access_key(self, user_name, access_key_id, status=None):
@@ -2005,13 +1999,16 @@ class IAMBackend(BaseBackend):
     def delete_access_key(self, access_key_id, user_name):
         user = self.get_user(user_name)
         access_key = user.get_access_key_by_id(access_key_id)
-        self.delete_access_key_by_id(access_key.id)
+        self.delete_access_key_by_name(access_key.access_key_id)
 
-    def delete_access_key_by_id(self, resource_id):
-        key = self.access_keys[resource_id]
-        user = self.get_user(key.user_name)
-        user.delete_access_key(key.access_key_id)
-        del self.access_keys[resource_id]
+    def delete_access_key_by_name(self, name):
+        key = self.access_keys[name]
+        try:  # User may have been deleted before their access key...
+            user = self.get_user(key.user_name)
+            user.delete_access_key(key.access_key_id)
+        except IAMNotFoundException:
+            pass
+        del self.access_keys[name]
 
     def upload_ssh_public_key(self, user_name, ssh_public_key_body):
         user = self.get_user(user_name)
