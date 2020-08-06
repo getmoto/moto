@@ -1177,16 +1177,16 @@ class LambdaBackend(BaseBackend):
     def put_function_concurrency(self, function_name, reserved_concurrency):
         fn = self.get_function(function_name)
         fn.reserved_concurrency = reserved_concurrency
-        return {"ReservedConcurrentExecutions": fn.reserved_concurrency}
+        return fn.reserved_concurrency
 
     def delete_function_concurrency(self, function_name):
         fn = self.get_function(function_name)
         fn.reserved_concurrency = None
-        return None
+        return fn.reserved_concurrency
 
     def get_function_concurrency(self, function_name):
         fn = self.get_function(function_name)
-        return {"ReservedConcurrentExecutions": fn.reserved_concurrency}
+        return fn.reserved_concurrency
 
 
 def do_validate_s3():
