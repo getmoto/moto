@@ -191,6 +191,11 @@ class VPCs(BaseResponse):
         template = self.response_template(CREATE_VPC_END_POINT)
         return template.render(vpc_end_point=vpc_end_point)
 
+    def describe_vpc_endpoint_services(self):
+        vpc_end_point_services = self.ec2_backend.get_vpc_end_point_services()
+        template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
+        return template.render(vpc_end_points=vpc_end_point_services)
+
 
 CREATE_VPC_RESPONSE = """
 <CreateVpcResponse xmlns="http://ec2.amazonaws.com/doc/{{doc_date}}/">
@@ -449,3 +454,35 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
         <creationTimestamp>{{ vpc_end_point.created_at }}</creationTimestamp>
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
+
+DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
+    <serviceNameSet>
+        {% for serviceName in vpc_end_points.services %}
+            <item>{{ serviceName }}</item>
+        {% endfor %}
+    </serviceNameSet>
+    <serviceDetailSet>
+        <item>
+            {% for service in vpc_end_points.servicesDetails %}
+                <owner>amazon</owner>
+                <serviceType>
+                    <item>
+                        <serviceType>{{ service.type }}</serviceType>
+                    </item>
+                </serviceType>
+                <baseEndpointDnsNameSet>
+                    <item>{{ ".".join((service.service_name.split(".")[::-1])) }}</item>
+                </baseEndpointDnsNameSet>
+                <acceptanceRequired>false</acceptanceRequired>
+                <availabilityZoneSet>
+                    {% for zone in vpc_end_points.availability_zones %}
+                        <item>{{ zone.name }}</item>
+                    {% endfor %}
+                </availabilityZoneSet>
+                <serviceName>{{ service.service_name }}</serviceName>
+                <vpcEndpointPolicySupported>true</vpcEndpointPolicySupported>
+            {% endfor %}
+        </item>
+    </serviceDetailSet>
+</DescribeVpcEndpointServicesResponse>"""

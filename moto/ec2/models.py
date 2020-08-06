@@ -3074,6 +3074,21 @@ class VPCBackend(object):
 
         return vpc_end_point
 
+    def get_vpc_end_point_services(self):
+        vpc_end_point_services = self.vpc_end_points.values()
+
+        services = []
+        for value in vpc_end_point_services:
+            services.append(value.service_name)
+
+        availability_zones = EC2Backend.describe_availability_zones(self)
+
+        return {
+            "servicesDetails": vpc_end_point_services,
+            "services": services,
+            "availability_zones": availability_zones,
+        }
+
 
 class VPCPeeringConnectionStatus(object):
     def __init__(self, code="initiating-request", message=""):
