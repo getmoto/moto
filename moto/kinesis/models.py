@@ -246,11 +246,18 @@ class Stream(CloudFormationModel):
         properties = cloudformation_json.get("Properties", {})
         shard_count = properties.get("ShardCount", 1)
         retention_period_hours = properties.get("RetentionPeriodHours", resource_name)
+        tags = {
+            tag_item["Key"]: tag_item["Value"]
+            for tag_item in properties.get("Tags", [])
+        }
 
         backend = kinesis_backends[region_name]
-        return backend.create_stream(
+        stream = backend.create_stream(
             resource_name, shard_count, retention_period_hours, region_name
         )
+        if any(tags):
+            backend.add_tags_to_stream(stream.stream_name, tags)
+        return stream
 
     @classmethod
     def update_from_cloudformation_json(
@@ -278,6 +285,11 @@ class Stream(CloudFormationModel):
                 original_resource.retention_period_hours = properties[
                     "RetentionPeriodHours"
                 ]
+            if "Tags" in properties:
+                original_resource.tags = {
+                    tag_item["Key"]: tag_item["Value"]
+                    for tag_item in properties.get("Tags", [])
+                }
             return original_resource
 
     @classmethod

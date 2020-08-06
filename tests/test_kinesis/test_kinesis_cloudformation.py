@@ -74,6 +74,11 @@ Resources:
       Name: MyStream
       ShardCount: 4
       RetentionPeriodHours: 48
+      Tags:
+      - Key: TagKey1
+        Value: TagValue1
+      - Key: TagKey2
+        Value: TagValue2
 """.strip()
 
     cf_conn.create_stack(StackName=stack_name, TemplateBody=template)
@@ -85,6 +90,12 @@ Resources:
         "StreamDescription"
     ]
     stream_description["RetentionPeriodHours"].should.equal(48)
+
+    tags = kinesis_conn.list_tags_for_stream(StreamName="MyStream")["Tags"]
+    tag1_value = [tag for tag in tags if tag["Key"] == "TagKey1"][0]["Value"]
+    tag2_value = [tag for tag in tags if tag["Key"] == "TagKey2"][0]["Value"]
+    tag1_value.should.equal("TagValue1")
+    tag2_value.should.equal("TagValue2")
 
     shards_provisioned = len(
         [
@@ -102,6 +113,12 @@ Resources:
         Properties:
           ShardCount: 6
           RetentionPeriodHours: 24
+          Tags:
+          - Key: TagKey1
+            Value: TagValue1a
+          - Key: TagKey2
+            Value: TagValue2a
+
     """.strip()
     cf_conn.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -109,6 +126,12 @@ Resources:
         "StreamDescription"
     ]
     stream_description["RetentionPeriodHours"].should.equal(24)
+
+    tags = kinesis_conn.list_tags_for_stream(StreamName="MyStream")["Tags"]
+    tag1_value = [tag for tag in tags if tag["Key"] == "TagKey1"][0]["Value"]
+    tag2_value = [tag for tag in tags if tag["Key"] == "TagKey2"][0]["Value"]
+    tag1_value.should.equal("TagValue1a")
+    tag2_value.should.equal("TagValue2a")
 
     shards_provisioned = len(
         [
