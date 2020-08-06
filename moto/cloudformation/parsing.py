@@ -326,15 +326,20 @@ def parse_and_update_resource(logical_id, resource_json, resources_map, region_n
         logical_id, resource_json, resources_map
     )
     original_resource = resources_map[logical_id]
-    new_resource = resource_class.update_from_cloudformation_json(
-        original_resource=original_resource,
-        new_resource_name=new_resource_name,
-        cloudformation_json=resource_json,
-        region_name=region_name,
-    )
-    new_resource.type = resource_json["Type"]
-    new_resource.logical_resource_id = logical_id
-    return new_resource
+    if not hasattr(
+        resource_class.update_from_cloudformation_json, "__isabstractmethod__"
+    ):
+        new_resource = resource_class.update_from_cloudformation_json(
+            original_resource=original_resource,
+            new_resource_name=new_resource_name,
+            cloudformation_json=resource_json,
+            region_name=region_name,
+        )
+        new_resource.type = resource_json["Type"]
+        new_resource.logical_resource_id = logical_id
+        return new_resource
+    else:
+        return None
 
 
 def parse_and_delete_resource(resource_name, resource_json, resources_map, region_name):

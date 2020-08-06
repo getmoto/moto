@@ -382,7 +382,7 @@ class Queue(CloudFormationModel):
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        queue_name = properties["QueueName"]
+        queue_name = original_resource.name
 
         sqs_backend = sqs_backends[region_name]
         queue = sqs_backend.get_queue(queue_name)

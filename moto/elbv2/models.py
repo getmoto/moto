@@ -436,13 +436,12 @@ class FakeLoadBalancer(CloudFormationModel):
 
         elbv2_backend = elbv2_backends[region_name]
 
-        name = properties.get("Name", resource_name)
         security_groups = properties.get("SecurityGroups")
         subnet_ids = properties.get("Subnets")
         scheme = properties.get("Scheme", "internet-facing")
 
         load_balancer = elbv2_backend.create_load_balancer(
-            name, security_groups, subnet_ids, scheme=scheme
+            resource_name, security_groups, subnet_ids, scheme=scheme
         )
         return load_balancer
 

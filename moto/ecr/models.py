@@ -80,15 +80,11 @@ class Repository(BaseObject, CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-
         ecr_backend = ecr_backends[region_name]
         return ecr_backend.create_repository(
             # RepositoryName is optional in CloudFormation, thus create a random
             # name if necessary
-            repository_name=properties.get(
-                "RepositoryName", "ecrrepository{0}".format(int(random() * 10 ** 6))
-            )
+            repository_name=resource_name
         )
 
     @classmethod
