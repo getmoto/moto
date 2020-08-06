@@ -768,16 +768,22 @@ class ConfigQueryModel(object):
 
     def aggregate_regions(self, path, backend_region, resource_region):
         """
-        This method will is called for both aggregated and non-aggregated calls for config resources.
+        This method is called for both aggregated and non-aggregated calls for config resources.
+
         It will figure out how to return the full list of resources for a given regional backend and append them to a final list.
         It produces a list of both the region and the resource name with a delimiter character (CONFIG_BACKEND_DELIM, ASCII Record separator, \x1e).
         IE: "us-east-1\x1ei-1234567800"
 
-        Each config-enabled resource has a method named `list_config_service_resources` which has to parse the delimiter
+        You should only use this method if you need to aggregate resources over more than one region.
+        If your region is global, just query the global backend directly in the `list_config_service_resources` method
+
+        If you use this method, your config-enabled resource must parse the delimited string in it's `list_config_service_resources` method.
         ...
-        :param path: - A dict accessor string applied to the backend that locates the resource.
-        :param backend_region:
-        :param resource_region:
+        :param path: - A dict accessor string applied to the backend that locates resources inside that backend.
+                       For example, if you passed path="keypairs", and you were working with an ec2 moto backend, it would yield the contents from
+                       ec2_moto_backend[region].keypairs
+        :param backend_region: - Only used for filtering; A string representing the region IE: us-east-1
+        :param resource_region: - Only used for filtering; A string representing the region IE: us-east-1
         :return: - Returns a list of "region\x1eresourcename" strings
         """
 
