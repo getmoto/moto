@@ -73,6 +73,7 @@ Resources:
     Properties:
       Name: MyStream
       ShardCount: 4
+      RetentionPeriodHours: 48
 """.strip()
 
     cf_conn.create_stack(StackName=stack_name, TemplateBody=template)
@@ -83,6 +84,8 @@ Resources:
     stream_description = kinesis_conn.describe_stream(StreamName="MyStream")[
         "StreamDescription"
     ]
+    stream_description["RetentionPeriodHours"].should.equal(48)
+
     shards_provisioned = len(
         [
             shard
@@ -98,12 +101,15 @@ Resources:
         Type: AWS::Kinesis::Stream
         Properties:
           ShardCount: 6
+          RetentionPeriodHours: 24
     """.strip()
     cf_conn.update_stack(StackName=stack_name, TemplateBody=template)
 
     stream_description = kinesis_conn.describe_stream(StreamName="MyStream")[
         "StreamDescription"
     ]
+    stream_description["RetentionPeriodHours"].should.equal(24)
+
     shards_provisioned = len(
         [
             shard
