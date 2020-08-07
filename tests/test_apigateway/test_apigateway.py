@@ -1871,6 +1871,8 @@ def test_create_api_headers():
     with assert_raises(ClientError) as ex:
         client.create_api_key(**payload)
     ex.exception.response["Error"]["Code"].should.equal("ConflictException")
+    if not settings.TEST_SERVER_MODE:
+        ex.exception.response["ResponseMetadata"]["HTTPHeaders"].should.equal({})
 
 
 @mock_apigateway
