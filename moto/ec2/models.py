@@ -22,7 +22,7 @@ from boto.ec2.launchspecification import LaunchSpecification
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend
-from moto.core.models import Model, BaseModel
+from moto.core.models import Model, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
@@ -160,7 +160,6 @@ AMIS = _load_resource(
     or resource_filename(__name__, "resources/amis.json"),
 )
 
-
 OWNER_ID = ACCOUNT_ID
 
 
@@ -219,7 +218,7 @@ class TaggedEC2Resource(BaseModel):
             raise FilterNotImplementedError(filter_name, method_name)
 
 
-class NetworkInterface(TaggedEC2Resource):
+class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         ec2_backend,
@@ -267,6 +266,15 @@ class NetworkInterface(TaggedEC2Resource):
                     self.ec2_backend.groups[subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-networkinterface.html
+        return "AWS::EC2::NetworkInterface"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -454,7 +462,7 @@ class NetworkInterfaceBackend(object):
         return generic_filter(filters, enis)
 
 
-class Instance(TaggedEC2Resource, BotoInstance):
+class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     VALID_ATTRIBUTES = {
         "instanceType",
         "kernel",
@@ -620,6 +628,15 @@ class Instance(TaggedEC2Resource, BotoInstance):
                 return "ec2-{0}.{1}.compute.amazonaws.com".format(
                     formatted_ip, self.region_name
                 )
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-instance.html
+        return "AWS::EC2::Instance"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -1387,7 +1404,6 @@ class Ami(TaggedEC2Resource):
 
 
 class AmiBackend(object):
-
     AMI_REGEX = re.compile("ami-[a-z0-9]+")
 
     def __init__(self):
@@ -1515,6 +1531,19 @@ class AmiBackend(object):
             ami.launch_permission_groups.add(group)
 
         return True
+
+    def register_image(self, name=None, description=None):
+        ami_id = random_ami_id()
+        ami = Ami(
+            self,
+            ami_id,
+            instance=None,
+            source_ami=None,
+            name=name,
+            description=description,
+        )
+        self.amis[ami_id] = ami
+        return ami
 
     def remove_launch_permission(self, ami_id, user_ids=None, group=None):
         ami = self.describe_images(ami_ids=[ami_id])[0]
@@ -1830,7 +1859,7 @@ class SecurityRule(object):
         return True
 
 
-class SecurityGroup(TaggedEC2Resource):
+class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, ec2_backend, group_id, name, description, vpc_id=None):
         self.ec2_backend = ec2_backend
         self.id = group_id
@@ -1847,6 +1876,15 @@ class SecurityGroup(TaggedEC2Resource):
             vpc = self.ec2_backend.vpcs.get(vpc_id)
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(SecurityRule("-1", None, None, [], []))
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "GroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-securitygroup.html
+        return "AWS::EC2::SecurityGroup"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -2078,11 +2116,16 @@ class SecurityGroupBackend(object):
         vpc_id=None,
     ):
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
-        if ip_ranges and not isinstance(ip_ranges, list):
-            ip_ranges = [ip_ranges]
+        if ip_ranges:
+            if isinstance(ip_ranges, str) or (
+                six.PY2 and isinstance(ip_ranges, unicode)  # noqa
+            ):
+                ip_ranges = [{"CidrIp": str(ip_ranges)}]
+            elif not isinstance(ip_ranges, list):
+                ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr):
+                if not is_valid_cidr(cidr["CidrIp"]):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2160,10 +2203,14 @@ class SecurityGroupBackend(object):
 
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-            ip_ranges = [ip_ranges]
+
+            if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
+                ip_ranges = [{"CidrIp": ip_ranges}]
+            else:
+                ip_ranges = [json.loads(ip_ranges)]
         if ip_ranges:
             for cidr in ip_ranges:
-                if not is_valid_cidr(cidr):
+                if not is_valid_cidr(cidr["CidrIp"]):
                     raise InvalidCIDRSubnetError(cidr=cidr)
 
         self._verify_group_will_respect_rule_count_limit(
@@ -2219,9 +2266,13 @@ class SecurityGroupBackend(object):
             if source_group:
                 source_groups.append(source_group)
 
+        for ip in ip_ranges:
+            ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
+
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
+
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
             return security_rule
@@ -2247,10 +2298,19 @@ class SecurityGroupBackend(object):
             raise RulesPerSecurityGroupLimitExceededError
 
 
-class SecurityGroupIngress(object):
+class SecurityGroupIngress(CloudFormationModel):
     def __init__(self, security_group, properties):
         self.security_group = security_group
         self.properties = properties
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-securitygroupingress.html
+        return "AWS::EC2::SecurityGroupIngress"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -2315,13 +2375,22 @@ class SecurityGroupIngress(object):
         return cls(security_group, properties)
 
 
-class VolumeAttachment(object):
+class VolumeAttachment(CloudFormationModel):
     def __init__(self, volume, instance, device, status):
         self.volume = volume
         self.attach_time = utc_date_and_time()
         self.instance = instance
         self.device = device
         self.status = status
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volumeattachment.html
+        return "AWS::EC2::VolumeAttachment"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -2341,7 +2410,7 @@ class VolumeAttachment(object):
         return attachment
 
 
-class Volume(TaggedEC2Resource):
+class Volume(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self, ec2_backend, volume_id, size, zone, snapshot_id=None, encrypted=False
     ):
@@ -2353,6 +2422,15 @@ class Volume(TaggedEC2Resource):
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-volume.html
+        return "AWS::EC2::Volume"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -2421,6 +2499,7 @@ class Snapshot(TaggedEC2Resource):
         self.description = description
         self.start_time = utc_date_and_time()
         self.create_volume_permission_groups = set()
+        self.create_volume_permission_userids = set()
         self.ec2_backend = ec2_backend
         self.status = "completed"
         self.encrypted = encrypted
@@ -2585,32 +2664,36 @@ class EBSBackend(object):
         snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_groups
 
-    def add_create_volume_permission(self, snapshot_id, user_id=None, group=None):
-        if user_id:
-            self.raise_not_implemented_error(
-                "The UserId parameter for ModifySnapshotAttribute"
-            )
-
-        if group != "all":
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+    def get_create_volume_permission_userids(self, snapshot_id):
         snapshot = self.get_snapshot(snapshot_id)
-        snapshot.create_volume_permission_groups.add(group)
+        return snapshot.create_volume_permission_userids
+
+    def add_create_volume_permission(self, snapshot_id, user_ids=None, groups=None):
+        snapshot = self.get_snapshot(snapshot_id)
+        if user_ids:
+            snapshot.create_volume_permission_userids.update(user_ids)
+
+        if groups and groups != ["all"]:
+            raise InvalidAMIAttributeItemValueError("UserGroup", groups)
+        else:
+            snapshot.create_volume_permission_groups.update(groups)
+
         return True
 
-    def remove_create_volume_permission(self, snapshot_id, user_id=None, group=None):
-        if user_id:
-            self.raise_not_implemented_error(
-                "The UserId parameter for ModifySnapshotAttribute"
-            )
-
-        if group != "all":
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+    def remove_create_volume_permission(self, snapshot_id, user_ids=None, groups=None):
         snapshot = self.get_snapshot(snapshot_id)
-        snapshot.create_volume_permission_groups.discard(group)
+        if user_ids:
+            snapshot.create_volume_permission_userids.difference_update(user_ids)
+
+        if groups and groups != ["all"]:
+            raise InvalidAMIAttributeItemValueError("UserGroup", groups)
+        else:
+            snapshot.create_volume_permission_groups.difference_update(groups)
+
         return True
 
 
-class VPC(TaggedEC2Resource):
+class VPC(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         ec2_backend,
@@ -2642,6 +2725,15 @@ class VPC(TaggedEC2Resource):
                 cidr_block,
                 amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
             )
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
+        return "AWS::EC2::VPC"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -2982,6 +3074,21 @@ class VPCBackend(object):
 
         return vpc_end_point
 
+    def get_vpc_end_point_services(self):
+        vpc_end_point_services = self.vpc_end_points.values()
+
+        services = []
+        for value in vpc_end_point_services:
+            services.append(value.service_name)
+
+        availability_zones = EC2Backend.describe_availability_zones(self)
+
+        return {
+            "servicesDetails": vpc_end_point_services,
+            "services": services,
+            "availability_zones": availability_zones,
+        }
+
 
 class VPCPeeringConnectionStatus(object):
     def __init__(self, code="initiating-request", message=""):
@@ -3009,12 +3116,21 @@ class VPCPeeringConnectionStatus(object):
         self.message = "Inactive"
 
 
-class VPCPeeringConnection(TaggedEC2Resource):
+class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, vpc_pcx_id, vpc, peer_vpc):
         self.id = vpc_pcx_id
         self.vpc = vpc
         self.peer_vpc = peer_vpc
         self._status = VPCPeeringConnectionStatus()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcpeeringconnection.html
+        return "AWS::EC2::VPCPeeringConnection"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -3101,7 +3217,7 @@ class VPCPeeringConnectionBackend(object):
         return vpc_pcx
 
 
-class Subnet(TaggedEC2Resource):
+class Subnet(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         ec2_backend,
@@ -3136,6 +3252,15 @@ class Subnet(TaggedEC2Resource):
         ]  # Reserved by AWS
         self._unused_ips = set()  # if instance is destroyed hold IP here for reuse
         self._subnet_ips = {}  # has IP: instance
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnet.html
+        return "AWS::EC2::Subnet"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -3364,10 +3489,19 @@ class SubnetBackend(object):
             raise InvalidParameterValueError(attr_name)
 
 
-class SubnetRouteTableAssociation(object):
+class SubnetRouteTableAssociation(CloudFormationModel):
     def __init__(self, route_table_id, subnet_id):
         self.route_table_id = route_table_id
         self.subnet_id = subnet_id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnetroutetableassociation.html
+        return "AWS::EC2::SubnetRouteTableAssociation"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -3398,7 +3532,7 @@ class SubnetRouteTableAssociationBackend(object):
         return subnet_association
 
 
-class RouteTable(TaggedEC2Resource):
+class RouteTable(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, ec2_backend, route_table_id, vpc_id, main=False):
         self.ec2_backend = ec2_backend
         self.id = route_table_id
@@ -3406,6 +3540,15 @@ class RouteTable(TaggedEC2Resource):
         self.main = main
         self.associations = {}
         self.routes = {}
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-routetable.html
+        return "AWS::EC2::RouteTable"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -3542,7 +3685,7 @@ class RouteTableBackend(object):
         return self.associate_route_table(route_table_id, subnet_id)
 
 
-class Route(object):
+class Route(CloudFormationModel):
     def __init__(
         self,
         route_table,
@@ -3567,6 +3710,15 @@ class Route(object):
         self.nat_gateway = nat_gateway
         self.interface = interface
         self.vpc_pcx = vpc_pcx
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html
+        return "AWS::EC2::Route"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -3611,7 +3763,6 @@ class VPCEndPoint(TaggedEC2Resource):
         tag_specifications=None,
         private_dns_enabled=None,
     ):
-
         self.id = id
         self.vpc_id = vpc_id
         self.service_name = service_name
@@ -3735,11 +3886,20 @@ class RouteBackend(object):
         return deleted
 
 
-class InternetGateway(TaggedEC2Resource):
+class InternetGateway(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, ec2_backend):
         self.ec2_backend = ec2_backend
         self.id = random_internet_gateway_id()
         self.vpc = None
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-internetgateway.html
+        return "AWS::EC2::InternetGateway"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -3813,10 +3973,19 @@ class InternetGatewayBackend(object):
         return self.describe_internet_gateways(internet_gateway_ids=igw_ids)[0]
 
 
-class VPCGatewayAttachment(BaseModel):
+class VPCGatewayAttachment(CloudFormationModel):
     def __init__(self, gateway_id, vpc_id):
         self.gateway_id = gateway_id
         self.vpc_id = vpc_id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcgatewayattachment.html
+        return "AWS::EC2::VPCGatewayAttachment"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -4038,7 +4207,7 @@ class SpotFleetLaunchSpec(object):
         self.weighted_capacity = float(weighted_capacity)
 
 
-class SpotFleetRequest(TaggedEC2Resource):
+class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
         ec2_backend,
@@ -4086,6 +4255,15 @@ class SpotFleetRequest(TaggedEC2Resource):
     @property
     def physical_resource_id(self):
         return self.id
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-spotfleet.html
+        return "AWS::EC2::SpotFleet"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -4310,7 +4488,7 @@ class SpotFleetBackend(object):
         return True
 
 
-class ElasticAddress(object):
+class ElasticAddress(CloudFormationModel):
     def __init__(self, domain, address=None):
         if address:
             self.public_ip = address
@@ -4321,6 +4499,15 @@ class ElasticAddress(object):
         self.instance = None
         self.eni = None
         self.association_id = None
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-eip.html
+        return "AWS::EC2::EIP"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -5082,7 +5269,7 @@ class CustomerGatewayBackend(object):
         return deleted
 
 
-class NatGateway(object):
+class NatGateway(CloudFormationModel):
     def __init__(self, backend, subnet_id, allocation_id):
         # public properties
         self.id = random_nat_gateway_id()
@@ -5119,6 +5306,15 @@ class NatGateway(object):
     def public_ip(self):
         eips = self._backend.address_by_allocation([self.allocation_id])
         return eips[0].public_ip
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html
+        return "AWS::EC2::NatGateway"
 
     @classmethod
     def create_from_cloudformation_json(

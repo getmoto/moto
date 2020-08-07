@@ -338,6 +338,7 @@ def test_get_random_exclude_characters_and_symbols():
         PasswordLength=20, ExcludeCharacters="xyzDje@?!."
     )
     assert any(c in "xyzDje@?!." for c in random_password["RandomPassword"]) == False
+    assert len(random_password["RandomPassword"]) == 20
 
 
 @mock_secretsmanager
@@ -457,36 +458,6 @@ def test_describe_secret_that_does_not_match():
 
     with assert_raises(ClientError):
         result = conn.get_secret_value(SecretId="i-dont-match")
-
-
-@mock_secretsmanager
-def test_list_secrets_empty():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-
-    secrets = conn.list_secrets()
-
-    assert secrets["SecretList"] == []
-
-
-@mock_secretsmanager
-def test_list_secrets():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
-
-    conn.create_secret(
-        Name="test-secret-2",
-        SecretString="barsecret",
-        Tags=[{"Key": "a", "Value": "1"}],
-    )
-
-    secrets = conn.list_secrets()
-
-    assert secrets["SecretList"][0]["ARN"] is not None
-    assert secrets["SecretList"][0]["Name"] == "test-secret"
-    assert secrets["SecretList"][1]["ARN"] is not None
-    assert secrets["SecretList"][1]["Name"] == "test-secret-2"
-    assert secrets["SecretList"][1]["Tags"] == [{"Key": "a", "Value": "1"}]
 
 
 @mock_secretsmanager

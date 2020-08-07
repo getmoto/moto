@@ -57,3 +57,8 @@ class InvalidRequestException(SecretsManagerClientError):
         super(InvalidRequestException, self).__init__(
             "InvalidRequestException", message
         )
+
+
+class ValidationException(SecretsManagerClientError):
+    def __init__(self, message):
+        super(ValidationException, self).__init__("ValidationException", message)

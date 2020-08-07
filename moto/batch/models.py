@@ -13,7 +13,7 @@ import threading
 import dateutil.parser
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.iam import iam_backends
 from moto.ec2 import ec2_backends
 from moto.ecs import ecs_backends
@@ -42,7 +42,7 @@ def datetime2int(date):
     return int(time.mktime(date.timetuple()))
 
 
-class ComputeEnvironment(BaseModel):
+class ComputeEnvironment(CloudFormationModel):
     def __init__(
         self,
         compute_environment_name,
@@ -76,6 +76,15 @@ class ComputeEnvironment(BaseModel):
     def physical_resource_id(self):
         return self.arn
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "ComputeEnvironmentName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-batch-computeenvironment.html
+        return "AWS::Batch::ComputeEnvironment"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -95,7 +104,7 @@ class ComputeEnvironment(BaseModel):
         return backend.get_compute_environment_by_arn(arn)
 
 
-class JobQueue(BaseModel):
+class JobQueue(CloudFormationModel):
     def __init__(
         self, name, priority, state, environments, env_order_json, region_name
     ):
@@ -139,6 +148,15 @@ class JobQueue(BaseModel):
     def physical_resource_id(self):
         return self.arn
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "JobQueueName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-batch-jobqueue.html
+        return "AWS::Batch::JobQueue"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -164,7 +182,7 @@ class JobQueue(BaseModel):
         return backend.get_job_queue_by_arn(arn)
 
 
-class JobDefinition(BaseModel):
+class JobDefinition(CloudFormationModel):
     def __init__(
         self,
         name,
@@ -263,6 +281,15 @@ class JobDefinition(BaseModel):
     @property
     def physical_resource_id(self):
         return self.arn
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "JobDefinitionName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-batch-jobdefinition.html
+        return "AWS::Batch::JobDefinition"
 
     @classmethod
     def create_from_cloudformation_json(

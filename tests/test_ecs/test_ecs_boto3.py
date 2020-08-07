@@ -660,6 +660,15 @@ def test_update_service():
     response["service"]["desiredCount"].should.equal(0)
     response["service"]["schedulingStrategy"].should.equal("REPLICA")
 
+    # Verify we can pass the ARNs of the cluster and service
+    response = client.update_service(
+        cluster=response["service"]["clusterArn"],
+        service=response["service"]["serviceArn"],
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+    )
+    response["service"]["desiredCount"].should.equal(1)
+
 
 @mock_ecs
 def test_update_missing_service():

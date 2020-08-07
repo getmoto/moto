@@ -6,31 +6,42 @@ import copy
 import warnings
 import re
 
-from moto.autoscaling import models as autoscaling_models
-from moto.awslambda import models as lambda_models
-from moto.batch import models as batch_models
-from moto.cloudwatch import models as cloudwatch_models
-from moto.cognitoidentity import models as cognitoidentity_models
 from moto.compat import collections_abc
-from moto.datapipeline import models as datapipeline_models
-from moto.dynamodb2 import models as dynamodb2_models
+
+# This ugly section of imports is necessary because we
+# build the list of CloudFormationModel subclasses using
+# CloudFormationModel.__subclasses__(). However, if the class
+# definition of a subclass hasn't been executed yet - for example, if
+# the subclass's module hasn't been imported yet - then that subclass
+# doesn't exist yet, and __subclasses__ won't find it.
+# So we import here to populate the list of subclasses.
+from moto.autoscaling import models as autoscaling_models  # noqa
+from moto.awslambda import models as awslambda_models  # noqa
+from moto.batch import models as batch_models  # noqa
+from moto.cloudwatch import models as cloudwatch_models  # noqa
+from moto.datapipeline import models as datapipeline_models  # noqa
+from moto.dynamodb2 import models as dynamodb2_models  # noqa
 from moto.ec2 import models as ec2_models
-from moto.ecs import models as ecs_models
-from moto.elb import models as elb_models
-from moto.elbv2 import models as elbv2_models
-from moto.events import models as events_models
-from moto.iam import models as iam_models
-from moto.kinesis import models as kinesis_models
-from moto.kms import models as kms_models
-from moto.rds import models as rds_models
-from moto.rds2 import models as rds2_models
-from moto.redshift import models as redshift_models
-from moto.route53 import models as route53_models
-from moto.s3 import models as s3_models, s3_backend
+from moto.ecr import models as ecr_models  # noqa
+from moto.ecs import models as ecs_models  # noqa
+from moto.elb import models as elb_models  # noqa
+from moto.elbv2 import models as elbv2_models  # noqa
+from moto.events import models as events_models  # noqa
+from moto.iam import models as iam_models  # noqa
+from moto.kinesis import models as kinesis_models  # noqa
+from moto.kms import models as kms_models  # noqa
+from moto.rds import models as rds_models  # noqa
+from moto.rds2 import models as rds2_models  # noqa
+from moto.redshift import models as redshift_models  # noqa
+from moto.route53 import models as route53_models  # noqa
+from moto.s3 import models as s3_models, s3_backend  # noqa
 from moto.s3.utils import bucket_and_name_from_url
-from moto.sns import models as sns_models
-from moto.sqs import models as sqs_models
-from moto.core import ACCOUNT_ID
+from moto.sns import models as sns_models  # noqa
+from moto.sqs import models as sqs_models  # noqa
+
+# End ugly list of imports
+
+from moto.core import ACCOUNT_ID, CloudFormationModel
 from .utils import random_suffix
 from .exceptions import (
     ExportNotFound,
@@ -40,105 +51,13 @@ from .exceptions import (
 )
 from boto.cloudformation.stack import Output
 
-MODEL_MAP = {
-    "AWS::AutoScaling::AutoScalingGroup": autoscaling_models.FakeAutoScalingGroup,
-    "AWS::AutoScaling::LaunchConfiguration": autoscaling_models.FakeLaunchConfiguration,
-    "AWS::Batch::JobDefinition": batch_models.JobDefinition,
-    "AWS::Batch::JobQueue": batch_models.JobQueue,
-    "AWS::Batch::ComputeEnvironment": batch_models.ComputeEnvironment,
-    "AWS::DynamoDB::Table": dynamodb2_models.Table,
-    "AWS::Kinesis::Stream": kinesis_models.Stream,
-    "AWS::Lambda::EventSourceMapping": lambda_models.EventSourceMapping,
-    "AWS::Lambda::Function": lambda_models.LambdaFunction,
-    "AWS::Lambda::Version": lambda_models.LambdaVersion,
-    "AWS::EC2::EIP": ec2_models.ElasticAddress,
-    "AWS::EC2::Instance": ec2_models.Instance,
-    "AWS::EC2::InternetGateway": ec2_models.InternetGateway,
-    "AWS::EC2::NatGateway": ec2_models.NatGateway,
-    "AWS::EC2::NetworkInterface": ec2_models.NetworkInterface,
-    "AWS::EC2::Route": ec2_models.Route,
-    "AWS::EC2::RouteTable": ec2_models.RouteTable,
-    "AWS::EC2::SecurityGroup": ec2_models.SecurityGroup,
-    "AWS::EC2::SecurityGroupIngress": ec2_models.SecurityGroupIngress,
-    "AWS::EC2::SpotFleet": ec2_models.SpotFleetRequest,
-    "AWS::EC2::Subnet": ec2_models.Subnet,
-    "AWS::EC2::SubnetRouteTableAssociation": ec2_models.SubnetRouteTableAssociation,
-    "AWS::EC2::Volume": ec2_models.Volume,
-    "AWS::EC2::VolumeAttachment": ec2_models.VolumeAttachment,
-    "AWS::EC2::VPC": ec2_models.VPC,
-    "AWS::EC2::VPCGatewayAttachment": ec2_models.VPCGatewayAttachment,
-    "AWS::EC2::VPCPeeringConnection": ec2_models.VPCPeeringConnection,
-    "AWS::ECS::Cluster": ecs_models.Cluster,
-    "AWS::ECS::TaskDefinition": ecs_models.TaskDefinition,
-    "AWS::ECS::Service": ecs_models.Service,
-    "AWS::ElasticLoadBalancing::LoadBalancer": elb_models.FakeLoadBalancer,
-    "AWS::ElasticLoadBalancingV2::LoadBalancer": elbv2_models.FakeLoadBalancer,
-    "AWS::ElasticLoadBalancingV2::TargetGroup": elbv2_models.FakeTargetGroup,
-    "AWS::ElasticLoadBalancingV2::Listener": elbv2_models.FakeListener,
-    "AWS::Cognito::IdentityPool": cognitoidentity_models.CognitoIdentity,
-    "AWS::DataPipeline::Pipeline": datapipeline_models.Pipeline,
-    "AWS::IAM::InstanceProfile": iam_models.InstanceProfile,
-    "AWS::IAM::Role": iam_models.Role,
-    "AWS::KMS::Key": kms_models.Key,
-    "AWS::Logs::LogGroup": cloudwatch_models.LogGroup,
-    "AWS::RDS::DBInstance": rds_models.Database,
-    "AWS::RDS::DBSecurityGroup": rds_models.SecurityGroup,
-    "AWS::RDS::DBSubnetGroup": rds_models.SubnetGroup,
-    "AWS::RDS::DBParameterGroup": rds2_models.DBParameterGroup,
-    "AWS::Redshift::Cluster": redshift_models.Cluster,
-    "AWS::Redshift::ClusterParameterGroup": redshift_models.ParameterGroup,
-    "AWS::Redshift::ClusterSubnetGroup": redshift_models.SubnetGroup,
-    "AWS::Route53::HealthCheck": route53_models.HealthCheck,
-    "AWS::Route53::HostedZone": route53_models.FakeZone,
-    "AWS::Route53::RecordSet": route53_models.RecordSet,
-    "AWS::Route53::RecordSetGroup": route53_models.RecordSetGroup,
-    "AWS::SNS::Topic": sns_models.Topic,
-    "AWS::S3::Bucket": s3_models.FakeBucket,
-    "AWS::SQS::Queue": sqs_models.Queue,
-    "AWS::Events::Rule": events_models.Rule,
-    "AWS::Events::EventBus": events_models.EventBus,
-}
-
-UNDOCUMENTED_NAME_TYPE_MAP = {
-    "AWS::AutoScaling::AutoScalingGroup": "AutoScalingGroupName",
-    "AWS::AutoScaling::LaunchConfiguration": "LaunchConfigurationName",
-    "AWS::IAM::InstanceProfile": "InstanceProfileName",
-}
-
-# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
+# List of supported CloudFormation models
+MODEL_LIST = CloudFormationModel.__subclasses__()
+MODEL_MAP = {model.cloudformation_type(): model for model in MODEL_LIST}
 NAME_TYPE_MAP = {
-    "AWS::ApiGateway::ApiKey": "Name",
-    "AWS::ApiGateway::Model": "Name",
-    "AWS::CloudWatch::Alarm": "AlarmName",
-    "AWS::DynamoDB::Table": "TableName",
-    "AWS::ElasticBeanstalk::Application": "ApplicationName",
-    "AWS::ElasticBeanstalk::Environment": "EnvironmentName",
-    "AWS::CodeDeploy::Application": "ApplicationName",
-    "AWS::CodeDeploy::DeploymentConfig": "DeploymentConfigName",
-    "AWS::CodeDeploy::DeploymentGroup": "DeploymentGroupName",
-    "AWS::Config::ConfigRule": "ConfigRuleName",
-    "AWS::Config::DeliveryChannel": "Name",
-    "AWS::Config::ConfigurationRecorder": "Name",
-    "AWS::ElasticLoadBalancing::LoadBalancer": "LoadBalancerName",
-    "AWS::ElasticLoadBalancingV2::LoadBalancer": "Name",
-    "AWS::ElasticLoadBalancingV2::TargetGroup": "Name",
-    "AWS::EC2::SecurityGroup": "GroupName",
-    "AWS::ElastiCache::CacheCluster": "ClusterName",
-    "AWS::ECR::Repository": "RepositoryName",
-    "AWS::ECS::Cluster": "ClusterName",
-    "AWS::Elasticsearch::Domain": "DomainName",
-    "AWS::Events::Rule": "Name",
-    "AWS::IAM::Group": "GroupName",
-    "AWS::IAM::ManagedPolicy": "ManagedPolicyName",
-    "AWS::IAM::Role": "RoleName",
-    "AWS::IAM::User": "UserName",
-    "AWS::Lambda::Function": "FunctionName",
-    "AWS::RDS::DBInstance": "DBInstanceIdentifier",
-    "AWS::S3::Bucket": "BucketName",
-    "AWS::SNS::Topic": "TopicName",
-    "AWS::SQS::Queue": "QueueName",
+    model.cloudformation_type(): model.cloudformation_name_type()
+    for model in MODEL_LIST
 }
-NAME_TYPE_MAP.update(UNDOCUMENTED_NAME_TYPE_MAP)
 
 # Just ignore these models types for now
 NULL_MODELS = [
@@ -295,10 +214,14 @@ def resource_class_from_type(resource_type):
     if resource_type not in MODEL_MAP:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None
+
     return MODEL_MAP.get(resource_type)
 
 
 def resource_name_property_from_type(resource_type):
+    for model in MODEL_LIST:
+        if model.cloudformation_type() == resource_type:
+            return model.cloudformation_name_type()
     return NAME_TYPE_MAP.get(resource_type)
 
 
@@ -317,11 +240,19 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         if truncated_name_prefix.endswith("-"):
             truncated_name_prefix = truncated_name_prefix[:-1]
         return "{0}-{1}".format(truncated_name_prefix, my_random_suffix)
+    elif resource_type == "AWS::S3::Bucket":
+        right_hand_part_of_name = "-{0}-{1}".format(logical_id, random_suffix())
+        max_stack_name_portion_len = 63 - len(right_hand_part_of_name)
+        return "{0}{1}".format(
+            stack_name[:max_stack_name_portion_len], right_hand_part_of_name
+        ).lower()
     else:
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
-def parse_resource(logical_id, resource_json, resources_map):
+def parse_resource(
+    logical_id, resource_json, resources_map, add_name_to_resource_json=True
+):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
@@ -333,21 +264,20 @@ def parse_resource(logical_id, resource_json, resources_map):
         return None
 
     resource_json = clean_json(resource_json, resources_map)
+    resource_name = generate_resource_name(
+        resource_type, resources_map.get("AWS::StackName"), logical_id
+    )
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
         if "Properties" not in resource_json:
             resource_json["Properties"] = dict()
-        if resource_name_property not in resource_json["Properties"]:
-            resource_json["Properties"][
-                resource_name_property
-            ] = generate_resource_name(
-                resource_type, resources_map.get("AWS::StackName"), logical_id
-            )
-        resource_name = resource_json["Properties"][resource_name_property]
-    else:
-        resource_name = generate_resource_name(
-            resource_type, resources_map.get("AWS::StackName"), logical_id
-        )
+        if (
+            add_name_to_resource_json
+            and resource_name_property not in resource_json["Properties"]
+        ):
+            resource_json["Properties"][resource_name_property] = resource_name
+        if resource_name_property in resource_json["Properties"]:
+            resource_name = resource_json["Properties"][resource_name_property]
 
     return resource_class, resource_json, resource_name
 
@@ -373,7 +303,7 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
     resource_class, new_resource_json, new_resource_name = parse_resource(
-        logical_id, resource_json, resources_map
+        logical_id, resource_json, resources_map, False
     )
     original_resource = resources_map[logical_id]
     new_resource = resource_class.update_from_cloudformation_json(
@@ -719,6 +649,23 @@ class ResourceMap(collections_abc.Mapping):
                 try:
                     if parsed_resource and hasattr(parsed_resource, "delete"):
                         parsed_resource.delete(self._region_name)
+                    else:
+                        resource_name_attribute = (
+                            parsed_resource.cloudformation_name_type()
+                            if hasattr(parsed_resource, "cloudformation_name_type")
+                            else resource_name_property_from_type(parsed_resource.type)
+                        )
+                        if resource_name_attribute:
+                            resource_json = self._resource_json_map[
+                                parsed_resource.logical_resource_id
+                            ]
+                            resource_name = resource_json["Properties"][
+                                resource_name_attribute
+                            ]
+                            parse_and_delete_resource(
+                                resource_name, resource_json, self, self._region_name
+                            )
+                        self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass

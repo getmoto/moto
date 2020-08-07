@@ -2767,3 +2767,39 @@ def test_stack_events_get_attribute_integration():
 
     output_arn["OutputValue"].should.equal(event_bus["Arn"])
     output_name["OutputValue"].should.equal(event_bus["Name"])
+
+
+@mock_cloudformation
+@mock_dynamodb2
+def test_dynamodb_table_creation():
+    CFN_TEMPLATE = {
+        "Outputs": {"MyTableName": {"Value": {"Ref": "MyTable"}},},
+        "Resources": {
+            "MyTable": {
+                "Type": "AWS::DynamoDB::Table",
+                "Properties": {
+                    "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+                    "AttributeDefinitions": [
+                        {"AttributeName": "id", "AttributeType": "S"}
+                    ],
+                    "BillingMode": "PAY_PER_REQUEST",
+                },
+            },
+        },
+    }
+    stack_name = "foobar"
+    cfn = boto3.client("cloudformation", "us-west-2")
+    cfn.create_stack(StackName=stack_name, TemplateBody=json.dumps(CFN_TEMPLATE))
+    # Wait until moto creates the stack
+    waiter = cfn.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
+    # Verify the TableName is part of the outputs
+    stack = cfn.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = stack["Outputs"]
+    outputs.should.have.length_of(1)
+    outputs[0]["OutputKey"].should.equal("MyTableName")
+    outputs[0]["OutputValue"].should.contain("foobar")
+    # Assert the table is created
+    ddb = boto3.client("dynamodb", "us-west-2")
+    table_names = ddb.list_tables()["TableNames"]
+    table_names.should.equal([outputs[0]["OutputValue"]])

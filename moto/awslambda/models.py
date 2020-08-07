@@ -28,7 +28,7 @@ import requests.adapters
 from boto3 import Session
 
 from moto.awslambda.policy import Policy
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.iam.models import iam_backend
 from moto.iam.exceptions import IAMNotFoundException
@@ -151,7 +151,7 @@ class _DockerDataVolumeContext:
                     raise  # multiple processes trying to use same volume?
 
 
-class LambdaFunction(BaseModel):
+class LambdaFunction(CloudFormationModel):
     def __init__(self, spec, region, validate_s3=True, version=1):
         # required
         self.region = region
@@ -401,6 +401,7 @@ class LambdaFunction(BaseModel):
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             with _DockerDataVolumeContext(self) as data_vol:
                 try:
+                    self.docker_client.ping()  # Verify Docker is running
                     run_kwargs = (
                         dict(links={"motoserver": "motoserver"})
                         if settings.TEST_SERVER_MODE
@@ -463,6 +464,9 @@ class LambdaFunction(BaseModel):
                 [line for line in self.convert(output).splitlines()[:-1]]
             )
             return resp, False, logs
+        except docker.errors.DockerException as e:
+            # Docker itself is probably not running - there will be no Lambda-logs to handle
+            return "error running docker: {}".format(e), True, ""
         except BaseException as e:
             traceback.print_exc()
             logs = os.linesep.join(
@@ -487,6 +491,15 @@ class LambdaFunction(BaseModel):
             response_headers["x-amz-function-error"] = "Handled"
 
         return result
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "FunctionName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+        return "AWS::Lambda::Function"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -552,7 +565,7 @@ class LambdaFunction(BaseModel):
         lambda_backends[region].delete_function(self.function_name)
 
 
-class EventSourceMapping(BaseModel):
+class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec):
         # required
         self.function_name = spec["FunctionName"]
@@ -629,6 +642,15 @@ class EventSourceMapping(BaseModel):
         lambda_backend = lambda_backends[region_name]
         lambda_backend.delete_event_source_mapping(self.uuid)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-eventsourcemapping.html
+        return "AWS::Lambda::EventSourceMapping"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -663,12 +685,21 @@ class EventSourceMapping(BaseModel):
                 esm.delete(region_name)
 
 
-class LambdaVersion(BaseModel):
+class LambdaVersion(CloudFormationModel):
     def __init__(self, spec):
         self.version = spec["Version"]
 
     def __repr__(self):
         return str(self.logical_resource_id)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-version.html
+        return "AWS::Lambda::Version"
 
     @classmethod
     def create_from_cloudformation_json(

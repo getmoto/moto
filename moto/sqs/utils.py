@@ -34,7 +34,7 @@ def parse_message_attributes(querystring, base="", value_namespace="Value."):
             )
 
         data_type_parts = data_type[0].split(".")
-        if len(data_type_parts) > 2 or data_type_parts[0] not in [
+        if data_type_parts[0] not in [
             "String",
             "Binary",
             "Number",

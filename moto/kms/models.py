@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from boto3 import Session
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
@@ -15,7 +15,7 @@ from moto.iam.models import ACCOUNT_ID
 from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 
 
-class Key(BaseModel):
+class Key(CloudFormationModel):
     def __init__(
         self, policy, key_usage, customer_master_key_spec, description, region
     ):
@@ -98,6 +98,15 @@ class Key(BaseModel):
 
     def delete(self, region_name):
         kms_backends[region_name].delete_key(self.id)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kms-key.html
+        return "AWS::KMS::Key"
 
     @classmethod
     def create_from_cloudformation_json(

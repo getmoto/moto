@@ -27,6 +27,7 @@ from .exceptions import (
     ParameterNotFound,
     DocumentAlreadyExists,
     InvalidDocumentOperation,
+    AccessDeniedException,
     InvalidDocument,
     InvalidDocumentContent,
     InvalidDocumentVersion,
@@ -965,6 +966,13 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "The following filter key is not valid: Label. Valid filter keys include: [Path, Name, Type, KeyId, Tier]."
                 )
 
+            if by_path and key in ["Name", "Path", "Tier"]:
+                raise InvalidFilterKey(
+                    "The following filter key is not valid: {key}. Valid filter keys include: [Type, KeyId].".format(
+                        key=key
+                    )
+                )
+
             if not values:
                 raise InvalidFilterValue(
                     "The following filter values are missing : null for filter key Name."
@@ -1024,7 +1032,10 @@ class SimpleSystemManagerBackend(BaseBackend):
                             )
                         )
 
-            if key != "Path" and option not in ["Equals", "BeginsWith"]:
+            allowed_options = ["Equals", "BeginsWith"]
+            if key == "Name":
+                allowed_options += ["Contains"]
+            if key != "Path" and option not in allowed_options:
                 raise InvalidFilterOption(
                     "The following filter option is not valid: {option}. Valid options include: [BeginsWith, Equals].".format(
                         option=option
@@ -1084,6 +1095,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         max_results=10,
     ):
         """Implement the get-parameters-by-path-API in the backend."""
+
+        self._validate_parameter_filters(filters, by_path=True)
+
         result = []
         # path could be with or without a trailing /. we handle this
         # difference here.
@@ -1134,7 +1148,8 @@ class SimpleSystemManagerBackend(BaseBackend):
                 what = parameter.keyid
             elif key == "Name":
                 what = "/" + parameter.name.lstrip("/")
-                values = ["/" + value.lstrip("/") for value in values]
+                if option != "Contains":
+                    values = ["/" + value.lstrip("/") for value in values]
             elif key == "Path":
                 what = "/" + parameter.name.lstrip("/")
                 values = ["/" + value.strip("/") for value in values]
@@ -1146,6 +1161,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             elif option == "BeginsWith" and not any(
                 what.startswith(value) for value in values
             ):
+                return False
+            elif option == "Contains" and not any(value in what for value in values):
                 return False
             elif option == "Equals" and not any(what == value for value in values):
                 return False
@@ -1172,8 +1189,33 @@ class SimpleSystemManagerBackend(BaseBackend):
         return True
 
     def get_parameter(self, name, with_decryption):
-        if name in self._parameters:
-            return self._parameters[name][-1]
+        name_parts = name.split(":")
+        name_prefix = name_parts[0]
+
+        if len(name_parts) > 2:
+            return None
+
+        if name_prefix in self._parameters:
+            if len(name_parts) == 1:
+                return self._parameters[name][-1]
+
+            if len(name_parts) == 2:
+                version_or_label = name_parts[1]
+                parameters = self._parameters[name_prefix]
+
+                if version_or_label.isdigit():
+                    result = list(
+                        filter(lambda x: str(x.version) == version_or_label, parameters)
+                    )
+                    if len(result) > 0:
+                        return result[-1]
+
+                result = list(
+                    filter(lambda x: version_or_label in x.labels, parameters)
+                )
+                if len(result) > 0:
+                    return result[-1]
+
         return None
 
     def label_parameter_version(self, name, version, labels):
@@ -1238,6 +1280,23 @@ class SimpleSystemManagerBackend(BaseBackend):
     def put_parameter(
         self, name, description, value, type, allowed_pattern, keyid, overwrite
     ):
+        if name.lower().lstrip("/").startswith("aws") or name.lower().lstrip(
+            "/"
+        ).startswith("ssm"):
+            is_path = name.count("/") > 1
+            if name.lower().startswith("/aws") and is_path:
+                raise AccessDeniedException(
+                    "No access to reserved parameter name: {name}.".format(name=name)
+                )
+            if not is_path:
+                invalid_prefix_error = 'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
+            else:
+                invalid_prefix_error = (
+                    'Parameter name: can\'t be prefixed with "ssm" (case-insensitive). '
+                    "If formed as a path, it can consist of sub-paths divided by slash symbol; each sub-path can be "
+                    "formed as a mix of letters, numbers and the following 3 symbols .-_"
+                )
+            raise ValidationException(invalid_prefix_error)
         previous_parameter_versions = self._parameters[name]
         if len(previous_parameter_versions) == 0:
             previous_parameter = None

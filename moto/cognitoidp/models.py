@@ -23,6 +23,7 @@ from .exceptions import (
     UsernameExistsException,
     InvalidParameterException,
 )
+from .utils import create_id
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
@@ -214,7 +215,7 @@ class CognitoIdpUserPoolDomain(BaseModel):
 class CognitoIdpUserPoolClient(BaseModel):
     def __init__(self, user_pool_id, generate_secret, extended_config):
         self.user_pool_id = user_pool_id
-        self.id = str(uuid.uuid4())
+        self.id = create_id()
         self.secret = str(uuid.uuid4())
         self.generate_secret = generate_secret or False
         self.extended_config = extended_config or {}

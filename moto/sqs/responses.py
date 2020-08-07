@@ -9,7 +9,6 @@ from six.moves.urllib.parse import urlparse
 from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
-    MessageAttributesInvalid,
     MessageNotInflight,
     ReceiptHandleIsInvalid,
 )
@@ -82,12 +81,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
 
-        try:
-            queue = self.sqs_backend.create_queue(
-                queue_name, self.tags, **self.attribute
-            )
-        except MessageAttributesInvalid as e:
-            return self._error("InvalidParameterValue", e.description)
+        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
 
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
@@ -225,10 +219,7 @@ class SQSResponse(BaseResponse):
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             return ERROR_TOO_LONG_RESPONSE, dict(status=400)
 
-        try:
-            message_attributes = parse_message_attributes(self.querystring)
-        except MessageAttributesInvalid as e:
-            return e.description, dict(status=e.status_code)
+        message_attributes = parse_message_attributes(self.querystring)
 
         queue_name = self._get_queue_name()
 
@@ -291,6 +282,16 @@ class SQSResponse(BaseResponse):
                         [None],
                     )[0],
                     "MessageAttributes": message_attributes,
+                    "MessageGroupId": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageGroupId".format(index),
+                        [None],
+                    )[0],
+                    "MessageDeduplicationId": self.querystring.get(
+                        "SendMessageBatchRequestEntry.{}.MessageDeduplicationId".format(
+                            index
+                        ),
+                        [None],
+                    )[0],
                 }
 
         if entries == {}:

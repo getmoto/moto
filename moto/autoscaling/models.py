@@ -6,7 +6,7 @@ from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 from moto.ec2.exceptions import InvalidInstanceIdError
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
@@ -74,7 +74,7 @@ class FakeScalingPolicy(BaseModel):
             )
 
 
-class FakeLaunchConfiguration(BaseModel):
+class FakeLaunchConfiguration(CloudFormationModel):
     def __init__(
         self,
         name,
@@ -126,6 +126,15 @@ class FakeLaunchConfiguration(BaseModel):
             block_device_mappings=instance.block_device_mapping,
         )
         return config
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "LaunchConfigurationName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-launchconfiguration.html
+        return "AWS::AutoScaling::LaunchConfiguration"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -215,7 +224,7 @@ class FakeLaunchConfiguration(BaseModel):
         return block_device_map
 
 
-class FakeAutoScalingGroup(BaseModel):
+class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
         self,
         name,
@@ -308,6 +317,15 @@ class FakeAutoScalingGroup(BaseModel):
             if "PropagateAtLaunch" in tag:
                 tag["PropagateAtLaunch"] = bool_to_string[tag["PropagateAtLaunch"]]
         return tags
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "AutoScalingGroupName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-autoscalinggroup.html
+        return "AWS::AutoScaling::AutoScalingGroup"
 
     @classmethod
     def create_from_cloudformation_json(

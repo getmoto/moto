@@ -6,7 +6,7 @@ from jinja2 import Template
 from botocore.exceptions import ParamValidationError
 from moto.compat import OrderedDict
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2.models import ec2_backends
 from moto.acm.models import acm_backends
@@ -50,7 +50,7 @@ class FakeHealthStatus(BaseModel):
         self.description = description
 
 
-class FakeTargetGroup(BaseModel):
+class FakeTargetGroup(CloudFormationModel):
     HTTP_CODE_REGEX = re.compile(r"(?:(?:\d+-\d+|\d+),?)+")
 
     def __init__(
@@ -143,6 +143,15 @@ class FakeTargetGroup(BaseModel):
                 )
         return FakeHealthStatus(t["id"], t["port"], self.healthcheck_port, "healthy")
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html
+        return "AWS::ElasticLoadBalancingV2::TargetGroup"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -183,7 +192,7 @@ class FakeTargetGroup(BaseModel):
         return target_group
 
 
-class FakeListener(BaseModel):
+class FakeListener(CloudFormationModel):
     def __init__(
         self,
         load_balancer_arn,
@@ -227,6 +236,15 @@ class FakeListener(BaseModel):
         self._non_default_rules = sorted(
             self._non_default_rules, key=lambda x: x.priority
         )
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listener.html
+        return "AWS::ElasticLoadBalancingV2::Listener"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -343,7 +361,7 @@ class FakeBackend(BaseModel):
         )
 
 
-class FakeLoadBalancer(BaseModel):
+class FakeLoadBalancer(CloudFormationModel):
     VALID_ATTRS = {
         "access_logs.s3.enabled",
         "access_logs.s3.bucket",
@@ -401,6 +419,15 @@ class FakeLoadBalancer(BaseModel):
     def delete(self, region):
         """ Not exposed as part of the ELB API - used for CloudFormation. """
         elbv2_backends[region].delete_load_balancer(self.arn)
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "Name"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html
+        return "AWS::ElasticLoadBalancingV2::LoadBalancer"
 
     @classmethod
     def create_from_cloudformation_json(

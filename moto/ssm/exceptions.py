@@ -78,6 +78,13 @@ class InvalidDocumentOperation(JsonRESTError):
         )
 
 
+class AccessDeniedException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message):
+        super(AccessDeniedException, self).__init__("AccessDeniedException", message)
+
+
 class InvalidDocumentContent(JsonRESTError):
     code = 400
 

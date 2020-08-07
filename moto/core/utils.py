@@ -190,6 +190,12 @@ def iso_8601_datetime_without_milliseconds(datetime):
     return None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S") + "Z"
 
 
+def iso_8601_datetime_without_milliseconds_s3(datetime):
+    return (
+        None if datetime is None else datetime.strftime("%Y-%m-%dT%H:%M:%S.000") + "Z"
+    )
+
+
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 
 
@@ -350,3 +356,14 @@ def tags_from_query_string(
             else:
                 response_values[tag_key] = None
     return response_values
+
+
+def tags_from_cloudformation_tags_list(tags_list):
+    """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
+    tags = {}
+    for entry in tags_list:
+        key = entry["Key"]
+        value = entry["Value"]
+        tags[key] = value
+
+    return tags

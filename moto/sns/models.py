@@ -11,7 +11,7 @@ import re
 from boto3 import Session
 
 from moto.compat import OrderedDict
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
@@ -37,7 +37,7 @@ DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
 
-class Topic(BaseModel):
+class Topic(CloudFormationModel):
     def __init__(self, name, sns_backend):
         self.name = name
         self.sns_backend = sns_backend
@@ -87,6 +87,15 @@ class Topic(BaseModel):
     def policy(self, policy):
         self._policy_json = json.loads(policy)
 
+    @staticmethod
+    def cloudformation_name_type():
+        return "TopicName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sns-topic.html
+        return "AWS::SNS::Topic"
+
     @classmethod
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
@@ -94,7 +103,7 @@ class Topic(BaseModel):
         sns_backend = sns_backends[region_name]
         properties = cloudformation_json["Properties"]
 
-        topic = sns_backend.create_topic(properties.get("TopicName"))
+        topic = sns_backend.create_topic(properties.get(cls.cloudformation_name_type()))
         for subscription in properties.get("Subscription", []):
             sns_backend.subscribe(
                 topic.arn, subscription["Endpoint"], subscription["Protocol"]
@@ -580,7 +589,12 @@ class SNSBackend(BaseBackend):
         return subscription.attributes
 
     def set_subscription_attributes(self, arn, name, value):
-        if name not in ["RawMessageDelivery", "DeliveryPolicy", "FilterPolicy"]:
+        if name not in [
+            "RawMessageDelivery",
+            "DeliveryPolicy",
+            "FilterPolicy",
+            "RedrivePolicy",
+        ]:
             raise SNSInvalidParameter("AttributeName")
 
         # TODO: should do validation

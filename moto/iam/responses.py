@@ -337,7 +337,6 @@ class IamResponse(BaseResponse):
 
     def list_roles(self):
         roles = iam_backend.get_roles()
-
         template = self.response_template(LIST_ROLES_TEMPLATE)
         return template.render(roles=roles)
 
