@@ -538,20 +538,25 @@ class BaseModel(object):
 # Parent class for every Model that can be instantiated by CloudFormation
 # On subclasses, implement the two methods as @staticmethod to ensure correct behaviour of the CF parser
 class CloudFormationModel(BaseModel):
+    @staticmethod
     @abstractmethod
-    def cloudformation_name_type(self):
+    def cloudformation_name_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-name.html
         # This must be implemented as a staticmethod with no parameters
         # Return None for resources that do not have a name property
         pass
 
+    @staticmethod
     @abstractmethod
-    def cloudformation_type(self):
+    def cloudformation_type():
         # This must be implemented as a staticmethod with no parameters
         # See for example https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html
         return "AWS::SERVICE::RESOURCE"
 
     @abstractmethod
-    def create_from_cloudformation_json(self):
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
         # Extract the resource parameters from the cloudformation json
@@ -559,7 +564,9 @@ class CloudFormationModel(BaseModel):
         pass
 
     @abstractmethod
-    def update_from_cloudformation_json(self):
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name
+    ):
         # This must be implemented as a classmethod with parameters:
         # cls, original_resource, new_resource_name, cloudformation_json, region_name
         # Extract the resource parameters from the cloudformation json,
@@ -568,7 +575,9 @@ class CloudFormationModel(BaseModel):
         pass
 
     @abstractmethod
-    def delete_from_cloudformation_json(self):
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, region_name
         # Extract the resource parameters from the cloudformation json

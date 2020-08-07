@@ -191,3 +191,13 @@ class OrganizationsResponse(BaseResponse):
                 **self.request_params
             )
         )
+
+    def enable_policy_type(self):
+        return json.dumps(
+            self.organizations_backend.enable_policy_type(**self.request_params)
+        )
+
+    def disable_policy_type(self):
+        return json.dumps(
+            self.organizations_backend.disable_policy_type(**self.request_params)
+        )

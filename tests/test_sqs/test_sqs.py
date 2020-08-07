@@ -1098,6 +1098,38 @@ def test_purge_action():
     queue.count().should.equal(0)
 
 
+@mock_sqs
+def test_purge_queue_before_delete_message():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    create_resp = client.create_queue(
+        QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = create_resp["QueueUrl"]
+
+    client.send_message(
+        QueueUrl=queue_url,
+        MessageGroupId="test",
+        MessageDeduplicationId="first_message",
+        MessageBody="first_message",
+    )
+    receive_resp1 = client.receive_message(QueueUrl=queue_url)
+
+    # purge before call delete_message
+    client.purge_queue(QueueUrl=queue_url)
+
+    client.send_message(
+        QueueUrl=queue_url,
+        MessageGroupId="test",
+        MessageDeduplicationId="second_message",
+        MessageBody="second_message",
+    )
+    receive_resp2 = client.receive_message(QueueUrl=queue_url)
+
+    len(receive_resp2.get("Messages", [])).should.equal(1)
+    receive_resp2["Messages"][0]["Body"].should.equal("second_message")
+
+
 @mock_sqs_deprecated
 def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1

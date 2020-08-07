@@ -43,6 +43,7 @@ from .exceptions import (
     WrongPublicAccessBlockAccountIdError,
     NoSuchUpload,
 )
+from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from .utils import clean_key_name, _VersionedKeyStore
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -1084,7 +1085,53 @@ class FakeBucket(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         bucket = s3_backend.create_bucket(resource_name, region_name)
+
+        properties = cloudformation_json["Properties"]
+
+        if "BucketEncryption" in properties:
+            bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
+            s3_backend.put_bucket_encryption(
+                bucket_name=resource_name, encryption=[bucket_encryption]
+            )
+
         return bucket
+
+    @classmethod
+    def update_from_cloudformation_json(
+        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+    ):
+        properties = cloudformation_json["Properties"]
+
+        if is_replacement_update(properties):
+            resource_name_property = cls.cloudformation_name_type()
+            if resource_name_property not in properties:
+                properties[resource_name_property] = new_resource_name
+            new_resource = cls.create_from_cloudformation_json(
+                properties[resource_name_property], cloudformation_json, region_name
+            )
+            properties[resource_name_property] = original_resource.name
+            cls.delete_from_cloudformation_json(
+                original_resource.name, cloudformation_json, region_name
+            )
+            return new_resource
+
+        else:  # No Interruption
+            if "BucketEncryption" in properties:
+                bucket_encryption = cfn_to_api_encryption(
+                    properties["BucketEncryption"]
+                )
+                s3_backend.put_bucket_encryption(
+                    bucket_name=original_resource.name, encryption=[bucket_encryption]
+                )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+        bucket_name = properties[cls.cloudformation_name_type()]
+        s3_backend.delete_bucket(bucket_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.

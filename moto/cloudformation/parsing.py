@@ -21,6 +21,7 @@ from moto.batch import models as batch_models  # noqa
 from moto.cloudwatch import models as cloudwatch_models  # noqa
 from moto.datapipeline import models as datapipeline_models  # noqa
 from moto.dynamodb2 import models as dynamodb2_models  # noqa
+from moto.ec2 import models as ec2_models
 from moto.ecr import models as ecr_models  # noqa
 from moto.ecs import models as ecs_models  # noqa
 from moto.elb import models as elb_models  # noqa
@@ -33,15 +34,13 @@ from moto.rds import models as rds_models  # noqa
 from moto.rds2 import models as rds2_models  # noqa
 from moto.redshift import models as redshift_models  # noqa
 from moto.route53 import models as route53_models  # noqa
-from moto.s3 import models as s3_models  # noqa
+from moto.s3 import models as s3_models, s3_backend  # noqa
+from moto.s3.utils import bucket_and_name_from_url
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
 
 # End ugly list of imports
 
-from moto.ec2 import models as ec2_models
-from moto.s3 import models as _, s3_backend  # noqa
-from moto.s3.utils import bucket_and_name_from_url
 from moto.core import ACCOUNT_ID, CloudFormationModel
 from .utils import random_suffix
 from .exceptions import (
@@ -212,7 +211,6 @@ def clean_json(resource_json, resources_map):
 def resource_class_from_type(resource_type):
     if resource_type in NULL_MODELS:
         return None
-
     if resource_type not in MODEL_MAP:
         logger.warning("No Moto CloudFormation support for %s", resource_type)
         return None
@@ -221,6 +219,9 @@ def resource_class_from_type(resource_type):
 
 
 def resource_name_property_from_type(resource_type):
+    for model in MODEL_LIST:
+        if model.cloudformation_type() == resource_type:
+            return model.cloudformation_name_type()
     return NAME_TYPE_MAP.get(resource_type)
 
 
@@ -249,7 +250,9 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
-def parse_resource(logical_id, resource_json, resources_map):
+def parse_resource(
+    logical_id, resource_json, resources_map, add_name_to_resource_json=True
+):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
@@ -261,21 +264,20 @@ def parse_resource(logical_id, resource_json, resources_map):
         return None
 
     resource_json = clean_json(resource_json, resources_map)
+    resource_name = generate_resource_name(
+        resource_type, resources_map.get("AWS::StackName"), logical_id
+    )
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
         if "Properties" not in resource_json:
             resource_json["Properties"] = dict()
-        if resource_name_property not in resource_json["Properties"]:
-            resource_json["Properties"][
-                resource_name_property
-            ] = generate_resource_name(
-                resource_type, resources_map.get("AWS::StackName"), logical_id
-            )
-        resource_name = resource_json["Properties"][resource_name_property]
-    else:
-        resource_name = generate_resource_name(
-            resource_type, resources_map.get("AWS::StackName"), logical_id
-        )
+        if (
+            add_name_to_resource_json
+            and resource_name_property not in resource_json["Properties"]
+        ):
+            resource_json["Properties"][resource_name_property] = resource_name
+        if resource_name_property in resource_json["Properties"]:
+            resource_name = resource_json["Properties"][resource_name_property]
 
     return resource_class, resource_json, resource_name
 
@@ -301,7 +303,7 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
     resource_class, new_resource_json, new_resource_name = parse_resource(
-        logical_id, resource_json, resources_map
+        logical_id, resource_json, resources_map, False
     )
     original_resource = resources_map[logical_id]
     new_resource = resource_class.update_from_cloudformation_json(
@@ -647,6 +649,23 @@ class ResourceMap(collections_abc.Mapping):
                 try:
                     if parsed_resource and hasattr(parsed_resource, "delete"):
                         parsed_resource.delete(self._region_name)
+                    else:
+                        resource_name_attribute = (
+                            parsed_resource.cloudformation_name_type()
+                            if hasattr(parsed_resource, "cloudformation_name_type")
+                            else resource_name_property_from_type(parsed_resource.type)
+                        )
+                        if resource_name_attribute:
+                            resource_json = self._resource_json_map[
+                                parsed_resource.logical_resource_id
+                            ]
+                            resource_name = resource_json["Properties"][
+                                resource_name_attribute
+                            ]
+                            parse_and_delete_resource(
+                                resource_name, resource_json, self, self._region_name
+                            )
+                        self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass

@@ -10,6 +10,8 @@ from boto.kinesis.exceptions import ResourceNotFoundException, InvalidArgumentEx
 from moto import mock_kinesis, mock_kinesis_deprecated
 from moto.core import ACCOUNT_ID
 
+import sure  # noqa
+
 
 @mock_kinesis_deprecated
 def test_create_cluster():
@@ -601,9 +603,6 @@ def test_split_shard():
     stream = stream_response["StreamDescription"]
     shards = stream["Shards"]
     shards.should.have.length_of(2)
-    sum(
-        [shard["SequenceNumberRange"]["EndingSequenceNumber"] for shard in shards]
-    ).should.equal(99)
 
     shard_range = shards[0]["HashKeyRange"]
     new_starting_hash = (
@@ -616,9 +615,6 @@ def test_split_shard():
     stream = stream_response["StreamDescription"]
     shards = stream["Shards"]
     shards.should.have.length_of(3)
-    sum(
-        [shard["SequenceNumberRange"]["EndingSequenceNumber"] for shard in shards]
-    ).should.equal(99)
 
     shard_range = shards[2]["HashKeyRange"]
     new_starting_hash = (
@@ -631,9 +627,6 @@ def test_split_shard():
     stream = stream_response["StreamDescription"]
     shards = stream["Shards"]
     shards.should.have.length_of(4)
-    sum(
-        [shard["SequenceNumberRange"]["EndingSequenceNumber"] for shard in shards]
-    ).should.equal(99)
 
 
 @mock_kinesis_deprecated
@@ -662,9 +655,6 @@ def test_merge_shards():
     stream = stream_response["StreamDescription"]
     shards = stream["Shards"]
     shards.should.have.length_of(4)
-    sum(
-        [shard["SequenceNumberRange"]["EndingSequenceNumber"] for shard in shards]
-    ).should.equal(99)
 
     conn.merge_shards(stream_name, "shardId-000000000000", "shardId-000000000001")
 
@@ -672,17 +662,23 @@ def test_merge_shards():
 
     stream = stream_response["StreamDescription"]
     shards = stream["Shards"]
-    shards.should.have.length_of(3)
-    sum(
-        [shard["SequenceNumberRange"]["EndingSequenceNumber"] for shard in shards]
-    ).should.equal(99)
+    active_shards = [
+        shard
+        for shard in shards
+        if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
+    ]
+    active_shards.should.have.length_of(3)
+
     conn.merge_shards(stream_name, "shardId-000000000002", "shardId-000000000000")
 
     stream_response = conn.describe_stream(stream_name)
 
     stream = stream_response["StreamDescription"]
     shards = stream["Shards"]
-    shards.should.have.length_of(2)
-    sum(
-        [shard["SequenceNumberRange"]["EndingSequenceNumber"] for shard in shards]
-    ).should.equal(99)
+    active_shards = [
+        shard
+        for shard in shards
+        if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
+    ]
+
+    active_shards.should.have.length_of(2)

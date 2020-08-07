@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import copy
+import json
 
 # Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
@@ -272,9 +273,10 @@ def test_authorize_ip_range_and_revoke():
     # There are two egress rules associated with the security group:
     # the default outbound rule and the new one
     int(egress_security_group.rules_egress[1].to_port).should.equal(2222)
-    egress_security_group.rules_egress[1].grants[0].cidr_ip.should.equal(
-        "123.123.123.123/32"
-    )
+    actual_cidr = egress_security_group.rules_egress[1].grants[0].cidr_ip
+    # Deal with Python2 dict->unicode, instead of dict->string
+    actual_cidr = json.loads(actual_cidr.replace("u'", "'").replace("'", '"'))
+    actual_cidr.should.equal({"CidrIp": "123.123.123.123/32"})
 
     # Wrong Cidr should throw error
     egress_security_group.revoke.when.called_with(
@@ -691,6 +693,68 @@ def test_add_same_rule_twice_throws_error():
 
 
 @mock_ec2
+def test_description_in_ip_permissions():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    conn = boto3.client("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = conn.create_security_group(
+        GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
+    )
+
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27017,
+            "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "testDescription"}],
+        }
+    ]
+    conn.authorize_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=ip_permissions
+    )
+
+    result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
+
+    assert (
+        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0]["Description"]
+        == "testDescription"
+    )
+    assert (
+        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0]["CidrIp"]
+        == "1.2.3.4/32"
+    )
+
+    sg = conn.create_security_group(
+        GroupName="sg2", Description="Test security group sg1", VpcId=vpc.id
+    )
+
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27017,
+            "IpRanges": [{"CidrIp": "1.2.3.4/32"}],
+        }
+    ]
+    conn.authorize_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=ip_permissions
+    )
+
+    result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
+
+    assert (
+        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0].get(
+            "Description"
+        )
+        is None
+    )
+    assert (
+        result["SecurityGroups"][0]["IpPermissions"][0]["IpRanges"][0]["CidrIp"]
+        == "1.2.3.4/32"
+    )
+
+
+@mock_ec2
 def test_security_group_tagging_boto3():
     conn = boto3.client("ec2", region_name="us-east-1")
 
@@ -868,7 +932,7 @@ def test_revoke_security_group_egress():
             {
                 "FromPort": 0,
                 "IpProtocol": "-1",
-                "IpRanges": [{"CidrIp": "0.0.0.0/0"},],
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
                 "ToPort": 123,
             },
         ]
