@@ -12,7 +12,7 @@ from xml.sax.saxutils import escape
 from boto3 import Session
 
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     get_random_message_id,
@@ -188,7 +188,7 @@ class Message(BaseModel):
         return False
 
 
-class Queue(BaseModel):
+class Queue(CloudFormationModel):
     BASE_ATTRIBUTES = [
         "ApproximateNumberOfMessages",
         "ApproximateNumberOfMessagesDelayed",
@@ -353,6 +353,15 @@ class Queue(BaseModel):
                     self.redrive_policy["deadLetterTargetArn"]
                 ),
             )
+
+    @staticmethod
+    def cloudformation_name_type():
+        return "QueueName"
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-sqs-queue.html
+        return "AWS::SQS::Queue"
 
     @classmethod
     def create_from_cloudformation_json(
@@ -835,6 +844,7 @@ class SQSBackend(BaseBackend):
     def purge_queue(self, queue_name):
         queue = self.get_queue(queue_name)
         queue._messages = []
+        queue._pending_messages = set()
 
     def list_dead_letter_source_queues(self, queue_name):
         dlq = self.get_queue(queue_name)
