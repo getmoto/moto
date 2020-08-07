@@ -253,9 +253,15 @@ if settings.TEST_SERVER_MODE:
             Payload=json.dumps(in_data),
         )
         result["StatusCode"].should.equal(200)
-        actual_payload = json.loads(result["Payload"].read().decode("utf-8"))
-        expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
-        actual_payload.should.equal(expected_payload)
+        payload = result["Payload"].read().decode("utf-8")
+        try:
+            actual_payload = json.loads(payload)
+            expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
+            actual_payload.should.equal(expected_payload)
+        except json.decoder.JSONDecodeError as e:
+            print("Unable to load the Payload of this Lambda as JSON:")
+            print(payload)
+            raise e
 
 
 @mock_logs
