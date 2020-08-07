@@ -620,12 +620,19 @@ def test_run_instances_should_attach_to_default_subnet():
     client = boto3.client("ec2", region_name="us-west-1")
     ec2.create_security_group(GroupName="sg01", Description="Test security group sg01")
     # run_instances
-    instances = client.run_instances(MinCount=1, MaxCount=1, SecurityGroups=["sg01"], )
+    instances = client.run_instances(MinCount=1, MaxCount=1, SecurityGroups=["sg01"],)
     # Assert subnet is created appropriately
     subnets = client.describe_subnets()["Subnets"]
     default_subnet_id = subnets[0]["SubnetId"]
     if len(subnets) > 1:
         default_subnet_id1 = subnets[1]["SubnetId"]
-    assert instances["Instances"][0]["NetworkInterfaces"][0]["SubnetId"] == default_subnet_id or \
-           instances["Instances"][0]["NetworkInterfaces"][0]["SubnetId"] == default_subnet_id1
-    assert subnets[0]["AvailableIpAddressCount"] == 4090 or subnets[1]["AvailableIpAddressCount"] == 4090
+    assert (
+        instances["Instances"][0]["NetworkInterfaces"][0]["SubnetId"]
+        == default_subnet_id
+        or instances["Instances"][0]["NetworkInterfaces"][0]["SubnetId"]
+        == default_subnet_id1
+    )
+    assert (
+        subnets[0]["AvailableIpAddressCount"] == 4090
+        or subnets[1]["AvailableIpAddressCount"] == 4090
+    )
