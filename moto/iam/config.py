@@ -4,8 +4,6 @@ from moto.core.exceptions import InvalidNextTokenException
 from moto.core.models import ConfigQueryModel
 from moto.iam import iam_backends
 
-CONFIG_BACKEND_DELIM = "\x1e"  # Record Seperator "RS" ASCII Character
-
 
 class RoleConfigQuery(ConfigQueryModel):
     def list_config_service_resources(
@@ -16,6 +14,7 @@ class RoleConfigQuery(ConfigQueryModel):
         next_token,
         backend_region=None,
         resource_region=None,
+        aggregator=None,
     ):
         # IAM roles are "global" and aren't assigned into any availability zone
         # The resource ID is a AWS-assigned random string like "AROA0BSVNSZKXVHS00SBJ"
@@ -31,12 +30,16 @@ class RoleConfigQuery(ConfigQueryModel):
         # Filter by resource name or ids
         if resource_name or resource_ids:
             filtered_roles = []
-            # resource_name takes precendence over resource_ids
+            # resource_name takes precedence over resource_ids
             if resource_name:
                 for role in role_list:
                     if role.name == resource_name:
                         filtered_roles = [role]
                         break
+                # but if both are passed, it must be a subset
+                if filtered_roles and resource_ids:
+                    if filtered_roles[0].id not in resource_ids:
+                        return [], None
             else:
                 for role in role_list:
                     if role.id in resource_ids:
@@ -45,10 +48,54 @@ class RoleConfigQuery(ConfigQueryModel):
             # Filtered roles are now the subject for the listing
             role_list = filtered_roles
 
-        # Pagination logic, sort by role id
-        sorted_roles = sorted(role_list, key=lambda role: role.id)
-        # sorted_role_ids matches indicies of sorted_roles
-        sorted_role_ids = list(map(lambda role: role.id, sorted_roles))
+        if aggregator:
+            # IAM is a little special; Roles are created in us-east-1 (which AWS calls the "global" region)
+            # However, the resource will return in the aggregator (in duplicate) for each region in the aggregator
+            # Therefore, we'll need to find out the regions where the aggregators are running, and then duplicate the resource there
+
+            # In practice, it looks like AWS will only duplicate these resources if you've "used" any roles in the region, but since
+            # we can't really tell if this has happened in moto, we'll just bind this to the regions in your aggregator
+            from moto.config.models import CONFIG_REGIONS
+
+            aggregated_regions = []
+            aggregator_sources = aggregator.get(
+                "account_aggregation_sources"
+            ) or aggregator.get("organization_aggregation_source")
+            for source in aggregator_sources:
+                source_dict = source.__dict__
+                if source_dict["all_aws_regions"]:
+                    aggregated_regions = CONFIG_REGIONS
+                    break
+                for region in source_dict["aws_regions"]:
+                    aggregated_regions.append(region)
+
+            duplicate_role_list = []
+            for region in list(set(aggregated_regions)):
+                for role in role_list:
+                    duplicate_role_list.append(
+                        {
+                            "_id": "{}{}".format(
+                                role.id, region
+                            ),  # this is only for sorting, isn't returned outside of this functin
+                            "type": "AWS::IAM::Role",
+                            "id": role.id,
+                            "name": role.name,
+                            "region": region,
+                        }
+                    )
+
+            # Pagination logic, sort by role id
+            sorted_roles = sorted(duplicate_role_list, key=lambda role: role["_id"])
+
+            # sorted_role_ids matches indicies of sorted_roles
+            sorted_role_ids = list(map(lambda role: role["_id"], sorted_roles))
+        else:
+            # Non-aggregated queries are in the else block, and we can treat these like a normal config resource
+            # Pagination logic, sort by role id
+            sorted_roles = sorted(role_list, key=lambda role: role.id)
+            # sorted_role_ids matches indicies of sorted_roles
+            sorted_role_ids = list(map(lambda role: role.id, sorted_roles))
+
         new_token = None
 
         # Get the start:
@@ -70,9 +117,9 @@ class RoleConfigQuery(ConfigQueryModel):
             [
                 {
                     "type": "AWS::IAM::Role",
-                    "id": role.id,
-                    "name": role.name,
-                    "region": "global",
+                    "id": role["id"] if aggregator else role.id,
+                    "name": role["name"] if aggregator else role.name,
+                    "region": role["region"] if aggregator else "global",
                 }
                 for role in role_list
             ],
@@ -114,6 +161,7 @@ class PolicyConfigQuery(ConfigQueryModel):
         next_token,
         backend_region=None,
         resource_region=None,
+        aggregator=None,
     ):
         # IAM policies are "global" and aren't assigned into any availability zone
         # The resource ID is a AWS-assigned random string like "ANPA0BSVNSZK00SJSPVUJ"
@@ -126,8 +174,11 @@ class PolicyConfigQuery(ConfigQueryModel):
         # respect the configuration recorder's 'includeGlobalResourceTypes' setting,
         # but it's default set be default, and moto's config doesn't yet support
         # custom configuration recorders, we'll just behave as default.
-        policy_list = filter(
-            lambda policy: not policy.arn.startswith("arn:aws:iam::aws"), policy_list,
+        policy_list = list(
+            filter(
+                lambda policy: not policy.arn.startswith("arn:aws:iam::aws"),
+                policy_list,
+            )
         )
 
         if not policy_list:
@@ -136,12 +187,17 @@ class PolicyConfigQuery(ConfigQueryModel):
         # Filter by resource name or ids
         if resource_name or resource_ids:
             filtered_policies = []
-            # resource_name takes precendence over resource_ids
+            # resource_name takes precedence over resource_ids
             if resource_name:
                 for policy in policy_list:
                     if policy.name == resource_name:
                         filtered_policies = [policy]
                         break
+                # but if both are passed, it must be a subset
+                if filtered_policies and resource_ids:
+                    if filtered_policies[0].id not in resource_ids:
+                        return [], None
+
             else:
                 for policy in policy_list:
                     if policy.id in resource_ids:
@@ -150,10 +206,55 @@ class PolicyConfigQuery(ConfigQueryModel):
             # Filtered roles are now the subject for the listing
             policy_list = filtered_policies
 
-        # Pagination logic, sort by role id
-        sorted_policies = sorted(policy_list, key=lambda role: role.id)
-        # sorted_policy_ids matches indicies of sorted_policies
-        sorted_policy_ids = list(map(lambda policy: policy.id, sorted_policies))
+        if aggregator:
+            # IAM is a little special; Policies are created in us-east-1 (which AWS calls the "global" region)
+            # However, the resource will return in the aggregator (in duplicate) for each region in the aggregator
+            # Therefore, we'll need to find out the regions where the aggregators are running, and then duplicate the resource there
+
+            # In practice, it looks like AWS will only duplicate these resources if you've "used" any policies in the region, but since
+            # we can't really tell if this has happened in moto, we'll just bind this to the regions in your aggregator
+            from moto.config.models import CONFIG_REGIONS
+
+            aggregated_regions = []
+            aggregator_sources = aggregator.get(
+                "account_aggregation_sources"
+            ) or aggregator.get("organization_aggregation_source")
+            for source in aggregator_sources:
+                source_dict = source.__dict__
+                if source_dict["all_aws_regions"]:
+                    aggregated_regions = CONFIG_REGIONS
+                    break
+                for region in source_dict["aws_regions"]:
+                    aggregated_regions.append(region)
+
+            duplicate_policy_list = []
+            for region in list(set(aggregated_regions)):
+                for policy in policy_list:
+                    duplicate_policy_list.append(
+                        {
+                            "_id": "{}{}".format(
+                                policy.id, region
+                            ),  # this is only for sorting, isn't returned outside of this functin
+                            "type": "AWS::IAM::Policy",
+                            "id": policy.id,
+                            "name": policy.name,
+                            "region": region,
+                        }
+                    )
+
+            # Pagination logic, sort by role id
+            sorted_policies = sorted(
+                duplicate_policy_list, key=lambda policy: policy["_id"]
+            )
+
+            # sorted_policy_ids matches indicies of sorted_policies
+            sorted_policy_ids = list(map(lambda policy: policy["_id"], sorted_policies))
+        else:
+            # Non-aggregated queries are in the else block, and we can treat these like a normal config resource
+            # Pagination logic, sort by role id
+            sorted_policies = sorted(policy_list, key=lambda role: role.id)
+            # sorted_policy_ids matches indicies of sorted_policies
+            sorted_policy_ids = list(map(lambda policy: policy.id, sorted_policies))
 
         new_token = None
 
@@ -176,9 +277,9 @@ class PolicyConfigQuery(ConfigQueryModel):
             [
                 {
                     "type": "AWS::IAM::Policy",
-                    "id": policy.id,
-                    "name": policy.name,
-                    "region": "global",
+                    "id": policy["id"] if aggregator else policy.id,
+                    "name": policy["name"] if aggregator else policy.name,
+                    "region": policy["region"] if aggregator else "global",
                 }
                 for policy in policy_list
             ],

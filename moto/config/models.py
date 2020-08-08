@@ -48,6 +48,7 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BaseModel
 from moto.s3.config import s3_account_public_access_block_query, s3_config_query
 from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
+
 from moto.iam.config import role_config_query, policy_config_query
 
 POP_STRINGS = [
@@ -67,6 +68,29 @@ RESOURCE_MAP = {
     "AWS::IAM::Role": role_config_query,
     "AWS::IAM::Policy": policy_config_query,
 }
+
+CONFIG_REGIONS = [
+    "af-south-1",
+    "ap-east-1",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ca-central-1",
+    "eu-central-1",
+    "eu-north-1",
+    "eu-south-1",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "me-south-1",
+    "sa-east-1",
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+]
 
 
 def datetime2int(date):
@@ -979,6 +1003,7 @@ class ConfigBackend(BaseBackend):
                 limit,
                 next_token,
                 resource_region=resource_region,
+                aggregator=self.config_aggregators.get(aggregator_name).__dict__,
             )
 
         resource_identifiers = []
@@ -989,7 +1014,6 @@ class ConfigBackend(BaseBackend):
                 "ResourceType": identifier["type"],
                 "ResourceId": identifier["id"],
             }
-
             if identifier.get("name"):
                 item["ResourceName"] = identifier["name"]
 

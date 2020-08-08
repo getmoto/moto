@@ -28,7 +28,6 @@ from .utils import (
 )
 
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
-CONFIG_BACKEND_DELIM = "\x1e"  # Record Seperator "RS" ASCII Character
 
 
 class BaseMockAWS(object):
@@ -723,6 +722,8 @@ class ConfigQueryModel(object):
         :param backend_region: The region for the backend to pull results from. Set to `None` if this is an aggregated query.
         :param resource_region: The region for where the resources reside to pull results from. Set to `None` if this is a
                                 non-aggregated query.
+        :param aggregator: If an aggregated query, this will be the `ConfigAggregator instance from the backend. Set to `None`
+                           if a non-aggregated query. Useful if you need special logic based off the aggregator (ie IAM)
         :return: This should return a list of Dicts that have the following fields:
             [
                 {
@@ -765,47 +766,6 @@ class ConfigQueryModel(object):
         :return:
         """
         raise NotImplementedError()
-
-    def aggregate_regions(self, path, backend_region, resource_region):
-        """
-        This method is called for both aggregated and non-aggregated calls for config resources.
-
-        It will figure out how to return the full list of resources for a given regional backend and append them to a final list.
-        It produces a list of both the region and the resource name with a delimiter character (CONFIG_BACKEND_DELIM, ASCII Record separator, \x1e).
-        IE: "us-east-1\x1ei-1234567800"
-
-        You should only use this method if you need to aggregate resources over more than one region.
-        If your region is global, just query the global backend directly in the `list_config_service_resources` method
-
-        If you use this method, your config-enabled resource must parse the delimited string in it's `list_config_service_resources` method.
-        ...
-        :param path: - A dict accessor string applied to the backend that locates resources inside that backend.
-                       For example, if you passed path="keypairs", and you were working with an ec2 moto backend, it would yield the contents from
-                       ec2_moto_backend[region].keypairs
-        :param backend_region: - Only used for filtering; A string representing the region IE: us-east-1
-        :param resource_region: - Only used for filtering; A string representing the region IE: us-east-1
-        :return: - Returns a list of "region\x1eresourcename" strings
-        """
-
-        filter_region = backend_region or resource_region
-        if filter_region:
-            filter_resources = list(self.backends[filter_region].__dict__[path].keys())
-            return list(
-                map(
-                    lambda resource: "{}{}{}".format(
-                        filter_region, CONFIG_BACKEND_DELIM, resource
-                    ),
-                    filter_resources,
-                )
-            )
-
-        # If we don't have a filter region
-        ret = []
-        for region in self.backends:
-            this_region_resources = list(self.backends[region].__dict__[path].keys())
-            for resource in this_region_resources:
-                ret.append("{}{}{}".format(region, CONFIG_BACKEND_DELIM, resource))
-        return ret
 
 
 class base_decorator(object):
