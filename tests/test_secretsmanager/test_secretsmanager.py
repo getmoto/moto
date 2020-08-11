@@ -619,10 +619,10 @@ def test_put_secret_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     with assert_raises(ClientError) as cm:
         result = conn.put_secret_value(
-                    SecretId=DEFAULT_SECRET_NAME,
-                    SecretString="foosecret",
-                    VersionStages=["AWSCURRENT"],
-                )
+            SecretId=DEFAULT_SECRET_NAME,
+            SecretString="foosecret",
+            VersionStages=["AWSCURRENT"],
+        )
 
     assert_equal(
         "Secrets Manager can't find the specified secret.",
