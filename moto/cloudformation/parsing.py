@@ -649,6 +649,23 @@ class ResourceMap(collections_abc.Mapping):
                 try:
                     if parsed_resource and hasattr(parsed_resource, "delete"):
                         parsed_resource.delete(self._region_name)
+                    else:
+                        resource_name_attribute = (
+                            parsed_resource.cloudformation_name_type()
+                            if hasattr(parsed_resource, "cloudformation_name_type")
+                            else resource_name_property_from_type(parsed_resource.type)
+                        )
+                        if resource_name_attribute:
+                            resource_json = self._resource_json_map[
+                                parsed_resource.logical_resource_id
+                            ]
+                            resource_name = resource_json["Properties"][
+                                resource_name_attribute
+                            ]
+                            parse_and_delete_resource(
+                                resource_name, resource_json, self, self._region_name
+                            )
+                        self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass
