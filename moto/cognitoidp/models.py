@@ -831,4 +831,4 @@ def find_region_by_value(key, value):
             if key == "access_token" and value in user_pool.access_tokens:
                 return region
 
-    return cognitoidp_backends.keys()[0]
+    return list(cognitoidp_backends.keys())[0]
