@@ -270,13 +270,13 @@ class SecretsManagerBackend(BaseBackend):
 
     def put_secret_value(self, secret_id, secret_string, secret_binary, version_stages):
 
-        if secret_id in self.secrets.keys():
-            secret = self.secrets[secret_id]
-            tags = secret["tags"]
-            description = secret["description"]
-        else:
-            tags = []
-            description = ""
+        # error if secret does not exist
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        secret = self.secrets[secret_id]
+        tags = secret["tags"]
+        description = secret["description"]
 
         version_id = self._add_secret(
             secret_id,

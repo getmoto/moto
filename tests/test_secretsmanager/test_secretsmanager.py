@@ -617,37 +617,33 @@ def test_rotate_secret_rotation_period_too_long():
 @mock_secretsmanager
 def test_put_secret_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    put_secret_value_dict = conn.put_secret_value(
-        SecretId=DEFAULT_SECRET_NAME,
-        SecretString="foosecret",
-        VersionStages=["AWSCURRENT"],
-    )
-    version_id = put_secret_value_dict["VersionId"]
+    with assert_raises(ClientError) as cm:
+        result = conn.put_secret_value(
+                    SecretId=DEFAULT_SECRET_NAME,
+                    SecretString="foosecret",
+                    VersionStages=["AWSCURRENT"],
+                )
 
-    get_secret_value_dict = conn.get_secret_value(
-        SecretId=DEFAULT_SECRET_NAME, VersionId=version_id, VersionStage="AWSCURRENT"
+    assert_equal(
+        "Secrets Manager can't find the specified secret.",
+        cm.exception.response["Error"]["Message"],
     )
-
-    assert get_secret_value_dict
-    assert get_secret_value_dict["SecretString"] == "foosecret"
 
 
 @mock_secretsmanager
 def test_put_secret_binary_value_puts_new_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    put_secret_value_dict = conn.put_secret_value(
-        SecretId=DEFAULT_SECRET_NAME,
-        SecretBinary=b("foosecret"),
-        VersionStages=["AWSCURRENT"],
-    )
-    version_id = put_secret_value_dict["VersionId"]
+    with assert_raises(ClientError) as cm:
+        result = conn.put_secret_value(
+            SecretId=DEFAULT_SECRET_NAME,
+            SecretBinary=b("foosecret"),
+            VersionStages=["AWSCURRENT"],
+        )
 
-    get_secret_value_dict = conn.get_secret_value(
-        SecretId=DEFAULT_SECRET_NAME, VersionId=version_id, VersionStage="AWSCURRENT"
+    assert_equal(
+        "Secrets Manager can't find the specified secret.",
+        cm.exception.response["Error"]["Message"],
     )
-
-    assert get_secret_value_dict
-    assert get_secret_value_dict["SecretBinary"] == b("foosecret")
 
 
 @mock_secretsmanager
@@ -679,6 +675,7 @@ def test_put_secret_binary_requires_either_string_or_binary():
 @mock_secretsmanager
 def test_put_secret_value_can_get_first_version_if_put_twice():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary=b("foosecret"))
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="first_secret",
@@ -702,6 +699,7 @@ def test_put_secret_value_can_get_first_version_if_put_twice():
 @mock_secretsmanager
 def test_put_secret_value_versions_differ_if_same_secret_put_twice():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary="foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="dupe_secret",
@@ -754,6 +752,7 @@ def test_put_secret_value_maintains_description_and_tags():
 @mock_secretsmanager
 def test_can_list_secret_version_ids():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretBinary="foosecret")
     put_secret_value_dict = conn.put_secret_value(
         SecretId=DEFAULT_SECRET_NAME,
         SecretString="dupe_secret",
