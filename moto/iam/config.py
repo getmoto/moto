@@ -1,5 +1,5 @@
 import json
-
+import boto3
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.models import ConfigQueryModel
 from moto.iam import iam_backends
@@ -55,8 +55,6 @@ class RoleConfigQuery(ConfigQueryModel):
 
             # In practice, it looks like AWS will only duplicate these resources if you've "used" any roles in the region, but since
             # we can't really tell if this has happened in moto, we'll just bind this to the regions in your aggregator
-            from moto.config.models import CONFIG_REGIONS
-
             aggregated_regions = []
             aggregator_sources = aggregator.get(
                 "account_aggregation_sources"
@@ -64,7 +62,7 @@ class RoleConfigQuery(ConfigQueryModel):
             for source in aggregator_sources:
                 source_dict = source.__dict__
                 if source_dict["all_aws_regions"]:
-                    aggregated_regions = CONFIG_REGIONS
+                    aggregated_regions = boto3.Session().get_available_regions("config")
                     break
                 for region in source_dict["aws_regions"]:
                     aggregated_regions.append(region)
@@ -86,15 +84,10 @@ class RoleConfigQuery(ConfigQueryModel):
 
             # Pagination logic, sort by role id
             sorted_roles = sorted(duplicate_role_list, key=lambda role: role["_id"])
-
-            # sorted_role_ids matches indicies of sorted_roles
-            sorted_role_ids = list(map(lambda role: role["_id"], sorted_roles))
         else:
             # Non-aggregated queries are in the else block, and we can treat these like a normal config resource
             # Pagination logic, sort by role id
             sorted_roles = sorted(role_list, key=lambda role: role.id)
-            # sorted_role_ids matches indicies of sorted_roles
-            sorted_role_ids = list(map(lambda role: role.id, sorted_roles))
 
         new_token = None
 
@@ -102,16 +95,22 @@ class RoleConfigQuery(ConfigQueryModel):
         if not next_token:
             start = 0
         else:
-            if next_token not in sorted_role_ids:
+            try:
+                # Find the index of the next
+                start = next(
+                    index
+                    for (index, r) in enumerate(sorted_roles)
+                    if next_token == (r["_id"] if aggregator else r.id)
+                )
+            except StopIteration:
                 raise InvalidNextTokenException()
-
-            start = sorted_role_ids.index(next_token)
 
         # Get the list of items to collect:
         role_list = sorted_roles[start : (start + limit)]
 
         if len(sorted_roles) > (start + limit):
-            new_token = sorted_role_ids[start + limit]
+            record = sorted_roles[start + limit]
+            new_token = record["_id"] if aggregator else record.id
 
         return (
             [
@@ -213,8 +212,6 @@ class PolicyConfigQuery(ConfigQueryModel):
 
             # In practice, it looks like AWS will only duplicate these resources if you've "used" any policies in the region, but since
             # we can't really tell if this has happened in moto, we'll just bind this to the regions in your aggregator
-            from moto.config.models import CONFIG_REGIONS
-
             aggregated_regions = []
             aggregator_sources = aggregator.get(
                 "account_aggregation_sources"
@@ -222,7 +219,7 @@ class PolicyConfigQuery(ConfigQueryModel):
             for source in aggregator_sources:
                 source_dict = source.__dict__
                 if source_dict["all_aws_regions"]:
-                    aggregated_regions = CONFIG_REGIONS
+                    aggregated_regions = boto3.Session().get_available_regions("config")
                     break
                 for region in source_dict["aws_regions"]:
                     aggregated_regions.append(region)
@@ -247,14 +244,10 @@ class PolicyConfigQuery(ConfigQueryModel):
                 duplicate_policy_list, key=lambda policy: policy["_id"]
             )
 
-            # sorted_policy_ids matches indicies of sorted_policies
-            sorted_policy_ids = list(map(lambda policy: policy["_id"], sorted_policies))
         else:
             # Non-aggregated queries are in the else block, and we can treat these like a normal config resource
             # Pagination logic, sort by role id
             sorted_policies = sorted(policy_list, key=lambda role: role.id)
-            # sorted_policy_ids matches indicies of sorted_policies
-            sorted_policy_ids = list(map(lambda policy: policy.id, sorted_policies))
 
         new_token = None
 
@@ -262,16 +255,22 @@ class PolicyConfigQuery(ConfigQueryModel):
         if not next_token:
             start = 0
         else:
-            if next_token not in sorted_policy_ids:
+            try:
+                # Find the index of the next
+                start = next(
+                    index
+                    for (index, p) in enumerate(sorted_policies)
+                    if next_token == (p["_id"] if aggregator else p.id)
+                )
+            except StopIteration:
                 raise InvalidNextTokenException()
-
-            start = sorted_policy_ids.index(next_token)
 
         # Get the list of items to collect:
         policy_list = sorted_policies[start : (start + limit)]
 
         if len(sorted_policies) > (start + limit):
-            new_token = sorted_policy_ids[start + limit]
+            record = sorted_policies[start + limit]
+            new_token = record["_id"] if aggregator else record.id
 
         return (
             [

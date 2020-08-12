@@ -3235,7 +3235,8 @@ def test_role_config_dict():
 def test_role_config_client():
     from moto.iam.models import ACCOUNT_ID
     from moto.iam.utils import random_resource_id
-    from moto.config.models import CONFIG_REGIONS
+
+    CONFIG_REGIONS = boto3.Session().get_available_regions("config")
 
     iam_client = boto3.client("iam", region_name="us-west-2")
     config_client = boto3.client("config", region_name="us-west-2")
@@ -3659,7 +3660,8 @@ def test_policy_config_dict():
 def test_policy_config_client():
     from moto.iam.models import ACCOUNT_ID
     from moto.iam.utils import random_policy_id
-    from moto.config.models import CONFIG_REGIONS
+
+    CONFIG_REGIONS = boto3.Session().get_available_regions("config")
 
     basic_policy = {
         "Version": "2012-10-17",
