@@ -1092,6 +1092,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Flask server
             body = request.data
+            # when the data is being passed as a file
+            if request.files and not body:
+                for _, value in request.files.items():
+                    body = value.stream.read()
+
         if body is None:
             body = b""
 

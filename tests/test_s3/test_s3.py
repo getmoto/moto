@@ -1057,6 +1057,29 @@ def test_streaming_upload_from_file_to_presigned_url():
 
 
 @mock_s3
+def test_multipart_upload_from_file_to_presigned_url():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    params = {"Bucket": "mybucket", "Key": "file_upload"}
+    presigned_url = boto3.client("s3").generate_presigned_url(
+        "put_object", params, ExpiresIn=900
+    )
+
+    file = open("text.txt", "w")
+    file.write("test")
+    file.close()
+    files = {"upload_file": open("text.txt", "rb")}
+
+    requests.put(presigned_url, files=files)
+    resp = s3.get_object(Bucket="mybucket", Key="file_upload")
+    data = resp["Body"].read()
+    assert data == b"test"
+    # cleanup
+    os.remove("text.txt")
+
+
+@mock_s3
 def test_s3_object_in_private_bucket():
     s3 = boto3.resource("s3")
     bucket = s3.Bucket("test-bucket")
