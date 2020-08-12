@@ -2639,7 +2639,7 @@
 - [X] create_internet_gateway
 - [X] create_key_pair
 - [X] create_launch_template
-- [ ] create_launch_template_version
+- [x] create_launch_template_version
 - [ ] create_local_gateway_route
 - [ ] create_local_gateway_route_table_vpc_association
 - [X] create_nat_gateway

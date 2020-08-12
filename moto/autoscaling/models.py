@@ -7,6 +7,7 @@ from moto.ec2.exceptions import InvalidInstanceIdError
 
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
 from moto.elb import elb_backends
 from moto.elbv2 import elbv2_backends
@@ -15,6 +16,7 @@ from .exceptions import (
     AutoscalingClientError,
     ResourceContentionError,
     InvalidInstanceError,
+    ValidationError,
 )
 
 # http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AS_Concepts.html#Cooldown
@@ -233,6 +235,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         max_size,
         min_size,
         launch_config_name,
+        launch_template,
         vpc_zone_identifier,
         default_cooldown,
         health_check_period,
@@ -242,10 +245,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
         placement_group,
         termination_policies,
         autoscaling_backend,
+        ec2_backend,
         tags,
         new_instances_protected_from_scale_in=False,
     ):
         self.autoscaling_backend = autoscaling_backend
+        self.ec2_backend = ec2_backend
         self.name = name
 
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
@@ -253,10 +258,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.max_size = max_size
         self.min_size = min_size
 
-        self.launch_config = self.autoscaling_backend.launch_configurations[
-            launch_config_name
-        ]
-        self.launch_config_name = launch_config_name
+        self.launch_template = None
+        self.launch_config = None
+
+        self._set_launch_configuration(launch_config_name, launch_template)
 
         self.default_cooldown = (
             default_cooldown if default_cooldown else DEFAULT_COOLDOWN
@@ -310,6 +315,34 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.availability_zones = availability_zones
         self.vpc_zone_identifier = vpc_zone_identifier
 
+    def _set_launch_configuration(self, launch_config_name, launch_template):
+        if launch_config_name:
+            self.launch_config = self.autoscaling_backend.launch_configurations[
+                launch_config_name
+            ]
+            self.launch_config_name = launch_config_name
+
+        if launch_template:
+            launch_template_id = launch_template.get("launch_template_id")
+            launch_template_name = launch_template.get("launch_template_name")
+
+            if not (launch_template_id or launch_template_name) or (
+                launch_template_id and launch_template_name
+            ):
+                raise ValidationError(
+                    "Valid requests must contain either launchTemplateId or LaunchTemplateName"
+                )
+
+            if launch_template_id:
+                self.launch_template = self.ec2_backend.get_launch_template(
+                    launch_template_id
+                )
+            elif launch_template_name:
+                self.launch_template = self.ec2_backend.get_launch_template_by_name(
+                    launch_template_name
+                )
+            self.launch_template_version = int(launch_template["version"])
+
     @staticmethod
     def __set_string_propagate_at_launch_booleans_on_tags(tags):
         bool_to_string = {True: "true", False: "false"}
@@ -334,6 +367,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         launch_config_name = properties.get("LaunchConfigurationName")
+        launch_template = {
+            camelcase_to_underscores(k): v
+            for k, v in properties.get("LaunchTemplate", {}).items()
+        }
         load_balancer_names = properties.get("LoadBalancerNames", [])
         target_group_arns = properties.get("TargetGroupARNs", [])
 
@@ -345,6 +382,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             max_size=properties.get("MaxSize"),
             min_size=properties.get("MinSize"),
             launch_config_name=launch_config_name,
+            launch_template=launch_template,
             vpc_zone_identifier=(
                 ",".join(properties.get("VPCZoneIdentifier", [])) or None
             ),
@@ -393,6 +431,38 @@ class FakeAutoScalingGroup(CloudFormationModel):
     def physical_resource_id(self):
         return self.name
 
+    @property
+    def image_id(self):
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.image_id
+
+        return self.launch_config.image_id
+
+    @property
+    def instance_type(self):
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.instance_type
+
+        return self.launch_config.instance_type
+
+    @property
+    def user_data(self):
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.user_data
+
+        return self.launch_config.user_data
+
+    @property
+    def security_groups(self):
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.security_groups
+
+        return self.launch_config.security_groups
+
     def update(
         self,
         availability_zones,
@@ -400,6 +470,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         max_size,
         min_size,
         launch_config_name,
+        launch_template,
         vpc_zone_identifier,
         default_cooldown,
         health_check_period,
@@ -421,11 +492,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if max_size is not None and max_size < len(self.instance_states):
                 desired_capacity = max_size
 
-        if launch_config_name:
-            self.launch_config = self.autoscaling_backend.launch_configurations[
-                launch_config_name
-            ]
-            self.launch_config_name = launch_config_name
+        self._set_launch_configuration(launch_config_name, launch_template)
+
         if health_check_period is not None:
             self.health_check_period = health_check_period
         if health_check_type is not None:
@@ -489,12 +557,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     def replace_autoscaling_group_instances(self, count_needed, propagated_tags):
         propagated_tags[ASG_NAME_TAG] = self.name
+
         reservation = self.autoscaling_backend.ec2_backend.add_instances(
-            self.launch_config.image_id,
+            self.image_id,
             count_needed,
-            self.launch_config.user_data,
-            self.launch_config.security_groups,
-            instance_type=self.launch_config.instance_type,
+            self.user_data,
+            self.security_groups,
+            instance_type=self.instance_type,
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
         )
@@ -586,6 +655,7 @@ class AutoScalingBackend(BaseBackend):
         max_size,
         min_size,
         launch_config_name,
+        launch_template,
         vpc_zone_identifier,
         default_cooldown,
         health_check_period,
@@ -609,7 +679,21 @@ class AutoScalingBackend(BaseBackend):
             health_check_period = 300
         else:
             health_check_period = make_int(health_check_period)
-        if launch_config_name is None and instance_id is not None:
+
+        # TODO: Add MixedInstancesPolicy once implemented.
+        # Verify only a single launch config-like parameter is provided.
+        count = 0
+        for value in [launch_config_name, launch_template, instance_id]:
+            if value:
+                count += 1
+
+        if count != 1:
+            raise ValidationError(
+                "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, "
+                "InstanceId or MixedInstancesPolicy parameter."
+            )
+
+        if instance_id:
             try:
                 instance = self.ec2_backend.get_instance(instance_id)
                 launch_config_name = name
@@ -626,6 +710,7 @@ class AutoScalingBackend(BaseBackend):
             max_size=max_size,
             min_size=min_size,
             launch_config_name=launch_config_name,
+            launch_template=launch_template,
             vpc_zone_identifier=vpc_zone_identifier,
             default_cooldown=default_cooldown,
             health_check_period=health_check_period,
@@ -635,6 +720,7 @@ class AutoScalingBackend(BaseBackend):
             placement_group=placement_group,
             termination_policies=termination_policies,
             autoscaling_backend=self,
+            ec2_backend=self.ec2_backend,
             tags=tags,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
         )
@@ -652,6 +738,7 @@ class AutoScalingBackend(BaseBackend):
         max_size,
         min_size,
         launch_config_name,
+        launch_template,
         vpc_zone_identifier,
         default_cooldown,
         health_check_period,
@@ -660,6 +747,14 @@ class AutoScalingBackend(BaseBackend):
         termination_policies,
         new_instances_protected_from_scale_in=None,
     ):
+        # TODO: Add MixedInstancesPolicy once implemented.
+        # Verify only a single launch config-like parameter is provided.
+        if launch_config_name and launch_template:
+            raise ValidationError(
+                "Valid requests must contain either LaunchTemplate, LaunchConfigurationName "
+                "or MixedInstancesPolicy parameter."
+            )
+
         group = self.autoscaling_groups[name]
         group.update(
             availability_zones,
@@ -667,6 +762,7 @@ class AutoScalingBackend(BaseBackend):
             max_size,
             min_size,
             launch_config_name,
+            launch_template,
             vpc_zone_identifier,
             default_cooldown,
             health_check_period,

@@ -5381,6 +5381,22 @@ class LaunchTemplateVersion(object):
         self.description = description
         self.create_time = utc_date_and_time()
 
+    @property
+    def image_id(self):
+        return self.data.get("ImageId", "")
+
+    @property
+    def instance_type(self):
+        return self.data.get("InstanceType", "")
+
+    @property
+    def security_groups(self):
+        return self.data.get("SecurityGroups", [])
+
+    @property
+    def user_data(self):
+        return self.data.get("UserData", "")
+
 
 class LaunchTemplate(TaggedEC2Resource):
     def __init__(self, backend, name, template_data, version_description):
