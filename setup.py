@@ -29,6 +29,9 @@ def get_version():
     raise RuntimeError('Unable to find version string.')
 
 
+# The TravisCI build has an older version of the Docker Engine
+# We have to use an older version of docker-py (or manually update Docker when running Travis)
+# See https://github.com/docker/docker-py/issues/2639
 install_requires = [
     "boto>=2.36.0",
     "boto3>=1.9.201",
@@ -42,7 +45,7 @@ install_requires = [
     "pytz",
     "python-dateutil<3.0.0,>=2.1",
     "python-jose[cryptography]>=3.1.0,<4.0.0",
-    "docker>=2.5.1",
+    "docker>=2.5.1,<=4.2.2",
     "jsondiff>=1.1.2",
     "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
