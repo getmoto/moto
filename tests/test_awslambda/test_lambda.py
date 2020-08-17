@@ -52,8 +52,11 @@ def lambda_handler(event, context):
 def get_test_zip_file2():
     func_str = """
 import boto3
+import os
 
 def lambda_handler(event, context):
+    os.environ['AWS_ACCESS_KEY_ID'] = 'server_key'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'server_secret'
     ec2 = boto3.resource('ec2', region_name='us-west-2', endpoint_url='http://{base_url}')
 
     volume_id = event.get('volume_id')
