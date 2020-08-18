@@ -103,6 +103,8 @@ class SESBackend(BaseBackend):
         _, address = parseaddr(source)
         if address in self.addresses:
             return True
+        if address in self.email_addresses:
+            return True
         user, host = address.split("@", 1)
         return host in self.domains
 
