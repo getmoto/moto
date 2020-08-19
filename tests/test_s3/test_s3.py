@@ -2780,6 +2780,39 @@ def test_put_bucket_acl_body():
 
 
 @mock_s3
+def test_object_acl_with_presigned_post():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    bucket_name = "imageS3Bucket"
+    object_name = "text.txt"
+    fields = {"acl": "public-read"}
+    file = open("text.txt", "w")
+    file.write("test")
+    file.close()
+
+    s3.create_bucket(Bucket=bucket_name)
+    response = s3.generate_presigned_post(
+        bucket_name, object_name, Fields=fields, ExpiresIn=60000
+    )
+
+    with open(object_name, "rb") as f:
+        files = {"file": (object_name, f)}
+        requests.post(response["url"], data=response["fields"], files=files)
+
+    response = s3.get_object_acl(Bucket=bucket_name, Key=object_name)
+
+    assert "Grants" in response
+    assert len(response["Grants"]) == 2
+    assert response["Grants"][1]["Permission"] == "READ"
+
+    response = s3.get_object(Bucket=bucket_name, Key=object_name)
+
+    assert "ETag" in response
+    assert "Body" in response
+    os.remove("text.txt")
+
+
+@mock_s3
 def test_put_bucket_notification():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="bucket")

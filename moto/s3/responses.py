@@ -860,6 +860,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         new_key = self.backend.set_object(bucket_name, key, f)
 
+        if form.get("acl"):
+            acl = get_canned_acl(form.get("acl"))
+            new_key.set_acl(acl)
+
         # Metadata
         metadata = metadata_from_headers(form)
         new_key.set_metadata(metadata)
