@@ -4046,7 +4046,7 @@ class SpotInstanceRequest(BotoSpotRequest, TaggedEC2Resource):
         subnet_id,
         tags,
         spot_fleet_id,
-        **kwargs,
+        **kwargs
     ):
         super(SpotInstanceRequest, self).__init__(**kwargs)
         ls = LaunchSpecification()
