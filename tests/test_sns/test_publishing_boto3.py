@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 from moto import mock_sns, mock_sqs
 from moto.core import ACCOUNT_ID
+from moto.sns import sns_backend
 
 MESSAGE_FROM_SQS_TEMPLATE = (
     '{\n  "Message": "%s",\n  "MessageId": "%s",\n  "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  "SignatureVersion": "1",\n  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  "Subject": "my subject",\n  "Timestamp": "2015-01-01T12:00:00.000Z",\n  "TopicArn": "arn:aws:sns:%s:'
@@ -223,36 +224,30 @@ def test_publish_to_sqs_msg_attr_number_type():
 @mock_sns
 def test_publish_sms():
     client = boto3.client("sns", region_name="us-east-1")
-    client.create_topic(Name="some-topic")
-    resp = client.create_topic(Name="some-topic")
-    arn = resp["TopicArn"]
-
-    client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="+15551234567")
 
     result = client.publish(PhoneNumber="+15551234567", Message="my message")
+
     result.should.contain("MessageId")
+    sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
+        ("+15551234567", "my message")
+    )
 
 
 @mock_sns
 def test_publish_bad_sms():
     client = boto3.client("sns", region_name="us-east-1")
-    client.create_topic(Name="some-topic")
-    resp = client.create_topic(Name="some-topic")
-    arn = resp["TopicArn"]
 
-    client.subscribe(TopicArn=arn, Protocol="sms", Endpoint="+15551234567")
-
-    try:
-        # Test invalid number
+    # Test invalid number
+    with assert_raises(ClientError) as cm:
         client.publish(PhoneNumber="NAA+15551234567", Message="my message")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.exception.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.exception.response["Error"]["Message"].should.contain("not meet the E164")
 
-    try:
-        # Test not found number
-        client.publish(PhoneNumber="+44001234567", Message="my message")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ParameterValueInvalid")
+    # Test to long ASCII message
+    with assert_raises(ClientError) as cm:
+        client.publish(PhoneNumber="+15551234567", Message="a" * 1601)
+    cm.exception.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.exception.response["Error"]["Message"].should.contain("must be less than 1600")
 
 
 @mock_sqs

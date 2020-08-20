@@ -6,7 +6,7 @@ from collections import defaultdict
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
 from .models import sns_backends
-from .exceptions import SNSNotFoundError, InvalidParameterValue
+from .exceptions import InvalidParameterValue
 from .utils import is_e164
 
 
@@ -327,24 +327,13 @@ class SNSResponse(BaseResponse):
 
         message_attributes = self._parse_message_attributes()
 
+        arn = None
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
                 return (
                     self._error(
                         "InvalidParameter", "Phone number does not meet the E164 format"
-                    ),
-                    dict(status=400),
-                )
-
-            # Look up topic arn by phone number
-            try:
-                arn = self.backend.get_topic_from_phone_number(phone_number)
-            except SNSNotFoundError:
-                return (
-                    self._error(
-                        "ParameterValueInvalid",
-                        "Could not find topic associated with phone number",
                     ),
                     dict(status=400),
                 )
@@ -357,7 +346,11 @@ class SNSResponse(BaseResponse):
 
         try:
             message_id = self.backend.publish(
-                arn, message, subject=subject, message_attributes=message_attributes
+                message,
+                arn=arn,
+                phone_number=phone_number,
+                subject=subject,
+                message_attributes=message_attributes,
             )
         except ValueError as err:
             error_response = self._error("InvalidParameter", str(err))
