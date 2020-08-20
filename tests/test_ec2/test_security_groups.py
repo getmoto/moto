@@ -275,8 +275,9 @@ def test_authorize_ip_range_and_revoke():
     int(egress_security_group.rules_egress[1].to_port).should.equal(2222)
     actual_cidr = egress_security_group.rules_egress[1].grants[0].cidr_ip
     # Deal with Python2 dict->unicode, instead of dict->string
-    actual_cidr = json.loads(actual_cidr.replace("u'", "'").replace("'", '"'))
-    actual_cidr.should.equal({"CidrIp": "123.123.123.123/32"})
+    if type(actual_cidr) == "unicode":
+        actual_cidr = json.loads(actual_cidr.replace("u'", "'").replace("'", '"'))
+    actual_cidr.should.equal("123.123.123.123/32")
 
     # Wrong Cidr should throw error
     egress_security_group.revoke.when.called_with(
@@ -930,11 +931,10 @@ def test_revoke_security_group_egress():
     sg.revoke_egress(
         IpPermissions=[
             {
-                "FromPort": 0,
                 "IpProtocol": "-1",
                 "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
-                "ToPort": 123,
-            },
+                "UserIdGroupPairs": [],
+            }
         ]
     )
 
