@@ -391,6 +391,23 @@ class CognitoIdpResponse(BaseResponse):
         return json.dumps({"ResourceServer": resource_server.to_json()})
 
 
+    def sign_up(self):
+        client_id = self._get_param("ClientId")
+        username = self._get_param("Username")
+        password = self._get_param("Password")
+        user = cognitoidp_backends[self.region].sign_up(
+            client_id=client_id,
+            username=username,
+            password=password,
+            attributes=self._get_param("UserAttributes", [])
+
+        )
+        return json.dumps({
+            "UserConfirmed": user.status == UserStatus["CONFIRMED"],
+            "UserSub": user.id
+        })
+
+
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
     def __init__(self):
         with open(

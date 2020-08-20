@@ -28,6 +28,7 @@ from .utils import create_id
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
+    "UNCONFIRMED": "UNCONFIRMED",
 }
 
 
@@ -805,6 +806,27 @@ class CognitoIdpBackend(BaseBackend):
         resource_server = CognitoResourceServer(user_pool_id, identifier, name, scopes)
         user_pool.resource_servers[identifier] = resource_server
         return resource_server
+
+    def sign_up(self, client_id, username, password, attributes):
+        user_pool = None
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
+        if user_pool is None:
+            raise ResourceNotFoundError(client_id)
+
+        user = CognitoIdpUser(
+            user_pool_id=user_pool.id,
+            username=username,
+            password=password,
+            attributes=attributes,
+            status=UserStatus["UNCONFIRMED"]
+        )
+        user_pool.users[user.username] = user
+        return user
+
+    def initiate_auth(self, client_id, auth_flow, auth_parameters):
+
 
 
 cognitoidp_backends = {}
