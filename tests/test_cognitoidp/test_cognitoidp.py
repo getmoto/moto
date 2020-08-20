@@ -1513,13 +1513,13 @@ def fetch_public_keys():
     response = requests.get(keys_url).json()
     return response["keys"]
 
+
 @mock_cognitoidp
 def test_sign_up():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
     client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id,
-        ClientName=str(uuid.uuid4()),
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
     )["UserPoolClient"]["ClientId"]
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
