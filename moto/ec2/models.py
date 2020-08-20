@@ -368,7 +368,7 @@ class NetworkInterfaceBackend(object):
         private_ip_addresses=None,
         group_ids=None,
         description=None,
-        **kwargs,
+        **kwargs
     ):
         eni = NetworkInterface(
             self,
@@ -377,7 +377,7 @@ class NetworkInterfaceBackend(object):
             private_ip_addresses,
             group_ids=group_ids,
             description=description,
-            **kwargs,
+            **kwargs
         )
         self.enis[eni.id] = eni
         return eni
