@@ -604,7 +604,7 @@ class CognitoIdpBackend(BaseBackend):
 
     # User
     def admin_create_user(
-        self, user_pool_id, username, message_action, temporary_password, attributes
+        self, user_pool_id, username, message_action, temporary_password, attributes,
     ):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
@@ -820,13 +820,30 @@ class CognitoIdpBackend(BaseBackend):
             username=username,
             password=password,
             attributes=attributes,
-            status=UserStatus["UNCONFIRMED"]
+            status=UserStatus["UNCONFIRMED"],
         )
         user_pool.users[user.username] = user
         return user
 
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
+        user_pool = None
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
+        if user_pool is None:
+            raise ResourceNotFoundError(client_id)
 
+        client = p.clients.get(client_id)
+        if auth_flow == "USER_SRP_AUTH":
+            username = auth_parameters.get("USERNAME")
+            # srp_a = auth_parameters.get("SRP_A")
+            secret_hash = None
+            if client.generate_secret:
+                secret_hash = auth_parameters.get("SECRET_HASH")
+                self.check_secret_hash(client.secret, client.id, username, secret_hash)
+            user = user_pool.users.get(username)
+            if not user:
+                raise UserNotFoundError(username)
 
 
 cognitoidp_backends = {}

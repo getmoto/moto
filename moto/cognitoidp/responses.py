@@ -4,7 +4,7 @@ import json
 import os
 
 from moto.core.responses import BaseResponse
-from .models import cognitoidp_backends, find_region_by_value
+from .models import cognitoidp_backends, find_region_by_value, UserStatus
 
 
 class CognitoIdpResponse(BaseResponse):
@@ -342,7 +342,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def forgot_password(self):
         return json.dumps(
-            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "..."}}
+            {"CodeDeliveryDetails": {"DeliveryMedium": "EMAIL", "Destination": "...",}}
         )
 
     # This endpoint receives no authorization header, so if moto-server is listening
@@ -390,7 +390,6 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"ResourceServer": resource_server.to_json()})
 
-
     def sign_up(self):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
@@ -399,13 +398,14 @@ class CognitoIdpResponse(BaseResponse):
             client_id=client_id,
             username=username,
             password=password,
-            attributes=self._get_param("UserAttributes", [])
-
+            attributes=self._get_param("UserAttributes", []),
         )
-        return json.dumps({
-            "UserConfirmed": user.status == UserStatus["CONFIRMED"],
-            "UserSub": user.id
-        })
+        return json.dumps(
+            {
+                "UserConfirmed": user.status == UserStatus["CONFIRMED"],
+                "UserSub": user.id,
+            }
+        )
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
