@@ -488,8 +488,10 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
   <GetQueueAttributesResult>
     {% for key, value in attributes.items() %}
         <Attribute>
-          <Name>{{ key }}</Name>
-          <Value>{{ value }}</Value>
+            {% if value is not none %}
+                <Name>{{ key }}</Name>
+                <Value>{{ value }}</Value>
+            {% endif %}
         </Attribute>
     {% endfor %}
   </GetQueueAttributesResult>
