@@ -1482,7 +1482,6 @@ def test_get_queue_attributes_template_response_validation():
 
     client.set_queue_attributes(QueueUrl=queue_url, Attributes=attributes)
     attrs = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["Policy"])
-    print(attrs)
     assert attrs.get("Attributes").get("Policy") is not None
 
     assert (
