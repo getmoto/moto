@@ -487,12 +487,12 @@ DELETE_QUEUE_RESPONSE = """<DeleteQueueResponse>
 GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
   <GetQueueAttributesResult>
     {% for key, value in attributes.items() %}
-        <Attribute>
-            {% if value is not none %}
+        {% if value is not none %}
+            <Attribute>
                 <Name>{{ key }}</Name>
-                <Value>{{ value }}</Value>
-            {% endif %}
-        </Attribute>
+                <Value>{{ value }}</Value>    
+            </Attribute>
+        {% endif %}
     {% endfor %}
   </GetQueueAttributesResult>
   <ResponseMetadata>
