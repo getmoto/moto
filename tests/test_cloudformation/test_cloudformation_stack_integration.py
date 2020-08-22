@@ -42,6 +42,7 @@ from moto import (
     mock_sns_deprecated,
     mock_sqs_deprecated,
     mock_elbv2,
+    mock_ssm,
 )
 from moto.core import ACCOUNT_ID
 
@@ -2803,3 +2804,164 @@ def test_dynamodb_table_creation():
     ddb = boto3.client("dynamodb", "us-west-2")
     table_names = ddb.list_tables()["TableNames"]
     table_names.should.equal([outputs[0]["OutputValue"]])
+
+
+@mock_cloudformation_deprecated()
+@mock_ssm()
+def test_ssm_parameter():
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+
+    template_json = json.dumps(parameter_template)
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    stack = cf_conn.create_stack("test_stack", template_body=template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+
+
+@mock_cloudformation_deprecated()
+@mock_ssm()
+def test_ssm_parameter_update_stack():
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    template_json = json.dumps(parameter_template)
+
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack("test_stack", template_body=template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+
+    parameter_template["Resources"]["BasicParameter"]["Properties"]["Value"] = "Test SSM Parameter Updated"
+    template_json = json.dumps(parameter_template)
+    cf_conn.update_stack("test_stack", template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter Updated")
+
+
+@mock_cloudformation_deprecated()
+@mock_ssm()
+def test_ssm_parameter_update_stack_and_remove_resource():
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    template_json = json.dumps(parameter_template)
+
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack("test_stack", template_body=template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+
+    parameter_template["Resources"].pop("BasicParameter")
+    template_json = json.dumps(parameter_template)
+    cf_conn.update_stack("test_stack", template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(0)
+
+
+@mock_cloudformation_deprecated()
+@mock_ssm()
+def test_ssm_parameter_update_stack_and_add_resource():
+    parameter_template = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
+    template_json = json.dumps(parameter_template)
+
+    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
+    cf_conn.create_stack("test_stack", template_body=template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(0)
+
+    parameter_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "BasicParameter": {
+                "Type": "AWS::SSM::Parameter",
+                "Properties": {
+                    "Name": "test_ssm",
+                    "Type": "String",
+                    "Value": "Test SSM Parameter",
+                    "Description": "Test SSM Description",
+                    "AllowedPattern": "^[a-zA-Z]{1,10}$",
+                },
+            }
+        },
+    }
+    template_json = json.dumps(parameter_template)
+    cf_conn.update_stack("test_stack", template_json)
+
+    ssm_client = boto3.client("ssm", region_name="us-west-1")
+    parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
+        "Parameters"
+    ]
+    parameters.should.have.length_of(1)
+    parameters[0]["Name"].should.equal("test_ssm")
+    parameters[0]["Value"].should.equal("Test SSM Parameter")
+

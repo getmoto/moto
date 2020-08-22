@@ -38,6 +38,7 @@ from moto.s3 import models as s3_models, s3_backend  # noqa
 from moto.s3.utils import bucket_and_name_from_url
 from moto.sns import models as sns_models  # noqa
 from moto.sqs import models as sqs_models  # noqa
+from moto.ssm import models as ssm_models  # noqa
 
 # End ugly list of imports
 
