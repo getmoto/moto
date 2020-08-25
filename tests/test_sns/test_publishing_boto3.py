@@ -11,7 +11,7 @@ import sure  # noqa
 import responses
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
-from moto import mock_sns, mock_sqs
+from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
 from moto.sns import sns_backend
 
@@ -228,9 +228,10 @@ def test_publish_sms():
     result = client.publish(PhoneNumber="+15551234567", Message="my message")
 
     result.should.contain("MessageId")
-    sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
-        ("+15551234567", "my message")
-    )
+    if not settings.TEST_SERVER_MODE:
+        sns_backend.sms_messages.should.have.key(result["MessageId"]).being.equal(
+            ("+15551234567", "my message")
+        )
 
 
 @mock_sns
