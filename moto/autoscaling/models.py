@@ -682,12 +682,10 @@ class AutoScalingBackend(BaseBackend):
 
         # TODO: Add MixedInstancesPolicy once implemented.
         # Verify only a single launch config-like parameter is provided.
-        count = 0
-        for value in [launch_config_name, launch_template, instance_id]:
-            if value:
-                count += 1
+        params = [launch_config_name, launch_template, instance_id]
+        num_params = sum([1 for param in params if param])
 
-        if count != 1:
+        if num_params != 1:
             raise ValidationError(
                 "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, "
                 "InstanceId or MixedInstancesPolicy parameter."
@@ -757,18 +755,18 @@ class AutoScalingBackend(BaseBackend):
 
         group = self.autoscaling_groups[name]
         group.update(
-            availability_zones,
-            desired_capacity,
-            max_size,
-            min_size,
-            launch_config_name,
-            launch_template,
-            vpc_zone_identifier,
-            default_cooldown,
-            health_check_period,
-            health_check_type,
-            placement_group,
-            termination_policies,
+            availability_zones=availability_zones,
+            desired_capacity=desired_capacity,
+            max_size=max_size,
+            min_size=min_size,
+            launch_config_name=launch_config_name,
+            launch_template=launch_template,
+            vpc_zone_identifier=vpc_zone_identifier,
+            default_cooldown=default_cooldown,
+            health_check_period=health_check_period,
+            health_check_type=health_check_type,
+            placement_group=placement_group,
+            termination_policies=termination_policies,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
         )
         return group
