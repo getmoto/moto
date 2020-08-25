@@ -843,14 +843,16 @@ def test_authorize_and_revoke_in_bulk():
             "FromPort": 27015,
             "ToPort": 27015,
             "UserIdGroupPairs": [{"GroupName": "sg04", "UserId": sg04.owner_id}],
-            "IpRanges": [{"CidrIp":"10.10.10.0/24","Description":"Some Description"}],
+            "IpRanges": [
+                {"CidrIp": "10.10.10.0/24", "Description": "Some Description"}
+            ],
         },
         {
             "IpProtocol": "tcp",
             "FromPort": 27016,
             "ToPort": 27016,
             "UserIdGroupPairs": [{"GroupId": sg04.id, "UserId": sg04.owner_id}],
-            "IpRanges": [{"CidrIp":"10.10.10.0/24"}],
+            "IpRanges": [{"CidrIp": "10.10.10.0/24"}],
         },
     ]
     expected_ip_permissions = copy.deepcopy(ip_permissions)
