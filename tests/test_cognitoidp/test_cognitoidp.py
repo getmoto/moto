@@ -4,6 +4,9 @@ import json
 import os
 import random
 import re
+import hmac
+import hashlib
+import base64
 
 import requests
 import uuid
@@ -1248,6 +1251,75 @@ def test_authentication_flow():
     authentication_flow(conn)
 
 
+def user_authentication_flow(conn):
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name],
+        GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+
+    conn.sign_up(
+        ClientId=client_id, Username=username, Password=password,
+    )
+
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id,
+    )["UserPoolClient"]["ClientSecret"]
+
+    # generating secret hash
+    key = bytes(client_secret, "latin-1")
+    msg = bytes(username + client_id, "latin-1")
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": str(uuid.uuid4()),
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+            "PASSWORD_CLAIM_SECRET_BLOCK": result["Session"],
+            "TIMESTAMP": str(uuid.uuid4()),
+            "USERNAME": username,
+        },
+    )
+
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+
+    return {
+        "user_pool_id": user_pool_id,
+        "client_id": client_id,
+        "id_token": result["AuthenticationResult"]["IdToken"],
+        "access_token": result["AuthenticationResult"]["AccessToken"],
+        "username": username,
+        "password": password,
+        "additional_fields": {user_attribute_name: user_attribute_value},
+    }
+
+
+@mock_cognitoidp
+def test_user_authentication_flow():
+    conn = boto3.client("cognito-idp", "eu-west-1")
+
+    user_authentication_flow(conn)
+
+
 @mock_cognitoidp
 def test_token_legitimacy():
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -1435,6 +1507,20 @@ def test_resource_server():
         "%s already exists in user pool %s." % (identifier, user_pool_id)
     )
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_cognitoidp
+def test_sign_up():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
+    )["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    result["UserConfirmed"].should.be.false
+    result["UserSub"].should_not.be.none
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,

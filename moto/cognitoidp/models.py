@@ -23,11 +23,12 @@ from .exceptions import (
     UsernameExistsException,
     InvalidParameterException,
 )
-from .utils import create_id
+from .utils import create_id, check_secret_hash
 
 UserStatus = {
     "FORCE_CHANGE_PASSWORD": "FORCE_CHANGE_PASSWORD",
     "CONFIRMED": "CONFIRMED",
+    "UNCONFIRMED": "UNCONFIRMED",
 }
 
 
@@ -731,6 +732,9 @@ class CognitoIdpBackend(BaseBackend):
     def respond_to_auth_challenge(
         self, session, client_id, challenge_name, challenge_responses
     ):
+        if challenge_name == "PASSWORD_VERIFIER":
+            session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")
+
         user_pool = self.sessions.get(session)
         if not user_pool:
             raise ResourceNotFoundError(session)
@@ -750,6 +754,28 @@ class CognitoIdpBackend(BaseBackend):
             user.status = UserStatus["CONFIRMED"]
             del self.sessions[session]
 
+            return self._log_user_in(user_pool, client, username)
+        elif challenge_name == "PASSWORD_VERIFIER":
+            username = challenge_responses.get("USERNAME")
+            user = user_pool.users.get(username)
+            if not user:
+                raise UserNotFoundError(username)
+
+            password_claim_signature = challenge_responses.get(
+                "PASSWORD_CLAIM_SIGNATURE"
+            )
+            if not password_claim_signature:
+                raise ResourceNotFoundError(password_claim_signature)
+            password_claim_secret_block = challenge_responses.get(
+                "PASSWORD_CLAIM_SECRET_BLOCK"
+            )
+            if not password_claim_secret_block:
+                raise ResourceNotFoundError(password_claim_secret_block)
+            timestamp = challenge_responses.get("TIMESTAMP")
+            if not timestamp:
+                raise ResourceNotFoundError(timestamp)
+
+            del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
         else:
             return {}
@@ -805,6 +831,67 @@ class CognitoIdpBackend(BaseBackend):
         resource_server = CognitoResourceServer(user_pool_id, identifier, name, scopes)
         user_pool.resource_servers[identifier] = resource_server
         return resource_server
+
+    def sign_up(self, client_id, username, password, attributes):
+        user_pool = None
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
+        if user_pool is None:
+            raise ResourceNotFoundError(client_id)
+
+        user = CognitoIdpUser(
+            user_pool_id=user_pool.id,
+            username=username,
+            password=password,
+            attributes=attributes,
+            status=UserStatus["UNCONFIRMED"],
+        )
+        user_pool.users[user.username] = user
+        return user
+
+    def initiate_auth(self, client_id, auth_flow, auth_parameters):
+        user_pool = None
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
+        if user_pool is None:
+            raise ResourceNotFoundError(client_id)
+
+        client = p.clients.get(client_id)
+
+        if auth_flow == "USER_SRP_AUTH":
+            username = auth_parameters.get("USERNAME")
+            srp_a = auth_parameters.get("SRP_A")
+            if not srp_a:
+                raise ResourceNotFoundError(srp_a)
+            if client.generate_secret:
+                secret_hash = auth_parameters.get("SECRET_HASH")
+                if not check_secret_hash(
+                    client.secret, client.id, username, secret_hash
+                ):
+                    raise NotAuthorizedError(secret_hash)
+
+            user = user_pool.users.get(username)
+            if not user:
+                raise UserNotFoundError(username)
+
+            session = str(uuid.uuid4())
+            self.sessions[session] = user_pool
+
+            return {
+                "ChallengeName": "PASSWORD_VERIFIER",
+                "Session": session,
+                "ChallengeParameters": {
+                    "SALT": str(uuid.uuid4()),
+                    "SRP_B": str(uuid.uuid4()),
+                    "USERNAME": user.id,
+                    "USER_ID_FOR_SRP": user.id,
+                    "SECRET_BLOCK": session,
+                },
+            }
+        else:
+            return None
 
 
 cognitoidp_backends = {}
