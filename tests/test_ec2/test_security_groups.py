@@ -811,7 +811,9 @@ def test_authorize_and_revoke_in_bulk():
     sg03 = ec2.create_security_group(
         GroupName="sg03", Description="Test security group sg03"
     )
-
+    sg04 = ec2.create_security_group(
+        GroupName="sg04", Description="Test security group sg04"
+    )
     ip_permissions = [
         {
             "IpProtocol": "tcp",
@@ -836,13 +838,29 @@ def test_authorize_and_revoke_in_bulk():
             "UserIdGroupPairs": [{"GroupName": "sg03", "UserId": sg03.owner_id}],
             "IpRanges": [],
         },
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27015,
+            "ToPort": 27015,
+            "UserIdGroupPairs": [{"GroupName": "sg04", "UserId": sg04.owner_id}],
+            "IpRanges": [{"CidrIp":"10.10.10.0/24","Description":"Some Description"}],
+        },
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27016,
+            "ToPort": 27016,
+            "UserIdGroupPairs": [{"GroupId": sg04.id, "UserId": sg04.owner_id}],
+            "IpRanges": [{"CidrIp":"10.10.10.0/24"}],
+        },
     ]
     expected_ip_permissions = copy.deepcopy(ip_permissions)
     expected_ip_permissions[1]["UserIdGroupPairs"][0]["GroupName"] = "sg02"
     expected_ip_permissions[2]["UserIdGroupPairs"][0]["GroupId"] = sg03.id
+    expected_ip_permissions[3]["UserIdGroupPairs"][0]["GroupId"] = sg04.id
+    expected_ip_permissions[4]["UserIdGroupPairs"][0]["GroupName"] = "sg04"
 
     sg01.authorize_ingress(IpPermissions=ip_permissions)
-    sg01.ip_permissions.should.have.length_of(3)
+    sg01.ip_permissions.should.have.length_of(5)
     for ip_permission in expected_ip_permissions:
         sg01.ip_permissions.should.contain(ip_permission)
 
@@ -852,7 +870,7 @@ def test_authorize_and_revoke_in_bulk():
         sg01.ip_permissions.shouldnt.contain(ip_permission)
 
     sg01.authorize_egress(IpPermissions=ip_permissions)
-    sg01.ip_permissions_egress.should.have.length_of(4)
+    sg01.ip_permissions_egress.should.have.length_of(6)
     for ip_permission in expected_ip_permissions:
         sg01.ip_permissions_egress.should.contain(ip_permission)
 
