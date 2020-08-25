@@ -388,16 +388,11 @@ class LambdaFunction(CloudFormationModel):
             #       also need to hook it up to the other services so it can make kws/s3 etc calls
             #  Should get invoke_id /RequestId from invocation
             env_vars = {
-                "_HANDLER": self.handler,
-                "AWS_EXECUTION_ENV": "AWS_Lambda_{}".format(self.run_time),
                 "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
                 "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
                 "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
                 "AWS_LAMBDA_FUNCTION_VERSION": self.version,
                 "AWS_REGION": self.region,
-                "AWS_ACCESS_KEY_ID": "role-account-id",
-                "AWS_SECRET_ACCESS_KEY": "role-secret-key",
-                "AWS_SESSION_TOKEN": "session-token",
             }
 
             env_vars.update(self.environment_vars)
