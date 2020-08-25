@@ -202,7 +202,7 @@ class SESBackend(BaseBackend):
                 if sns_topic is not None:
                     message = self.__generate_feedback__(msg_type)
                     if message:
-                        sns_backends[region].publish(sns_topic, message)
+                        sns_backends[region].publish(message, arn=sns_topic)
 
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:
