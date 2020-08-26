@@ -284,7 +284,7 @@ class StepFunctionBackend(BaseBackend):
         for execution in self.executions:
             if execution.name == name:
                 raise ExecutionAlreadyExists(
-                    f"Execution Already Exists: '{execution.execution_arn}'"
+                    "Execution Already Exists: '" + execution.execution_arn + "'"
                 )
 
     def _get_account_id(self):
