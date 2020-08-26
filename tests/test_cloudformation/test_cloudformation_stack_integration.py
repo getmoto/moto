@@ -1777,6 +1777,7 @@ def lambda_handler(event, context):
                     "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
                     "Runtime": "python2.7",
                     "Environment": {"Variables": {"TEST_ENV_KEY": "test-env-val"}},
+                    "ReservedConcurrentExecutions": 10,
                 },
             },
             "MyRole": {
@@ -1810,6 +1811,11 @@ def lambda_handler(event, context):
     result["Functions"][0]["Environment"].should.equal(
         {"Variables": {"TEST_ENV_KEY": "test-env-val"}}
     )
+
+    function_name = result["Functions"][0]["FunctionName"]
+    result = conn.get_function(FunctionName=function_name)
+
+    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(10)
 
 
 @mock_cloudformation

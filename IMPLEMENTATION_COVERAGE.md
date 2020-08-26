@@ -5110,7 +5110,7 @@
 - [ ] delete_alias
 - [X] delete_event_source_mapping
 - [X] delete_function
-- [ ] delete_function_concurrency
+- [X] delete_function_concurrency
 - [ ] delete_function_event_invoke_config
 - [ ] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
@@ -5118,7 +5118,7 @@
 - [ ] get_alias
 - [X] get_event_source_mapping
 - [X] get_function
-- [ ] get_function_concurrency
+- [X] get_function_concurrency
 - [ ] get_function_configuration
 - [ ] get_function_event_invoke_config
 - [ ] get_layer_version
@@ -5139,7 +5139,7 @@
 - [X] list_versions_by_function
 - [ ] publish_layer_version
 - [ ] publish_version
-- [ ] put_function_concurrency
+- [X] put_function_concurrency
 - [ ] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
 - [ ] remove_layer_version_permission

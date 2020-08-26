@@ -489,7 +489,7 @@ def test_get_function():
         {"test_variable": "test_value"}
     )
 
-    # Test get function with
+    # Test get function with qualifier
     result = conn.get_function(FunctionName="testFunction", Qualifier="$LATEST")
     result["Configuration"]["Version"].should.equal("$LATEST")
     result["Configuration"]["FunctionArn"].should.equal(
@@ -1719,6 +1719,82 @@ def test_remove_function_permission():
     policy = conn.get_policy(FunctionName="testFunction", Qualifier="2")["Policy"]
     policy = json.loads(policy)
     policy["Statement"].should.equal([])
+
+
+@mock_lambda
+def test_put_function_concurrency():
+    expected_concurrency = 15
+    function_name = "test"
+
+    conn = boto3.client("lambda", _lambda_region)
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.8",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": get_test_zip_file1()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    result = conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency
+    )
+
+    result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
+
+
+@mock_lambda
+def test_delete_function_concurrency():
+    function_name = "test"
+
+    conn = boto3.client("lambda", _lambda_region)
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.8",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": get_test_zip_file1()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=15
+    )
+
+    conn.delete_function_concurrency(FunctionName=function_name)
+    result = conn.get_function(FunctionName=function_name)
+
+    result.doesnt.have.key("Concurrency")
+
+
+@mock_lambda
+def test_get_function_concurrency():
+    expected_concurrency = 15
+    function_name = "test"
+
+    conn = boto3.client("lambda", _lambda_region)
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.8",
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": get_test_zip_file1()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=expected_concurrency
+    )
+
+    result = conn.get_function_concurrency(FunctionName=function_name)
+
+    result["ReservedConcurrentExecutions"].should.equal(expected_concurrency)
 
 
 def create_invalid_lambda(role):
