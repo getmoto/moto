@@ -54,7 +54,7 @@ Resources:
     ][0]
     user_name = provisioned_resource["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
     user["Path"].should.equal("/")
 
@@ -94,7 +94,7 @@ Resources:
     ][0]
     original_user_name = provisioned_resource["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=original_user_name)["User"]
     user["Path"].should.equal("/")
 
@@ -151,7 +151,7 @@ Resources:
     first_user_name = first_provisioned_user["PhysicalResourceId"]
     second_user_name = second_provisioned_user["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     iam_client.get_user(UserName=first_user_name)
     iam_client.get_user(UserName=second_user_name)
 
@@ -200,7 +200,7 @@ Resources:
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)
 
     cf_client.delete_stack(StackName=stack_name)
@@ -230,7 +230,7 @@ Resources:
     provisioned_resource["LogicalResourceId"].should.equal("TheUser")
     user_name = provisioned_resource["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)
 
     cf_client.delete_stack(StackName=stack_name)
@@ -276,7 +276,7 @@ Outputs:
         if output["OutputKey"] == "UserArn"
     ][0]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user_description = iam_client.get_user(UserName=output_user_name)["User"]
     output_user_arn.should.equal(user_description["Arn"])
 
@@ -286,11 +286,11 @@ Outputs:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_create_user_policy():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
     iam_client.create_user(UserName=user_name)
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     bucket = s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -336,13 +336,13 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_update_user_policy():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user_name_1 = "MyUser1"
     iam_client.create_user(UserName=user_name_1)
     user_name_2 = "MyUser2"
     iam_client.create_user(UserName=user_name_2)
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -425,11 +425,11 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_delete_user_policy_having_generated_name():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
     iam_client.create_user(UserName=user_name)
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     bucket = s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -480,11 +480,11 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_create_role_policy():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
     iam_client.create_role(RoleName=role_name, AssumeRolePolicyDocument="{}")
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -530,13 +530,13 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_update_role_policy():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     role_name_1 = "MyRole1"
     iam_client.create_role(RoleName=role_name_1, AssumeRolePolicyDocument="{}")
     role_name_2 = "MyRole2"
     iam_client.create_role(RoleName=role_name_2, AssumeRolePolicyDocument="{}")
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -619,11 +619,11 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_delete_role_policy_having_generated_name():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
     iam_client.create_role(RoleName=role_name, AssumeRolePolicyDocument="{}")
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -674,11 +674,11 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_create_group_policy():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
     iam_client.create_group(GroupName=group_name)
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -724,13 +724,13 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_update_group_policy():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     group_name_1 = "MyGroup1"
     iam_client.create_group(GroupName=group_name_1)
     group_name_2 = "MyGroup2"
     iam_client.create_group(GroupName=group_name_2)
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -813,11 +813,11 @@ Resources:
 @mock_iam
 @mock_cloudformation
 def test_iam_cloudformation_delete_group_policy_having_generated_name():
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
     iam_client.create_group(GroupName=group_name)
 
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "my-bucket"
     s3_client.create_bucket(Bucket=bucket_name)
     bucket_arn = "arn:aws:s3:::{0}".format(bucket_name)
@@ -902,7 +902,7 @@ Resources:
     ]
     len(provisioned_access_keys).should.equal(1)
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
     user["UserName"].should.equal(user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
@@ -960,6 +960,7 @@ Outputs:
         "sts",
         aws_access_key_id=output_access_key_id,
         aws_secret_access_key=output_secret_key,
+        region_name="us-east-1",
     )
     caller_identity = sts_client.get_caller_identity()
     caller_identity["Arn"].split("/")[1].should.equal(user_name)
@@ -1003,7 +1004,7 @@ def test_iam_cloudformation_delete_users_access_key():
     ][0]
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
 
@@ -1056,7 +1057,7 @@ def test_iam_cloudformation_delete_users_access_key():
     ]
     len(provisioned_access_keys).should.equal(1)
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
     user["UserName"].should.equal(user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
@@ -1109,7 +1110,7 @@ Resources:
     ][0]
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
@@ -1166,7 +1167,7 @@ Resources:
     ][0]
     access_key_id = provisioned_access_key["PhysicalResourceId"]
 
-    iam_client = boto3.client("iam")
+    iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
     access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
