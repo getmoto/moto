@@ -1866,7 +1866,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = [SecurityRule("-1", None, None, ["0.0.0.0/0"], [])]
+        self.egress_rules = [
+            SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], [])
+        ]
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
@@ -2266,13 +2268,16 @@ class SecurityGroupBackend(object):
             if source_group:
                 source_groups.append(source_group)
 
-        for ip in ip_ranges:
-            ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
+        # I don't believe this is required after changing the default egress rule
+        # to be {'CidrIp': '0.0.0.0/0'} instead of just '0.0.0.0/0'
+        # Not sure why this would return only the IP if it was 0.0.0.0/0 instead of
+        # the ip_range?
+        # for ip in ip_ranges:
+        #     ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
-
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
             return security_rule
