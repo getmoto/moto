@@ -165,6 +165,7 @@ class LambdaFunction(CloudFormationModel):
         self.docker_client = docker.from_env()
         self.policy = None
         self.state = "Active"
+        self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
         # Unfortunately mocking replaces this method w/o fallback enabled, so we
         # need to replace it if we detect it's been mocked
@@ -285,7 +286,7 @@ class LambdaFunction(CloudFormationModel):
         return config
 
     def get_code(self):
-        return {
+        code = {
             "Code": {
                 "Location": "s3://awslambda-{0}-tasks.s3-{0}.amazonaws.com/{1}".format(
                     self.region, self.code["S3Key"]
@@ -294,6 +295,15 @@ class LambdaFunction(CloudFormationModel):
             },
             "Configuration": self.get_configuration(),
         }
+        if self.reserved_concurrency:
+            code.update(
+                {
+                    "Concurrency": {
+                        "ReservedConcurrentExecutions": self.reserved_concurrency
+                    }
+                }
+            )
+        return code
 
     def update_configuration(self, config_updates):
         for key, value in config_updates.items():
@@ -511,6 +521,15 @@ class LambdaFunction(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
+        optional_properties = (
+            "Description",
+            "MemorySize",
+            "Publish",
+            "Timeout",
+            "VpcConfig",
+            "Environment",
+            "ReservedConcurrentExecutions",
+        )
 
         # required
         spec = {
@@ -520,9 +539,7 @@ class LambdaFunction(CloudFormationModel):
             "Role": properties["Role"],
             "Runtime": properties["Runtime"],
         }
-        optional_properties = (
-            "Description MemorySize Publish Timeout VpcConfig Environment".split()
-        )
+
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
         # default logic
         for prop in optional_properties:
@@ -1156,6 +1173,20 @@ class LambdaBackend(BaseBackend):
             return payload
         else:
             return None
+
+    def put_function_concurrency(self, function_name, reserved_concurrency):
+        fn = self.get_function(function_name)
+        fn.reserved_concurrency = reserved_concurrency
+        return fn.reserved_concurrency
+
+    def delete_function_concurrency(self, function_name):
+        fn = self.get_function(function_name)
+        fn.reserved_concurrency = None
+        return fn.reserved_concurrency
+
+    def get_function_concurrency(self, function_name):
+        fn = self.get_function(function_name)
+        return fn.reserved_concurrency
 
 
 def do_validate_s3():

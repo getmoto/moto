@@ -85,6 +85,35 @@ def test_send_email():
 
 
 @mock_ses
+def test_send_email_when_verify_source():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    kwargs = dict(
+        Destination={"ToAddresses": ["test_to@example.com"],},
+        Message={
+            "Subject": {"Data": "test subject"},
+            "Body": {"Text": {"Data": "test body"}},
+        },
+    )
+
+    conn.send_email.when.called_with(
+        Source="verify_email_address@example.com", **kwargs
+    ).should.throw(ClientError)
+    conn.verify_email_address(EmailAddress="verify_email_address@example.com")
+    conn.send_email(Source="verify_email_address@example.com", **kwargs)
+
+    conn.send_email.when.called_with(
+        Source="verify_email_identity@example.com", **kwargs
+    ).should.throw(ClientError)
+    conn.verify_email_identity(EmailAddress="verify_email_identity@example.com")
+    conn.send_email(Source="verify_email_identity@example.com", **kwargs)
+
+    send_quota = conn.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    sent_count.should.equal(2)
+
+
+@mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
