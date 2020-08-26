@@ -103,6 +103,8 @@ class SESBackend(BaseBackend):
         _, address = parseaddr(source)
         if address in self.addresses:
             return True
+        if address in self.email_addresses:
+            return True
         user, host = address.split("@", 1)
         return host in self.domains
 
@@ -202,7 +204,7 @@ class SESBackend(BaseBackend):
                 if sns_topic is not None:
                     message = self.__generate_feedback__(msg_type)
                     if message:
-                        sns_backends[region].publish(sns_topic, message)
+                        sns_backends[region].publish(message, arn=sns_topic)
 
     def send_raw_email(self, source, destinations, raw_data, region):
         if source is not None:

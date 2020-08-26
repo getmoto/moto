@@ -35,6 +35,7 @@ from moto.core import ACCOUNT_ID as DEFAULT_ACCOUNT_ID
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
+MAXIMUM_SMS_MESSAGE_BYTES = 1600  # Amazon limit for a single publish SMS action
 
 
 class Topic(CloudFormationModel):
@@ -365,6 +366,7 @@ class SNSBackend(BaseBackend):
         self.platform_endpoints = {}
         self.region_name = region_name
         self.sms_attributes = {}
+        self.sms_messages = OrderedDict()
         self.opt_out_numbers = [
             "+447420500600",
             "+447420505401",
@@ -432,12 +434,6 @@ class SNSBackend(BaseBackend):
         except KeyError:
             raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
 
-    def get_topic_from_phone_number(self, number):
-        for subscription in self.subscriptions.values():
-            if subscription.protocol == "sms" and subscription.endpoint == number:
-                return subscription.topic.arn
-        raise SNSNotFoundError("Could not find valid subscription")
-
     def set_topic_attribute(self, topic_arn, attribute_name, attribute_value):
         topic = self.get_topic(topic_arn)
         setattr(topic, attribute_name, attribute_value)
@@ -501,10 +497,26 @@ class SNSBackend(BaseBackend):
         else:
             return self._get_values_nexttoken(self.subscriptions, next_token)
 
-    def publish(self, arn, message, subject=None, message_attributes=None):
+    def publish(
+        self,
+        message,
+        arn=None,
+        phone_number=None,
+        subject=None,
+        message_attributes=None,
+    ):
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/spulec/moto/issues/1503
             raise ValueError("Subject must be less than 100 characters")
+
+        if phone_number:
+            # This is only an approximation. In fact, we should try to use GSM-7 or UCS-2 encoding to count used bytes
+            if len(message) > MAXIMUM_SMS_MESSAGE_BYTES:
+                raise ValueError("SMS message must be less than 1600 bytes")
+
+            message_id = six.text_type(uuid.uuid4())
+            self.sms_messages[message_id] = (phone_number, message)
+            return message_id
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             raise InvalidParameterValue(
