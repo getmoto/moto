@@ -421,7 +421,7 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
             stateMachineArn=sm["stateMachineArn"], name="execution_name"
         )
     exc.exception.response["Error"]["Message"].should.equal(
-        "Execution Already Exists: " f"'{execution_one['executionArn']}'"
+        "Execution Already Exists: '" + execution_one['executionArn'] + "'"
     )
 
 
