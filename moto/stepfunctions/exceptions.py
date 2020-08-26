@@ -18,6 +18,11 @@ class AWSError(Exception):
         )
 
 
+class ExecutionAlreadyExists(AWSError):
+    TYPE = "ExecutionAlreadyExists"
+    STATUS = 400
+
+
 class ExecutionDoesNotExist(AWSError):
     TYPE = "ExecutionDoesNotExist"
     STATUS = 400
