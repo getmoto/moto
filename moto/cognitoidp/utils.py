@@ -14,8 +14,8 @@ def create_id():
 
 
 def check_secret_hash(app_client_secret, app_client_id, username, secret_hash):
-    key = bytes(app_client_secret, "latin-1")
-    msg = bytes(username + app_client_id, "latin-1")
+    key = bytes(str(app_client_secret).encode("latin-1"))
+    msg = bytes(str(username + app_client_id).encode("latin-1"))
     new_digest = hmac.new(key, msg, hashlib.sha256).digest()
     SECRET_HASH = base64.b64encode(new_digest).decode()
     return SECRET_HASH == secret_hash

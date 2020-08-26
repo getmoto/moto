@@ -1273,8 +1273,8 @@ def user_authentication_flow(conn):
     )["UserPoolClient"]["ClientSecret"]
 
     # generating secret hash
-    key = bytes(client_secret, "latin-1")
-    msg = bytes(username + client_id, "latin-1")
+    key = bytes(str(client_secret).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
     new_digest = hmac.new(key, msg, hashlib.sha256).digest()
     secret_hash = base64.b64encode(new_digest).decode()
 
@@ -1315,7 +1315,7 @@ def user_authentication_flow(conn):
 
 @mock_cognitoidp
 def test_user_authentication_flow():
-    conn = boto3.client("cognito-idp", "eu-west-1")
+    conn = boto3.client("cognito-idp", "us-west-2")
 
     user_authentication_flow(conn)
 
