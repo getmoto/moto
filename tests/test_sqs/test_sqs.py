@@ -198,7 +198,8 @@ def test_get_queue_url_errors():
     client = boto3.client("sqs", region_name="us-east-1")
 
     client.get_queue_url.when.called_with(QueueName="non-existing-queue").should.throw(
-        ClientError, "The specified queue non-existing-queue does not exist for this wsdl version."
+        ClientError,
+        "The specified queue non-existing-queue does not exist for this wsdl version.",
     )
 
 
@@ -211,7 +212,8 @@ def test_get_nonexistent_queue():
     ex.operation_name.should.equal("GetQueueUrl")
     ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
     ex.response["Error"]["Message"].should.equal(
-        "The specified queue non-existing-queue does not exist for this wsdl version.")
+        "The specified queue non-existing-queue does not exist for this wsdl version."
+    )
 
     with assert_raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
