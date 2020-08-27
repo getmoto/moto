@@ -722,8 +722,6 @@ class ConfigQueryModel(object):
         :param backend_region: The region for the backend to pull results from. Set to `None` if this is an aggregated query.
         :param resource_region: The region for where the resources reside to pull results from. Set to `None` if this is a
                                 non-aggregated query.
-        :param aggregator: If an aggregated query, this will be the `ConfigAggregator instance from the backend. Set to `None`
-                           if a non-aggregated query. Useful if you need special logic based off the aggregator (ie IAM)
         :return: This should return a list of Dicts that have the following fields:
             [
                 {
