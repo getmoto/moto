@@ -298,10 +298,9 @@ class FakeZone(CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-        name = properties["Name"]
-
-        hosted_zone = route53_backend.create_hosted_zone(name, private_zone=False)
+        hosted_zone = route53_backend.create_hosted_zone(
+            resource_name, private_zone=False
+        )
         return hosted_zone
 
 

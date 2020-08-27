@@ -10,7 +10,6 @@ from jinja2 import Template
 from re import compile as re_compile
 from moto.compat import OrderedDict
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
-from moto.core.utils import get_random_hex
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from .exceptions import (
@@ -371,9 +370,6 @@ class Database(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get(cls.cloudformation_name_type())
-        if not db_instance_identifier:
-            db_instance_identifier = resource_name.lower() + get_random_hex(12)
         db_security_groups = properties.get("DBSecurityGroups")
         if not db_security_groups:
             db_security_groups = []
@@ -386,7 +382,7 @@ class Database(CloudFormationModel):
             "availability_zone": properties.get("AvailabilityZone"),
             "backup_retention_period": properties.get("BackupRetentionPeriod"),
             "db_instance_class": properties.get("DBInstanceClass"),
-            "db_instance_identifier": db_instance_identifier,
+            "db_instance_identifier": resource_name,
             "db_name": properties.get("DBName"),
             "db_subnet_group_name": db_subnet_group_name,
             "engine": properties.get("Engine"),
@@ -650,7 +646,7 @@ class SecurityGroup(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        group_name = resource_name.lower() + get_random_hex(12)
+        group_name = resource_name.lower()
         description = properties["GroupDescription"]
         security_group_ingress_rules = properties.get("DBSecurityGroupIngress", [])
         tags = properties.get("Tags")
@@ -759,9 +755,6 @@ class SubnetGroup(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        subnet_name = properties.get(cls.cloudformation_name_type())
-        if not subnet_name:
-            subnet_name = resource_name.lower() + get_random_hex(12)
         description = properties["DBSubnetGroupDescription"]
         subnet_ids = properties["SubnetIds"]
         tags = properties.get("Tags")
@@ -770,7 +763,7 @@ class SubnetGroup(CloudFormationModel):
         subnets = [ec2_backend.get_subnet(subnet_id) for subnet_id in subnet_ids]
         rds2_backend = rds2_backends[region_name]
         subnet_group = rds2_backend.create_subnet_group(
-            subnet_name, description, subnets, tags
+            resource_name, description, subnets, tags
         )
         return subnet_group
 

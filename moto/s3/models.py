@@ -1086,7 +1086,7 @@ class FakeBucket(CloudFormationModel):
     ):
         bucket = s3_backend.create_bucket(resource_name, region_name)
 
-        properties = cloudformation_json["Properties"]
+        properties = cloudformation_json.get("Properties", {})
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
@@ -1129,9 +1129,7 @@ class FakeBucket(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-        bucket_name = properties[cls.cloudformation_name_type()]
-        s3_backend.delete_bucket(bucket_name)
+        s3_backend.delete_bucket(resource_name)
 
     def to_config_dict(self):
         """Return the AWS Config JSON format of this S3 bucket.
