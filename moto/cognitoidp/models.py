@@ -21,6 +21,7 @@ from .exceptions import (
     ResourceNotFoundError,
     UserNotFoundError,
     UsernameExistsException,
+    UserNotConfirmedException,
     InvalidParameterException,
 )
 from .utils import create_id, check_secret_hash
@@ -301,6 +302,8 @@ class CognitoIdpUser(BaseModel):
         self.attributes = attributes
         self.create_date = datetime.datetime.utcnow()
         self.last_modified_date = datetime.datetime.utcnow()
+        self.sms_mfa_enabled = False
+        self.software_token_mfa_enabled = False
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
@@ -317,6 +320,11 @@ class CognitoIdpUser(BaseModel):
 
     # list_users brings back "Attributes" while admin_get_user brings back "UserAttributes".
     def to_json(self, extended=False, attributes_key="Attributes"):
+        user_mfa_setting_list = []
+        if self.software_token_mfa_enabled:
+            user_mfa_setting_list.append("SOFTWARE_TOKEN_MFA")
+        elif self.sms_mfa_enabled:
+            user_mfa_setting_list.append("SMS_MFA")
         user_json = self._base_json()
         if extended:
             user_json.update(
@@ -324,6 +332,7 @@ class CognitoIdpUser(BaseModel):
                     "Enabled": self.enabled,
                     attributes_key: self.attributes,
                     "MFAOptions": [],
+                    "UserMFASettingList": user_mfa_setting_list,
                 }
             )
 
@@ -775,8 +784,42 @@ class CognitoIdpBackend(BaseBackend):
             if not timestamp:
                 raise ResourceNotFoundError(timestamp)
 
+            if user.software_token_mfa_enabled:
+                return {
+                    "ChallengeName": "SOFTWARE_TOKEN_MFA",
+                    "Session": session,
+                    "ChallengeParameters": {},
+                }
+
+            if user.sms_mfa_enabled:
+                return {
+                    "ChallengeName": "SMS_MFA",
+                    "Session": session,
+                    "ChallengeParameters": {},
+                }
+
             del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
+        elif challenge_name == "SOFTWARE_TOKEN_MFA":
+            username = challenge_responses.get("USERNAME")
+            user = user_pool.users.get(username)
+            if not user:
+                raise UserNotFoundError(username)
+
+            software_token_mfa_code = challenge_responses.get("SOFTWARE_TOKEN_MFA_CODE")
+            if not software_token_mfa_code:
+                raise ResourceNotFoundError(software_token_mfa_code)
+
+            if client.generate_secret:
+                secret_hash = challenge_responses.get("SECRET_HASH")
+                if not check_secret_hash(
+                    client.secret, client.id, username, secret_hash
+                ):
+                    raise NotAuthorizedError(secret_hash)
+
+            del self.sessions[session]
+            return self._log_user_in(user_pool, client, username)
+
         else:
             return {}
 
@@ -850,6 +893,21 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.users[user.username] = user
         return user
 
+    def confirm_sign_up(self, client_id, username, confirmation_code):
+        user_pool = None
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
+        if user_pool is None:
+            raise ResourceNotFoundError(client_id)
+
+        if username not in user_pool.users:
+            raise UserNotFoundError(username)
+
+        user = user_pool.users[username]
+        user.status = UserStatus["CONFIRMED"]
+        return ""
+
     def initiate_auth(self, client_id, auth_flow, auth_parameters):
         user_pool = None
         for p in self.user_pools.values():
@@ -876,6 +934,9 @@ class CognitoIdpBackend(BaseBackend):
             if not user:
                 raise UserNotFoundError(username)
 
+            if user.status == UserStatus["UNCONFIRMED"]:
+                raise UserNotConfirmedException("User is not confirmed.")
+
             session = str(uuid.uuid4())
             self.sessions[session] = user_pool
 
@@ -890,8 +951,88 @@ class CognitoIdpBackend(BaseBackend):
                     "SECRET_BLOCK": session,
                 },
             }
+        elif auth_flow == "REFRESH_TOKEN":
+            refresh_token = auth_parameters.get("REFRESH_TOKEN")
+            if not refresh_token:
+                raise ResourceNotFoundError(refresh_token)
+
+            client_id, username = user_pool.refresh_tokens[refresh_token]
+            if not username:
+                raise ResourceNotFoundError(username)
+
+            if client.generate_secret:
+                secret_hash = auth_parameters.get("SECRET_HASH")
+                if not check_secret_hash(
+                    client.secret, client.id, username, secret_hash
+                ):
+                    raise NotAuthorizedError(secret_hash)
+
+            (
+                id_token,
+                access_token,
+                expires_in,
+            ) = user_pool.create_tokens_from_refresh_token(refresh_token)
+
+            return {
+                "AuthenticationResult": {
+                    "IdToken": id_token,
+                    "AccessToken": access_token,
+                    "ExpiresIn": expires_in,
+                }
+            }
         else:
             return None
+
+    def associate_software_token(self, access_token):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = user_pool.users.get(username)
+                if not user:
+                    raise UserNotFoundError(username)
+
+                return {"SecretCode": str(uuid.uuid4())}
+        else:
+            raise NotAuthorizedError(access_token)
+
+    def verify_software_token(self, access_token, user_code):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = user_pool.users.get(username)
+                if not user:
+                    raise UserNotFoundError(username)
+
+                user.token_verified = True
+
+                return {"Status": "SUCCESS"}
+        else:
+            raise NotAuthorizedError(access_token)
+
+    def set_user_mfa_preference(
+        self, access_token, software_token_mfa_settings, sms_mfa_settings
+    ):
+        for user_pool in self.user_pools.values():
+            if access_token in user_pool.access_tokens:
+                _, username = user_pool.access_tokens[access_token]
+                user = user_pool.users.get(username)
+                if not user:
+                    raise UserNotFoundError(username)
+
+                if software_token_mfa_settings["Enabled"]:
+                    if user.token_verified:
+                        user.software_token_mfa_enabled = True
+                    else:
+                        raise InvalidParameterException(
+                            "User has not verified software token mfa"
+                        )
+
+                elif sms_mfa_settings["Enabled"]:
+                    user.sms_mfa_enabled = True
+
+                return None
+        else:
+            raise NotAuthorizedError(access_token)
 
 
 cognitoidp_backends = {}
