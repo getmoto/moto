@@ -250,7 +250,10 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = (
                        <ipRanges>
                           {% for ip_range in rule.ip_ranges %}
                               <item>
-                                 <cidrIp>{{ ip_range }}</cidrIp>
+                                 <cidrIp>{{ ip_range['CidrIp'] }}</cidrIp>
+                                    {% if ip_range['Description'] %}
+                                        <description>{{ ip_range['Description'] }}</description>
+                                    {% endif %}
                               </item>
                           {% endfor %}
                        </ipRanges>

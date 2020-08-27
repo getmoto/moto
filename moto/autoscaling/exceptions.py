@@ -21,3 +21,8 @@ class InvalidInstanceError(AutoscalingClientError):
         super(InvalidInstanceError, self).__init__(
             "ValidationError", "Instance [{0}] is invalid.".format(instance_id)
         )
+
+
+class ValidationError(AutoscalingClientError):
+    def __init__(self, message):
+        super(ValidationError, self).__init__("ValidationError", message)
