@@ -4580,12 +4580,13 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
             return self.eni.private_ip_address
         elif filter_name == "public-ip":
             return self.public_ip
+        elif filter_name == "network-interface-owner-id":
+            # TODO: implement network-interface-owner-id
+            raise FilterNotImplementedError(filter_name, "DescribeAddresses")
         else:
             return super(ElasticAddress, self).get_filter_value(
                 filter_name, "DescribeAddresses"
             )
-            # TODO: implement network-interface-owner-id
-            raise FilterNotImplementedError(filter_name, "DescribeAddresses")
 
 
 class ElasticAddressBackend(object):
