@@ -830,7 +830,7 @@ class APIGatewayBackend(BaseBackend):
                                 response_code,
                                 response_code,
                             )
-            
+
         except (
             ParameterDuplicateError,
             ExtraParametersError,
