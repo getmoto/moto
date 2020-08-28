@@ -68,7 +68,7 @@ def test_put_yaml_rest_api():
     api_id = response["id"]
 
     path = os.path.dirname(os.path.abspath(__file__))
-    with open(path + "resources/test_api.yaml", "rb") as api_yaml:
+    with open(path + "/resources/test_api.yaml", "rb") as api_yaml:
         response = client.put_rest_api(
             restApiId=api_id,
             mode="overwrite",
