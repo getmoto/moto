@@ -4,7 +4,7 @@ import json
 
 from moto.core.responses import BaseResponse
 from .models import apigateway_backends
-from utils import deserialise_body
+from .utils import deserialize_body
 from .exceptions import (
     ApiKeyNotFoundException,
     UsagePlanNotFoundException,
