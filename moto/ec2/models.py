@@ -4493,13 +4493,15 @@ class SpotFleetBackend(object):
         return True
 
 
-class ElasticAddress(CloudFormationModel):
+class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, domain, address=None):
+        self.ec2_backend = ec2_backends["eu-west-1"]
         if address:
             self.public_ip = address
         else:
             self.public_ip = random_ip()
         self.allocation_id = random_eip_allocation_id() if domain == "vpc" else None
+        self.id = self.allocation_id
         self.domain = domain
         self.instance = None
         self.eni = None
@@ -4561,7 +4563,12 @@ class ElasticAddress(CloudFormationModel):
             return self.eni.private_ip_address
         elif filter_name == "public-ip":
             return self.public_ip
+        # elif filter_name.startswith("tag:"):
+        #     return ""
         else:
+            return super(ElasticAddress, self).get_filter_value(
+                filter_name, "DescribeAddresses"
+            )
             # TODO: implement network-interface-owner-id
             raise FilterNotImplementedError(filter_name, "DescribeAddresses")
 
