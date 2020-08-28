@@ -14,11 +14,16 @@ def create_id():
 
 def deserialize_body(body, content_type=None):
     if content_type and content_type == "application/json":
-        return json.loads(body)
+        api_doc = json.loads(body)
     elif content_type and content_type == "application/yaml":
-        return yaml.loads(body)
+        api_doc = yaml.safe_load(body)
     else:
         try:
-            return json.loads(body)
+            api_doc = json.loads(body)
         except json.JSONDecodeError:
-            return yaml.load(body)
+            api_doc = yaml.safe_load(body)
+
+    if "openapi" in api_doc or "swagger" in api_doc:
+        return api_doc
+
+    return None

@@ -57,9 +57,13 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps({"item": [api.to_dict() for api in apis]})
         elif self.method == "POST":
             content_type = self.headers.get("Content-Type", None)
-            api_doc = deserialise_body(self.body, content_type)
-
-            name = api_doc["info"]["title"]
+            api_doc = deserialize_body(self.body, content_type)
+            if api_doc:
+                name = api_doc["info"]["title"]
+                description = None
+            else:
+                name = self._get_param("name")
+                description = self._get_param("description")
 
             api_key_source = self._get_param("apiKeySource")
             endpoint_configuration = self._get_param("endpointConfiguration")
@@ -96,14 +100,16 @@ class APIGatewayResponse(BaseResponse):
 
             rest_api = self.backend.create_rest_api(
                 name,
-                None,
+                description,
                 api_key_source=api_key_source,
                 endpoint_configuration=endpoint_configuration,
                 tags=tags,
                 policy=policy,
             )
 
-            rest_api.put_rest_api(api_doc)
+            if api_doc:
+                rest_api.put_rest_api(api_doc)
+
             return 200, {}, json.dumps(rest_api.to_dict())
 
     def restapis_individual(self, request, full_url, headers):
@@ -123,7 +129,7 @@ class APIGatewayResponse(BaseResponse):
             )
 
             content_type = self.headers.get("Content-Type", None)
-            api_doc = deserialise_body(self.body, content_type)
+            api_doc = deserialize_body(self.body, content_type)
 
             rest_api = self.backend.put_rest_api(api_doc, mode, fail_on_warnings)
             return 200, {}, json.dumps(rest_api.to_dict())
