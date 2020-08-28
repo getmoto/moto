@@ -4511,9 +4511,8 @@ class SpotFleetBackend(object):
 
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
-    def __init__(self, domain, address=None):
-        # TODO: get region right
-        self.ec2_backend = ec2_backends["eu-west-1"]
+    def __init__(self, ec2_backend, domain, address=None):
+        self.ec2_backend = ec2_backend
         if address:
             self.public_ip = address
         else:
@@ -4599,9 +4598,9 @@ class ElasticAddressBackend(object):
         if domain not in ["standard", "vpc"]:
             raise InvalidDomainError(domain)
         if address:
-            address = ElasticAddress(domain, address)
+            address = ElasticAddress(self, domain=domain, address=address)
         else:
-            address = ElasticAddress(domain)
+            address = ElasticAddress(self, domain=domain)
         self.addresses.append(address)
         return address
 
