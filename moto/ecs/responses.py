@@ -89,7 +89,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         data = self.ecs_backend.describe_task_definition(task_definition_str)
         resp = {"taskDefinition": data.response_object, "failures": []}
         if "TAGS" in self._get_param("include", []):
-            resp["tags"] = self.ecs_backend.task_definitions[data.family][data.revision].tags
+            resp["tags"] = self.ecs_backend.list_tags_for_resource(data.arn)
         return json.dumps(resp)
 
     def deregister_task_definition(self):
@@ -194,13 +194,16 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster")
         service_names = self._get_param("services")
         services = self.ecs_backend.describe_services(cluster_str, service_names)
-
-        return json.dumps(
-            {
-                "services": [service.response_object for service in services],
-                "failures": [],
-            }
-        )
+        resp = {
+            "services": [service.response_object for service in services],
+            "failures": [],
+        }
+        if "TAGS" in self._get_param("include", []):
+            for i, service in enumerate(services):
+                resp["services"][i]["tags"] = self.ecs_backend.list_tags_for_resource(
+                    service.arn
+                )
+        return json.dumps(resp)
 
     def update_service(self):
         cluster_str = self._get_param("cluster")
