@@ -781,8 +781,8 @@ class APIGatewayBackend(BaseBackend):
         try:
             if fail_on_warnings:
                 validate_spec(api_doc)
-            for (path, resource_doc) in (
-                api_doc["paths"].items().sort(key=lambda path, value: path)
+            for (path, resource_doc) in sorted(
+                api_doc["paths"].items(), key=lambda x: x[0]
             ):
                 parent_path_part = path[0 : path.rfind("/")] or "/"
                 parent_resource_id = self.get_resource_for_path(parent_path_part)
