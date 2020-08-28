@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import json
-import pathlib
+import os.path
 
 import boto3
 from freezegun import freeze_time
@@ -46,8 +46,8 @@ def test_put_json_rest_api():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
-    path = pathlib.Path(__file__).parent
-    with open(path / "resources" / "test_api.json", "rb") as api_json:
+    path = os.path.dirname(os.path.abspath(__file__))
+    with open(path + "/resources/test_api.json", "rb") as api_json:
         response = client.put_rest_api(
             restApiId=api_id,
             mode="overwrite",
@@ -67,8 +67,8 @@ def test_put_yaml_rest_api():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
-    path = pathlib.Path(__file__).parent
-    with open(path / "resources" / "test_api.yaml", "rb") as api_yaml:
+    path = os.path.dirname(os.path.abspath(__file__))
+    with open(path + "resources/test_api.yaml", "rb") as api_yaml:
         response = client.put_rest_api(
             restApiId=api_id,
             mode="overwrite",
