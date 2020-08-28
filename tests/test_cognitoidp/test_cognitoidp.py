@@ -1643,7 +1643,6 @@ def test_initiate_auth_USER_SRP_AUTH():
 def test_initiate_auth_REFRESH_TOKEN():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
-
     result = conn.initiate_auth(
         ClientId=result["client_id"],
         AuthFlow="REFRESH_TOKEN",
