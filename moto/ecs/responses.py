@@ -60,6 +60,8 @@ class EC2ContainerServiceResponse(BaseResponse):
     def register_task_definition(self):
         family = self._get_param("family")
         container_definitions = self._get_param("containerDefinitions")
+        cpu = self._get_param("cpu")
+        memory = self._get_param("memory")
         volumes = self._get_param("volumes")
         tags = self._get_param("tags")
         network_mode = self._get_param("networkMode")
@@ -67,6 +69,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition = self.ecs_backend.register_task_definition(
             family,
             container_definitions,
+            cpu=cpu,
+            memory=memory,
             volumes=volumes,
             network_mode=network_mode,
             tags=tags,

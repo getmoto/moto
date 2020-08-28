@@ -120,6 +120,8 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         revision,
         container_definitions,
         region_name,
+        cpu=None,
+        memory=None,
         network_mode=None,
         volumes=None,
         tags=None,
@@ -131,6 +133,8 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             region_name, family, revision
         )
         self.container_definitions = container_definitions
+        self.cpu = cpu
+        self.memory = memory
         self.tags = tags if tags is not None else []
         if volumes is None:
             self.volumes = []
@@ -667,6 +671,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         self,
         family,
         container_definitions,
+        cpu=None,
+        memory=None,
         volumes=None,
         network_mode=None,
         tags=None,
@@ -683,6 +689,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             revision,
             container_definitions,
             self.region_name,
+            cpu=cpu,
+            memory=memory,
             volumes=volumes,
             network_mode=network_mode,
             tags=tags,
@@ -777,16 +785,21 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     @staticmethod
     def _calculate_task_resource_requirements(task_definition):
-        resource_requirements = {"CPU": 0, "MEMORY": 0, "PORTS": [], "PORTS_UDP": []}
+        resource_requirements = {
+            "CPU": int(task_definition.cpu or "0"),
+            "MEMORY": int(task_definition.memory or "0"),
+            "PORTS": [],
+            "PORTS_UDP": [],
+        }
         for container_definition in task_definition.container_definitions:
             # cloudformation uses capitalized properties, while boto uses all lower case
 
             # CPU is optional
             resource_requirements["CPU"] += container_definition.get(
-                "cpu", container_definition.get("Cpu", 0)
+                "cpu", container_definition.get("Cpu", 0) or 0
             )
 
-            # either memory or memory reservation must be provided
+            # either memory or memory reservation must be provided if not on the task level
             if (
                 "Memory" in container_definition
                 or "MemoryReservation" in container_definition
@@ -795,9 +808,13 @@ class EC2ContainerServiceBackend(BaseBackend):
                     "Memory", container_definition.get("MemoryReservation")
                 )
             else:
-                resource_requirements["MEMORY"] += container_definition.get(
-                    "memory", container_definition.get("memoryReservation")
-                )
+                try:
+                    resource_requirements["MEMORY"] += container_definition.get(
+                        "memory", container_definition["memoryReservation"]
+                    )
+                except KeyError:
+                    if not task_definition.memory:
+                        raise
 
             port_mapping_key = (
                 "PortMappings"
