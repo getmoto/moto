@@ -461,7 +461,7 @@ class Table(CloudFormationModel):
             params["streams"] = properties["StreamSpecification"]
 
         table = dynamodb_backends[region_name].create_table(
-            name=properties["TableName"], **params
+            name=resource_name, **params
         )
         return table
 
@@ -469,11 +469,7 @@ class Table(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-
-        table = dynamodb_backends[region_name].delete_table(
-            name=properties["TableName"]
-        )
+        table = dynamodb_backends[region_name].delete_table(name=resource_name)
         return table
 
     def _generate_arn(self, name):
