@@ -134,7 +134,9 @@ class APIGatewayResponse(BaseResponse):
             content_type = self.headers.get("Content-Type", None)
             api_doc = deserialize_body(self.body, content_type)
 
-            rest_api = self.backend.put_rest_api(api_doc, mode, fail_on_warnings)
+            rest_api = self.backend.put_rest_api(
+                function_id, api_doc, mode, fail_on_warnings
+            )
             return 200, {}, json.dumps(rest_api.to_dict())
 
     def resources(self, request, full_url, headers):
