@@ -4512,6 +4512,7 @@ class SpotFleetBackend(object):
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
     def __init__(self, domain, address=None):
+        # TODO: get region right
         self.ec2_backend = ec2_backends["eu-west-1"]
         if address:
             self.public_ip = address
