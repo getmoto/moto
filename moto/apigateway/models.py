@@ -769,8 +769,8 @@ class APIGatewayBackend(BaseBackend):
         if mode not in ["merge", "overwrite"]:
             raise InvalidOpenApiModeException()
 
-        if api_doc["swagger"] is not None or (
-            api_doc["openapi"] is not None and api_doc["openapi"][0] != "3"
+        if api_doc.get("swagger") is not None or (
+            api_doc.get("openapi") is not None and api_doc["openapi"][0] != "3"
         ):
             raise InvalidOpenApiDocVersionException()
 
@@ -793,11 +793,11 @@ class APIGatewayBackend(BaseBackend):
                 )
 
                 for (method_type, method_doc) in resource_doc.items():
-                    if method_doc["x-amazon-apigateway-integration"] is None:
+                    if method_doc.get("x-amazon-apigateway-integration") is None:
                         self.create_method(function_id, resource.id, method_type, None)
-                        for (response_code, response_doc) in method_doc[
-                            "responses"
-                        ].items():
+                        for (response_code, response_doc) in method_doc.get(
+                            "responses", {}
+                        ).items():
                             self.create_method_response(
                                 function_id, resource.id, method_type, response_code
                             )
