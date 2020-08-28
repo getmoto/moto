@@ -785,7 +785,9 @@ class APIGatewayBackend(BaseBackend):
                 api_doc["paths"].items(), key=lambda x: x[0]
             ):
                 parent_path_part = path[0 : path.rfind("/")] or "/"
-                parent_resource_id = self.get_resource_for_path(parent_path_part)
+                parent_resource_id = self.apis[function_id].get_resource_for_path(
+                    parent_path_part
+                )
                 resource = self.create_resource(
                     function_id=function_id,
                     parent_resource_id=parent_resource_id,
