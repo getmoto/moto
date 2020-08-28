@@ -38,12 +38,15 @@ class APIGatewayResponse(BaseResponse):
         return json.loads(self.body).get(key) if self.body else None
 
     def _get_param_with_default_value(self, key, default):
-        jsonbody = json.loads(self.body)
+        try:
+            jsonbody = json.loads(self.body)
 
-        if key in jsonbody:
-            return jsonbody.get(key)
-        else:
-            return default
+            if key in jsonbody:
+                return jsonbody.get(key)
+        except json.JSONDecodeError:
+            pass
+
+        return default
 
     @property
     def backend(self):
