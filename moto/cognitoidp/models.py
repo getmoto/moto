@@ -304,6 +304,7 @@ class CognitoIdpUser(BaseModel):
         self.last_modified_date = datetime.datetime.utcnow()
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
+        self.token_verified = False
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
