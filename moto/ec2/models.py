@@ -4580,8 +4580,6 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
             return self.eni.private_ip_address
         elif filter_name == "public-ip":
             return self.public_ip
-        # elif filter_name.startswith("tag:"):
-        #     return ""
         else:
             return super(ElasticAddress, self).get_filter_value(
                 filter_name, "DescribeAddresses"
