@@ -86,10 +86,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def describe_task_definition(self):
         task_definition_str = self._get_param("taskDefinition")
-        data, tags = self.ecs_backend.describe_task_definition(task_definition_str)
+        data = self.ecs_backend.describe_task_definition(task_definition_str)
         resp = {"taskDefinition": data.response_object, "failures": []}
         if "TAGS" in self._get_param("include", []):
-            resp["tags"] = tags
+            resp["tags"] = self.ecs_backend.task_definitions[data.family][data.revision].tags
         return json.dumps(resp)
 
     def deregister_task_definition(self):

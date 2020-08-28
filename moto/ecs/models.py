@@ -624,10 +624,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             family in self.task_definitions
             and revision in self.task_definitions[family]
         ):
-            return (
-                self.task_definitions[family][revision],
-                self.task_definitions[family][revision].tags
-            )
+            return self.task_definitions[family][revision]
         else:
             raise Exception("{0} is not a task_definition".format(task_definition_name))
 
