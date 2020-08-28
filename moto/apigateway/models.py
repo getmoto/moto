@@ -500,7 +500,7 @@ class RestAPI(BaseModel):
         self.stages = {}
         self.resources = {}
         self.models = {}
-        self.add_child("/")  # Add default child
+        self.default = self.add_child("/")  # Add default child
 
     def __repr__(self):
         return str(self.id)
@@ -860,9 +860,12 @@ class APIGatewayBackend(BaseBackend):
         return resource
 
     def create_resource(self, function_id, parent_resource_id, path_part):
+        api = self.get_rest_api(function_id)
+        if not path_part:
+            # We're attempting to create the default resource, which already exists.
+            return api.default
         if not re.match("^\\{?[a-zA-Z0-9._-]+\\+?\\}?$", path_part):
             raise InvalidResourcePathException()
-        api = self.get_rest_api(function_id)
         child = api.add_child(path=path_part, parent_id=parent_resource_id)
         return child
 
