@@ -43,6 +43,8 @@ class APIGatewayResponse(BaseResponse):
 
             if key in jsonbody:
                 return jsonbody.get(key)
+        except ValueError:  # Python 2.7 compat
+            pass
         except json.JSONDecodeError:
             pass
 

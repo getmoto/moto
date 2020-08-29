@@ -20,7 +20,7 @@ def deserialize_body(body, content_type=None):
     else:
         try:
             api_doc = json.loads(body)
-        except ValueError:
+        except ValueError:  # Python 2.7 compat
             api_doc = yaml.safe_load(body)
         except json.JSONDecodeError:
             api_doc = yaml.safe_load(body)
