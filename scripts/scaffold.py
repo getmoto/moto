@@ -229,6 +229,9 @@ def to_snake_case(s):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
+def get_operation_name_in_keys(operation_name, operation_keys):
+    index = [_.lower() for _ in operation_keys].index(operation_name.lower())
+    return operation_keys[index]
 
 def get_function_in_responses(service, operation, protocol):
     """refers to definition of API in botocore, and autogenerates function
@@ -237,7 +240,11 @@ def get_function_in_responses(service, operation, protocol):
     """
     client = boto3.client(service)
 
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
+
     op_model = client._service_model.operation_model(aws_operation_name)
     if not hasattr(op_model.output_shape, 'members'):
         outputs = {}
@@ -282,7 +289,10 @@ def get_function_in_models(service, operation):
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
     client = boto3.client(service)
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
     op_model = client._service_model.operation_model(aws_operation_name)
     inputs = op_model.input_shape.members
     if not hasattr(op_model.output_shape, 'members'):
@@ -329,7 +339,11 @@ def get_response_query_template(service, operation):
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
     client = boto3.client(service)
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
+
     op_model = client._service_model.operation_model(aws_operation_name)
     result_wrapper = op_model.output_shape.serialization['resultWrapper']
     response_wrapper = result_wrapper.replace('Result', 'Response')
@@ -403,11 +417,13 @@ def insert_code_to_class(path, base_class, new_code):
     with open(path, 'w') as f:
         f.write(body)
 
-
 def insert_url(service, operation, api_protocol):
     client = boto3.client(service)
     service_class = client.__class__.__name__
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
     uri = client._service_model.operation_model(aws_operation_name).http['requestUri']
 
     path = os.path.join(os.path.dirname(__file__), '..', 'moto', get_escaped_service(service), 'urls.py')
