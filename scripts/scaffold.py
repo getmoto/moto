@@ -114,12 +114,12 @@ def append_mock_to_init_py(service):
     with open(path) as f:
         lines = [_.replace('\n', '') for _ in f.readlines()]
 
-    if any(_ for _ in lines if re.match('^from.*mock_{}.*$'.format(service), _)):
+    if any(_ for _ in lines if re.match('^mock_{}.*lazy_load(.*)$'.format(service), _)):
         return
-    filtered_lines = [_ for _ in lines if re.match('^from.*mock.*$', _)]
+    filtered_lines = [_ for _ in lines if re.match('^mock_.*lazy_load(.*)$', _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'from .{} import mock_{}  # noqa'.format(get_escaped_service(service), get_escaped_service(service))
+    new_line = 'mock_{} = lazy_load(".{}", "mock_{}")'.format(get_escaped_service(service), get_escaped_service(service), get_escaped_service(service))
     lines.insert(last_import_line_index + 1, new_line)
 
     body = '\n'.join(lines) + '\n'
@@ -212,8 +212,8 @@ def initialize_service(service, operation, api_protocol):
 
     # append mock to init files
     append_mock_to_init_py(service)
-    append_mock_import_to_backends_py(service)
-    append_mock_dict_to_backends_py(service)
+    # append_mock_import_to_backends_py(service)
+    # append_mock_dict_to_backends_py(service)
 
 
 def to_upper_camel_case(s):
