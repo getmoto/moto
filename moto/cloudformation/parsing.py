@@ -246,12 +246,14 @@ def generate_resource_name(resource_type, stack_name, logical_id):
         return "{0}{1}".format(
             stack_name[:max_stack_name_portion_len], right_hand_part_of_name
         ).lower()
+    elif resource_type == "AWS::IAM::Policy":
+        return "{0}-{1}-{2}".format(stack_name[:5], logical_id[:4], random_suffix())
     else:
         return "{0}-{1}-{2}".format(stack_name, logical_id, random_suffix())
 
 
 def parse_resource(
-    logical_id, resource_json, resources_map, add_name_to_resource_json=True
+    resource_json, resources_map,
 ):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
@@ -263,21 +265,37 @@ def parse_resource(
         )
         return None
 
+    if "Properties" not in resource_json:
+        resource_json["Properties"] = {}
+
     resource_json = clean_json(resource_json, resources_map)
-    resource_name = generate_resource_name(
+
+    return resource_class, resource_json, resource_type
+
+
+def parse_resource_and_generate_name(
+    logical_id, resource_json, resources_map,
+):
+    resource_tuple = parse_resource(resource_json, resources_map)
+    if not resource_tuple:
+        return None
+    resource_class, resource_json, resource_type = resource_tuple
+
+    generated_resource_name = generate_resource_name(
         resource_type, resources_map.get("AWS::StackName"), logical_id
     )
+
     resource_name_property = resource_name_property_from_type(resource_type)
     if resource_name_property:
-        if "Properties" not in resource_json:
-            resource_json["Properties"] = dict()
         if (
-            add_name_to_resource_json
-            and resource_name_property not in resource_json["Properties"]
+            "Properties" in resource_json
+            and resource_name_property in resource_json["Properties"]
         ):
-            resource_json["Properties"][resource_name_property] = resource_name
-        if resource_name_property in resource_json["Properties"]:
             resource_name = resource_json["Properties"][resource_name_property]
+        else:
+            resource_name = generated_resource_name
+    else:
+        resource_name = generated_resource_name
 
     return resource_class, resource_json, resource_name
 
@@ -289,12 +307,14 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
         return None
 
     resource_type = resource_json["Type"]
-    resource_tuple = parse_resource(logical_id, resource_json, resources_map)
+    resource_tuple = parse_resource_and_generate_name(
+        logical_id, resource_json, resources_map
+    )
     if not resource_tuple:
         return None
-    resource_class, resource_json, resource_name = resource_tuple
+    resource_class, resource_json, resource_physical_name = resource_tuple
     resource = resource_class.create_from_cloudformation_json(
-        resource_name, resource_json, region_name
+        resource_physical_name, resource_json, region_name
     )
     resource.type = resource_type
     resource.logical_resource_id = logical_id
@@ -302,28 +322,34 @@ def parse_and_create_resource(logical_id, resource_json, resources_map, region_n
 
 
 def parse_and_update_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, new_resource_json, new_resource_name = parse_resource(
-        logical_id, resource_json, resources_map, False
-    )
-    original_resource = resources_map[logical_id]
-    new_resource = resource_class.update_from_cloudformation_json(
-        original_resource=original_resource,
-        new_resource_name=new_resource_name,
-        cloudformation_json=new_resource_json,
-        region_name=region_name,
-    )
-    new_resource.type = resource_json["Type"]
-    new_resource.logical_resource_id = logical_id
-    return new_resource
-
-
-def parse_and_delete_resource(logical_id, resource_json, resources_map, region_name):
-    resource_class, resource_json, resource_name = parse_resource(
+    resource_class, resource_json, new_resource_name = parse_resource_and_generate_name(
         logical_id, resource_json, resources_map
     )
-    resource_class.delete_from_cloudformation_json(
-        resource_name, resource_json, region_name
-    )
+    original_resource = resources_map[logical_id]
+    if not hasattr(
+        resource_class.update_from_cloudformation_json, "__isabstractmethod__"
+    ):
+        new_resource = resource_class.update_from_cloudformation_json(
+            original_resource=original_resource,
+            new_resource_name=new_resource_name,
+            cloudformation_json=resource_json,
+            region_name=region_name,
+        )
+        new_resource.type = resource_json["Type"]
+        new_resource.logical_resource_id = logical_id
+        return new_resource
+    else:
+        return None
+
+
+def parse_and_delete_resource(resource_name, resource_json, resources_map, region_name):
+    resource_class, resource_json, _ = parse_resource(resource_json, resources_map)
+    if not hasattr(
+        resource_class.delete_from_cloudformation_json, "__isabstractmethod__"
+    ):
+        resource_class.delete_from_cloudformation_json(
+            resource_name, resource_json, region_name
+        )
 
 
 def parse_condition(condition, resources_map, condition_map):
@@ -614,28 +640,36 @@ class ResourceMap(collections_abc.Mapping):
             )
             self._parsed_resources[resource_name] = new_resource
 
-        for resource_name, resource in resources_by_action["Remove"].items():
-            resource_json = old_template[resource_name]
+        for logical_name, _ in resources_by_action["Remove"].items():
+            resource_json = old_template[logical_name]
+            resource = self._parsed_resources[logical_name]
+            # ToDo: Standardize this.
+            if hasattr(resource, "physical_resource_id"):
+                resource_name = self._parsed_resources[
+                    logical_name
+                ].physical_resource_id
+            else:
+                resource_name = None
             parse_and_delete_resource(
                 resource_name, resource_json, self, self._region_name
             )
-            self._parsed_resources.pop(resource_name)
+            self._parsed_resources.pop(logical_name)
 
         tries = 1
         while resources_by_action["Modify"] and tries < 5:
-            for resource_name, resource in resources_by_action["Modify"].copy().items():
-                resource_json = new_template[resource_name]
+            for logical_name, _ in resources_by_action["Modify"].copy().items():
+                resource_json = new_template[logical_name]
                 try:
                     changed_resource = parse_and_update_resource(
-                        resource_name, resource_json, self, self._region_name
+                        logical_name, resource_json, self, self._region_name
                     )
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass
                     last_exception = e
                 else:
-                    self._parsed_resources[resource_name] = changed_resource
-                    del resources_by_action["Modify"][resource_name]
+                    self._parsed_resources[logical_name] = changed_resource
+                    del resources_by_action["Modify"][logical_name]
             tries += 1
         if tries == 5:
             raise last_exception
@@ -650,22 +684,20 @@ class ResourceMap(collections_abc.Mapping):
                     if parsed_resource and hasattr(parsed_resource, "delete"):
                         parsed_resource.delete(self._region_name)
                     else:
-                        resource_name_attribute = (
-                            parsed_resource.cloudformation_name_type()
-                            if hasattr(parsed_resource, "cloudformation_name_type")
-                            else resource_name_property_from_type(parsed_resource.type)
+                        if hasattr(parsed_resource, "physical_resource_id"):
+                            resource_name = parsed_resource.physical_resource_id
+                        else:
+                            resource_name = None
+
+                        resource_json = self._resource_json_map[
+                            parsed_resource.logical_resource_id
+                        ]
+
+                        parse_and_delete_resource(
+                            resource_name, resource_json, self, self._region_name,
                         )
-                        if resource_name_attribute:
-                            resource_json = self._resource_json_map[
-                                parsed_resource.logical_resource_id
-                            ]
-                            resource_name = resource_json["Properties"][
-                                resource_name_attribute
-                            ]
-                            parse_and_delete_resource(
-                                resource_name, resource_json, self, self._region_name
-                            )
-                        self._parsed_resources.pop(parsed_resource.logical_resource_id)
+
+                    self._parsed_resources.pop(parsed_resource.logical_resource_id)
                 except Exception as e:
                     # skip over dependency violations, and try again in a
                     # second pass

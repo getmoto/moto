@@ -118,7 +118,7 @@ def test_boto3_yaml_validate_successful():
 @mock_cloudformation
 @mock_s3
 def test_boto3_yaml_validate_template_url_successful():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
     s3_conn.create_bucket(Bucket="foobar")
 

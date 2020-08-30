@@ -81,6 +81,7 @@ class AutoScalingResponse(BaseResponse):
             min_size=self._get_int_param("MinSize"),
             instance_id=self._get_param("InstanceId"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
+            launch_template=self._get_dict_param("LaunchTemplate."),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -197,6 +198,7 @@ class AutoScalingResponse(BaseResponse):
             max_size=self._get_int_param("MaxSize"),
             min_size=self._get_int_param("MinSize"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
+            launch_template=self._get_dict_param("LaunchTemplate."),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -573,14 +575,31 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
         <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
         <EnabledMetrics/>
+        {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+        {% elif group.launch_template %}
+        <LaunchTemplate>
+          <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
+          <Version>{{ group.launch_template_version }}</Version>
+          <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
+        </LaunchTemplate>
+        {% endif %}
         <Instances>
           {% for instance_state in group.instance_states %}
           <member>
             <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
             <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
             <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+            <InstanceType>{{ instance_state.instance.instance_type }}</InstanceType>
+            {% if group.launch_config_name %}
             <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
+            {% elif group.launch_template %}
+            <LaunchTemplate>
+              <LaunchTemplateId>{{ group.launch_template.id }}</LaunchTemplateId>
+              <Version>{{ group.launch_template_version }}</Version>
+              <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
+            </LaunchTemplate>
+            {% endif %}
             <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
             <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
           </member>
@@ -666,7 +685,16 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
         <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
         <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
         <InstanceId>{{ instance_state.instance.id }}</InstanceId>
+        <InstanceType>{{ instance_state.instance.instance_type }}</InstanceType>
+        {% if instance_state.instance.autoscaling_group.launch_config_name %}
         <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
+        {% elif instance_state.instance.autoscaling_group.launch_template %}
+        <LaunchTemplate>
+          <LaunchTemplateId>{{ instance_state.instance.autoscaling_group.launch_template.id }}</LaunchTemplateId>
+          <Version>{{ instance_state.instance.autoscaling_group.launch_template_version }}</Version>
+          <LaunchTemplateName>{{ instance_state.instance.autoscaling_group.launch_template.name }}</LaunchTemplateName>
+        </LaunchTemplate>
+        {% endif %}
         <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
         <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
       </member>

@@ -82,36 +82,24 @@ class Cluster(BaseObject, CloudFormationModel):
     def create_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        # if properties is not provided, cloudformation will use the default values for all properties
-        if "Properties" in cloudformation_json:
-            properties = cloudformation_json["Properties"]
-        else:
-            properties = {}
-
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_cluster(
             # ClusterName is optional in CloudFormation, thus create a random
             # name if necessary
-            cluster_name=properties.get(
-                "ClusterName", "ecscluster{0}".format(int(random() * 10 ** 6))
-            )
+            cluster_name=resource_name
         )
 
     @classmethod
     def update_from_cloudformation_json(
         cls, original_resource, new_resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
-
-        if original_resource.name != properties["ClusterName"]:
+        if original_resource.name != new_resource_name:
             ecs_backend = ecs_backends[region_name]
             ecs_backend.delete_cluster(original_resource.arn)
             return ecs_backend.create_cluster(
                 # ClusterName is optional in CloudFormation, thus create a
                 # random name if necessary
-                cluster_name=properties.get(
-                    "ClusterName", "ecscluster{0}".format(int(random() * 10 ** 6))
-                )
+                cluster_name=new_resource_name
             )
         else:
             # no-op when nothing changed between old and new resources
@@ -355,14 +343,13 @@ class Service(BaseObject, CloudFormationModel):
             task_definition = properties["TaskDefinition"].family
         else:
             task_definition = properties["TaskDefinition"]
-        service_name = "{0}Service{1}".format(cluster, int(random() * 10 ** 6))
         desired_count = properties["DesiredCount"]
         # TODO: LoadBalancers
         # TODO: Role
 
         ecs_backend = ecs_backends[region_name]
         return ecs_backend.create_service(
-            cluster, service_name, desired_count, task_definition_str=task_definition
+            cluster, resource_name, desired_count, task_definition_str=task_definition
         )
 
     @classmethod
@@ -386,12 +373,9 @@ class Service(BaseObject, CloudFormationModel):
             # TODO: LoadBalancers
             # TODO: Role
             ecs_backend.delete_service(cluster_name, service_name)
-            new_service_name = "{0}Service{1}".format(
-                cluster_name, int(random() * 10 ** 6)
-            )
             return ecs_backend.create_service(
                 cluster_name,
-                new_service_name,
+                new_resource_name,
                 desired_count,
                 task_definition_str=task_definition,
             )

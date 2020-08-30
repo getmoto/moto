@@ -88,7 +88,7 @@ class Rule(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
-        event_name = properties.get("Name") or resource_name
+        event_name = resource_name
         return event_backend.put_rule(name=event_name, **properties)
 
     @classmethod
@@ -104,9 +104,8 @@ class Rule(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
-        event_name = properties.get("Name") or resource_name
+        event_name = resource_name
         event_backend.delete_rule(name=event_name)
 
 
@@ -176,7 +175,7 @@ class EventBus(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
-        event_name = properties["Name"]
+        event_name = resource_name
         event_source_name = properties.get("EventSourceName")
         return event_backend.create_event_bus(
             name=event_name, event_source_name=event_source_name
@@ -195,9 +194,8 @@ class EventBus(CloudFormationModel):
     def delete_from_cloudformation_json(
         cls, resource_name, cloudformation_json, region_name
     ):
-        properties = cloudformation_json["Properties"]
         event_backend = events_backends[region_name]
-        event_bus_name = properties["Name"]
+        event_bus_name = resource_name
         event_backend.delete_event_bus(event_bus_name)
 
 
