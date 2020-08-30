@@ -4,7 +4,6 @@ import boto.rds
 from jinja2 import Template
 
 from moto.core import BaseBackend, CloudFormationModel
-from moto.core.utils import get_random_hex
 from moto.ec2.models import ec2_backends
 from moto.rds.exceptions import UnformattedGetAttTemplateException
 from moto.rds2.models import rds2_backends
@@ -33,9 +32,6 @@ class Database(CloudFormationModel):
     ):
         properties = cloudformation_json["Properties"]
 
-        db_instance_identifier = properties.get(cls.cloudformation_name_type())
-        if not db_instance_identifier:
-            db_instance_identifier = resource_name.lower() + get_random_hex(12)
         db_security_groups = properties.get("DBSecurityGroups")
         if not db_security_groups:
             db_security_groups = []
@@ -48,7 +44,7 @@ class Database(CloudFormationModel):
             "availability_zone": properties.get("AvailabilityZone"),
             "backup_retention_period": properties.get("BackupRetentionPeriod"),
             "db_instance_class": properties.get("DBInstanceClass"),
-            "db_instance_identifier": db_instance_identifier,
+            "db_instance_identifier": resource_name,
             "db_name": properties.get("DBName"),
             "db_subnet_group_name": db_subnet_group_name,
             "engine": properties.get("Engine"),
@@ -229,7 +225,7 @@ class SecurityGroup(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        group_name = resource_name.lower() + get_random_hex(12)
+        group_name = resource_name.lower()
         description = properties["GroupDescription"]
         security_group_ingress_rules = properties.get("DBSecurityGroupIngress", [])
         tags = properties.get("Tags")
@@ -303,9 +299,7 @@ class SubnetGroup(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        subnet_name = properties.get(cls.cloudformation_name_type())
-        if not subnet_name:
-            subnet_name = resource_name.lower() + get_random_hex(12)
+        subnet_name = resource_name.lower()
         description = properties["DBSubnetGroupDescription"]
         subnet_ids = properties["SubnetIds"]
         tags = properties.get("Tags")

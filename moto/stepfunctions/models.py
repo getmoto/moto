@@ -8,6 +8,7 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.sts.models import ACCOUNT_ID
 from uuid import uuid4
 from .exceptions import (
+    ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
     InvalidName,
@@ -205,6 +206,7 @@ class StepFunctionBackend(BaseBackend):
 
     def start_execution(self, state_machine_arn, name=None):
         state_machine_name = self.describe_state_machine(state_machine_arn).name
+        self._ensure_execution_name_doesnt_exist(name)
         execution = Execution(
             region_name=self.region_name,
             account_id=self._get_account_id(),
@@ -277,6 +279,13 @@ class StepFunctionBackend(BaseBackend):
         match = regex.match(arn)
         if not arn or not match:
             raise InvalidArn(invalid_msg)
+
+    def _ensure_execution_name_doesnt_exist(self, name):
+        for execution in self.executions:
+            if execution.name == name:
+                raise ExecutionAlreadyExists(
+                    "Execution Already Exists: '" + execution.execution_arn + "'"
+                )
 
     def _get_account_id(self):
         return ACCOUNT_ID

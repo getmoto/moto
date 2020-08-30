@@ -9,12 +9,14 @@ class Subnets(BaseResponse):
     def create_subnet(self):
         vpc_id = self._get_param("VpcId")
         cidr_block = self._get_param("CidrBlock")
-        availability_zone = self._get_param(
-            "AvailabilityZone",
-            if_none=random.choice(self.ec2_backend.describe_availability_zones()).name,
-        )
+        availability_zone = self._get_param("AvailabilityZone")
+        availability_zone_id = self._get_param("AvailabilityZoneId")
+        if not availability_zone and not availability_zone_id:
+            availability_zone = random.choice(
+                self.ec2_backend.describe_availability_zones()
+            ).name
         subnet = self.ec2_backend.create_subnet(
-            vpc_id, cidr_block, availability_zone, context=self
+            vpc_id, cidr_block, availability_zone, availability_zone_id, context=self
         )
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
