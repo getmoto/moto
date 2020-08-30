@@ -2,7 +2,9 @@ from __future__ import unicode_literals
 
 import boto3
 import sure  # noqa
+from nose.tools import assert_raises
 from moto import mock_kinesisvideo
+from botocore.exceptions import ClientError
 import json
 
 
@@ -10,13 +12,20 @@ import json
 def test_list():
     client = boto3.client("kinesisvideo")
     stream_name = "my-stream"
+    stream_name_2 = "my-stream-2"
+    stream_name_not_exist = "not-exist-stream"
     device_name = "random-device"
 
     # stream can be created
     res = client.create_stream(StreamName=stream_name, DeviceName=device_name)
     res.should.have.key("StreamARN").which.should.contain(stream_name)
+    stream_1_arn = res["StreamARN"]
 
-    # stream can be described
+    # cannot create with existing stream name
+    with assert_raises(ClientError):
+        client.create_stream(StreamName=stream_name, DeviceName=device_name)
+
+    # stream can be described with name
     res = client.describe_stream(StreamName=stream_name)
     res.should.have.key("StreamInfo")
     stream_info = res["StreamInfo"]
@@ -24,11 +33,22 @@ def test_list():
     stream_info.should.have.key("StreamName").which.should.equal(stream_name)
     stream_info.should.have.key("DeviceName").which.should.equal(device_name)
 
-    stream_name_2 = "my-stream-2"
+    # stream can be described with arn
+    res = client.describe_stream(StreamARN=stream_1_arn)
+    res.should.have.key("StreamInfo")
+    stream_info = res["StreamInfo"]
+    stream_info.should.have.key("StreamARN").which.should.contain(stream_name)
+    stream_info.should.have.key("StreamName").which.should.equal(stream_name)
+    stream_info.should.have.key("DeviceName").which.should.equal(device_name)
+
+    # cannot describe with not exist stream name
+    with assert_raises(ClientError):
+        client.describe_stream(StreamName=stream_name_not_exist)
+
+    # streams can be listed
     res = client.create_stream(StreamName=stream_name_2, DeviceName=device_name)
     stream_2_arn = res["StreamARN"]
 
-    # streams can be listed
     res = client.list_streams()
     res.should.have.key("StreamInfoList")
     streams = res["StreamInfoList"]
@@ -39,3 +59,8 @@ def test_list():
     res = client.list_streams()
     streams = res["StreamInfoList"]
     streams.should.have.length_of(1)
+
+    # cannot delete with not exist stream name
+    stream_arn_not_exist = stream_2_arn
+    with assert_raises(ClientError):
+        client.delete_stream(StreamARN=stream_arn_not_exist)

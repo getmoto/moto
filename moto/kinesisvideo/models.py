@@ -2,6 +2,10 @@ from __future__ import unicode_literals
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from datetime import datetime
+from .exceptions import (
+    ResourceNotFoundException,
+    ResourceInUseException,
+)
 
 
 class Stream(BaseModel):
@@ -64,6 +68,9 @@ class KinesisVideoBackend(BaseBackend):
         data_retention_in_hours,
         tags,
     ):
+        streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
+        if len(streams) > 0:
+            raise ResourceInUseException("The stream a already exists.")
         stream = Stream(
             self.region_name,
             device_name,
@@ -79,9 +86,13 @@ class KinesisVideoBackend(BaseBackend):
     def describe_stream(self, stream_name, stream_arn):
         if stream_name:
             streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
+            if len(streams) == 0:
+                raise ResourceNotFoundException()
             stream = streams[0]
         elif stream_arn:
             stream = self.streams.get(stream_arn)
+            if stream is None:
+                raise ResourceNotFoundException()
         stream_info = stream.to_dict()
         return stream_info
 
@@ -91,6 +102,9 @@ class KinesisVideoBackend(BaseBackend):
         return stream_info_list, next_token
 
     def delete_stream(self, stream_arn, current_version):
+        stream = self.streams.get(stream_arn)
+        if stream is None:
+            raise ResourceNotFoundException()
         del self.streams[stream_arn]
 
     # add methods from here
