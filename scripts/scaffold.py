@@ -137,7 +137,7 @@ def append_mock_dict_to_backends_py(service):
     filtered_lines = [_ for _ in lines if re.match(".*\".*\":.*_backends.*", _)]
     last_elem_line_index = lines.index(filtered_lines[-1])
 
-    new_line = "    \"{}\": (\"{}\": \"{}_backends\"),".format(service, get_escaped_service(service), get_escaped_service(service))
+    new_line = "    \"{}\": (\"{}\", \"{}_backends\"),".format(service, get_escaped_service(service), get_escaped_service(service))
     prev_line = lines[last_elem_line_index]
     if not prev_line.endswith('{') and not prev_line.endswith(','):
         lines[last_elem_line_index] += ','
