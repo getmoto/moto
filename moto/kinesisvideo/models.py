@@ -48,7 +48,7 @@ class KinesisVideoBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(KinesisVideoBackend, self).__init__()
         self.region_name = region_name
-        self.streams = []
+        self.streams = {}
 
     def reset(self):
         region_name = self.region_name
@@ -74,22 +74,25 @@ class KinesisVideoBackend(BaseBackend):
             data_retention_in_hours,
             tags,
         )
-        self.streams.append(stream)
+        self.streams[stream.arn] = stream
         return stream.arn
 
     def describe_stream(self, stream_name, stream_arn):
         if stream_name:
-            streams = [_ for _ in self.streams if _.stream_name == stream_name]
+            streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
+            stream = streams[0]
         elif stream_arn:
-            streams = [_ for _ in self.streams if _.arn == stream_arn]
-        stream = streams[0]
+            stream = self.streams.get(stream_arn)
         stream_info = stream.to_dict()
         return stream_info
 
     def list_streams(self, max_results, next_token, stream_name_condition):
-        stream_info_list = [_.to_dict() for _ in self.streams]
+        stream_info_list = [_.to_dict() for _ in self.streams.values()]
         next_token = None
         return stream_info_list, next_token
+
+    def delete_stream(self, stream_arn, current_version):
+        del self.streams[stream_arn]
 
     # add methods from here
 

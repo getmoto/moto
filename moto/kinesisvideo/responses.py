@@ -47,6 +47,14 @@ class KinesisVideoResponse(BaseResponse):
         )
         return json.dumps(dict(StreamInfoList=stream_info_list, NextToken=next_token))
 
+    def delete_stream(self):
+        stream_arn = self._get_param("StreamARN")
+        current_version = self._get_param("CurrentVersion")
+        self.kinesisvideo_backend.delete_stream(
+            stream_arn=stream_arn, current_version=current_version,
+        )
+        return json.dumps(dict())
+
     # add methods from here
 
 
