@@ -86,6 +86,11 @@ class KinesisVideoBackend(BaseBackend):
         stream_info = stream.to_dict()
         return stream_info
 
+    def list_streams(self, max_results, next_token, stream_name_condition):
+        stream_info_list = [_.to_dict() for _ in self.streams]
+        next_token = None
+        return stream_info_list, next_token
+
     # add methods from here
 
 

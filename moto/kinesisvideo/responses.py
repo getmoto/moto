@@ -36,6 +36,17 @@ class KinesisVideoResponse(BaseResponse):
         )
         return json.dumps(dict(StreamInfo=stream_info))
 
+    def list_streams(self):
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        stream_name_condition = self._get_param("StreamNameCondition")
+        stream_info_list, next_token = self.kinesisvideo_backend.list_streams(
+            max_results=max_results,
+            next_token=next_token,
+            stream_name_condition=stream_name_condition,
+        )
+        return json.dumps(dict(StreamInfoList=stream_info_list, NextToken=next_token))
+
     # add methods from here
 
 

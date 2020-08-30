@@ -20,3 +20,11 @@ def test_list():
     stream_info.should.have.key("StreamARN").which.should.contain(stream_name)
     stream_info.should.have.key("StreamName").which.should.equal(stream_name)
     stream_info.should.have.key("DeviceName").which.should.equal(device_name)
+
+    stream_name_2 = "my-stream-2"
+    res = client.create_stream(StreamName=stream_name_2, DeviceName=device_name)
+
+    res = client.list_streams()
+    res.should.have.key("StreamInfoList")
+    streams = res["StreamInfoList"]
+    streams.should.have.length_of(2)

@@ -71,6 +71,7 @@ BACKENDS = {
     "xray": ("xray", "xray_backends"),
     "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
     "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
+    "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
 }
 
 
