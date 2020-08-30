@@ -592,7 +592,7 @@ def test_boto3_create_stack_set_with_yaml():
 @mock_cloudformation
 @mock_s3
 def test_create_stack_set_from_s3_url():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
     s3_conn.create_bucket(Bucket="foobar")
 
@@ -704,7 +704,7 @@ def test_boto3_create_stack_with_short_form_func_yaml():
 @mock_s3
 @mock_cloudformation
 def test_get_template_summary():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
 
     conn = boto3.client("cloudformation", region_name="us-east-1")
@@ -802,7 +802,7 @@ def test_create_stack_with_role_arn():
 @mock_cloudformation
 @mock_s3
 def test_create_stack_from_s3_url():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
     s3_conn.create_bucket(Bucket="foobar")
 
@@ -857,7 +857,7 @@ def test_update_stack_with_previous_value():
 @mock_s3
 @mock_ec2
 def test_update_stack_from_s3_url():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
 
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
@@ -886,7 +886,7 @@ def test_update_stack_from_s3_url():
 @mock_cloudformation
 @mock_s3
 def test_create_change_set_from_s3_url():
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
     s3_conn.create_bucket(Bucket="foobar")
 

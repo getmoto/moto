@@ -70,7 +70,10 @@ class SQSResponse(BaseResponse):
     def call_action(self):
         status_code, headers, body = super(SQSResponse, self).call_action()
         if status_code == 404:
-            return 404, headers, ERROR_INEXISTENT_QUEUE
+            queue_name = self.querystring.get("QueueName", [""])[0]
+            template = self.response_template(ERROR_INEXISTENT_QUEUE)
+            response = template.render(queue_name=queue_name)
+            return 404, headers, response
         return status_code, headers, body
 
     def _error(self, code, message, status=400):
@@ -720,7 +723,11 @@ ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc
     <Error>
         <Type>Sender</Type>
         <Code>AWS.SimpleQueueService.NonExistentQueue</Code>
-        <Message>The specified queue does not exist for this wsdl version.</Message>
+         {% if queue_name %}
+            <Message>The specified queue {{queue_name}} does not exist for this wsdl version.</Message>
+        {% else %}
+            <Message>The specified queue does not exist for this wsdl version.</Message>
+        {% endif %}
         <Detail/>
     </Error>
     <RequestId>b8bc806b-fa6b-53b5-8be8-cfa2f9836bc3</RequestId>

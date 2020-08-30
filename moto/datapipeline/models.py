@@ -90,9 +90,9 @@ class Pipeline(CloudFormationModel):
         datapipeline_backend = datapipeline_backends[region_name]
         properties = cloudformation_json["Properties"]
 
-        cloudformation_unique_id = "cf-" + properties["Name"]
+        cloudformation_unique_id = "cf-" + resource_name
         pipeline = datapipeline_backend.create_pipeline(
-            properties["Name"], cloudformation_unique_id
+            resource_name, cloudformation_unique_id
         )
         datapipeline_backend.put_pipeline_definition(
             pipeline.pipeline_id, properties["PipelineObjects"]

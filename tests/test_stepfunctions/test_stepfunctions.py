@@ -406,6 +406,27 @@ def test_state_machine_start_execution_with_custom_name():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_start_execution_fails_on_duplicate_execution_name():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution_one = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], name="execution_name"
+    )
+    #
+    with assert_raises(ClientError) as exc:
+        _ = client.start_execution(
+            stateMachineArn=sm["stateMachineArn"], name="execution_name"
+        )
+    exc.exception.response["Error"]["Message"].should.equal(
+        "Execution Already Exists: '" + execution_one["executionArn"] + "'"
+    )
+
+
+@mock_stepfunctions
+@mock_sts
 def test_state_machine_list_executions():
     client = boto3.client("stepfunctions", region_name=region)
     #

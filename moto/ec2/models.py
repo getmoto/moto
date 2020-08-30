@@ -1866,7 +1866,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.name = name
         self.description = description
         self.ingress_rules = []
-        self.egress_rules = [SecurityRule("-1", None, None, ["0.0.0.0/0"], [])]
+        self.egress_rules = [
+            SecurityRule("-1", None, None, [{"CidrIp": "0.0.0.0/0"}], [])
+        ]
         self.enis = {}
         self.vpc_id = vpc_id
         self.owner_id = OWNER_ID
@@ -2266,13 +2268,16 @@ class SecurityGroupBackend(object):
             if source_group:
                 source_groups.append(source_group)
 
-        for ip in ip_ranges:
-            ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
+        # I don't believe this is required after changing the default egress rule
+        # to be {'CidrIp': '0.0.0.0/0'} instead of just '0.0.0.0/0'
+        # Not sure why this would return only the IP if it was 0.0.0.0/0 instead of
+        # the ip_range?
+        # for ip in ip_ranges:
+        #     ip_ranges = [ip.get("CidrIp") if ip.get("CidrIp") == "0.0.0.0/0" else ip]
 
         security_rule = SecurityRule(
             ip_protocol, from_port, to_port, ip_ranges, source_groups
         )
-
         if security_rule in group.egress_rules:
             group.egress_rules.remove(security_rule)
             return security_rule
@@ -3397,7 +3402,14 @@ class SubnetBackend(object):
                 return subnets[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
 
-    def create_subnet(self, vpc_id, cidr_block, availability_zone, context=None):
+    def create_subnet(
+        self,
+        vpc_id,
+        cidr_block,
+        availability_zone=None,
+        availability_zone_id=None,
+        context=None,
+    ):
         subnet_id = random_subnet_id()
         vpc = self.get_vpc(
             vpc_id
@@ -3425,15 +3437,25 @@ class SubnetBackend(object):
         # consider it the default
         default_for_az = str(availability_zone not in self.subnets).lower()
         map_public_ip_on_launch = default_for_az
-        if availability_zone is None:
+
+        if availability_zone is None and not availability_zone_id:
             availability_zone = "us-east-1a"
         try:
-            availability_zone_data = next(
-                zone
-                for zones in RegionsAndZonesBackend.zones.values()
-                for zone in zones
-                if zone.name == availability_zone
-            )
+            if availability_zone:
+                availability_zone_data = next(
+                    zone
+                    for zones in RegionsAndZonesBackend.zones.values()
+                    for zone in zones
+                    if zone.name == availability_zone
+                )
+            elif availability_zone_id:
+                availability_zone_data = next(
+                    zone
+                    for zones in RegionsAndZonesBackend.zones.values()
+                    for zone in zones
+                    if zone.zone_id == availability_zone_id
+                )
+
         except StopIteration:
             raise InvalidAvailabilityZoneError(
                 availability_zone,
@@ -5380,6 +5402,22 @@ class LaunchTemplateVersion(object):
         self.data = data
         self.description = description
         self.create_time = utc_date_and_time()
+
+    @property
+    def image_id(self):
+        return self.data.get("ImageId", "")
+
+    @property
+    def instance_type(self):
+        return self.data.get("InstanceType", "")
+
+    @property
+    def security_groups(self):
+        return self.data.get("SecurityGroups", [])
+
+    @property
+    def user_data(self):
+        return self.data.get("UserData", "")
 
 
 class LaunchTemplate(TaggedEC2Resource):
