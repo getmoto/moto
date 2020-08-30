@@ -10,7 +10,7 @@ import json
 
 @mock_kinesisvideo
 def test_list():
-    client = boto3.client("kinesisvideo")
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
     stream_name_2 = "my-stream-2"
     stream_name_not_exist = "not-exist-stream"
