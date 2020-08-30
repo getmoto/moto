@@ -64,7 +64,6 @@ class KinesisVideoBackend(BaseBackend):
         data_retention_in_hours,
         tags,
     ):
-        # implement here
         stream = Stream(
             self.region_name,
             device_name,
