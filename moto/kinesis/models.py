@@ -135,7 +135,7 @@ class Shard(BaseModel):
 
 
 class Stream(CloudFormationModel):
-    def __init__(self, stream_name, shard_count, region_name):
+    def __init__(self, stream_name, shard_count, retention_period_hours, region_name):
         self.stream_name = stream_name
         self.creation_datetime = datetime.datetime.now()
         self.region = region_name
@@ -145,6 +145,7 @@ class Stream(CloudFormationModel):
         self.status = "ACTIVE"
         self.shard_count = None
         self.update_shard_count(shard_count)
+        self.retention_period_hours = retention_period_hours
 
     def update_shard_count(self, shard_count):
         # ToDo: This was extracted from init.  It's only accurate for new streams.
@@ -213,6 +214,7 @@ class Stream(CloudFormationModel):
                 "StreamName": self.stream_name,
                 "StreamStatus": self.status,
                 "HasMoreShards": False,
+                "RetentionPeriodHours": self.retention_period_hours,
                 "Shards": [shard.to_json() for shard in self.shards.values()],
             }
         }
@@ -243,9 +245,19 @@ class Stream(CloudFormationModel):
     ):
         properties = cloudformation_json.get("Properties", {})
         shard_count = properties.get("ShardCount", 1)
-        name = properties.get("Name", resource_name)
+        retention_period_hours = properties.get("RetentionPeriodHours", resource_name)
+        tags = {
+            tag_item["Key"]: tag_item["Value"]
+            for tag_item in properties.get("Tags", [])
+        }
+
         backend = kinesis_backends[region_name]
-        return backend.create_stream(name, shard_count, region_name)
+        stream = backend.create_stream(
+            resource_name, shard_count, retention_period_hours, region_name
+        )
+        if any(tags):
+            backend.add_tags_to_stream(stream.stream_name, tags)
+        return stream
 
     @classmethod
     def update_from_cloudformation_json(
@@ -269,6 +281,15 @@ class Stream(CloudFormationModel):
         else:  # No Interruption
             if "ShardCount" in properties:
                 original_resource.update_shard_count(properties["ShardCount"])
+            if "RetentionPeriodHours" in properties:
+                original_resource.retention_period_hours = properties[
+                    "RetentionPeriodHours"
+                ]
+            if "Tags" in properties:
+                original_resource.tags = {
+                    tag_item["Key"]: tag_item["Value"]
+                    for tag_item in properties.get("Tags", [])
+                }
             return original_resource
 
     @classmethod
@@ -276,9 +297,7 @@ class Stream(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         backend = kinesis_backends[region_name]
-        properties = cloudformation_json.get("Properties", {})
-        stream_name = properties.get(cls.cloudformation_name_type(), resource_name)
-        backend.delete_stream(stream_name)
+        backend.delete_stream(resource_name)
 
     @staticmethod
     def is_replacement_update(properties):
@@ -398,10 +417,12 @@ class KinesisBackend(BaseBackend):
         self.streams = OrderedDict()
         self.delivery_streams = {}
 
-    def create_stream(self, stream_name, shard_count, region_name):
+    def create_stream(
+        self, stream_name, shard_count, retention_period_hours, region_name
+    ):
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
-        stream = Stream(stream_name, shard_count, region_name)
+        stream = Stream(stream_name, shard_count, retention_period_hours, region_name)
         self.streams[stream_name] = stream
         return stream
 

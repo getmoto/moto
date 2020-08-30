@@ -40,6 +40,7 @@ install_requires = [
     "werkzeug",
     "PyYAML>=5.1",
     "pytz",
+    "ecdsa<0.15",
     "python-dateutil<3.0.0,>=2.1",
     "python-jose[cryptography]>=3.1.0,<4.0.0",
     "docker>=2.5.1",
