@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from boto3 import Session
 from moto.core import BaseBackend, BaseModel
+from datetime import datetime
 
 
 class Stream(BaseModel):
@@ -21,10 +22,26 @@ class Stream(BaseModel):
         self.kms_key_id = kms_key_id
         self.data_retention_in_hours = data_retention_in_hours
         self.tags = tags
+        self.status = "ACTIVE"
+        self.version = 1
+        self.creation_time = datetime.utcnow()
         stream_arn = "arn:aws:kinesisvideo:{}:123456789012:stream/{}/1598784211076".format(
             self.region_name, self.stream_name
         )
         self.arn = stream_arn
+
+    def to_dict(self):
+        return {
+            "DeviceName": self.device_name,
+            "StreamName": self.stream_name,
+            "StreamARN": self.arn,
+            "MediaType": self.media_type,
+            "KmsKeyId": self.kms_key_id,
+            "Version": self.version,
+            "Status": self.status,
+            "CreationTime": self.creation_time.isoformat(),
+            "DataRetentionInHours": self.data_retention_in_hours,
+        }
 
 
 class KinesisVideoBackend(BaseBackend):
