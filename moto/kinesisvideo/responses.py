@@ -28,6 +28,14 @@ class KinesisVideoResponse(BaseResponse):
         )
         return json.dumps(dict(StreamARN=stream_arn))
 
+    def describe_stream(self):
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        stream_info = self.kinesisvideo_backend.describe_stream(
+            stream_name=stream_name, stream_arn=stream_arn,
+        )
+        return json.dumps(dict(StreamInfo=stream_info))
+
     # add methods from here
 
 

@@ -77,6 +77,15 @@ class KinesisVideoBackend(BaseBackend):
         self.streams.append(stream)
         return stream.arn
 
+    def describe_stream(self, stream_name, stream_arn):
+        if stream_name:
+            streams = [_ for _ in self.streams if _.stream_name == stream_name]
+        elif stream_arn:
+            streams = [_ for _ in self.streams if _.arn == stream_arn]
+        stream = streams[0]
+        stream_info = stream.to_dict()
+        return stream_info
+
     # add methods from here
 
 
