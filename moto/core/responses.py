@@ -538,8 +538,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         returns
         {
-            "SlaveInstanceType": "m1.small",
-            "InstanceCount": "1",
+            "slave_instance_type": "m1.small",
+            "instance_count": "1",
         }
         """
         params = {}

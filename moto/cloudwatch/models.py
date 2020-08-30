@@ -511,10 +511,9 @@ class LogGroup(CloudFormationModel):
         cls, resource_name, cloudformation_json, region_name
     ):
         properties = cloudformation_json["Properties"]
-        log_group_name = properties["LogGroupName"]
         tags = properties.get("Tags", {})
         return logs_backends[region_name].create_log_group(
-            log_group_name, tags, **properties
+            resource_name, tags, **properties
         )
 
 
