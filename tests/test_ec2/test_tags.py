@@ -287,13 +287,13 @@ def test_get_all_tags_value_filter():
     tags = conn.get_all_tags(filters={"value": "*some*value*"})
     tags.should.have.length_of(3)
 
-    tags = conn.get_all_tags(filters={"value": "*value\*"})
+    tags = conn.get_all_tags(filters={"value": r"*value\*"})
     tags.should.have.length_of(1)
 
-    tags = conn.get_all_tags(filters={"value": "*value\*\*"})
+    tags = conn.get_all_tags(filters={"value": r"*value\*\*"})
     tags.should.have.length_of(1)
 
-    tags = conn.get_all_tags(filters={"value": "*value\*\?"})
+    tags = conn.get_all_tags(filters={"value": r"*value\*\?"})
     tags.should.have.length_of(1)
 
 
