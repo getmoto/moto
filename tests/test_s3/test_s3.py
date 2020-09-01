@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import datetime
 import sys
-
+import os
 from boto3 import Session
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
