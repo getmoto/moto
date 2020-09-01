@@ -88,7 +88,9 @@ class KinesisVideoBackend(BaseBackend):
     ):
         streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
         if len(streams) > 0:
-            raise ResourceInUseException("The stream a already exists.")
+            raise ResourceInUseException(
+                "The stream {} already exists.".format(stream_name)
+            )
         stream = Stream(
             self.region_name,
             device_name,
