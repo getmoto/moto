@@ -8,6 +8,8 @@ from .exceptions import (
 )
 import random
 import string
+from moto.core.utils import get_random_hex
+from moto.core import ACCOUNT_ID
 
 
 class Stream(BaseModel):
@@ -31,15 +33,11 @@ class Stream(BaseModel):
         self.status = "ACTIVE"
         self.version = self._get_random_string()
         self.creation_time = datetime.utcnow()
-        stream_arn = "arn:aws:kinesisvideo:{}:123456789012:stream/{}/1598784211076".format(
-            self.region_name, self.stream_name
+        stream_arn = "arn:aws:kinesisvideo:{}:{}:stream/{}/1598784211076".format(
+            self.region_name, ACCOUNT_ID, self.stream_name
         )
-        self.data_endpoint_number = self._get_random_hex()
+        self.data_endpoint_number = get_random_hex()
         self.arn = stream_arn
-
-    def _get_random_hex(self, length=8):
-        chars = list("1234567890abcdef")
-        return "".join([random.choice(chars) for _ in range(length)])
 
     def _get_random_string(self, length=20):
         letters = string.ascii_lowercase
