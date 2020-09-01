@@ -9,17 +9,38 @@ import json
 
 
 @mock_kinesisvideo
-def test_list():
+def test_create_stream():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
-    stream_name_2 = "my-stream-2"
-    stream_name_not_exist = "not-exist-stream"
     device_name = "random-device"
 
     # stream can be created
     res = client.create_stream(StreamName=stream_name, DeviceName=device_name)
     res.should.have.key("StreamARN").which.should.contain(stream_name)
-    stream_1_arn = res["StreamARN"]
+
+
+@mock_kinesisvideo
+def test_create_stream_with_same_name():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name = "my-stream"
+    device_name = "random-device"
+
+    client.create_stream(StreamName=stream_name, DeviceName=device_name)
+
+    # cannot create with same stream name
+    with assert_raises(ClientError):
+        client.create_stream(StreamName=stream_name, DeviceName=device_name)
+
+
+@mock_kinesisvideo
+def test_describe_stream():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name = "my-stream"
+    device_name = "random-device"
+
+    res = client.create_stream(StreamName=stream_name, DeviceName=device_name)
+    res.should.have.key("StreamARN").which.should.contain(stream_name)
+    stream_arn = res["StreamARN"]
 
     # cannot create with existing stream name
     with assert_raises(ClientError):
@@ -34,25 +55,51 @@ def test_list():
     stream_info.should.have.key("DeviceName").which.should.equal(device_name)
 
     # stream can be described with arn
-    res = client.describe_stream(StreamARN=stream_1_arn)
+    res = client.describe_stream(StreamARN=stream_arn)
     res.should.have.key("StreamInfo")
     stream_info = res["StreamInfo"]
     stream_info.should.have.key("StreamARN").which.should.contain(stream_name)
     stream_info.should.have.key("StreamName").which.should.equal(stream_name)
     stream_info.should.have.key("DeviceName").which.should.equal(device_name)
 
+
+@mock_kinesisvideo
+def test_describe_stream_with_name_not_exist():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name_not_exist = "not-exist-stream"
+
     # cannot describe with not exist stream name
     with assert_raises(ClientError):
         client.describe_stream(StreamName=stream_name_not_exist)
 
-    # streams can be listed
-    res = client.create_stream(StreamName=stream_name_2, DeviceName=device_name)
-    stream_2_arn = res["StreamARN"]
 
+@mock_kinesisvideo
+def test_list_streams():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name = "my-stream"
+    stream_name_2 = "my-stream-2"
+    device_name = "random-device"
+
+    client.create_stream(StreamName=stream_name, DeviceName=device_name)
+    client.create_stream(StreamName=stream_name_2, DeviceName=device_name)
+
+    # streams can be listed
     res = client.list_streams()
     res.should.have.key("StreamInfoList")
     streams = res["StreamInfoList"]
     streams.should.have.length_of(2)
+
+
+@mock_kinesisvideo
+def test_delete_stream():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name = "my-stream"
+    stream_name_2 = "my-stream-2"
+    device_name = "random-device"
+
+    client.create_stream(StreamName=stream_name, DeviceName=device_name)
+    res = client.create_stream(StreamName=stream_name_2, DeviceName=device_name)
+    stream_2_arn = res["StreamARN"]
 
     # stream can be deleted
     client.delete_stream(StreamARN=stream_2_arn)
@@ -60,7 +107,21 @@ def test_list():
     streams = res["StreamInfoList"]
     streams.should.have.length_of(1)
 
-    # cannot delete with not exist stream name
+
+@mock_kinesisvideo
+def test_delete_stream_with_arn_not_exist():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name = "my-stream"
+    stream_name_2 = "my-stream-2"
+    device_name = "random-device"
+
+    client.create_stream(StreamName=stream_name, DeviceName=device_name)
+    res = client.create_stream(StreamName=stream_name_2, DeviceName=device_name)
+    stream_2_arn = res["StreamARN"]
+
+    client.delete_stream(StreamARN=stream_2_arn)
+
+    # cannot delete with not exist stream
     stream_arn_not_exist = stream_2_arn
     with assert_raises(ClientError):
         client.delete_stream(StreamARN=stream_arn_not_exist)
