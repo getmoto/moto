@@ -4447,7 +4447,7 @@
 - [ ] describe_default_authorizer
 - [ ] describe_dimension
 - [ ] describe_domain_configuration
-- [ ] describe_endpoint
+- [X] describe_endpoint
 - [ ] describe_event_configurations
 - [ ] describe_index
 - [X] describe_job
@@ -4533,7 +4533,7 @@
 - [ ] list_violation_events
 - [ ] register_ca_certificate
 - [X] register_certificate
-- [ ] register_certificate_without_ca
+- [X] register_certificate_without_ca
 - [ ] register_thing
 - [ ] reject_certificate_transfer
 - [ ] remove_thing_from_billing_group

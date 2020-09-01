@@ -464,6 +464,46 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
 
 
 @mock_iot
+def test_endpoints():
+    region_name = "ap-northeast-1"
+    client = boto3.client("iot", region_name=region_name)
+
+    # iot:Data
+    endpoint = client.describe_endpoint(endpointType="iot:Data")
+    endpoint.should.have.key("endpointAddress").which.should_not.contain("ats")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:Data-ATS")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "ats.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:CredentialProvider")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "credentials.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # iot:Data-ATS
+    endpoint = client.describe_endpoint(endpointType="iot:Jobs")
+    endpoint.should.have.key("endpointAddress").which.should.contain(
+        "jobs.iot.{}.amazonaws.com".format(region_name)
+    )
+
+    # raise InvalidRequestException
+    try:
+        client.describe_endpoint(endpointType="iot:Abc")
+    except client.exceptions.InvalidRequestException as exc:
+        error_code = exc.response["Error"]["Code"]
+        error_code.should.equal("InvalidRequestException")
+    else:
+        raise Exception("Should have raised error")
+
+
+@mock_iot
 def test_certs():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -518,6 +558,26 @@ def test_certs():
     cert = client.describe_certificate(certificateId=cert_id)
     cert_desc = cert["certificateDescription"]
     cert_desc.should.have.key("status").which.should.equal("REVOKED")
+
+    client.delete_certificate(certificateId=cert_id)
+    res = client.list_certificates()
+    res.should.have.key("certificates")
+
+    # Test register_certificate without CA flow
+    cert = client.register_certificate_without_ca(
+        certificatePem=cert_pem, status="INACTIVE"
+    )
+    cert.should.have.key("certificateId").which.should_not.be.none
+    cert.should.have.key("certificateArn").which.should_not.be.none
+    cert_id = cert["certificateId"]
+
+    res = client.list_certificates()
+    res.should.have.key("certificates").which.should.have.length_of(1)
+    for cert in res["certificates"]:
+        cert.should.have.key("certificateArn").which.should_not.be.none
+        cert.should.have.key("certificateId").which.should_not.be.none
+        cert.should.have.key("status").which.should_not.be.none
+        cert.should.have.key("creationDate").which.should_not.be.none
 
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
