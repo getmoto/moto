@@ -55,6 +55,15 @@ class KinesisVideoResponse(BaseResponse):
         )
         return json.dumps(dict())
 
+    def get_data_endpoint(self):
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        api_name = self._get_param("APIName")
+        data_endpoint = self.kinesisvideo_backend.get_data_endpoint(
+            stream_name=stream_name, stream_arn=stream_arn, api_name=api_name,
+        )
+        return json.dumps(dict(DataEndpoint=data_endpoint))
+
     # add methods from here
 
 

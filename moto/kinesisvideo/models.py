@@ -6,6 +6,8 @@ from .exceptions import (
     ResourceNotFoundException,
     ResourceInUseException,
 )
+import random
+import string
 
 
 class Stream(BaseModel):
@@ -27,12 +29,28 @@ class Stream(BaseModel):
         self.data_retention_in_hours = data_retention_in_hours
         self.tags = tags
         self.status = "ACTIVE"
-        self.version = 1
+        self.version = self._get_random_string()
         self.creation_time = datetime.utcnow()
         stream_arn = "arn:aws:kinesisvideo:{}:123456789012:stream/{}/1598784211076".format(
             self.region_name, self.stream_name
         )
+        self.data_endpoint_number = self._get_random_hex()
         self.arn = stream_arn
+
+    def _get_random_hex(self, length=8):
+        chars = list("1234567890abcdef")
+        return "".join([random.choice(chars) for _ in range(length)])
+
+    def _get_random_string(self, length=20):
+        letters = string.ascii_lowercase
+        result_str = "".join([random.choice(letters) for _ in range(length)])
+        return result_str
+
+    def get_data_endpoint(self, api_name):
+        data_endpoint_prefix = "s-" if api_name in ("PUT_MEDIA", "GET_MEDIA") else "b-"
+        return "https://{}{}.kinesisvideo.{}.amazonaws.com".format(
+            data_endpoint_prefix, self.data_endpoint_number, self.region_name
+        )
 
     def to_dict(self):
         return {
@@ -83,7 +101,7 @@ class KinesisVideoBackend(BaseBackend):
         self.streams[stream.arn] = stream
         return stream.arn
 
-    def describe_stream(self, stream_name, stream_arn):
+    def _get_stream(self, stream_name, stream_arn):
         if stream_name:
             streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
             if len(streams) == 0:
@@ -93,6 +111,10 @@ class KinesisVideoBackend(BaseBackend):
             stream = self.streams.get(stream_arn)
             if stream is None:
                 raise ResourceNotFoundException()
+        return stream
+
+    def describe_stream(self, stream_name, stream_arn):
+        stream = self._get_stream(stream_name, stream_arn)
         stream_info = stream.to_dict()
         return stream_info
 

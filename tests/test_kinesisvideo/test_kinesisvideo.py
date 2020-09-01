@@ -64,3 +64,16 @@ def test_list():
     stream_arn_not_exist = stream_2_arn
     with assert_raises(ClientError):
         client.delete_stream(StreamARN=stream_arn_not_exist)
+
+
+@mock_kinesisvideo
+def test_data_endpoint():
+    client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
+    stream_name = "my-stream"
+    device_name = "random-device"
+
+    # data-endpoint can be created
+    api_name = "GET_MEDIA"
+    client.create_stream(StreamName=stream_name, DeviceName=device_name)
+    res = client.get_data_endpoint(StreamName=stream_name, APIName=api_name)
+    res.should.have.key("DataEndpoint")
