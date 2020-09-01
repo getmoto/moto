@@ -1859,6 +1859,23 @@ def test_create_api_key():
 
 
 @mock_apigateway
+def test_create_api_headers():
+    region_name = "us-west-2"
+    client = boto3.client("apigateway", region_name=region_name)
+
+    apikey_value = "12345"
+    apikey_name = "TESTKEY1"
+    payload = {"value": apikey_value, "name": apikey_name}
+
+    client.create_api_key(**payload)
+    with assert_raises(ClientError) as ex:
+        client.create_api_key(**payload)
+    ex.exception.response["Error"]["Code"].should.equal("ConflictException")
+    if not settings.TEST_SERVER_MODE:
+        ex.exception.response["ResponseMetadata"]["HTTPHeaders"].should.equal({})
+
+
+@mock_apigateway
 def test_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
