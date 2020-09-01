@@ -493,7 +493,7 @@ GET_QUEUE_ATTRIBUTES_RESPONSE = """<GetQueueAttributesResponse>
         {% if value is not none %}
             <Attribute>
                 <Name>{{ key }}</Name>
-                <Value>{{ value }}</Value>    
+                <Value>{{ value }}</Value>
             </Attribute>
         {% endif %}
     {% endfor %}

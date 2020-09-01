@@ -1489,14 +1489,14 @@ def test_get_queue_attributes_template_response_validation():
     assert attrs.get("Attributes").get("Policy") is not None
 
     assert (
-            json.loads(attrs.get("Attributes").get("Policy")).get("Version") == "2012-10-17"
+        json.loads(attrs.get("Attributes").get("Policy")).get("Version") == "2012-10-17"
     )
     assert len(json.loads(attrs.get("Attributes").get("Policy")).get("Statement")) == 1
     assert (
-            json.loads(attrs.get("Attributes").get("Policy"))
-            .get("Statement")[0]
-            .get("Action")
-            == "sqs:SendMessage"
+        json.loads(attrs.get("Attributes").get("Policy"))
+        .get("Statement")[0]
+        .get("Action")
+        == "sqs:SendMessage"
     )
 
 
