@@ -45,6 +45,14 @@ class NotAuthorizedError(BadRequest):
         )
 
 
+class UserNotConfirmedException(BadRequest):
+    def __init__(self, message):
+        super(UserNotConfirmedException, self).__init__()
+        self.description = json.dumps(
+            {"message": message, "__type": "UserNotConfirmedException"}
+        )
+
+
 class InvalidParameterException(JsonRESTError):
     def __init__(self, msg=None):
         self.code = 400

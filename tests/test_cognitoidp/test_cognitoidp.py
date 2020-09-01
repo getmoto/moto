@@ -4,6 +4,9 @@ import json
 import os
 import random
 import re
+import hmac
+import hashlib
+import base64
 
 import requests
 import uuid
@@ -1248,6 +1251,137 @@ def test_authentication_flow():
     authentication_flow(conn)
 
 
+def user_authentication_flow(conn):
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name],
+        GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+
+    conn.sign_up(
+        ClientId=client_id, Username=username, Password=password,
+    )
+
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id,
+    )["UserPoolClient"]["ClientSecret"]
+
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456",
+    )
+
+    # generating secret hash
+    key = bytes(str(client_secret).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": str(uuid.uuid4()),
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+            "PASSWORD_CLAIM_SECRET_BLOCK": result["Session"],
+            "TIMESTAMP": str(uuid.uuid4()),
+            "USERNAME": username,
+        },
+    )
+
+    refresh_token = result["AuthenticationResult"]["RefreshToken"]
+
+    # add mfa token
+    conn.associate_software_token(
+        AccessToken=result["AuthenticationResult"]["AccessToken"],
+    )
+
+    conn.verify_software_token(
+        AccessToken=result["AuthenticationResult"]["AccessToken"], UserCode="123456",
+    )
+
+    conn.set_user_mfa_preference(
+        AccessToken=result["AuthenticationResult"]["AccessToken"],
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True,},
+    )
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="REFRESH_TOKEN",
+        AuthParameters={"SECRET_HASH": secret_hash, "REFRESH_TOKEN": refresh_token,},
+    )
+
+    result["AuthenticationResult"]["IdToken"].should_not.be.none
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+
+    # authenticate user once again this time with mfa token
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": str(uuid.uuid4()),
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+            "PASSWORD_CLAIM_SECRET_BLOCK": result["Session"],
+            "TIMESTAMP": str(uuid.uuid4()),
+            "USERNAME": username,
+        },
+    )
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        Session=result["Session"],
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": "123456",
+            "USERNAME": username,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    return {
+        "user_pool_id": user_pool_id,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "secret_hash": secret_hash,
+        "id_token": result["AuthenticationResult"]["IdToken"],
+        "access_token": result["AuthenticationResult"]["AccessToken"],
+        "refresh_token": refresh_token,
+        "username": username,
+        "password": password,
+        "additional_fields": {user_attribute_name: user_attribute_value},
+    }
+
+
+@mock_cognitoidp
+def test_user_authentication_flow():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    user_authentication_flow(conn)
+
+
 @mock_cognitoidp
 def test_token_legitimacy():
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -1435,6 +1569,244 @@ def test_resource_server():
         "%s already exists in user pool %s." % (identifier, user_pool_id)
     )
     ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+
+
+@mock_cognitoidp
+def test_sign_up():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()),
+    )["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    result["UserConfirmed"].should.be.false
+    result["UserSub"].should_not.be.none
+
+
+@mock_cognitoidp
+def test_confirm_sign_up():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456",
+    )
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    result["UserStatus"].should.equal("CONFIRMED")
+
+
+@mock_cognitoidp
+def test_initiate_auth_USER_SRP_AUTH():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id,
+    )["UserPoolClient"]["ClientSecret"]
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456",
+    )
+
+    key = bytes(str(client_secret).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": str(uuid.uuid4()),
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    result["ChallengeName"].should.equal("PASSWORD_VERIFIER")
+
+
+@mock_cognitoidp
+def test_initiate_auth_REFRESH_TOKEN():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+    result = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="REFRESH_TOKEN",
+        AuthParameters={
+            "REFRESH_TOKEN": result["refresh_token"],
+            "SECRET_HASH": result["secret_hash"],
+        },
+    )
+
+    result["AuthenticationResult"]["AccessToken"].should_not.be.none
+
+
+@mock_cognitoidp
+def test_initiate_auth_for_unconfirmed_user():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id,
+    )["UserPoolClient"]["ClientSecret"]
+
+    key = bytes(str(client_secret).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+
+    caught = False
+    try:
+        result = conn.initiate_auth(
+            ClientId=client_id,
+            AuthFlow="USER_SRP_AUTH",
+            AuthParameters={
+                "USERNAME": username,
+                "SRP_A": str(uuid.uuid4()),
+                "SECRET_HASH": secret_hash,
+            },
+        )
+    except conn.exceptions.UserNotConfirmedException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
+def test_initiate_auth_with_invalid_secret_hash():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True,
+    )["UserPoolClient"]["ClientId"]
+    conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id,
+    )["UserPoolClient"]["ClientSecret"]
+    conn.confirm_sign_up(
+        ClientId=client_id, Username=username, ConfirmationCode="123456",
+    )
+
+    invalid_secret_hash = str(uuid.uuid4())
+
+    caught = False
+    try:
+        result = conn.initiate_auth(
+            ClientId=client_id,
+            AuthFlow="USER_SRP_AUTH",
+            AuthParameters={
+                "USERNAME": username,
+                "SRP_A": str(uuid.uuid4()),
+                "SECRET_HASH": invalid_secret_hash,
+            },
+        )
+    except conn.exceptions.NotAuthorizedException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
+def test_setting_mfa():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = authentication_flow(conn)
+    conn.associate_software_token(AccessToken=result["access_token"])
+    conn.verify_software_token(AccessToken=result["access_token"], UserCode="123456")
+    conn.set_user_mfa_preference(
+        AccessToken=result["access_token"],
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+    result = conn.admin_get_user(
+        UserPoolId=result["user_pool_id"], Username=result["username"]
+    )
+
+    result["UserMFASettingList"].should.have.length_of(1)
+
+
+@mock_cognitoidp
+def test_setting_mfa_when_token_not_verified():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = authentication_flow(conn)
+    conn.associate_software_token(AccessToken=result["access_token"])
+
+    caught = False
+    try:
+        conn.set_user_mfa_preference(
+            AccessToken=result["access_token"],
+            SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+        )
+    except conn.exceptions.InvalidParameterException:
+        caught = True
+
+    caught.should.be.true
+
+
+@mock_cognitoidp
+def test_respond_to_auth_challenge_with_invalid_secret_hash():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn)
+
+    valid_secret_hash = result["secret_hash"]
+    invalid_secret_hash = str(uuid.uuid4())
+
+    challenge = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": result["username"],
+            "SRP_A": str(uuid.uuid4()),
+            "SECRET_HASH": valid_secret_hash,
+        },
+    )
+
+    challenge = conn.respond_to_auth_challenge(
+        ClientId=result["client_id"],
+        ChallengeName=challenge["ChallengeName"],
+        ChallengeResponses={
+            "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+            "PASSWORD_CLAIM_SECRET_BLOCK": challenge["Session"],
+            "TIMESTAMP": str(uuid.uuid4()),
+            "USERNAME": result["username"],
+        },
+    )
+
+    caught = False
+    try:
+        conn.respond_to_auth_challenge(
+            ClientId=result["client_id"],
+            Session=challenge["Session"],
+            ChallengeName=challenge["ChallengeName"],
+            ChallengeResponses={
+                "SOFTWARE_TOKEN_MFA_CODE": "123456",
+                "USERNAME": result["username"],
+                "SECRET_HASH": invalid_secret_hash,
+            },
+        )
+    except conn.exceptions.NotAuthorizedException:
+        caught = True
+
+    caught.should.be.true
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
