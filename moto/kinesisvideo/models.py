@@ -107,15 +107,19 @@ class KinesisVideoBackend(BaseBackend):
             raise ResourceNotFoundException()
         del self.streams[stream_arn]
 
+    def get_data_endpoint(self, stream_name, stream_arn, api_name):
+        stream = self._get_stream(stream_name, stream_arn)
+        return stream.get_data_endpoint(api_name)
+
     # add methods from here
 
 
 kinesisvideo_backends = {}
 for region in Session().get_available_regions("kinesisvideo"):
-    kinesisvideo_backends[region] = KinesisVideoBackend()
+    kinesisvideo_backends[region] = KinesisVideoBackend(region)
 for region in Session().get_available_regions(
     "kinesisvideo", partition_name="aws-us-gov"
 ):
-    kinesisvideo_backends[region] = KinesisVideoBackend()
+    kinesisvideo_backends[region] = KinesisVideoBackend(region)
 for region in Session().get_available_regions("kinesisvideo", partition_name="aws-cn"):
-    kinesisvideo_backends[region] = KinesisVideoBackend()
+    kinesisvideo_backends[region] = KinesisVideoBackend(region)
