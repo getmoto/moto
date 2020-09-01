@@ -50,6 +50,41 @@ Note the `urls.py` that redirects all incoming URL requests to a generic `dispat
 
 If you want more control over incoming requests or their bodies, it is possible to redirect specific requests to a custom method. See this PR for an example: https://github.com/spulec/moto/pull/2957/files
 
+### Generating template code of services.
+
+By using `scripts/scaffold.py`, you can automatically generate template code of new services and new method of existing service. The script looks up API specification of given boto3 method and adds necessary codes includng request parameters and response parameters. In some cases, it fails to generate codes.
+Please try out by runninig `python scripts/scaffold.py`
+
+```bash
+$ python scripts/scaffold.py
+Select service: codedeploy
+
+==Current Implementation Status==
+[ ] add_tags_to_on_premises_instances
+...
+[ ] create_deployment
+...[
+[ ] update_deployment_group
+=================================
+Select Operation: create_deployment
+
+
+	Initializing service	codedeploy
+	creating	moto/codedeploy
+	creating	moto/codedeploy/models.py
+	creating	moto/codedeploy/exceptions.py
+	creating	moto/codedeploy/__init__.py
+	creating	moto/codedeploy/responses.py
+	creating	moto/codedeploy/urls.py
+	creating	tests/test_codedeploy
+	creating	tests/test_codedeploy/test_server.py
+	creating	tests/test_codedeploy/test_codedeploy.py
+	inserting code	moto/codedeploy/responses.py
+	inserting code	moto/codedeploy/models.py
+You will still need to add the mock into "__init__.py"
+```
+
+
 ## Maintainers
 
 ### Releasing a new version of Moto
