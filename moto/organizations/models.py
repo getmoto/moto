@@ -821,5 +821,33 @@ class OrganizationsBackend(BaseBackend):
 
         return dict(Root=root.describe())
 
+    def detach_policy(self, **kwargs):
+        policy = self.get_policy_by_id(kwargs["PolicyId"])
+        if re.compile(utils.ROOT_ID_REGEX).match(kwargs["TargetId"]) or re.compile(
+            utils.OU_ID_REGEX
+        ).match(kwargs["TargetId"]):
+            ou = next((ou for ou in self.ou if ou.id == kwargs["TargetId"]), None)
+            if ou is not None:
+                if ou in ou.attached_policies:
+                    ou.attached_policies.remove(policy)
+                    policy.attachments.remove(ou)
+            else:
+                raise RESTError(
+                    "OrganizationalUnitNotFoundException",
+                    "You specified an organizational unit that doesn't exist.",
+                )
+        elif re.compile(utils.ACCOUNT_ID_REGEX).match(kwargs["TargetId"]):
+            account = next(
+                (a for a in self.accounts if a.id == kwargs["TargetId"]), None
+            )
+            if account is not None:
+                if account in account.attached_policies:
+                    account.attached_policies.remove(policy)
+                    policy.attachments.remove(account)
+            else:
+                raise AccountNotFoundException
+        else:
+            raise InvalidInputException("You specified an invalid value.")
+
 
 organizations_backend = OrganizationsBackend()

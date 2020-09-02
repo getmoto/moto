@@ -468,6 +468,90 @@ def test_attach_policy():
 
 
 @mock_organizations
+def test_detach_policy():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    response = client.detach_policy(PolicyId=policy_id, TargetId=ou_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response = client.detach_policy(PolicyId=policy_id, TargetId=root_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response = client.detach_policy(PolicyId=policy_id, TargetId=account_id)
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+
+@mock_organizations
+def test_detach_policy_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    ou_id = client.create_organizational_unit(ParentId=root_id, Name="ou01")[
+        "OrganizationalUnit"
+    ]["Id"]
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+    policy_id = client.create_policy(
+        Content=json.dumps(policy_doc01),
+        Description="A dummy service control policy",
+        Name="MockServiceControlPolicy",
+        Type="SERVICE_CONTROL_POLICY",
+    )["Policy"]["PolicySummary"]["Id"]
+    client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+    client.attach_policy(PolicyId=policy_id, TargetId=account_id)
+    with assert_raises(ClientError) as e:
+        response = client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
+    ex = e.exception
+    ex.operation_name.should.equal("DetachPolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain(
+        "OrganizationalUnitNotFoundException"
+    )
+    with assert_raises(ClientError) as e:
+        response = client.detach_policy(
+            PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7"
+        )
+    ex = e.exception
+    ex.operation_name.should.equal("DetachPolicy")
+    ex.response["Error"]["Code"].should.equal("400")
+    ex.response["Error"]["Message"].should.contain(
+        "OrganizationalUnitNotFoundException"
+    )
+    with assert_raises(ClientError) as e:
+        response = client.detach_policy(PolicyId=policy_id, TargetId="111619863336")
+    ex = e.exception
+    ex.operation_name.should.equal("DetachPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
+    ex.response["Error"]["Message"].should.equal(
+        "You specified an account that doesn't exist."
+    )
+    with assert_raises(ClientError) as e:
+        response = client.detach_policy(PolicyId=policy_id, TargetId="invalidtargetid")
+    ex = e.exception
+    ex.operation_name.should.equal("DetachPolicy")
+    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.response["Error"]["Code"].should.contain("InvalidInputException")
+    ex.response["Error"]["Message"].should.equal("You specified an invalid value.")
+
+
+@mock_organizations
 def test_delete_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]

@@ -201,3 +201,8 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.disable_policy_type(**self.request_params)
         )
+
+    def detach_policy(self):
+        return json.dumps(
+            self.organizations_backend.detach_policy(**self.request_params)
+        )
