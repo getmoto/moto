@@ -1502,6 +1502,7 @@ class Region(object):
 
 
 class Zone(object):
+
     def __init__(self, name, region_name, zone_id):
         self.name = name
         self.region_name = region_name
@@ -1509,6 +1510,7 @@ class Zone(object):
 
 
 class RegionsAndZonesBackend(object):
+
     regions = []
     for region in Session().get_available_regions("ec2"):
         regions.append(Region(region, "ec2.{}.amazonaws.com".format(region)))
@@ -1635,6 +1637,11 @@ class RegionsAndZonesBackend(object):
             Zone(region_name="eu-central-1", name="eu-central-1b", zone_id="euc1-az3"),
             Zone(region_name="eu-central-1", name="eu-central-1c", zone_id="euc1-az1"),
         ],
+        "eu-south-1": [
+            Zone(region_name="eu-south-1", name="eu-south-1a", zone_id="eus1-az1"),
+            Zone(region_name="eu-south-1", name="eu-south-1b", zone_id="eus1-az2"),
+            Zone(region_name="eu-south-1", name="eu-south-1c", zone_id="eus1-az3"),
+        ],
         "us-east-1": [
             Zone(region_name="us-east-1", name="us-east-1a", zone_id="use1-az6"),
             Zone(region_name="us-east-1", name="us-east-1b", zone_id="use1-az1"),
@@ -1718,12 +1725,14 @@ class RegionsAndZonesBackend(object):
         return ret
 
     def describe_availability_zones(self):
-        return self.zones[self.region_name]
+        return self.zones.get(self.region_name, self.zones['us-east-1'][0])
 
     def get_zone_by_name(self, name):
-        for zone in self.zones[self.region_name]:
+        for zone in self.zones.get(self.region_name, dict()):
             if zone.name == name:
                 return zone
+        else:
+            return self.zones['us-east-1'][0]
 
 
 class SecurityRule(object):
