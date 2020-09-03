@@ -57,5 +57,14 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
         )
         return json.dumps(dict(DASHStreamingSessionURL=dash_streaming_session_url))
 
-
-# add templates from here
+    def get_clip(self):
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        clip_fragment_selector = self._get_param("ClipFragmentSelector")
+        content_type, payload = self.kinesisvideoarchivedmedia_backend.get_clip(
+            stream_name=stream_name,
+            stream_arn=stream_arn,
+            clip_fragment_selector=clip_fragment_selector,
+        )
+        new_headers = {"Content-Type": content_type}
+        return payload, new_headers

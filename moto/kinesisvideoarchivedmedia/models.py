@@ -3,6 +3,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.kinesisvideo import kinesisvideo_backends
 from moto.sts.utils import random_session_token
+import botocore.response
 
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):
@@ -61,6 +62,12 @@ class KinesisVideoArchivedMediaBackend(BaseBackend):
         api_name = "GET_DASH_STREAMING_SESSION_URL"
         url = self._get_streaming_url(stream_name, stream_arn, api_name)
         return url
+
+    def get_clip(self, stream_name, stream_arn, clip_fragment_selector):
+        kinesisvideo_backends[self.region_name]._get_stream(stream_name, stream_arn)
+        content_type = "video/mp4"  # Fixed content_type as it depends on input stream
+        payload = b"sample-mp4-video"
+        return content_type, payload
 
 
 kinesisvideoarchivedmedia_backends = {}
