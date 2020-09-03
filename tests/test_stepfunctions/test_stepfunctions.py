@@ -427,7 +427,7 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_list_executions_with_default_input():
+def test_state_machine_list_executions():
     client = boto3.client("stepfunctions", region_name=region)
     #
     sm = client.create_state_machine(
