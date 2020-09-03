@@ -36,7 +36,26 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
         )
         return json.dumps(dict(HLSStreamingSessionURL=hls_streaming_session_url))
 
-    # add methods from here
+    def get_dash_streaming_session_url(self):
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        playback_mode = self._get_param("PlaybackMode")
+        display_fragment_timestamp = self._get_param("DisplayFragmentTimestamp")
+        display_fragment_number = self._get_param("DisplayFragmentNumber")
+        dash_fragment_selector = self._get_param("DASHFragmentSelector")
+        expires = self._get_int_param("Expires")
+        max_manifest_fragment_results = self._get_param("MaxManifestFragmentResults")
+        dash_streaming_session_url = self.kinesisvideoarchivedmedia_backend.get_dash_streaming_session_url(
+            stream_name=stream_name,
+            stream_arn=stream_arn,
+            playback_mode=playback_mode,
+            display_fragment_timestamp=display_fragment_timestamp,
+            display_fragment_number=display_fragment_number,
+            dash_fragment_selector=dash_fragment_selector,
+            expires=expires,
+            max_manifest_fragment_results=max_manifest_fragment_results,
+        )
+        return json.dumps(dict(DASHStreamingSessionURL=dash_streaming_session_url))
 
 
 # add templates from here

@@ -29,3 +29,25 @@ def test_get_hls_streaming_session_url():
         data_endpoint
     )
     res.should.have.key("HLSStreamingSessionURL").which.should.match(reg_exp)
+
+
+@mock_kinesisvideo
+@mock_kinesisvideoarchivedmedia
+def test_get_dash_streaming_session_url():
+    region_name = "ap-northeast-1"
+    kvs_client = boto3.client("kinesisvideo", region_name=region_name)
+    stream_name = "my-stream"
+    kvs_client.create_stream(StreamName=stream_name)
+
+    api_name = "GET_DASH_STREAMING_SESSION_URL"
+    res = kvs_client.get_data_endpoint(StreamName=stream_name, APIName=api_name)
+    data_endpoint = res["DataEndpoint"]
+
+    client = boto3.client(
+        "kinesis-video-archived-media",
+        region_name=region_name,
+        endpoint_url=data_endpoint,
+    )
+    res = client.get_dash_streaming_session_url(StreamName=stream_name,)
+    reg_exp = "^{}/dash/v1/getDASHManifest.mpd\?SessionToken\=.+$".format(data_endpoint)
+    res.should.have.key("DASHStreamingSessionURL").which.should.match(reg_exp)
