@@ -11,7 +11,9 @@ Test the different server responses
 
 
 @mock_kinesisvideoarchivedmedia
-def test_kinesisvideoarchivedmedia_list():
+def test_kinesisvideoarchivedmedia_server_is_up():
     backend = server.create_backend_app("kinesis-video-archived-media")
     test_client = backend.test_client()
-    # do test
+    res = test_client.post("/getHLSStreamingSessionURL")
+    # Just checking server is up
+    res.status_code.should.equal(404)
