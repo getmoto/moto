@@ -34,6 +34,7 @@ class Execution:
         state_machine_name,
         execution_name,
         state_machine_arn,
+        execution_input,
     ):
         execution_arn = "arn:aws:states:{}:{}:execution:{}:{}"
         execution_arn = execution_arn.format(
@@ -43,6 +44,7 @@ class Execution:
         self.name = execution_name
         self.start_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.state_machine_arn = state_machine_arn
+        self.execution_input = execution_input
         self.status = "RUNNING"
         self.stop_date = None
 
@@ -204,7 +206,7 @@ class StepFunctionBackend(BaseBackend):
         if sm:
             self.state_machines.remove(sm)
 
-    def start_execution(self, state_machine_arn, name=None):
+    def start_execution(self, state_machine_arn, name=None, execution_input=None):
         state_machine_name = self.describe_state_machine(state_machine_arn).name
         self._ensure_execution_name_doesnt_exist(name)
         execution = Execution(
@@ -213,6 +215,7 @@ class StepFunctionBackend(BaseBackend):
             state_machine_name=state_machine_name,
             execution_name=name or str(uuid4()),
             state_machine_arn=state_machine_arn,
+            execution_input=execution_input,
         )
         self.executions.append(execution)
         return execution
