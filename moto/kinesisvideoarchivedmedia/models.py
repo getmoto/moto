@@ -1,9 +1,8 @@
 from __future__ import unicode_literals
 from boto3 import Session
-from moto.core import BaseBackend, BaseModel
+from moto.core import BaseBackend
 from moto.kinesisvideo import kinesisvideo_backends
 from moto.sts.utils import random_session_token
-import botocore.response
 
 
 class KinesisVideoArchivedMediaBackend(BaseBackend):

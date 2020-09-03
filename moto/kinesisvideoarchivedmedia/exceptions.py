@@ -1,2 +1,3 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
+
+# Not implemented exceptions for now
