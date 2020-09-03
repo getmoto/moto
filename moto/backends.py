@@ -70,6 +70,7 @@ BACKENDS = {
     "swf": ("swf", "swf_backends"),
     "xray": ("xray", "xray_backends"),
     "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
+    "kinesis-video-archived-media": ("kinesisvideoarchivedmedia", "kinesisvideoarchivedmedia_backends"),
 }
 
 
