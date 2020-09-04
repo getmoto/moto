@@ -91,6 +91,7 @@ from .exceptions import (
     ResourceAlreadyAssociatedError,
     RulesPerSecurityGroupLimitExceededError,
     TagLimitExceeded,
+    InvalidVpcEndPoint,
 )
 from .utils import (
     EC2_RESOURCE_TO_PREFIX,
@@ -3093,6 +3094,73 @@ class VPCBackend(object):
             "services": services,
             "availability_zones": availability_zones,
         }
+
+    def describe_vpc_end_point(self, vpc_endpoint_ids):
+        vpc_endpoints = []
+        for vpc_endpoint_id in vpc_endpoint_ids:
+            vpc_end_point = self.vpc_end_points.get(vpc_endpoint_id)
+            if not vpc_end_point:
+                raise InvalidVpcEndPoint(vpc_endpoint_id)
+            vpc_endpoints.append(vpc_end_point)
+        return vpc_endpoints
+
+    def delete_vpc_endpoints(self, vpc_endpoint_ids):
+        for vpc_endpoint_id in vpc_endpoint_ids:
+            vpc_end_point = self.vpc_end_points.get(vpc_endpoint_id)
+            if not vpc_end_point:
+                raise InvalidVpcEndPoint(vpc_endpoint_id)
+            del self.vpc_end_points[vpc_endpoint_id]
+
+    def modify_vpc_endpoint(
+            self,
+            vpc_endpoint_id,
+            add_route_tables,
+            remove_route_tables,
+            add_subnet_ids,
+            remove_subnet_ids,
+            add_security_group,
+            remove_security_group,
+            policy_document,
+            private_dns_enabled,
+    ):
+
+        vpc_end_point = self.vpc_end_points.get(vpc_endpoint_id)
+        if not vpc_end_point:
+            raise InvalidVpcEndPoint(vpc_endpoint_id)
+
+        if add_route_tables:
+            for route_table_id in add_route_tables:
+                vpc_end_point.route_table_ids.append(route_table_id)
+
+        if remove_route_tables:
+            vpc_end_point.route_table_ids = [
+                ele
+                for ele in vpc_end_point.route_table_ids
+                if ele not in remove_route_tables
+            ]
+
+        if add_subnet_ids:
+            for subnet_id in add_subnet_ids:
+                vpc_end_point.subnet_ids.append(subnet_id)
+        if remove_subnet_ids:
+            vpc_end_point.subnet_ids = [
+                ele for ele in vpc_end_point.subnet_ids if ele not in remove_subnet_ids
+            ]
+
+        if add_security_group:
+            for security_group in add_security_group:
+                vpc_end_point.security_group.append(security_group)
+        if remove_security_group:
+            vpc_end_point.security_group = [
+                ele
+                for ele in vpc_end_point.security_group
+                if ele not in remove_security_group
+            ]
+
+        vpc_end_point.policy_document = policy_document
+        vpc_end_point.private_dns_enabled = private_dns_enabled
+
+        self.vpc_end_points[vpc_end_point] = vpc_end_point
 
 
 class VPCPeeringConnectionStatus(object):

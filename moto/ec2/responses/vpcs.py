@@ -193,8 +193,44 @@ class VPCs(BaseResponse):
 
     def describe_vpc_endpoint_services(self):
         vpc_end_point_services = self.ec2_backend.get_vpc_end_point_services()
-        template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
+        template = self.response_template(DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE)
         return template.render(vpc_end_points=vpc_end_point_services)
+
+    def describe_vpc_endpoints(self):
+        vpc_endpoint_ids = self._get_multi_param("VpcEndpointId")
+        vpc_end_points = self.ec2_backend.describe_vpc_end_point(vpc_endpoint_ids)
+        template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
+        return template.render(vpc_end_points=vpc_end_points)
+
+    def delete_vpc_endpoints(self):
+        vpc_endpoint_ids = self._get_multi_param("VpcEndpointId")
+        vpc_end_points = self.ec2_backend.delete_vpc_endpoints(vpc_endpoint_ids)
+        template = self.response_template(DELETE_VPC_ENDPOINT_RESPONSE)
+        return template.render(vpc_end_points=vpc_end_points)
+
+    def modify_vpc_endpoint(self):
+        vpc_endpoint_id = self._get_param("VpcEndpointId")
+        add_route_tables = self._get_multi_param("AddRouteTableId")
+        remove_route_tables = self._get_multi_param("RemoveRouteTableId")
+        add_subnet_ids = self._get_multi_param("AddSubnetId")
+        remove_subnet_ids = self._get_multi_param("RemoveSubnetId")
+        add_security_group = self._get_multi_param("AddSecurityGroupId")
+        remove_security_group = self._get_multi_param("RemoveSecurityGroupId")
+        policy_document = self._get_param("PolicyDocument")
+        private_dns_enabled = self._get_param("PrivateDnsEnabled")
+        self.ec2_backend.modify_vpc_endpoint(
+            vpc_endpoint_id,
+            add_route_tables,
+            remove_route_tables,
+            add_subnet_ids,
+            remove_subnet_ids,
+            add_security_group,
+            remove_security_group,
+            policy_document,
+            private_dns_enabled,
+        )
+        template = self.response_template(MODIFY_VPC_ENDPOINT_RESPONSE)
+        return template.render()
 
 
 CREATE_VPC_RESPONSE = """
@@ -455,7 +491,7 @@ CREATE_VPC_END_POINT = """ <CreateVpcEndpointResponse xmlns="http://monitoring.a
     </vpcEndpoint>
 </CreateVpcEndpointResponse>"""
 
-DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+DESCRIBE_VPC_ENDPOINT_SERVICES_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
     <serviceNameSet>
         {% for serviceName in vpc_end_points.services %}
@@ -486,3 +522,65 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointServicesResponse xmlns="
         </item>
     </serviceDetailSet>
 </DescribeVpcEndpointServicesResponse>"""
+
+DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>19a9ff46-7df6-49b8-9726-3df27527089d</requestId>
+    <vpcEndpointSet>
+        <item>
+            {% for vpc_end_point in vpc_end_points %}
+                <vpcEndpointId>{{ vpc_end_point.id }}</vpcEndpointId>
+                <vpcEndpointType>{{ vpc_end_point.type }}</vpcEndpointType>
+                <vpcId>{{ vpc_end_point.vpc_id }}</vpcId>
+                <serviceName>{{ vpc_end_point.service_name }}</serviceName>
+                {% if vpc_end_point.policy_document  %}
+                    <policyDocument>{{ vpc_end_point.policy_document }}</policyDocument>
+                {% endif %}
+                {% if vpc_end_point.route_table_ids  %}
+                    <routeTableIdSet>
+                        {% for route_table_id in vpc_end_point.route_table_ids %}
+                                <item>{{ route_table_id }}</item>
+                        {% endfor %}
+                    </routeTableIdSet>
+                {% endif %}
+                {% if vpc_end_point.subnet_ids  %}
+                    <subnetIdSet>
+                        {% for subnet_id in vpc_end_point.subnet_ids %}
+                            <item>{{ subnet_id }}</item>
+                        {% endfor %}
+                    </subnetIdSet>
+                {% endif %}
+                {% if vpc_end_point.network_interface_ids  %}
+                    <networkInterfaceIdSet>
+                        {% for network_interface_id in vpc_end_point.network_interface_ids %}
+                            <item>{{ network_interface_id }}</item>
+                        {% endfor %}
+                    </networkInterfaceIdSet>
+                {% endif %}
+                {% if vpc_end_point.dns_entries  %}
+                    <dnsEntrySet>
+                        {% for dns_entry in vpc_end_point.dns_entries %}
+                            <item>{{ dns_entry }}</item>
+                        {% endfor %}
+                    </dnsEntrySet>
+                {% endif %}
+                {% if vpc_end_point.private_dns_enabled  %}
+                    <privateDnsEnabled>{{ vpc_end_point.private_dns_enabled }}</privateDnsEnabled>
+                {% endif %}
+                <requesterManaged>true</requesterManaged>
+                <rreationTimestamp>{{ vpc_end_point.created_at }}</rreationTimestamp>
+                <ownerId>12345678912</ownerId>
+            {% endfor %}
+        </item>
+    </vpcEndpointSet>
+</DescribeVpcEndpointsResponse>"""
+
+DELETE_VPC_ENDPOINT_RESPONSE = """<DeleteVpcEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <unsuccessful/>
+    <requestId>b59c2643-789a-4bf7-aac4-example</requestId>
+</DeleteVpcEndpointsResponse>"""
+
+MODIFY_VPC_ENDPOINT_RESPONSE = """
+<ModifyVpcEndPointResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <return>true</return>
+</ModifyVpcEndPointResponse>"""

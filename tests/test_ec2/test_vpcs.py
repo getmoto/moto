@@ -834,7 +834,7 @@ def test_describe_vpc_end_point_services():
 
     route_table = ec2.create_route_table(VpcId=vpc["Vpc"]["VpcId"])
 
-    ec2.create_vpc_endpoint(
+    vpc_response = ec2.create_vpc_endpoint(
         VpcId=vpc["Vpc"]["VpcId"],
         ServiceName="com.amazonaws.us-east-1.s3",
         RouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
@@ -847,12 +847,56 @@ def test_describe_vpc_end_point_services():
     assert vpc_end_point_services.get("ServiceNames").should.be.true
     assert vpc_end_point_services.get("ServiceNames") == ["com.amazonaws.us-east-1.s3"]
     assert (
-        vpc_end_point_services.get("ServiceDetails")[0]
-        .get("ServiceType", [])[0]
-        .get("ServiceType")
-        == "gateway"
+            vpc_end_point_services.get("ServiceDetails")[0]
+            .get("ServiceType", [])[0]
+            .get("ServiceType")
+            == "gateway"
     )
     assert vpc_end_point_services.get("ServiceDetails")[0].get("AvailabilityZones") == [
         "us-west-1a",
         "us-west-1b",
     ]
+
+    response = ec2.describe_vpc_endpoints(
+        VpcEndpointIds=[vpc_response["VpcEndpoint"]["VpcEndpointId"]]
+    )
+
+    assert len(response["VpcEndpoints"]) == 1
+    assert response["VpcEndpoints"][0]["VpcEndpointType"] == "gateway"
+    assert response["VpcEndpoints"][0]["ServiceName"] == "com.amazonaws.us-east-1.s3"
+    assert response["VpcEndpoints"][0]["VpcId"] == vpc["Vpc"]["VpcId"]
+    assert (
+            response["VpcEndpoints"][0]["VpcEndpointId"]
+            == vpc_response["VpcEndpoint"]["VpcEndpointId"]
+    )
+    assert response["VpcEndpoints"][0]["RouteTableIds"] == [
+        route_table["RouteTable"]["RouteTableId"]
+    ]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_response["VpcEndpoint"]["VpcEndpointId"],
+        RemoveRouteTableIds=[route_table["RouteTable"]["RouteTableId"]],
+    )
+
+    response = ec2.describe_vpc_endpoints(
+        VpcEndpointIds=[vpc_response["VpcEndpoint"]["VpcEndpointId"]]
+    )
+
+    assert len(response["VpcEndpoints"]) == 1
+    assert response["VpcEndpoints"][0].get("RouteTableIds") == None
+
+    ec2.delete_vpc_endpoints(
+        VpcEndpointIds=[vpc_response["VpcEndpoint"]["VpcEndpointId"]]
+    )
+
+    with assert_raises(ClientError) as ex:
+        ec2.describe_vpc_endpoints(
+            VpcEndpointIds=[vpc_response["VpcEndpoint"]["VpcEndpointId"]]
+        )
+
+    str(ex.exception).should.equal(
+        "An error occurred (InvalidVpcEndPoint.ResourceNotFound) when calling the "
+        "DescribeVpcEndpoints operation: The instance ID {0} does not exist".format(
+            vpc_response["VpcEndpoint"]["VpcEndpointId"]
+        )
+    )

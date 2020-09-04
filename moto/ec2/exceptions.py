@@ -520,3 +520,11 @@ class InvalidLaunchTemplateNameError(EC2ClientError):
             "InvalidLaunchTemplateName.AlreadyExistsException",
             "Launch template name already in use.",
         )
+
+
+class InvalidVpcEndPoint(EC2ClientError):
+    def __init__(self, vpc_endpoint_id):
+        super(InvalidVpcEndPoint, self).__init__(
+            "InvalidVpcEndPoint.ResourceNotFound",
+            "The instance ID {0} does not exist".format(vpc_endpoint_id),
+        )
