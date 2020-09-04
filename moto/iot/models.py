@@ -20,6 +20,7 @@ from .exceptions import (
     InvalidStateTransitionException,
     VersionConflictException,
 )
+from moto.utilities.utils import random_string
 
 
 class FakeThing(BaseModel):
@@ -374,6 +375,55 @@ class FakeJobExecution(BaseModel):
         return obj
 
 
+class FakeEndpoint(BaseModel):
+    def __init__(self, endpoint_type, region_name):
+        if endpoint_type not in [
+            "iot:Data",
+            "iot:Data-ATS",
+            "iot:CredentialProvider",
+            "iot:Jobs",
+        ]:
+            raise InvalidRequestException(
+                " An error occurred (InvalidRequestException) when calling the DescribeEndpoint "
+                "operation: Endpoint type %s not recognized." % endpoint_type
+            )
+        self.region_name = region_name
+        data_identifier = random_string(14)
+        if endpoint_type == "iot:Data":
+            self.endpoint = "{i}.iot.{r}.amazonaws.com".format(
+                i=data_identifier, r=self.region_name
+            )
+        elif "iot:Data-ATS" in endpoint_type:
+            self.endpoint = "{i}-ats.iot.{r}.amazonaws.com".format(
+                i=data_identifier, r=self.region_name
+            )
+        elif "iot:CredentialProvider" in endpoint_type:
+            identifier = random_string(14)
+            self.endpoint = "{i}.credentials.iot.{r}.amazonaws.com".format(
+                i=identifier, r=self.region_name
+            )
+        elif "iot:Jobs" in endpoint_type:
+            identifier = random_string(14)
+            self.endpoint = "{i}.jobs.iot.{r}.amazonaws.com".format(
+                i=identifier, r=self.region_name
+            )
+        self.endpoint_type = endpoint_type
+
+    def to_get_dict(self):
+        obj = {
+            "endpointAddress": self.endpoint,
+        }
+
+        return obj
+
+    def to_dict(self):
+        obj = {
+            "endpointAddress": self.endpoint,
+        }
+
+        return obj
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name=None):
         super(IoTBackend, self).__init__()
@@ -387,6 +437,7 @@ class IoTBackend(BaseBackend):
         self.policies = OrderedDict()
         self.principal_policies = OrderedDict()
         self.principal_things = OrderedDict()
+        self.endpoint = None
 
     def reset(self):
         region_name = self.region_name
@@ -494,6 +545,10 @@ class IoTBackend(BaseBackend):
         if len(thing_types) == 0:
             raise ResourceNotFoundException()
         return thing_types[0]
+
+    def describe_endpoint(self, endpoint_type):
+        self.endpoint = FakeEndpoint(endpoint_type, self.region_name)
+        return self.endpoint
 
     def delete_thing(self, thing_name, expected_version):
         # TODO: handle expected_version
@@ -622,6 +677,11 @@ class IoTBackend(BaseBackend):
             self.region_name,
             ca_certificate_pem,
         )
+        self.certificates[certificate.certificate_id] = certificate
+        return certificate
+
+    def register_certificate_without_ca(self, certificate_pem, status):
+        certificate = FakeCertificate(certificate_pem, status, self.region_name)
         self.certificates[certificate.certificate_id] = certificate
         return certificate
 
