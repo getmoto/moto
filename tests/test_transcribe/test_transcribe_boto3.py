@@ -202,3 +202,95 @@ def test_run_medical_transcription_job_with_existing_job_name():
     client.start_medical_transcription_job.when.called_with(**args).should.throw(
         client.exceptions.ConflictException
     )
+
+
+@mock_transcribe
+def test_list_medical_transcription_jobs():
+
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    def run_job(index, target_status):
+        job_name = "Job_{}".format(index)
+        args = {
+            "MedicalTranscriptionJobName": job_name,
+            "LanguageCode": "en-US",
+            "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav",},
+            "OutputBucketName": "my-output-bucket",
+            "Specialty": "PRIMARYCARE",
+            "Type": "CONVERSATION",
+        }
+        resp = client.start_medical_transcription_job(**args)
+        resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+        # IMPLICITLY PROMOTE JOB STATUS TO QUEUED
+        resp = client.get_medical_transcription_job(
+            MedicalTranscriptionJobName=job_name
+        )
+
+        # IN_PROGRESS
+        if target_status in ["IN_PROGRESS", "COMPLETED"]:
+            resp = client.get_medical_transcription_job(
+                MedicalTranscriptionJobName=job_name
+            )
+
+        # COMPLETED
+        if target_status == "COMPLETED":
+            resp = client.get_medical_transcription_job(
+                MedicalTranscriptionJobName=job_name
+            )
+
+    # Run 5 pending jobs
+    for i in range(5):
+        run_job(i, "PENDING")
+
+    # Run 10 job to IN_PROGRESS
+    for i in range(5, 15):
+        run_job(i, "IN_PROGRESS")
+
+    # Run 15 job to COMPLETED
+    for i in range(15, 30):
+        run_job(i, "COMPLETED")
+
+    # List all
+    response = client.list_medical_transcription_jobs()
+    response.should.contain("MedicalTranscriptionJobSummaries")
+    len(response["MedicalTranscriptionJobSummaries"]).should.equal(30)
+    response.shouldnt.contain("NextToken")
+    response.shouldnt.contain("Status")
+
+    # List IN_PROGRESS
+    response = client.list_medical_transcription_jobs(Status="IN_PROGRESS")
+    response.should.contain("MedicalTranscriptionJobSummaries")
+    len(response["MedicalTranscriptionJobSummaries"]).should.equal(10)
+    response.shouldnt.contain("NextToken")
+    response.should.contain("Status")
+    response["Status"].should.equal("IN_PROGRESS")
+
+    # List JobName contains "8"
+    response = client.list_medical_transcription_jobs(JobNameContains="8")
+    response.should.contain("MedicalTranscriptionJobSummaries")
+    len(response["MedicalTranscriptionJobSummaries"]).should.equal(3)
+    response.shouldnt.contain("NextToken")
+    response.shouldnt.contain("Status")
+
+    # Pagination by 11
+    response = client.list_medical_transcription_jobs(MaxResults=11)
+    response.should.contain("MedicalTranscriptionJobSummaries")
+    len(response["MedicalTranscriptionJobSummaries"]).should.equal(11)
+    response.should.contain("NextToken")
+    response.shouldnt.contain("Status")
+
+    response = client.list_medical_transcription_jobs(
+        NextToken=response["NextToken"], MaxResults=11
+    )
+    response.should.contain("MedicalTranscriptionJobSummaries")
+    len(response["MedicalTranscriptionJobSummaries"]).should.equal(11)
+    response.should.contain("NextToken")
+
+    response = client.list_medical_transcription_jobs(
+        NextToken=response["NextToken"], MaxResults=11
+    )
+    response.should.contain("MedicalTranscriptionJobSummaries")
+    len(response["MedicalTranscriptionJobSummaries"]).should.equal(8)
+    response.shouldnt.contain("NextToken")

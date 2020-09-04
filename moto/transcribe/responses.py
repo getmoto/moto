@@ -37,6 +37,21 @@ class TranscribeResponse(BaseResponse):
         return json.dumps(response)
 
     @amzn_request_id
+    def list_medical_transcription_jobs(self):
+        status = self._get_param("Status")
+        job_name_contains = self._get_param("JobNameContains")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+
+        response = self.transcribe_backend.list_medical_transcription_jobs(
+            status=status,
+            job_name_contains=job_name_contains,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(response)
+
+    @amzn_request_id
     def get_medical_transcription_job(self):
         medical_transcription_job_name = self._get_param("MedicalTranscriptionJobName")
         response = self.transcribe_backend.get_medical_transcription_job(

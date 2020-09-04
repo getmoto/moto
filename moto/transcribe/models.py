@@ -60,6 +60,7 @@ class FakeMedicalTranscriptionJob(BaseObject):
         self.type = type
         self._output_bucket_name = output_bucket_name
         self._output_encryption_kms_key_id = output_encryption_kms_key_id
+        self.output_location_type = "CUSTOMER_BUCKET"
 
     def response_object(self, response_type):
         response_field_dict = {
@@ -104,13 +105,20 @@ class FakeMedicalTranscriptionJob(BaseObject):
         }
         response_fields = response_field_dict[response_type]
         response_object = self.gen_response_object()
-        return {
-            "MedicalTranscriptionJob": {
+        if response_type != "LIST":
+            return {
+                "MedicalTranscriptionJob": {
+                    k: v
+                    for k, v in response_object.items()
+                    if k in response_fields and v is not None and v != [None]
+                }
+            }
+        else:
+            return {
                 k: v
                 for k, v in response_object.items()
                 if k in response_fields and v is not None and v != [None]
             }
-        }
 
     def advance_job_status(self):
         # On each call advances the fake job status
@@ -201,6 +209,38 @@ class TranscribeBackend(BaseBackend):
                 message="The requested job couldn't be found. Check the job name and try your request again.",
                 template="error_json",
             )
+
+    def list_medical_transcription_jobs(
+        self, status, job_name_contains, next_token, max_results
+    ):
+        jobs = list(self.transcriptions.values())
+
+        if status:
+            jobs = [job for job in jobs if job.transcription_job_status == status]
+
+        if job_name_contains:
+            jobs = [
+                job
+                for job in jobs
+                if job_name_contains in job.medical_transcription_job_name
+            ]
+
+        start_offset = int(next_token) if next_token else 0
+        end_offset = start_offset + (
+            max_results if max_results else 100
+        )  # Arbitrarily selected...
+        jobs_paginated = jobs[start_offset:end_offset]
+
+        response = {
+            "MedicalTranscriptionJobSummaries": [
+                job.response_object("LIST") for job in jobs_paginated
+            ]
+        }
+        if end_offset < len(jobs):
+            response["NextToken"] = str(end_offset)
+        if status:
+            response["Status"] = status
+        return response
 
 
 transcribe_backends = {}
