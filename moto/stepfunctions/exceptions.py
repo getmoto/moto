@@ -38,6 +38,11 @@ class InvalidName(AWSError):
     STATUS = 400
 
 
+class InvalidExecutionInput(AWSError):
+    TYPE = "InvalidExecutionInput"
+    STATUS = 400
+
+
 class StateMachineDoesNotExist(AWSError):
     TYPE = "StateMachineDoesNotExist"
     STATUS = 400
