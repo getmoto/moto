@@ -114,6 +114,9 @@ XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_kinesisvideo = lazy_load(".kinesisvideo", "mock_kinesisvideo")
+mock_kinesisvideoarchivedmedia = lazy_load(
+    ".kinesisvideoarchivedmedia", "mock_kinesisvideoarchivedmedia"
+)
 
 # import logging
 # logging.getLogger('boto').setLevel(logging.CRITICAL)

@@ -63,8 +63,3 @@ class KinesisVideoResponse(BaseResponse):
             stream_name=stream_name, stream_arn=stream_arn, api_name=api_name,
         )
         return json.dumps(dict(DataEndpoint=data_endpoint))
-
-    # add methods from here
-
-
-# add templates from here
