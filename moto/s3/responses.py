@@ -1259,8 +1259,16 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
 
             if key is not None:
-                if key.storage_class in ["GLACIER", "DEEP_ARCHIVE"]:
+                if key.storage_class in "GLACIER":
+                    if key.response_dict.get(
+                        "x-amz-restore"
+                    ) is None or 'ongoing-request="true"' in key.response_dict.get(
+                        "x-amz-restore"
+                    ):
+                        raise ObjectNotInActiveTierError(key)
+                if key.storage_class in "DEEP_ARCHIVE":
                     raise ObjectNotInActiveTierError(key)
+
                 self.backend.copy_key(
                     src_bucket,
                     src_key,
