@@ -122,7 +122,7 @@ mock_kinesisvideoarchivedmedia = lazy_load(
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "1.3.15.dev"
+__version__ = "1.3.15"
 
 
 try:
