@@ -464,9 +464,18 @@ As a result, you need to add that entry to your host file for your tests to func
 
 ## Install
 
-
+To install moto with minimal dependencies:
 ```console
 $ pip install moto
+```
+To install moto for a specific service, that requires additional dependencies:
+```console
+$ pip install moto[acm,awslambda,batch,cloudformation,cognitoidp,ec2,iam,iotdata,xray]
+```
+(Services not listed are covered by the basic moto-installation.)  
+To install moto and all it's dependencies - recommended if you're mocking many services:
+```console
+$ pip install moto[all]
 ```
 
 ## Releases
