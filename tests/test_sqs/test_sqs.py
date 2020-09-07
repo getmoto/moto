@@ -45,6 +45,25 @@ sqs_template_with_tags = """
     }
 }"""
 
+TEST_POLICY = """
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "*" },
+      "Action": "sqs:SendMessage",
+      "Resource": "'$sqs_queue_arn'",
+      "Condition":{
+        "ArnEquals":{
+        "aws:SourceArn":"'$sns_topic_arn'"
+        }
+      }
+    }
+  ]
+}
+"""
+
 
 @mock_sqs
 def test_create_fifo_queue_fail():
@@ -198,7 +217,8 @@ def test_get_queue_url_errors():
     client = boto3.client("sqs", region_name="us-east-1")
 
     client.get_queue_url.when.called_with(QueueName="non-existing-queue").should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
+        ClientError,
+        "The specified queue non-existing-queue does not exist for this wsdl version.",
     )
 
 
@@ -206,10 +226,13 @@ def test_get_queue_url_errors():
 def test_get_nonexistent_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     with assert_raises(ClientError) as err:
-        sqs.get_queue_by_name(QueueName="nonexisting-queue")
+        sqs.get_queue_by_name(QueueName="non-existing-queue")
     ex = err.exception
     ex.operation_name.should.equal("GetQueueUrl")
     ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+    ex.response["Error"]["Message"].should.equal(
+        "The specified queue non-existing-queue does not exist for this wsdl version."
+    )
 
     with assert_raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
@@ -1444,6 +1467,36 @@ def test_permissions():
                 },
             ],
         }
+    )
+
+
+@mock_sqs
+def test_get_queue_attributes_template_response_validation():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    resp = client.create_queue(
+        QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = resp["QueueUrl"]
+
+    attrs = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
+    assert attrs.get("Attributes").get("Policy") is None
+
+    attributes = {"Policy": TEST_POLICY}
+
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=attributes)
+    attrs = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["Policy"])
+    assert attrs.get("Attributes").get("Policy") is not None
+
+    assert (
+        json.loads(attrs.get("Attributes").get("Policy")).get("Version") == "2012-10-17"
+    )
+    assert len(json.loads(attrs.get("Attributes").get("Policy")).get("Statement")) == 1
+    assert (
+        json.loads(attrs.get("Attributes").get("Policy"))
+        .get("Statement")[0]
+        .get("Action")
+        == "sqs:SendMessage"
     )
 
 

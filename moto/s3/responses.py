@@ -860,6 +860,10 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         new_key = self.backend.set_object(bucket_name, key, f)
 
+        if form.get("acl"):
+            acl = get_canned_acl(form.get("acl"))
+            new_key.set_acl(acl)
+
         # Metadata
         metadata = metadata_from_headers(form)
         new_key.set_metadata(metadata)
@@ -1092,6 +1096,11 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             # Flask server
             body = request.data
+            # when the data is being passed as a file
+            if request.files and not body:
+                for _, value in request.files.items():
+                    body = value.stream.read()
+
         if body is None:
             body = b""
 

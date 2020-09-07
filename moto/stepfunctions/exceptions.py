@@ -18,6 +18,11 @@ class AWSError(Exception):
         )
 
 
+class ExecutionAlreadyExists(AWSError):
+    TYPE = "ExecutionAlreadyExists"
+    STATUS = 400
+
+
 class ExecutionDoesNotExist(AWSError):
     TYPE = "ExecutionDoesNotExist"
     STATUS = 400
@@ -30,6 +35,11 @@ class InvalidArn(AWSError):
 
 class InvalidName(AWSError):
     TYPE = "InvalidName"
+    STATUS = 400
+
+
+class InvalidExecutionInput(AWSError):
+    TYPE = "InvalidExecutionInput"
     STATUS = 400
 
 

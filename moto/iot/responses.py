@@ -88,6 +88,11 @@ class IoTResponse(BaseResponse):
         )
         return json.dumps(thing_type.to_dict())
 
+    def describe_endpoint(self):
+        endpoint_type = self._get_param("endpointType")
+        endpoint = self.iot_backend.describe_endpoint(endpoint_type=endpoint_type)
+        return json.dumps(endpoint.to_dict())
+
     def delete_thing(self):
         thing_name = self._get_param("thingName")
         expected_version = self._get_param("expectedVersion")
@@ -325,6 +330,17 @@ class IoTResponse(BaseResponse):
             ca_certificate_pem=ca_certificate_pem,
             set_as_active=set_as_active,
             status=status,
+        )
+        return json.dumps(
+            dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
+        )
+
+    def register_certificate_without_ca(self):
+        certificate_pem = self._get_param("certificatePem")
+        status = self._get_param("status")
+
+        cert = self.iot_backend.register_certificate_without_ca(
+            certificate_pem=certificate_pem, status=status,
         )
         return json.dumps(
             dict(certificateId=cert.certificate_id, certificateArn=cert.arn)

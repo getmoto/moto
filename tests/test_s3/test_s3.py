@@ -2,16 +2,14 @@
 from __future__ import unicode_literals
 
 import datetime
-import os
 import sys
-
+import os
 from boto3 import Session
 from six.moves.urllib.request import urlopen
 from six.moves.urllib.error import HTTPError
 from functools import wraps
 from gzip import GzipFile
 from io import BytesIO
-import mimetypes
 import zlib
 import pickle
 import uuid
@@ -36,7 +34,7 @@ from nose.tools import assert_raises
 
 import sure  # noqa
 
-from moto import settings, mock_s3, mock_s3_deprecated, mock_config, mock_cloudformation
+from moto import settings, mock_s3, mock_s3_deprecated, mock_config
 import moto.s3.models as s3model
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import py2_strip_unicode_keys
@@ -1054,6 +1052,29 @@ def test_streaming_upload_from_file_to_presigned_url():
     with open(__file__, "rb") as f:
         response = requests.get(presigned_url, data=f)
     assert response.status_code == 200
+
+
+@mock_s3
+def test_multipart_upload_from_file_to_presigned_url():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+
+    params = {"Bucket": "mybucket", "Key": "file_upload"}
+    presigned_url = boto3.client("s3").generate_presigned_url(
+        "put_object", params, ExpiresIn=900
+    )
+
+    file = open("text.txt", "w")
+    file.write("test")
+    file.close()
+    files = {"upload_file": open("text.txt", "rb")}
+
+    requests.put(presigned_url, files=files)
+    resp = s3.get_object(Bucket="mybucket", Key="file_upload")
+    data = resp["Body"].read()
+    assert data == b"test"
+    # cleanup
+    os.remove("text.txt")
 
 
 @mock_s3
@@ -2777,6 +2798,39 @@ def test_put_bucket_acl_body():
         Bucket="bucket", AccessControlPolicy={"Grants": [], "Owner": bucket_owner}
     )
     assert not result.get("Grants")
+
+
+@mock_s3
+def test_object_acl_with_presigned_post():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    bucket_name = "imageS3Bucket"
+    object_name = "text.txt"
+    fields = {"acl": "public-read"}
+    file = open("text.txt", "w")
+    file.write("test")
+    file.close()
+
+    s3.create_bucket(Bucket=bucket_name)
+    response = s3.generate_presigned_post(
+        bucket_name, object_name, Fields=fields, ExpiresIn=60000
+    )
+
+    with open(object_name, "rb") as f:
+        files = {"file": (object_name, f)}
+        requests.post(response["url"], data=response["fields"], files=files)
+
+    response = s3.get_object_acl(Bucket=bucket_name, Key=object_name)
+
+    assert "Grants" in response
+    assert len(response["Grants"]) == 2
+    assert response["Grants"][1]["Permission"] == "READ"
+
+    response = s3.get_object(Bucket=bucket_name, Key=object_name)
+
+    assert "ETag" in response
+    assert "Body" in response
+    os.remove("text.txt")
 
 
 @mock_s3
@@ -4686,142 +4740,3 @@ def test_presigned_put_url_with_custom_headers():
 
     s3.delete_object(Bucket=bucket, Key=key)
     s3.delete_bucket(Bucket=bucket)
-
-
-@mock_s3
-@mock_cloudformation
-def test_s3_bucket_cloudformation_basic():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket", "Properties": {},}},
-        "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
-    }
-    template_json = json.dumps(template)
-    stack_id = cf.create_stack(StackName="test_stack", TemplateBody=template_json)[
-        "StackId"
-    ]
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
-
-
-@mock_s3
-@mock_cloudformation
-def test_s3_bucket_cloudformation_with_properties():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    bucket_name = "MyBucket"
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "testInstance": {
-                "Type": "AWS::S3::Bucket",
-                "Properties": {
-                    "BucketName": bucket_name,
-                    "BucketEncryption": {
-                        "ServerSideEncryptionConfiguration": [
-                            {
-                                "ServerSideEncryptionByDefault": {
-                                    "SSEAlgorithm": "AES256"
-                                }
-                            }
-                        ]
-                    },
-                },
-            }
-        },
-        "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
-    }
-    template_json = json.dumps(template)
-    stack_id = cf.create_stack(StackName="test_stack", TemplateBody=template_json)[
-        "StackId"
-    ]
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=bucket_name)
-
-    encryption = s3.get_bucket_encryption(Bucket=bucket_name)
-    encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
-        "ApplyServerSideEncryptionByDefault"
-    ]["SSEAlgorithm"].should.equal("AES256")
-
-
-@mock_s3
-@mock_cloudformation
-def test_s3_bucket_cloudformation_update_no_interruption():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket"}},
-        "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
-    }
-    template_json = json.dumps(template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "testInstance": {
-                "Type": "AWS::S3::Bucket",
-                "Properties": {
-                    "BucketEncryption": {
-                        "ServerSideEncryptionConfiguration": [
-                            {
-                                "ServerSideEncryptionByDefault": {
-                                    "SSEAlgorithm": "AES256"
-                                }
-                            }
-                        ]
-                    }
-                },
-            }
-        },
-        "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
-    }
-    template_json = json.dumps(template)
-    cf.update_stack(StackName="test_stack", TemplateBody=template_json)
-    encryption = s3.get_bucket_encryption(
-        Bucket=stack_description["Outputs"][0]["OutputValue"]
-    )
-    encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
-        "ApplyServerSideEncryptionByDefault"
-    ]["SSEAlgorithm"].should.equal("AES256")
-
-
-@mock_s3
-@mock_cloudformation
-def test_s3_bucket_cloudformation_update_replacement():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {"testInstance": {"Type": "AWS::S3::Bucket"}},
-        "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
-    }
-    template_json = json.dumps(template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
-
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "testInstance": {
-                "Type": "AWS::S3::Bucket",
-                "Properties": {"BucketName": "MyNewBucketName"},
-            }
-        },
-        "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
-    }
-    template_json = json.dumps(template)
-    cf.update_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
