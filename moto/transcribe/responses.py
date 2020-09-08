@@ -66,3 +66,46 @@ class TranscribeResponse(BaseResponse):
             medical_transcription_job_name=medical_transcription_job_name
         )
         return json.dumps(response)
+
+    @amzn_request_id
+    def create_medical_vocabulary(self):
+        vocabulary_name = self._get_param("VocabularyName")
+        language_code = self._get_param("LanguageCode")
+        vocabulary_file_uri = self._get_param("VocabularyFileUri")
+        response = self.transcribe_backend.create_medical_vocabulary(
+            vocabulary_name=vocabulary_name,
+            language_code=language_code,
+            vocabulary_file_uri=vocabulary_file_uri,
+        )
+        return json.dumps(response)
+
+    @amzn_request_id
+    def get_medical_vocabulary(self):
+        vocabulary_name = self._get_param("VocabularyName")
+        response = self.transcribe_backend.get_medical_vocabulary(
+            vocabulary_name=vocabulary_name
+        )
+        return json.dumps(response)
+
+    @amzn_request_id
+    def list_medical_vocabularies(self):
+        state_equals = self._get_param("StateEquals")
+        name_contains = self._get_param("NameContains")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+
+        response = self.transcribe_backend.list_medical_vocabularies(
+            state_equals=state_equals,
+            name_contains=name_contains,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(response)
+
+    @amzn_request_id
+    def delete_medical_vocabulary(self):
+        vocabulary_name = self._get_param("VocabularyName")
+        response = self.transcribe_backend.delete_medical_vocabulary(
+            vocabulary_name=vocabulary_name
+        )
+        return json.dumps(response)

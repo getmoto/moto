@@ -1,8 +1,10 @@
+import uuid
 from datetime import datetime, timedelta
 
 from moto.core import BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
+from moto.sts.models import ACCOUNT_ID
 
 
 class BaseObject(BaseModel):
@@ -149,9 +151,68 @@ class FakeMedicalTranscriptionJob(BaseObject):
             }
 
 
+class FakeMedicalVocabulary(BaseObject):
+    def __init__(
+        self, region_name, vocabulary_name, language_code, vocabulary_file_uri,
+    ):
+        self._region_name = region_name
+        self.vocabulary_name = vocabulary_name
+        self.language_code = language_code
+        self.vocabulary_file_uri = vocabulary_file_uri
+        self.vocabulary_state = None
+        self.last_modified_time = None
+        self.failure_reason = None
+        self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-us-east-1-prod/{}/medical/{}/{}/input.txt".format(
+            ACCOUNT_ID, self.vocabulary_name, uuid.uuid4()
+        )
+
+    def response_object(self, response_type):
+        response_field_dict = {
+            "CREATE": [
+                "VocabularyName",
+                "LanguageCode",
+                "VocabularyState",
+                "LastModifiedTime",
+                "FailureReason",
+            ],
+            "GET": [
+                "VocabularyName",
+                "LanguageCode",
+                "VocabularyState",
+                "LastModifiedTime",
+                "FailureReason",
+                "DownloadUri",
+            ],
+            "LIST": [
+                "VocabularyName",
+                "LanguageCode",
+                "LastModifiedTime",
+                "VocabularyState",
+            ],
+        }
+        response_fields = response_field_dict[response_type]
+        response_object = self.gen_response_object()
+        return {
+            k: v
+            for k, v in response_object.items()
+            if k in response_fields and v is not None and v != [None]
+        }
+
+    def advance_job_status(self):
+        # On each call advances the fake job status
+
+        if not self.vocabulary_state:
+            self.vocabulary_state = "PENDING"
+            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        elif self.vocabulary_state == "PENDING":
+            self.vocabulary_state = "READY"
+            self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 class TranscribeBackend(BaseBackend):
     def __init__(self, region_name=None):
-        self.transcriptions = {}
+        self.medical_transcriptions = {}
+        self.medical_vocabularies = {}
         self.region_name = region_name
 
     def reset(self):
@@ -163,10 +224,19 @@ class TranscribeBackend(BaseBackend):
 
         name = kwargs.get("medical_transcription_job_name")
 
-        if name in self.transcriptions:
+        if name in self.medical_transcriptions:
             raise RESTError(
                 error_type="ConflictException",
                 message="The requested job name already exists. Use a different job name.",
+                template="error_json",
+            )
+
+        settings = kwargs.get("settings")
+        vocabulary_name = settings.get("VocabularyName") if settings else None
+        if vocabulary_name and vocabulary_name not in self.medical_vocabularies:
+            raise RESTError(
+                error_type="BadRequestException",
+                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again.",
                 template="error_json",
             )
 
@@ -179,18 +249,18 @@ class TranscribeBackend(BaseBackend):
             media=kwargs.get("media"),
             output_bucket_name=kwargs.get("output_bucket_name"),
             output_encryption_kms_key_id=kwargs.get("output_encryption_kms_key_id"),
-            settings=kwargs.get("settings"),
+            settings=settings,
             specialty=kwargs.get("specialty"),
             type=kwargs.get("type"),
         )
 
-        self.transcriptions[name] = transcription_job_object
+        self.medical_transcriptions[name] = transcription_job_object
 
         return transcription_job_object.response_object("CREATE")
 
     def get_medical_transcription_job(self, medical_transcription_job_name):
         try:
-            job = self.transcriptions[medical_transcription_job_name]
+            job = self.medical_transcriptions[medical_transcription_job_name]
             job.advance_job_status()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
@@ -202,7 +272,7 @@ class TranscribeBackend(BaseBackend):
 
     def delete_medical_transcription_job(self, medical_transcription_job_name):
         try:
-            del self.transcriptions[medical_transcription_job_name]
+            del self.medical_transcriptions[medical_transcription_job_name]
         except KeyError:
             raise RESTError(
                 error_type="BadRequestException",
@@ -213,7 +283,7 @@ class TranscribeBackend(BaseBackend):
     def list_medical_transcription_jobs(
         self, status, job_name_contains, next_token, max_results
     ):
-        jobs = list(self.transcriptions.values())
+        jobs = list(self.medical_transcriptions.values())
 
         if status:
             jobs = [job for job in jobs if job.transcription_job_status == status]
@@ -240,6 +310,89 @@ class TranscribeBackend(BaseBackend):
             response["NextToken"] = str(end_offset)
         if status:
             response["Status"] = status
+        return response
+
+    def create_medical_vocabulary(self, **kwargs):
+
+        vocabulary_name = kwargs.get("vocabulary_name")
+        language_code = kwargs.get("language_code")
+        vocabulary_file_uri = kwargs.get("vocabulary_file_uri")
+
+        if vocabulary_name in self.medical_vocabularies:
+            raise RESTError(
+                error_type="ConflictException",
+                message="The requested vocabulary name already exists. Use a different vocabulary name.",
+                template="error_json",
+            )
+
+        medical_vocabulary_object = FakeMedicalVocabulary(
+            region_name=self.region_name,
+            vocabulary_name=vocabulary_name,
+            language_code=language_code,
+            vocabulary_file_uri=vocabulary_file_uri,
+        )
+
+        self.medical_vocabularies[vocabulary_name] = medical_vocabulary_object
+
+        return medical_vocabulary_object.response_object("CREATE")
+
+    def get_medical_vocabulary(self, vocabulary_name):
+        try:
+            job = self.medical_vocabularies[vocabulary_name]
+            job.advance_job_status()  # Fakes advancement through statuses.
+            return job.response_object("GET")
+        except KeyError:
+            raise RESTError(
+                error_type="BadRequestException",
+                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again.",
+                template="error_json",
+            )
+
+    def delete_medical_vocabulary(self, vocabulary_name):
+        try:
+            del self.medical_vocabularies[vocabulary_name]
+        except KeyError:
+            raise RESTError(
+                error_type="BadRequestException",
+                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again.",
+                template="error_json",
+            )
+
+    def list_medical_vocabularies(
+        self, state_equals, name_contains, next_token, max_results
+    ):
+        vocabularies = list(self.medical_vocabularies.values())
+
+        if state_equals:
+            vocabularies = [
+                vocabulary
+                for vocabulary in vocabularies
+                if vocabulary.vocabulary_state == state_equals
+            ]
+
+        if name_contains:
+            vocabularies = [
+                vocabulary
+                for vocabulary in vocabularies
+                if name_contains in vocabulary.vocabulary_name
+            ]
+
+        start_offset = int(next_token) if next_token else 0
+        end_offset = start_offset + (
+            max_results if max_results else 100
+        )  # Arbitrarily selected...
+        vocabularies_paginated = vocabularies[start_offset:end_offset]
+
+        response = {
+            "Vocabularies": [
+                vocabulary.response_object("LIST")
+                for vocabulary in vocabularies_paginated
+            ]
+        }
+        if end_offset < len(vocabularies):
+            response["NextToken"] = str(end_offset)
+        if state_equals:
+            response["Status"] = state_equals
         return response
 
 

@@ -84,6 +84,14 @@ def test_run_medical_transcription_job_all_params():
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
+    vocabulary_name = "MyMedicalVocabulary"
+    resp = client.create_medical_vocabulary(
+        VocabularyName=vocabulary_name,
+        LanguageCode="en-US",
+        VocabularyFileUri="https://s3.us-east-1.amazonaws.com/AWSDOC-EXAMPLE-BUCKET/vocab.txt",
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
     job_name = "MyJob2"
     args = {
         "MedicalTranscriptionJobName": job_name,
@@ -99,7 +107,7 @@ def test_run_medical_transcription_job_all_params():
             "ChannelIdentification": True,
             "ShowAlternatives": True,
             "MaxAlternatives": 6,
-            "VocabularyName": "MyMedicalVocabulary",
+            "VocabularyName": vocabulary_name,
         },
         "Specialty": "PRIMARYCARE",
         "Type": "CONVERSATION",
@@ -205,6 +213,27 @@ def test_run_medical_transcription_job_with_existing_job_name():
 
 
 @mock_transcribe
+def test_run_medical_transcription_job_nonexistent_vocabulary():
+
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    job_name = "MyJob3"
+    args = {
+        "MedicalTranscriptionJobName": job_name,
+        "LanguageCode": "en-US",
+        "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.dat",},
+        "OutputBucketName": "my-output-bucket",
+        "Settings": {"VocabularyName": "NonexistentVocabulary"},
+        "Specialty": "PRIMARYCARE",
+        "Type": "CONVERSATION",
+    }
+    client.start_medical_transcription_job.when.called_with(**args).should.throw(
+        client.exceptions.BadRequestException
+    )
+
+
+@mock_transcribe
 def test_list_medical_transcription_jobs():
 
     region_name = "us-east-1"
@@ -294,3 +323,69 @@ def test_list_medical_transcription_jobs():
     response.should.contain("MedicalTranscriptionJobSummaries")
     len(response["MedicalTranscriptionJobSummaries"]).should.equal(8)
     response.shouldnt.contain("NextToken")
+
+
+@mock_transcribe
+def test_create_medical_vocabulary():
+
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    vocabulary_name = "MyVocabulary"
+    resp = client.create_medical_vocabulary(
+        VocabularyName=vocabulary_name,
+        LanguageCode="en-US",
+        VocabularyFileUri="https://s3.us-east-1.amazonaws.com/AWSDOC-EXAMPLE-BUCKET/vocab.txt",
+    )
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    # PENDING
+    resp = client.get_medical_vocabulary(VocabularyName=vocabulary_name)
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    resp["VocabularyName"].should.equal(vocabulary_name)
+    resp["LanguageCode"].should.equal("en-US")
+    resp["VocabularyState"].should.equal("PENDING")
+    resp.should.contain("LastModifiedTime")
+    resp.shouldnt.contain("FailureReason")
+    resp["DownloadUri"].should.contain(vocabulary_name)
+
+    # IN_PROGRESS
+    resp = client.get_medical_vocabulary(VocabularyName=vocabulary_name)
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    resp["VocabularyState"].should.equal("READY")
+
+    # Delete
+    client.delete_medical_vocabulary(VocabularyName=vocabulary_name)
+    client.get_medical_vocabulary.when.called_with(
+        VocabularyName=vocabulary_name
+    ).should.throw(client.exceptions.BadRequestException)
+
+
+@mock_transcribe
+def test_get_nonexistent_medical_vocabulary():
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    client.get_medical_vocabulary.when.called_with(
+        VocabularyName="NonexistentVocabularyName"
+    ).should.throw(client.exceptions.BadRequestException)
+
+
+@mock_transcribe
+def test_create_medical_vocabulary_with_existing_vocabulary_name():
+
+    region_name = "us-east-1"
+    client = boto3.client("transcribe", region_name=region_name)
+
+    vocabulary_name = "MyVocabulary"
+    args = {
+        "VocabularyName": vocabulary_name,
+        "LanguageCode": "en-US",
+        "VocabularyFileUri": "https://s3.us-east-1.amazonaws.com/AWSDOC-EXAMPLE-BUCKET/vocab.txt",
+    }
+    resp = client.create_medical_vocabulary(**args)
+    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    client.create_medical_vocabulary.when.called_with(**args).should.throw(
+        client.exceptions.ConflictException
+    )
