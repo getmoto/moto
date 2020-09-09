@@ -1,6 +1,10 @@
 Moto Changelog
 ===================
 
+1.3.16
+-----
+    * Undoing dependency cleanup until we cut a larger release
+
 1.3.15
 -----
 
