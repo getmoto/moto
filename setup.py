@@ -148,7 +148,8 @@ setup(
         ],
     },
     packages=find_packages(exclude=("tests", "tests.*")),
-    install_requires=install_requires,
+    # Addding all requirements for now until we cut a larger release
+    install_requires=install_requires + all_extra_deps,
     extras_require=extras_require,
     include_package_data=True,
     license="Apache",
