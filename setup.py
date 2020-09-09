@@ -99,25 +99,27 @@ all_extra_deps = [
     _dep_sshpubkeys_py2,
     _dep_sshpubkeys_py3,
 ]
+all_server_deps = all_extra_deps + ['flask']
 
 # TODO: do we want to add ALL services here?
 # i.e. even those without extra dependencies.
 # Would be good for future-compatibility, I guess.
 extras_per_service = {
-    "ec2": [_dep_cryptography, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
     'acm': [_dep_cryptography],
-    'iam': [_dep_cryptography],
-    'cloudformation': [_dep_PyYAML, _dep_cfn_lint],
-    'cognitoidp': [_dep_python_jose, _dep_python_jose_ecdsa_pin],
     'awslambda': [_dep_docker],
     'batch': [_dep_docker],
+    'cloudformation': [_dep_PyYAML, _dep_cfn_lint],
+    'cognitoidp': [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+    "ec2": [_dep_cryptography, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
+    'iam': [_dep_cryptography],
     'iotdata': [_dep_jsondiff],
+    's3': [_dep_cryptography],
     'xray': [_dep_aws_xray_sdk],
 }
 
 extras_require = {
     'all': all_extra_deps,
-    'server': ['flask'],
+    'server': all_server_deps,
 }
 
 extras_require.update(extras_per_service)
