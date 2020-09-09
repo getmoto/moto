@@ -68,6 +68,7 @@ BACKENDS = {
     "stepfunctions": ("stepfunctions", "stepfunction_backends"),
     "sts": ("sts", "sts_backends"),
     "swf": ("swf", "swf_backends"),
+    "transcribe": ("transcribe", "transcribe_backends"),
     "xray": ("xray", "xray_backends"),
     "kinesisvideo": ("kinesisvideo", "kinesisvideo_backends"),
     "kinesis-video-archived-media": (
