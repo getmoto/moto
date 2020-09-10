@@ -603,9 +603,9 @@ def test_send_receive_message_with_attributes():
         },
     )
 
-    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)[
-        "Messages"
-    ]
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["timestamp"]
+    )["Messages"]
 
     message1 = messages[0]
     message2 = messages[1]
@@ -651,9 +651,9 @@ def test_send_receive_message_with_attributes_with_labels():
         },
     )
 
-    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)[
-        "Messages"
-    ]
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["timestamp"]
+    )["Messages"]
 
     message1 = messages[0]
     message2 = messages[1]
@@ -778,7 +778,14 @@ def test_send_message_with_attributes():
 
     queue.write(message)
 
-    messages = conn.receive_message(queue)
+    messages = conn.receive_message(
+        queue,
+        message_attributes=[
+            "test.attribute_name",
+            "test.binary_attribute",
+            "test.number_attribute",
+        ],
+    )
 
     messages[0].get_body().should.equal(body)
 
@@ -949,7 +956,7 @@ def test_delete_message():
     queue.write(queue.new_message("this is another test message"))
     queue.count().should.equal(2)
 
-    messages = conn.receive_message(queue, number_messages=1)
+    messages = conn.receive_message(queue, number_messages=1,)
     assert len(messages) == 1
     messages[0].delete()
     queue.count().should.equal(1)
@@ -998,7 +1005,7 @@ def test_send_batch_operation_with_message_attributes():
     )
     queue.write_batch([message_tuple])
 
-    messages = queue.get_messages()
+    messages = queue.get_messages(message_attributes=["name1"])
     messages[0].get_body().should.equal("test message 1")
 
     for name, value in message_tuple[3].items():
@@ -1233,7 +1240,11 @@ def test_send_message_batch():
         ["id_1", "id_2"]
     )
 
-    response = client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)
+    response = client.receive_message(
+        QueueUrl=queue_url,
+        MaxNumberOfMessages=10,
+        MessageAttributeNames=["attribute_name_1", "attribute_name_2"],
+    )
 
     response["Messages"][0]["Body"].should.equal("body_1")
     response["Messages"][0]["MessageAttributes"].should.equal(
@@ -1255,6 +1266,53 @@ def test_send_message_batch():
     response["Messages"][1]["Attributes"]["MessageDeduplicationId"].should.equal(
         "message_deduplication_id_2"
     )
+
+
+@mock_sqs
+def test_message_attributes_in_receive_message():
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    conn = boto3.client("sqs", region_name="us-east-1")
+    conn.create_queue(QueueName="test-queue")
+    queue = sqs.Queue("test-queue")
+
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        },
+    )
+    messages = conn.receive_message(
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["timestamp"]
+    )["Messages"]
+
+    messages[0]["MessageAttributes"].should.equal(
+        {
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        }
+    )
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageAttributes={
+            "timestamp": {
+                "StringValue": "1493147359900",
+                "DataType": "Number.java.lang.Long",
+            }
+        },
+    )
+    messages = conn.receive_message(QueueUrl=queue.url, MaxNumberOfMessages=2)[
+        "Messages"
+    ]
+
+    messages[0].get("MessageAttributes").should.equal(None)
 
 
 @mock_sqs

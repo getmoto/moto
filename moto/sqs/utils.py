@@ -11,6 +11,21 @@ def generate_receipt_handle():
     return "".join(random.choice(string.ascii_lowercase) for x in range(length))
 
 
+def extract_input_message_attributes(querystring):
+    message_attributes = []
+    index = 1
+    while True:
+        # Loop through looking for message attributes
+        name_key = "MessageAttributeName.{0}".format(index)
+        name = querystring.get(name_key)
+        if not name:
+            # Found all attributes
+            break
+        message_attributes.append(name[0])
+        index = index + 1
+    return message_attributes
+
+
 def parse_message_attributes(querystring, base="", value_namespace="Value."):
     message_attributes = {}
     index = 1

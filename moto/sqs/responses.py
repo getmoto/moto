@@ -13,7 +13,7 @@ from .exceptions import (
     ReceiptHandleIsInvalid,
 )
 from .models import sqs_backends
-from .utils import parse_message_attributes
+from .utils import parse_message_attributes, extract_input_message_attributes
 
 MAXIMUM_VISIBILTY_TIMEOUT = 43200
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
@@ -352,6 +352,9 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self):
         queue_name = self._get_queue_name()
+        message_attributes = self._get_multi_param("message_attributes")
+        if not message_attributes:
+            message_attributes = extract_input_message_attributes(self.querystring,)
 
         queue = self.sqs_backend.get_queue(queue_name)
 
@@ -391,7 +394,7 @@ class SQSResponse(BaseResponse):
             return ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE, dict(status=400)
 
         messages = self.sqs_backend.receive_messages(
-            queue_name, message_count, wait_time, visibility_timeout
+            queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages)

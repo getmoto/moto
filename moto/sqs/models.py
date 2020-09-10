@@ -521,6 +521,14 @@ class Queue(CloudFormationModel):
             }
 
 
+def _filter_message_attributes(message, input_message_attributes):
+    filtered_message_attributes = {}
+    for key, value in message.message_attributes.items():
+        if key in input_message_attributes:
+            filtered_message_attributes[key] = value
+    message.message_attributes = filtered_message_attributes
+
+
 class SQSBackend(BaseBackend):
     def __init__(self, region_name):
         self.region_name = region_name
@@ -725,7 +733,12 @@ class SQSBackend(BaseBackend):
         return None
 
     def receive_messages(
-        self, queue_name, count, wait_seconds_timeout, visibility_timeout
+        self,
+        queue_name,
+        count,
+        wait_seconds_timeout,
+        visibility_timeout,
+        message_attribute_names,
     ):
         """
         Attempt to retrieve visible messages from a queue.
@@ -782,6 +795,7 @@ class SQSBackend(BaseBackend):
                     continue
 
                 message.mark_received(visibility_timeout=visibility_timeout)
+                _filter_message_attributes(message, message_attribute_names)
                 result.append(message)
                 if len(result) >= count:
                     break
