@@ -36,6 +36,15 @@ def test_create_and_delete_topic():
 
 
 @mock_sns
+def test_delete_non_existent_topic():
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    conn.delete_topic.when.called_with(
+        TopicArn="arn:aws:sns:us-east-1:123456789012:fake-topic"
+    ).should.throw(conn.exceptions.NotFoundException)
+
+
+@mock_sns
 def test_create_topic_with_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(

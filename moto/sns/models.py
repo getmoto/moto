@@ -426,7 +426,10 @@ class SNSBackend(BaseBackend):
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic(self, arn):
-        self.topics.pop(arn)
+        try:
+            self.topics.pop(arn)
+        except KeyError:
+            raise SNSNotFoundError("Topic with arn {0} not found".format(arn))
 
     def get_topic(self, arn):
         try:
