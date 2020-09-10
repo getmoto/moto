@@ -135,7 +135,17 @@ def _target_params_are_valid(namespace, r_id, dimension):
         try:
             valid_dimensions = [d.value for d in ScalableDimensionValueSet]
             d_namespace, d_resource_type, scaling_property = dimension.split(":")
-            resource_type, cluster, service = r_id.split("/")
+            if r_id.startswith("arn:aws:comprehend"):
+                r_id = r_id.split(":")[-1]
+            resource_split = r_id.split("/") if "/" in r_id else r_id.split(":")
+            if (
+                resource_split[0] == "endpoint"
+                or (resource_split[0] == "table" and len(resource_split) > 2)
+                or (resource_split[0] == "keyspace")
+            ):
+                resource_type = resource_split[2]
+            else:
+                resource_type = resource_split[0]
             if (
                 dimension not in valid_dimensions
                 or d_namespace != namespace
