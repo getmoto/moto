@@ -250,6 +250,8 @@ def test_register_scalable_target_resource_id_variations():
             ServiceNamespace=namespace,
             ResourceId=resource_id,
             ScalableDimension=scalable_dimension,
+            MinCapacity=1,
+            MaxCapacity=8,
         )
         response = client.describe_scalable_targets(ServiceNamespace=namespace)
         response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
@@ -304,3 +306,182 @@ def test_register_scalable_target_updates_existing_target():
     t["SuspendedState"]["ScheduledScalingSuspended"].should.equal(
         updated_suspended_state["ScheduledScalingSuspended"]
     )
+
+
+@mock_applicationautoscaling
+def test_put_scaling_policy():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    namespace = "sagemaker"
+    resource_id = "endpoint/MyEndPoint/variant/MyVariant"
+    scalable_dimension = "sagemaker:variant:DesiredInstanceCount"
+
+    client.register_scalable_target(
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        MinCapacity=1,
+        MaxCapacity=8,
+    )
+
+    policy_name = "MyPolicy"
+    policy_type = "TargetTrackingScaling"
+    policy_body = {
+        "TargetValue": 70.0,
+        "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
+        },
+    }
+
+    response = client.put_scaling_policy(
+        PolicyName=policy_name,
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        PolicyType=policy_type,
+        TargetTrackingScalingPolicyConfiguration=policy_body,
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    response["PolicyARN"].should.match(
+        r"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{}/{}:policyName/{}".format(
+            namespace, resource_id, policy_name
+        )
+    )
+
+
+@mock_applicationautoscaling
+def test_describe_scaling_policies():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    namespace = "sagemaker"
+    resource_id = "endpoint/MyEndPoint/variant/MyVariant"
+    scalable_dimension = "sagemaker:variant:DesiredInstanceCount"
+
+    client.register_scalable_target(
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        MinCapacity=1,
+        MaxCapacity=8,
+    )
+
+    policy_name = "MyPolicy"
+    policy_type = "TargetTrackingScaling"
+    policy_body = {
+        "TargetValue": 70.0,
+        "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
+        },
+    }
+
+    response = client.put_scaling_policy(
+        PolicyName=policy_name,
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        PolicyType=policy_type,
+        TargetTrackingScalingPolicyConfiguration=policy_body,
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    response = client.describe_scaling_policies(
+        PolicyNames=[policy_name],
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    policy = response["ScalingPolicies"][0]
+    policy["PolicyName"].should.equal(policy_name)
+    policy["ServiceNamespace"].should.equal(namespace)
+    policy["ResourceId"].should.equal(resource_id)
+    policy["ScalableDimension"].should.equal(scalable_dimension)
+    policy["PolicyType"].should.equal(policy_type)
+    policy["TargetTrackingScalingPolicyConfiguration"].should.equal(policy_body)
+    policy["PolicyARN"].should.match(
+        r"arn:aws:autoscaling:.*1:scalingPolicy:.*:resource/{}/{}:policyName/{}".format(
+            namespace, resource_id, policy_name
+        )
+    )
+    policy.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
+    pass
+
+
+@mock_applicationautoscaling
+def test_delete_scaling_policies():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    namespace = "sagemaker"
+    resource_id = "endpoint/MyEndPoint/variant/MyVariant"
+    scalable_dimension = "sagemaker:variant:DesiredInstanceCount"
+
+    client.register_scalable_target(
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        MinCapacity=1,
+        MaxCapacity=8,
+    )
+
+    policy_name = "MyPolicy"
+    policy_type = "TargetTrackingScaling"
+    policy_body = {
+        "TargetValue": 70.0,
+        "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
+        },
+    }
+
+    response = client.put_scaling_policy(
+        PolicyName=policy_name,
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        PolicyType=policy_type,
+        TargetTrackingScalingPolicyConfiguration=policy_body,
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    response = client.delete_scaling_policy(
+        PolicyName=policy_name,
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+
+    response = client.describe_scaling_policies(
+        PolicyNames=[policy_name],
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+    )
+    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    len(response["ScalingPolicies"]).should.equal(0)
+
+    pass
+
+
+@mock_applicationautoscaling
+def test_deregister_scalable_target():
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    namespace = "sagemaker"
+    resource_id = "endpoint/MyEndPoint/variant/MyVariant"
+    scalable_dimension = "sagemaker:variant:DesiredInstanceCount"
+
+    client.register_scalable_target(
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+        MinCapacity=1,
+        MaxCapacity=8,
+    )
+
+    response = client.describe_scalable_targets(ServiceNamespace=namespace)
+    len(response["ScalableTargets"]).should.equal(1)
+
+    client.deregister_scalable_target(
+        ServiceNamespace=namespace,
+        ResourceId=resource_id,
+        ScalableDimension=scalable_dimension,
+    )
+
+    response = client.describe_scalable_targets(ServiceNamespace=namespace)
+    len(response["ScalableTargets"]).should.equal(0)
