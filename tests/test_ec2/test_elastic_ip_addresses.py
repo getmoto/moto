@@ -532,8 +532,39 @@ def test_eip_filters():
     )
     check_vpc_filter("public-ip", [inst1.public_ip_address, inst2.public_ip_address])
 
+    alloc_tags = client.allocate_address(Domain="vpc")
+    with_tags = client.create_tags(
+        Resources=[alloc_tags["AllocationId"]],
+        Tags=[{"Key": "ManagedBy", "Value": "MyCode"}],
+    )
+    addresses_with_tags = client.describe_addresses(
+        Filters=[
+            {"Name": "domain", "Values": ["vpc"]},
+            {"Name": "tag:ManagedBy", "Values": ["MyCode"]},
+        ]
+    )
+    len(addresses_with_tags["Addresses"]).should.equal(1)
+    addresses_with_tags = list(
+        service.vpc_addresses.filter(
+            Filters=[
+                {"Name": "domain", "Values": ["vpc"]},
+                {"Name": "tag:ManagedBy", "Values": ["MyCode"]},
+            ]
+        )
+    )
+    len(addresses_with_tags).should.equal(1)
+    addresses_with_tags = list(
+        service.vpc_addresses.filter(
+            Filters=[
+                {"Name": "domain", "Values": ["vpc"]},
+                {"Name": "tag:ManagedBy", "Values": ["SomethingOther"]},
+            ]
+        )
+    )
+    len(addresses_with_tags).should.equal(0)
+
     # all the ips are in a VPC
     addresses = list(
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
-    len(addresses).should.equal(3)
+    len(addresses).should.equal(4)
