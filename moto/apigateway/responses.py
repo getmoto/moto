@@ -449,7 +449,7 @@ class APIGatewayResponse(BaseResponse):
             except ApiKeyAlreadyExists as error:
                 return (
                     error.code,
-                    self.headers,
+                    {},
                     '{{"message":"{0}","code":"{1}"}}'.format(
                         error.message, error.error_type
                     ),

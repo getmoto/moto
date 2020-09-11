@@ -23,6 +23,11 @@ from moto import mock_ec2_deprecated, mock_ec2, mock_cloudformation
 from tests.helpers import requires_boto_gte
 
 
+if six.PY2:
+    decode_method = base64.decodestring
+else:
+    decode_method = base64.decodebytes
+
 ################ Test Readme ###############
 def add_servers(ami_id, count):
     conn = boto.connect_ec2()
@@ -908,7 +913,7 @@ def test_user_data_with_run_instance():
     instance_attribute = instance.get_attribute("userData")
     instance_attribute.should.be.a(InstanceAttribute)
     retrieved_user_data = instance_attribute.get("userData").encode("utf-8")
-    decoded_user_data = base64.decodestring(retrieved_user_data)
+    decoded_user_data = decode_method(retrieved_user_data)
     decoded_user_data.should.equal(b"some user data")
 
 

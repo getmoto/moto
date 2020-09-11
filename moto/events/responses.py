@@ -183,9 +183,9 @@ class EventsHandler(BaseResponse):
 
         if sched_exp:
             if not (
-                re.match("^cron\(.*\)", sched_exp)
+                re.match(r"^cron\(.*\)", sched_exp)
                 or re.match(
-                    "^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)", sched_exp
+                    r"^rate\(\d*\s(minute|minutes|hour|hours|day|days)\)", sched_exp
                 )
             ):
                 return self.error(

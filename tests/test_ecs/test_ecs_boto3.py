@@ -254,6 +254,7 @@ def test_describe_task_definition():
                 "logConfiguration": {"logDriver": "json-file"},
             }
         ],
+        tags=[{"key": "Name", "value": "test_ecs_task"}],
     )
     _ = client.register_task_definition(
         family="test_ecs_task",
@@ -296,6 +297,11 @@ def test_describe_task_definition():
     response["taskDefinition"]["taskDefinitionArn"].should.equal(
         "arn:aws:ecs:us-east-1:012345678910:task-definition/test_ecs_task:2"
     )
+
+    response = client.describe_task_definition(
+        taskDefinition="test_ecs_task:1", include=["TAGS"]
+    )
+    response["tags"].should.equal([{"key": "Name", "value": "test_ecs_task"}])
 
 
 @mock_ecs
@@ -512,6 +518,7 @@ def test_describe_services():
         serviceName="test_ecs_service1",
         taskDefinition="test_ecs_task",
         desiredCount=2,
+        tags=[{"key": "Name", "value": "test_ecs_service1"}],
     )
     _ = client.create_service(
         cluster="test_ecs_cluster",
@@ -554,6 +561,18 @@ def test_describe_services():
         datetime.now()
         - response["services"][0]["deployments"][0]["updatedAt"].replace(tzinfo=None)
     ).seconds.should.be.within(0, 10)
+    response = client.describe_services(
+        cluster="test_ecs_cluster",
+        services=[
+            "test_ecs_service1",
+            "arn:aws:ecs:us-east-1:012345678910:service/test_ecs_service2",
+        ],
+        include=["TAGS"],
+    )
+    response["services"][0]["tags"].should.equal(
+        [{"key": "Name", "value": "test_ecs_service1"}]
+    )
+    response["services"][1]["tags"].should.equal([])
 
 
 @mock_ecs

@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 
 import boto3
+import json
 import sure  # noqa
-import datetime
 
 from datetime import datetime
 from botocore.exceptions import ClientError
@@ -134,7 +134,7 @@ def test_state_machine_creation_fails_with_invalid_names():
     #
 
     for invalid_name in invalid_names:
-        with assert_raises(ClientError) as exc:
+        with assert_raises(ClientError):
             client.create_state_machine(
                 name=invalid_name,
                 definition=str(simple_definition),
@@ -147,7 +147,7 @@ def test_state_machine_creation_requires_valid_role_arn():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         client.create_state_machine(
             name=name,
             definition=str(simple_definition),
@@ -242,7 +242,7 @@ def test_state_machine_creation_can_be_described():
 def test_state_machine_throws_error_when_describing_unknown_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:"
             + region
@@ -258,7 +258,7 @@ def test_state_machine_throws_error_when_describing_unknown_machine():
 def test_state_machine_throws_error_when_describing_bad_arn():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         client.describe_state_machine(stateMachineArn="bad")
 
 
@@ -267,7 +267,7 @@ def test_state_machine_throws_error_when_describing_bad_arn():
 def test_state_machine_throws_error_when_describing_machine_in_different_account():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:" + region + ":000000000000:stateMachine:unknown"
         )
@@ -376,7 +376,7 @@ def test_state_machine_start_execution():
 def test_state_machine_start_execution_bad_arn_raises_exception():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         client.start_execution(stateMachineArn="bad")
 
 
@@ -427,6 +427,47 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_start_execution_with_custom_input():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution_input = json.dumps({"input_key": "input_value"})
+    execution = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], input=execution_input
+    )
+    #
+    execution["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    uuid_regex = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+    expected_exec_name = (
+        "arn:aws:states:"
+        + region
+        + ":"
+        + _get_account_id()
+        + ":execution:name:"
+        + uuid_regex
+    )
+    execution["executionArn"].should.match(expected_exec_name)
+    execution["startDate"].should.be.a(datetime)
+
+
+@mock_stepfunctions
+@mock_sts
+def test_state_machine_start_execution_with_invalid_input():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    with assert_raises(ClientError):
+        _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="")
+    with assert_raises(ClientError):
+        _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="{")
+
+
+@mock_stepfunctions
+@mock_sts
 def test_state_machine_list_executions():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -464,7 +505,7 @@ def test_state_machine_list_executions_when_none_exist():
 
 @mock_stepfunctions
 @mock_sts
-def test_state_machine_describe_execution():
+def test_state_machine_describe_execution_with_no_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
     sm = client.create_state_machine(
@@ -485,10 +526,34 @@ def test_state_machine_describe_execution():
 
 @mock_stepfunctions
 @mock_sts
+def test_state_machine_describe_execution_with_custom_input():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    execution_input = json.dumps({"input_key": "input_val"})
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], input=execution_input
+    )
+    description = client.describe_execution(executionArn=execution["executionArn"])
+    #
+    description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    description["executionArn"].should.equal(execution["executionArn"])
+    description["input"].should.equal(execution_input)
+    description["name"].shouldnt.be.empty
+    description["startDate"].should.equal(execution["startDate"])
+    description["stateMachineArn"].should.equal(sm["stateMachineArn"])
+    description["status"].should.equal("RUNNING")
+    description.shouldnt.have("stopDate")
+
+
+@mock_stepfunctions
+@mock_sts
 def test_execution_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )
@@ -519,7 +584,7 @@ def test_state_machine_can_be_described_by_execution():
 def test_state_machine_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError) as exc:
+    with assert_raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )

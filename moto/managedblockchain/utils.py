@@ -14,7 +14,7 @@ def region_from_managedblckchain_url(url):
 
 
 def networkid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/n-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/n-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -28,7 +28,7 @@ def get_network_id():
 
 
 def memberid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/m-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/m-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -42,7 +42,7 @@ def get_member_id():
 
 
 def proposalid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/p-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/p-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -56,7 +56,7 @@ def get_proposal_id():
 
 
 def invitationid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/in-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/in-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")
@@ -107,7 +107,7 @@ def admin_password_ok(password):
 
 
 def nodeid_from_managedblockchain_url(full_url):
-    id_search = re.search("\/nd-[A-Z0-9]{26}", full_url, re.IGNORECASE)
+    id_search = re.search(r"\/nd-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
         return_id = id_search.group(0).replace("/", "")

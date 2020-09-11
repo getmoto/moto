@@ -45,6 +45,25 @@ sqs_template_with_tags = """
     }
 }"""
 
+TEST_POLICY = """
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "*" },
+      "Action": "sqs:SendMessage",
+      "Resource": "'$sqs_queue_arn'",
+      "Condition":{
+        "ArnEquals":{
+        "aws:SourceArn":"'$sns_topic_arn'"
+        }
+      }
+    }
+  ]
+}
+"""
+
 
 @mock_sqs
 def test_create_fifo_queue_fail():
@@ -1448,6 +1467,36 @@ def test_permissions():
                 },
             ],
         }
+    )
+
+
+@mock_sqs
+def test_get_queue_attributes_template_response_validation():
+    client = boto3.client("sqs", region_name="us-east-1")
+
+    resp = client.create_queue(
+        QueueName="test-dlr-queue.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = resp["QueueUrl"]
+
+    attrs = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
+    assert attrs.get("Attributes").get("Policy") is None
+
+    attributes = {"Policy": TEST_POLICY}
+
+    client.set_queue_attributes(QueueUrl=queue_url, Attributes=attributes)
+    attrs = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["Policy"])
+    assert attrs.get("Attributes").get("Policy") is not None
+
+    assert (
+        json.loads(attrs.get("Attributes").get("Policy")).get("Version") == "2012-10-17"
+    )
+    assert len(json.loads(attrs.get("Attributes").get("Policy")).get("Statement")) == 1
+    assert (
+        json.loads(attrs.get("Attributes").get("Policy"))
+        .get("Statement")[0]
+        .get("Action")
+        == "sqs:SendMessage"
     )
 
 

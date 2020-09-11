@@ -626,7 +626,8 @@ class SQSBackend(BaseBackend):
             attributes = queue.attributes
         else:
             for name in (name for name in attribute_names if name in queue.attributes):
-                attributes[name] = queue.attributes.get(name)
+                if queue.attributes.get(name) is not None:
+                    attributes[name] = queue.attributes.get(name)
 
         return attributes
 

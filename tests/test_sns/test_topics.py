@@ -33,6 +33,12 @@ def test_create_and_delete_topic():
 
 
 @mock_sns_deprecated
+def test_delete_non_existent_topic():
+    conn = boto.connect_sns()
+    conn.delete_topic.when.called_with("a-fake-arn").should.throw(BotoServerError)
+
+
+@mock_sns_deprecated
 def test_get_missing_topic():
     conn = boto.connect_sns()
     conn.get_topic_attributes.when.called_with("a-fake-arn").should.throw(

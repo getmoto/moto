@@ -1,6 +1,219 @@
 Moto Changelog
 ===================
 
+1.3.16
+-----
+    * Undoing dependency cleanup until we cut a larger release
+
+1.3.15
+-----
+
+Full list of PRs merged in this release:
+https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..2020-09-07
+
+
+    General Changes:
+        * The scaffold.py-script has been fixed to make it easier to scaffold new services.
+          See the README for an introduction.
+        * Reduced dependency overhead.
+          It is now possible to install dependencies for only a specific service using pip install moto[service].
+          Available services: all, acm, awslambda, batch, cloudformation, cognitoidp, ec2, iotdata, iam, xray
+
+    New Services:
+        * Application Autoscaling
+        * Code Commit
+        * Code Pipeline
+        * Elastic Beanstalk
+        * Kinesis Video
+        * Kinesis Video Archived Media
+        * Managed BlockChain
+        * Resource Access Manager (ram)
+        * Sagemaker
+
+    New Methods:
+        * Athena:
+            * create_named_query
+            * get_named_query
+            * get_work_group
+            * start_query_execution
+            * stop_query_execution
+        * API Gateway:
+            * create_authorizer
+            * create_domain_name
+            * create_model
+            * delete_authorizer
+            * get_authorizer
+            * get_authorizers
+            * get_domain_name
+            * get_domain_names
+            * get_model
+            * get_models
+            * update_authorizer
+        * Autoscaling:
+            * enter_standby
+            * exit_standby
+            * terminate_instance_in_auto_scaling_group
+        * CloudFormation:
+            * get_template_summary
+        * CloudWatch:
+            * describe_alarms_for_metric
+            * get_metric_data
+        * CloudWatch Logs:
+            * delete_subscription_filter
+            * describe_subscription_filters
+            * put_subscription_filter
+        * Cognito IDP:
+            * associate_software_token
+            * create_resource_server
+            * confirm_sign_up
+            * initiate_auth
+            * set_user_mfa_preference
+            * sign_up
+            * verify_software_token
+        * DynamoDB:
+            * describe_continuous_backups
+            * transact_get_items
+            * transact_write_items
+            * update_continuous_backups
+        * EC2:
+            * create_vpc_endpoint
+            * describe_vpc_classic_link
+            * describe_vpc_classic_link_dns_support
+            * describe_vpc_endpoint_services
+            * disable_vpc_classic_link
+            * disable_vpc_classic_link_dns_support
+            * enable_vpc_classic_link
+            * enable_vpc_classic_link_dns_support
+            * register_image
+        * ECS:
+            * create_task_set
+            * delete_task_set
+            * describe_task_set
+            * update_service_primary_task_set
+            * update_task_set
+        * Events:
+            * delete_event_bus
+            * create_event_bus
+            * list_event_buses
+            * list_tags_for_resource
+            * tag_resource
+            * untag_resource
+        * Glue:
+            * get_databases
+        * IAM:
+            * delete_group
+            * delete_instance_profile
+            * delete_ssh_public_key
+            * get_account_summary
+            * get_ssh_public_key
+            * list_user_tags
+            * list_ssh_public_keys
+            * update_ssh_public_key
+            * upload_ssh_public_key
+        * IOT:
+            * cancel_job
+            * cancel_job_execution
+            * create_policy_version
+            * delete_job
+            * delete_job_execution
+            * describe_endpoint
+            * describe_job_execution
+            * delete_policy_version
+            * get_policy_version
+            * get_job_document
+            * list_attached_policies
+            * list_job_executions_for_job
+            * list_job_executions_for_thing
+            * list_jobs
+            * list_policy_versions
+            * set_default_policy_version
+            * register_certificate_without_ca
+        * KMS:
+            * untag_resource
+        * Lambda:
+            * delete_function_concurrency
+            * get_function_concurrency
+            * put_function_concurrency
+        * Organisations:
+            * describe_create_account_status
+            * deregister_delegated_administrator
+            * disable_policy_type
+            * enable_policy_type
+            * list_delegated_administrators
+            * list_delegated_services_for_account
+            * list_tags_for_resource
+            * register_delegated_administrator
+            * tag_resource
+            * untag_resource
+            * update_organizational_unit
+        * S3:
+            * delete_bucket_encryption
+            * delete_public_access_block
+            * get_bucket_encryption
+            * get_public_access_block
+            * put_bucket_encryption
+            * put_public_access_block
+        * S3 Control:
+            * delete_public_access_block
+            * get_public_access_block
+            * put_public_access_block
+        * SecretsManager:
+            * get_resource_policy
+            * update_secret
+        * SES:
+            * create_configuration_set
+            * create_configuration_set_event_destination
+            * create_receipt_rule_set
+            * create_receipt_rule
+            * create_template
+            * get_template
+            * get_send_statistics
+            * list_templates
+        * STS:
+            * assume_role_with_saml
+        * SSM:
+            * create_documen
+            * delete_document
+            * describe_document
+            * get_document
+            * list_documents
+            * update_document
+            * update_document_default_version
+        * SWF:
+            * undeprecate_activity_type
+            * undeprecate_domain
+            * undeprecate_workflow_type
+
+    General Updates:
+        * API Gateway - create_rest_api now supports policy-parameter
+        * Autoscaling - describe_auto_scaling_instances now supports InstanceIds-parameter
+        * AutoScalingGroups - now support launch templates
+        * CF - Now supports DependsOn-configuration
+        * CF - Now supports FN::Transform AWS::Include mapping
+        * CF - Now supports update and deletion of Lambdas
+        * CF - Now supports creation, update and deletion of EventBus (Events)
+        * CF - Now supports update of Rules (Events)
+        * CF - Now supports creation, update and deletion of EventSourceMappings (AWS Lambda)
+        * CF - Now supports update and deletion of Kinesis Streams
+        * CF - Now supports creation of DynamoDB streams
+        * CF - Now supports deletion of  DynamoDB tables
+        * CF - list_stacks now supports the status_filter-parameter
+        * Cognito IDP - list_users now supports filter-parameter
+        * DynamoDB - GSI/LSI's now support ProjectionType=KEYS_ONLY
+        * EC2 - create_route now supports the NetworkInterfaceId-parameter
+        * EC2 - describe_instances now supports additional filters (owner-id)
+        * EC2 - describe_instance_status now supports additional filters (instance-state-name, instance-state-code)
+        * EC2 - describe_nat_gateways now supports additional filters (nat-gateway-id, vpc-id, subnet-id, state)
+        * EC2 - describe_vpn_gateways now supports additional filters (attachment.vpc_id, attachment.state, vpn-gateway-id, type)
+        * IAM - list_users now supports path_prefix-parameter
+        * IOT - list_thing_groups now supports parent_group, name_prefix_filter, recursive-parameters
+        * S3 - delete_objects now supports deletion of specific VersionIds
+        * SecretsManager - list_secrets now supports filters-parameter
+        * SFN - start_execution now receives and validates input
+        * SNS - Now supports sending a message directly to a phone number
+        * SQS - MessageAttributes now support labeled DataTypes
+
+
 1.3.14
 -----
 

@@ -1663,7 +1663,7 @@ def test_update_function_s3():
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
     err.exception.response["Error"]["Message"].should.equal(
-        "1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
+        r"1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
     )
 
 

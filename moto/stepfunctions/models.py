@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime
 
@@ -11,6 +12,7 @@ from .exceptions import (
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
+    InvalidExecutionInput,
     InvalidName,
     StateMachineDoesNotExist,
 )
@@ -34,6 +36,7 @@ class Execution:
         state_machine_name,
         execution_name,
         state_machine_arn,
+        execution_input,
     ):
         execution_arn = "arn:aws:states:{}:{}:execution:{}:{}"
         execution_arn = execution_arn.format(
@@ -43,6 +46,7 @@ class Execution:
         self.name = execution_name
         self.start_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.state_machine_arn = state_machine_arn
+        self.execution_input = execution_input
         self.status = "RUNNING"
         self.stop_date = None
 
@@ -204,15 +208,17 @@ class StepFunctionBackend(BaseBackend):
         if sm:
             self.state_machines.remove(sm)
 
-    def start_execution(self, state_machine_arn, name=None):
+    def start_execution(self, state_machine_arn, name=None, execution_input=None):
         state_machine_name = self.describe_state_machine(state_machine_arn).name
         self._ensure_execution_name_doesnt_exist(name)
+        self._validate_execution_input(execution_input)
         execution = Execution(
             region_name=self.region_name,
             account_id=self._get_account_id(),
             state_machine_name=state_machine_name,
             execution_name=name or str(uuid4()),
             state_machine_arn=state_machine_arn,
+            execution_input=execution_input,
         )
         self.executions.append(execution)
         return execution
@@ -286,6 +292,14 @@ class StepFunctionBackend(BaseBackend):
                 raise ExecutionAlreadyExists(
                     "Execution Already Exists: '" + execution.execution_arn + "'"
                 )
+
+    def _validate_execution_input(self, execution_input):
+        try:
+            json.loads(execution_input)
+        except Exception as ex:
+            raise InvalidExecutionInput(
+                "Invalid State Machine Execution Input: '" + str(ex) + "'"
+            )
 
     def _get_account_id(self):
         return ACCOUNT_ID

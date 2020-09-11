@@ -114,35 +114,18 @@ def append_mock_to_init_py(service):
     with open(path) as f:
         lines = [_.replace('\n', '') for _ in f.readlines()]
 
-    if any(_ for _ in lines if re.match('^from.*mock_{}.*$'.format(service), _)):
+    if any(_ for _ in lines if re.match('^mock_{}.*lazy_load(.*)$'.format(service), _)):
         return
-    filtered_lines = [_ for _ in lines if re.match('^from.*mock.*$', _)]
+    filtered_lines = [_ for _ in lines if re.match('^mock_.*lazy_load(.*)$', _)]
     last_import_line_index = lines.index(filtered_lines[-1])
 
-    new_line = 'from .{} import mock_{}  # noqa'.format(get_escaped_service(service), get_escaped_service(service))
+    new_line = 'mock_{} = lazy_load(".{}", "mock_{}")'.format(get_escaped_service(service), get_escaped_service(service), get_escaped_service(service))
     lines.insert(last_import_line_index + 1, new_line)
 
     body = '\n'.join(lines) + '\n'
     with open(path, 'w') as f:
         f.write(body)
 
-
-def append_mock_import_to_backends_py(service):
-    path = os.path.join(os.path.dirname(__file__), '..', 'moto', 'backends.py')
-    with open(path) as f:
-        lines = [_.replace('\n', '') for _ in f.readlines()]
-
-    if any(_ for _ in lines if re.match('^from moto\.{}.*{}_backends.*$'.format(service, service), _)):
-        return
-    filtered_lines = [_ for _ in lines if re.match('^from.*backends.*$', _)]
-    last_import_line_index = lines.index(filtered_lines[-1])
-
-    new_line = 'from moto.{} import {}_backends'.format(get_escaped_service(service), get_escaped_service(service))
-    lines.insert(last_import_line_index + 1, new_line)
-
-    body = '\n'.join(lines) + '\n'
-    with open(path, 'w') as f:
-        f.write(body)
 
 def append_mock_dict_to_backends_py(service):
     path = os.path.join(os.path.dirname(__file__), '..', 'moto', 'backends.py')
@@ -154,7 +137,7 @@ def append_mock_dict_to_backends_py(service):
     filtered_lines = [_ for _ in lines if re.match(".*\".*\":.*_backends.*", _)]
     last_elem_line_index = lines.index(filtered_lines[-1])
 
-    new_line = "    \"{}\": {}_backends,".format(service, get_escaped_service(service))
+    new_line = "    \"{}\": (\"{}\", \"{}_backends\"),".format(service, get_escaped_service(service), get_escaped_service(service))
     prev_line = lines[last_elem_line_index]
     if not prev_line.endswith('{') and not prev_line.endswith(','):
         lines[last_elem_line_index] += ','
@@ -212,7 +195,6 @@ def initialize_service(service, operation, api_protocol):
 
     # append mock to init files
     append_mock_to_init_py(service)
-    append_mock_import_to_backends_py(service)
     append_mock_dict_to_backends_py(service)
 
 
@@ -229,6 +211,9 @@ def to_snake_case(s):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
+def get_operation_name_in_keys(operation_name, operation_keys):
+    index = [_.lower() for _ in operation_keys].index(operation_name.lower())
+    return operation_keys[index]
 
 def get_function_in_responses(service, operation, protocol):
     """refers to definition of API in botocore, and autogenerates function
@@ -237,7 +222,11 @@ def get_function_in_responses(service, operation, protocol):
     """
     client = boto3.client(service)
 
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
+
     op_model = client._service_model.operation_model(aws_operation_name)
     if not hasattr(op_model.output_shape, 'members'):
         outputs = {}
@@ -282,7 +271,10 @@ def get_function_in_models(service, operation):
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
     client = boto3.client(service)
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
     op_model = client._service_model.operation_model(aws_operation_name)
     inputs = op_model.input_shape.members
     if not hasattr(op_model.output_shape, 'members'):
@@ -329,7 +321,11 @@ def get_response_query_template(service, operation):
       https://github.com/boto/botocore/blob/develop/botocore/data/elbv2/2015-12-01/service-2.json
     """
     client = boto3.client(service)
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
+
     op_model = client._service_model.operation_model(aws_operation_name)
     result_wrapper = op_model.output_shape.serialization['resultWrapper']
     response_wrapper = result_wrapper.replace('Result', 'Response')
@@ -403,11 +399,13 @@ def insert_code_to_class(path, base_class, new_code):
     with open(path, 'w') as f:
         f.write(body)
 
-
 def insert_url(service, operation, api_protocol):
     client = boto3.client(service)
     service_class = client.__class__.__name__
-    aws_operation_name = to_upper_camel_case(operation)
+    aws_operation_name = get_operation_name_in_keys(
+        to_upper_camel_case(operation),
+        list(client._service_model._service_description['operations'].keys())
+    )
     uri = client._service_model.operation_model(aws_operation_name).http['requestUri']
 
     path = os.path.join(os.path.dirname(__file__), '..', 'moto', get_escaped_service(service), 'urls.py')

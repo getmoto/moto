@@ -33,22 +33,13 @@ install_requires = [
     "boto>=2.36.0",
     "boto3>=1.9.201",
     "botocore>=1.12.201",
-    "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
     "werkzeug",
-    "PyYAML>=5.1",
     "pytz",
-    "ecdsa<0.15",
     "python-dateutil<3.0.0,>=2.1",
-    "python-jose[cryptography]>=3.1.0,<4.0.0",
-    "docker>=2.5.1",
-    "jsondiff>=1.1.2",
-    "aws-xray-sdk!=0.96,>=0.93",
     "responses>=0.9.0",
-    "idna<3,>=2.5",
-    "cfn-lint>=0.4.0",
     "MarkupSafe<2.0",  # This is a Jinja2 dependency, 2.0.0a1 currently seems broken
 ]
 
@@ -72,7 +63,6 @@ if PY2:
         "mock<=3.0.5",
         "more-itertools==5.0.0",
         "setuptools==44.0.0",
-        "sshpubkeys>=3.1.0,<4.0",
         "zipp==0.6.0",
     ]
 else:
@@ -81,13 +71,58 @@ else:
         "mock",
         "more-itertools",
         "setuptools",
-        "sshpubkeys>=3.1.0",
         "zipp",
     ]
 
-extras_require = {
-    'server': ['flask'],
+_dep_cryptography = "cryptography>=2.3.0"
+_dep_PyYAML = "PyYAML>=5.1"
+_dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
+_dep_python_jose_ecdsa_pin = "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
+_dep_docker = "docker>=2.5.1"
+_dep_jsondiff = "jsondiff>=1.1.2"
+_dep_aws_xray_sdk = "aws-xray-sdk!=0.96,>=0.93"
+_dep_idna = "idna<3,>=2.5"
+_dep_cfn_lint = "cfn-lint>=0.4.0"
+_dep_sshpubkeys_py2 = "sshpubkeys>=3.1.0,<4.0; python_version<'3'"
+_dep_sshpubkeys_py3 = "sshpubkeys>=3.1.0; python_version>'3'"
+
+all_extra_deps = [
+    _dep_cryptography,
+    _dep_PyYAML,
+    _dep_python_jose,
+    _dep_python_jose_ecdsa_pin,
+    _dep_docker,
+    _dep_jsondiff,
+    _dep_aws_xray_sdk,
+    _dep_idna,
+    _dep_cfn_lint,
+    _dep_sshpubkeys_py2,
+    _dep_sshpubkeys_py3,
+]
+all_server_deps = all_extra_deps + ['flask']
+
+# TODO: do we want to add ALL services here?
+# i.e. even those without extra dependencies.
+# Would be good for future-compatibility, I guess.
+extras_per_service = {
+    'acm': [_dep_cryptography],
+    'awslambda': [_dep_docker],
+    'batch': [_dep_docker],
+    'cloudformation': [_dep_PyYAML, _dep_cfn_lint],
+    'cognitoidp': [_dep_python_jose, _dep_python_jose_ecdsa_pin],
+    "ec2": [_dep_cryptography, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
+    'iam': [_dep_cryptography],
+    'iotdata': [_dep_jsondiff],
+    's3': [_dep_cryptography],
+    'xray': [_dep_aws_xray_sdk],
 }
+
+extras_require = {
+    'all': all_extra_deps,
+    'server': all_server_deps,
+}
+
+extras_require.update(extras_per_service)
 
 # https://hynek.me/articles/conditional-python-dependencies/
 if int(setuptools.__version__.split(".", 1)[0]) < 18:
@@ -113,7 +148,8 @@ setup(
         ],
     },
     packages=find_packages(exclude=("tests", "tests.*")),
-    install_requires=install_requires,
+    # Addding all requirements for now until we cut a larger release
+    install_requires=install_requires + all_extra_deps,
     extras_require=extras_require,
     include_package_data=True,
     license="Apache",
