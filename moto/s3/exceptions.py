@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from moto.core.exceptions import RESTError
 
+from moto.core.exceptions import RESTError
 
 ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 {% block extra %}<BucketName>{{ bucket }}</BucketName>{% endblock %}
@@ -8,6 +8,10 @@ ERROR_WITH_BUCKET_NAME = """{% extends 'single_error' %}
 
 ERROR_WITH_KEY_NAME = """{% extends 'single_error' %}
 {% block extra %}<KeyName>{{ key_name }}</KeyName>{% endblock %}
+"""
+
+ERROR_WITH_CONDITION_NAME = """{% extends 'single_error' %}
+{% block extra %}<Condition>{{ condition }}</Condition>{% endblock %}
 """
 
 
@@ -385,4 +389,18 @@ class NoSuchUpload(S3ClientError):
     def __init__(self):
         super(NoSuchUpload, self).__init__(
             "NoSuchUpload", "The specified multipart upload does not exist."
+        )
+
+
+class PreconditionFailed(S3ClientError):
+    code = 412
+
+    def __init__(self, failed_condition, **kwargs):
+        kwargs.setdefault("template", "condition_error")
+        self.templates["condition_error"] = ERROR_WITH_CONDITION_NAME
+        super(PreconditionFailed, self).__init__(
+            "PreconditionFailed",
+            "At least one of the pre-conditions you specified did not hold",
+            condition=failed_condition,
+            **kwargs
         )
