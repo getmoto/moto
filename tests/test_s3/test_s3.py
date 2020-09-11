@@ -4769,8 +4769,8 @@ def test_presigned_url_restrict_parameters():
             ClientMethod="put_object",
             Params={"Bucket": bucket, "Key": key, "Unknown": "metadata"},
         )
-    assert str(err.exception).should.equal(
-        'Parameter validation failed:\nUnknown parameter in input: "Unknown", must be one of: ACL, Body, Bucket, CacheControl, ContentDisposition, ContentEncoding, ContentLanguage, ContentLength, ContentMD5, ContentType, Expires, GrantFullControl, GrantRead, GrantReadACP, GrantWriteACP, Key, Metadata, ServerSideEncryption, StorageClass, WebsiteRedirectLocation, SSECustomerAlgorithm, SSECustomerKey, SSECustomerKeyMD5, SSEKMSKeyId, SSEKMSEncryptionContext, RequestPayer, Tagging, ObjectLockMode, ObjectLockRetainUntilDate, ObjectLockLegalHoldStatus'
+    assert str(err.exception).should.match(
+        r'Parameter validation failed:\nUnknown parameter in input: "Unknown", must be one of:.*'
     )
 
     s3.delete_bucket(Bucket=bucket)
