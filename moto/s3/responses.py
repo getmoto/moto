@@ -1666,7 +1666,9 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
             return 204, {}, template.render(version_id=version_id)
-        success, response_meta = self.backend.delete_object(bucket_name, key_name, version_id=version_id)
+        success, response_meta = self.backend.delete_object(
+            bucket_name, key_name, version_id=version_id
+        )
         response_headers = {}
         if response_meta is not None:
             for k in response_meta:
