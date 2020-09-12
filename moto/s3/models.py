@@ -1639,7 +1639,6 @@ class S3Backend(BaseBackend):
                 bucket.keys.pop(key_name)
             else:
                 if version_id is None:
-                    old = bucket.keys.get(key_name, None)
                     delete_marker = self._set_delete_marker(bucket_name, key_name)
                     response_meta["version-id"] = delete_marker.version_id
                 else:
@@ -1650,7 +1649,7 @@ class S3Backend(BaseBackend):
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
                             if type(key) is FakeDeleteMarker:
-                                 response_meta["delete-marker"] = "true"
+                                response_meta["delete-marker"] = "true"
                             break
 
                     bucket.keys.setlist(
