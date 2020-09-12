@@ -902,7 +902,7 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            success = self.backend.delete_object(
+            success, _ = self.backend.delete_object(
                 bucket_name, undo_clean_key_name(key_name), version_id=version_id
             )
             if success:
@@ -1666,8 +1666,12 @@ class ResponseObject(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             )
             template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
             return 204, {}, template.render(version_id=version_id)
-        self.backend.delete_object(bucket_name, key_name, version_id=version_id)
-        return 204, {}, ""
+        success, response_meta = self.backend.delete_object(bucket_name, key_name, version_id=version_id)
+        response_headers = {}
+        if response_meta is not None:
+            for k in response_meta:
+                response_headers["x-amz-{}".format(k)] = response_meta[k]
+        return 204, response_headers, ""
 
     def _complete_multipart_body(self, body):
         ps = minidom.parseString(body).getElementsByTagName("Part")
