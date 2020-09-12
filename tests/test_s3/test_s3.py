@@ -1713,7 +1713,7 @@ def test_boto3_list_objects_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["IsTruncated"] == True
     assert resp.get("Prefix") is None
-    assert resp.get("Delimiter") == "None"
+    assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
 
     next_marker = resp["NextMarker"]
@@ -1726,7 +1726,7 @@ def test_boto3_list_objects_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["IsTruncated"] == True
     assert resp.get("Prefix") is None
-    assert resp.get("Delimiter") == "None"
+    assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
 
     next_marker = resp["NextMarker"]
@@ -1739,7 +1739,7 @@ def test_boto3_list_objects_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["IsTruncated"] == False
     assert resp.get("Prefix") is None
-    assert resp.get("Delimiter") == "None"
+    assert resp.get("Delimiter") is None
     assert "NextMarker" not in resp
 
 
