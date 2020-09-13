@@ -1,3 +1,25 @@
+#
+# Dependency Integration Test script
+#
+
+# Runs a test to verify whether each service has the correct dependencies listed in setup.py
+#
+# ::Algorithm::
+# For each valid service:
+#   - Create a virtual environment
+#   - Install only the necessary dependencies
+#   - Run the tests for that service
+#   - If the tests fail:
+#     - This service is probably missing a dependency
+#     - A log file with the test results will be created (test_results_service.log)
+#   - Delete the virtual environment
+#
+# Note:
+#   Only tested on Linux
+#   Parallelized to test 4 services at the time.
+#   Could take some time to run - around 20 minutes on the author's machine
+
+
 overwrite() { echo -e "\r\033[1A\033[0K$@"; }
 
 contains() {
