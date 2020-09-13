@@ -2048,7 +2048,12 @@ def test_invoke_function_from_sqs_exception():
     assert response["EventSourceArn"] == queue.attributes["QueueArn"]
     assert response["State"] == "Enabled"
 
-    entries = [{"Id": "1", "MessageBody": json.dumps({"uuid": str(uuid.uuid4()), "test": "test"})}]
+    entries = [
+        {
+            "Id": "1",
+            "MessageBody": json.dumps({"uuid": str(uuid.uuid4()), "test": "test"}),
+        }
+    ]
 
     queue.send_messages(Entries=entries)
 

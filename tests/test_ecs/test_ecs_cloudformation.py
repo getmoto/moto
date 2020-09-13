@@ -3,6 +3,7 @@ import json
 from copy import deepcopy
 from moto import mock_cloudformation, mock_ecs
 
+
 @mock_ecs
 @mock_cloudformation
 def test_update_task_definition_family_through_cloudformation_should_trigger_a_replacement():
