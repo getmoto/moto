@@ -6,11 +6,10 @@ from datetime import datetime, timedelta
 
 from boto3 import Session
 
-from moto.core import BaseBackend, CloudFormationModel
+from moto.core import ACCOUNT_ID, BaseBackend, CloudFormationModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
-from moto.iam.models import ACCOUNT_ID
 
 from .utils import decrypt, encrypt, generate_key_id, generate_master_key
 

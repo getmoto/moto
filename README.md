@@ -9,6 +9,25 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)
 ![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+
+## Install
+
+To install moto for a specific service:
+```console
+$ pip install moto[ec2,s3]
+```
+This will install Moto, and the dependencies required for that specific service.  
+If you don't care about the number of dependencies, or if you want to mock many AWS services:
+```console
+$ pip install moto[all]
+```
+Not all services might be covered, in which case you might see a warning:  
+`moto 1.3.16 does not provide the extra 'service'`.  
+You can ignore the warning, or simply install moto as is:
+```console
+$ pip install moto
+```
+
 ## In a nutshell
 
 Moto is a library that allows your tests to easily mock out AWS Services.
@@ -459,15 +478,7 @@ require that you update your hosts file for your code to work properly:
 1. `s3-control`
 
 For the above services, this is required because the hostname is in the form of `AWS_ACCOUNT_ID.localhost`.
-As a result, you need to add that entry to your host file for your tests to function properly.
-
-
-## Install
-
-
-```console
-$ pip install moto
-```
+As a result, you need to add that entry to your host file for your tests to function properly. 
 
 ## Releases
 

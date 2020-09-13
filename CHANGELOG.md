@@ -1,13 +1,17 @@
 Moto Changelog
 ===================
 
+Unreleased
+-----
+    * Reduced dependency overhead.
+      It is now possible to install dependencies for only specific services using:
+      pip install moto[service1,service1].
+      See the README for more information.
+
+
+
 1.3.16
 -----
-    * Undoing dependency cleanup until we cut a larger release
-
-1.3.15
------
-
 Full list of PRs merged in this release:
 https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..2020-09-07
 
@@ -15,9 +19,6 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..
     General Changes:
         * The scaffold.py-script has been fixed to make it easier to scaffold new services.
           See the README for an introduction.
-        * Reduced dependency overhead.
-          It is now possible to install dependencies for only a specific service using pip install moto[service].
-          Available services: all, acm, awslambda, batch, cloudformation, cognitoidp, ec2, iotdata, iam, xray
 
     New Services:
         * Application Autoscaling
@@ -213,6 +214,10 @@ https://github.com/spulec/moto/pulls?q=is%3Apr+is%3Aclosed+merged%3A2019-11-14..
         * SNS - Now supports sending a message directly to a phone number
         * SQS - MessageAttributes now support labeled DataTypes
 
+1.3.15
+-----
+
+This release broke dependency management for a lot of services - please upgrade to 1.3.16.
 
 1.3.14
 -----

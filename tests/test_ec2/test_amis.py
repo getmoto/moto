@@ -12,7 +12,7 @@ import sure  # noqa
 
 from moto import mock_ec2_deprecated, mock_ec2
 from moto.ec2.models import AMIS, OWNER_ID
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from tests.helpers import requires_boto_gte
 
 

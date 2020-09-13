@@ -27,7 +27,7 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
 )
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .exceptions import (
     CidrLimitExceeded,
     DependencyViolationError,

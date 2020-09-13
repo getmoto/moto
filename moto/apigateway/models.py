@@ -14,10 +14,9 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 import responses
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from .utils import create_id
 from moto.core.utils import path_url
-from moto.sts.models import ACCOUNT_ID
 from .exceptions import (
     ApiKeyNotFoundException,
     UsagePlanNotFoundException,

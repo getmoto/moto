@@ -7,19 +7,17 @@ import tests.backport_assert_raises
 from nose.tools import assert_raises
 
 import base64
-import datetime
 import ipaddress
-import json
 
 import six
 import boto
 import boto3
 from boto.ec2.instance import Reservation, InstanceAttribute
-from boto.exception import EC2ResponseError, EC2ResponseError
+from boto.exception import EC2ResponseError
 from freezegun import freeze_time
 import sure  # noqa
 
-from moto import mock_ec2_deprecated, mock_ec2, mock_cloudformation
+from moto import mock_ec2_deprecated, mock_ec2
 from tests.helpers import requires_boto_gte
 
 
@@ -1673,40 +1671,3 @@ def test_describe_instance_attribute():
             invalid_instance_attribute=invalid_instance_attribute
         )
         ex.exception.response["Error"]["Message"].should.equal(message)
-
-
-@mock_ec2
-@mock_cloudformation
-def test_volume_size_through_cloudformation():
-    ec2 = boto3.client("ec2", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
-
-    volume_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "testInstance": {
-                "Type": "AWS::EC2::Instance",
-                "Properties": {
-                    "ImageId": "ami-d3adb33f",
-                    "KeyName": "dummy",
-                    "InstanceType": "t2.micro",
-                    "BlockDeviceMappings": [
-                        {"DeviceName": "/dev/sda2", "Ebs": {"VolumeSize": "50"}}
-                    ],
-                    "Tags": [
-                        {"Key": "foo", "Value": "bar"},
-                        {"Key": "blah", "Value": "baz"},
-                    ],
-                },
-            }
-        },
-    }
-    template_json = json.dumps(volume_template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    instances = ec2.describe_instances()
-    volume = instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"][0][
-        "Ebs"
-    ]
-
-    volumes = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])
-    volumes["Volumes"][0]["Size"].should.equal(50)
