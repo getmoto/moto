@@ -2316,6 +2316,30 @@ def test_boto3_delete_versioned_bucket():
 
 
 @mock_s3
+def test_boto3_delete_versioned_bucket_returns_meta():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    client.create_bucket(Bucket="blah")
+    client.put_bucket_versioning(
+        Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    put_resp = client.put_object(Bucket="blah", Key="test1", Body=b"test1")
+
+    # Delete the object
+    del_resp = client.delete_object(Bucket="blah", Key="test1")
+    assert "DeleteMarker" not in del_resp
+    assert del_resp["VersionId"] is not None
+
+    # Delete the delete marker
+    del_resp2 = client.delete_object(
+        Bucket="blah", Key="test1", VersionId=del_resp["VersionId"]
+    )
+    assert del_resp2["DeleteMarker"] == True
+    assert "VersionId" not in del_resp2
+
+
+@mock_s3
 def test_boto3_get_object_if_modified_since():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"

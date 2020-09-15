@@ -1620,7 +1620,9 @@ class S3Backend(BaseBackend):
 
     def _set_delete_marker(self, bucket_name, key_name):
         bucket = self.get_bucket(bucket_name)
-        bucket.keys[key_name] = FakeDeleteMarker(key=bucket.keys[key_name])
+        delete_marker = FakeDeleteMarker(key=bucket.keys[key_name])
+        bucket.keys[key_name] = delete_marker
+        return delete_marker
 
     def delete_object_tagging(self, bucket_name, key_name, version_id=None):
         key = self.get_object(bucket_name, key_name, version_id=version_id)
@@ -1630,15 +1632,26 @@ class S3Backend(BaseBackend):
         key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
+        response_meta = {}
+
         try:
             if not bucket.is_versioned:
                 bucket.keys.pop(key_name)
             else:
                 if version_id is None:
-                    self._set_delete_marker(bucket_name, key_name)
+                    delete_marker = self._set_delete_marker(bucket_name, key_name)
+                    response_meta["version-id"] = delete_marker.version_id
                 else:
                     if key_name not in bucket.keys:
                         raise KeyError
+
+                    response_meta["delete-marker"] = "false"
+                    for key in bucket.keys.getlist(key_name):
+                        if str(key.version_id) == str(version_id):
+                            if type(key) is FakeDeleteMarker:
+                                response_meta["delete-marker"] = "true"
+                            break
+
                     bucket.keys.setlist(
                         key_name,
                         [
@@ -1650,9 +1663,9 @@ class S3Backend(BaseBackend):
 
                     if not bucket.keys.getlist(key_name):
                         bucket.keys.pop(key_name)
-            return True
+            return True, response_meta
         except KeyError:
-            return False
+            return False, None
 
     def copy_key(
         self,
