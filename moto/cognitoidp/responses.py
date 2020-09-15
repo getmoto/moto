@@ -287,7 +287,7 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, limit=limit, pagination_token=token
         )
         if filt:
-            name, value = filt.replace('"', "").split("=")
+            name, value = filt.replace('"', "").replace(" ", "").split("=")
             users = [
                 user
                 for user in users
