@@ -9,6 +9,7 @@ from threading import Lock
 
 import six
 from flask import Flask
+from flask_cors import CORS
 from flask.testing import FlaskClient
 
 from six.moves.urllib.parse import urlencode
@@ -205,6 +206,7 @@ def create_backend_app(service):
     backend_app = Flask(__name__)
     backend_app.debug = True
     backend_app.service = service
+    CORS(backend_app)
 
     # Reset view functions to reset the app
     backend_app.view_functions = {}

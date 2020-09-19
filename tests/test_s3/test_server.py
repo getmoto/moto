@@ -108,3 +108,31 @@ def test_s3_server_post_unicode_bucket_key():
         }
     )
     assert backend_app
+
+
+def test_s3_server_post_cors():
+    test_client = authenticated_client()
+
+    preflight_headers = {
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "origin, x-requested-with",
+        "Origin": "https://localhost:9000",
+    }
+
+    res = test_client.options(
+        "/", "http://tester.localhost:5000/", headers=preflight_headers
+    )
+    assert res.status_code in [200, 204]
+
+    expected_methods = set(["DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"])
+    assert set(res.headers["Allow"].split(", ")) == expected_methods
+    assert (
+        set(res.headers["Access-Control-Allow-Methods"].split(", ")) == expected_methods
+    )
+
+    res.headers.should.have.key("Access-Control-Allow-Origin").which.should.equal(
+        "https://localhost:9000"
+    )
+    res.headers.should.have.key("Access-Control-Allow-Headers").which.should.equal(
+        "origin, x-requested-with"
+    )
