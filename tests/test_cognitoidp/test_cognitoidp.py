@@ -1085,6 +1085,13 @@ def test_list_users():
     result["Users"].should.have.length_of(1)
     result["Users"][0]["Username"].should.equal(username_bis)
 
+    # checking Filter with space
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='phone_number = "+33666666666'
+    )
+    result["Users"].should.have.length_of(1)
+    result["Users"][0]["Username"].should.equal(username_bis)
+
 
 @mock_cognitoidp
 def test_list_users_returns_limit_items():
