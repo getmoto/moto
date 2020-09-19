@@ -135,7 +135,7 @@ def _target_params_are_valid(namespace, r_id, dimension):
         try:
             valid_dimensions = [d.value for d in ScalableDimensionValueSet]
             d_namespace, d_resource_type, scaling_property = dimension.split(":")
-            resource_type, cluster, service = r_id.split("/")
+            resource_type = _get_resource_type_from_resource_id(r_id)
             if (
                 dimension not in valid_dimensions
                 or d_namespace != namespace
@@ -149,6 +149,33 @@ def _target_params_are_valid(namespace, r_id, dimension):
             "Unsupported service namespace, resource type or scalable dimension"
         )
     return is_valid
+
+
+def _get_resource_type_from_resource_id(resource_id):
+    # AWS Application Autoscaling resource_ids are multi-component (path-like) identifiers that vary in format,
+    # depending on the type of resource it identifies.  resource_type is one of its components.
+    #  resource_id format variations are described in
+    #   https://docs.aws.amazon.com/autoscaling/application/APIReference/API_RegisterScalableTarget.html
+    #  In a nutshell:
+    #  - Most use slash separators, but some use colon separators.
+    #  - The resource type is usually the first component of the resource_id...
+    #    - ...except for sagemaker endpoints, dynamodb GSIs and keyspaces tables, where it's the third.
+    #  - Comprehend uses an arn, with the resource type being the last element.
+
+    if resource_id.startswith("arn:aws:comprehend"):
+        resource_id = resource_id.split(":")[-1]
+    resource_split = (
+        resource_id.split("/") if "/" in resource_id else resource_id.split(":")
+    )
+    if (
+        resource_split[0] == "endpoint"
+        or (resource_split[0] == "table" and len(resource_split) > 2)
+        or (resource_split[0] == "keyspace")
+    ):
+        resource_type = resource_split[2]
+    else:
+        resource_type = resource_split[0]
+    return resource_type
 
 
 class FakeScalableTarget(BaseModel):

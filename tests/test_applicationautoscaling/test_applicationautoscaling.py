@@ -187,3 +187,76 @@ def register_scalable_target(client, **kwargs):
         RoleARN=kwargs.get("RoleARN", DEFAULT_ROLE_ARN),
         SuspendedState=kwargs.get("SuspendedState", DEFAULT_SUSPENDED_STATE),
     )
+
+
+@mock_ecs
+@mock_applicationautoscaling
+def test_register_scalable_target_resource_id_variations():
+
+    # Required to register an ECS target in moto
+    ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
+    _create_ecs_defaults(ecs)
+
+    # See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-applicationautoscaling-scalabletarget.html
+    resource_id_variations = [
+        (
+            DEFAULT_SERVICE_NAMESPACE,
+            DEFAULT_RESOURCE_ID,
+            DEFAULT_SCALABLE_DIMENSION,
+        ),  # ECS
+        (
+            "ec2",
+            "spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE",
+            "ec2:spot-fleet-request:TargetCapacity",
+        ),
+        (
+            "elasticmapreduce",
+            "instancegroup/j-2EEZNYKUA1NTV/ig-1791Y4E1L8YI0",
+            "elasticmapreduce:instancegroup:InstanceCount",
+        ),
+        ("appstream", "fleet/sample-fleet", "appstream:fleet:DesiredCapacity"),
+        ("dynamodb", "table/my-table", "dynamodb:table:ReadCapacityUnits"),
+        (
+            "dynamodb",
+            "table/my-table/index/my-table-index",
+            "dynamodb:index:ReadCapacityUnits",
+        ),
+        ("rds", "cluster:my-db-cluster", "rds:cluster:ReadReplicaCount"),
+        (
+            "sagemaker",
+            "endpoint/MyEndPoint/variant/MyVariant",
+            "sagemaker:variant:DesiredInstanceCount",
+        ),
+        (
+            "comprehend",
+            "arn:aws:comprehend:us-west-2:123456789012:document-classifier-endpoint/EXAMPLE",
+            "comprehend:document-classifier-endpoint:DesiredInferenceUnits",
+        ),
+        (
+            "lambda",
+            "function:my-function:prod",
+            "lambda:function:ProvisionedConcurrency",
+        ),
+        (
+            "cassandra",
+            "keyspace/mykeyspace/table/mytable",
+            "cassandra:table:ReadCapacityUnits",
+        ),
+    ]
+
+    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
+    for namespace, resource_id, scalable_dimension in resource_id_variations:
+        client.register_scalable_target(
+            ServiceNamespace=namespace,
+            ResourceId=resource_id,
+            ScalableDimension=scalable_dimension,
+        )
+        response = client.describe_scalable_targets(ServiceNamespace=namespace)
+        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+        num_targets = 2 if namespace == "dynamodb" and "index" in resource_id else 1
+        len(response["ScalableTargets"]).should.equal(num_targets)
+        t = response["ScalableTargets"][-1]
+        t.should.have.key("ServiceNamespace").which.should.equal(namespace)
+        t.should.have.key("ResourceId").which.should.equal(resource_id)
+        t.should.have.key("ScalableDimension").which.should.equal(scalable_dimension)
+        t.should.have.key("CreationTime").which.should.be.a("datetime.datetime")
