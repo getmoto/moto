@@ -454,14 +454,16 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         password = self._get_param("Password")
         permanent = self._get_param("Permanent")
-        cognitoidp_backends[self.region].admin_set_user_password(user_pool_id, username, password, permanent)
+        cognitoidp_backends[self.region].admin_set_user_password(
+            user_pool_id, username, password, permanent
+        )
         return ""
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
     def __init__(self):
         with open(
-                os.path.join(os.path.dirname(__file__), "resources/jwks-public.json")
+            os.path.join(os.path.dirname(__file__), "resources/jwks-public.json")
         ) as f:
             self.json_web_key = f.read()
 

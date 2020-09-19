@@ -1830,10 +1830,7 @@ def test_admin_set_user_password():
         UserAttributes=[{"Name": "thing", "Value": value}],
     )
     conn.admin_set_user_password(
-        UserPoolId=user_pool_id,
-        Username=username,
-        Password=password,
-        Permanent=True
+        UserPoolId=user_pool_id, Username=username, Password=password, Permanent=True
     )
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     result["Username"].should.equal(username)
@@ -1846,7 +1843,7 @@ def test_admin_set_user_password():
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
 # which isnt mocked in ServerMode
 if not settings.TEST_SERVER_MODE:
-    
+
     @mock_cognitoidp
     def test_idtoken_contains_kid_header():
         # https://github.com/spulec/moto/issues/3078

@@ -93,7 +93,7 @@ class CognitoIdpUserPool(BaseModel):
         self.id_tokens = {}
 
         with open(
-                os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
+            os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
         ) as f:
             self.json_web_key = json.loads(f.read())
 
@@ -113,13 +113,13 @@ class CognitoIdpUserPool(BaseModel):
             user_pool_json.update(self.extended_config)
         else:
             user_pool_json["LambdaConfig"] = (
-                    self.extended_config.get("LambdaConfig") or {}
+                self.extended_config.get("LambdaConfig") or {}
             )
 
         return user_pool_json
 
     def create_jwt(
-            self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
+        self, client_id, username, token_use, expires_in=60 * 60, extra_data={}
     ):
         now = int(time.time())
         payload = {
@@ -353,7 +353,6 @@ class CognitoIdpUser(BaseModel):
 
 class CognitoResourceServer(BaseModel):
     def __init__(self, user_pool_id, identifier, name, scopes):
-        
         self.user_pool_id = user_pool_id
         self.identifier = identifier
         self.name = name
@@ -614,7 +613,7 @@ class CognitoIdpBackend(BaseBackend):
 
     # User
     def admin_create_user(
-            self, user_pool_id, username, message_action, temporary_password, attributes
+        self, user_pool_id, username, message_action, temporary_password, attributes
     ):
         user_pool = self.user_pools.get(user_pool_id)
         if not user_pool:
@@ -740,7 +739,7 @@ class CognitoIdpBackend(BaseBackend):
             return {}
 
     def respond_to_auth_challenge(
-            self, session, client_id, challenge_name, challenge_responses
+        self, session, client_id, challenge_name, challenge_responses
     ):
         if challenge_name == "PASSWORD_VERIFIER":
             session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")
@@ -814,7 +813,7 @@ class CognitoIdpBackend(BaseBackend):
             if client.generate_secret:
                 secret_hash = challenge_responses.get("SECRET_HASH")
                 if not check_secret_hash(
-                        client.secret, client.id, username, secret_hash
+                    client.secret, client.id, username, secret_hash
                 ):
                     raise NotAuthorizedError(secret_hash)
 
@@ -927,7 +926,7 @@ class CognitoIdpBackend(BaseBackend):
             if client.generate_secret:
                 secret_hash = auth_parameters.get("SECRET_HASH")
                 if not check_secret_hash(
-                        client.secret, client.id, username, secret_hash
+                    client.secret, client.id, username, secret_hash
                 ):
                     raise NotAuthorizedError(secret_hash)
 
@@ -964,7 +963,7 @@ class CognitoIdpBackend(BaseBackend):
             if client.generate_secret:
                 secret_hash = auth_parameters.get("SECRET_HASH")
                 if not check_secret_hash(
-                        client.secret, client.id, username, secret_hash
+                    client.secret, client.id, username, secret_hash
                 ):
                     raise NotAuthorizedError(secret_hash)
 
@@ -1011,7 +1010,7 @@ class CognitoIdpBackend(BaseBackend):
             raise NotAuthorizedError(access_token)
 
     def set_user_mfa_preference(
-            self, access_token, software_token_mfa_settings, sms_mfa_settings
+        self, access_token, software_token_mfa_settings, sms_mfa_settings
     ):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
@@ -1039,16 +1038,16 @@ class CognitoIdpBackend(BaseBackend):
         user = self.admin_get_user(user_pool_id, username)
         user.password = password
         if permanent:
-            user.status = UserStatus['CONFIRMED']
+            user.status = UserStatus["CONFIRMED"]
         else:
-            user.status = UserStatus['FORCE_CHANGE_PASSWORD']
+            user.status = UserStatus["FORCE_CHANGE_PASSWORD"]
 
 
 cognitoidp_backends = {}
 for region in Session().get_available_regions("cognito-idp"):
     cognitoidp_backends[region] = CognitoIdpBackend(region)
 for region in Session().get_available_regions(
-        "cognito-idp", partition_name="aws-us-gov"
+    "cognito-idp", partition_name="aws-us-gov"
 ):
     cognitoidp_backends[region] = CognitoIdpBackend(region)
 for region in Session().get_available_regions("cognito-idp", partition_name="aws-cn"):
