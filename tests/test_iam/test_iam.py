@@ -868,9 +868,7 @@ def test_list_access_keys():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
     response = conn.list_access_keys(UserName="my-user")
-    assert_equals(
-        response["AccessKeyMetadata"], [],
-    )
+    assert_equals(response["AccessKeyMetadata"], [])
     access_key = conn.create_access_key(UserName="my-user")["AccessKey"]
     response = conn.list_access_keys(UserName="my-user")
     assert_equals(
@@ -2376,15 +2374,10 @@ def test_create_role_with_permissions_boundary():
     resp.get("Role").get("PermissionsBoundary").should.equal(expected)
     resp.get("Role").get("Description").should.equal("test")
 
-    conn.delete_role_permissions_boundary(
-        RoleName="my-role",
-    )
-    conn.list_roles().get("Roles")[0].should_not.have.key('PermissionsBoundary')
+    conn.delete_role_permissions_boundary(RoleName="my-role")
+    conn.list_roles().get("Roles")[0].should_not.have.key("PermissionsBoundary")
 
-    conn.put_role_permissions_boundary(
-        RoleName="my-role",
-        PermissionsBoundary=boundary,
-    )
+    conn.put_role_permissions_boundary(RoleName="my-role", PermissionsBoundary=boundary)
     resp.get("Role").get("PermissionsBoundary").should.equal(expected)
 
     invalid_boundary_arn = "arn:aws:iam::123456789:not_a_boundary"
