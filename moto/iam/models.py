@@ -1292,6 +1292,23 @@ class IAMBackend(BaseBackend):
         role.max_session_duration = max_session_duration
         return role
 
+    def put_role_permissions_boundary(self, role_name, permissions_boundary):
+        if permissions_boundary and not self.policy_arn_regex.match(
+            permissions_boundary
+        ):
+            raise RESTError(
+                "InvalidParameterValue",
+                "Value ({}) for parameter PermissionsBoundary is invalid.".format(
+                    permissions_boundary
+                ),
+            )
+        role = self.get_role(role_name)
+        role.permissions_boundary = permissions_boundary
+    
+    def delete_role_permissions_boundary(self, role_name):
+        role = self.get_role(role_name)
+        role.permissions_boundary = None
+
     def detach_role_policy(self, policy_arn, role_name):
         arns = dict((p.arn, p) for p in self.managed_policies.values())
         try:

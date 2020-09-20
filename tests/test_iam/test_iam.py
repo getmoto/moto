@@ -2376,6 +2376,17 @@ def test_create_role_with_permissions_boundary():
     resp.get("Role").get("PermissionsBoundary").should.equal(expected)
     resp.get("Role").get("Description").should.equal("test")
 
+    conn.delete_role_permissions_boundary(
+        RoleName="my-role",
+    )
+    conn.list_roles().get("Roles")[0].get('Role').should_not.have.key('PermissionsBoundary')
+
+    conn.put_role_permissions_boundary(
+        RoleName="my-role",
+        PermissionsBoundary=boundary,
+    )
+    resp.get("Role").get("PermissionsBoundary").should.equal(expected)
+
     invalid_boundary_arn = "arn:aws:iam::123456789:not_a_boundary"
     with assert_raises(ClientError):
         conn.create_role(
