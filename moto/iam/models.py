@@ -1304,7 +1304,7 @@ class IAMBackend(BaseBackend):
             )
         role = self.get_role(role_name)
         role.permissions_boundary = permissions_boundary
-    
+
     def delete_role_permissions_boundary(self, role_name):
         role = self.get_role(role_name)
         role.permissions_boundary = None
