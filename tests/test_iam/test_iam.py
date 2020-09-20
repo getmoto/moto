@@ -2379,7 +2379,7 @@ def test_create_role_with_permissions_boundary():
     conn.delete_role_permissions_boundary(
         RoleName="my-role",
     )
-    conn.list_roles().get("Roles")[0].get('Role').should_not.have.key('PermissionsBoundary')
+    conn.list_roles().get("Roles")[0].should_not.have.key('PermissionsBoundary')
 
     conn.put_role_permissions_boundary(
         RoleName="my-role",
