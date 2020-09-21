@@ -24,6 +24,7 @@ from .security_groups import SecurityGroups
 from .spot_fleets import SpotFleets
 from .spot_instances import SpotInstances
 from .subnets import Subnets
+from .flow_logs import FlowLogs
 from .tags import TagResponse
 from .virtual_private_gateways import VirtualPrivateGateways
 from .vm_export import VMExport
@@ -60,6 +61,7 @@ class EC2Response(
     SpotFleets,
     SpotInstances,
     Subnets,
+    FlowLogs,
     TagResponse,
     VirtualPrivateGateways,
     VMExport,
@@ -73,7 +75,6 @@ class EC2Response(
     @property
     def ec2_backend(self):
         from moto.ec2.models import ec2_backends
-
         return ec2_backends[self.region]
 
     @property

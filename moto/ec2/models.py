@@ -9,6 +9,8 @@ import re
 import six
 import warnings
 
+from arnparse import arnparse
+
 from boto3 import Session
 from pkg_resources import resource_filename
 
@@ -28,6 +30,9 @@ from moto.core.utils import (
     camelcase_to_underscores,
 )
 from moto.core import ACCOUNT_ID
+from moto.s3.models import s3_backend
+from moto.s3.exceptions import MissingBucket
+
 from .exceptions import (
     CidrLimitExceeded,
     DependencyViolationError,
@@ -52,6 +57,10 @@ from .exceptions import (
     InvalidKeyPairDuplicateError,
     InvalidKeyPairFormatError,
     InvalidKeyPairNameError,
+    InvalidAggregationIntervalParameterError,
+    InvalidDependantParameterError,
+    InvalidDependantParameterTypeError,
+    InvalidFlowLogIdError,
     InvalidLaunchTemplateNameError,
     InvalidNetworkAclIdError,
     InvalidNetworkAttachmentIdError,
@@ -71,6 +80,7 @@ from .exceptions import (
     InvalidSubnetRangeError,
     InvalidVolumeIdError,
     VolumeInUseError,
+    LogDestinationNotFoundError,
     InvalidVolumeAttachmentError,
     InvalidVolumeDetachmentError,
     InvalidVpcCidrBlockAssociationIdError,
@@ -123,6 +133,7 @@ from .utils import (
     random_spot_request_id,
     random_subnet_id,
     random_subnet_association_id,
+    random_flow_log_id,
     random_volume_id,
     random_vpc_id,
     random_vpc_cidr_association_id,
@@ -3511,6 +3522,186 @@ class SubnetBackend(object):
             raise InvalidParameterValueError(attr_name)
 
 
+class Unsuccessful(object):
+    def __init__(
+        self,
+        resource_id,
+        error_code,
+        error_message,
+    ):
+        self.resource_id    = resource_id
+        self.error_code     = error_code
+        self.error_message  = error_message
+
+
+class FlowLogs(TaggedEC2Resource, CloudFormationModel):
+    def __init__(
+        self,
+        ec2_backend,
+        flow_log_id,
+        resource_id,
+        traffic_type,
+        log_destination_type,
+        log_destination,
+        log_format,
+        log_group_name,
+        deliver_logs_permission_arn,
+        max_aggregation_interval,
+    ):
+        self.ec2_backend = ec2_backend
+        self.id = flow_log_id
+        self.resource_id = resource_id
+        self.traffic_type = traffic_type
+        self.log_destination_type = log_destination_type
+        self.log_destination = log_destination
+        self.log_format = log_format
+        self.log_group_name = log_group_name
+        self.deliver_logs_permission_arn = deliver_logs_permission_arn
+        self.max_aggregation_interval = max_aggregation_interval
+        self.created_at = utc_date_and_time()
+
+    def get_filter_value(self, filter_name):
+        """
+        API Version 2016-11-15 defines the following filters for DescribeFlowLogs:
+
+        * deliver-log-status
+        * log-destination-type
+        * flow-log-id
+        * log-group-name
+        * resource-id
+        * traffic-type
+        * tag:key=value
+        * tag-key
+
+        Taken from: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeFlowLogs.html
+        """
+        if filter_name == "resource-id":
+            return self.resource_id
+        elif filter_name == "traffic-type":
+            return self.traffic_type
+        elif filter_name == "log-destination-type":
+            return self.log_destination_type
+        elif filter_name == "flow-log-id":
+            return self.id
+        elif filter_name == "log-group-name":
+            return self.log_group_name
+        elif filter_name == "deliver-log-status":
+            return "SUCCESS"
+        else:
+            return super(FlowLogs, self).get_filter_value(filter_name, "DescribeFlowLogs")
+
+
+class FlowLogsBackend(object):
+    def __init__(self):
+        self.flow_logs = defaultdict(dict)
+        super(FlowLogsBackend, self).__init__()
+
+    def create_flow_logs(
+        self,
+        resource_type,
+        resource_ids,
+        traffic_type,
+        deliver_logs_permission_arn,
+        log_destination_type,
+        log_destination,
+        log_group_name,
+        log_format,
+        max_aggregation_interval,
+        context=None,
+    ):
+        flow_logs_set   = []
+        unsuccessful    = []
+
+        if log_group_name == None and log_destination == None:
+            raise InvalidDependantParameterError(
+                "LogDestination",
+                "LogGroupName",
+                "not provided",
+            )
+
+        if log_destination_type == "s3":
+            if log_group_name != None:
+                raise InvalidDependantParameterTypeError(
+                    "LogDestination",
+                    "cloud-watch-logs",
+                    "LogGroupName",
+                )
+        elif log_destination_type == "cloud-watch-logs":
+            if deliver_logs_permission_arn == None:
+                raise InvalidDependantParameterError(
+                    "DeliverLogsPermissionArn",
+                    "LogDestinationType",
+                    "cloud-watch-logs",
+                )
+
+        if max_aggregation_interval not in ["60", "600"]:
+            raise InvalidAggregationIntervalParameterError(
+                "Flow Log Max Aggregation Interval"
+            )
+
+        for resource_id in resource_ids:
+            flow_log_id = random_flow_log_id()
+            if resource_type == "VPC":
+                # Validate VPCs exist
+                self.get_vpc(resource_id)
+            elif resource_type == "Subnet":
+                # Validate Subnets exist
+                self.get_subnet(resource_id)
+            elif resource_type == "NetworkInterface":
+                # Validate NetworkInterfaces exist
+                self.get_network_interface(resource_id)
+
+            if log_destination_type == "s3":
+                arn = arnparse(log_destination)
+                try:
+                    s3_backend.get_bucket(arn.resource)
+                except MissingBucket:
+                    unsuccessful.append(
+                        Unsuccessful(
+                            resource_id,
+                            "400",
+                            "LogDestination: {0} does not exist.".format(arn.resource),
+                            )
+                        )
+
+            flow_logs = FlowLogs(
+                self,
+                flow_log_id,
+                resource_id,
+                traffic_type,
+                log_destination_type,
+                log_destination,
+                log_format,
+                log_group_name,
+                deliver_logs_permission_arn,
+                max_aggregation_interval,
+            )
+
+            self.flow_logs[flow_log_id] = flow_logs
+            flow_logs_set.append(flow_logs)
+
+        return flow_logs_set, unsuccessful
+
+    def get_all_flow_logs(self, flow_log_ids=None, filters=None):
+        matches = itertools.chain([i for i in self.flow_logs.values()])
+        if flow_log_ids:
+            matches = [flow_log for flow_log in matches if flow_log.id in flow_log_ids]
+            if len(flow_log_ids) > len(matches):
+                unknown_ids = set(flow_log_ids) - set(matches)
+                raise InvalidFlowLogIdError(unknown_ids)
+        if filters:
+            matches = generic_filter(filters, matches)
+        return matches
+
+    def delete_flow_logs(self, flow_log_ids):
+        for flow_log in flow_log_ids:
+            if flow_log in self.flow_logs:
+                self.flow_logs.pop(flow_log, None)
+            else:
+                raise InvalidFlowLogIdError(flow_log_ids)
+        return True
+
+
 class SubnetRouteTableAssociation(CloudFormationModel):
     def __init__(self, route_table_id, subnet_id):
         self.route_table_id = route_table_id
@@ -5517,6 +5708,7 @@ class EC2Backend(
     VPCBackend,
     SubnetBackend,
     SubnetRouteTableAssociationBackend,
+    FlowLogsBackend,
     NetworkInterfaceBackend,
     VPNConnectionBackend,
     VPCPeeringConnectionBackend,
