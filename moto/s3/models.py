@@ -169,6 +169,9 @@ class FakeKey(BaseModel):
             raise InvalidStorageClass(storage=storage)
         self._storage_class = storage
 
+    def set_expiry(self, expiry):
+        self._expiry = expiry
+
     def set_acl(self, acl):
         self.acl = acl
 
@@ -1689,6 +1692,9 @@ class S3Backend(BaseBackend):
             new_key.set_storage_class(storage)
         if acl is not None:
             new_key.set_acl(acl)
+        if key.storage_class in "GLACIER":
+            # Object copied from Glacier object should not have expiry
+            new_key.set_expiry(None)
 
         dest_bucket.keys[dest_key_name] = new_key
 
