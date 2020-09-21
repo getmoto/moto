@@ -218,10 +218,10 @@ class PolicyConfigQuery(ConfigQueryModel):
             ) or aggregator.get("organization_aggregation_source")
             for source in aggregator_sources:
                 source_dict = source.__dict__
-                if source_dict["all_aws_regions"]:
+                if source_dict.get("all_aws_regions", False):
                     aggregated_regions = boto3.Session().get_available_regions("config")
                     break
-                for region in source_dict["aws_regions"]:
+                for region in source_dict.get("aws_regions", []):
                     aggregated_regions.append(region)
 
             duplicate_policy_list = []
