@@ -1687,7 +1687,7 @@
 - [ ] admin_reset_user_password
 - [ ] admin_respond_to_auth_challenge
 - [ ] admin_set_user_mfa_preference
-- [ ] admin_set_user_password
+- [X] admin_set_user_password
 - [ ] admin_set_user_settings
 - [ ] admin_update_auth_event_feedback
 - [ ] admin_update_device_status

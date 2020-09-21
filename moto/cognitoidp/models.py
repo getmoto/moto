@@ -353,7 +353,6 @@ class CognitoIdpUser(BaseModel):
 
 class CognitoResourceServer(BaseModel):
     def __init__(self, user_pool_id, identifier, name, scopes):
-
         self.user_pool_id = user_pool_id
         self.identifier = identifier
         self.name = name
@@ -1034,6 +1033,14 @@ class CognitoIdpBackend(BaseBackend):
                 return None
         else:
             raise NotAuthorizedError(access_token)
+
+    def admin_set_user_password(self, user_pool_id, username, password, permanent):
+        user = self.admin_get_user(user_pool_id, username)
+        user.password = password
+        if permanent:
+            user.status = UserStatus["CONFIRMED"]
+        else:
+            user.status = UserStatus["FORCE_CHANGE_PASSWORD"]
 
 
 cognitoidp_backends = {}
