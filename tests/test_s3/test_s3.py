@@ -1710,6 +1710,17 @@ def test_website_redirect_location():
 
 
 @mock_s3
+def test_delimiter_optional_in_response():
+    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3.create_bucket(Bucket="mybucket")
+    s3.put_object(Bucket="mybucket", Key="one", Body=b"1")
+    resp = s3.list_objects(Bucket="mybucket", MaxKeys=1)
+    assert resp.get("Delimiter") is None
+    resp = s3.list_objects(Bucket="mybucket", MaxKeys=1, Delimiter="/")
+    assert resp.get("Delimiter") == "/"
+
+
+@mock_s3
 def test_boto3_list_objects_truncated_response():
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
@@ -1725,7 +1736,7 @@ def test_boto3_list_objects_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["IsTruncated"] == True
     assert resp.get("Prefix") is None
-    assert resp["Delimiter"] == "None"
+    assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
 
     next_marker = resp["NextMarker"]
@@ -1738,7 +1749,7 @@ def test_boto3_list_objects_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["IsTruncated"] == True
     assert resp.get("Prefix") is None
-    assert resp["Delimiter"] == "None"
+    assert resp.get("Delimiter") is None
     assert "NextMarker" in resp
 
     next_marker = resp["NextMarker"]
@@ -1751,7 +1762,7 @@ def test_boto3_list_objects_truncated_response():
     assert resp["MaxKeys"] == 1
     assert resp["IsTruncated"] == False
     assert resp.get("Prefix") is None
-    assert resp["Delimiter"] == "None"
+    assert resp.get("Delimiter") is None
     assert "NextMarker" not in resp
 
 

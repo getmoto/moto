@@ -1774,7 +1774,9 @@ S3_BUCKET_GET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
   <Prefix>{{ prefix }}</Prefix>
   {% endif %}
   <MaxKeys>{{ max_keys }}</MaxKeys>
-  <Delimiter>{{ delimiter }}</Delimiter>
+  {% if delimiter %}
+    <Delimiter>{{ delimiter }}</Delimiter>
+  {% endif %}
   <IsTruncated>{{ is_truncated }}</IsTruncated>
   {% if next_marker %}
     <NextMarker>{{ next_marker }}</NextMarker>
