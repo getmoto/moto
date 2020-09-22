@@ -792,6 +792,10 @@ class FakeBucket(CloudFormationModel):
         return self.region_name
 
     @property
+    def creation_date_ISO8601(self):
+        return iso_8601_datetime_without_milliseconds_s3(self.creation_date)
+
+    @property
     def is_versioned(self):
         return self.versioning_status == "Enabled"
 

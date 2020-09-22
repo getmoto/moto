@@ -1761,7 +1761,7 @@ S3_ALL_BUCKETS = """<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2
     {% for bucket in buckets %}
       <Bucket>
         <Name>{{ bucket.name }}</Name>
-        <CreationDate>{{ bucket.creation_date.isoformat() }}</CreationDate>
+        <CreationDate>{{ bucket.creation_date_ISO8601 }}</CreationDate>
       </Bucket>
     {% endfor %}
  </Buckets>
