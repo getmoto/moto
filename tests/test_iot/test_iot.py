@@ -504,6 +504,20 @@ def test_endpoints():
 
 
 @mock_iot
+def test_certificate_id_generation_deterministic():
+    # Creating the same certificate twice should result in the same certificate ID
+    client = boto3.client("iot", region_name="us-east-1")
+    cert1 = client.create_keys_and_certificate(setAsActive=False)
+    client.delete_certificate(certificateId=cert1["certificateId"])
+
+    cert2 = client.register_certificate(
+        certificatePem=cert1["certificatePem"], setAsActive=False
+    )
+    cert2.should.have.key("certificateId").which.should.equal(cert1["certificateId"])
+    client.delete_certificate(certificateId=cert2["certificateId"])
+
+
+@mock_iot
 def test_certs():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -582,6 +596,29 @@ def test_certs():
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
     res.should.have.key("certificates")
+
+
+@mock_iot
+def test_create_certificate_validation():
+    # Test we can't create a cert that already exists
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=False)
+
+    with assert_raises(ClientError) as e:
+        client.register_certificate(
+            certificatePem=cert["certificatePem"], setAsActive=False
+        )
+    e.exception.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
+    with assert_raises(ClientError) as e:
+        client.register_certificate_without_ca(
+            certificatePem=cert["certificatePem"], status="ACTIVE"
+        )
+    e.exception.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
 
 
 @mock_iot
