@@ -265,6 +265,19 @@ class IamResponse(BaseResponse):
         template = self.response_template(UPDATE_ROLE_TEMPLATE)
         return template.render(role=role)
 
+    def put_role_permissions_boundary(self):
+        permissions_boundary = self._get_param("PermissionsBoundary")
+        role_name = self._get_param("RoleName")
+        iam_backend.put_role_permissions_boundary(role_name, permissions_boundary)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="PutRolePermissionsBoundary")
+
+    def delete_role_permissions_boundary(self):
+        role_name = self._get_param("RoleName")
+        iam_backend.delete_role_permissions_boundary(role_name)
+        template = self.response_template(GENERIC_EMPTY_TEMPLATE)
+        return template.render(name="DeleteRolePermissionsBoundary")
+
     def create_policy_version(self):
         policy_arn = self._get_param("PolicyArn")
         policy_document = self._get_param("PolicyDocument")
@@ -1315,6 +1328,12 @@ GET_ROLE_TEMPLATE = """<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/201
       <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
       <RoleId>{{ role.id }}</RoleId>
       <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
+      {% if role.permissions_boundary %}
+      <PermissionsBoundary>
+          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
+          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
+      </PermissionsBoundary>
+      {% endif %}
       {% if role.tags %}
       <Tags>
         {% for tag in role.get_tags() %}
