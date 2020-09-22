@@ -19,6 +19,7 @@ from .exceptions import (
     InvalidRequestException,
     InvalidStateTransitionException,
     VersionConflictException,
+    ResourceAlreadyExistsException,
 )
 from moto.utilities.utils import random_string
 
@@ -668,6 +669,12 @@ class IoTBackend(BaseBackend):
     def list_certificates(self):
         return self.certificates.values()
 
+    def __raise_if_certificate_already_exists(self, certificate_id):
+        if certificate_id in self.certificates:
+            raise ResourceAlreadyExistsException(
+                "The certificate is already provisioned or registered"
+            )
+
     def register_certificate(
         self, certificate_pem, ca_certificate_pem, set_as_active, status
     ):
@@ -677,11 +684,15 @@ class IoTBackend(BaseBackend):
             self.region_name,
             ca_certificate_pem,
         )
+        self.__raise_if_certificate_already_exists(certificate.certificate_id)
+
         self.certificates[certificate.certificate_id] = certificate
         return certificate
 
     def register_certificate_without_ca(self, certificate_pem, status):
         certificate = FakeCertificate(certificate_pem, status, self.region_name)
+        self.__raise_if_certificate_already_exists(certificate.certificate_id)
+
         self.certificates[certificate.certificate_id] = certificate
         return certificate
 

@@ -52,3 +52,11 @@ class DeleteConflictException(IoTClientError):
     def __init__(self, msg):
         self.code = 409
         super(DeleteConflictException, self).__init__("DeleteConflictException", msg)
+
+
+class ResourceAlreadyExistsException(IoTClientError):
+    def __init__(self, msg):
+        self.code = 409
+        super(ResourceAlreadyExistsException, self).__init__(
+            "ResourceAlreadyExistsException", msg or "The resource already exists."
+        )

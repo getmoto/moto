@@ -599,6 +599,29 @@ def test_certs():
 
 
 @mock_iot
+def test_create_certificate_validation():
+    # Test we can't create a cert that already exists
+    client = boto3.client("iot", region_name="us-east-1")
+    cert = client.create_keys_and_certificate(setAsActive=False)
+
+    with assert_raises(ClientError) as e:
+        client.register_certificate(
+            certificatePem=cert["certificatePem"], setAsActive=False
+        )
+    e.exception.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
+    with assert_raises(ClientError) as e:
+        client.register_certificate_without_ca(
+            certificatePem=cert["certificatePem"], status="ACTIVE"
+        )
+    e.exception.response["Error"]["Message"].should.contain(
+        "The certificate is already provisioned or registered"
+    )
+
+
+@mock_iot
 def test_delete_policy_validation():
     doc = """{
     "Version": "2012-10-17",
