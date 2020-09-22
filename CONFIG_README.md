@@ -23,8 +23,8 @@ However, this will only work on resource types that have this enabled.
 
 ### Current enabled resource types:
 
-1. S3
-
+1. S3 (all)
+1. IAM (Role, Policy)
 
 ## Developer Guide
 
@@ -53,15 +53,14 @@ An example of the above is implemented for S3. You can see that by looking at:
 1. `moto/s3/config.py`
 1. `moto/config/models.py`
 
-As well as the corresponding unit tests in:
+### Testing
+For each resource type, you will need to test write tests for a few separate areas:
 
-1. `tests/s3/test_s3.py`
-1. `tests/config/test_config.py`
+- Test the backend queries to ensure discovered resources come back (ie for `IAM::Policy`, write `tests.tests_iam.test_policy_list_config_discovered_resources`). For writing these tests, you must not make use of `boto` to create resources. You will need to use the backend model methods to provision the resources. This is to make tests compatible with the moto server. You must make tests for the resource type to test listing and object fetching.
 
-Note for unit testing, you will want to add a test to ensure that you can query all the resources effectively. For testing this feature,
-the unit tests for the `ConfigQueryModel` will not make use of `boto` to create resources, such as S3 buckets. You will need to use the 
-backend model methods to provision the resources. This is to make tests compatible with the moto server. You should absolutely make tests
-in the resource type to test listing and object fetching.
+- Test the config dict for all scenarios (ie for `IAM::Policy`, write `tests.tests_iam.test_policy_config_dict`). For writing this test, you'll need to create resources in the same way as the first test (without using `boto`), in every meaningful configuration that would produce a different config dict. Then, query the backend and ensure each of the dicts are as you expect.
+
+- Test that everything works end to end with the `boto` clients. (ie for `IAM::Policy`, write `tests.tests_iam.test_policy_config_client`). The main two items to test will be the `boto.client('config').list_discovered_resources()`, `boto.client('config').list_aggregate_discovered_resources()`, `moto.client('config').batch_get_resource_config()`, and `moto.client('config').batch_aggregate_get_resource_config()`. This test doesn't have to be super thorough, but it basically tests that the front end and backend logic all works together and returns correct resources. Beware the aggregate methods all have capital first letters (ie `Limit`), while non-aggregate methods have lowercase first letters (ie `limit`)
 
 ### Listing
 S3 is currently the model implementation, but it also odd in that S3 is a global resource type with regional resource residency.

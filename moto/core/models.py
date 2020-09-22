@@ -27,7 +27,6 @@ from .utils import (
     convert_flask_to_responses_response,
 )
 
-
 ACCOUNT_ID = os.environ.get("MOTO_ACCOUNT_ID", "123456789012")
 
 
@@ -692,6 +691,7 @@ class ConfigQueryModel(object):
         next_token,
         backend_region=None,
         resource_region=None,
+        aggregator=None,
     ):
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
@@ -723,6 +723,10 @@ class ConfigQueryModel(object):
         :param backend_region: The region for the backend to pull results from. Set to `None` if this is an aggregated query.
         :param resource_region: The region for where the resources reside to pull results from. Set to `None` if this is a
                                 non-aggregated query.
+        :param aggregator: If the query is an aggregated query, *AND* the resource has "non-standard" aggregation logic (mainly, IAM),
+                                you'll need to pass aggregator used. In most cases, this should be omitted/set to `None`. See the
+                                conditional logic under `if aggregator` in the moto/iam/config.py for the IAM example.
+
         :return: This should return a list of Dicts that have the following fields:
             [
                 {

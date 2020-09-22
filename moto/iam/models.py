@@ -8,11 +8,12 @@ import sys
 from datetime import datetime
 import json
 import re
+import time
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from six.moves.urllib.parse import urlparse
 
+from six.moves.urllib import parse
 from moto.core.exceptions import RESTError
 from moto.core import BaseBackend, BaseModel, ACCOUNT_ID, CloudFormationModel
 from moto.core.utils import (
@@ -153,7 +154,7 @@ class OpenIDConnectProvider(BaseModel):
         self._errors = []
         self._validate(url, thumbprint_list, client_id_list)
 
-        parsed_url = urlparse(url)
+        parsed_url = parse.urlparse(url)
         self.url = parsed_url.netloc + parsed_url.path
         self.thumbprint_list = thumbprint_list
         self.client_id_list = client_id_list
@@ -201,7 +202,7 @@ class OpenIDConnectProvider(BaseModel):
 
         self._raise_errors()
 
-        parsed_url = urlparse(url)
+        parsed_url = parse.urlparse(url)
         if not parsed_url.scheme or not parsed_url.netloc:
             raise ValidationError("Invalid Open ID Connect Provider URL")
 
@@ -264,6 +265,48 @@ class ManagedPolicy(Policy):
     @property
     def arn(self):
         return "arn:aws:iam::{0}:policy{1}{2}".format(ACCOUNT_ID, self.path, self.name)
+
+    def to_config_dict(self):
+        return {
+            "version": "1.3",
+            "configurationItemCaptureTime": str(self.create_date),
+            "configurationItemStatus": "OK",
+            "configurationStateId": str(
+                int(time.mktime(self.create_date.timetuple()))
+            ),  # PY2 and 3 compatible
+            "arn": "arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, self.name),
+            "resourceType": "AWS::IAM::Policy",
+            "resourceId": self.id,
+            "resourceName": self.name,
+            "awsRegion": "global",
+            "availabilityZone": "Not Applicable",
+            "resourceCreationTime": str(self.create_date),
+            "configuration": {
+                "policyName": self.name,
+                "policyId": self.id,
+                "arn": "arn:aws:iam::{}:policy/{}".format(ACCOUNT_ID, self.name),
+                "path": self.path,
+                "defaultVersionId": self.default_version_id,
+                "attachmentCount": self.attachment_count,
+                "permissionsBoundaryUsageCount": 0,
+                "isAttachable": ManagedPolicy.is_attachable,
+                "description": self.description,
+                "createDate": str(self.create_date.isoformat()),
+                "updateDate": str(self.create_date.isoformat()),
+                "policyVersionList": list(
+                    map(
+                        lambda version: {
+                            "document": parse.quote(version.document),
+                            "versionId": version.version_id,
+                            "isDefaultVersion": version.is_default,
+                            "createDate": str(version.create_date),
+                        },
+                        self.versions,
+                    )
+                ),
+            },
+            "supplementaryConfiguration": {},
+        }
 
 
 class AWSManagedPolicy(ManagedPolicy):
@@ -513,6 +556,69 @@ class Role(CloudFormationModel):
     def arn(self):
         return "arn:aws:iam::{0}:role{1}{2}".format(ACCOUNT_ID, self.path, self.name)
 
+    def to_config_dict(self):
+        _managed_policies = []
+        for key in self.managed_policies.keys():
+            _managed_policies.append(
+                {"policyArn": key, "policyName": iam_backend.managed_policies[key].name}
+            )
+
+        _role_policy_list = []
+        for key, value in self.policies.items():
+            _role_policy_list.append(
+                {"policyName": key, "policyDocument": parse.quote(value)}
+            )
+
+        _instance_profiles = []
+        for key, instance_profile in iam_backend.instance_profiles.items():
+            for role in instance_profile.roles:
+                _instance_profiles.append(instance_profile.to_embedded_config_dict())
+                break
+
+        config_dict = {
+            "version": "1.3",
+            "configurationItemCaptureTime": str(self.create_date),
+            "configurationItemStatus": "ResourceDiscovered",
+            "configurationStateId": str(
+                int(time.mktime(self.create_date.timetuple()))
+            ),  # PY2 and 3 compatible
+            "arn": "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, self.name),
+            "resourceType": "AWS::IAM::Role",
+            "resourceId": self.name,
+            "resourceName": self.name,
+            "awsRegion": "global",
+            "availabilityZone": "Not Applicable",
+            "resourceCreationTime": str(self.create_date),
+            "relatedEvents": [],
+            "relationships": [],
+            "tags": self.tags,
+            "configuration": {
+                "path": self.path,
+                "roleName": self.name,
+                "roleId": self.id,
+                "arn": "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, self.name),
+                "assumeRolePolicyDocument": parse.quote(
+                    self.assume_role_policy_document
+                )
+                if self.assume_role_policy_document
+                else None,
+                "instanceProfileList": _instance_profiles,
+                "rolePolicyList": _role_policy_list,
+                "createDate": self.create_date.isoformat(),
+                "attachedManagedPolicies": _managed_policies,
+                "permissionsBoundary": self.permissions_boundary,
+                "tags": list(
+                    map(
+                        lambda key: {"key": key, "value": self.tags[key]["Value"]},
+                        self.tags,
+                    )
+                ),
+                "roleLastUsed": None,
+            },
+            "supplementaryConfiguration": {},
+        }
+        return config_dict
+
     def put_policy(self, policy_name, policy_json):
         self.policies[policy_name] = policy_json
 
@@ -589,6 +695,43 @@ class InstanceProfile(CloudFormationModel):
         if attribute_name == "Arn":
             return self.arn
         raise UnformattedGetAttTemplateException()
+
+    def to_embedded_config_dict(self):
+        # Instance Profiles aren't a config item itself, but they are returned in IAM roles with
+        # a "config like" json structure It's also different than Role.to_config_dict()
+        roles = []
+        for role in self.roles:
+            roles.append(
+                {
+                    "path": role.path,
+                    "roleName": role.name,
+                    "roleId": role.id,
+                    "arn": "arn:aws:iam::{}:role/{}".format(ACCOUNT_ID, role.name),
+                    "createDate": str(role.create_date),
+                    "assumeRolePolicyDocument": parse.quote(
+                        role.assume_role_policy_document
+                    ),
+                    "description": role.description,
+                    "maxSessionDuration": None,
+                    "permissionsBoundary": role.permissions_boundary,
+                    "tags": list(
+                        map(
+                            lambda key: {"key": key, "value": role.tags[key]["Value"]},
+                            role.tags,
+                        )
+                    ),
+                    "roleLastUsed": None,
+                }
+            )
+
+        return {
+            "path": self.path,
+            "instanceProfileName": self.name,
+            "instanceProfileId": self.id,
+            "arn": "arn:aws:iam::{}:instance-profile/{}".format(ACCOUNT_ID, self.name),
+            "createDate": str(self.create_date),
+            "roles": roles,
+        }
 
 
 class Certificate(BaseModel):

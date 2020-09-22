@@ -9,7 +9,7 @@ import sure  # noqa
 from boto.exception import BotoServerError
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_iam_deprecated, settings
+from moto import mock_config, mock_iam, mock_iam_deprecated, settings
 from moto.core import ACCOUNT_ID
 from moto.iam.models import aws_managed_policies
 from moto.backends import get_backend
@@ -19,6 +19,7 @@ from nose.tools import raises
 from datetime import datetime
 from tests.helpers import requires_boto_gte
 from uuid import uuid4
+from six.moves.urllib import parse
 
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
@@ -2882,3 +2883,990 @@ def test_delete_role_with_instance_profiles_present():
     role_names = [role["RoleName"] for role in iam.list_roles()["Roles"]]
     assert "Role1" in role_names
     assert "Role2" not in role_names
+
+
+@mock_iam
+def test_delete_account_password_policy_errors():
+    client = boto3.client("iam", region_name="us-east-1")
+
+    client.delete_account_password_policy.when.called_with().should.throw(
+        ClientError, "The account policy with name PasswordPolicy cannot be found."
+    )
+
+
+@mock_iam
+def test_role_list_config_discovered_resources():
+    from moto.iam.config import role_config_query
+    from moto.iam.utils import random_resource_id
+
+    # Without any roles
+    assert role_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    # Make 3 roles
+    roles = []
+    num_roles = 3
+    for ix in range(1, num_roles + 1):
+        this_role = role_config_query.backends["global"].create_role(
+            role_name="role{}".format(ix),
+            assume_role_policy_document=None,
+            path="/",
+            permissions_boundary=None,
+            description="role{}".format(ix),
+            tags=[{"Key": "foo", "Value": "bar"}],
+            max_session_duration=3600,
+        )
+        roles.append(
+            {"id": this_role.id, "name": this_role.name,}
+        )
+
+    assert len(roles) == num_roles
+
+    result = role_config_query.list_config_service_resources(None, None, 100, None)[0]
+    assert len(result) == num_roles
+
+    # The roles gets a random ID, so we can't directly test it
+    role = result[0]
+    assert role["type"] == "AWS::IAM::Role"
+    assert role["id"] in list(map(lambda p: p["id"], roles))
+    assert role["name"] in list(map(lambda p: p["name"], roles))
+    assert role["region"] == "global"
+
+    # test passing list of resource ids
+    resource_ids = role_config_query.list_config_service_resources(
+        [roles[0]["id"], roles[1]["id"]], None, 100, None
+    )[0]
+    assert len(resource_ids) == 2
+
+    # test passing a single resource name
+    resource_name = role_config_query.list_config_service_resources(
+        None, roles[0]["name"], 100, None
+    )[0]
+    assert len(resource_name) == 1
+    assert resource_name[0]["id"] == roles[0]["id"]
+    assert resource_name[0]["name"] == roles[0]["name"]
+
+    # test passing a single resource name AND some resource id's
+    both_filter_good = role_config_query.list_config_service_resources(
+        [roles[0]["id"], roles[1]["id"]], roles[0]["name"], 100, None
+    )[0]
+    assert len(both_filter_good) == 1
+    assert both_filter_good[0]["id"] == roles[0]["id"]
+    assert both_filter_good[0]["name"] == roles[0]["name"]
+
+    both_filter_bad = role_config_query.list_config_service_resources(
+        [roles[0]["id"], roles[1]["id"]], roles[2]["name"], 100, None
+    )[0]
+    assert len(both_filter_bad) == 0
+
+
+@mock_iam
+def test_role_config_dict():
+    from moto.iam.config import role_config_query, policy_config_query
+    from moto.iam.utils import random_resource_id, random_policy_id
+
+    # Without any roles
+    assert not role_config_query.get_config_resource("something")
+    assert role_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_assume_role = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Effect": "Allow", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}
+        ],
+    }
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Action": ["ec2:*"], "Effect": "Allow", "Resource": "*"}],
+    }
+
+    # Create a policy for use in role permissions boundary
+    policy_arn = (
+        policy_config_query.backends["global"]
+        .create_policy(
+            description="basic_policy",
+            path="/",
+            policy_document=json.dumps(basic_policy),
+            policy_name="basic_policy",
+        )
+        .arn
+    )
+
+    policy_id = policy_config_query.list_config_service_resources(
+        None, None, 100, None
+    )[0][0]["id"]
+    assert len(policy_id) == len(random_policy_id())
+
+    # Create some roles (and grab them repeatedly since they create with random names)
+    role_config_query.backends["global"].create_role(
+        role_name="plain_role",
+        assume_role_policy_document=None,
+        path="/",
+        permissions_boundary=None,
+        description="plain_role",
+        tags=[{"Key": "foo", "Value": "bar"}],
+        max_session_duration=3600,
+    )
+
+    plain_role = role_config_query.list_config_service_resources(None, None, 100, None)[
+        0
+    ][0]
+    assert plain_role is not None
+    assert len(plain_role["id"]) == len(random_resource_id())
+
+    role_config_query.backends["global"].create_role(
+        role_name="assume_role",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=None,
+        description="assume_role",
+        tags=[],
+        max_session_duration=3600,
+    )
+
+    assume_role = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"] not in [plain_role["id"]]
+    )
+    assert assume_role is not None
+    assert len(assume_role["id"]) == len(random_resource_id())
+    assert assume_role["id"] is not plain_role["id"]
+
+    role_config_query.backends["global"].create_role(
+        role_name="assume_and_permission_boundary_role",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=policy_arn,
+        description="assume_and_permission_boundary_role",
+        tags=[],
+        max_session_duration=3600,
+    )
+
+    assume_and_permission_boundary_role = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"] not in [plain_role["id"], assume_role["id"]]
+    )
+    assert assume_and_permission_boundary_role is not None
+    assert len(assume_and_permission_boundary_role["id"]) == len(random_resource_id())
+    assert assume_and_permission_boundary_role["id"] is not plain_role["id"]
+    assert assume_and_permission_boundary_role["id"] is not assume_role["id"]
+
+    role_config_query.backends["global"].create_role(
+        role_name="role_with_attached_policy",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=None,
+        description="role_with_attached_policy",
+        tags=[],
+        max_session_duration=3600,
+    )
+    role_config_query.backends["global"].attach_role_policy(
+        policy_arn, "role_with_attached_policy"
+    )
+    role_with_attached_policy = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"]
+        not in [
+            plain_role["id"],
+            assume_role["id"],
+            assume_and_permission_boundary_role["id"],
+        ]
+    )
+    assert role_with_attached_policy is not None
+    assert len(role_with_attached_policy["id"]) == len(random_resource_id())
+    assert role_with_attached_policy["id"] is not plain_role["id"]
+    assert role_with_attached_policy["id"] is not assume_role["id"]
+    assert (
+        role_with_attached_policy["id"] is not assume_and_permission_boundary_role["id"]
+    )
+
+    role_config_query.backends["global"].create_role(
+        role_name="role_with_inline_policy",
+        assume_role_policy_document=json.dumps(basic_assume_role),
+        path="/",
+        permissions_boundary=None,
+        description="role_with_inline_policy",
+        tags=[],
+        max_session_duration=3600,
+    )
+    role_config_query.backends["global"].put_role_policy(
+        "role_with_inline_policy", "inline_policy", json.dumps(basic_policy)
+    )
+
+    role_with_inline_policy = next(
+        role
+        for role in role_config_query.list_config_service_resources(
+            None, None, 100, None
+        )[0]
+        if role["id"]
+        not in [
+            plain_role["id"],
+            assume_role["id"],
+            assume_and_permission_boundary_role["id"],
+            role_with_attached_policy["id"],
+        ]
+    )
+    assert role_with_inline_policy is not None
+    assert len(role_with_inline_policy["id"]) == len(random_resource_id())
+    assert role_with_inline_policy["id"] is not plain_role["id"]
+    assert role_with_inline_policy["id"] is not assume_role["id"]
+    assert (
+        role_with_inline_policy["id"] is not assume_and_permission_boundary_role["id"]
+    )
+    assert role_with_inline_policy["id"] is not role_with_attached_policy["id"]
+
+    # plain role
+    plain_role_config = (
+        role_config_query.backends["global"].roles[plain_role["id"]].to_config_dict()
+    )
+    assert plain_role_config["version"] == "1.3"
+    assert plain_role_config["configurationItemStatus"] == "ResourceDiscovered"
+    assert plain_role_config["configurationStateId"] is not None
+    assert plain_role_config["arn"] == "arn:aws:iam::123456789012:role/plain_role"
+    assert plain_role_config["resourceType"] == "AWS::IAM::Role"
+    assert plain_role_config["resourceId"] == "plain_role"
+    assert plain_role_config["resourceName"] == "plain_role"
+    assert plain_role_config["awsRegion"] == "global"
+    assert plain_role_config["availabilityZone"] == "Not Applicable"
+    assert plain_role_config["resourceCreationTime"] is not None
+    assert plain_role_config["tags"] == {"foo": {"Key": "foo", "Value": "bar"}}
+    assert plain_role_config["configuration"]["path"] == "/"
+    assert plain_role_config["configuration"]["roleName"] == "plain_role"
+    assert plain_role_config["configuration"]["roleId"] == plain_role["id"]
+    assert plain_role_config["configuration"]["arn"] == plain_role_config["arn"]
+    assert plain_role_config["configuration"]["assumeRolePolicyDocument"] is None
+    assert plain_role_config["configuration"]["instanceProfileList"] == []
+    assert plain_role_config["configuration"]["rolePolicyList"] == []
+    assert plain_role_config["configuration"]["attachedManagedPolicies"] == []
+    assert plain_role_config["configuration"]["permissionsBoundary"] is None
+    assert plain_role_config["configuration"]["tags"] == [
+        {"key": "foo", "value": "bar"}
+    ]
+    assert plain_role_config["supplementaryConfiguration"] == {}
+
+    # assume_role
+    assume_role_config = (
+        role_config_query.backends["global"].roles[assume_role["id"]].to_config_dict()
+    )
+    assert assume_role_config["arn"] == "arn:aws:iam::123456789012:role/assume_role"
+    assert assume_role_config["resourceId"] == "assume_role"
+    assert assume_role_config["resourceName"] == "assume_role"
+    assert assume_role_config["configuration"][
+        "assumeRolePolicyDocument"
+    ] == parse.quote(json.dumps(basic_assume_role))
+
+    # assume_and_permission_boundary_role
+    assume_and_permission_boundary_role_config = (
+        role_config_query.backends["global"]
+        .roles[assume_and_permission_boundary_role["id"]]
+        .to_config_dict()
+    )
+    assert (
+        assume_and_permission_boundary_role_config["arn"]
+        == "arn:aws:iam::123456789012:role/assume_and_permission_boundary_role"
+    )
+    assert (
+        assume_and_permission_boundary_role_config["resourceId"]
+        == "assume_and_permission_boundary_role"
+    )
+    assert (
+        assume_and_permission_boundary_role_config["resourceName"]
+        == "assume_and_permission_boundary_role"
+    )
+    assert assume_and_permission_boundary_role_config["configuration"][
+        "assumeRolePolicyDocument"
+    ] == parse.quote(json.dumps(basic_assume_role))
+    assert (
+        assume_and_permission_boundary_role_config["configuration"][
+            "permissionsBoundary"
+        ]
+        == policy_arn
+    )
+
+    # role_with_attached_policy
+    role_with_attached_policy_config = (
+        role_config_query.backends["global"]
+        .roles[role_with_attached_policy["id"]]
+        .to_config_dict()
+    )
+    assert (
+        role_with_attached_policy_config["arn"]
+        == "arn:aws:iam::123456789012:role/role_with_attached_policy"
+    )
+    assert role_with_attached_policy_config["configuration"][
+        "attachedManagedPolicies"
+    ] == [{"policyArn": policy_arn, "policyName": "basic_policy"}]
+
+    # role_with_inline_policy
+    role_with_inline_policy_config = (
+        role_config_query.backends["global"]
+        .roles[role_with_inline_policy["id"]]
+        .to_config_dict()
+    )
+    assert (
+        role_with_inline_policy_config["arn"]
+        == "arn:aws:iam::123456789012:role/role_with_inline_policy"
+    )
+    assert role_with_inline_policy_config["configuration"]["rolePolicyList"] == [
+        {
+            "policyName": "inline_policy",
+            "policyDocument": parse.quote(json.dumps(basic_policy)),
+        }
+    ]
+
+
+@mock_iam
+@mock_config
+def test_role_config_client():
+    from moto.iam.models import ACCOUNT_ID
+    from moto.iam.utils import random_resource_id
+
+    CONFIG_REGIONS = boto3.Session().get_available_regions("config")
+
+    iam_client = boto3.client("iam", region_name="us-west-2")
+    config_client = boto3.client("config", region_name="us-west-2")
+
+    all_account_aggregation_source = {
+        "AccountIds": [ACCOUNT_ID],
+        "AllAwsRegions": True,
+    }
+
+    two_region_account_aggregation_source = {
+        "AccountIds": [ACCOUNT_ID],
+        "AwsRegions": ["us-east-1", "us-west-2"],
+    }
+
+    config_client.put_configuration_aggregator(
+        ConfigurationAggregatorName="test_aggregator",
+        AccountAggregationSources=[all_account_aggregation_source],
+    )
+
+    config_client.put_configuration_aggregator(
+        ConfigurationAggregatorName="test_aggregator_two_regions",
+        AccountAggregationSources=[two_region_account_aggregation_source],
+    )
+
+    result = config_client.list_discovered_resources(resourceType="AWS::IAM::Role")
+    assert not result["resourceIdentifiers"]
+
+    # Make 10 policies
+    roles = []
+    num_roles = 10
+    for ix in range(1, num_roles + 1):
+        this_policy = iam_client.create_role(
+            RoleName="role{}".format(ix),
+            Path="/",
+            Description="role{}".format(ix),
+            AssumeRolePolicyDocument=json.dumps("{ }"),
+        )
+        roles.append(
+            {
+                "id": this_policy["Role"]["RoleId"],
+                "name": this_policy["Role"]["RoleName"],
+            }
+        )
+
+    assert len(roles) == num_roles
+
+    # Test non-aggregated query: (everything is getting a random id, so we can't test names by ordering)
+    result = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Role", limit=1
+    )
+    first_result = result["resourceIdentifiers"][0]["resourceId"]
+    assert result["resourceIdentifiers"][0]["resourceType"] == "AWS::IAM::Role"
+    assert len(first_result) == len(random_resource_id())
+
+    # Test non-aggregated pagination
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
+        )["resourceIdentifiers"][0]["resourceId"]
+    ) != first_result
+
+    # Test aggregated query - by `Limit=len(CONFIG_REGIONS)`, we should get a single policy duplicated across all regions
+    agg_result = config_client.list_aggregate_discovered_resources(
+        ResourceType="AWS::IAM::Role",
+        ConfigurationAggregatorName="test_aggregator",
+        Limit=len(CONFIG_REGIONS),
+    )
+    assert len(agg_result["ResourceIdentifiers"]) == len(CONFIG_REGIONS)
+
+    agg_name = None
+    agg_id = None
+    for resource in agg_result["ResourceIdentifiers"]:
+        assert resource["ResourceType"] == "AWS::IAM::Role"
+        assert resource["SourceRegion"] in CONFIG_REGIONS
+        assert resource["SourceAccountId"] == ACCOUNT_ID
+        if agg_id:
+            assert resource["ResourceId"] == agg_id
+        if agg_name:
+            assert resource["ResourceName"] == agg_name
+        agg_name = resource["ResourceName"]
+        agg_id = resource["ResourceId"]
+
+    # Test aggregated pagination
+    for resource in config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator",
+        ResourceType="AWS::IAM::Role",
+        NextToken=agg_result["NextToken"],
+    )["ResourceIdentifiers"]:
+        assert resource["ResourceId"] != agg_id
+
+    # Test non-aggregated resource name/id filter
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Role", resourceName=roles[1]["name"], limit=1,
+        )["resourceIdentifiers"][0]["resourceName"]
+        == roles[1]["name"]
+    )
+
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Role", resourceIds=[roles[0]["id"]], limit=1,
+        )["resourceIdentifiers"][0]["resourceName"]
+        == roles[0]["name"]
+    )
+
+    # Test aggregated resource name/id filter
+    agg_name_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator",
+        ResourceType="AWS::IAM::Role",
+        Filters={"ResourceName": roles[5]["name"]},
+    )
+    assert len(agg_name_filter["ResourceIdentifiers"]) == len(CONFIG_REGIONS)
+    assert agg_name_filter["ResourceIdentifiers"][0]["ResourceId"] == roles[5]["id"]
+
+    agg_name_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator_two_regions",
+        ResourceType="AWS::IAM::Role",
+        Filters={"ResourceName": roles[5]["name"]},
+    )
+    assert len(agg_name_filter["ResourceIdentifiers"]) == len(
+        two_region_account_aggregation_source["AwsRegions"]
+    )
+    assert agg_name_filter["ResourceIdentifiers"][0]["ResourceId"] == roles[5]["id"]
+
+    agg_id_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator",
+        ResourceType="AWS::IAM::Role",
+        Filters={"ResourceId": roles[4]["id"]},
+    )
+
+    assert len(agg_id_filter["ResourceIdentifiers"]) == len(CONFIG_REGIONS)
+    assert agg_id_filter["ResourceIdentifiers"][0]["ResourceName"] == roles[4]["name"]
+
+    agg_name_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator_two_regions",
+        ResourceType="AWS::IAM::Role",
+        Filters={"ResourceId": roles[5]["id"]},
+    )
+    assert len(agg_name_filter["ResourceIdentifiers"]) == len(
+        two_region_account_aggregation_source["AwsRegions"]
+    )
+    assert agg_name_filter["ResourceIdentifiers"][0]["ResourceName"] == roles[5]["name"]
+
+    # Test non-aggregated resource name/id filter
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Role", resourceName=roles[1]["name"], limit=1,
+        )["resourceIdentifiers"][0]["resourceName"]
+        == roles[1]["name"]
+    )
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Role", resourceIds=[roles[0]["id"]], limit=1,
+        )["resourceIdentifiers"][0]["resourceName"]
+        == roles[0]["name"]
+    )
+
+    # Test aggregated resource name/id filter
+    assert (
+        config_client.list_aggregate_discovered_resources(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceType="AWS::IAM::Role",
+            Filters={"ResourceName": roles[5]["name"]},
+            Limit=1,
+        )["ResourceIdentifiers"][0]["ResourceName"]
+        == roles[5]["name"]
+    )
+
+    assert (
+        config_client.list_aggregate_discovered_resources(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceType="AWS::IAM::Role",
+            Filters={"ResourceId": roles[4]["id"]},
+            Limit=1,
+        )["ResourceIdentifiers"][0]["ResourceName"]
+        == roles[4]["name"]
+    )
+
+    # Test name/id filter with pagination
+    first_call = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Role",
+        resourceIds=[roles[1]["id"], roles[2]["id"]],
+        limit=1,
+    )
+
+    assert first_call["nextToken"] in [roles[1]["id"], roles[2]["id"]]
+    assert first_call["resourceIdentifiers"][0]["resourceName"] in [
+        roles[1]["name"],
+        roles[2]["name"],
+    ]
+    second_call = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Role",
+        resourceIds=[roles[1]["id"], roles[2]["id"]],
+        limit=1,
+        nextToken=first_call["nextToken"],
+    )
+    assert "nextToken" not in second_call
+    assert first_call["resourceIdentifiers"][0]["resourceName"] in [
+        roles[1]["name"],
+        roles[2]["name"],
+    ]
+    assert (
+        first_call["resourceIdentifiers"][0]["resourceName"]
+        != second_call["resourceIdentifiers"][0]["resourceName"]
+    )
+
+    # Test non-aggregated batch get
+    assert (
+        config_client.batch_get_resource_config(
+            resourceKeys=[
+                {"resourceType": "AWS::IAM::Role", "resourceId": roles[0]["id"]}
+            ]
+        )["baseConfigurationItems"][0]["resourceName"]
+        == roles[0]["name"]
+    )
+
+    # Test aggregated batch get
+    assert (
+        config_client.batch_get_aggregate_resource_config(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceIdentifiers=[
+                {
+                    "SourceAccountId": ACCOUNT_ID,
+                    "SourceRegion": "us-east-1",
+                    "ResourceId": roles[1]["id"],
+                    "ResourceType": "AWS::IAM::Role",
+                }
+            ],
+        )["BaseConfigurationItems"][0]["resourceName"]
+        == roles[1]["name"]
+    )
+
+
+@mock_iam
+def test_policy_list_config_discovered_resources():
+    from moto.iam.config import policy_config_query
+    from moto.iam.utils import random_policy_id
+
+    # Without any policies
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Action": ["ec2:DeleteKeyPair"], "Effect": "Deny", "Resource": "*"}
+        ],
+    }
+
+    # Make 3 policies
+    policies = []
+    num_policies = 3
+    for ix in range(1, num_policies + 1):
+        this_policy = policy_config_query.backends["global"].create_policy(
+            description="policy{}".format(ix),
+            path="",
+            policy_document=json.dumps(basic_policy),
+            policy_name="policy{}".format(ix),
+        )
+        policies.append(
+            {"id": this_policy.id, "name": this_policy.name,}
+        )
+
+    assert len(policies) == num_policies
+
+    # We expect the backend to have arns as their keys
+    for backend_key in list(
+        policy_config_query.backends["global"].managed_policies.keys()
+    ):
+        assert backend_key.startswith("arn:aws:iam::")
+
+    result = policy_config_query.list_config_service_resources(None, None, 100, None)[0]
+    assert len(result) == num_policies
+
+    policy = result[0]
+    assert policy["type"] == "AWS::IAM::Policy"
+    assert policy["id"] in list(map(lambda p: p["id"], policies))
+    assert policy["name"] in list(map(lambda p: p["name"], policies))
+    assert policy["region"] == "global"
+
+    # test passing list of resource ids
+    resource_ids = policy_config_query.list_config_service_resources(
+        [policies[0]["id"], policies[1]["id"]], None, 100, None
+    )[0]
+    assert len(resource_ids) == 2
+
+    # test passing a single resource name
+    resource_name = policy_config_query.list_config_service_resources(
+        None, policies[0]["name"], 100, None
+    )[0]
+    assert len(resource_name) == 1
+    assert resource_name[0]["id"] == policies[0]["id"]
+    assert resource_name[0]["name"] == policies[0]["name"]
+
+    # test passing a single resource name AND some resource id's
+    both_filter_good = policy_config_query.list_config_service_resources(
+        [policies[0]["id"], policies[1]["id"]], policies[0]["name"], 100, None
+    )[0]
+    assert len(both_filter_good) == 1
+    assert both_filter_good[0]["id"] == policies[0]["id"]
+    assert both_filter_good[0]["name"] == policies[0]["name"]
+
+    both_filter_bad = policy_config_query.list_config_service_resources(
+        [policies[0]["id"], policies[1]["id"]], policies[2]["name"], 100, None
+    )[0]
+    assert len(both_filter_bad) == 0
+
+
+@mock_iam
+def test_policy_config_dict():
+    from moto.iam.config import role_config_query, policy_config_query
+    from moto.iam.utils import random_policy_id
+
+    # Without any roles
+    assert not policy_config_query.get_config_resource(
+        "arn:aws:iam::123456789012:policy/basic_policy"
+    )
+    assert policy_config_query.list_config_service_resources(None, None, 100, None) == (
+        [],
+        None,
+    )
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Action": ["ec2:*"], "Effect": "Allow", "Resource": "*"}],
+    }
+
+    basic_policy_v2 = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Action": ["ec2:*", "s3:*"], "Effect": "Allow", "Resource": "*"}
+        ],
+    }
+
+    policy_arn = (
+        policy_config_query.backends["global"]
+        .create_policy(
+            description="basic_policy",
+            path="/",
+            policy_document=json.dumps(basic_policy),
+            policy_name="basic_policy",
+        )
+        .arn
+    )
+
+    policy_id = policy_config_query.list_config_service_resources(
+        None, None, 100, None
+    )[0][0]["id"]
+    assert len(policy_id) == len(random_policy_id())
+
+    assert policy_arn == "arn:aws:iam::123456789012:policy/basic_policy"
+    assert policy_config_query.get_config_resource(policy_id) is not None
+
+    # Create a new version
+    policy_config_query.backends["global"].create_policy_version(
+        policy_arn, json.dumps(basic_policy_v2), "true"
+    )
+
+    # Create role to trigger attachment
+    role_config_query.backends["global"].create_role(
+        role_name="role_with_attached_policy",
+        assume_role_policy_document=None,
+        path="/",
+        permissions_boundary=None,
+        description="role_with_attached_policy",
+        tags=[],
+        max_session_duration=3600,
+    )
+    role_config_query.backends["global"].attach_role_policy(
+        policy_arn, "role_with_attached_policy"
+    )
+
+    policy = (
+        role_config_query.backends["global"]
+        .managed_policies["arn:aws:iam::123456789012:policy/basic_policy"]
+        .to_config_dict()
+    )
+    assert policy["version"] == "1.3"
+    assert policy["configurationItemCaptureTime"] is not None
+    assert policy["configurationItemStatus"] == "OK"
+    assert policy["configurationStateId"] is not None
+    assert policy["arn"] == "arn:aws:iam::123456789012:policy/basic_policy"
+    assert policy["resourceType"] == "AWS::IAM::Policy"
+    assert len(policy["resourceId"]) == len(random_policy_id())
+    assert policy["resourceName"] == "basic_policy"
+    assert policy["awsRegion"] == "global"
+    assert policy["availabilityZone"] == "Not Applicable"
+    assert policy["resourceCreationTime"] is not None
+    assert policy["configuration"]["policyName"] == policy["resourceName"]
+    assert policy["configuration"]["policyId"] == policy["resourceId"]
+    assert policy["configuration"]["arn"] == policy["arn"]
+    assert policy["configuration"]["path"] == "/"
+    assert policy["configuration"]["defaultVersionId"] == "v2"
+    assert policy["configuration"]["attachmentCount"] == 1
+    assert policy["configuration"]["permissionsBoundaryUsageCount"] == 0
+    assert policy["configuration"]["isAttachable"] == True
+    assert policy["configuration"]["description"] == "basic_policy"
+    assert policy["configuration"]["createDate"] is not None
+    assert policy["configuration"]["updateDate"] is not None
+    assert policy["configuration"]["policyVersionList"] == [
+        {
+            "document": str(parse.quote(json.dumps(basic_policy))),
+            "versionId": "v1",
+            "isDefaultVersion": False,
+            "createDate": policy["configuration"]["policyVersionList"][0]["createDate"],
+        },
+        {
+            "document": str(parse.quote(json.dumps(basic_policy_v2))),
+            "versionId": "v2",
+            "isDefaultVersion": True,
+            "createDate": policy["configuration"]["policyVersionList"][1]["createDate"],
+        },
+    ]
+    assert policy["supplementaryConfiguration"] == {}
+
+
+@mock_iam
+@mock_config
+def test_policy_config_client():
+    from moto.iam.models import ACCOUNT_ID
+    from moto.iam.utils import random_policy_id
+
+    CONFIG_REGIONS = boto3.Session().get_available_regions("config")
+
+    basic_policy = {
+        "Version": "2012-10-17",
+        "Statement": [{"Action": ["ec2:*"], "Effect": "Allow", "Resource": "*"}],
+    }
+
+    iam_client = boto3.client("iam", region_name="us-west-2")
+    config_client = boto3.client("config", region_name="us-west-2")
+
+    all_account_aggregation_source = {
+        "AccountIds": [ACCOUNT_ID],
+        "AllAwsRegions": True,
+    }
+
+    two_region_account_aggregation_source = {
+        "AccountIds": [ACCOUNT_ID],
+        "AwsRegions": ["us-east-1", "us-west-2"],
+    }
+
+    config_client.put_configuration_aggregator(
+        ConfigurationAggregatorName="test_aggregator",
+        AccountAggregationSources=[all_account_aggregation_source],
+    )
+
+    config_client.put_configuration_aggregator(
+        ConfigurationAggregatorName="test_aggregator_two_regions",
+        AccountAggregationSources=[two_region_account_aggregation_source],
+    )
+
+    result = config_client.list_discovered_resources(resourceType="AWS::IAM::Policy")
+    assert not result["resourceIdentifiers"]
+
+    # Make 10 policies
+    policies = []
+    num_policies = 10
+    for ix in range(1, num_policies + 1):
+        this_policy = iam_client.create_policy(
+            PolicyName="policy{}".format(ix),
+            Path="/",
+            PolicyDocument=json.dumps(basic_policy),
+            Description="policy{}".format(ix),
+        )
+        policies.append(
+            {
+                "id": this_policy["Policy"]["PolicyId"],
+                "name": this_policy["Policy"]["PolicyName"],
+            }
+        )
+
+    assert len(policies) == num_policies
+
+    # Test non-aggregated query: (everything is getting a random id, so we can't test names by ordering)
+    result = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Policy", limit=1
+    )
+    first_result = result["resourceIdentifiers"][0]["resourceId"]
+    assert result["resourceIdentifiers"][0]["resourceType"] == "AWS::IAM::Policy"
+    assert len(first_result) == len(random_policy_id())
+
+    # Test non-aggregated pagination
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
+        )["resourceIdentifiers"][0]["resourceId"]
+    ) != first_result
+
+    # Test aggregated query - by `Limit=len(CONFIG_REGIONS)`, we should get a single policy duplicated across all regions
+    agg_result = config_client.list_aggregate_discovered_resources(
+        ResourceType="AWS::IAM::Policy",
+        ConfigurationAggregatorName="test_aggregator",
+        Limit=len(CONFIG_REGIONS),
+    )
+    assert len(agg_result["ResourceIdentifiers"]) == len(CONFIG_REGIONS)
+
+    agg_name = None
+    agg_id = None
+    for resource in agg_result["ResourceIdentifiers"]:
+        assert resource["ResourceType"] == "AWS::IAM::Policy"
+        assert resource["SourceRegion"] in CONFIG_REGIONS
+        assert resource["SourceAccountId"] == ACCOUNT_ID
+        if agg_id:
+            assert resource["ResourceId"] == agg_id
+        if agg_name:
+            assert resource["ResourceName"] == agg_name
+        agg_name = resource["ResourceName"]
+        agg_id = resource["ResourceId"]
+
+    # Test aggregated pagination
+    for resource in config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator",
+        ResourceType="AWS::IAM::Policy",
+        Limit=1,
+        NextToken=agg_result["NextToken"],
+    )["ResourceIdentifiers"]:
+        assert resource["ResourceId"] != agg_id
+
+    # Test non-aggregated resource name/id filter
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Policy", resourceName=policies[1]["name"], limit=1,
+        )["resourceIdentifiers"][0]["resourceName"]
+        == policies[1]["name"]
+    )
+
+    assert (
+        config_client.list_discovered_resources(
+            resourceType="AWS::IAM::Policy", resourceIds=[policies[0]["id"]], limit=1,
+        )["resourceIdentifiers"][0]["resourceName"]
+        == policies[0]["name"]
+    )
+
+    # Test aggregated resource name/id filter
+    agg_name_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator",
+        ResourceType="AWS::IAM::Policy",
+        Filters={"ResourceName": policies[5]["name"]},
+    )
+    assert len(agg_name_filter["ResourceIdentifiers"]) == len(CONFIG_REGIONS)
+    assert (
+        agg_name_filter["ResourceIdentifiers"][0]["ResourceName"] == policies[5]["name"]
+    )
+
+    agg_name_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator_two_regions",
+        ResourceType="AWS::IAM::Policy",
+        Filters={"ResourceName": policies[5]["name"]},
+    )
+    assert len(agg_name_filter["ResourceIdentifiers"]) == len(
+        two_region_account_aggregation_source["AwsRegions"]
+    )
+    assert agg_name_filter["ResourceIdentifiers"][0]["ResourceId"] == policies[5]["id"]
+
+    agg_id_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator",
+        ResourceType="AWS::IAM::Policy",
+        Filters={"ResourceId": policies[4]["id"]},
+    )
+
+    assert len(agg_id_filter["ResourceIdentifiers"]) == len(CONFIG_REGIONS)
+    assert (
+        agg_id_filter["ResourceIdentifiers"][0]["ResourceName"] == policies[4]["name"]
+    )
+
+    agg_name_filter = config_client.list_aggregate_discovered_resources(
+        ConfigurationAggregatorName="test_aggregator_two_regions",
+        ResourceType="AWS::IAM::Policy",
+        Filters={"ResourceId": policies[5]["id"]},
+    )
+    assert len(agg_name_filter["ResourceIdentifiers"]) == len(
+        two_region_account_aggregation_source["AwsRegions"]
+    )
+    assert (
+        agg_name_filter["ResourceIdentifiers"][0]["ResourceName"] == policies[5]["name"]
+    )
+
+    # Test name/id filter with pagination
+    first_call = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Policy",
+        resourceIds=[policies[1]["id"], policies[2]["id"]],
+        limit=1,
+    )
+
+    assert first_call["nextToken"] in [policies[1]["id"], policies[2]["id"]]
+    assert first_call["resourceIdentifiers"][0]["resourceName"] in [
+        policies[1]["name"],
+        policies[2]["name"],
+    ]
+    second_call = config_client.list_discovered_resources(
+        resourceType="AWS::IAM::Policy",
+        resourceIds=[policies[1]["id"], policies[2]["id"]],
+        limit=1,
+        nextToken=first_call["nextToken"],
+    )
+    assert "nextToken" not in second_call
+    assert first_call["resourceIdentifiers"][0]["resourceName"] in [
+        policies[1]["name"],
+        policies[2]["name"],
+    ]
+    assert (
+        first_call["resourceIdentifiers"][0]["resourceName"]
+        != second_call["resourceIdentifiers"][0]["resourceName"]
+    )
+
+    # Test non-aggregated batch get
+    assert (
+        config_client.batch_get_resource_config(
+            resourceKeys=[
+                {"resourceType": "AWS::IAM::Policy", "resourceId": policies[7]["id"]}
+            ]
+        )["baseConfigurationItems"][0]["resourceName"]
+        == policies[7]["name"]
+    )
+
+    # Test aggregated batch get
+    assert (
+        config_client.batch_get_aggregate_resource_config(
+            ConfigurationAggregatorName="test_aggregator",
+            ResourceIdentifiers=[
+                {
+                    "SourceAccountId": ACCOUNT_ID,
+                    "SourceRegion": "us-east-2",
+                    "ResourceId": policies[8]["id"],
+                    "ResourceType": "AWS::IAM::Policy",
+                }
+            ],
+        )["BaseConfigurationItems"][0]["resourceName"]
+        == policies[8]["name"]
+    )
