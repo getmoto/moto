@@ -130,7 +130,7 @@ class FakeThingGroup(BaseModel):
 class FakeCertificate(BaseModel):
     def __init__(self, certificate_pem, status, region_name, ca_certificate_pem=None):
         m = hashlib.sha256()
-        m.update(str(uuid.uuid4()).encode("utf-8"))
+        m.update(certificate_pem.encode("utf-8"))
         self.certificate_id = m.hexdigest()
         self.arn = "arn:aws:iot:%s:1:cert/%s" % (region_name, self.certificate_id)
         self.certificate_pem = certificate_pem
@@ -145,7 +145,7 @@ class FakeCertificate(BaseModel):
         self.ca_certificate_id = None
         self.ca_certificate_pem = ca_certificate_pem
         if ca_certificate_pem:
-            m.update(str(uuid.uuid4()).encode("utf-8"))
+            m.update(ca_certificate_pem.encode("utf-8"))
             self.ca_certificate_id = m.hexdigest()
 
     def to_dict(self):

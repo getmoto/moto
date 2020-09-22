@@ -504,6 +504,20 @@ def test_endpoints():
 
 
 @mock_iot
+def test_certificate_id_generation_deterministic():
+    # Creating the same certificate twice should result in the same certificate ID
+    client = boto3.client("iot", region_name="us-east-1")
+    cert1 = client.create_keys_and_certificate(setAsActive=False)
+    client.delete_certificate(certificateId=cert1["certificateId"])
+
+    cert2 = client.register_certificate(
+        certificatePem=cert1["certificatePem"], setAsActive=False
+    )
+    cert2.should.have.key("certificateId").which.should.equal(cert1["certificateId"])
+    client.delete_certificate(certificateId=cert2["certificateId"])
+
+
+@mock_iot
 def test_certs():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
