@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import boto3
+import sure  # noqa
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 

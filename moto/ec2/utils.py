@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",

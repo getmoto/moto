@@ -1,14 +1,13 @@
 from __future__ import unicode_literals
 
 import os
+from boto3 import Session
 from copy import deepcopy
 from datetime import datetime
 
-from moto.core import BaseBackend, BaseModel
+from moto.core import ACCOUNT_ID, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
-from moto.ec2 import ec2_backends
 from moto.sagemaker import validators
-from moto.sts.models import ACCOUNT_ID
 from .exceptions import MissingModel
 
 
@@ -909,5 +908,9 @@ class SageMakerModelBackend(BaseBackend):
 
 
 sagemaker_backends = {}
-for region, ec2_backend in ec2_backends.items():
+for region in Session().get_available_regions("sagemaker"):
+    sagemaker_backends[region] = SageMakerModelBackend(region)
+for region in Session().get_available_regions("sagemaker", partition_name="aws-us-gov"):
+    sagemaker_backends[region] = SageMakerModelBackend(region)
+for region in Session().get_available_regions("sagemaker", partition_name="aws-cn"):
     sagemaker_backends[region] = SageMakerModelBackend(region)

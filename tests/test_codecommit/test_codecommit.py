@@ -2,7 +2,7 @@ import boto3
 
 import sure  # noqa
 from moto import mock_codecommit
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
 from nose.tools import assert_raises
 

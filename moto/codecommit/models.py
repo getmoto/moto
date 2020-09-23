@@ -2,7 +2,7 @@ from boto3 import Session
 from moto.core import BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from datetime import datetime
-from moto.iam.models import ACCOUNT_ID
+from moto.core import ACCOUNT_ID
 from .exceptions import RepositoryDoesNotExistException, RepositoryNameExistsException
 import uuid
 

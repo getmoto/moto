@@ -9,11 +9,10 @@ import boto
 import boto.vpc
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ParamValidationError, ClientError
-import json
 import sure  # noqa
 import random
 
-from moto import mock_cloudformation_deprecated, mock_ec2, mock_ec2_deprecated
+from moto import mock_ec2, mock_ec2_deprecated
 
 
 @mock_ec2_deprecated
@@ -309,38 +308,6 @@ def test_get_subnets_filtering():
     conn.get_all_subnets.when.called_with(
         filters={"not-implemented-filter": "foobar"}
     ).should.throw(NotImplementedError)
-
-
-@mock_ec2_deprecated
-@mock_cloudformation_deprecated
-def test_subnet_tags_through_cloudformation():
-    vpc_conn = boto.vpc.connect_to_region("us-west-1")
-    vpc = vpc_conn.create_vpc("10.0.0.0/16")
-
-    subnet_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Resources": {
-            "testSubnet": {
-                "Type": "AWS::EC2::Subnet",
-                "Properties": {
-                    "VpcId": vpc.id,
-                    "CidrBlock": "10.0.0.0/24",
-                    "AvailabilityZone": "us-west-1b",
-                    "Tags": [
-                        {"Key": "foo", "Value": "bar"},
-                        {"Key": "blah", "Value": "baz"},
-                    ],
-                },
-            }
-        },
-    }
-    cf_conn = boto.cloudformation.connect_to_region("us-west-1")
-    template_json = json.dumps(subnet_template)
-    cf_conn.create_stack("test_stack", template_body=template_json)
-
-    subnet = vpc_conn.get_all_subnets(filters={"cidrBlock": "10.0.0.0/24"})[0]
-    subnet.tags["foo"].should.equal("bar")
-    subnet.tags["blah"].should.equal("baz")
 
 
 @mock_ec2

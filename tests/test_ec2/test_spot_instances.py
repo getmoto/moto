@@ -9,8 +9,8 @@ from botocore.exceptions import ClientError
 import pytz
 import sure  # noqa
 
-from moto import mock_ec2, mock_ec2_deprecated
-from moto.backends import get_model
+from moto import mock_ec2, mock_ec2_deprecated, settings
+from moto.ec2.models import ec2_backends
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 
@@ -184,13 +184,14 @@ def test_request_spot_instances_fulfilled():
 
     request.state.should.equal("open")
 
-    get_model("SpotInstanceRequest", "us-east-1")[0].state = "active"
+    if not settings.TEST_SERVER_MODE:
+        ec2_backends["us-east-1"].spot_instance_requests[request.id].state = "active"
 
-    requests = conn.get_all_spot_instance_requests()
-    requests.should.have.length_of(1)
-    request = requests[0]
+        requests = conn.get_all_spot_instance_requests()
+        requests.should.have.length_of(1)
+        request = requests[0]
 
-    request.state.should.equal("active")
+        request.state.should.equal("active")
 
 
 @mock_ec2_deprecated
@@ -247,10 +248,11 @@ def test_request_spot_instances_setting_instance_id():
     conn = boto.ec2.connect_to_region("us-east-1")
     request = conn.request_spot_instances(price=0.5, image_id="ami-abcd1234")
 
-    req = get_model("SpotInstanceRequest", "us-east-1")[0]
-    req.state = "active"
-    req.instance_id = "i-12345678"
+    if not settings.TEST_SERVER_MODE:
+        req = ec2_backends["us-east-1"].spot_instance_requests[request[0].id]
+        req.state = "active"
+        req.instance_id = "i-12345678"
 
-    request = conn.get_all_spot_instance_requests()[0]
-    assert request.state == "active"
-    assert request.instance_id == "i-12345678"
+        request = conn.get_all_spot_instance_requests()[0]
+        assert request.state == "active"
+        assert request.instance_id == "i-12345678"

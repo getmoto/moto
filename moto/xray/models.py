@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 
 import bisect
+from boto3 import Session
 import datetime
 from collections import defaultdict
 import json
 from moto.core import BaseBackend, BaseModel
-from moto.ec2 import ec2_backends
 from .exceptions import BadSegmentException, AWSError
 
 
@@ -287,5 +287,9 @@ class XRayBackend(BaseBackend):
 
 
 xray_backends = {}
-for region, ec2_backend in ec2_backends.items():
+for region in Session().get_available_regions("xray"):
+    xray_backends[region] = XRayBackend()
+for region in Session().get_available_regions("xray", partition_name="aws-us-gov"):
+    xray_backends[region] = XRayBackend()
+for region in Session().get_available_regions("xray", partition_name="aws-cn"):
     xray_backends[region] = XRayBackend()

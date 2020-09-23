@@ -33,6 +33,7 @@ install_requires = [
     "boto>=2.36.0",
     "boto3>=1.9.201",
     "botocore>=1.12.201",
+    "cryptography>=2.3.0",
     "requests>=2.5",
     "xmltodict",
     "six>1.9",
@@ -74,7 +75,6 @@ else:
         "zipp",
     ]
 
-_dep_cryptography = "cryptography>=2.3.0"
 _dep_PyYAML = "PyYAML>=5.1"
 _dep_python_jose = "python-jose[cryptography]>=3.1.0,<4.0.0"
 _dep_python_jose_ecdsa_pin = "ecdsa<0.15"  # https://github.com/spulec/moto/pull/3263#discussion_r477404984
@@ -87,7 +87,6 @@ _dep_sshpubkeys_py2 = "sshpubkeys>=3.1.0,<4.0; python_version<'3'"
 _dep_sshpubkeys_py3 = "sshpubkeys>=3.1.0; python_version>'3'"
 
 all_extra_deps = [
-    _dep_cryptography,
     _dep_PyYAML,
     _dep_python_jose,
     _dep_python_jose_ecdsa_pin,
@@ -105,18 +104,22 @@ all_server_deps = all_extra_deps + ['flask', 'flask-cors']
 # i.e. even those without extra dependencies.
 # Would be good for future-compatibility, I guess.
 extras_per_service = {
-    'acm': [_dep_cryptography],
+    'apigateway': [_dep_python_jose, _dep_python_jose_ecdsa_pin],
     'awslambda': [_dep_docker],
     'batch': [_dep_docker],
-    'cloudformation': [_dep_PyYAML, _dep_cfn_lint],
+    'cloudformation': [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
     'cognitoidp': [_dep_python_jose, _dep_python_jose_ecdsa_pin],
-    "ec2": [_dep_cryptography, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
-    'iam': [_dep_cryptography],
+    'dynamodb2': [_dep_docker],
+    'dynamodbstreams': [_dep_docker],
+    "ec2": [_dep_docker, _dep_sshpubkeys_py2, _dep_sshpubkeys_py3],
     'iotdata': [_dep_jsondiff],
-    's3': [_dep_cryptography],
+    's3': [_dep_PyYAML],
+    'ses': [_dep_docker],
+    'sns': [_dep_docker],
+    'sqs': [_dep_docker],
+    'ssm': [_dep_docker, _dep_PyYAML, _dep_cfn_lint],
     'xray': [_dep_aws_xray_sdk],
 }
-
 extras_require = {
     'all': all_extra_deps,
     'server': all_server_deps,
@@ -148,8 +151,7 @@ setup(
         ],
     },
     packages=find_packages(exclude=("tests", "tests.*")),
-    # Addding all requirements for now until we cut a larger release
-    install_requires=install_requires + all_extra_deps,
+    install_requires=install_requires,
     extras_require=extras_require,
     include_package_data=True,
     license="Apache",

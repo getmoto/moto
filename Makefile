@@ -57,3 +57,6 @@ implementation_coverage:
 scaffold:
 	@pip install -r requirements-dev.txt > /dev/null
 	exec python scripts/scaffold.py
+
+int_test:
+	@./scripts/int_test.sh
