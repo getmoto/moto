@@ -55,7 +55,6 @@ def test_flow_logs_create():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
     )["FlowLogIds"]
-    print(response)
     response.should.have.length_of(1)
 
     flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
@@ -194,42 +193,112 @@ def test_flow_logs_delete_non_existing():
     )
 
 
+@mock_ec2
+def test_flow_logs_delete_non_existing_many():
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    with assert_raises(ClientError) as ex:
+        ec2_conn.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d","fl-2b3c4d5e"])
+    ex.exception.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "These flow log ids in the input list are not found: [TotalCount: 2] fl-1a2b3c4d fl-2b3c4d5e"
+    )
+
+
+@mock_ec2
+def test_flow_logs_unsuccessful():
+    s3 = boto3.resource("s3", region_name="us-west-1")
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    vpc_1 = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    vpc_2 = ec2_conn.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]
+
+    response = ec2_conn.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc_1["VpcId"],vpc_2["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::non-existing-bucket",
+    )
+    response["FlowLogIds"].should.have.length_of(0)
+    response["Unsuccessful"].should.have.length_of(2)
+
+    error_1 = response["Unsuccessful"][0]["Error"]
+    error_2 = response["Unsuccessful"][1]["Error"]
+
+    error_1["Code"].should.equal("400")
+    error_1["Message"].should.equal("LogDestination: non-existing-bucket does not exist.")
+    error_2["Code"].should.equal("400")
+    error_2["Message"].should.equal("LogDestination: non-existing-bucket does not exist.")
+
+
 @mock_s3
 @mock_ec2
-def test_flow_log():
-    s3 = boto3.resource("s3", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+def test_flow_logs_invalid_parameters():
+    s3 = boto3.resource("s3", region_name="us-west-1")
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
 
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    vpc = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
 
-    vpc1 = ec2.create_vpc(CidrBlock="192.168.0.0/24")
-    vpc2 = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    vpc1.reload()
-    vpc2.reload()
+    bucket = s3.create_bucket(
+        Bucket="test-flow-logs",
+        CreateBucketConfiguration={
+            "LocationConstraint": "us-west-1",
+        },
+    )
 
-    b = s3.create_bucket(Bucket="test-flow-logs")
+    with assert_raises(ClientError) as ex:
+        ec2_conn.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+            LogDestination="arn:aws:s3:::" + bucket.name,
+            MaxAggregationInterval=10,
+        )
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Invalid Flow Log Max Aggregation Interval"
+    )
 
-    # Invalid MaxAggregationInterval
-    #resp = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc.id],TrafficType="ALL",LogGroupName="test",
-    #                        DeliverLogsPermissionArn="arn:aws:iam::003740049406:role/test",MaxAggregationInterval="700")
+    with assert_raises(ClientError) as ex:
+        ec2_conn.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+        )
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "LogDestination can't be empty if LogGroupName is not provided."
+    )
 
-    # Missing LogDestination for s3
-    #resp = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc.id],TrafficType="ALL",LogDestinationType="s3")
+    with assert_raises(ClientError) as ex:
+        ec2_conn.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+            LogGroupName="test",
+        )
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "LogDestination type must be cloud-watch-logs if LogGroupName is provided."
+    )
 
-    # Wrong LogDestinationType when LogGroupName is provided
-    #resp = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc.id],TrafficType="ALL",LogDestinationType="s3",LogGroupName="test")
-
-    # Missing DeliverLogsPermissionArn
-    #resp = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc.id],TrafficType="ALL",LogGroupName="test")
-
-    #resp = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc.id],TrafficType="ALL",LogDestinationType="s3",LogDestination="arn:aws:s3:::" + vpc.id + "-flow-logs")
-
-    flow_logs = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc1.id,vpc2.id],TrafficType="ALL",LogDestinationType="s3",LogDestination="arn:aws:s3:::test-flow-logs")
-    #flow_log_2 = ec2_client.create_flow_logs(ResourceType="VPC",ResourceIds=[vpc.id],TrafficType="REJECT",LogGroupName="test",
-    #                       DeliverLogsPermissionArn="arn:aws:iam::0123456789101:role/test",MaxAggregationInterval="600")
-
-    #fl_id_1 = flow_log_1['FlowLogIds'][0]
-
-    ec2_client.describe_flow_logs()
-    ec2_client.delete_flow_logs(FlowLogIds=[flow_logs['FlowLogIds'][1]])
-    ec2_client.describe_flow_logs()
+    with assert_raises(ClientError) as ex:
+        ec2_conn.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogGroupName="test",
+        )
+    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "DeliverLogsPermissionArn can't be empty if LogDestinationType is cloud-watch-logs."
+    )
