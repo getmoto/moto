@@ -20,7 +20,7 @@ from moto.core import ACCOUNT_ID
 
 @mock_s3
 @mock_ec2
-def test_flow_log_create_vpc_validation():
+def test_flow_log():
     s3 = boto3.resource("s3", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     ec2_client = boto3.client("ec2", region_name="us-east-1")
