@@ -532,6 +532,20 @@ def test_eip_filters():
     )
     check_vpc_filter("public-ip", [inst1.public_ip_address, inst2.public_ip_address])
 
+    # all the ips are in a VPC
+    addresses = list(
+        service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
+    )
+    len(addresses).should.equal(3)
+
+@mock_ec2
+def test_eip_tags():
+    service = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    # Allocate one address without tags
+    client.allocate_address(Domain="vpc")
+    # Allocate one address and add tags
     alloc_tags = client.allocate_address(Domain="vpc")
     with_tags = client.create_tags(
         Resources=[alloc_tags["AllocationId"]],
@@ -562,9 +576,8 @@ def test_eip_filters():
         )
     )
     len(addresses_with_tags).should.equal(0)
-
-    # all the ips are in a VPC
     addresses = list(
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
-    len(addresses).should.equal(4)
+    # Expected total is 2, one with and one without tags
+    len(addresses).should.equal(2)
