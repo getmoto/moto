@@ -3662,21 +3662,22 @@ class FlowLogsBackend(object):
                             "LogDestination: {0} does not exist.".format(arn.resource),
                             )
                         )
-                else:
-                    flow_logs = FlowLogs(
-                        self,
-                        flow_log_id,
-                        resource_id,
-                        traffic_type,
-                        log_destination_type,
-                        log_destination,
-                        log_format,
-                        log_group_name,
-                        deliver_logs_permission_arn,
-                        max_aggregation_interval,
-                    )
-                    self.flow_logs[flow_log_id] = flow_logs
-                    flow_logs_set.append(flow_logs)
+                    continue
+
+            flow_logs = FlowLogs(
+                self,
+                flow_log_id,
+                resource_id,
+                traffic_type,
+                log_destination_type,
+                log_destination,
+                log_format,
+                log_group_name,
+                deliver_logs_permission_arn,
+                max_aggregation_interval,
+            )
+            self.flow_logs[flow_log_id] = flow_logs
+            flow_logs_set.append(flow_logs)
 
         return flow_logs_set, unsuccessful
 
@@ -3684,9 +3685,6 @@ class FlowLogsBackend(object):
         matches = itertools.chain([i for i in self.flow_logs.values()])
         if flow_log_ids:
             matches = [flow_log for flow_log in matches if flow_log.id in flow_log_ids]
-            if len(flow_log_ids) > len(matches):
-                unknown_ids = set(flow_log_ids) - set(matches)
-                raise InvalidFlowLogIdError(unknown_ids)
         if filters:
             matches = generic_filter(filters, matches)
         return matches
