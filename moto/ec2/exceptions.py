@@ -72,10 +72,13 @@ class InvalidSubnetIdError(EC2ClientError):
 
 
 class InvalidFlowLogIdError(EC2ClientError):
-    def __init__(self, flow_log_id):
+    def __init__(self, count, flow_log_ids):
         super(InvalidFlowLogIdError, self).__init__(
             "InvalidFlowLogId.NotFound",
-            "The flow log ID {0} does not exist".format(flow_log_id),
+            "These flow log ids in the input list are not found: [TotalCount: {0}] {1}".format(
+                count,
+                flow_log_ids
+            ),
         )
 
 

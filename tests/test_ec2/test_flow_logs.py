@@ -55,6 +55,7 @@ def test_flow_logs_create():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket.name,
     )["FlowLogIds"]
+    print(response)
     response.should.have.length_of(1)
 
     flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
@@ -62,6 +63,7 @@ def test_flow_logs_create():
 
     flow_log = flow_logs[0]
 
+    flow_log["FlowLogId"].should.equal(response[0])
     flow_log["DeliverLogsStatus"].should.equal("SUCCESS")
     flow_log["FlowLogStatus"].should.equal("ACTIVE")
     flow_log["ResourceId"].should.equal(vpc["VpcId"])
@@ -104,6 +106,92 @@ def test_flow_log_create_many():
     flow_logs[0]["LogFormat"].should.equal("${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}")
     flow_logs[1]["LogFormat"].should.equal("${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}")
 
+
+@mock_s3
+@mock_ec2
+def test_flow_logs_delete():
+    s3 = boto3.resource("s3", region_name="us-west-1")
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    vpc_1 = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    vpc_2 = ec2_conn.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]
+
+    bucket = s3.create_bucket(
+        Bucket="test-flow-logs",
+        CreateBucketConfiguration={
+            "LocationConstraint": "us-west-1",
+        },
+    )
+
+    response = ec2_conn.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc_1["VpcId"],vpc_2["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+    )["FlowLogIds"]
+    response.should.have.length_of(2)
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(2)
+
+    ec2_conn.delete_flow_logs(FlowLogIds=[response[0]])
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(1)
+    flow_logs[0]["FlowLogId"].should.equal(response[1])
+
+    ec2_conn.delete_flow_logs(FlowLogIds=[response[1]])
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(0)
+
+
+@mock_s3
+@mock_ec2
+def test_flow_logs_delete_many():
+    s3 = boto3.resource("s3", region_name="us-west-1")
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    vpc_1 = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    vpc_2 = ec2_conn.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]
+
+    bucket = s3.create_bucket(
+        Bucket="test-flow-logs",
+        CreateBucketConfiguration={
+            "LocationConstraint": "us-west-1",
+        },
+    )
+
+    response = ec2_conn.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc_1["VpcId"],vpc_2["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+    )["FlowLogIds"]
+    response.should.have.length_of(2)
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(2)
+
+    ec2_conn.delete_flow_logs(FlowLogIds=response)
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(0)
+
+
+@mock_ec2
+def test_flow_logs_delete_non_existing():
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    with assert_raises(ClientError) as ex:
+        ec2_conn.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d"])
+    ex.exception.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "These flow log ids in the input list are not found: [TotalCount: 1] fl-1a2b3c4d"
+    )
 
 
 @mock_s3

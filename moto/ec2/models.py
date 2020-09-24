@@ -3693,11 +3693,18 @@ class FlowLogsBackend(object):
         return matches
 
     def delete_flow_logs(self, flow_log_ids):
+        non_existing = []
         for flow_log in flow_log_ids:
             if flow_log in self.flow_logs:
                 self.flow_logs.pop(flow_log, None)
             else:
-                raise InvalidFlowLogIdError(flow_log_ids)
+                non_existing.append(flow_log)
+
+        if non_existing:
+            raise InvalidFlowLogIdError(
+                len(flow_log_ids),
+                " ".join(x for x in flow_log_ids),
+            )
         return True
 
 
