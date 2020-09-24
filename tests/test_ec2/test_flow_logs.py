@@ -20,9 +20,98 @@ from moto.core import ACCOUNT_ID
 
 @mock_s3
 @mock_ec2
+def test_flow_logs_create():
+    s3 = boto3.resource("s3", region_name="us-west-1")
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    bucket = s3.create_bucket(
+        Bucket="test-flow-logs",
+        CreateBucketConfiguration={
+            "LocationConstraint": "us-west-1",
+        },
+    )
+
+    with assert_raises(ClientError) as ex:
+        ec2_conn.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+            LogDestination="arn:aws:s3:::" + bucket.name,
+            DryRun=True,
+        )
+    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    response = ec2_conn.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+    )["FlowLogIds"]
+    response.should.have.length_of(1)
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(1)
+
+    flow_log = flow_logs[0]
+
+    flow_log["DeliverLogsStatus"].should.equal("SUCCESS")
+    flow_log["FlowLogStatus"].should.equal("ACTIVE")
+    flow_log["ResourceId"].should.equal(vpc["VpcId"])
+    flow_log["TrafficType"].should.equal("ALL")
+    flow_log["LogDestinationType"].should.equal("s3")
+    flow_log["LogDestination"].should.equal("arn:aws:s3:::" + bucket.name)
+    flow_log["LogFormat"].should.equal("${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}")
+    flow_log["MaxAggregationInterval"].should.equal(600)
+
+
+@mock_s3
+@mock_ec2
+def test_flow_log_create_many():
+    s3 = boto3.resource("s3", region_name="us-west-1")
+    ec2_conn = boto3.client("ec2", region_name="us-west-1")
+
+    vpc_1 = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    vpc_2 = ec2_conn.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]
+
+    bucket = s3.create_bucket(
+        Bucket="test-flow-logs",
+        CreateBucketConfiguration={
+            "LocationConstraint": "us-west-1",
+        },
+    )
+
+    response = ec2_conn.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc_1["VpcId"],vpc_2["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+        LogFormat="${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}",
+    )["FlowLogIds"]
+    response.should.have.length_of(2)
+
+    flow_logs = ec2_conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(2)
+
+    flow_logs[0]["LogFormat"].should.equal("${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}")
+    flow_logs[1]["LogFormat"].should.equal("${version} ${vpc-id} ${subnet-id} ${instance-id} ${interface-id} ${account-id} ${type} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${pkt-srcaddr} ${pkt-dstaddr} ${protocol} ${bytes} ${packets} ${start} ${end} ${action} ${tcp-flags} ${log-status}")
+
+
+
+@mock_s3
+@mock_ec2
 def test_flow_log():
     s3 = boto3.resource("s3", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
+
     ec2_client = boto3.client("ec2", region_name="us-east-1")
 
     vpc1 = ec2.create_vpc(CidrBlock="192.168.0.0/24")

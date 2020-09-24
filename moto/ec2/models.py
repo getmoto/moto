@@ -3607,7 +3607,6 @@ class FlowLogsBackend(object):
         log_group_name,
         log_format,
         max_aggregation_interval,
-        context=None,
     ):
         flow_logs_set   = []
         unsuccessful    = []
