@@ -93,7 +93,6 @@ from .exceptions import (
     InvalidVPCRangeError,
     InvalidVpnGatewayIdError,
     InvalidVpnConnectionIdError,
-    LogDestinationNotFoundError,
     MalformedAMIIdError,
     MalformedDHCPOptionsIdError,
     MissingParameterError,
@@ -3534,9 +3533,9 @@ class Unsuccessful(object):
         error_code,
         error_message,
     ):
-        self.resource_id    = resource_id
-        self.error_code     = error_code
-        self.error_message  = error_message
+        self.resource_id = resource_id
+        self.error_code = error_code
+        self.error_message = error_message
 
 
 class FlowLogs(TaggedEC2Resource, CloudFormationModel):
@@ -3613,7 +3612,7 @@ class FlowLogsBackend(object):
         max_aggregation_interval,
         deliver_logs_permission_arn,
     ):
-        if log_group_name == None and log_destination == None:
+        if log_group_name is None and log_destination is None:
             raise InvalidDependantParameterError(
                 "LogDestination",
                 "LogGroupName",
@@ -3621,14 +3620,14 @@ class FlowLogsBackend(object):
             )
 
         if log_destination_type == "s3":
-            if log_group_name != None:
+            if log_group_name is not None:
                 raise InvalidDependantParameterTypeError(
                     "LogDestination",
                     "cloud-watch-logs",
                     "LogGroupName",
                 )
         elif log_destination_type == "cloud-watch-logs":
-            if deliver_logs_permission_arn == None:
+            if deliver_logs_permission_arn is None:
                 raise InvalidDependantParameterError(
                     "DeliverLogsPermissionArn",
                     "LogDestinationType",
@@ -3661,8 +3660,8 @@ class FlowLogsBackend(object):
             deliver_logs_permission_arn,
         )
 
-        flow_logs_set   = []
-        unsuccessful    = []
+        flow_logs_set = []
+        unsuccessful = []
 
         for resource_id in resource_ids:
             deliver_logs_status = "SUCCESS"
@@ -3688,8 +3687,8 @@ class FlowLogsBackend(object):
                             resource_id,
                             "400",
                             "LogDestination: {0} does not exist.".format(arn.resource),
-                            )
                         )
+                    )
                     continue
             elif log_destination_type == "cloud-watch-logs":
                 # API allows to create a FlowLog with a
@@ -3703,8 +3702,8 @@ class FlowLogsBackend(object):
 
             all_flow_logs = self.get_all_flow_logs()
             if any(
-                fl.resource_id == resource_id and
-                (fl.log_group_name == log_group_name or fl.log_destination == log_destination)
+                fl.resource_id == resource_id
+                and (fl.log_group_name == log_group_name or fl.log_destination == log_destination)
                 for fl in all_flow_logs
             ):
                 raise FlowLogAlreadyExists()
