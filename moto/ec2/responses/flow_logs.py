@@ -19,6 +19,8 @@ class FlowLogs(BaseResponse):
         max_aggregation_interval = self._get_param("MaxAggregationInterval", if_none="600")
         validate_resource_ids(resource_ids)
 
+        tags = self._parse_tag_specification("TagSpecification")
+        tags = tags.get("vpc-flow-log", {})
         if self.is_not_dryrun("CreateFlowLogs"):
             flow_logs, errors = self.ec2_backend.create_flow_logs(
                 resource_type=resource_type,
@@ -31,7 +33,8 @@ class FlowLogs(BaseResponse):
                 log_format=log_format,
                 max_aggregation_interval=max_aggregation_interval,
             )
-
+            for fl in flow_logs:
+                fl.add_tags(tags)
             template = self.response_template(CREATE_FLOW_LOGS_RESPONSE)
             return template.render(
                 flow_logs=flow_logs,
@@ -42,14 +45,16 @@ class FlowLogs(BaseResponse):
         flow_log_ids = self._get_multi_param("FlowLogId")
         filters = filters_from_querystring(self.querystring)
         flow_logs = self.ec2_backend.get_all_flow_logs(flow_log_ids, filters)
-        template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)
-        return template.render(flow_logs=flow_logs)
+        if self.is_not_dryrun("DescribeFlowLogs"):
+            template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)
+            return template.render(flow_logs=flow_logs)
 
     def delete_flow_logs(self):
         flow_log_ids = self._get_multi_param("FlowLogId")
         self.ec2_backend.delete_flow_logs(flow_log_ids)
-        template = self.response_template(DELETE_FLOW_LOGS_RESPONSE)
-        return template.render()
+        if self.is_not_dryrun("DeleteFlowLogs"):
+            template = self.response_template(DELETE_FLOW_LOGS_RESPONSE)
+            return template.render()
 
 
 CREATE_FLOW_LOGS_RESPONSE = """

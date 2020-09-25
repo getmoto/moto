@@ -1187,6 +1187,7 @@ class TagBackend(object):
         "subnet",
         "volume",
         "vpc",
+        "vpc-flow-log",
         "vpc-peering-connection" "vpn-connection",
         "vpn-gateway",
     ]

@@ -19,6 +19,7 @@ from moto import mock_cloudformation_deprecated, mock_ec2, mock_ec2_deprecated, 
 from moto.core import ACCOUNT_ID
 from moto.ec2.exceptions import FilterNotImplementedError
 
+
 @mock_s3
 @mock_ec2
 def test_create_flow_logs():
@@ -338,6 +339,12 @@ def test_describe_flow_logs_filtering():
         TrafficType="Accept",
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket2.name,
+        TagSpecifications=[
+            {
+                "ResourceType": "vpc-flow-log",
+                "Tags": [{"Key":"foo","Value":"bar"}],
+            }
+        ],
     )["FlowLogIds"][0]
 
     fl3 = conn.create_flow_logs(
@@ -421,6 +428,13 @@ def test_describe_flow_logs_filtering():
     fl_by_traffic_type[0]["FlowLogId"].should.equal(fl2)
     fl_by_traffic_type[0]["ResourceId"].should.equal(vpc2["VpcId"])
 
+    fl_by_tag_key = conn.describe_flow_logs(
+        Filters=[{"Name":"tag-key", "Values": ["foo"]}],
+    )["FlowLogs"]
+    fl_by_tag_key.should.have.length_of(1)
+    fl_by_tag_key[0]["FlowLogId"].should.equal(fl2)
+    fl_by_tag_key[0]["ResourceId"].should.equal(vpc2["VpcId"])
+
     with assert_raises(FilterNotImplementedError):
         conn.describe_flow_logs(
             Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
@@ -483,3 +497,9 @@ def test_flow_logs_by_ids():
     flow_logs.should.have.length_of(1)
     flow_logs[0]["FlowLogId"].should.equal(fl2)
     flow_logs[0]["ResourceId"].should.equal(vpc2["VpcId"])
+
+    flow_logs = conn.delete_flow_logs(
+        FlowLogIds=[fl2],
+    )
+    flow_logs = conn.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(0)
