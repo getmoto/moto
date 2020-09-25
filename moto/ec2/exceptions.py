@@ -82,6 +82,14 @@ class InvalidFlowLogIdError(EC2ClientError):
         )
 
 
+class FlowLogAlreadyExists(EC2ClientError):
+    def __init__(self):
+        super(FlowLogAlreadyExists, self).__init__(
+            "FlowLogAlreadyExists",
+            "Error. There is an existing Flow Log with the same configuration and log destination.",
+        )
+
+
 class InvalidNetworkAclIdError(EC2ClientError):
     def __init__(self, network_acl_id):
         super(InvalidNetworkAclIdError, self).__init__(

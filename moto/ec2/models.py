@@ -41,6 +41,7 @@ from .exceptions import (
     DependencyViolationError,
     EC2ClientError,
     FilterNotImplementedError,
+    FlowLogAlreadyExists,
     GatewayNotAttachedError,
     InvalidAddressError,
     InvalidAllocationIdError,
@@ -83,7 +84,6 @@ from .exceptions import (
     InvalidSubnetRangeError,
     InvalidVolumeIdError,
     VolumeInUseError,
-    LogDestinationNotFoundError,
     InvalidVolumeAttachmentError,
     InvalidVolumeDetachmentError,
     InvalidVpcCidrBlockAssociationIdError,
@@ -93,6 +93,7 @@ from .exceptions import (
     InvalidVPCRangeError,
     InvalidVpnGatewayIdError,
     InvalidVpnConnectionIdError,
+    LogDestinationNotFoundError,
     MalformedAMIIdError,
     MalformedDHCPOptionsIdError,
     MissingParameterError,
@@ -3700,6 +3701,13 @@ class FlowLogsBackend(object):
                     deliver_logs_status = "FAILED"
                     deliver_logs_error_message = "Access error"
 
+            all_flow_logs = self.get_all_flow_logs()
+            if any(
+                fl.resource_id == resource_id and
+                (fl.log_group_name == log_group_name or fl.log_destination == log_destination)
+                for fl in all_flow_logs
+            ):
+                raise FlowLogAlreadyExists()
             flow_logs = FlowLogs(
                 self,
                 flow_log_id,

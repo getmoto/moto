@@ -335,6 +335,55 @@ def test_create_flow_logs_invalid_parameters():
         "DeliverLogsPermissionArn can't be empty if LogDestinationType is cloud-watch-logs."
     )
 
+    response = client.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+    )["FlowLogIds"]
+    response.should.have.length_of(1)
+
+    with assert_raises(ClientError) as ex:
+        client.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="s3",
+            LogDestination="arn:aws:s3:::" + bucket.name,
+        )
+    ex.exception.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Error. There is an existing Flow Log with the same configuration and log destination."
+    )
+
+    response = client.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogGroupName="test-group",
+        DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
+    )["FlowLogIds"]
+    response.should.have.length_of(1)
+
+    with assert_raises(ClientError) as ex:
+        client.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogGroupName="test-group",
+            DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
+        )
+    ex.exception.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "Error. There is an existing Flow Log with the same configuration and log destination."
+    )
+
+    flow_logs = client.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(2)
+
 
 @mock_s3
 @mock_ec2
