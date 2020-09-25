@@ -537,3 +537,48 @@ def test_eip_filters():
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
     len(addresses).should.equal(3)
+
+
+@mock_ec2
+def test_eip_tags():
+    service = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    # Allocate one address without tags
+    client.allocate_address(Domain="vpc")
+    # Allocate one address and add tags
+    alloc_tags = client.allocate_address(Domain="vpc")
+    with_tags = client.create_tags(
+        Resources=[alloc_tags["AllocationId"]],
+        Tags=[{"Key": "ManagedBy", "Value": "MyCode"}],
+    )
+    addresses_with_tags = client.describe_addresses(
+        Filters=[
+            {"Name": "domain", "Values": ["vpc"]},
+            {"Name": "tag:ManagedBy", "Values": ["MyCode"]},
+        ]
+    )
+    len(addresses_with_tags["Addresses"]).should.equal(1)
+    addresses_with_tags = list(
+        service.vpc_addresses.filter(
+            Filters=[
+                {"Name": "domain", "Values": ["vpc"]},
+                {"Name": "tag:ManagedBy", "Values": ["MyCode"]},
+            ]
+        )
+    )
+    len(addresses_with_tags).should.equal(1)
+    addresses_with_tags = list(
+        service.vpc_addresses.filter(
+            Filters=[
+                {"Name": "domain", "Values": ["vpc"]},
+                {"Name": "tag:ManagedBy", "Values": ["SomethingOther"]},
+            ]
+        )
+    )
+    len(addresses_with_tags).should.equal(0)
+    addresses = list(
+        service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
+    )
+    # Expected total is 2, one with and one without tags
+    len(addresses).should.equal(2)
