@@ -30,6 +30,9 @@ from moto.core.utils import (
     camelcase_to_underscores,
 )
 from moto.core import ACCOUNT_ID
+
+from moto.logs.models import logs_backends
+from moto.logs.exceptions import ResourceNotFoundException
 from moto.s3.models import s3_backend
 from moto.s3.exceptions import MissingBucket
 
@@ -3548,6 +3551,8 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         log_group_name,
         deliver_logs_permission_arn,
         max_aggregation_interval,
+        deliver_logs_status="SUCCESS",
+        deliver_logs_error_message=None,
     ):
         self.ec2_backend = ec2_backend
         self.id = flow_log_id
@@ -3559,6 +3564,8 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         self.log_group_name = log_group_name
         self.deliver_logs_permission_arn = deliver_logs_permission_arn
         self.max_aggregation_interval = max_aggregation_interval
+        self.deliver_logs_status = deliver_logs_status
+        self.deliver_logs_error_message = deliver_logs_error_message
         self.created_at = utc_date_and_time()
 
     def get_filter_value(self, filter_name):
@@ -3597,21 +3604,14 @@ class FlowLogsBackend(object):
         self.flow_logs = defaultdict(dict)
         super(FlowLogsBackend, self).__init__()
 
-    def create_flow_logs(
+    def _validate_request(
         self,
-        resource_type,
-        resource_ids,
-        traffic_type,
-        deliver_logs_permission_arn,
-        log_destination_type,
-        log_destination,
         log_group_name,
-        log_format,
+        log_destination,
+        log_destination_type,
         max_aggregation_interval,
+        deliver_logs_permission_arn,
     ):
-        flow_logs_set   = []
-        unsuccessful    = []
-
         if log_group_name == None and log_destination == None:
             raise InvalidDependantParameterError(
                 "LogDestination",
@@ -3639,7 +3639,33 @@ class FlowLogsBackend(object):
                 "Flow Log Max Aggregation Interval"
             )
 
+    def create_flow_logs(
+        self,
+        resource_type,
+        resource_ids,
+        traffic_type,
+        deliver_logs_permission_arn,
+        log_destination_type,
+        log_destination,
+        log_group_name,
+        log_format,
+        max_aggregation_interval,
+    ):
+
+        self._validate_request(
+            log_group_name,
+            log_destination,
+            log_destination_type,
+            max_aggregation_interval,
+            deliver_logs_permission_arn,
+        )
+
+        flow_logs_set   = []
+        unsuccessful    = []
+
         for resource_id in resource_ids:
+            deliver_logs_status = "SUCCESS"
+            deliver_logs_error_message = None
             flow_log_id = random_flow_log_id()
             if resource_type == "VPC":
                 # Validate VPCs exist
@@ -3664,6 +3690,15 @@ class FlowLogsBackend(object):
                             )
                         )
                     continue
+            elif log_destination_type == "cloud-watch-logs":
+                # API allows to create a FlowLog with a
+                # non-existing LogGroup. It however later
+                # on reports the FAILED delivery status.
+                try:
+                    logs_backends[self.region_name].list_tags_log_group(log_group_name)
+                except ResourceNotFoundException:
+                    deliver_logs_status = "FAILED"
+                    deliver_logs_error_message = "Access error"
 
             flow_logs = FlowLogs(
                 self,
@@ -3676,6 +3711,8 @@ class FlowLogsBackend(object):
                 log_group_name,
                 deliver_logs_permission_arn,
                 max_aggregation_interval,
+                deliver_logs_status,
+                deliver_logs_error_message,
             )
             self.flow_logs[flow_log_id] = flow_logs
             flow_logs_set.append(flow_logs)

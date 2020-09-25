@@ -97,7 +97,10 @@ DESCRIBE_FLOW_LOGS_RESPONSE = """
       <logDestinationType>{{ flow_log.log_destination_type }}</logDestinationType>
       <creationTime>{{ flow_log.created_at }}</creationTime>
       <trafficType>{{ flow_log.traffic_type }}</trafficType>
-      <deliverLogsStatus>SUCCESS</deliverLogsStatus>
+      <deliverLogsStatus>{{ flow_log.deliver_logs_status }}</deliverLogsStatus>
+      {% if flow_log.deliver_logs_error_message is not none %}
+        <deliverLogsErrorMessage>{{ flow_log.deliver_logs_error_message }}</deliverLogsErrorMessage>
+      {% endif %}
       <logFormat>{{ flow_log.log_format }}</logFormat>
       <flowLogStatus>ACTIVE</flowLogStatus>
       <flowLogId>{{ flow_log.id }}</flowLogId>
