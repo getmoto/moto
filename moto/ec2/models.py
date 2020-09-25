@@ -3542,12 +3542,12 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         flow_log_id,
         resource_id,
         traffic_type,
-        log_destination_type,
         log_destination,
-        log_format,
         log_group_name,
         deliver_logs_permission_arn,
         max_aggregation_interval,
+        log_destination_type,
+        log_format,
         deliver_logs_status="SUCCESS",
         deliver_logs_error_message=None,
     ):
@@ -3555,15 +3555,64 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         self.id = flow_log_id
         self.resource_id = resource_id
         self.traffic_type = traffic_type
-        self.log_destination_type = log_destination_type
         self.log_destination = log_destination
-        self.log_format = log_format
         self.log_group_name = log_group_name
         self.deliver_logs_permission_arn = deliver_logs_permission_arn
-        self.max_aggregation_interval = max_aggregation_interval
         self.deliver_logs_status = deliver_logs_status
         self.deliver_logs_error_message = deliver_logs_error_message
+        self.max_aggregation_interval = max_aggregation_interval
+        self.log_destination_type = log_destination_type
+        self.log_format = log_format
+
         self.created_at = utc_date_and_time()
+
+    @staticmethod
+    def cloudformation_name_type():
+        return None
+
+    @staticmethod
+    def cloudformation_type():
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-flowlog.html
+        return "AWS::EC2::FlowLog"
+
+    @classmethod
+    def create_from_cloudformation_json(
+        cls, resource_name, cloudformation_json, region_name
+    ):
+        properties = cloudformation_json["Properties"]
+
+        resource_type = properties.get("ResourceType")
+        resource_id = [properties.get("ResourceId")]
+        traffic_type = properties.get("TrafficType")
+        deliver_logs_permission_arn = properties.get("DeliverLogsPermissionArn")
+        log_destination_type = properties.get("LogDestinationType")
+        log_destination = properties.get("LogDestination")
+        log_group_name = properties.get("LogGroupName")
+        log_format = properties.get("LogFormat")
+        max_aggregation_interval = properties.get("MaxAggregationInterval")
+
+        ec2_backend = ec2_backends[region_name]
+        flow_log, _ = ec2_backend.create_flow_logs(
+            resource_type,
+            resource_id,
+            traffic_type,
+            deliver_logs_permission_arn,
+            log_destination_type,
+            log_destination,
+            log_group_name,
+            log_format,
+            max_aggregation_interval,
+        )
+        for tag in properties.get("Tags", []):
+            tag_key = tag["Key"]
+            tag_value = tag["Value"]
+            flow_log[0].add_tag(tag_key, tag_value)
+
+        return flow_log[0]
+
+    @property
+    def physical_resource_id(self):
+        return self.id
 
     def get_filter_value(self, filter_name):
         """
@@ -3646,7 +3695,21 @@ class FlowLogsBackend(object):
         log_format,
         max_aggregation_interval,
     ):
+        # Guess it's best to put it here due to possible
+        # lack of them in the CloudFormation template
+        max_aggregation_interval = (
+            "600" if max_aggregation_interval is None else max_aggregation_interval
+        )
+        log_destination_type = (
+            "cloud-watch-logs" if log_destination_type is None else log_destination_type
+        )
+        log_format = (
+            "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
+            if log_format is None
+            else log_format
+        )
 
+        # Validate the requests paremeters
         self._validate_request(
             log_group_name,
             log_destination,
@@ -3678,6 +3741,9 @@ class FlowLogsBackend(object):
                     s3_backend.get_bucket(arn.resource)
                 except MissingBucket:
                     unsuccessful.append(
+                        # Instead of creating FlowLog report
+                        # the unsuccessful status for the
+                        # given resource_id
                         Unsuccessful(
                             resource_id,
                             "400",
@@ -3690,6 +3756,8 @@ class FlowLogsBackend(object):
                 # non-existing LogGroup. It however later
                 # on reports the FAILED delivery status.
                 try:
+                    # Need something easy to check the group exists.
+                    # The list_tags_log_group seems to do the trick.
                     logs_backends[self.region_name].list_tags_log_group(log_group_name)
                 except ResourceNotFoundException:
                     deliver_logs_status = "FAILED"
@@ -3710,12 +3778,12 @@ class FlowLogsBackend(object):
                 flow_log_id,
                 resource_id,
                 traffic_type,
-                log_destination_type,
                 log_destination,
-                log_format,
                 log_group_name,
                 deliver_logs_permission_arn,
                 max_aggregation_interval,
+                log_destination_type,
+                log_format,
                 deliver_logs_status,
                 deliver_logs_error_message,
             )
