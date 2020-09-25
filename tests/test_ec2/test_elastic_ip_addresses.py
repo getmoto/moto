@@ -538,6 +538,7 @@ def test_eip_filters():
     )
     len(addresses).should.equal(3)
 
+
 @mock_ec2
 def test_eip_tags():
     service = boto3.resource("ec2", region_name="us-west-1")
