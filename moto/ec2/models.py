@@ -9,8 +9,6 @@ import re
 import six
 import warnings
 
-from arnparse import arnparse
-
 from boto3 import Session
 from pkg_resources import resource_filename
 
@@ -3736,9 +3734,9 @@ class FlowLogsBackend(object):
                 self.get_network_interface(resource_id)
 
             if log_destination_type == "s3":
-                arn = arnparse(log_destination)
+                arn = log_destination.split(":", 5)[5]
                 try:
-                    s3_backend.get_bucket(arn.resource)
+                    s3_backend.get_bucket(arn)
                 except MissingBucket:
                     unsuccessful.append(
                         # Instead of creating FlowLog report
@@ -3747,7 +3745,7 @@ class FlowLogsBackend(object):
                         Unsuccessful(
                             resource_id,
                             "400",
-                            "LogDestination: {0} does not exist.".format(arn.resource),
+                            "LogDestination: {0} does not exist.".format(arn),
                         )
                     )
                     continue
