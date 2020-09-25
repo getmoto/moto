@@ -10,11 +10,18 @@ class FlowLogs(BaseResponse):
         resource_ids = self._get_multi_param("ResourceId")
         traffic_type = self._get_param("TrafficType")
         deliver_logs_permission_arn = self._get_param("DeliverLogsPermissionArn")
-        log_destination_type = self._get_param("LogDestinationType", if_none="cloud-watch-logs")
+        log_destination_type = self._get_param(
+            "LogDestinationType", if_none="cloud-watch-logs"
+        )
         log_destination = self._get_param("LogDestination")
         log_group_name = self._get_param("LogGroupName")
-        log_format = self._get_param("LogFormat", if_none="${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}")
-        max_aggregation_interval = self._get_param("MaxAggregationInterval", if_none="600")
+        log_format = self._get_param(
+            "LogFormat",
+            if_none="${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}",
+        )
+        max_aggregation_interval = self._get_param(
+            "MaxAggregationInterval", if_none="600"
+        )
         validate_resource_ids(resource_ids)
 
         tags = self._parse_tag_specification("TagSpecification")
@@ -34,10 +41,7 @@ class FlowLogs(BaseResponse):
             for fl in flow_logs:
                 fl.add_tags(tags)
             template = self.response_template(CREATE_FLOW_LOGS_RESPONSE)
-            return template.render(
-                flow_logs=flow_logs,
-                errors=errors
-            )
+            return template.render(flow_logs=flow_logs, errors=errors)
 
     def describe_flow_logs(self):
         flow_log_ids = self._get_multi_param("FlowLogId")

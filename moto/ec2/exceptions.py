@@ -76,8 +76,7 @@ class InvalidFlowLogIdError(EC2ClientError):
         super(InvalidFlowLogIdError, self).__init__(
             "InvalidFlowLogId.NotFound",
             "These flow log ids in the input list are not found: [TotalCount: {0}] {1}".format(
-                count,
-                flow_log_ids
+                count, flow_log_ids
             ),
         )
 
@@ -285,7 +284,8 @@ class InvalidAddressError(EC2ClientError):
 class LogDestinationNotFoundError(EC2ClientError):
     def __init__(self, bucket_name):
         super(LogDestinationNotFoundError, self).__init__(
-            "LogDestinationNotFoundException", "LogDestination: '{0}' does not exist.".format(bucket_name)
+            "LogDestinationNotFoundException",
+            "LogDestination: '{0}' does not exist.".format(bucket_name),
         )
 
 
@@ -340,9 +340,7 @@ class InvalidDependantParameterError(EC2ClientError):
         super(InvalidDependantParameterError, self).__init__(
             "InvalidParameter",
             "{0} can't be empty if {1} is {2}.".format(
-                dependant_parameter,
-                parameter,
-                parameter_value,
+                dependant_parameter, parameter, parameter_value,
             ),
         )
 
@@ -352,9 +350,7 @@ class InvalidDependantParameterTypeError(EC2ClientError):
         super(InvalidDependantParameterTypeError, self).__init__(
             "InvalidParameter",
             "{0} type must be {1} if {2} is provided.".format(
-                dependant_parameter,
-                parameter_value,
-                parameter,
+                dependant_parameter, parameter_value, parameter,
             ),
         )
 
@@ -362,8 +358,7 @@ class InvalidDependantParameterTypeError(EC2ClientError):
 class InvalidAggregationIntervalParameterError(EC2ClientError):
     def __init__(self, parameter):
         super(InvalidAggregationIntervalParameterError, self).__init__(
-            "InvalidParameter",
-            "Invalid {0}".format(parameter),
+            "InvalidParameter", "Invalid {0}".format(parameter),
         )
 
 

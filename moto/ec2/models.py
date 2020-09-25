@@ -3528,10 +3528,7 @@ class SubnetBackend(object):
 
 class Unsuccessful(object):
     def __init__(
-        self,
-        resource_id,
-        error_code,
-        error_message,
+        self, resource_id, error_code, error_message,
     ):
         self.resource_id = resource_id
         self.error_code = error_code
@@ -3596,7 +3593,9 @@ class FlowLogs(TaggedEC2Resource, CloudFormationModel):
         elif filter_name == "deliver-log-status":
             return "SUCCESS"
         else:
-            return super(FlowLogs, self).get_filter_value(filter_name, "DescribeFlowLogs")
+            return super(FlowLogs, self).get_filter_value(
+                filter_name, "DescribeFlowLogs"
+            )
 
 
 class FlowLogsBackend(object):
@@ -3614,17 +3613,13 @@ class FlowLogsBackend(object):
     ):
         if log_group_name is None and log_destination is None:
             raise InvalidDependantParameterError(
-                "LogDestination",
-                "LogGroupName",
-                "not provided",
+                "LogDestination", "LogGroupName", "not provided",
             )
 
         if log_destination_type == "s3":
             if log_group_name is not None:
                 raise InvalidDependantParameterTypeError(
-                    "LogDestination",
-                    "cloud-watch-logs",
-                    "LogGroupName",
+                    "LogDestination", "cloud-watch-logs", "LogGroupName",
                 )
         elif log_destination_type == "cloud-watch-logs":
             if deliver_logs_permission_arn is None:
@@ -3703,7 +3698,10 @@ class FlowLogsBackend(object):
             all_flow_logs = self.get_all_flow_logs()
             if any(
                 fl.resource_id == resource_id
-                and (fl.log_group_name == log_group_name or fl.log_destination == log_destination)
+                and (
+                    fl.log_group_name == log_group_name
+                    or fl.log_destination == log_destination
+                )
                 for fl in all_flow_logs
             ):
                 raise FlowLogAlreadyExists()
@@ -3744,8 +3742,7 @@ class FlowLogsBackend(object):
 
         if non_existing:
             raise InvalidFlowLogIdError(
-                len(flow_log_ids),
-                " ".join(x for x in flow_log_ids),
+                len(flow_log_ids), " ".join(x for x in flow_log_ids),
             )
         return True
 
