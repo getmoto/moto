@@ -36,7 +36,7 @@ def test_create_flow_logs():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     with assert_raises(ClientError) as ex:
@@ -127,7 +127,7 @@ def test_delete_flow_logs():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     response = client.create_flow_logs(
@@ -165,7 +165,7 @@ def test_delete_flow_logs_delete_many():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     response = client.create_flow_logs(
@@ -248,7 +248,7 @@ def test_create_flow_logs_invalid_parameters():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     with assert_raises(ClientError) as ex:
@@ -374,7 +374,7 @@ def test_describe_flow_logs_filtering():
 
     bucket1 = s3.create_bucket(
         Bucket="test-flow-logs-1",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     logs_client.create_log_group(logGroupName="test-group")
@@ -394,7 +394,7 @@ def test_describe_flow_logs_filtering():
         LogDestinationType="s3",
         LogDestination="arn:aws:s3:::" + bucket1.name,
         TagSpecifications=[
-            {"ResourceType": "vpc-flow-log", "Tags": [{"Key": "foo", "Value": "bar"}],}
+            {"ResourceType": "vpc-flow-log", "Tags": [{"Key": "foo", "Value": "bar"}]}
         ],
     )["FlowLogIds"][0]
 
@@ -498,6 +498,11 @@ def test_describe_flow_logs_filtering():
     fl_by_tag_key[0]["FlowLogId"].should.equal(fl2)
     fl_by_tag_key[0]["ResourceId"].should.equal(vpc2["VpcId"])
 
+    fl_by_tag_key = client.describe_flow_logs(
+        Filters=[{"Name": "tag-key", "Values": ["non-existing"]}],
+    )["FlowLogs"]
+    fl_by_tag_key.should.have.length_of(0)
+
     with assert_raises(FilterNotImplementedError):
         client.describe_flow_logs(
             Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
@@ -538,16 +543,16 @@ def test_flow_logs_by_ids():
         DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role-3",
     )["FlowLogIds"][0]
 
-    flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3],)["FlowLogs"]
+    flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
     flow_logs.should.have.length_of(2)
     flow_logs[0]["FlowLogId"].should.equal(fl1)
     flow_logs[0]["ResourceId"].should.equal(vpc1["VpcId"])
     flow_logs[1]["FlowLogId"].should.equal(fl3)
     flow_logs[1]["ResourceId"].should.equal(vpc3["VpcId"])
 
-    client.delete_flow_logs(FlowLogIds=[fl1, fl3],)
+    client.delete_flow_logs(FlowLogIds=[fl1, fl3])
 
-    flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3],)["FlowLogs"]
+    flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
     flow_logs.should.have.length_of(0)
 
     flow_logs = client.describe_flow_logs()["FlowLogs"]
@@ -555,7 +560,7 @@ def test_flow_logs_by_ids():
     flow_logs[0]["FlowLogId"].should.equal(fl2)
     flow_logs[0]["ResourceId"].should.equal(vpc2["VpcId"])
 
-    flow_logs = client.delete_flow_logs(FlowLogIds=[fl2],)
+    flow_logs = client.delete_flow_logs(FlowLogIds=[fl2])
     flow_logs = client.describe_flow_logs()["FlowLogs"]
     flow_logs.should.have.length_of(0)
 
@@ -572,7 +577,7 @@ def test_flow_logs_by_cloudformation():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
     flow_log_template = {
@@ -588,7 +593,7 @@ def test_flow_logs_by_cloudformation():
                     "LogDestinationType": "s3",
                     "LogDestination": "arn:aws:s3:::" + bucket.name,
                     "MaxAggregationInterval": "60",
-                    "Tags": [{"Key": "foo", "Value": "bar"},],
+                    "Tags": [{"Key": "foo", "Value": "bar"}],
                 },
             }
         },
