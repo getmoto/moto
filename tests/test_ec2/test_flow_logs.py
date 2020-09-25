@@ -29,41 +29,6 @@ from moto.ec2.exceptions import FilterNotImplementedError
 
 @mock_s3
 @mock_ec2
-def test_test():
-    s3 = boto3.resource("s3", region_name="us-west-1")
-    client = boto3.client("ec2", region_name="us-west-1")
-
-    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet1 = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.0.0/18")[
-        "Subnet"
-    ]
-
-    bucket = s3.create_bucket(
-        Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
-    )
-
-    client.create_flow_logs(
-        ResourceType="Subnet",
-        ResourceIds=[subnet1["SubnetId"]],
-        TrafficType="ALL",
-        LogDestinationType="s3",
-        LogDestination="arn:aws:s3:::" + bucket.name,
-    )["FlowLogIds"]
-
-    client.create_flow_logs(
-        ResourceType="VPC",
-        ResourceIds=[vpc["VpcId"]],
-        TrafficType="ALL",
-        LogGroupName="test-group",
-        DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
-    )["FlowLogIds"]
-
-    fls = client.describe_flow_logs()["FlowLogs"]
-
-
-@mock_s3
-@mock_ec2
 def test_create_flow_logs():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
