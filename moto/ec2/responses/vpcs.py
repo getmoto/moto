@@ -14,14 +14,19 @@ class VPCs(BaseResponse):
 
     def create_vpc(self):
         cidr_block = self._get_param("CidrBlock")
+        tags = self._get_multi_param("TagSpecification")
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
         amazon_provided_ipv6_cidr_blocks = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
         )
+        if tags:
+            tags = tags[0].get("Tag")
+
         vpc = self.ec2_backend.create_vpc(
             cidr_block,
             instance_tenancy,
             amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_blocks,
+            tags=tags,
         )
         doc_date = self._get_doc_date()
         template = self.response_template(CREATE_VPC_RESPONSE)
