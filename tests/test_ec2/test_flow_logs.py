@@ -425,13 +425,18 @@ def test_describe_flow_logs_filtering():
         Filters=[{"Name": "log-destination-type", "Values": ["cloud-watch-logs"]}],
     )["FlowLogs"]
     fl_by_cloud_watch.should.have.length_of(2)
-    fl_by_cloud_watch[0]["FlowLogId"].should.equal(fl1)
-    fl_by_cloud_watch[0]["ResourceId"].should.equal(subnet1["SubnetId"])
-    fl_by_cloud_watch[0]["DeliverLogsStatus"].should.equal("SUCCESS")
-    fl_by_cloud_watch[1]["FlowLogId"].should.equal(fl3)
-    fl_by_cloud_watch[1]["ResourceId"].should.equal(vpc3["VpcId"])
-    fl_by_cloud_watch[1]["DeliverLogsStatus"].should.equal("FAILED")
-    fl_by_cloud_watch[1]["DeliverLogsErrorMessage"].should.equal("Access error")
+
+    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], fl_by_cloud_watch))
+    fl1.should.be.within(flow_logs_ids)
+    fl3.should.be.within(flow_logs_ids)
+
+    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], fl_by_cloud_watch))
+    subnet1["SubnetId"].should.be.within(flow_logs_resource_ids)
+    vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
+
+    test_fl3 = next(fl for fl in fl_by_cloud_watch if fl["FlowLogId"] == fl3)
+    test_fl3["DeliverLogsStatus"].should.equal("FAILED")
+    test_fl3["DeliverLogsErrorMessage"].should.equal("Access error")
 
     fl_by_both = client.describe_flow_logs(
         Filters=[
@@ -444,10 +449,13 @@ def test_describe_flow_logs_filtering():
         Filters=[{"Name": "flow-log-id", "Values": [fl1, fl3]}],
     )["FlowLogs"]
     fl_by_flow_log_ids.should.have.length_of(2)
-    fl_by_flow_log_ids[0]["FlowLogId"].should.equal(fl1)
-    fl_by_flow_log_ids[0]["ResourceId"].should.equal(subnet1["SubnetId"])
-    fl_by_flow_log_ids[1]["FlowLogId"].should.equal(fl3)
-    fl_by_flow_log_ids[1]["ResourceId"].should.equal(vpc3["VpcId"])
+    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], fl_by_flow_log_ids))
+    fl1.should.be.within(flow_logs_ids)
+    fl3.should.be.within(flow_logs_ids)
+
+    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], fl_by_flow_log_ids))
+    subnet1["SubnetId"].should.be.within(flow_logs_resource_ids)
+    vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
 
     fl_by_group_name = client.describe_flow_logs(
         Filters=[{"Name": "log-group-name", "Values": ["test-group"]}],
@@ -545,10 +553,13 @@ def test_flow_logs_by_ids():
 
     flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
     flow_logs.should.have.length_of(2)
-    flow_logs[0]["FlowLogId"].should.equal(fl1)
-    flow_logs[0]["ResourceId"].should.equal(vpc1["VpcId"])
-    flow_logs[1]["FlowLogId"].should.equal(fl3)
-    flow_logs[1]["ResourceId"].should.equal(vpc3["VpcId"])
+    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], flow_logs))
+    fl1.should.be.within(flow_logs_ids)
+    fl3.should.be.within(flow_logs_ids)
+
+    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], flow_logs))
+    vpc1["VpcId"].should.be.within(flow_logs_resource_ids)
+    vpc3["VpcId"].should.be.within(flow_logs_resource_ids)
 
     client.delete_flow_logs(FlowLogIds=[fl1, fl3])
 
