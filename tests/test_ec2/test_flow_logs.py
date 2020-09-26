@@ -5,16 +5,15 @@ from nose.tools import assert_raises
 
 import boto3
 
-import boto
-import boto.vpc
-from boto.exception import EC2ResponseError
 from botocore.exceptions import ParamValidationError, ClientError
+from botocore.parsers import ResponseParserError
 import json
 import sure  # noqa
 import random
 import sys
 
 from moto import (
+    settings,
     mock_cloudformation,
     mock_ec2,
     mock_s3,
@@ -126,9 +125,7 @@ def test_create_flow_logs_cloud_watch():
     flow_log["TrafficType"].should.equal("ALL")
     flow_log["LogDestinationType"].should.equal("cloud-watch-logs")
     flow_log["LogGroupName"].should.equal("test-group")
-    flow_log["DeliverLogsPermissionArn"].should.equal(
-        "arn:aws:iam::" + ACCOUNT_ID + ":role/test-role"
-    )
+    flow_log["DeliverLogsPermissionArn"].should.equal("arn:aws:iam::" + ACCOUNT_ID + ":role/test-role")
     flow_log["LogFormat"].should.equal(
         "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
     )
@@ -565,9 +562,14 @@ def test_describe_flow_logs_filtering():
     )["FlowLogs"]
     fl_by_tag_key.should.have.length_of(0)
 
-    client.describe_flow_logs.when.called_with(
-        Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
-    ).should.throw(NotImplementedError)
+    if not settings.TEST_SERVER_MODE:
+        client.describe_flow_logs.when.called_with(
+            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
+        ).should.throw(FilterNotImplementedError)
+    else:
+        client.describe_flow_logs.when.called_with(
+            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
+        ).should.throw(ResponseParserError)
 
 
 @mock_s3

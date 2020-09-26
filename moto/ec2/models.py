@@ -3762,7 +3762,7 @@ class FlowLogsBackend(object):
                     deliver_logs_status = "FAILED"
                     deliver_logs_error_message = "Access error"
 
-            all_flow_logs = self.get_all_flow_logs()
+            all_flow_logs = self.describe_flow_logs()
             if any(
                 fl.resource_id == resource_id
                 and (
@@ -3791,7 +3791,7 @@ class FlowLogsBackend(object):
 
         return flow_logs_set, unsuccessful
 
-    def get_all_flow_logs(self, flow_log_ids=None, filters=None):
+    def describe_flow_logs(self, flow_log_ids=None, filters=None):
         matches = itertools.chain([i for i in self.flow_logs.values()])
         if flow_log_ids:
             matches = [flow_log for flow_log in matches if flow_log.id in flow_log_ids]

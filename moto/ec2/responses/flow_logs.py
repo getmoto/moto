@@ -39,7 +39,7 @@ class FlowLogs(BaseResponse):
     def describe_flow_logs(self):
         flow_log_ids = self._get_multi_param("FlowLogId")
         filters = filters_from_querystring(self.querystring)
-        flow_logs = self.ec2_backend.get_all_flow_logs(flow_log_ids, filters)
+        flow_logs = self.ec2_backend.describe_flow_logs(flow_log_ids, filters)
         if self.is_not_dryrun("DescribeFlowLogs"):
             template = self.response_template(DESCRIBE_FLOW_LOGS_RESPONSE)
             return template.render(flow_logs=flow_logs)
