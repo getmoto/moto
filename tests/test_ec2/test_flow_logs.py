@@ -511,10 +511,9 @@ def test_describe_flow_logs_filtering():
     )["FlowLogs"]
     fl_by_tag_key.should.have.length_of(0)
 
-    with assert_raises(FilterNotImplementedError):
-        client.describe_flow_logs(
-            Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
-        )
+    client.describe_flow_logs.when.called_with(
+        Filters=[{"Name": "not-implemented-filter", "Values": ["foobar"]}],
+    ).should.throw(NotImplementedError)
 
 
 @mock_s3
