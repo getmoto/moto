@@ -1,12 +1,10 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
 import tests.backport_assert_raises  # noqa
 from nose.tools import assert_raises
 
 import boto3
 
-# boto3.set_stream_logger(name='botocore')
 import boto
 import boto.vpc
 from boto.exception import EC2ResponseError
@@ -28,7 +26,7 @@ from moto.ec2.exceptions import FilterNotImplementedError
 
 @mock_s3
 @mock_ec2
-def test_create_flow_logs():
+def test_create_flow_logs_s3():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -75,6 +73,62 @@ def test_create_flow_logs():
     flow_log["TrafficType"].should.equal("ALL")
     flow_log["LogDestinationType"].should.equal("s3")
     flow_log["LogDestination"].should.equal("arn:aws:s3:::" + bucket.name)
+    flow_log["LogFormat"].should.equal(
+        "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
+    )
+    flow_log["MaxAggregationInterval"].should.equal(600)
+
+
+@mock_logs
+@mock_ec2
+def test_create_flow_logs_cloud_watch():
+    client = boto3.client("ec2", region_name="us-west-1")
+    logs_client = boto3.client("logs", region_name="us-west-1")
+
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    logs_client.create_log_group(logGroupName="test-group")
+
+    with assert_raises(ClientError) as ex:
+        client.create_flow_logs(
+            ResourceType="VPC",
+            ResourceIds=[vpc["VpcId"]],
+            TrafficType="ALL",
+            LogDestinationType="cloud-watch-logs",
+            LogGroupName="test-group",
+            DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
+            DryRun=True,
+        )
+    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.exception.response["Error"]["Message"].should.equal(
+        "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    response = client.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="cloud-watch-logs",
+        LogGroupName="test-group",
+        DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
+    )["FlowLogIds"]
+    response.should.have.length_of(1)
+
+    flow_logs = client.describe_flow_logs()["FlowLogs"]
+    flow_logs.should.have.length_of(1)
+
+    flow_log = flow_logs[0]
+
+    flow_log["FlowLogId"].should.equal(response[0])
+    flow_log["DeliverLogsStatus"].should.equal("SUCCESS")
+    flow_log["FlowLogStatus"].should.equal("ACTIVE")
+    flow_log["ResourceId"].should.equal(vpc["VpcId"])
+    flow_log["TrafficType"].should.equal("ALL")
+    flow_log["LogDestinationType"].should.equal("cloud-watch-logs")
+    flow_log["LogGroupName"].should.equal("test-group")
+    flow_log["DeliverLogsPermissionArn"].should.equal(
+        "arn:aws:iam::" + ACCOUNT_ID + ":role/test-role"
+    )
     flow_log["LogFormat"].should.equal(
         "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
     )

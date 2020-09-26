@@ -29,11 +29,6 @@ from moto.core.utils import (
 )
 from moto.core import ACCOUNT_ID
 
-from moto.logs.models import logs_backends
-from moto.logs.exceptions import ResourceNotFoundException
-from moto.s3.models import s3_backend
-from moto.s3.exceptions import MissingBucket
-
 from .exceptions import (
     CidrLimitExceeded,
     DependencyViolationError,
@@ -3734,6 +3729,9 @@ class FlowLogsBackend(object):
                 self.get_network_interface(resource_id)
 
             if log_destination_type == "s3":
+                from moto.s3.models import s3_backend
+                from moto.s3.exceptions import MissingBucket
+
                 arn = log_destination.split(":", 5)[5]
                 try:
                     s3_backend.get_bucket(arn)
@@ -3750,6 +3748,9 @@ class FlowLogsBackend(object):
                     )
                     continue
             elif log_destination_type == "cloud-watch-logs":
+                from moto.logs.models import logs_backends
+                from moto.logs.exceptions import ResourceNotFoundException
+
                 # API allows to create a FlowLog with a
                 # non-existing LogGroup. It however later
                 # on reports the FAILED delivery status.
