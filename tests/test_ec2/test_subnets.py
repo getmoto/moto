@@ -327,7 +327,7 @@ def test_create_subnet_response_fields():
     subnet.should.have.key("State")
     subnet.should.have.key("SubnetId")
     subnet.should.have.key("VpcId")
-    subnet.shouldnt.have.key("Tags")
+    subnet.should.have.key("Tags")
     subnet.should.have.key("DefaultForAz").which.should.equal(False)
     subnet.should.have.key("MapPublicIpOnLaunch").which.should.equal(False)
     subnet.should.have.key("OwnerId")
@@ -454,6 +454,23 @@ def test_create_subnets_with_overlapping_cidr_blocks():
             subnet_cidr_block
         )
     )
+
+
+@mock_ec2
+def test_create_subnet_with_tags():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    vpc = ec2.create_vpc(CidrBlock="172.31.0.0/16")
+
+    subnet = ec2.create_subnet(
+        VpcId=vpc.id,
+        CidrBlock="172.31.48.0/20",
+        AvailabilityZoneId="use1-az6",
+        TagSpecifications=[
+            {"ResourceType": "subnet", "Tags": [{"Key": "name", "Value": "some-vpc"}]}
+        ],
+    )
+
+    assert subnet.tags == [{"Key": "name", "Value": "some-vpc"}]
 
 
 @mock_ec2

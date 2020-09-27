@@ -681,6 +681,19 @@ def test_create_vpc_with_invalid_cidr_range():
 
 
 @mock_ec2
+def test_create_vpc_with_tags():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    # Create VPC
+    vpc = ec2.create_vpc(
+        CidrBlock="10.0.0.0/16",
+        TagSpecifications=[
+            {"ResourceType": "vpc", "Tags": [{"Key": "name", "Value": "some-vpc"}]}
+        ],
+    )
+    assert vpc.tags == [{"Key": "name", "Value": "some-vpc"}]
+
+
+@mock_ec2
 def test_enable_vpc_classic_link():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
