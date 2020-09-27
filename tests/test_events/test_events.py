@@ -195,7 +195,9 @@ def test_remove_targets():
     targets_before = len(targets)
     assert targets_before > 0
 
-    client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response = client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response["FailedEntryCount"].should.equal(0)
+    response["FailedEntries"].should.have.length_of(0)
 
     targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
     targets_after = len(targets)
