@@ -2968,7 +2968,7 @@
 - [ ] revoke_client_vpn_ingress
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
-- [ ] run_instances
+- [X] run_instances
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
