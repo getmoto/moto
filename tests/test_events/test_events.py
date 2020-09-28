@@ -205,6 +205,18 @@ def test_remove_targets():
 
 
 @mock_events
+def test_remove_targets_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.remove_targets.when.called_with(
+        Rule="non-existent", Ids=["Id12345678"]
+    ).should.throw(
+        client.exceptions.ResourceNotFoundException,
+        "An entity that you specified does not exist",
+    )
+
+
+@mock_events
 def test_put_targets():
     client = boto3.client("events", "us-west-2")
     rule_name = "my-event"
