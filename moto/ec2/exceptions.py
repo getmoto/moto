@@ -71,6 +71,24 @@ class InvalidSubnetIdError(EC2ClientError):
         )
 
 
+class InvalidFlowLogIdError(EC2ClientError):
+    def __init__(self, count, flow_log_ids):
+        super(InvalidFlowLogIdError, self).__init__(
+            "InvalidFlowLogId.NotFound",
+            "These flow log ids in the input list are not found: [TotalCount: {0}] {1}".format(
+                count, flow_log_ids
+            ),
+        )
+
+
+class FlowLogAlreadyExists(EC2ClientError):
+    def __init__(self):
+        super(FlowLogAlreadyExists, self).__init__(
+            "FlowLogAlreadyExists",
+            "Error. There is an existing Flow Log with the same configuration and log destination.",
+        )
+
+
 class InvalidNetworkAclIdError(EC2ClientError):
     def __init__(self, network_acl_id):
         super(InvalidNetworkAclIdError, self).__init__(
@@ -263,6 +281,14 @@ class InvalidAddressError(EC2ClientError):
         )
 
 
+class LogDestinationNotFoundError(EC2ClientError):
+    def __init__(self, bucket_name):
+        super(LogDestinationNotFoundError, self).__init__(
+            "LogDestinationNotFoundException",
+            "LogDestination: '{0}' does not exist.".format(bucket_name),
+        )
+
+
 class InvalidAllocationIdError(EC2ClientError):
     def __init__(self, allocation_id):
         super(InvalidAllocationIdError, self).__init__(
@@ -306,6 +332,33 @@ class InvalidVPCPeeringConnectionStateTransitionError(EC2ClientError):
             "VpcPeeringConnectionID {0} is not in the correct state for the request.".format(
                 vpc_peering_connection_id
             ),
+        )
+
+
+class InvalidDependantParameterError(EC2ClientError):
+    def __init__(self, dependant_parameter, parameter, parameter_value):
+        super(InvalidDependantParameterError, self).__init__(
+            "InvalidParameter",
+            "{0} can't be empty if {1} is {2}.".format(
+                dependant_parameter, parameter, parameter_value,
+            ),
+        )
+
+
+class InvalidDependantParameterTypeError(EC2ClientError):
+    def __init__(self, dependant_parameter, parameter_value, parameter):
+        super(InvalidDependantParameterTypeError, self).__init__(
+            "InvalidParameter",
+            "{0} type must be {1} if {2} is provided.".format(
+                dependant_parameter, parameter_value, parameter,
+            ),
+        )
+
+
+class InvalidAggregationIntervalParameterError(EC2ClientError):
+    def __init__(self, parameter):
+        super(InvalidAggregationIntervalParameterError, self).__init__(
+            "InvalidParameter", "Invalid {0}".format(parameter),
         )
 
 
