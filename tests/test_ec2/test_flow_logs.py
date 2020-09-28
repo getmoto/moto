@@ -125,7 +125,9 @@ def test_create_flow_logs_cloud_watch():
     flow_log["TrafficType"].should.equal("ALL")
     flow_log["LogDestinationType"].should.equal("cloud-watch-logs")
     flow_log["LogGroupName"].should.equal("test-group")
-    flow_log["DeliverLogsPermissionArn"].should.equal("arn:aws:iam::" + ACCOUNT_ID + ":role/test-role")
+    flow_log["DeliverLogsPermissionArn"].should.equal(
+        "arn:aws:iam::" + ACCOUNT_ID + ":role/test-role"
+    )
     flow_log["LogFormat"].should.equal(
         "${version} ${account-id} ${interface-id} ${srcaddr} ${dstaddr} ${srcport} ${dstport} ${protocol} ${packets} ${bytes} ${start} ${end} ${action} ${log-status}"
     )
