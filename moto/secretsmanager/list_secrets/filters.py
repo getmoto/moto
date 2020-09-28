@@ -7,21 +7,21 @@ def _matcher(pattern, str):
 
 def name(secret, names):
     for n in names:
-        if _matcher(n, secret["name"]):
+        if _matcher(n, secret.name):
             return True
     return False
 
 
 def description(secret, descriptions):
     for d in descriptions:
-        if _matcher(d, secret["description"]):
+        if _matcher(d, secret.description):
             return True
     return False
 
 
 def tag_key(secret, tag_keys):
     for k in tag_keys:
-        for tag in secret["tags"]:
+        for tag in secret.tags:
             if _matcher(k, tag["Key"]):
                 return True
     return False
@@ -29,7 +29,7 @@ def tag_key(secret, tag_keys):
 
 def tag_value(secret, tag_values):
     for v in tag_values:
-        for tag in secret["tags"]:
+        for tag in secret.tags:
             if _matcher(v, tag["Value"]):
                 return True
     return False
