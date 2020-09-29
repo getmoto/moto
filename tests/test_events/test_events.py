@@ -195,11 +195,25 @@ def test_remove_targets():
     targets_before = len(targets)
     assert targets_before > 0
 
-    client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response = client.remove_targets(Rule=rule_name, Ids=[targets[0]["Id"]])
+    response["FailedEntryCount"].should.equal(0)
+    response["FailedEntries"].should.have.length_of(0)
 
     targets = client.list_targets_by_rule(Rule=rule_name)["Targets"]
     targets_after = len(targets)
     assert targets_before - 1 == targets_after
+
+
+@mock_events
+def test_remove_targets_errors():
+    client = boto3.client("events", "us-east-1")
+
+    client.remove_targets.when.called_with(
+        Rule="non-existent", Ids=["Id12345678"]
+    ).should.throw(
+        client.exceptions.ResourceNotFoundException,
+        "An entity that you specified does not exist",
+    )
 
 
 @mock_events

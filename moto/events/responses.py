@@ -238,7 +238,10 @@ class EventsHandler(BaseResponse):
                 "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
             )
 
-        return "", self.response_headers
+        return (
+            json.dumps({"FailedEntryCount": 0, "FailedEntries": []}),
+            self.response_headers,
+        )
 
     def test_event_pattern(self):
         pass

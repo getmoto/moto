@@ -368,9 +368,12 @@ class EventsBackend(BaseBackend):
 
         if rule:
             rule.remove_targets(ids)
-            return True
-
-        return False
+            return {"FailedEntries": [], "FailedEntryCount": 0}
+        else:
+            raise JsonRESTError(
+                "ResourceNotFoundException",
+                "An entity that you specified does not exist",
+            )
 
     def test_event_pattern(self):
         raise NotImplementedError()
