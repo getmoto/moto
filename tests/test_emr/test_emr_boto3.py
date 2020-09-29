@@ -632,6 +632,36 @@ def test_run_job_flow_with_custom_ami():
 
 
 @mock_emr
+def test_run_job_flow_with_step_concurrency():
+    client = boto3.client("emr", region_name="us-east-1")
+    args = deepcopy(run_job_flow_args)
+    args["StepConcurrencyLevel"] = 2
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    resp = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
+    resp["Name"].should.equal(args["Name"])
+    resp["Status"]["State"].should.equal("WAITING")
+    resp["StepConcurrencyLevel"].should.equal(2)
+
+
+@mock_emr
+def test_modify_cluster():
+    client = boto3.client("emr", region_name="us-east-1")
+    args = deepcopy(run_job_flow_args)
+    args["StepConcurrencyLevel"] = 2
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    resp = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
+    resp["Name"].should.equal(args["Name"])
+    resp["Status"]["State"].should.equal("WAITING")
+    resp["StepConcurrencyLevel"].should.equal(2)
+
+    resp = client.modify_cluster(ClusterId=cluster_id, StepConcurrencyLevel=4)
+    resp["StepConcurrencyLevel"].should.equal(4)
+
+    resp = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
+    resp["StepConcurrencyLevel"].should.equal(4)
+
+
+@mock_emr
 def test_set_termination_protection():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
