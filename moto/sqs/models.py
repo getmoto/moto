@@ -560,7 +560,9 @@ class SQSBackend(BaseBackend):
                 "ContentBasedDeduplication",
             )
 
-            for key in static_attributes:
+            # only the attributes which are being sent for the queue
+            # creation have to be compared if the queue is existing.
+            for key in kwargs:
                 if queue_attributes.get(key) != new_queue_attributes.get(key):
                     raise QueueAlreadyExists("The specified queue already exists.")
         else:
