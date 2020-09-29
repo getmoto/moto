@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime, timedelta
 
 from moto.core import BaseBackend, BaseModel
-from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
 from moto.sts.models import ACCOUNT_ID
+from .exceptions import ConflictException, BadRequestException
 
 
 class BaseObject(BaseModel):
@@ -162,8 +162,8 @@ class FakeMedicalVocabulary(BaseObject):
         self.vocabulary_state = None
         self.last_modified_time = None
         self.failure_reason = None
-        self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-us-east-1-prod/{}/medical/{}/{}/input.txt".format(
-            ACCOUNT_ID, self.vocabulary_name, uuid.uuid4()
+        self.download_uri = "https://s3.us-east-1.amazonaws.com/aws-transcribe-dictionary-model-{}-prod/{}/medical/{}/{}/input.txt".format(
+            region_name, ACCOUNT_ID, self.vocabulary_name, uuid.uuid4()
         )
 
     def response_object(self, response_type):
@@ -225,19 +225,15 @@ class TranscribeBackend(BaseBackend):
         name = kwargs.get("medical_transcription_job_name")
 
         if name in self.medical_transcriptions:
-            raise RESTError(
-                error_type="ConflictException",
-                message="The requested job name already exists. Use a different job name.",
-                template="error_json",
+            raise ConflictException(
+                message="The requested job name already exists. Use a different job name."
             )
 
         settings = kwargs.get("settings")
         vocabulary_name = settings.get("VocabularyName") if settings else None
         if vocabulary_name and vocabulary_name not in self.medical_vocabularies:
-            raise RESTError(
-                error_type="BadRequestException",
-                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again.",
-                template="error_json",
+            raise BadRequestException(
+                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
             )
 
         transcription_job_object = FakeMedicalTranscriptionJob(
@@ -264,20 +260,16 @@ class TranscribeBackend(BaseBackend):
             job.advance_job_status()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
-            raise RESTError(
-                error_type="BadRequestException",
-                message="The requested job couldn't be found. Check the job name and try your request again.",
-                template="error_json",
+            raise BadRequestException(
+                message="The requested job couldn't be found. Check the job name and try your request again."
             )
 
     def delete_medical_transcription_job(self, medical_transcription_job_name):
         try:
             del self.medical_transcriptions[medical_transcription_job_name]
         except KeyError:
-            raise RESTError(
-                error_type="BadRequestException",
+            raise BadRequestException(
                 message="The requested job couldn't be found. Check the job name and try your request again.",
-                template="error_json",
             )
 
     def list_medical_transcription_jobs(
@@ -319,10 +311,8 @@ class TranscribeBackend(BaseBackend):
         vocabulary_file_uri = kwargs.get("vocabulary_file_uri")
 
         if vocabulary_name in self.medical_vocabularies:
-            raise RESTError(
-                error_type="ConflictException",
-                message="The requested vocabulary name already exists. Use a different vocabulary name.",
-                template="error_json",
+            raise ConflictException(
+                message="The requested vocabulary name already exists. Use a different vocabulary name."
             )
 
         medical_vocabulary_object = FakeMedicalVocabulary(
@@ -342,20 +332,16 @@ class TranscribeBackend(BaseBackend):
             job.advance_job_status()  # Fakes advancement through statuses.
             return job.response_object("GET")
         except KeyError:
-            raise RESTError(
-                error_type="BadRequestException",
-                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again.",
-                template="error_json",
+            raise BadRequestException(
+                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
             )
 
     def delete_medical_vocabulary(self, vocabulary_name):
         try:
             del self.medical_vocabularies[vocabulary_name]
         except KeyError:
-            raise RESTError(
-                error_type="BadRequestException",
-                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again.",
-                template="error_json",
+            raise BadRequestException(
+                message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
             )
 
     def list_medical_vocabularies(
