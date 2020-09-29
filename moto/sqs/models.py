@@ -43,7 +43,7 @@ DEFAULT_SENDER_ID = "AIDAIT2UOQQY3AUEKVGXU"
 
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 
-TRANSPORT_TYPE_ENCODINGS = {"String": b"\x01", "Binary": b"\x02", "Number": b"\x01"}
+TRANSPORT_TYPE_ENCODINGS = {"String": b"\x01", "Binary": b"\x02", "Number": b"\x01", "String.custom": b"\x01"}
 
 
 class Message(BaseModel):
@@ -88,13 +88,18 @@ class Message(BaseModel):
         struct_format = "!I".encode("ascii")  # ensure it's a bytestring
         for name in sorted(self.message_attributes.keys()):
             attr = self.message_attributes[name]
-            data_type_parts = attr["data_type"].split(".")
-            data_type = data_type_parts[0]
+            whole_data_type = attr.get("data_type")
+            if TRANSPORT_TYPE_ENCODINGS.get(whole_data_type):
+                data_type = whole_data_type
+            else:
+                data_type_parts = attr["data_type"].split(".")
+                data_type = data_type_parts[0]
 
             if data_type not in [
                 "String",
                 "Binary",
                 "Number",
+                "String.custom"
             ]:
                 raise MessageAttributesInvalid(
                     "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
@@ -112,7 +117,7 @@ class Message(BaseModel):
             encoded += struct.pack(struct_format, len(data_type)) + utf8(data_type)
             encoded += TRANSPORT_TYPE_ENCODINGS[data_type]
 
-            if data_type == "String" or data_type == "Number":
+            if data_type in ["String" , "Number" ,"String.custom"]:
                 value = attr["string_value"]
             elif data_type == "Binary":
                 value = base64.b64decode(attr["binary_value"])
