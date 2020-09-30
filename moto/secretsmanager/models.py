@@ -185,7 +185,7 @@ class SecretsManagerBackend(BaseBackend):
         secret_binary=None,
         description=None,
         tags=[],
-        **kwargs
+        **kwargs,
     ):
 
         # error if secret exists
