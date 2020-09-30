@@ -1550,7 +1550,9 @@ class IAMBackend(BaseBackend):
 
         if re.match("v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
             raise ValidationError(
-                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?".format(version_id)
+                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?".format(
+                    version_id
+                )
             )
 
         policy = self.get_policy(policy_arn)
@@ -1561,10 +1563,10 @@ class IAMBackend(BaseBackend):
                 return True
 
         raise NoSuchEntity(
-            "Policy {0} version {1} does not exist or is not attachable.".format(policy_arn, version_id)
+            "Policy {0} version {1} does not exist or is not attachable.".format(
+                policy_arn, version_id
+            )
         )
-
-
 
     def _filter_attached_policies(self, policies, marker, max_items, path_prefix):
         if path_prefix:
