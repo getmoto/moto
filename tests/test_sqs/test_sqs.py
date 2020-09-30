@@ -89,12 +89,16 @@ def test_create_queue_with_different_attributes_fail():
     else:
         raise RuntimeError("Should of raised QueueAlreadyExists Exception")
 
-    response = sqs.create_queue(QueueName="test-queue1", Attributes={"FifoQueue": "True"})
+    response = sqs.create_queue(
+        QueueName="test-queue1", Attributes={"FifoQueue": "True"}
+    )
 
     attributes = {"VisibilityTimeout": "60"}
     sqs.set_queue_attributes(QueueUrl=response.get("QueueUrl"), Attributes=attributes)
 
-    new_response = sqs.create_queue(QueueName="test-queue1", Attributes={"FifoQueue": "True"})
+    new_response = sqs.create_queue(
+        QueueName="test-queue1", Attributes={"FifoQueue": "True"}
+    )
     new_response["QueueUrl"].should.equal(response.get("QueueUrl"))
 
 

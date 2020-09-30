@@ -545,20 +545,6 @@ class SQSBackend(BaseBackend):
 
             queue_attributes = queue.attributes
             new_queue_attributes = new_queue.attributes
-            static_attributes = (
-                "DelaySeconds",
-                "MaximumMessageSize",
-                "MessageRetentionPeriod",
-                "Policy",
-                "QueueArn",
-                "ReceiveMessageWaitTimeSeconds",
-                "RedrivePolicy",
-                "VisibilityTimeout",
-                "KmsMasterKeyId",
-                "KmsDataKeyReusePeriodSeconds",
-                "FifoQueue",
-                "ContentBasedDeduplication",
-            )
 
             # only the attributes which are being sent for the queue
             # creation have to be compared if the queue is existing.
