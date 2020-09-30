@@ -658,6 +658,17 @@ def test_send_receive_message_with_attributes_with_labels():
         "994258b45346a2cc3f9cbb611aa7af30"
     )
 
+    response = queue.send_message(
+        MessageBody="test message",
+        MessageAttributes={
+            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom",}
+        },
+    )
+
+    response.get("MD5OfMessageAttributes").should.equal(
+        "9e05cca738e70ff6c6041e82d5e77ef1"
+    )
+
 
 @mock_sqs
 def test_send_receive_message_timestamps():
