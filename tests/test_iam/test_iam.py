@@ -553,7 +553,7 @@ def test_set_default_policy_version():
         PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
             ACCOUNT_ID
         ),
-        VersionId="v1"
+        VersionId="v1",
     )
     versions = conn.list_policy_versions(
         PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
@@ -569,15 +569,13 @@ def test_set_default_policy_version():
 
     # Set default version for non-existing policy
     conn.set_default_policy_version.when.called_with(
-        PolicyArn="arn:aws:iam::{}:policy/TestNonExistingPolicy".format(
-            ACCOUNT_ID
-        ),
-        VersionId="v1"
+        PolicyArn="arn:aws:iam::{}:policy/TestNonExistingPolicy".format(ACCOUNT_ID),
+        VersionId="v1",
     ).should.throw(
         ClientError,
         "Policy arn:aws:iam::{}:policy/TestNonExistingPolicy not found".format(
             ACCOUNT_ID
-        )
+        ),
     )
 
     # Set default version for incorrect version
@@ -585,10 +583,10 @@ def test_set_default_policy_version():
         PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
             ACCOUNT_ID
         ),
-        VersionId="wrong_version_id"
+        VersionId="wrong_version_id",
     ).should.throw(
         ClientError,
-        "Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?"
+        "Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?",
     )
 
     # Set default version for non-existing version
@@ -596,12 +594,12 @@ def test_set_default_policy_version():
         PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
             ACCOUNT_ID
         ),
-        VersionId="v4"
+        VersionId="v4",
     ).should.throw(
         ClientError,
         "Policy arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion version v4 does not exist or is not attachable.".format(
             ACCOUNT_ID
-        )
+        ),
     )
 
 
