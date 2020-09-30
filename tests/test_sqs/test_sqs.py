@@ -649,10 +649,7 @@ def test_send_receive_message_with_attributes_with_labels():
     response = queue.send_message(
         MessageBody="test message",
         MessageAttributes={
-            "somevalue": {
-                "StringValue": "somevalue",
-                "DataType": "String.custom",
-            }
+            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom",}
         },
     )
 
