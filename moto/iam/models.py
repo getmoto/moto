@@ -125,9 +125,10 @@ class Policy(CloudFormationModel):
 
     def update_default_version(self, new_default_version_id):
         for version in self.versions:
+            if version.version_id == new_default_version_id:
+                version.is_default = True
             if version.version_id == self.default_version_id:
                 version.is_default = False
-                break
         self.default_version_id = new_default_version_id
 
     @property
@@ -1543,6 +1544,27 @@ class IAMBackend(BaseBackend):
             policies = [p for p in policies if not isinstance(p, AWSManagedPolicy)]
 
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
+
+    def set_default_policy_version(self, policy_arn, version_id):
+        import re
+
+        if re.match("v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
+            raise ValidationError(
+                "Value '{0}' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?".format(version_id)
+            )
+
+        policy = self.get_policy(policy_arn)
+
+        for version in policy.versions:
+            if version.version_id == version_id:
+                policy.update_default_version(version_id)
+                return True
+
+        raise NoSuchEntity(
+            "Policy {0} version {1} does not exist or is not attachable.".format(policy_arn, version_id)
+        )
+
+
 
     def _filter_attached_policies(self, policies, marker, max_items, path_prefix):
         if path_prefix:

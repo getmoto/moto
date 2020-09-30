@@ -175,6 +175,13 @@ class IamResponse(BaseResponse):
             roles=entity_roles, users=entity_users, groups=entity_groups
         )
 
+    def set_default_policy_version(self):
+        policy_arn = self._get_param("PolicyArn")
+        version_id = self._get_param("VersionId")
+        iam_backend.set_default_policy_version(policy_arn, version_id)
+        template = self.response_template(SET_DEFAULT_POLICY_VERSION_TEMPLATE)
+        return template.render()
+
     def create_role(self):
         role_name = self._get_param("RoleName")
         path = self._get_param("Path")
@@ -1008,6 +1015,13 @@ LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <RequestId>eb358e22-9d1f-11e4-93eb-190ecEXAMPLE</RequestId>
  </ResponseMetadata>
 </ListEntitiesForPolicyResponse>"""
+
+
+SET_DEFAULT_POLICY_VERSION_TEMPLATE = """<SetDefaultPolicyVersionResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>35f241af-3ebc-11e4-9d0d-6f969EXAMPLE</RequestId>
+  </ResponseMetadata>
+</SetDefaultPolicyVersionResponse>"""
 
 
 ATTACH_ROLE_POLICY_TEMPLATE = """<AttachRolePolicyResponse>
