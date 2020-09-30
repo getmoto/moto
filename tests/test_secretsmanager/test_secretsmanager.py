@@ -439,8 +439,9 @@ def test_describe_secret_with_arn():
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     assert secret_description  # Returned dict is not empty
-    assert secret_description["Name"] == ("test-secret")
-    assert secret_description["ARN"] != results["ARN"]
+    secret_description["Name"].should.equal("test-secret")
+    secret_description["ARN"].should.equal(results["ARN"])
+    conn.list_secrets()["SecretList"][0]["ARN"].should.equal(results["ARN"])
 
 
 @mock_secretsmanager
