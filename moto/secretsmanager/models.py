@@ -114,8 +114,10 @@ class SecretsManagerBackend(BaseBackend):
         secret_version = secret["versions"].get(version_id)
         if not secret_version:
             raise ResourceNotFoundException(
-                "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
-                f"Manager can't find the specified secret value for VersionId: {version_id}"
+                "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets \
+                Manager can't find the specified secret value for VersionId: {}".format(
+                    version_id
+                )
             )
 
         response_data = {
