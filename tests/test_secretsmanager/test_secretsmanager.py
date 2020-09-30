@@ -502,7 +502,7 @@ def test_restore_secret_that_does_not_exist():
 @mock_secretsmanager
 def test_rotate_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
-    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret", Description="foodescription")
 
     rotated_secret = conn.rotate_secret(SecretId=DEFAULT_SECRET_NAME)
 
@@ -510,6 +510,11 @@ def test_rotate_secret():
     assert rotated_secret["ARN"] != ""  # Test arn not empty
     assert rotated_secret["Name"] == DEFAULT_SECRET_NAME
     assert rotated_secret["VersionId"] != ""
+
+    describe_secret = conn.describe_secret(
+        SecretId=DEFAULT_SECRET_NAME
+    )
+    assert describe_secret["Description"] == "foodescription"
 
 
 @mock_secretsmanager
