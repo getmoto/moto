@@ -14,6 +14,7 @@ from .exceptions import (
     SecretHasNoValueException,
     InvalidParameterException,
     ResourceExistsException,
+    ResourceNotFoundException,
     InvalidRequestException,
     ClientError,
 )
@@ -110,7 +111,12 @@ class SecretsManagerBackend(BaseBackend):
         secret = self.secrets[secret_id]
         version_id = version_id or secret["default_version_id"]
 
-        secret_version = secret["versions"][version_id]
+        secret_version = secret["versions"].get(version_id)
+        if not secret_version:
+            raise ResourceNotFoundException(
+                "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
+                f"Manager can't find the specified secret value for VersionId: {version_id}"
+            )
 
         response_data = {
             "ARN": secret_arn(self.region, secret["secret_id"]),
