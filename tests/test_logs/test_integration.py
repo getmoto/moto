@@ -5,7 +5,7 @@ import pytest
 import time
 import zlib
 
-from botocore.values import ClientError
+from botocore.exceptions import ClientError
 from io import BytesIO
 from moto import mock_logs, mock_lambda, mock_iam
 from zipfile import ZipFile, ZIP_DEFLATED
