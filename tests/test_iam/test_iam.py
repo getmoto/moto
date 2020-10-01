@@ -549,6 +549,59 @@ def test_set_default_policy_version():
     versions.get("Versions")[2].get("Document").should.equal(json.loads(MOCK_POLICY_3))
     versions.get("Versions")[2].get("IsDefaultVersion").should.be.ok
 
+    conn.set_default_policy_version(
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        ),
+        VersionId="v1",
+    )
+    versions = conn.list_policy_versions(
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        )
+    )
+    versions.get("Versions")[0].get("Document").should.equal(json.loads(MOCK_POLICY))
+    versions.get("Versions")[0].get("IsDefaultVersion").should.be.ok
+    versions.get("Versions")[1].get("Document").should.equal(json.loads(MOCK_POLICY_2))
+    versions.get("Versions")[1].get("IsDefaultVersion").shouldnt.be.ok
+    versions.get("Versions")[2].get("Document").should.equal(json.loads(MOCK_POLICY_3))
+    versions.get("Versions")[2].get("IsDefaultVersion").shouldnt.be.ok
+
+    # Set default version for non-existing policy
+    conn.set_default_policy_version.when.called_with(
+        PolicyArn="arn:aws:iam::{}:policy/TestNonExistingPolicy".format(ACCOUNT_ID),
+        VersionId="v1",
+    ).should.throw(
+        ClientError,
+        "Policy arn:aws:iam::{}:policy/TestNonExistingPolicy not found".format(
+            ACCOUNT_ID
+        ),
+    )
+
+    # Set default version for incorrect version
+    conn.set_default_policy_version.when.called_with(
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        ),
+        VersionId="wrong_version_id",
+    ).should.throw(
+        ClientError,
+        "Value 'wrong_version_id' at 'versionId' failed to satisfy constraint: Member must satisfy regular expression pattern: v[1-9][0-9]*(\.[A-Za-z0-9-]*)?",
+    )
+
+    # Set default version for non-existing version
+    conn.set_default_policy_version.when.called_with(
+        PolicyArn="arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion".format(
+            ACCOUNT_ID
+        ),
+        VersionId="v4",
+    ).should.throw(
+        ClientError,
+        "Policy arn:aws:iam::{}:policy/TestSetDefaultPolicyVersion version v4 does not exist or is not attachable.".format(
+            ACCOUNT_ID
+        ),
+    )
+
 
 @mock_iam
 def test_get_policy():
