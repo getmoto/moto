@@ -7,7 +7,7 @@ from moto import (
     mock_ec2,
 )
 
-from utils import setup_networking
+from . utils import setup_networking
 
 
 @mock_autoscaling

@@ -21,7 +21,7 @@ from moto import (
 )
 from tests.helpers import requires_boto_gte
 
-from utils import (
+from . utils import (
     setup_networking,
     setup_networking_deprecated,
     setup_instance_with_networking,
