@@ -1,7 +1,7 @@
 import boto3
 import sure  # noqa
 
-from nose.tools import assert_raises
+import pytest
 from botocore.client import ClientError
 
 from moto import mock_ec2
@@ -30,7 +30,7 @@ def test_launch_template_create():
     lt["DefaultVersionNumber"].should.equal(1)
     lt["LatestVersionNumber"].should.equal(1)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         cli.create_launch_template(
             LaunchTemplateName="test-template",
             LaunchTemplateData={
@@ -43,9 +43,9 @@ def test_launch_template_create():
             },
         )
 
-    str(ex.exception).should.equal(
-        "An error occurred (InvalidLaunchTemplateName.AlreadyExistsException) when calling the CreateLaunchTemplate operation: Launch template name already in use."
-    )
+        str(ex.value).should.equal(
+            "An error occurred (InvalidLaunchTemplateName.AlreadyExistsException) when calling the CreateLaunchTemplate operation: Launch template name already in use."
+        )
 
 
 @mock_ec2

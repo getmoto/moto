@@ -4,7 +4,7 @@ from datetime import datetime
 import boto3
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_ram, mock_organizations
 from moto.core import ACCOUNT_ID
@@ -65,34 +65,34 @@ def test_create_resource_share_errors():
 
     # invalid ARN
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(name="test", resourceArns=["inalid-arn"])
-    ex = e.exception
-    ex.operation_name.should.equal("CreateResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("MalformedArnException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified resource ARN inalid-arn is not valid. "
-        "Verify the ARN and try again."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("MalformedArnException")
+        ex.response["Error"]["Message"].should.equal(
+            "The specified resource ARN inalid-arn is not valid. "
+            "Verify the ARN and try again."
+        )
 
     # valid ARN, but not shareable resource type
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test", resourceArns=["arn:aws:iam::{}:role/test".format(ACCOUNT_ID)]
         )
-    ex = e.exception
-    ex.operation_name.should.equal("CreateResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("MalformedArnException")
-    ex.response["Error"]["Message"].should.equal(
-        "You cannot share the selected resource type."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("MalformedArnException")
+        ex.response["Error"]["Message"].should.equal(
+            "You cannot share the selected resource type."
+        )
 
     # invalid principal ID
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
             principals=["invalid"],
@@ -102,13 +102,13 @@ def test_create_resource_share_errors():
                 )
             ],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("CreateResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Principal ID invalid is malformed. Verify the ID and try again."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+        ex.response["Error"]["Message"].should.equal(
+            "Principal ID invalid is malformed. Verify the ID and try again."
+        )
 
 
 @mock_ram
@@ -162,7 +162,7 @@ def test_create_resource_share_with_organization_errors():
 
     # unknown Organization
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
             principals=[
@@ -174,17 +174,17 @@ def test_create_resource_share_with_organization_errors():
                 )
             ],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("CreateResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("UnknownResourceException")
-    ex.response["Error"]["Message"].should.equal(
-        "Organization o-unknown could not be found."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("UnknownResourceException")
+        ex.response["Error"]["Message"].should.equal(
+            "Organization o-unknown could not be found."
+        )
 
     # unknown OU
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_resource_share(
             name="test",
             principals=[
@@ -196,13 +196,13 @@ def test_create_resource_share_with_organization_errors():
                 )
             ],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("CreateResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("UnknownResourceException")
-    ex.response["Error"]["Message"].should.equal(
-        "OrganizationalUnit ou-unknown in unknown organization could not be found."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("UnknownResourceException")
+        ex.response["Error"]["Message"].should.equal(
+            "OrganizationalUnit ou-unknown in unknown organization could not be found."
+        )
 
 
 @mock_ram
@@ -236,16 +236,16 @@ def test_get_resource_shares_errors():
 
     # invalid resource owner
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_resource_shares(resourceOwner="invalid")
-    ex = e.exception
-    ex.operation_name.should.equal("GetResourceShares")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "invalid is not a valid resource owner. "
-        "Specify either SELF or OTHER-ACCOUNTS and try again."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("GetResourceShares")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+        ex.response["Error"]["Message"].should.equal(
+            "invalid is not a valid resource owner. "
+            "Specify either SELF or OTHER-ACCOUNTS and try again."
+        )
 
 
 @mock_ram
@@ -282,22 +282,22 @@ def test_update_resource_share_errors():
 
     # invalid resource owner
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.update_resource_share(
             resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
                 ACCOUNT_ID
             ),
             name="test-update",
         )
-    ex = e.exception
-    ex.operation_name.should.equal("UpdateResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("UnknownResourceException")
-    ex.response["Error"]["Message"].should.equal(
-        "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
-            ACCOUNT_ID
+        ex = e.value
+        ex.operation_name.should.equal("UpdateResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("UnknownResourceException")
+        ex.response["Error"]["Message"].should.equal(
+            "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
+                ACCOUNT_ID
+            )
         )
-    )
 
 
 @mock_ram
@@ -328,21 +328,21 @@ def test_delete_resource_share_errors():
 
     # invalid resource owner
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_resource_share(
             resourceShareArn="arn:aws:ram:us-east-1:{}:resource-share/not-existing".format(
                 ACCOUNT_ID
             )
         )
-    ex = e.exception
-    ex.operation_name.should.equal("DeleteResourceShare")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("UnknownResourceException")
-    ex.response["Error"]["Message"].should.equal(
-        "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
-            ACCOUNT_ID
+        ex = e.value
+        ex.operation_name.should.equal("DeleteResourceShare")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("UnknownResourceException")
+        ex.response["Error"]["Message"].should.equal(
+            "ResourceShare arn:aws:ram:us-east-1:{}:resource-share/not-existing could not be found.".format(
+                ACCOUNT_ID
+            )
         )
-    )
 
 
 @mock_ram
@@ -368,14 +368,14 @@ def test_enable_sharing_with_aws_organization_errors():
 
     # no Organization defined
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.enable_sharing_with_aws_organization()
-    ex = e.exception
-    ex.operation_name.should.equal("EnableSharingWithAwsOrganization")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("OperationNotPermittedException")
-    ex.response["Error"]["Message"].should.equal(
-        "Unable to enable sharing with AWS Organizations. "
-        "Received AccessDeniedException from AWSOrganizations with the following error message: "
-        "You don't have permissions to access this resource."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("EnableSharingWithAwsOrganization")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("OperationNotPermittedException")
+        ex.response["Error"]["Message"].should.equal(
+            "Unable to enable sharing with AWS Organizations. "
+            "Received AccessDeniedException from AWSOrganizations with the following error message: "
+            "You don't have permissions to access this resource."
+        )

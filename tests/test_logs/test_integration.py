@@ -1,13 +1,13 @@
 import base64
 import boto3
 import json
+import pytest
 import time
 import zlib
 
-from botocore.exceptions import ClientError
+from botocore.values import ClientError
 from io import BytesIO
 from moto import mock_logs, mock_lambda, mock_iam
-from nose.tools import assert_raises
 from zipfile import ZipFile, ZIP_DEFLATED
 
 
@@ -78,20 +78,19 @@ def test_put_subscription_filter_update():
 
     # when
     # only one subscription filter can be associated with a log group
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.put_subscription_filter(
             logGroupName=log_group_name,
             filterName="test-2",
             filterPattern="",
             destinationArn=function_arn,
         )
-
-    # then
-    ex = e.exception
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("LimitExceededException")
-    ex.response["Error"]["Message"].should.equal("Resource limit exceeded.")
+        # then
+        ex = e.value
+        ex.operation_name.should.equal("PutSubscriptionFilter")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("LimitExceededException")
+        ex.response["Error"]["Message"].should.equal("Resource limit exceeded.")
 
 
 @mock_lambda
@@ -240,34 +239,32 @@ def test_delete_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
             logGroupName="not-existing-log-group", filterName="test",
         )
-
-    # then
-    ex = e.exception
-    ex.operation_name.should.equal("DeleteSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified log group does not exist"
-    )
+        # then
+        ex = e.value
+        ex.operation_name.should.equal("DeleteSubscriptionFilter")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+        ex.response["Error"]["Message"].should.equal(
+            "The specified log group does not exist"
+        )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
             logGroupName="/test", filterName="wrong-filter-name",
         )
-
-    # then
-    ex = e.exception
-    ex.operation_name.should.equal("DeleteSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified subscription filter does not exist."
-    )
+        # then
+        ex = e.value
+        ex.operation_name.should.equal("DeleteSubscriptionFilter")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+        ex.response["Error"]["Message"].should.equal(
+            "The specified subscription filter does not exist."
+        )
 
 
 @mock_logs
@@ -278,60 +275,57 @@ def test_put_subscription_filter_errors():
     client.create_log_group(logGroupName=log_group_name)
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="not-existing-log-group",
             filterName="test",
             filterPattern="",
             destinationArn="arn:aws:lambda:us-east-1:123456789012:function:test",
         )
-
-    # then
-    ex = e.exception
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified log group does not exist"
-    )
+        # then
+        ex = e.value
+        ex.operation_name.should.equal("PutSubscriptionFilter")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
+        ex.response["Error"]["Message"].should.equal(
+            "The specified log group does not exist"
+        )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="/test",
             filterName="test",
             filterPattern="",
             destinationArn="arn:aws:lambda:us-east-1:123456789012:function:not-existing",
         )
-
-    # then
-    ex = e.exception
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Could not execute the lambda function. "
-        "Make sure you have given CloudWatch Logs permission to execute your function."
-    )
+        # then
+        ex = e.value
+        ex.operation_name.should.equal("PutSubscriptionFilter")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+        ex.response["Error"]["Message"].should.equal(
+            "Could not execute the lambda function. "
+            "Make sure you have given CloudWatch Logs permission to execute your function."
+        )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="/test",
             filterName="test",
             filterPattern="",
             destinationArn="arn:aws:lambda:us-east-1:123456789012:function:not-existing",
         )
-
-    # then
-    ex = e.exception
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Could not execute the lambda function. "
-        "Make sure you have given CloudWatch Logs permission to execute your function."
-    )
+        # then
+        ex = e.value
+        ex.operation_name.should.equal("PutSubscriptionFilter")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterException")
+        ex.response["Error"]["Message"].should.equal(
+            "Could not execute the lambda function. "
+            "Make sure you have given CloudWatch Logs permission to execute your function."
+        )
 
 
 def _get_role_name(region_name):

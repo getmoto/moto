@@ -4,7 +4,7 @@ import sure  # noqa
 from moto import mock_codecommit
 from moto.core import ACCOUNT_ID
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 
 @mock_codecommit
@@ -81,37 +81,37 @@ def test_create_repository_repository_name_exists():
 
     client.create_repository(repositoryName="repository_two")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_repository(
             repositoryName="repository_two",
             repositoryDescription="description repo two",
         )
-    ex = e.exception
-    ex.operation_name.should.equal("CreateRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNameExistsException")
-    ex.response["Error"]["Message"].should.equal(
-        "Repository named {0} already exists".format("repository_two")
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateRepository")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("RepositoryNameExistsException")
+        ex.response["Error"]["Message"].should.equal(
+            "Repository named {0} already exists".format("repository_two")
+        )
 
 
 @mock_codecommit
 def test_create_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.create_repository(repositoryName="in_123_valid_@#$_characters")
-    ex = e.exception
-    ex.operation_name.should.equal("CreateRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
-    ex.response["Error"]["Message"].should.equal(
-        "The repository name is not valid. Repository names can be any valid "
-        "combination of letters, numbers, "
-        "periods, underscores, and dashes between 1 and 100 characters in "
-        "length. Names are case sensitive. "
-        "For more information, see Limits in the AWS CodeCommit User Guide. "
-    )
+        ex = e.value
+        ex.operation_name.should.equal("CreateRepository")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
+        ex.response["Error"]["Message"].should.equal(
+            "The repository name is not valid. Repository names can be any valid "
+            "combination of letters, numbers, "
+            "periods, underscores, and dashes between 1 and 100 characters in "
+            "length. Names are case sensitive. "
+            "For more information, see Limits in the AWS CodeCommit User Guide. "
+        )
 
 
 @mock_codecommit
@@ -156,33 +156,33 @@ def test_get_repository():
 
     client = boto3.client("codecommit", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName=repository_name)
-    ex = e.exception
-    ex.operation_name.should.equal("GetRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryDoesNotExistException")
-    ex.response["Error"]["Message"].should.equal(
-        "{0} does not exist".format(repository_name)
-    )
+        ex = e.value
+        ex.operation_name.should.equal("GetRepository")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("RepositoryDoesNotExistException")
+        ex.response["Error"]["Message"].should.equal(
+            "{0} does not exist".format(repository_name)
+        )
 
 
 @mock_codecommit
 def test_get_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName="repository_one-@#@")
-    ex = e.exception
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
-    ex.response["Error"]["Message"].should.equal(
-        "The repository name is not valid. Repository names can be any valid "
-        "combination of letters, numbers, "
-        "periods, underscores, and dashes between 1 and 100 characters in "
-        "length. Names are case sensitive. "
-        "For more information, see Limits in the AWS CodeCommit User Guide. "
-    )
+        ex = e.value
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
+        ex.response["Error"]["Message"].should.equal(
+            "The repository name is not valid. Repository names can be any valid "
+            "combination of letters, numbers, "
+            "periods, underscores, and dashes between 1 and 100 characters in "
+            "length. Names are case sensitive. "
+            "For more information, see Limits in the AWS CodeCommit User Guide. "
+        )
 
 
 @mock_codecommit
@@ -207,16 +207,16 @@ def test_delete_repository():
 def test_delete_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_repository(repositoryName="_rep@ository_one")
-    ex = e.exception
-    ex.operation_name.should.equal("DeleteRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
-    ex.response["Error"]["Message"].should.equal(
-        "The repository name is not valid. Repository names can be any valid "
-        "combination of letters, numbers, "
-        "periods, underscores, and dashes between 1 and 100 characters in "
-        "length. Names are case sensitive. "
-        "For more information, see Limits in the AWS CodeCommit User Guide. "
-    )
+        ex = e.value
+        ex.operation_name.should.equal("DeleteRepository")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
+        ex.response["Error"]["Message"].should.equal(
+            "The repository name is not valid. Repository names can be any valid "
+            "combination of letters, numbers, "
+            "periods, underscores, and dashes between 1 and 100 characters in "
+            "length. Names are case sensitive. "
+            "For more information, see Limits in the AWS CodeCommit User Guide. "
+        )

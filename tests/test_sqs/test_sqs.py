@@ -9,19 +9,18 @@ import uuid
 import boto
 import boto3
 import botocore.exceptions
+import pytest
 import six
 import sure  # noqa
-import tests.backport_assert_raises  # noqa
 from boto.exception import SQSError
 from boto.sqs.message import Message, RawMessage
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 from moto import mock_sqs, mock_sqs_deprecated, mock_lambda, mock_logs, settings
-from nose import SkipTest
-from nose.tools import assert_raises
 from tests.helpers import requires_boto_gte
 from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
 from moto.core import ACCOUNT_ID
+from unittest import SkipTest
 
 TEST_POLICY = """
 {
@@ -215,20 +214,20 @@ def test_get_queue_url_errors():
 @mock_sqs
 def test_get_nonexistent_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         sqs.get_queue_by_name(QueueName="non-existing-queue")
-    ex = err.exception
-    ex.operation_name.should.equal("GetQueueUrl")
-    ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified queue non-existing-queue does not exist for this wsdl version."
-    )
+        ex = err.value
+        ex.operation_name.should.equal("GetQueueUrl")
+        ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+        ex.response["Error"]["Message"].should.equal(
+            "The specified queue non-existing-queue does not exist for this wsdl version."
+        )
 
-    with assert_raises(ClientError) as err:
-        sqs.Queue("http://whatever-incorrect-queue-address").load()
-    ex = err.exception
-    ex.operation_name.should.equal("GetQueueAttributes")
-    ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+    with pytest.raises(ClientError) as err:
+       sqs.Queue("http://whatever-incorrect-queue-address").load()
+       ex = err.value
+       ex.operation_name.should.equal("GetQueueAttributes")
+       ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
 
 
 @mock_sqs
@@ -309,7 +308,7 @@ def test_message_with_attributes_invalid_datatype():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="blah")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         queue.send_message(
             MessageBody="derp",
             MessageAttributes={
@@ -319,12 +318,12 @@ def test_message_with_attributes_invalid_datatype():
                 }
             },
         )
-    ex = e.exception
-    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
-    ex.response["Error"]["Message"].should.equal(
-        "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
-        "prefixes is Binary, Number, and String."
-    )
+        ex = e.value
+        ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
+        ex.response["Error"]["Message"].should.equal(
+            "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
+            "prefixes is Binary, Number, and String."
+        )
 
 
 @mock_sqs
@@ -432,7 +431,7 @@ def test_delete_queue():
     queue.delete()
     conn.list_queues().get("QueueUrls").should.equal(None)
 
-    with assert_raises(botocore.exceptions.ClientError):
+    with pytest.raises(botocore.exceptions.ClientError):
         queue.delete()
 
 
@@ -699,10 +698,10 @@ def test_max_number_of_messages_invalid_param():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         queue.receive_messages(MaxNumberOfMessages=11)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         queue.receive_messages(MaxNumberOfMessages=0)
 
     # no error but also no messages returned
@@ -714,10 +713,10 @@ def test_wait_time_seconds_invalid_param():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         queue.receive_messages(WaitTimeSeconds=-1)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         queue.receive_messages(WaitTimeSeconds=21)
 
     # no error but also no messages returned
@@ -1513,68 +1512,68 @@ def test_add_permission_errors():
         Actions=["ReceiveMessage"],
     )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.add_permission(
             QueueUrl=queue_url,
             Label="test",
             AWSAccountIds=["111111111111"],
             Actions=["ReceiveMessage", "SendMessage"],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "Value test for parameter Label is invalid. " "Reason: Already exists."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("AddPermission")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+        ex.response["Error"]["Message"].should.equal(
+            "Value test for parameter Label is invalid. " "Reason: Already exists."
+        )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.add_permission(
             QueueUrl=queue_url,
             Label="test-2",
             AWSAccountIds=["111111111111"],
             Actions=["RemovePermission"],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "Value SQS:RemovePermission for parameter ActionName is invalid. "
-        "Reason: Only the queue owner is allowed to invoke this action."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("AddPermission")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+        ex.response["Error"]["Message"].should.equal(
+            "Value SQS:RemovePermission for parameter ActionName is invalid. "
+            "Reason: Only the queue owner is allowed to invoke this action."
+        )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.add_permission(
             QueueUrl=queue_url,
             Label="test-2",
             AWSAccountIds=["111111111111"],
             Actions=[],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("MissingParameter")
-    ex.response["Error"]["Message"].should.equal(
-        "The request must contain the parameter Actions."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("AddPermission")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("MissingParameter")
+        ex.response["Error"]["Message"].should.equal(
+            "The request must contain the parameter Actions."
+        )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.add_permission(
             QueueUrl=queue_url,
             Label="test-2",
             AWSAccountIds=[],
             Actions=["ReceiveMessage"],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "Value [] for parameter PrincipalId is invalid. Reason: Unable to verify."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("AddPermission")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+        ex.response["Error"]["Message"].should.equal(
+            "Value [] for parameter PrincipalId is invalid. Reason: Unable to verify."
+        )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.add_permission(
             QueueUrl=queue_url,
             Label="test-2",
@@ -1590,13 +1589,13 @@ def test_add_permission_errors():
                 "SendMessage",
             ],
         )
-    ex = e.exception
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.response["Error"]["Code"].should.contain("OverLimit")
-    ex.response["Error"]["Message"].should.equal(
-        "8 Actions were found, maximum allowed is 7."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("AddPermission")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
+        ex.response["Error"]["Code"].should.contain("OverLimit")
+        ex.response["Error"]["Message"].should.equal(
+            "8 Actions were found, maximum allowed is 7."
+        )
 
 
 @mock_sqs
@@ -1605,16 +1604,16 @@ def test_remove_permission_errors():
     response = client.create_queue(QueueName="test-queue")
     queue_url = response["QueueUrl"]
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.remove_permission(QueueUrl=queue_url, Label="test")
-    ex = e.exception
-    ex.operation_name.should.equal("RemovePermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "Value test for parameter Label is invalid. "
-        "Reason: can't find label on existing policy."
-    )
+        ex = e.value
+        ex.operation_name.should.equal("RemovePermission")
+        ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
+        ex.response["Error"]["Message"].should.equal(
+            "Value test for parameter Label is invalid. "
+            "Reason: can't find label on existing policy."
+        )
 
 
 @mock_sqs
@@ -1737,7 +1736,7 @@ def test_create_fifo_queue_with_dlq():
     )
 
     # Cant have fifo queue with non fifo DLQ
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         sqs.create_queue(
             QueueName="test-queue2.fifo",
             Attributes={
@@ -1831,7 +1830,7 @@ def test_redrive_policy_available():
     assert json.loads(attributes["RedrivePolicy"]) == redrive_policy
 
     # Cant have redrive policy without maxReceiveCount
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         sqs.create_queue(
             QueueName="test-queue2",
             Attributes={
@@ -1849,7 +1848,7 @@ def test_redrive_policy_non_existent_queue():
         "maxReceiveCount": 1,
     }
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         sqs.create_queue(
             QueueName="test-queue",
             Attributes={"RedrivePolicy": json.dumps(redrive_policy)},
@@ -2034,13 +2033,13 @@ def test_send_messages_to_fifo_without_message_group_id():
         Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
 
-    with assert_raises(Exception) as e:
+    with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="message-1")
-    ex = e.exception
-    ex.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.response["Error"]["Message"].should.equal(
-        "The request must contain the parameter MessageGroupId."
-    )
+        ex = e.value
+        ex.response["Error"]["Code"].should.equal("MissingParameter")
+        ex.response["Error"]["Message"].should.equal(
+            "The request must contain the parameter MessageGroupId."
+        )
 
 
 @mock_logs

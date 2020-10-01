@@ -54,7 +54,7 @@ test_service() {
   # Run tests for this service
   test_result_filename="test_results_${service}.log"
   touch $test_result_filename
-  nosetests -qxs --ignore-files="test_server\.py" --ignore-files="test_${service}_cloudformation\.py" --ignore-files="test_integration\.py" $path_to_test_file >$test_result_filename 2>&1
+  pytest -qxs -k "not (test_server or test_${service}_cloudformation or test_integration)" $path_to_test_file >$test_result_filename 2>&1
   RESULT=$?
   if [[ $RESULT != 0 ]]; then
     echo -e "Tests for ${service} have failed!\n"

@@ -10,7 +10,7 @@ from uuid import UUID
 
 from moto import mock_ecs
 from moto import mock_ec2
-from nose.tools import assert_raises
+import pytest
 
 
 @mock_ecs
@@ -860,7 +860,7 @@ def test_deregister_container_instance():
         containerInstances=[container_instance_id],
         startedBy="moto",
     )
-    with assert_raises(Exception) as e:
+    with pytest.raises(Exception) as e:
         ecs_client.deregister_container_instance(
             cluster=test_cluster_name, containerInstance=container_instance_id
         ).should.have.raised(Exception)
@@ -951,7 +951,7 @@ def test_describe_container_instances():
         instance.keys().should.contain("runningTasksCount")
         instance.keys().should.contain("pendingTasksCount")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         ecs_client.describe_container_instances(
             cluster=test_cluster_name, containerInstances=[]
         )
@@ -2610,7 +2610,7 @@ def test_delete_task_set():
 
     assert len(task_sets) == 0
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         _ = client.delete_task_set(
             cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"],
         )

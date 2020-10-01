@@ -9,8 +9,8 @@ import boto3
 from botocore.exceptions import ClientError
 import sure  # noqa
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-from nose.tools import assert_raises
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
 
 from moto import mock_cloudformation, mock_s3, mock_sqs, mock_ec2
 from moto.core import ACCOUNT_ID
@@ -548,7 +548,7 @@ def test_boto3_list_stack_set_operations():
 @mock_cloudformation
 def test_boto3_bad_list_stack_resources():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         cf_conn.list_stack_resources(StackName="test_stack_set")
 
 
@@ -1180,7 +1180,7 @@ def test_describe_updated_stack():
 @mock_cloudformation
 def test_bad_describe_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         cf_conn.describe_stacks(StackName="non_existent_stack")
 
 
@@ -1332,7 +1332,7 @@ def test_delete_stack_with_export():
 def test_export_names_must_be_unique():
     cf = boto3.resource("cloudformation", region_name="us-east-1")
     cf.create_stack(StackName="test_stack", TemplateBody=dummy_output_template_json)
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         cf.create_stack(StackName="test_stack", TemplateBody=dummy_output_template_json)
 
 
@@ -1373,7 +1373,7 @@ def test_boto3_create_duplicate_stack():
         StackName="test_stack", TemplateBody=dummy_template_json,
     )
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         cf_conn.create_stack(
             StackName="test_stack", TemplateBody=dummy_template_json,
         )

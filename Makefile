@@ -23,13 +23,13 @@ lint:
 test-only:
 	rm -f .coverage
 	rm -rf cover
-	@nosetests -sv --with-coverage --cover-html ./tests/ $(TEST_EXCLUDE)
+	@pytest -sv ./tests/ $(TEST_EXCLUDE)
 
 
 test: lint test-only
 
 test_server:
-	@TEST_SERVER_MODE=true nosetests -sv --with-coverage --cover-html ./tests/
+	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report html ./tests/
 
 aws_managed_policies:
 	scripts/update_managed_policies.py

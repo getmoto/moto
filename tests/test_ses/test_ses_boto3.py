@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from six.moves.email_mime_multipart import MIMEMultipart
 from six.moves.email_mime_text import MIMEText
-from nose.tools import assert_raises
+import pytest
 
 
 import sure  # noqa
@@ -298,7 +298,7 @@ def test_create_configuration_set():
         },
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
             ConfigurationSetName="failtest",
             EventDestination={
@@ -311,9 +311,9 @@ def test_create_configuration_set():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
             ConfigurationSetName="test",
             EventDestination={
@@ -326,7 +326,7 @@ def test_create_configuration_set():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
 
 
 @mock_ses
@@ -336,10 +336,10 @@ def test_create_receipt_rule_set():
 
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule_set(RuleSetName="testRuleSet")
 
-    ex.exception.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
 
 
 @mock_ses
@@ -378,7 +378,7 @@ def test_create_receipt_rule():
 
     result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
             RuleSetName=rule_set_name,
             Rule={
@@ -407,9 +407,9 @@ def test_create_receipt_rule():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("RuleAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("RuleAlreadyExists")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
             RuleSetName="InvalidRuleSetaName",
             Rule={
@@ -438,7 +438,7 @@ def test_create_receipt_rule():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
 
 
 @mock_ses
@@ -455,7 +455,7 @@ def test_create_ses_template():
             "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
     )
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_template(
             Template={
                 "TemplateName": "MyTemplate",
@@ -467,7 +467,7 @@ def test_create_ses_template():
             }
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
 
     # get a template which is already added
     result = conn.get_template(TemplateName="MyTemplate")
@@ -475,10 +475,10 @@ def test_create_ses_template():
     result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
 
     # get a template which is not present
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.get_template(TemplateName="MyFakeTemplate")
 
-    ex.exception.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
 
     result = conn.list_templates()
     result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")

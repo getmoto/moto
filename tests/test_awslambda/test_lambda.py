@@ -24,7 +24,6 @@ from moto import (
     mock_sqs,
 )
 from moto.sts.models import ACCOUNT_ID
-from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
 _lambda_region = "us-west-2"
@@ -497,7 +496,7 @@ def test_get_function():
     )
 
     # Test get function when can't find function name
-    with assert_raises(conn.exceptions.ResourceNotFoundException):
+    with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
 
 
@@ -1800,7 +1799,7 @@ def test_get_function_concurrency():
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         conn.create_function(
             FunctionName="testFunction",
             Runtime="python2.7",
@@ -1812,7 +1811,7 @@ def create_invalid_lambda(role):
             MemorySize=128,
             Publish=True,
         )
-    return err
+        return err
 
 
 def get_role_name():

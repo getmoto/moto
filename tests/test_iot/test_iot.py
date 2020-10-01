@@ -6,7 +6,7 @@ import boto3
 
 from moto import mock_iot
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 
 def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
@@ -604,21 +604,21 @@ def test_create_certificate_validation():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=False)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.register_certificate(
             certificatePem=cert["certificatePem"], setAsActive=False
         )
-    e.exception.response["Error"]["Message"].should.contain(
-        "The certificate is already provisioned or registered"
-    )
+        e.exception.response["Error"]["Message"].should.contain(
+            "The certificate is already provisioned or registered"
+        )
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.register_certificate_without_ca(
             certificatePem=cert["certificatePem"], status="ACTIVE"
         )
-    e.exception.response["Error"]["Message"].should.contain(
-        "The certificate is already provisioned or registered"
-    )
+        e.exception.response["Error"]["Message"].should.contain(
+            "The certificate is already provisioned or registered"
+        )
 
 
 @mock_iot
@@ -643,9 +643,9 @@ def test_delete_policy_validation():
     client.create_policy(policyName=policy_name, policyDocument=doc)
     client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_policy(policyName=policy_name)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "The policy cannot be deleted as the policy is attached to one or more principals (name=%s)"
         % policy_name
     )
@@ -684,27 +684,27 @@ def test_delete_certificate_validation():
     client.create_thing(thingName=thing_name)
     client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Certificate must be deactivated (not ACTIVE) before deletion."
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Things must be detached before deletion (arn: %s)" % cert_arn
     )
     res = client.list_certificates()
     res.should.have.key("certificates").which.should.have.length_of(1)
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.exception.response["Error"]["Message"].should.contain(
+    e.value.response["Error"]["Message"].should.contain(
         "Certificate policies must be detached before deletion (arn: %s)" % cert_arn
     )
     res = client.list_certificates()
@@ -798,9 +798,9 @@ def test_principal_policy():
     res.should.have.key("policies").which.should.have.length_of(0)
     res = client.list_policy_principals(policyName=policy_name)
     res.should.have.key("principals").which.should.have.length_of(0)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.detach_policy(policyName=policy_name, target=cert_arn)
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_iot
@@ -857,11 +857,11 @@ def test_principal_thing():
     res = client.list_thing_principals(thingName=thing_name)
     res.should.have.key("principals").which.should.have.length_of(0)
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.list_thing_principals(thingName="xxx")
 
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Message"].should.equal(
         "Failed to list principals for thing xxx because the thing does not exist in your account"
     )
 
@@ -937,9 +937,9 @@ class TestListThingGroup:
         resp = client.list_thing_groups(parentGroup=self.group_name_1b)
         resp.should.have.key("thingGroups")
         resp["thingGroups"].should.have.length_of(0)
-        with assert_raises(ClientError) as e:
+        with pytest.raises(ClientError) as e:
             client.list_thing_groups(parentGroup="inexistant-group-name")
-            e.exception.response["Error"]["Code"].should.equal(
+            e.value.response["Error"]["Code"].should.equal(
                 "ResourceNotFoundException"
             )
 

@@ -17,7 +17,7 @@ import boto3
 import sure  # noqa
 from botocore.exceptions import ClientError
 from jose import jws, jwk, jwt
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_cognitoidp, settings
 from moto.cognitoidp.utils import create_id
@@ -603,14 +603,14 @@ def test_update_identity_provider_no_user_pool():
 
     new_value = str(uuid.uuid4())
 
-    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+    with pytest.raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
             UserPoolId="foo", ProviderName="bar", ProviderDetails={"thing": new_value}
         )
 
-    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("UpdateIdentityProvider")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -623,16 +623,16 @@ def test_update_identity_provider_no_identity_provider():
     new_value = str(uuid.uuid4())
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
 
-    with assert_raises(conn.exceptions.ResourceNotFoundException) as cm:
+    with pytest.raises(conn.exceptions.ResourceNotFoundException) as cm:
         conn.update_identity_provider(
             UserPoolId=user_pool_id,
             ProviderName="foo",
             ProviderDetails={"thing": new_value},
         )
 
-    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("UpdateIdentityProvider")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -699,11 +699,11 @@ def test_create_group_with_duplicate_name_raises_error():
 
     conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.operation_name.should.equal("CreateGroup")
-    cm.exception.response["Error"]["Code"].should.equal("GroupExistsException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("CreateGroup")
+    cm.value.response["Error"]["Code"].should.equal("GroupExistsException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -747,9 +747,9 @@ def test_delete_group():
     result = conn.delete_group(GroupName=group_name, UserPoolId=user_pool_id)
     list(result.keys()).should.equal(["ResponseMetadata"])  # No response expected
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cognitoidp
@@ -1565,17 +1565,17 @@ def test_resource_server():
     res["ResourceServer"]["Name"].should.equal(name)
     res["ResourceServer"]["Scopes"].should.equal(scopes)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_resource_server(
             UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
         )
 
-    ex.exception.operation_name.should.equal("CreateResourceServer")
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.operation_name.should.equal("CreateResourceServer")
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
         "%s already exists in user pool %s." % (identifier, user_pool_id)
     )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp

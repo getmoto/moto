@@ -8,7 +8,6 @@ import sure  # noqa
 from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
 
 import functools
-import nose
 
 
 DEFAULT_REGION = "eu-central-1"

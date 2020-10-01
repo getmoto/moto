@@ -4,7 +4,7 @@ import boto
 import boto3
 from botocore.exceptions import ClientError
 from moto import mock_datasync
-from nose.tools import assert_raises
+import pytest
 
 
 def create_locations(client, create_smb=False, create_s3=False):
@@ -101,7 +101,7 @@ def test_describe_location_wrong():
         Password="",
         AgentArns=agent_arns,
     )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.describe_location_s3(LocationArn=response["LocationArn"])
 
 
@@ -139,7 +139,7 @@ def test_delete_location():
     response = client.list_locations()
     assert len(response["Locations"]) == 0
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.delete_location(LocationArn=location_arn)
 
 
@@ -159,11 +159,11 @@ def test_create_task_fail():
     """ Test that Locations must exist before a Task can be created """
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_smb=True, create_s3=True)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.create_task(
             SourceLocationArn="1", DestinationLocationArn=locations["s3_arn"]
         )
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.create_task(
             SourceLocationArn=locations["smb_arn"], DestinationLocationArn="2"
         )
@@ -220,7 +220,7 @@ def test_describe_task():
 def test_describe_task_not_exist():
     client = boto3.client("datasync", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_task(TaskArn="abc")
 
 
@@ -262,7 +262,7 @@ def test_update_task():
     assert response["Name"] == updated_name
     assert response["Options"] == updated_options
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.update_task(TaskArn="doesnt_exist")
 
 
@@ -286,7 +286,7 @@ def test_delete_task():
     response = client.list_tasks()
     assert len(response["Tasks"]) == 0
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.delete_task(TaskArn=task_arn)
 
 
@@ -328,7 +328,7 @@ def test_start_task_execution_twice():
     assert "TaskExecutionArn" in response
     task_execution_arn = response["TaskExecutionArn"]
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.start_task_execution(TaskArn=task_arn)
 
 
@@ -392,7 +392,7 @@ def test_describe_task_execution():
 def test_describe_task_execution_not_exist():
     client = boto3.client("datasync", region_name="us-east-1")
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_task_execution(TaskExecutionArn="abc")
 
 

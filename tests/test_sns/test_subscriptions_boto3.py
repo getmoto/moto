@@ -5,7 +5,7 @@ import json
 import sure  # noqa
 
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_sns
 from moto.sns.models import (
@@ -295,7 +295,7 @@ def test_creating_subscription_with_attributes():
     subscriptions.should.have.length_of(0)
 
     # invalid attr name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.subscribe(
             TopicArn=topic_arn,
             Protocol="http",
@@ -367,17 +367,17 @@ def test_set_subscription_attributes():
     attrs["Attributes"]["FilterPolicy"].should.equal(filter_policy)
 
     # not existing subscription
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.set_subscription_attributes(
             SubscriptionArn="invalid",
             AttributeName="RawMessageDelivery",
             AttributeValue="true",
         )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         attrs = conn.get_subscription_attributes(SubscriptionArn="invalid")
 
     # invalid attr name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.set_subscription_attributes(
             SubscriptionArn=subscription_arn,
             AttributeName="InvalidName",
@@ -482,7 +482,7 @@ def test_check_opted_out_invalid():
     conn = boto3.client("sns", region_name="us-east-1")
 
     # Invalid phone number
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         conn.check_if_phone_number_is_opted_out(phoneNumber="+44742LALALA")
 
 

@@ -5,7 +5,6 @@ from moto.swf.exceptions import SWFUnknownResourceFault
 from moto.swf.models import Domain
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
 
 # Fake WorkflowExecution for tests purposes
 WorkflowExecution = namedtuple(

@@ -3,7 +3,7 @@ import json
 import yaml
 import os
 import boto3
-from nose.tools import raises
+import pytest
 import botocore
 import sure  # noqa
 

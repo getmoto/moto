@@ -8,7 +8,7 @@ from boto.ec2.autoscale import Tag
 import boto.ec2.elb
 import sure  # noqa
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import (
     mock_autoscaling,
@@ -781,7 +781,7 @@ def test_create_autoscaling_group_from_invalid_instance_id():
 
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
             AutoScalingGroupName="test_asg",
             InstanceId=invalid_instance_id,
@@ -791,9 +791,9 @@ def test_create_autoscaling_group_from_invalid_instance_id():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationError")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.equal(
         "Instance [{0}] is invalid.".format(invalid_instance_id)
     )
 
@@ -842,7 +842,7 @@ def test_create_autoscaling_group_no_template_ref():
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
             AutoScalingGroupName="test_asg",
             LaunchTemplate={"Version": str(template["LatestVersionNumber"])},
@@ -852,9 +852,9 @@ def test_create_autoscaling_group_no_template_ref():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationError")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.equal(
         "Valid requests must contain either launchTemplateId or LaunchTemplateName"
     )
 
@@ -874,7 +874,7 @@ def test_create_autoscaling_group_multiple_template_ref():
     )["LaunchTemplate"]
     client = boto3.client("autoscaling", region_name="us-east-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
             AutoScalingGroupName="test_asg",
             LaunchTemplate={
@@ -888,9 +888,9 @@ def test_create_autoscaling_group_multiple_template_ref():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationError")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.equal(
         "Valid requests must contain either launchTemplateId or LaunchTemplateName"
     )
 
@@ -899,7 +899,7 @@ def test_create_autoscaling_group_multiple_template_ref():
 def test_create_autoscaling_group_boto3_no_launch_configuration():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
             AutoScalingGroupName="test_asg",
             MinSize=0,
@@ -908,9 +908,9 @@ def test_create_autoscaling_group_boto3_no_launch_configuration():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationError")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.equal(
         "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, "
         "InstanceId or MixedInstancesPolicy parameter."
     )
@@ -934,7 +934,7 @@ def test_create_autoscaling_group_boto3_multiple_launch_configurations():
         LaunchConfigurationName="test_launch_configuration"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_auto_scaling_group(
             AutoScalingGroupName="test_asg",
             LaunchConfigurationName="test_launch_configuration",
@@ -948,9 +948,9 @@ def test_create_autoscaling_group_boto3_multiple_launch_configurations():
             VPCZoneIdentifier=mocked_networking["subnet1"],
             NewInstancesProtectedFromScaleIn=False,
         )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationError")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.equal(
         "Valid requests must contain either LaunchTemplate, LaunchConfigurationName, "
         "InstanceId or MixedInstancesPolicy parameter."
     )
