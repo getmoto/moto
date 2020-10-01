@@ -56,9 +56,10 @@ def test_get_secret_that_does_not_exist():
     with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="i-dont-exist")
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -71,9 +72,10 @@ def test_get_secret_that_does_not_match():
     with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="i-dont-match")
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -97,9 +99,10 @@ def test_get_secret_that_has_no_value():
     with pytest.raises(ClientError) as cm:
         result = conn.get_secret_value(SecretId="java-util-test-password")
 
-    assert \
-        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT" == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT"
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -844,9 +847,10 @@ def test_update_secret_which_does_not_exit():
             SecretId="test-secret", SecretString="barsecret"
         )
 
-    assert \
-        "Secrets Manager can't find the specified secret." == \
-        cm.value.response["Error"]["Message"]
+    assert (
+        "Secrets Manager can't find the specified secret."
+        == cm.value.response["Error"]["Message"]
+    )
 
 
 @mock_secretsmanager
@@ -862,8 +866,7 @@ def test_update_secret_marked_as_deleted():
         )
 
     assert (
-        "because it was marked for deletion."
-        in cm.value.response["Error"]["Message"]
+        "because it was marked for deletion." in cm.value.response["Error"]["Message"]
     )
 
 

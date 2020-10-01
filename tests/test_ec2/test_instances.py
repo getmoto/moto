@@ -211,16 +211,16 @@ def test_instance_detach_volume_wrong_path():
         ImageId="ami-d3adb33f",
         MinCount=1,
         MaxCount=1,
-        BlockDeviceMappings=[{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},],
+        BlockDeviceMappings=[
+            {"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 50}},
+        ],
     )
     instance = result[0]
     for volume in instance.volumes.all():
         with pytest.raises(ClientError) as ex:
             instance.detach_volume(VolumeId=volume.volume_id, Device="/dev/sdf")
 
-        ex.value.response["Error"]["Code"].should.equal(
-            "InvalidAttachment.NotFound"
-        )
+        ex.value.response["Error"]["Code"].should.equal("InvalidAttachment.NotFound")
         ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
         ex.value.response["Error"]["Message"].should.equal(
             "The volume {0} is not attached to instance {1} as device {2}".format(
@@ -1585,7 +1585,9 @@ def test_create_instance_ebs_optimized():
     instance.ebs_optimized.should.be(False)
 
     instance = ec2_resource.create_instances(
-        ImageId="ami-12345678", MaxCount=1, MinCount=1,
+        ImageId="ami-12345678",
+        MaxCount=1,
+        MinCount=1,
     )[0]
     instance.load()
     instance.ebs_optimized.should.be(False)

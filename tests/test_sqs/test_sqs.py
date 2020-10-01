@@ -218,16 +218,20 @@ def test_get_nonexistent_queue():
         sqs.get_queue_by_name(QueueName="non-existing-queue")
         ex = err.value
         ex.operation_name.should.equal("GetQueueUrl")
-        ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+        ex.response["Error"]["Code"].should.equal(
+            "AWS.SimpleQueueService.NonExistentQueue"
+        )
         ex.response["Error"]["Message"].should.equal(
             "The specified queue non-existing-queue does not exist for this wsdl version."
         )
 
     with pytest.raises(ClientError) as err:
-       sqs.Queue("http://whatever-incorrect-queue-address").load()
-       ex = err.value
-       ex.operation_name.should.equal("GetQueueAttributes")
-       ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
+        sqs.Queue("http://whatever-incorrect-queue-address").load()
+        ex = err.value
+        ex.operation_name.should.equal("GetQueueAttributes")
+        ex.response["Error"]["Code"].should.equal(
+            "AWS.SimpleQueueService.NonExistentQueue"
+        )
 
 
 @mock_sqs
@@ -660,7 +664,10 @@ def test_send_receive_message_with_attributes_with_labels():
     response = queue.send_message(
         MessageBody="test message",
         MessageAttributes={
-            "somevalue": {"StringValue": "somevalue", "DataType": "String.custom",}
+            "somevalue": {
+                "StringValue": "somevalue",
+                "DataType": "String.custom",
+            }
         },
     )
 

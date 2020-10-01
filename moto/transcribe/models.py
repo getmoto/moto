@@ -153,7 +153,11 @@ class FakeMedicalTranscriptionJob(BaseObject):
 
 class FakeMedicalVocabulary(BaseObject):
     def __init__(
-        self, region_name, vocabulary_name, language_code, vocabulary_file_uri,
+        self,
+        region_name,
+        vocabulary_name,
+        language_code,
+        vocabulary_file_uri,
     ):
         self._region_name = region_name
         self.vocabulary_name = vocabulary_name

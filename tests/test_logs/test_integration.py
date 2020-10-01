@@ -203,7 +203,8 @@ def test_delete_subscription_filter_errors():
 
     # when
     client_logs.delete_subscription_filter(
-        logGroupName="/test", filterName="test",
+        logGroupName="/test",
+        filterName="test",
     )
 
     # then
@@ -241,7 +242,8 @@ def test_delete_subscription_filter_errors():
     # when
     with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
-            logGroupName="not-existing-log-group", filterName="test",
+            logGroupName="not-existing-log-group",
+            filterName="test",
         )
         # then
         ex = e.value
@@ -255,7 +257,8 @@ def test_delete_subscription_filter_errors():
     # when
     with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
-            logGroupName="/test", filterName="wrong-filter-name",
+            logGroupName="/test",
+            filterName="wrong-filter-name",
         )
         # then
         ex = e.value
@@ -335,7 +338,9 @@ def _get_role_name(region_name):
             return iam.get_role(RoleName="test-role")["Role"]["Arn"]
         except ClientError:
             return iam.create_role(
-                RoleName="test-role", AssumeRolePolicyDocument="test policy", Path="/",
+                RoleName="test-role",
+                AssumeRolePolicyDocument="test policy",
+                Path="/",
             )["Role"]["Arn"]
 
 
@@ -365,7 +370,8 @@ def _wait_for_log_msg(client, log_group_name, expected_msg_part):
 
         for log_stream in log_streams:
             result = client.get_log_events(
-                logGroupName=log_group_name, logStreamName=log_stream["logStreamName"],
+                logGroupName=log_group_name,
+                logStreamName=log_stream["logStreamName"],
             )
             received_messages.extend(
                 [event["message"] for event in result.get("events")]

@@ -38,8 +38,7 @@ def test_create_endpoint_config():
             EndpointConfigName=endpoint_config_name,
             ProductionVariants=production_variants,
         )
-    assert \
-        e.value.response["Error"]["Message"].startswith("Could not find model")
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
 
     _create_model(sagemaker, model_name)
     resp = sagemaker.create_endpoint_config(
@@ -89,17 +88,15 @@ def test_delete_endpoint_config():
     resp = sagemaker.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
     with pytest.raises(ClientError) as e:
         sagemaker.describe_endpoint_config(EndpointConfigName=endpoint_config_name)
-    assert \
-        e.value.response["Error"]["Message"].startswith(
-            "Could not find endpoint configuration"
-        )
+    assert e.value.response["Error"]["Message"].startswith(
+        "Could not find endpoint configuration"
+    )
 
     with pytest.raises(ClientError) as e:
         sagemaker.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
-    assert \
-        e.value.response["Error"]["Message"].startswith(
-            "Could not find endpoint configuration"
-        )
+    assert e.value.response["Error"]["Message"].startswith(
+        "Could not find endpoint configuration"
+    )
     pass
 
 
@@ -142,10 +139,9 @@ def test_create_endpoint():
         sagemaker.create_endpoint(
             EndpointName=endpoint_name, EndpointConfigName="NonexistentEndpointConfig"
         )
-    assert \
-        e.value.response["Error"]["Message"].startswith(
-            "Could not find endpoint configuration"
-        )
+    assert e.value.response["Error"]["Message"].startswith(
+        "Could not find endpoint configuration"
+    )
 
     model_name = "MyModel"
     _create_model(sagemaker, model_name)
@@ -193,13 +189,11 @@ def test_delete_endpoint():
     sagemaker.delete_endpoint(EndpointName=endpoint_name)
     with pytest.raises(ClientError) as e:
         sagemaker.describe_endpoint(EndpointName=endpoint_name)
-    assert \
-        e.value.response["Error"]["Message"].startswith("Could not find endpoint")
+    assert e.value.response["Error"]["Message"].startswith("Could not find endpoint")
 
     with pytest.raises(ClientError) as e:
         sagemaker.delete_endpoint(EndpointName=endpoint_name)
-    assert \
-        e.value.response["Error"]["Message"].startswith("Could not find endpoint")
+    assert e.value.response["Error"]["Message"].startswith("Could not find endpoint")
 
 
 def _create_model(boto_client, model_name):

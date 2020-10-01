@@ -326,7 +326,9 @@ def test_update_pipeline():
                                 "S3Bucket": "different-bucket",
                                 "S3ObjectKey": "test-object",
                             },
-                            "outputArtifacts": [{"name": "artifact"},],
+                            "outputArtifacts": [
+                                {"name": "artifact"},
+                            ],
                         },
                     ],
                 },
@@ -435,7 +437,9 @@ def test_update_pipeline_errors():
                                     "S3Bucket": "test-bucket",
                                     "S3ObjectKey": "test-object",
                                 },
-                                "outputArtifacts": [{"name": "artifact"},],
+                                "outputArtifacts": [
+                                    {"name": "artifact"},
+                                ],
                             },
                         ],
                     },
@@ -696,7 +700,9 @@ def create_basic_codepipeline(client, name):
                                 "S3Bucket": "test-bucket",
                                 "S3ObjectKey": "test-object",
                             },
-                            "outputArtifacts": [{"name": "artifact"},],
+                            "outputArtifacts": [
+                                {"name": "artifact"},
+                            ],
                         },
                     ],
                 },

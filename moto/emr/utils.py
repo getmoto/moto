@@ -43,14 +43,14 @@ def steps_from_query_string(querystring_dict):
 class Unflattener:
     @staticmethod
     def unflatten_complex_params(input_dict, param_name):
-        """ Function to unflatten (portions of) dicts with complex keys.  The moto request parser flattens the incoming
+        """Function to unflatten (portions of) dicts with complex keys.  The moto request parser flattens the incoming
         request bodies, which is generally helpful, but for nested dicts/lists can result in a hard-to-manage
         parameter exposion.  This function allows one to selectively unflatten a set of dict keys, replacing them
         with a deep dist/list structure named identically to the root component in the complex name.
 
         Complex keys are composed of multiple components
         separated by periods. Components may be prefixed with _, which is stripped.  Lists indexes are represented
-        with two components, 'member' and the index number. """
+        with two components, 'member' and the index number."""
         items_to_process = {}
         for k in input_dict.keys():
             if k.startswith(param_name):

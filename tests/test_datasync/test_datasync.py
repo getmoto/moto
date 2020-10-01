@@ -8,7 +8,7 @@ import pytest
 
 
 def create_locations(client, create_smb=False, create_s3=False):
-    """ 
+    """
     Convenience function for creating locations.
     Locations must exist before tasks can be created.
     """

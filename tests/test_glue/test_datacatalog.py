@@ -223,9 +223,7 @@ def test_get_table_not_exits():
         helpers.get_table(client, database_name, "myfirsttable")
 
     exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.value.response["Error"]["Message"].should.match(
-        "Table myfirsttable not found"
-    )
+    exc.value.response["Error"]["Message"].should.match("Table myfirsttable not found")
 
 
 @mock_glue

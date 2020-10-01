@@ -49,8 +49,9 @@ def test_create_notebook_instance_minimal_params():
     assert resp["NotebookInstanceArn"].endswith(args["NotebookInstanceName"])
     assert resp["NotebookInstanceName"] == NAME_PARAM
     assert resp["NotebookInstanceStatus"] == "InService"
-    assert \
-        resp["Url"] == "{}.notebook.{}.sagemaker.aws".format(NAME_PARAM, TEST_REGION_NAME)
+    assert resp["Url"] == "{}.notebook.{}.sagemaker.aws".format(
+        NAME_PARAM, TEST_REGION_NAME
+    )
     assert resp["InstanceType"] == INSTANCE_TYPE_PARAM
     assert resp["RoleArn"] == FAKE_ROLE_ARN
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
@@ -99,8 +100,9 @@ def test_create_notebook_instance_params():
     assert resp["NotebookInstanceArn"].endswith(args["NotebookInstanceName"])
     assert resp["NotebookInstanceName"] == NAME_PARAM
     assert resp["NotebookInstanceStatus"] == "InService"
-    assert \
-        resp["Url"] == "{}.notebook.{}.sagemaker.aws".format(NAME_PARAM, TEST_REGION_NAME)
+    assert resp["Url"] == "{}.notebook.{}.sagemaker.aws".format(
+        NAME_PARAM, TEST_REGION_NAME
+    )
     assert resp["InstanceType"] == INSTANCE_TYPE_PARAM
     assert resp["RoleArn"] == FAKE_ROLE_ARN
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
@@ -111,8 +113,7 @@ def test_create_notebook_instance_params():
     assert resp["SubnetId"] == FAKE_SUBNET_ID
     assert resp["SecurityGroups"] == FAKE_SECURITY_GROUP_IDS
     assert resp["KmsKeyId"] == FAKE_KMS_KEY_ID
-    assert \
-        resp["NotebookInstanceLifecycleConfigName"] == FAKE_LIFECYCLE_CONFIG_NAME
+    assert resp["NotebookInstanceLifecycleConfigName"] == FAKE_LIFECYCLE_CONFIG_NAME
     assert resp["AcceleratorTypes"] == ACCELERATOR_TYPES_PARAM
     assert resp["DefaultCodeRepository"] == FAKE_DEFAULT_CODE_REPO
     assert resp["AdditionalCodeRepositories"] == FAKE_ADDL_CODE_REPOS
@@ -135,11 +136,11 @@ def test_create_notebook_instance_bad_volume_size():
     }
     with pytest.raises(ParamValidationError) as ex:
         resp = sagemaker.create_notebook_instance(**args)
-    assert \
-        ex.value.args[0] == \
-        "Parameter validation failed:\nInvalid range for parameter VolumeSizeInGB, value: {}, valid range: 5-inf".format(
-            vol_size
-        )
+    assert ex.value.args[
+        0
+    ] == "Parameter validation failed:\nInvalid range for parameter VolumeSizeInGB, value: {}, valid range: 5-inf".format(
+        vol_size
+    )
 
 
 @mock_sagemaker
@@ -218,5 +219,4 @@ def test_describe_nonexistent_model():
 
     with pytest.raises(ClientError) as e:
         resp = sagemaker.describe_model(ModelName="Nonexistent")
-    assert \
-        e.value.response["Error"]["Message"].startswith("Could not find model")
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")

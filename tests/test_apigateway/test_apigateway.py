@@ -105,7 +105,9 @@ def test_create_rest_api_valid_apikeysources():
 
     # 1. test creating rest api with HEADER apiKeySource
     response = client.create_rest_api(
-        name="my_api", description="this is my api", apiKeySource="HEADER",
+        name="my_api",
+        description="this is my api",
+        apiKeySource="HEADER",
     )
     api_id = response["id"]
 
@@ -114,7 +116,9 @@ def test_create_rest_api_valid_apikeysources():
 
     # 2. test creating rest api with AUTHORIZER apiKeySource
     response = client.create_rest_api(
-        name="my_api2", description="this is my api", apiKeySource="AUTHORIZER",
+        name="my_api2",
+        description="this is my api",
+        apiKeySource="AUTHORIZER",
     )
     api_id = response["id"]
 
@@ -149,7 +153,9 @@ def test_create_rest_api_valid_endpointconfigurations():
 
     response = client.get_rest_api(restApiId=api_id)
     response["endpointConfiguration"].should.equal(
-        {"types": ["PRIVATE"],}
+        {
+            "types": ["PRIVATE"],
+        }
     )
 
     # 2. test creating rest api with REGIONAL endpointConfiguration
@@ -162,7 +168,9 @@ def test_create_rest_api_valid_endpointconfigurations():
 
     response = client.get_rest_api(restApiId=api_id)
     response["endpointConfiguration"].should.equal(
-        {"types": ["REGIONAL"],}
+        {
+            "types": ["REGIONAL"],
+        }
     )
 
     # 3. test creating rest api with EDGE endpointConfiguration
@@ -175,7 +183,9 @@ def test_create_rest_api_valid_endpointconfigurations():
 
     response = client.get_rest_api(restApiId=api_id)
     response["endpointConfiguration"].should.equal(
-        {"types": ["EDGE"],}
+        {
+            "types": ["EDGE"],
+        }
     )
 
 
@@ -221,7 +231,11 @@ def test_create_resource():
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
     root_resource.should.equal(
-        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200},}
+        {
+            "path": "/",
+            "id": root_id,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
     )
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
@@ -1669,9 +1683,7 @@ def test_get_domain_name():
     with pytest.raises(ClientError) as ex:
         client.get_domain_name(domainName=domain_name)
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Domain Name specified"
-    )
+    ex.value.response["Error"]["Message"].should.equal("Invalid Domain Name specified")
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     # adding a domain name
     client.create_domain_name(domainName=domain_name)
@@ -1708,9 +1720,7 @@ def test_create_model():
             description=description,
             contentType=content_type,
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Rest API Id specified"
-    )
+    ex.value.response["Error"]["Message"].should.equal("Invalid Rest API Id specified")
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
     with pytest.raises(ClientError) as ex:
@@ -1772,9 +1782,7 @@ def test_get_model_by_name():
 
     with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=dummy_rest_api_id, modelName=model_name)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Rest API Id specified"
-    )
+    ex.value.response["Error"]["Message"].should.equal("Invalid Rest API Id specified")
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
 
@@ -1786,9 +1794,7 @@ def test_get_model_with_invalid_name():
     # test with an invalid model name
     with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=rest_api_id, modelName="fake")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid Model Name specified"
-    )
+    ex.value.response["Error"]["Message"].should.equal("Invalid Model Name specified")
     ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
 
@@ -1828,8 +1834,10 @@ def test_http_proxying_integration():
     stage_name = "staging"
     client.create_deployment(restApiId=api_id, stageName=stage_name)
 
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
+    deploy_url = (
+        "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
+            api_id=api_id, region_name=region_name, stage_name=stage_name
+        )
     )
 
     if not settings.TEST_SERVER_MODE:

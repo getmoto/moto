@@ -552,7 +552,9 @@ class SageMakerModelBackend(BaseBackend):
             Model.arn_for_model_name(model_name, self.region_name)
         )
         raise RESTError(
-            error_type="ValidationException", message=message, template="error_json",
+            error_type="ValidationException",
+            message=message,
+            template="error_json",
         )
 
     def list_models(self):
@@ -739,7 +741,10 @@ class SageMakerModelBackend(BaseBackend):
             )
 
     def create_endpoint(
-        self, endpoint_name, endpoint_config_name, tags,
+        self,
+        endpoint_name,
+        endpoint_config_name,
+        tags,
     ):
         try:
             endpoint_config = self.describe_endpoint_config(endpoint_config_name)

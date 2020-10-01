@@ -482,11 +482,15 @@ def test__create_alias__raises_if_alias_has_colon_character():
             ex = err.value
             ex.body["__type"].should.equal("ValidationException")
             ex.body["message"].should.equal(
-                "{alias_name} contains invalid characters for an alias".format(**locals())
+                "{alias_name} contains invalid characters for an alias".format(
+                    **locals()
+                )
             )
             ex.error_code.should.equal("ValidationException")
             ex.message.should.equal(
-                "{alias_name} contains invalid characters for an alias".format(**locals())
+                "{alias_name} contains invalid characters for an alias".format(
+                    **locals()
+                )
             )
             ex.reason.should.equal("Bad Request")
             ex.status.should.equal(400)
@@ -569,8 +573,10 @@ def test__delete_alias__raises_if_alias_is_not_found():
 
     with pytest.raises(NotFoundException) as err:
         kms.delete_alias(alias_name)
-        expected_message_match = r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
-            region=region, alias_name=alias_name
+        expected_message_match = (
+            r"Alias arn:aws:kms:{region}:[0-9]{{12}}:{alias_name} is not found.".format(
+                region=region, alias_name=alias_name
+            )
         )
         ex = err.value
         ex.body["__type"].should.equal("NotFoundException")

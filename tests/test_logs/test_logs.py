@@ -448,7 +448,9 @@ def test_describe_subscription_filters_errors():
 
     # when
     with pytest.raises(ClientError) as e:
-        client.describe_subscription_filters(logGroupName="not-existing-log-group",)
+        client.describe_subscription_filters(
+            logGroupName="not-existing-log-group",
+        )
         # then
         ex = e.value
         ex.operation_name.should.equal("DescribeSubscriptionFilters")

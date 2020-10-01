@@ -152,7 +152,9 @@ def test_publish_to_sqs_msg_attr_byte_value():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
     conn.subscribe(
-        TopicArn=topic_arn, Protocol="sqs", Endpoint=queue.attributes["QueueArn"],
+        TopicArn=topic_arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
     )
     queue_raw = sqs.create_queue(QueueName="test-queue-raw")
     conn.subscribe(

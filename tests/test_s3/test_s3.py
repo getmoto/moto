@@ -48,8 +48,8 @@ else:
 
 
 def reduced_min_part_size(f):
-    """ speed up tests by temporarily making the multipart minimum part size
-        small
+    """speed up tests by temporarily making the multipart minimum part size
+    small
     """
     orig_size = s3model.UPLOAD_PART_MIN_SIZE
 
@@ -1207,8 +1207,7 @@ if not settings.TEST_SERVER_MODE:
         with pytest.raises(ClientError) as ce:
             client.get_public_access_block(AccountId=ACCOUNT_ID)
         assert (
-            ce.value.response["Error"]["Code"]
-            == "NoSuchPublicAccessBlockConfiguration"
+            ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
         )
 
         # Put a with an invalid account ID:
@@ -1265,8 +1264,7 @@ if not settings.TEST_SERVER_MODE:
         with pytest.raises(ClientError) as ce:
             client.get_public_access_block(AccountId=ACCOUNT_ID)
         assert (
-            ce.value.response["Error"]["Code"]
-            == "NoSuchPublicAccessBlockConfiguration"
+            ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
         )
 
     @mock_s3
@@ -1465,9 +1463,7 @@ if not settings.TEST_SERVER_MODE:
             config_client.get_resource_config_history(
                 resourceType="AWS::S3::AccountPublicAccessBlock", resourceId=ACCOUNT_ID
             )
-        assert (
-            ce.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
-        )
+        assert ce.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
         # aggregate
         result = config_client.batch_get_resource_config(
             resourceKeys=[
@@ -2401,7 +2397,9 @@ def test_boto3_get_object_if_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
+            Bucket=bucket_name,
+            Key=key,
+            IfMatch='"hello"',
         )
         e = err.value
         e.response["Error"]["Code"].should.equal("PreconditionFailed")
@@ -2420,7 +2418,9 @@ def test_boto3_get_object_if_none_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.get_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
+            Bucket=bucket_name,
+            Key=key,
+            IfNoneMatch=etag,
         )
         e = err.value
         e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -2463,7 +2463,9 @@ def test_boto3_head_object_if_unmodified_since():
             IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
         )
         e = err.value
-        e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
+        e.response["Error"].should.equal(
+            {"Code": "412", "Message": "Precondition Failed"}
+        )
 
 
 @mock_s3
@@ -2478,10 +2480,14 @@ def test_boto3_head_object_if_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
-            Bucket=bucket_name, Key=key, IfMatch='"hello"',
+            Bucket=bucket_name,
+            Key=key,
+            IfMatch='"hello"',
         )
         e = err.value
-        e.response["Error"].should.equal({"Code": "412", "Message": "Precondition Failed"})
+        e.response["Error"].should.equal(
+            {"Code": "412", "Message": "Precondition Failed"}
+        )
 
 
 @mock_s3
@@ -2496,7 +2502,9 @@ def test_boto3_head_object_if_none_match():
 
     with pytest.raises(botocore.exceptions.ClientError) as err:
         s3.head_object(
-            Bucket=bucket_name, Key=key, IfNoneMatch=etag,
+            Bucket=bucket_name,
+            Key=key,
+            IfNoneMatch=etag,
         )
         e = err.exception
         e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
@@ -2764,7 +2772,8 @@ def test_boto3_put_bucket_cors():
         e = err.value
         e.response["Error"]["Code"].should.equal("InvalidRequest")
         e.response["Error"]["Message"].should.equal(
-            "Found unsupported HTTP method in CORS config. " "Unsupported method is NOTREAL"
+            "Found unsupported HTTP method in CORS config. "
+            "Unsupported method is NOTREAL"
         )
 
     with pytest.raises(ClientError) as err:
@@ -2793,7 +2802,9 @@ def test_boto3_get_bucket_cors():
         s3.get_bucket_cors(Bucket=bucket_name)
         e = err.value
         e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
-        e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
+        e.response["Error"]["Message"].should.equal(
+            "The CORS configuration does not exist"
+        )
 
     s3.put_bucket_cors(
         Bucket=bucket_name,
@@ -2842,7 +2853,9 @@ def test_boto3_delete_bucket_cors():
         s3.get_bucket_cors(Bucket=bucket_name)
         e = err.value
         e.response["Error"]["Code"].should.equal("NoSuchCORSConfiguration")
-        e.response["Error"]["Message"].should.equal("The CORS configuration does not exist")
+        e.response["Error"]["Message"].should.equal(
+            "The CORS configuration does not exist"
+        )
 
 
 @mock_s3
@@ -3195,9 +3208,7 @@ def test_put_bucket_notification_errors():
             )
 
         assert err.value.response["Error"]["Code"] == "InvalidArgument"
-        assert (
-            err.value.response["Error"]["Message"] == "The ARN is not well formed"
-        )
+        assert err.value.response["Error"]["Message"] == "The ARN is not well formed"
 
     # Region not the same as the bucket:
     with pytest.raises(ClientError) as err:
@@ -4067,9 +4078,7 @@ def test_public_access_block():
     with pytest.raises(ClientError) as ce:
         client.get_public_access_block(Bucket="mybucket")
 
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
     assert (
         ce.value.response["Error"]["Message"]
         == "The public access block configuration was not found"
@@ -4149,9 +4158,7 @@ def test_public_access_block():
 
     with pytest.raises(ClientError) as ce:
         client.get_public_access_block(Bucket="mybucket")
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
 
 
 @mock_s3

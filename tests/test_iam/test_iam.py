@@ -898,20 +898,19 @@ def test_get_all_access_keys():
     conn = boto.connect_iam()
     conn.create_user("my-user")
     response = conn.get_all_access_keys("my-user")
-    assert \
+    assert (
         response["list_access_keys_response"]["list_access_keys_result"][
             "access_key_metadata"
-        ] == \
-        []
+        ]
+        == []
+    )
     conn.create_access_key("my-user")
     response = conn.get_all_access_keys("my-user")
-    assert \
-        sorted(
-            response["list_access_keys_response"]["list_access_keys_result"][
-                "access_key_metadata"
-            ][0].keys()
-        ) == \
-        sorted(["status", "create_date", "user_name", "access_key_id"])
+    assert sorted(
+        response["list_access_keys_response"]["list_access_keys_result"][
+            "access_key_metadata"
+        ][0].keys()
+    ) == sorted(["status", "create_date", "user_name", "access_key_id"])
 
 
 @mock_iam
@@ -922,9 +921,9 @@ def test_list_access_keys():
     assert response["AccessKeyMetadata"] == []
     access_key = conn.create_access_key(UserName="my-user")["AccessKey"]
     response = conn.list_access_keys(UserName="my-user")
-    assert \
-        sorted(response["AccessKeyMetadata"][0].keys()) == \
-        sorted(["Status", "CreateDate", "UserName", "AccessKeyId"])
+    assert sorted(response["AccessKeyMetadata"][0].keys()) == sorted(
+        ["Status", "CreateDate", "UserName", "AccessKeyId"]
+    )
     conn = boto3.client(
         "iam",
         region_name="us-east-1",
@@ -932,9 +931,9 @@ def test_list_access_keys():
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
     response = conn.list_access_keys()
-    assert \
-        sorted(response["AccessKeyMetadata"][0].keys()) == \
-        sorted(["Status", "CreateDate", "UserName", "AccessKeyId"])
+    assert sorted(response["AccessKeyMetadata"][0].keys()) == sorted(
+        ["Status", "CreateDate", "UserName", "AccessKeyId"]
+    )
 
 
 @mock_iam_deprecated()
@@ -2977,7 +2976,10 @@ def test_role_list_config_discovered_resources():
             max_session_duration=3600,
         )
         roles.append(
-            {"id": this_role.id, "name": this_role.name,}
+            {
+                "id": this_role.id,
+                "name": this_role.name,
+            }
         )
 
     assert len(roles) == num_roles
@@ -3388,14 +3390,18 @@ def test_role_config_client():
     # Test non-aggregated resource name/id filter
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceName=roles[1]["name"], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceName=roles[1]["name"],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[1]["name"]
     )
 
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceIds=[roles[0]["id"]], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceIds=[roles[0]["id"]],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[0]["name"]
     )
@@ -3441,13 +3447,17 @@ def test_role_config_client():
     # Test non-aggregated resource name/id filter
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceName=roles[1]["name"], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceName=roles[1]["name"],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[1]["name"]
     )
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceIds=[roles[0]["id"]], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceIds=[roles[0]["id"]],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[0]["name"]
     )
@@ -3557,7 +3567,10 @@ def test_policy_list_config_discovered_resources():
             policy_name="policy{}".format(ix),
         )
         policies.append(
-            {"id": this_policy.id, "name": this_policy.name,}
+            {
+                "id": this_policy.id,
+                "name": this_policy.name,
+            }
         )
 
     assert len(policies) == num_policies
@@ -3819,14 +3832,18 @@ def test_policy_config_client():
     # Test non-aggregated resource name/id filter
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", resourceName=policies[1]["name"], limit=1,
+            resourceType="AWS::IAM::Policy",
+            resourceName=policies[1]["name"],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == policies[1]["name"]
     )
 
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", resourceIds=[policies[0]["id"]], limit=1,
+            resourceType="AWS::IAM::Policy",
+            resourceIds=[policies[0]["id"]],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == policies[0]["name"]
     )

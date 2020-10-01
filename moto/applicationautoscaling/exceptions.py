@@ -3,8 +3,8 @@ import json
 
 
 class AWSError(Exception):
-    """ Copied from acm/models.py; this class now exists in >5 locations,
-        maybe this should be centralised for use by any module?
+    """Copied from acm/models.py; this class now exists in >5 locations,
+    maybe this should be centralised for use by any module?
     """
 
     TYPE = None

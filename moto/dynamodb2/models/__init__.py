@@ -1052,7 +1052,8 @@ class DynamoDBBackend(BaseBackend):
                     )
 
                 gsis_by_name[gsi_to_create["IndexName"]] = GlobalSecondaryIndex.create(
-                    gsi_to_create, table.table_key_attrs,
+                    gsi_to_create,
+                    table.table_key_attrs,
                 )
 
         # in python 3.6, dict.values() returns a dict_values object, but we expect it to be a list in other

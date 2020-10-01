@@ -9,7 +9,6 @@ import sure  # noqa
 import pytest
 
 
-
 def boto_client():
     return boto3.client("secretsmanager", region_name="us-west-2")
 

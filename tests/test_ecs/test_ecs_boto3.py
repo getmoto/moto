@@ -2530,7 +2530,9 @@ def test_describe_task_sets():
     assert "tags" not in task_sets[0]
 
     task_sets = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, include=["TAGS"],
+        cluster=cluster_name,
+        service=service_name,
+        include=["TAGS"],
     )["taskSets"]
 
     cluster_arn = client.describe_clusters(clusters=[cluster_name])["clusters"][0][
@@ -2590,29 +2592,39 @@ def test_delete_task_set():
     )
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
     )["taskSet"]
 
     task_sets = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name,
+        service=service_name,
+        taskSets=[task_set["taskSetArn"]],
     )["taskSets"]
 
     assert len(task_sets) == 1
 
     response = client.delete_task_set(
-        cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"],
+        cluster=cluster_name,
+        service=service_name,
+        taskSet=task_set["taskSetArn"],
     )
     assert response["taskSet"]["taskSetArn"] == task_set["taskSetArn"]
 
     task_sets = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name,
+        service=service_name,
+        taskSets=[task_set["taskSetArn"]],
     )["taskSets"]
 
     assert len(task_sets) == 0
 
     with pytest.raises(ClientError):
         _ = client.delete_task_set(
-            cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"],
+            cluster=cluster_name,
+            service=service_name,
+            taskSet=task_set["taskSetArn"],
         )
 
 
@@ -2648,7 +2660,9 @@ def test_update_service_primary_task_set():
     )
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
     )["taskSet"]
 
     service = client.describe_services(cluster=cluster_name, services=[service_name],)[
@@ -2668,7 +2682,9 @@ def test_update_service_primary_task_set():
     assert service["taskDefinition"] == service["taskSets"][0]["taskDefinition"]
 
     another_task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
     )["taskSet"]
     service = client.describe_services(cluster=cluster_name, services=[service_name],)[
         "services"
@@ -2720,11 +2736,15 @@ def test_update_task_set():
     )
 
     task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
     )["taskSet"]
 
     another_task_set = client.create_task_set(
-        cluster=cluster_name, service=service_name, taskDefinition=task_def_name,
+        cluster=cluster_name,
+        service=service_name,
+        taskDefinition=task_def_name,
     )["taskSet"]
     assert another_task_set["scale"]["unit"] == "PERCENT"
     assert another_task_set["scale"]["value"] == 100.0
@@ -2737,7 +2757,9 @@ def test_update_task_set():
     )
 
     updated_task_set = client.describe_task_sets(
-        cluster=cluster_name, service=service_name, taskSets=[task_set["taskSetArn"]],
+        cluster=cluster_name,
+        service=service_name,
+        taskSets=[task_set["taskSetArn"]],
     )["taskSets"][0]
     assert updated_task_set["scale"]["value"] == 25.0
     assert updated_task_set["scale"]["unit"] == "PERCENT"
