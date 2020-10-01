@@ -3532,15 +3532,6 @@ class SubnetBackend(object):
             raise InvalidParameterValueError(attr_name)
 
 
-class Unsuccessful(object):
-    def __init__(
-        self, resource_id, error_code, error_message,
-    ):
-        self.resource_id = resource_id
-        self.error_code = error_code
-        self.error_message = error_message
-
-
 class FlowLogs(TaggedEC2Resource, CloudFormationModel):
     def __init__(
         self,
@@ -3749,11 +3740,11 @@ class FlowLogsBackend(object):
                 try:
                     s3_backend.get_bucket(arn)
                 except MissingBucket:
+                    # Instead of creating FlowLog report
+                    # the unsuccessful status for the
+                    # given resource_id
                     unsuccessful.append(
-                        # Instead of creating FlowLog report
-                        # the unsuccessful status for the
-                        # given resource_id
-                        Unsuccessful(
+                        (
                             resource_id,
                             "400",
                             "LogDestination: {0} does not exist.".format(arn),

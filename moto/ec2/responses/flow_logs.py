@@ -59,10 +59,10 @@ CREATE_FLOW_LOGS_RESPONSE = """
     {% for error in errors %}
       <item>
         <error>
-          <code>{{ error.error_code }}</code>
-          <message>{{ error.error_message }}</message>
+          <code>{{ error.1 }}</code>
+          <message>{{ error.2 }}</message>
         </error>
-        <resourceId>{{ error.resource_id }}</resourceId>
+        <resourceId>{{ error.0 }}</resourceId>
       </item>
     {% endfor %}
   </unsuccessful>
