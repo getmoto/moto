@@ -53,11 +53,11 @@ def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return
             ScalableDimension="foo",
         )
 
-    err.response["Error"]["Code"].should.equal("ValidationException")
-    err.response["Error"]["Message"].split(":")[0].should.look_like(
+    err.value.response["Error"]["Code"].should.equal("ValidationException")
+    err.value.response["Error"]["Message"].split(":")[0].should.look_like(
         "1 validation error detected"
     )
-    err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_applicationautoscaling
@@ -70,11 +70,11 @@ def test_describe_scalable_targets_with_invalid_service_namespace_should_return_
             ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
         )
 
-    err.response["Error"]["Code"].should.equal("ValidationException")
-    err.response["Error"]["Message"].split(":")[0].should.look_like(
+    err.value.response["Error"]["Code"].should.equal("ValidationException")
+    err.value.response["Error"]["Message"].split(":")[0].should.look_like(
         "1 validation error detected"
     )
-    err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_applicationautoscaling
@@ -87,11 +87,11 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
             ScalableDimension="bar",
         )
 
-    err.response["Error"]["Code"].should.equal("ValidationException")
-    err.response["Error"]["Message"].split(":")[0].should.look_like(
+    err.value.response["Error"]["Code"].should.equal("ValidationException")
+    err.value.response["Error"]["Message"].split(":")[0].should.look_like(
         "2 validation errors detected"
     )
-    err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_ecs
@@ -103,11 +103,11 @@ def test_register_scalable_target_ecs_with_non_existent_service_should_return_va
     with pytest.raises(ClientError) as err:
         register_scalable_target(client, ServiceNamespace="ecs", ResourceId=resource_id)
 
-    err.response["Error"]["Code"].should.equal("ValidationException")
-    err.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Code"].should.equal("ValidationException")
+    err.value.response["Error"]["Message"].should.equal(
         "ECS service doesn't exist: {}".format(resource_id)
     )
-    err.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    err.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @parameterized(
