@@ -2502,7 +2502,7 @@ def test_boto3_head_object_if_none_match():
             Key=key,
             IfNoneMatch=etag,
         )
-    e = err.exception
+    e = err.value
     e.response["Error"].should.equal({"Code": "304", "Message": "Not Modified"})
 
 
