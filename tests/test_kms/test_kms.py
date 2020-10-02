@@ -579,16 +579,15 @@ def test__delete_alias__raises_if_alias_is_not_found():
                 region=region, alias_name=alias_name
             )
         )
-
-    ex = err.value
-    ex.body["__type"].should.equal("NotFoundException")
-    ex.body["message"].should.match(expected_message_match)
-    ex.box_usage.should.be.none
-    ex.error_code.should.be.none
-    ex.message.should.match(expected_message_match)
-    ex.reason.should.equal("Bad Request")
-    ex.request_id.should.be.none
-    ex.status.should.equal(400)
+        ex = err.value
+        ex.body["__type"].should.equal("NotFoundException")
+        ex.body["message"].should.match(expected_message_match)
+        ex.box_usage.should.be.none
+        ex.error_code.should.be.none
+        ex.message.should.match(expected_message_match)
+        ex.reason.should.equal("Bad Request")
+        ex.request_id.should.be.none
+        ex.status.should.equal(400)
 
 
 @mock_kms_deprecated
