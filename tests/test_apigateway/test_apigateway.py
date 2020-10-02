@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 import responses
 from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import ACCOUNT_ID
-from nose.tools import assert_raises
+import pytest
 
 
 @freeze_time("2015-01-01")
@@ -90,13 +90,13 @@ def test_create_rest_api_with_policy():
 def test_create_rest_api_invalid_apikeysource():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_rest_api(
             name="my_api",
             description="this is my api",
             apiKeySource="not a valid api key source",
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_apigateway
@@ -105,7 +105,9 @@ def test_create_rest_api_valid_apikeysources():
 
     # 1. test creating rest api with HEADER apiKeySource
     response = client.create_rest_api(
-        name="my_api", description="this is my api", apiKeySource="HEADER",
+        name="my_api",
+        description="this is my api",
+        apiKeySource="HEADER",
     )
     api_id = response["id"]
 
@@ -114,7 +116,9 @@ def test_create_rest_api_valid_apikeysources():
 
     # 2. test creating rest api with AUTHORIZER apiKeySource
     response = client.create_rest_api(
-        name="my_api2", description="this is my api", apiKeySource="AUTHORIZER",
+        name="my_api2",
+        description="this is my api",
+        apiKeySource="AUTHORIZER",
     )
     api_id = response["id"]
 
@@ -126,13 +130,13 @@ def test_create_rest_api_valid_apikeysources():
 def test_create_rest_api_invalid_endpointconfiguration():
     client = boto3.client("apigateway", region_name="us-west-2")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_rest_api(
             name="my_api",
             description="this is my api",
             endpointConfiguration={"types": ["INVALID"]},
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_apigateway
@@ -149,7 +153,9 @@ def test_create_rest_api_valid_endpointconfigurations():
 
     response = client.get_rest_api(restApiId=api_id)
     response["endpointConfiguration"].should.equal(
-        {"types": ["PRIVATE"],}
+        {
+            "types": ["PRIVATE"],
+        }
     )
 
     # 2. test creating rest api with REGIONAL endpointConfiguration
@@ -162,7 +168,9 @@ def test_create_rest_api_valid_endpointconfigurations():
 
     response = client.get_rest_api(restApiId=api_id)
     response["endpointConfiguration"].should.equal(
-        {"types": ["REGIONAL"],}
+        {
+            "types": ["REGIONAL"],
+        }
     )
 
     # 3. test creating rest api with EDGE endpointConfiguration
@@ -175,7 +183,9 @@ def test_create_rest_api_valid_endpointconfigurations():
 
     response = client.get_rest_api(restApiId=api_id)
     response["endpointConfiguration"].should.equal(
-        {"types": ["EDGE"],}
+        {
+            "types": ["EDGE"],
+        }
     )
 
 
@@ -194,10 +204,10 @@ def test_create_resource__validate_name():
     valid_names = ["users", "{user_id}", "{proxy+}", "user_09", "good-dog"]
     # All invalid names should throw an exception
     for name in invalid_names:
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Resource's path part only allow a-zA-Z0-9._- and curly braces at the beginning and the end and an optional plus sign before the closing brace."
         )
     # All valid names  should go through
@@ -221,7 +231,11 @@ def test_create_resource():
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
     root_resource.should.equal(
-        {"path": "/", "id": root_id, "ResponseMetadata": {"HTTPStatusCode": 200},}
+        {
+            "path": "/",
+            "id": root_id,
+            "ResponseMetadata": {"HTTPStatusCode": 200},
+        }
     )
 
     client.create_resource(restApiId=api_id, parentId=root_id, pathPart="users")
@@ -1194,10 +1208,10 @@ def test_create_deployment_requires_REST_methods():
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Message"].should.equal(
         "The REST API doesn't contain any methods"
     )
 
@@ -1217,10 +1231,10 @@ def test_create_deployment_requires_REST_method_integrations():
         restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_deployment(restApiId=api_id, stageName=stage_name)["id"]
-    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Message"].should.equal(
         "No integration defined for method"
     )
 
@@ -1273,12 +1287,12 @@ def test_put_integration_response_requires_responseTemplate():
         integrationHttpMethod="POST",
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.put_integration_response(
             restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
         )
-    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.exception.response["Error"]["Message"].should.equal("Invalid request input")
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
     # Works fine if responseTemplate is defined
     client.put_integration_response(
         restApiId=api_id,
@@ -1314,13 +1328,13 @@ def test_put_integration_response_with_response_template():
         integrationHttpMethod="POST",
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.put_integration_response(
             restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-    ex.exception.response["Error"]["Message"].should.equal("Invalid request input")
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Message"].should.equal("Invalid request input")
 
     client.put_integration_response(
         restApiId=api_id,
@@ -1372,7 +1386,7 @@ def test_put_integration_validation():
 
     for type in types_requiring_integration_method:
         # Ensure that integrations of these types fail if no integrationHttpMethod is provided
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1380,8 +1394,8 @@ def test_put_integration_validation():
                 type=type,
                 uri="http://httpbin.org/robots.txt",
             )
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Enumeration value for HttpMethod must be non-empty"
         )
     for type in types_not_requiring_integration_method:
@@ -1428,7 +1442,7 @@ def test_put_integration_validation():
         )
     for type in ["AWS_PROXY"]:
         # Ensure that aws_proxy does not support S3
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1440,13 +1454,13 @@ def test_put_integration_validation():
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Integrations of type 'AWS_PROXY' currently only supports Lambda function and Firehose stream invocations."
         )
     for type in aws_types:
         # Ensure that the Role ARN is for the current account
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1456,13 +1470,13 @@ def test_put_integration_validation():
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
-        ex.exception.response["Error"]["Code"].should.equal("AccessDeniedException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("AccessDeniedException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Cross-account pass role is not allowed."
         )
     for type in ["AWS"]:
         # Ensure that the Role ARN is specified for aws integrations
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1471,13 +1485,13 @@ def test_put_integration_validation():
                 uri="arn:aws:apigateway:us-west-2:s3:path/b/k",
                 integrationHttpMethod="POST",
             )
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Role ARN must be specified for AWS integrations"
         )
     for type in http_types:
         # Ensure that the URI is valid HTTP
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1486,13 +1500,13 @@ def test_put_integration_validation():
                 uri="non-valid-http",
                 integrationHttpMethod="POST",
             )
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Invalid HTTP endpoint specified for URI"
         )
     for type in aws_types:
         # Ensure that the URI is an ARN
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1501,13 +1515,13 @@ def test_put_integration_validation():
                 uri="non-valid-arn",
                 integrationHttpMethod="POST",
             )
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "Invalid ARN specified in the request"
         )
     for type in aws_types:
         # Ensure that the URI is a valid ARN
-        with assert_raises(ClientError) as ex:
+        with pytest.raises(ClientError) as ex:
             client.put_integration(
                 restApiId=api_id,
                 resourceId=root_id,
@@ -1516,8 +1530,8 @@ def test_put_integration_validation():
                 uri="arn:aws:iam::0000000000:role/service-role/asdf",
                 integrationHttpMethod="POST",
             )
-        ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
-        ex.exception.response["Error"]["Message"].should.equal(
+        ex.value.response["Error"]["Code"].should.equal("BadRequestException")
+        ex.value.response["Error"]["Message"].should.equal(
             "AWS ARN for integration must contain path or action"
         )
 
@@ -1632,11 +1646,11 @@ def test_create_domain_names():
     response["domainName"].should.equal(domain_name)
     response["certificateName"].should.equal(test_certificate_name)
     # without domain name it should throw BadRequestException
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_domain_name(domainName="")
 
-    ex.exception.response["Error"]["Message"].should.equal("No Domain Name specified")
-    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Message"].should.equal("No Domain Name specified")
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
 
 
 @mock_apigateway
@@ -1666,13 +1680,11 @@ def test_get_domain_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
     # quering an invalid domain name which is not present
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_domain_name(domainName=domain_name)
 
-    ex.exception.response["Error"]["Message"].should.equal(
-        "Invalid Domain Name specified"
-    )
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal("Invalid Domain Name specified")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
     # adding a domain name
     client.create_domain_name(domainName=domain_name)
     # retrieving the data of added domain name.
@@ -1701,19 +1713,17 @@ def test_create_model():
     response["description"].should.equal(description)
 
     # with an invalid rest_api_id it should throw NotFoundException
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_model(
             restApiId=dummy_rest_api_id,
             name=model_name,
             description=description,
             contentType=content_type,
         )
-    ex.exception.response["Error"]["Message"].should.equal(
-        "Invalid Rest API Id specified"
-    )
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal("Invalid Rest API Id specified")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_model(
             restApiId=rest_api_id,
             name="",
@@ -1721,8 +1731,8 @@ def test_create_model():
             contentType=content_type,
         )
 
-    ex.exception.response["Error"]["Message"].should.equal("No Model Name specified")
-    ex.exception.response["Error"]["Code"].should.equal("BadRequestException")
+    ex.value.response["Error"]["Message"].should.equal("No Model Name specified")
+    ex.value.response["Error"]["Code"].should.equal("BadRequestException")
 
 
 @mock_apigateway
@@ -1770,12 +1780,10 @@ def test_get_model_by_name():
     result["name"] = model_name
     result["description"] = description
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=dummy_rest_api_id, modelName=model_name)
-    ex.exception.response["Error"]["Message"].should.equal(
-        "Invalid Rest API Id specified"
-    )
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal("Invalid Rest API Id specified")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
 
 @mock_apigateway
@@ -1784,12 +1792,10 @@ def test_get_model_with_invalid_name():
     response = client.create_rest_api(name="my_api", description="this is my api")
     rest_api_id = response["id"]
     # test with an invalid model name
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_model(restApiId=rest_api_id, modelName="fake")
-    ex.exception.response["Error"]["Message"].should.equal(
-        "Invalid Model Name specified"
-    )
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal("Invalid Model Name specified")
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
 
 
 @mock_apigateway
@@ -1828,8 +1834,10 @@ def test_http_proxying_integration():
     stage_name = "staging"
     client.create_deployment(restApiId=api_id, stageName=stage_name)
 
-    deploy_url = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
-        api_id=api_id, region_name=region_name, stage_name=stage_name
+    deploy_url = (
+        "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}".format(
+            api_id=api_id, region_name=region_name, stage_name=stage_name
+        )
     )
 
     if not settings.TEST_SERVER_MODE:
@@ -1868,11 +1876,11 @@ def test_create_api_headers():
     payload = {"value": apikey_value, "name": apikey_name}
 
     client.create_api_key(**payload)
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_api_key(**payload)
-    ex.exception.response["Error"]["Code"].should.equal("ConflictException")
+    ex.value.response["Error"]["Code"].should.equal("ConflictException")
     if not settings.TEST_SERVER_MODE:
-        ex.exception.response["ResponseMetadata"]["HTTPHeaders"].should.equal({})
+        ex.value.response["ResponseMetadata"]["HTTPHeaders"].should.equal({})
 
 
 @mock_apigateway
@@ -1939,10 +1947,10 @@ def test_usage_plans():
     len(response["items"]).should.equal(0)
 
     # # Try to get info about a non existing usage
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan(usagePlanId="not_existing")
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid Usage Plan ID specified"
     )
 
@@ -2030,26 +2038,26 @@ def test_usage_plan_keys():
     len(response["items"]).should.equal(0)
 
     # Try to get info about a non existing api key
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId="not_existing_key")
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid API Key identifier specified"
     )
 
     # Try to get info about an existing api key that has not jet added to a valid usage plan
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId=usage_plan_id, keyId=key_id)
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid Usage Plan ID specified"
     )
 
     # Try to get info about an existing api key that has not jet added to a valid usage plan
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.get_usage_plan_key(usagePlanId="not_existing_plan_id", keyId=key_id)
-    ex.exception.response["Error"]["Code"].should.equal("NotFoundException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("NotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid Usage Plan ID specified"
     )
 

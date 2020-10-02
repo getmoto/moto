@@ -343,8 +343,10 @@ class IAMPolicyDocumentValidator:
             resource_partitions = resource.partition(":")
 
             if resource_partitions[1] == "":
-                self._resource_error = 'Resource {resource} must be in ARN format or "*".'.format(
-                    resource=resource
+                self._resource_error = (
+                    'Resource {resource} must be in ARN format or "*".'.format(
+                        resource=resource
+                    )
                 )
                 return
 
@@ -390,15 +392,14 @@ class IAMPolicyDocumentValidator:
 
             service = resource_partitions[0]
 
-            if service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys() and not resource_partitions[
-                2
-            ].startswith(
-                ":"
+            if (
+                service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys()
+                and not resource_partitions[2].startswith(":")
             ):
-                self._resource_error = SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[
-                    service
-                ].format(
-                    resource=resource
+                self._resource_error = (
+                    SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].format(
+                        resource=resource
+                    )
                 )
                 return
 
@@ -520,8 +521,8 @@ class IAMPolicyDocumentValidator:
                     assert 0 <= int(time_zone_minutes) <= 59
             else:
                 seconds_with_decimal_fraction = time_parts[2]
-            seconds_with_decimal_fraction_partition = seconds_with_decimal_fraction.partition(
-                "."
+            seconds_with_decimal_fraction_partition = (
+                seconds_with_decimal_fraction.partition(".")
             )
             seconds = seconds_with_decimal_fraction_partition[0]
             assert 0 <= int(seconds) <= 59

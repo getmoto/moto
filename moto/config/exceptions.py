@@ -101,8 +101,10 @@ class InvalidDeliveryChannelNameException(JsonRESTError):
     code = 400
 
     def __init__(self, name):
-        message = "The delivery channel name '{name}' is not valid, blank string.".format(
-            name=name
+        message = (
+            "The delivery channel name '{name}' is not valid, blank string.".format(
+                name=name
+            )
         )
         super(InvalidDeliveryChannelNameException, self).__init__(
             "InvalidDeliveryChannelNameException", message
@@ -287,8 +289,10 @@ class InvalidTagCharacters(JsonRESTError):
     code = 400
 
     def __init__(self, tag, param="tags.X.member.key"):
-        message = "1 validation error detected: Value '{}' at '{}' failed to satisfy ".format(
-            tag, param
+        message = (
+            "1 validation error detected: Value '{}' at '{}' failed to satisfy ".format(
+                tag, param
+            )
         )
         message += "constraint: Member must satisfy regular expression pattern: [\\\\p{L}\\\\p{Z}\\\\p{N}_.:/=+\\\\-@]+"
 

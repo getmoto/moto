@@ -6,7 +6,7 @@ import boto3
 import sure  # noqa
 
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto.core import ACCOUNT_ID
 from moto.core.exceptions import JsonRESTError
@@ -331,7 +331,7 @@ def test_put_events():
     response["FailedEntryCount"].should.equal(0)
     response["Entries"].should.have.length_of(1)
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.put_events(Entries=[event] * 20)
 
 

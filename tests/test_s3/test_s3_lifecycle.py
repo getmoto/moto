@@ -8,7 +8,7 @@ from boto.s3.lifecycle import Lifecycle, Transition, Expiration, Rule
 import sure  # noqa
 from botocore.exceptions import ClientError
 from datetime import datetime
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_s3_deprecated, mock_s3
 
@@ -56,7 +56,7 @@ def test_lifecycle_with_filters():
     assert result["Rules"][0]["Filter"]["Prefix"] == ""
     assert not result["Rules"][0]["Filter"].get("And")
     assert not result["Rules"][0]["Filter"].get("Tag")
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
     # Without any prefixes and an empty filter (this is by default a prefix for the whole bucket):
@@ -75,16 +75,16 @@ def test_lifecycle_with_filters():
     )
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
     # If we remove the filter -- and don't specify a Prefix, then this is bad:
     lfc["Rules"][0].pop("Filter")
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # With a tag:
     lfc["Rules"][0]["Filter"] = {"Tag": {"Key": "mytag", "Value": "mytagvalue"}}
@@ -93,12 +93,12 @@ def test_lifecycle_with_filters():
     )
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Filter"]["Prefix"]
     assert not result["Rules"][0]["Filter"].get("And")
     assert result["Rules"][0]["Filter"]["Tag"]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["Tag"]["Value"] == "mytagvalue"
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
     # With And (single tag):
@@ -118,7 +118,7 @@ def test_lifecycle_with_filters():
     assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 1
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
     # With multiple And tags:
@@ -141,7 +141,7 @@ def test_lifecycle_with_filters():
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Key"] == "mytag2"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
     # And filter without Prefix but multiple Tags:
@@ -156,30 +156,30 @@ def test_lifecycle_with_filters():
     )
     result = client.get_bucket_lifecycle_configuration(Bucket="bucket")
     assert len(result["Rules"]) == 1
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Filter"]["And"]["Prefix"]
     assert len(result["Rules"][0]["Filter"]["And"]["Tags"]) == 2
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Key"] == "mytag"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][0]["Value"] == "mytagvalue"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Key"] == "mytag2"
     assert result["Rules"][0]["Filter"]["And"]["Tags"][1]["Value"] == "mytagvalue2"
-    with assert_raises(KeyError):
+    with pytest.raises(KeyError):
         assert result["Rules"][0]["Prefix"]
 
     # Can't have both filter and prefix:
     lfc["Rules"][0]["Prefix"] = ""
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     lfc["Rules"][0]["Prefix"] = "some/path"
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # No filters -- just a prefix:
     del lfc["Rules"][0]["Filter"]
@@ -196,11 +196,11 @@ def test_lifecycle_with_filters():
         "Prefix": "some/prefix",
         "Tag": {"Key": "mytag", "Value": "mytagvalue"},
     }
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     lfc["Rules"][0]["Filter"] = {
         "Tag": {"Key": "mytag", "Value": "mytagvalue"},
@@ -212,11 +212,11 @@ def test_lifecycle_with_filters():
             ],
         },
     }
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # Make sure multiple rules work:
     lfc = {
@@ -279,19 +279,19 @@ def test_lifecycle_with_eodm():
 
     # With failure:
     lfc["Rules"][0]["Expiration"]["Days"] = 7
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
     del lfc["Rules"][0]["Expiration"]["Days"]
 
     lfc["Rules"][0]["Expiration"]["Date"] = datetime(2015, 1, 1)
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3
@@ -383,19 +383,19 @@ def test_lifecycle_with_nvt():
 
     # With failures for missing children:
     del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"]
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
     lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] = 30
 
     del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"]
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3

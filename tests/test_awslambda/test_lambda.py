@@ -7,6 +7,7 @@ import boto3
 import hashlib
 import io
 import json
+import pytest
 import time
 import zipfile
 import sure  # noqa
@@ -24,7 +25,6 @@ from moto import (
     mock_sqs,
 )
 from moto.sts.models import ACCOUNT_ID
-from nose.tools import assert_raises
 from botocore.exceptions import ClientError
 
 _lambda_region = "us-west-2"
@@ -204,7 +204,9 @@ def test_invoke_dryrun_function():
         Runtime="python2.7",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1(),},
+        Code={
+            "ZipFile": get_test_zip_file1(),
+        },
         Description="test lambda function",
         Timeout=3,
         MemorySize=128,
@@ -497,7 +499,7 @@ def test_get_function():
     )
 
     # Test get function when can't find function name
-    with assert_raises(conn.exceptions.ResourceNotFoundException):
+    with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
 
 
@@ -1275,7 +1277,8 @@ def wait_for_log_msg(expected_msg, log_group):
 
         for log_stream in log_streams:
             result = logs_conn.get_log_events(
-                logGroupName=log_group, logStreamName=log_stream["logStreamName"],
+                logGroupName=log_group,
+                logStreamName=log_stream["logStreamName"],
             )
             received_messages.extend(
                 [event["message"] for event in result.get("events")]
@@ -1662,7 +1665,7 @@ def test_update_function_s3():
 @mock_lambda
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         r"1 validation error detected: Value 'test-iam-role' at 'role' failed to satisfy constraint: Member must satisfy regular expression pattern: arn:(aws[a-zA-Z-]*)?:iam::(\d{12}):role/?[a-zA-Z_0-9+=,.@\-_/]+"
     )
 
@@ -1670,7 +1673,7 @@ def test_create_function_with_invalid_arn():
 @mock_lambda
 def test_create_function_with_arn_from_different_account():
     err = create_invalid_lambda("arn:aws:iam::000000000000:role/example_role")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         "Cross-account pass role is not allowed."
     )
 
@@ -1680,7 +1683,7 @@ def test_create_function_with_unknown_arn():
     err = create_invalid_lambda(
         "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/service-role/unknown_role"
     )
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Message"].should.equal(
         "The role defined for the function cannot be assumed by Lambda."
     )
 
@@ -1713,7 +1716,9 @@ def test_remove_function_permission():
     )
 
     remove = conn.remove_permission(
-        FunctionName="testFunction", StatementId="1", Qualifier="2",
+        FunctionName="testFunction",
+        StatementId="1",
+        Qualifier="2",
     )
     remove["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
     policy = conn.get_policy(FunctionName="testFunction", Qualifier="2")["Policy"]
@@ -1800,7 +1805,7 @@ def test_get_function_concurrency():
 def create_invalid_lambda(role):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         conn.create_function(
             FunctionName="testFunction",
             Runtime="python2.7",

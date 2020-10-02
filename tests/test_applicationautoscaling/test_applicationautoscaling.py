@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import boto3
 from moto import mock_applicationautoscaling, mock_ecs
 import sure  # noqa
-from nose.tools import with_setup
+import pytest
 
 DEFAULT_REGION = "us-east-1"
 DEFAULT_ECS_CLUSTER = "default"

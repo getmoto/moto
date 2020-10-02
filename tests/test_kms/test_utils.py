@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 import sure  # noqa
-from nose.tools import assert_raises
+import pytest
 from parameterized import parameterized
 
 from moto.kms.exceptions import (
@@ -123,7 +123,7 @@ def test_encrypt_decrypt_cycle(encryption_context):
 
 
 def test_encrypt_unknown_key_id():
-    with assert_raises(NotFoundException):
+    with pytest.raises(NotFoundException):
         encrypt(
             master_keys={},
             key_id="anything",
@@ -136,7 +136,7 @@ def test_decrypt_invalid_ciphertext_format():
     master_key = Key("nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
 
-    with assert_raises(InvalidCiphertextException):
+    with pytest.raises(InvalidCiphertextException):
         decrypt(master_keys=master_key_map, ciphertext_blob=b"", encryption_context={})
 
 
@@ -148,7 +148,7 @@ def test_decrypt_unknwown_key_id():
         b"some ciphertext"
     )
 
-    with assert_raises(AccessDeniedException):
+    with pytest.raises(AccessDeniedException):
         decrypt(master_keys={}, ciphertext_blob=ciphertext_blob, encryption_context={})
 
 
@@ -161,7 +161,7 @@ def test_decrypt_invalid_ciphertext():
         b"some ciphertext"
     )
 
-    with assert_raises(InvalidCiphertextException):
+    with pytest.raises(InvalidCiphertextException):
         decrypt(
             master_keys=master_key_map,
             ciphertext_blob=ciphertext_blob,
@@ -181,7 +181,7 @@ def test_decrypt_invalid_encryption_context():
         encryption_context={"some": "encryption", "context": "here"},
     )
 
-    with assert_raises(InvalidCiphertextException):
+    with pytest.raises(InvalidCiphertextException):
         decrypt(
             master_keys=master_key_map,
             ciphertext_blob=ciphertext_blob,

@@ -14,7 +14,6 @@ from moto import (
     mock_cloudformation,
 )
 import functools
-import nose
 import json
 
 DEFAULT_REGION = "eu-central-1"

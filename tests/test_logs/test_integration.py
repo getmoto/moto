@@ -1,13 +1,13 @@
 import base64
 import boto3
 import json
+import pytest
 import time
 import zlib
 
 from botocore.exceptions import ClientError
 from io import BytesIO
 from moto import mock_logs, mock_lambda, mock_iam
-from nose.tools import assert_raises
 from zipfile import ZipFile, ZIP_DEFLATED
 
 
@@ -78,7 +78,7 @@ def test_put_subscription_filter_update():
 
     # when
     # only one subscription filter can be associated with a log group
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.put_subscription_filter(
             logGroupName=log_group_name,
             filterName="test-2",
@@ -87,7 +87,7 @@ def test_put_subscription_filter_update():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("LimitExceededException")
@@ -204,7 +204,8 @@ def test_delete_subscription_filter_errors():
 
     # when
     client_logs.delete_subscription_filter(
-        logGroupName="/test", filterName="test",
+        logGroupName="/test",
+        filterName="test",
     )
 
     # then
@@ -240,13 +241,14 @@ def test_delete_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
-            logGroupName="not-existing-log-group", filterName="test",
+            logGroupName="not-existing-log-group",
+            filterName="test",
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -255,13 +257,14 @@ def test_delete_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client_logs.delete_subscription_filter(
-            logGroupName="/test", filterName="wrong-filter-name",
+            logGroupName="/test",
+            filterName="wrong-filter-name",
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -278,7 +281,7 @@ def test_put_subscription_filter_errors():
     client.create_log_group(logGroupName=log_group_name)
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="not-existing-log-group",
             filterName="test",
@@ -287,7 +290,7 @@ def test_put_subscription_filter_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -296,7 +299,7 @@ def test_put_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="/test",
             filterName="test",
@@ -305,7 +308,7 @@ def test_put_subscription_filter_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterException")
@@ -315,7 +318,7 @@ def test_put_subscription_filter_errors():
     )
 
     # when
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         client.put_subscription_filter(
             logGroupName="/test",
             filterName="test",
@@ -324,7 +327,7 @@ def test_put_subscription_filter_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutSubscriptionFilter")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterException")
@@ -341,7 +344,9 @@ def _get_role_name(region_name):
             return iam.get_role(RoleName="test-role")["Role"]["Arn"]
         except ClientError:
             return iam.create_role(
-                RoleName="test-role", AssumeRolePolicyDocument="test policy", Path="/",
+                RoleName="test-role",
+                AssumeRolePolicyDocument="test policy",
+                Path="/",
             )["Role"]["Arn"]
 
 
@@ -371,7 +376,8 @@ def _wait_for_log_msg(client, log_group_name, expected_msg_part):
 
         for log_stream in log_streams:
             result = client.get_log_events(
-                logGroupName=log_group_name, logStreamName=log_stream["logStreamName"],
+                logGroupName=log_group_name,
+                logStreamName=log_stream["logStreamName"],
             )
             received_messages.extend(
                 [event["message"] for event in result.get("events")]

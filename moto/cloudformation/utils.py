@@ -41,8 +41,7 @@ def random_suffix():
 
 
 def yaml_tag_constructor(loader, tag, node):
-    """convert shorthand intrinsic function to full name
-    """
+    """convert shorthand intrinsic function to full name"""
 
     def _f(loader, tag, node):
         if tag == "!GetAtt":

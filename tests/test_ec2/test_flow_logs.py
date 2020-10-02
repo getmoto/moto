@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+import pytest
 
 import boto3
 
@@ -36,7 +35,7 @@ def test_create_flow_logs_s3():
         CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -45,9 +44,9 @@ def test_create_flow_logs_s3():
             LogDestination="arn:aws:s3:::" + bucket.name,
             DryRun=True,
         )
-    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -87,7 +86,7 @@ def test_create_flow_logs_cloud_watch():
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
     logs_client.create_log_group(logGroupName="test-group")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -97,9 +96,9 @@ def test_create_flow_logs_cloud_watch():
             DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
             DryRun=True,
         )
-    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -145,7 +144,9 @@ def test_create_flow_log_create():
 
     bucket = s3.create_bucket(
         Bucket="test-flow-logs",
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1",},
+        CreateBucketConfiguration={
+            "LocationConstraint": "us-west-1",
+        },
     )
 
     response = client.create_flow_logs(
@@ -243,19 +244,19 @@ def test_delete_flow_logs_delete_many():
 def test_delete_flow_logs_non_existing():
     client = boto3.client("ec2", region_name="us-west-1")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d"])
-    ex.exception.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "These flow log ids in the input list are not found: [TotalCount: 1] fl-1a2b3c4d"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.delete_flow_logs(FlowLogIds=["fl-1a2b3c4d", "fl-2b3c4d5e"])
-    ex.exception.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("InvalidFlowLogId.NotFound")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "These flow log ids in the input list are not found: [TotalCount: 2] fl-1a2b3c4d fl-2b3c4d5e"
     )
 
@@ -304,7 +305,7 @@ def test_create_flow_logs_invalid_parameters():
         CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -313,26 +314,26 @@ def test_create_flow_logs_invalid_parameters():
             LogDestination="arn:aws:s3:::" + bucket.name,
             MaxAggregationInterval=10,
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid Flow Log Max Aggregation Interval"
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
             TrafficType="ALL",
             LogDestinationType="s3",
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "LogDestination can't be empty if LogGroupName is not provided."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -340,22 +341,22 @@ def test_create_flow_logs_invalid_parameters():
             LogDestinationType="s3",
             LogGroupName="test",
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "LogDestination type must be cloud-watch-logs if LogGroupName is provided."
     )
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
             TrafficType="ALL",
             LogGroupName="test",
         )
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "DeliverLogsPermissionArn can't be empty if LogDestinationType is cloud-watch-logs."
     )
 
@@ -368,7 +369,7 @@ def test_create_flow_logs_invalid_parameters():
     )["FlowLogIds"]
     response.should.have.length_of(1)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -376,9 +377,9 @@ def test_create_flow_logs_invalid_parameters():
             LogDestinationType="s3",
             LogDestination="arn:aws:s3:::" + bucket.name,
         )
-    ex.exception.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Error. There is an existing Flow Log with the same configuration and log destination."
     )
 
@@ -391,7 +392,7 @@ def test_create_flow_logs_invalid_parameters():
     )["FlowLogIds"]
     response.should.have.length_of(1)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         client.create_flow_logs(
             ResourceType="VPC",
             ResourceIds=[vpc["VpcId"]],
@@ -399,9 +400,9 @@ def test_create_flow_logs_invalid_parameters():
             LogGroupName="test-group",
             DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
         )
-    ex.exception.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("FlowLogAlreadyExists")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Error. There is an existing Flow Log with the same configuration and log destination."
     )
 

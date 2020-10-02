@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import sure  # noqa
 
 # Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
 
 from moto import mock_swf_deprecated
 from moto.core.utils import unix_time

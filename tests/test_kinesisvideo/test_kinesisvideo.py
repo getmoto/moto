@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import boto3
 import sure  # noqa
-from nose.tools import assert_raises
+import pytest
 from moto import mock_kinesisvideo
 from botocore.exceptions import ClientError
 import json
@@ -28,7 +28,7 @@ def test_create_stream_with_same_name():
     client.create_stream(StreamName=stream_name, DeviceName=device_name)
 
     # cannot create with same stream name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.create_stream(StreamName=stream_name, DeviceName=device_name)
 
 
@@ -43,7 +43,7 @@ def test_describe_stream():
     stream_arn = res["StreamARN"]
 
     # cannot create with existing stream name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.create_stream(StreamName=stream_name, DeviceName=device_name)
 
     # stream can be described with name
@@ -69,7 +69,7 @@ def test_describe_stream_with_name_not_exist():
     stream_name_not_exist = "not-exist-stream"
 
     # cannot describe with not exist stream name
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.describe_stream(StreamName=stream_name_not_exist)
 
 
@@ -123,7 +123,7 @@ def test_delete_stream_with_arn_not_exist():
 
     # cannot delete with not exist stream
     stream_arn_not_exist = stream_2_arn
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.delete_stream(StreamARN=stream_arn_not_exist)
 
 

@@ -3,9 +3,7 @@ from __future__ import unicode_literals
 import copy
 import json
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises  # noqa
-from nose.tools import assert_raises
+import pytest
 
 import boto3
 import boto
@@ -20,13 +18,13 @@ from moto import mock_ec2, mock_ec2_deprecated
 def test_create_and_describe_security_group():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         security_group = conn.create_security_group(
             "test security group", "this is a test security group", dry_run=True
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -38,13 +36,13 @@ def test_create_and_describe_security_group():
     security_group.description.should.equal("this is a test security group")
 
     # Trying to create another group with the same name should throw an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_security_group(
             "test security group", "this is a test security group"
         )
-    cm.exception.code.should.equal("InvalidGroup.Duplicate")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidGroup.Duplicate")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups()
     # The default group gets created automatically
@@ -57,11 +55,11 @@ def test_create_and_describe_security_group():
 def test_create_security_group_without_description_raises_error():
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_security_group("test security group", "")
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -87,13 +85,13 @@ def test_create_and_describe_vpc_security_group():
 
     # Trying to create another group with the same name in the same VPC should
     # throw an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.create_security_group(
             "test security group", "this is a test security group", vpc_id
         )
-    cm.exception.code.should.equal("InvalidGroup.Duplicate")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidGroup.Duplicate")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     all_groups = conn.get_all_security_groups(filters={"vpc_id": [vpc_id]})
 
@@ -146,18 +144,18 @@ def test_deleting_security_groups():
     conn.get_all_security_groups().should.have.length_of(4)
 
     # Deleting a group that doesn't exist should throw an error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.delete_security_group("foobar")
-    cm.exception.code.should.equal("InvalidGroup.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidGroup.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Delete by name
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.delete_security_group("test2", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -184,7 +182,7 @@ def test_authorize_ip_range_and_revoke():
     conn = boto.connect_ec2("the_key", "the_secret")
     security_group = conn.create_security_group("test", "test")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         success = security_group.authorize(
             ip_protocol="tcp",
             from_port="22",
@@ -192,9 +190,9 @@ def test_authorize_ip_range_and_revoke():
             cidr_ip="123.123.123.123/32",
             dry_run=True,
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the GrantSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -208,19 +206,19 @@ def test_authorize_ip_range_and_revoke():
     security_group.rules[0].grants[0].cidr_ip.should.equal("123.123.123.123/32")
 
     # Wrong Cidr should throw error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         security_group.revoke(
             ip_protocol="tcp",
             from_port="22",
             to_port="2222",
             cidr_ip="123.123.123.122/32",
         )
-    cm.exception.code.should.equal("InvalidPermission.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidPermission.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Actually revoke
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         security_group.revoke(
             ip_protocol="tcp",
             from_port="22",
@@ -228,9 +226,9 @@ def test_authorize_ip_range_and_revoke():
             cidr_ip="123.123.123.123/32",
             dry_run=True,
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -246,7 +244,7 @@ def test_authorize_ip_range_and_revoke():
         "testegress", "testegress", vpc_id="vpc-3432589"
     )
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         success = conn.authorize_security_group_egress(
             egress_security_group.id,
             "tcp",
@@ -255,9 +253,9 @@ def test_authorize_ip_range_and_revoke():
             cidr_ip="123.123.123.123/32",
             dry_run=True,
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the GrantSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -285,7 +283,7 @@ def test_authorize_ip_range_and_revoke():
     ).should.throw(EC2ResponseError)
 
     # Actually revoke
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.revoke_security_group_egress(
             egress_security_group.id,
             "tcp",
@@ -294,9 +292,9 @@ def test_authorize_ip_range_and_revoke():
             cidr_ip="123.123.123.123/32",
             dry_run=True,
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -335,13 +333,13 @@ def test_authorize_other_group_and_revoke():
     security_group.rules[0].grants[0].group_id.should.equal(other_security_group.id)
 
     # Wrong source group should throw error
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         security_group.revoke(
             ip_protocol="tcp", from_port="22", to_port="2222", src_group=wrong_group
         )
-    cm.exception.code.should.equal("InvalidPermission.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidPermission.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Actually revoke
     security_group.revoke(
@@ -440,11 +438,11 @@ def test_get_all_security_groups():
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_security_groups(groupnames=["does_not_exist"])
-    cm.exception.code.should.equal("InvalidGroup.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidGroup.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     resp.should.have.length_of(1)
     resp[0].id.should.equal(sg1.id)
@@ -469,13 +467,13 @@ def test_get_all_security_groups():
 def test_authorize_bad_cidr_throws_invalid_parameter_value():
     conn = boto.connect_ec2("the_key", "the_secret")
     security_group = conn.create_security_group("test", "test")
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         security_group.authorize(
             ip_protocol="tcp", from_port="22", to_port="2222", cidr_ip="123.123.123.123"
         )
-    cm.exception.code.should.equal("InvalidParameterValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidParameterValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -485,11 +483,11 @@ def test_security_group_tagging():
 
     sg = conn.create_security_group("test-sg", "Test SG", vpc.id)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         sg.add_tag("Test", "Tag", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -534,13 +532,13 @@ def test_sec_group_rule_limit():
     other_sg = ec2_conn.create_security_group("test_2", "test_other")
 
     # INGRESS
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id,
             ip_protocol="-1",
             cidr_ip=["{0}.0.0.0/0".format(i) for i in range(110)],
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
 
     sg.rules.should.be.empty
     # authorize a rule targeting a different sec group (because this count too)
@@ -556,17 +554,17 @@ def test_sec_group_rule_limit():
     )
     success.should.be.true
     # verify that we cannot authorize past the limit for a CIDR IP
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol="-1", cidr_ip=["100.0.0.0/0"]
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
     # verify that we cannot authorize past the limit for a different sec group
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol="-1", src_security_group_group_id=other_sg.id
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
 
     # EGRESS
     # authorize a rule targeting a different sec group (because this count too)
@@ -581,17 +579,17 @@ def test_sec_group_rule_limit():
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
     # verify that we cannot authorize past the limit for a CIDR IP
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="101.0.0.0/0"
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
     # verify that we cannot authorize past the limit for a different sec group
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", src_group_id=other_sg.id
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
 
 
 @mock_ec2_deprecated
@@ -605,13 +603,13 @@ def test_sec_group_rule_limit_vpc():
     other_sg = ec2_conn.create_security_group("test_2", "test", vpc_id=vpc.id)
 
     # INGRESS
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id,
             ip_protocol="-1",
             cidr_ip=["{0}.0.0.0/0".format(i) for i in range(110)],
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
 
     sg.rules.should.be.empty
     # authorize a rule targeting a different sec group (because this count too)
@@ -627,17 +625,17 @@ def test_sec_group_rule_limit_vpc():
     )
     # verify that we cannot authorize past the limit for a CIDR IP
     success.should.be.true
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol="-1", cidr_ip=["100.0.0.0/0"]
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
     # verify that we cannot authorize past the limit for a different sec group
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group(
             group_id=sg.id, ip_protocol="-1", src_security_group_group_id=other_sg.id
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
 
     # EGRESS
     # authorize a rule targeting a different sec group (because this count too)
@@ -652,17 +650,17 @@ def test_sec_group_rule_limit_vpc():
             group_id=sg.id, ip_protocol="-1", cidr_ip="{0}.0.0.0/0".format(i)
         )
     # verify that we cannot authorize past the limit for a CIDR IP
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", cidr_ip="50.0.0.0/0"
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
     # verify that we cannot authorize past the limit for a different sec group
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         ec2_conn.authorize_security_group_egress(
             group_id=sg.id, ip_protocol="-1", src_group_id=other_sg.id
         )
-    cm.exception.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
+    cm.value.error_code.should.equal("RulesPerSecurityGroupLimitExceeded")
 
 
 """
@@ -689,7 +687,7 @@ def test_add_same_rule_twice_throws_error():
     ]
     sg.authorize_ingress(IpPermissions=ip_permissions)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         sg.authorize_ingress(IpPermissions=ip_permissions)
 
 
@@ -761,15 +759,15 @@ def test_security_group_tagging_boto3():
 
     sg = conn.create_security_group(GroupName="test-sg", Description="Test SG")
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.create_tags(
             Resources=[sg["GroupId"]],
             Tags=[{"Key": "Test", "Value": "Tag"}],
             DryRun=True,
         )
-    ex.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -926,11 +924,11 @@ def test_get_all_security_groups_filter_with_same_vpc_id():
     )
     security_groups.should.have.length_of(1)
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_security_groups(group_ids=["does_not_exist"])
-    cm.exception.code.should.equal("InvalidGroup.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidGroup.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

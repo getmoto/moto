@@ -6,7 +6,7 @@ import sure  # noqa
 
 from datetime import datetime
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 
 from moto import mock_sts, mock_stepfunctions
 from moto.core import ACCOUNT_ID
@@ -134,7 +134,7 @@ def test_state_machine_creation_fails_with_invalid_names():
     #
 
     for invalid_name in invalid_names:
-        with assert_raises(ClientError):
+        with pytest.raises(ClientError):
             client.create_state_machine(
                 name=invalid_name,
                 definition=str(simple_definition),
@@ -147,7 +147,7 @@ def test_state_machine_creation_requires_valid_role_arn():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.create_state_machine(
             name=name,
             definition=str(simple_definition),
@@ -242,7 +242,7 @@ def test_state_machine_creation_can_be_described():
 def test_state_machine_throws_error_when_describing_unknown_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:"
             + region
@@ -258,7 +258,7 @@ def test_state_machine_throws_error_when_describing_unknown_machine():
 def test_state_machine_throws_error_when_describing_bad_arn():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.describe_state_machine(stateMachineArn="bad")
 
 
@@ -267,7 +267,7 @@ def test_state_machine_throws_error_when_describing_bad_arn():
 def test_state_machine_throws_error_when_describing_machine_in_different_account():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_state_machine = (
             "arn:aws:states:" + region + ":000000000000:stateMachine:unknown"
         )
@@ -376,7 +376,7 @@ def test_state_machine_start_execution():
 def test_state_machine_start_execution_bad_arn_raises_exception():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         client.start_execution(stateMachineArn="bad")
 
 
@@ -416,11 +416,11 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
         stateMachineArn=sm["stateMachineArn"], name="execution_name"
     )
     #
-    with assert_raises(ClientError) as exc:
+    with pytest.raises(ClientError) as exc:
         _ = client.start_execution(
             stateMachineArn=sm["stateMachineArn"], name="execution_name"
         )
-    exc.exception.response["Error"]["Message"].should.equal(
+    exc.value.response["Error"]["Message"].should.equal(
         "Execution Already Exists: '" + execution_one["executionArn"] + "'"
     )
 
@@ -460,9 +460,9 @@ def test_state_machine_start_execution_with_invalid_input():
     sm = client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="")
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="{")
 
 
@@ -553,7 +553,7 @@ def test_state_machine_describe_execution_with_custom_input():
 def test_execution_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )
@@ -584,7 +584,7 @@ def test_state_machine_can_be_described_by_execution():
 def test_state_machine_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         unknown_execution = (
             "arn:aws:states:" + region + ":" + _get_account_id() + ":execution:unknown"
         )

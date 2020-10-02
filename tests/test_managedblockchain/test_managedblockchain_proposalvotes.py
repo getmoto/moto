@@ -5,7 +5,7 @@ import os
 import boto3
 import sure  # noqa
 from freezegun import freeze_time
-from nose import SkipTest
+from unittest import SkipTest
 
 from moto import mock_managedblockchain, settings
 from . import helpers
@@ -666,5 +666,6 @@ def test_list_proposal_votes_badproposal():
     member_id = response["MemberId"]
 
     response = conn.list_proposal_votes.when.called_with(
-        NetworkId=network_id, ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
+        NetworkId=network_id,
+        ProposalId="p-ABCDEFGHIJKLMNOP0123456789",
     ).should.throw(Exception, "Proposal p-ABCDEFGHIJKLMNOP0123456789 not found")

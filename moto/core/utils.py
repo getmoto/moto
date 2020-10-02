@@ -16,7 +16,7 @@ REQUEST_ID_LONG = string.digits + string.ascii_uppercase
 
 
 def camelcase_to_underscores(argument):
-    """ Converts a camelcase param like theNewAttribute to the equivalent
+    """Converts a camelcase param like theNewAttribute to the equivalent
     python underscore variable like the_new_attribute"""
     result = ""
     prev_char_title = True
@@ -42,9 +42,9 @@ def camelcase_to_underscores(argument):
 
 
 def underscores_to_camelcase(argument):
-    """ Converts a camelcase param like the_new_attribute to the equivalent
+    """Converts a camelcase param like the_new_attribute to the equivalent
     camelcase version like theNewAttribute. Note that the first letter is
-    NOT capitalized by this function """
+    NOT capitalized by this function"""
     result = ""
     previous_was_underscore = False
     for char in argument:
@@ -345,11 +345,15 @@ def tags_from_query_string(
             tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
             tag_key = querystring_dict.get(
                 "{prefix}.{index}.{key_suffix}".format(
-                    prefix=prefix, index=tag_index, key_suffix=key_suffix,
+                    prefix=prefix,
+                    index=tag_index,
+                    key_suffix=key_suffix,
                 )
             )[0]
             tag_value_key = "{prefix}.{index}.{value_suffix}".format(
-                prefix=prefix, index=tag_index, value_suffix=value_suffix,
+                prefix=prefix,
+                index=tag_index,
+                value_suffix=value_suffix,
             )
             if tag_value_key in querystring_dict:
                 response_values[tag_key] = querystring_dict.get(tag_value_key)[0]

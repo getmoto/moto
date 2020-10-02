@@ -253,7 +253,8 @@ def generate_resource_name(resource_type, stack_name, logical_id):
 
 
 def parse_resource(
-    resource_json, resources_map,
+    resource_json,
+    resources_map,
 ):
     resource_type = resource_json["Type"]
     resource_class = resource_class_from_type(resource_type)
@@ -274,7 +275,9 @@ def parse_resource(
 
 
 def parse_resource_and_generate_name(
-    logical_id, resource_json, resources_map,
+    logical_id,
+    resource_json,
+    resources_map,
 ):
     resource_tuple = parse_resource(resource_json, resources_map)
     if not resource_tuple:
@@ -694,7 +697,10 @@ class ResourceMap(collections_abc.Mapping):
                         ]
 
                         parse_and_delete_resource(
-                            resource_name, resource_json, self, self._region_name,
+                            resource_name,
+                            resource_json,
+                            self,
+                            self._region_name,
                         )
 
                     self._parsed_resources.pop(parsed_resource.logical_resource_id)

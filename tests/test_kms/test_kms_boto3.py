@@ -10,7 +10,7 @@ import botocore.exceptions
 import six
 import sure  # noqa
 from freezegun import freeze_time
-from nose.tools import assert_raises
+import pytest
 from parameterized import parameterized
 
 from moto import mock_kms
@@ -55,14 +55,20 @@ def test_create_key():
     key["KeyMetadata"]["Origin"].should.equal("AWS_KMS")
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="ENCRYPT_DECRYPT", CustomerMasterKeySpec="RSA_2048",)
+    key = conn.create_key(
+        KeyUsage="ENCRYPT_DECRYPT",
+        CustomerMasterKeySpec="RSA_2048",
+    )
 
     sorted(key["KeyMetadata"]["EncryptionAlgorithms"]).should.equal(
         ["RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"]
     )
     key["KeyMetadata"].should_not.have.key("SigningAlgorithms")
 
-    key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="RSA_2048",)
+    key = conn.create_key(
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="RSA_2048",
+    )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     sorted(key["KeyMetadata"]["SigningAlgorithms"]).should.equal(
@@ -77,21 +83,24 @@ def test_create_key():
     )
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_SECG_P256K1",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_SECG_P256K1",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_256"])
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P384",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_NIST_P384",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
     key["KeyMetadata"]["SigningAlgorithms"].should.equal(["ECDSA_SHA_384"])
 
     key = conn.create_key(
-        KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_NIST_P521",
     )
 
     key["KeyMetadata"].should_not.have.key("EncryptionAlgorithms")
@@ -101,7 +110,10 @@ def test_create_key():
 @mock_kms
 def test_describe_key():
     client = boto3.client("kms", region_name="us-east-1")
-    response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT",)
+    response = client.create_key(
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+    )
     key_id = response["KeyMetadata"]["KeyId"]
 
     response = client.describe_key(KeyId=key_id)
@@ -132,7 +144,7 @@ def test_describe_key_via_alias_invalid_alias(key_id):
     client = boto3.client("kms", region_name="us-east-1")
     client.create_key(Description="key")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.describe_key(KeyId=key_id)
 
 
@@ -147,10 +159,10 @@ def test_generate_data_key():
     response = kms.generate_data_key(KeyId=key_id, NumberOfBytes=32)
 
     # CiphertextBlob must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["CiphertextBlob"], validate=True)
     # Plaintext must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["Plaintext"], validate=True)
 
     response["KeyId"].should.equal(key_arn)
@@ -169,7 +181,7 @@ def test_encrypt(plaintext):
     response["CiphertextBlob"].should_not.equal(plaintext)
 
     # CiphertextBlob must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(response["CiphertextBlob"], validate=True)
 
     response["KeyId"].should.equal(key_arn)
@@ -188,13 +200,13 @@ def test_decrypt(plaintext):
 
     client.create_key(Description="key")
     # CiphertextBlob must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(encrypt_response["CiphertextBlob"], validate=True)
 
     decrypt_response = client.decrypt(CiphertextBlob=encrypt_response["CiphertextBlob"])
 
     # Plaintext must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(decrypt_response["Plaintext"], validate=True)
 
     decrypt_response["Plaintext"].should.equal(_get_encoded_value(plaintext))
@@ -216,7 +228,7 @@ def test_decrypt(plaintext):
 def test_invalid_key_ids(key_id):
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.generate_data_key(KeyId=key_id, NumberOfBytes=5)
 
 
@@ -403,7 +415,7 @@ def test_generate_data_key_invalid_size_params(kwargs):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
 
-    with assert_raises(
+    with pytest.raises(
         (botocore.exceptions.ClientError, botocore.exceptions.ParamValidationError)
     ) as err:
         client.generate_data_key(KeyId=key["KeyMetadata"]["KeyId"], **kwargs)
@@ -423,7 +435,7 @@ def test_generate_data_key_invalid_size_params(kwargs):
 def test_generate_data_key_invalid_key(key_id):
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.generate_data_key(KeyId=key_id, KeySpec="AES_256")
 
 
@@ -485,7 +497,7 @@ def test_re_encrypt_decrypt(plaintext):
     )
 
     # CiphertextBlob must NOT be base64-encoded
-    with assert_raises(Exception):
+    with pytest.raises(Exception):
         base64.b64decode(re_encrypt_response["CiphertextBlob"], validate=True)
 
     re_encrypt_response["SourceKeyId"].should.equal(key_1_arn)
@@ -517,7 +529,7 @@ def test_re_encrypt_to_invalid_destination():
 
     encrypt_response = client.encrypt(KeyId=key_id, Plaintext=b"some plaintext")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.re_encrypt(
             CiphertextBlob=encrypt_response["CiphertextBlob"],
             DestinationKeyId="alias/DoesNotExist",
@@ -548,7 +560,7 @@ def test_generate_random(number_of_bytes):
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
     client = boto3.client("kms", region_name="us-west-2")
 
-    with assert_raises(error_type):
+    with pytest.raises(error_type):
         client.generate_random(NumberOfBytes=number_of_bytes)
 
 
@@ -556,7 +568,7 @@ def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
 def test_enable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.enable_key_rotation(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -564,7 +576,7 @@ def test_enable_key_rotation_key_not_found():
 def test_disable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.disable_key_rotation(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -572,7 +584,7 @@ def test_disable_key_rotation_key_not_found():
 def test_enable_key_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.enable_key(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -580,7 +592,7 @@ def test_enable_key_key_not_found():
 def test_disable_key_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.disable_key(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -588,7 +600,7 @@ def test_disable_key_key_not_found():
 def test_cancel_key_deletion_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.cancel_key_deletion(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -596,7 +608,7 @@ def test_cancel_key_deletion_key_not_found():
 def test_schedule_key_deletion_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.schedule_key_deletion(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -604,7 +616,7 @@ def test_schedule_key_deletion_key_not_found():
 def test_get_key_rotation_status_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.get_key_rotation_status(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -612,7 +624,7 @@ def test_get_key_rotation_status_key_not_found():
 def test_get_key_policy_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.get_key_policy(
             KeyId="12366f9b-1230-123d-123e-123e6ae60c02", PolicyName="default"
         )
@@ -622,7 +634,7 @@ def test_get_key_policy_key_not_found():
 def test_list_key_policies_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.list_key_policies(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
@@ -630,7 +642,7 @@ def test_list_key_policies_key_not_found():
 def test_put_key_policy_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
-    with assert_raises(client.exceptions.NotFoundException):
+    with pytest.raises(client.exceptions.NotFoundException):
         client.put_key_policy(
             KeyId="00000000-0000-0000-0000-000000000000",
             PolicyName="default",

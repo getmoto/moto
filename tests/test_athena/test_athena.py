@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 import boto3
 import sure  # noqa
 
@@ -104,15 +104,15 @@ def test_start_query_execution():
 def test_start_query_validate_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
 
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         client.start_query_execution(
             QueryString="query1",
             QueryExecutionContext={"Database": "string"},
             ResultConfiguration={"OutputLocation": "string"},
             WorkGroup="unknown_workgroup",
         )
-    err.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
-    err.exception.response["Error"]["Message"].should.equal("WorkGroup does not exist")
+    err.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    err.value.response["Error"]["Message"].should.equal("WorkGroup does not exist")
 
 
 @mock_athena
@@ -178,7 +178,9 @@ def test_create_named_query():
 
     # craete named query
     res = client.create_named_query(
-        Name="query-name", Database="target_db", QueryString="SELECT * FROM table1",
+        Name="query-name",
+        Database="target_db",
+        QueryString="SELECT * FROM table1",
     )
 
     assert "NamedQueryId" in res
@@ -215,6 +217,8 @@ def create_basic_workgroup(client, name):
         Name=name,
         Description="Test work group",
         Configuration={
-            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/",}
+            "ResultConfiguration": {
+                "OutputLocation": "s3://bucket-name/prefix/",
+            }
         },
     )

@@ -7,7 +7,7 @@ from moto import (
     mock_ec2,
 )
 
-from utils import setup_networking
+from .utils import setup_networking
 
 
 @mock_autoscaling
@@ -32,7 +32,8 @@ Outputs:
 """.strip()
 
     cf_client.create_stack(
-        StackName=stack_name, TemplateBody=cf_template,
+        StackName=stack_name,
+        TemplateBody=cf_template,
     )
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     stack["Outputs"][0]["OutputValue"].should.be.equal("test_launch_configuration")
@@ -56,7 +57,8 @@ Outputs:
 """.strip()
 
     cf_client.update_stack(
-        StackName=stack_name, TemplateBody=cf_template,
+        StackName=stack_name,
+        TemplateBody=cf_template,
     )
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
     stack["Outputs"][0]["OutputValue"].should.be.equal("test_launch_configuration")
@@ -76,7 +78,8 @@ def test_autoscaling_group_from_launch_config():
     client = boto3.client("autoscaling", region_name="us-east-1")
 
     client.create_launch_configuration(
-        LaunchConfigurationName="test_launch_configuration", InstanceType="t2.micro",
+        LaunchConfigurationName="test_launch_configuration",
+        InstanceType="t2.micro",
     )
     stack_name = "test-auto-scaling-group"
 

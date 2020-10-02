@@ -1,10 +1,10 @@
 import boto3
 import io
+import pytest
 import sure  # noqa
 import zipfile
 from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
-from nose.tools import assert_raises
 from string import Template
 from uuid import uuid4
 
@@ -109,9 +109,9 @@ def test_lambda_can_be_deleted_by_cloudformation():
     # Delete Stack
     cf.delete_stack(StackName=stack["StackId"])
     # Verify function was deleted
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         lmbda.get_function(FunctionName=created_fn_name)
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cloudformation

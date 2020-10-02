@@ -362,7 +362,12 @@ class InlinePolicy(CloudFormationModel):
         self.update(policy_name, policy_document, group_names, role_names, user_names)
 
     def update(
-        self, policy_name, policy_document, group_names, role_names, user_names,
+        self,
+        policy_name,
+        policy_document,
+        group_names,
+        role_names,
+        user_names,
     ):
         self.policy_name = policy_name
         self.policy_document = (
@@ -404,7 +409,11 @@ class InlinePolicy(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -807,11 +816,18 @@ class AccessKey(CloudFormationModel):
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
 
-        return iam_backend.create_access_key(user_name, status=status,)
+        return iam_backend.create_access_key(
+            user_name,
+            status=status,
+        )
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -1139,7 +1155,11 @@ class User(CloudFormationModel):
 
     @classmethod
     def update_from_cloudformation_json(
-        cls, original_resource, new_resource_name, cloudformation_json, region_name,
+        cls,
+        original_resource,
+        new_resource_name,
+        cloudformation_json,
+        region_name,
     ):
         properties = cloudformation_json["Properties"]
 
@@ -2550,7 +2570,11 @@ class IAMBackend(BaseBackend):
         inline_policy = self.get_inline_policy(resource_name)
         inline_policy.unapply_policy(self)
         inline_policy.update(
-            policy_name, policy_document, group_names, role_names, user_names,
+            policy_name,
+            policy_document,
+            group_names,
+            role_names,
+            user_names,
         )
         inline_policy.apply_policy(self)
         return inline_policy

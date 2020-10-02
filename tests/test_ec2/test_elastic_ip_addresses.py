@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
-import tests.backport_assert_raises
-from nose.tools import assert_raises
+# Ensure 'pytest.raises' context manager support for Python 2.6
+import pytest
 
 import boto
 import boto3
@@ -21,11 +20,11 @@ def test_eip_allocate_classic():
     """Allocate/release Classic EIP"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         standard = conn.allocate_address(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -35,11 +34,11 @@ def test_eip_allocate_classic():
     standard.instance_id.should.be.none
     standard.domain.should.be.equal("standard")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         standard.release(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -52,11 +51,11 @@ def test_eip_allocate_vpc():
     """Allocate/release VPC EIP"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         vpc = conn.allocate_address(domain="vpc", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -84,11 +83,11 @@ def test_eip_allocate_invalid_domain():
     """Allocate EIP invalid domain"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.allocate_address(domain="bogus")
-    cm.exception.code.should.equal("InvalidParameterValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidParameterValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -102,19 +101,19 @@ def test_eip_associate_classic():
     eip = conn.allocate_address()
     eip.instance_id.should.be.none
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(public_ip=eip.public_ip)
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.associate_address(
             instance_id=instance.id, public_ip=eip.public_ip, dry_run=True
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -123,11 +122,11 @@ def test_eip_associate_classic():
     eip = conn.get_all_addresses(addresses=[eip.public_ip])[0]
     eip.instance_id.should.be.equal(instance.id)
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         conn.disassociate_address(public_ip=eip.public_ip, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DisAssociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -153,11 +152,11 @@ def test_eip_associate_vpc():
     eip = conn.allocate_address(domain="vpc")
     eip.instance_id.should.be.none
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(allocation_id=eip.allocation_id)
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address(instance_id=instance.id, allocation_id=eip.allocation_id)
     # no .update() on address ):
@@ -169,11 +168,11 @@ def test_eip_associate_vpc():
     eip.instance_id.should.be.equal("")
     eip.association_id.should.be.none
 
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         eip.release(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -241,11 +240,11 @@ def test_eip_associate_network_interface():
     eip = conn.allocate_address(domain="vpc")
     eip.network_interface_id.should.be.none
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(network_interface_id=eni.id)
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address(network_interface_id=eni.id, allocation_id=eip.allocation_id)
     # no .update() on address ):
@@ -276,13 +275,13 @@ def test_eip_reassociate():
     conn.associate_address(instance_id=instance1.id, public_ip=eip.public_ip)
 
     # Different ID detects resource association
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(
             instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=False
         )
-    cm.exception.code.should.equal("Resource.AlreadyAssociated")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("Resource.AlreadyAssociated")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address.when.called_with(
         instance_id=instance2.id, public_ip=eip.public_ip, allow_reassociation=True
@@ -312,11 +311,11 @@ def test_eip_reassociate_nic():
     conn.associate_address(network_interface_id=eni1.id, public_ip=eip.public_ip)
 
     # Different ID detects resource association
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(network_interface_id=eni2.id, public_ip=eip.public_ip)
-    cm.exception.code.should.equal("Resource.AlreadyAssociated")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("Resource.AlreadyAssociated")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     conn.associate_address.when.called_with(
         network_interface_id=eni2.id, public_ip=eip.public_ip, allow_reassociation=True
@@ -336,11 +335,11 @@ def test_eip_associate_invalid_args():
 
     eip = conn.allocate_address()
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.associate_address(instance_id=instance.id)
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     instance.terminate()
 
@@ -350,11 +349,11 @@ def test_eip_disassociate_bogus_association():
     """Disassociate bogus EIP"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.disassociate_address(association_id="bogus")
-    cm.exception.code.should.equal("InvalidAssociationID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAssociationID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -362,11 +361,11 @@ def test_eip_release_bogus_eip():
     """Release bogus EIP"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.release_address(allocation_id="bogus")
-    cm.exception.code.should.equal("InvalidAllocationID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAllocationID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -374,11 +373,11 @@ def test_eip_disassociate_arg_error():
     """Invalid arguments disassociate address"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.disassociate_address()
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -386,11 +385,11 @@ def test_eip_release_arg_error():
     """Invalid arguments release address"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.release_address()
-    cm.exception.code.should.equal("MissingParameter")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("MissingParameter")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -438,11 +437,11 @@ def test_eip_describe_none():
     """Error when search for bogus IP"""
     conn = boto.connect_ec2("the_key", "the_secret")
 
-    with assert_raises(EC2ResponseError) as cm:
+    with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_addresses(addresses=["256.256.256.256"])
-    cm.exception.code.should.equal("InvalidAddress.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAddress.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

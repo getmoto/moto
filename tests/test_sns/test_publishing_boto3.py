@@ -10,7 +10,7 @@ import sure  # noqa
 
 import responses
 from botocore.exceptions import ClientError
-from nose.tools import assert_raises
+import pytest
 from moto import mock_sns, mock_sqs, settings
 from moto.core import ACCOUNT_ID
 from moto.sns import sns_backend
@@ -152,7 +152,9 @@ def test_publish_to_sqs_msg_attr_byte_value():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName="test-queue")
     conn.subscribe(
-        TopicArn=topic_arn, Protocol="sqs", Endpoint=queue.attributes["QueueArn"],
+        TopicArn=topic_arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
     )
     queue_raw = sqs.create_queue(QueueName="test-queue-raw")
     conn.subscribe(
@@ -239,16 +241,16 @@ def test_publish_bad_sms():
     client = boto3.client("sns", region_name="us-east-1")
 
     # Test invalid number
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         client.publish(PhoneNumber="NAA+15551234567", Message="my message")
-    cm.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    cm.exception.response["Error"]["Message"].should.contain("not meet the E164")
+    cm.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Message"].should.contain("not meet the E164")
 
     # Test to long ASCII message
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         client.publish(PhoneNumber="+15551234567", Message="a" * 1601)
-    cm.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    cm.exception.response["Error"]["Message"].should.contain("must be less than 1600")
+    cm.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Message"].should.contain("must be less than 1600")
 
 
 @mock_sqs
@@ -393,7 +395,7 @@ def test_publish_message_too_long():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="some-topic")
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         topic.publish(Message="".join(["." for i in range(0, 262145)]))
 
     # message short enough - does not raise an error
