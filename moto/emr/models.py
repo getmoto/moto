@@ -146,6 +146,7 @@ class FakeCluster(BaseModel):
         requested_ami_version=None,
         running_ami_version=None,
         custom_ami_id=None,
+        step_concurrency_level=1,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -236,6 +237,7 @@ class FakeCluster(BaseModel):
 
         self.role = job_flow_role or "EMRJobflowDefault"
         self.service_role = service_role
+        self.step_concurrency_level = step_concurrency_level
 
         self.creation_datetime = datetime.now(pytz.utc)
         self.start_datetime = None
@@ -468,6 +470,11 @@ class ElasticMapReduceBackend(BaseBackend):
             None if len(steps) <= start_idx + max_items else str(start_idx + max_items)
         )
         return steps[start_idx : start_idx + max_items], marker
+
+    def modify_cluster(self, cluster_id, step_concurrency_level):
+        cluster = self.clusters[cluster_id]
+        cluster.step_concurrency_level = step_concurrency_level
+        return cluster
 
     def modify_instance_groups(self, instance_groups):
         result_groups = []

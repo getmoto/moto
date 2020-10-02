@@ -127,9 +127,6 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(DESCRIBE_JOB_FLOWS_TEMPLATE)
         return template.render(clusters=clusters)
 
-    def describe_security_configuration(self):
-        raise NotImplementedError
-
     @generate_boto3_response("DescribeStep")
     def describe_step(self):
         cluster_id = self._get_param("ClusterId")
@@ -184,6 +181,17 @@ class ElasticMapReduceResponse(BaseResponse):
         )
         template = self.response_template(LIST_STEPS_TEMPLATE)
         return template.render(steps=steps, marker=marker)
+
+    @generate_boto3_response("ModifyCluster")
+    def modify_cluster(self):
+        cluster_id = self._get_param("ClusterId")
+        step_concurrency_level = self._get_param("StepConcurrencyLevel")
+        cluster = self.backend.modify_cluster(cluster_id, step_concurrency_level)
+        template = self.response_template(MODIFY_CLUSTER_TEMPLATE)
+        return template.render(cluster=cluster)
+
+    def describe_security_configuration(self):
+        raise NotImplementedError
 
     @generate_boto3_response("ModifyInstanceGroups")
     def modify_instance_groups(self):
@@ -314,6 +322,10 @@ class ElasticMapReduceResponse(BaseResponse):
                     message=message,
                     template="error_json",
                 )
+
+        step_concurrency_level = self._get_param("StepConcurrencyLevel")
+        if step_concurrency_level:
+            kwargs["step_concurrency_level"] = step_concurrency_level
 
         cluster = self.backend.run_job_flow(**kwargs)
 
@@ -591,6 +603,7 @@ DESCRIBE_CLUSTER_TEMPLATE = """<DescribeClusterResponse xmlns="http://elasticmap
       </Tags>
       <TerminationProtected>{{ cluster.termination_protected|lower }}</TerminationProtected>
       <VisibleToAllUsers>{{ cluster.visible_to_all_users|lower }}</VisibleToAllUsers>
+      <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
     </Cluster>
   </DescribeClusterResult>
   <ResponseMetadata>
@@ -1074,6 +1087,16 @@ LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazo
     <RequestId>df6f4f4a-ed85-11dd-9877-6fad448a8419</RequestId>
   </ResponseMetadata>
 </ListStepsResponse>"""
+
+MODIFY_CLUSTER_TEMPLATE = """<ModifyClusterResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ModifyClusterResult>
+    <StepConcurrencyLevel>{{ cluster.step_concurrency_level }}</StepConcurrencyLevel>
+  </ModifyClusterResult>
+  <ResponseMetadata>
+    <RequestId>0751c837-e78d-4aef-95c9-9c4d29a092ff</RequestId>
+  </ResponseMetadata>
+</ModifyClusterResponse>
+"""
 
 MODIFY_INSTANCE_GROUPS_TEMPLATE = """<ModifyInstanceGroupsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <ResponseMetadata>
