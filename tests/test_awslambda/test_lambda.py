@@ -7,6 +7,7 @@ import boto3
 import hashlib
 import io
 import json
+import pytest
 import time
 import zipfile
 import sure  # noqa
