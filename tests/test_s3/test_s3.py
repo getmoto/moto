@@ -3815,7 +3815,7 @@ def test_boto3_multiple_delete_markers():
 
     with pytest.raises(ClientError) as e:
         s3.get_object(Bucket=bucket_name, Key=key)
-    e.response["Error"]["Code"].should.equal("404")
+    e.value.response["Error"]["Code"].should.equal("404")
 
     # Remove both delete markers to restore the object
     s3.delete_object(
