@@ -2632,7 +2632,7 @@
 - [X] create_dhcp_options
 - [ ] create_egress_only_internet_gateway
 - [ ] create_fleet
-- [ ] create_flow_logs
+- [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
 - [ ] create_instance_export_task
@@ -2682,7 +2682,7 @@
 - [ ] delete_dhcp_options
 - [ ] delete_egress_only_internet_gateway
 - [ ] delete_fleets
-- [ ] delete_flow_logs
+- [X] delete_flow_logs
 - [ ] delete_fpga_image
 - [X] delete_internet_gateway
 - [X] delete_key_pair
@@ -2753,7 +2753,7 @@
 - [ ] describe_fleet_history
 - [ ] describe_fleet_instances
 - [ ] describe_fleets
-- [ ] describe_flow_logs
+- [X] describe_flow_logs
 - [ ] describe_fpga_image_attribute
 - [ ] describe_fpga_images
 - [ ] describe_host_reservation_offerings
@@ -4235,7 +4235,7 @@
 - [X] remove_user_from_group
 - [ ] reset_service_specific_credential
 - [ ] resync_mfa_device
-- [ ] set_default_policy_version
+- [X] set_default_policy_version
 - [ ] set_security_token_service_preferences
 - [ ] simulate_custom_policy
 - [ ] simulate_principal_policy
