@@ -1,5 +1,6 @@
 import boto3
 import io
+import pytest
 import sure  # noqa
 import zipfile
 from botocore.exceptions import ClientError
