@@ -1,7 +1,7 @@
 -r requirements.txt
 -r requirements-tests.txt
 
-black==19.10b0; python_version >= '3.6'
+black==20.8b1; python_version >= '3.6'
 regex==2019.11.1; python_version >= '3.6'   # Needed for black
 coverage==4.5.4
 flake8==3.7.8
