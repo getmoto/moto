@@ -738,7 +738,7 @@ class SQSBackend(BaseBackend):
         count,
         wait_seconds_timeout,
         visibility_timeout,
-        message_attribute_names,
+        message_attribute_names=None,
     ):
         """
         Attempt to retrieve visible messages from a queue.
@@ -754,6 +754,8 @@ class SQSBackend(BaseBackend):
         :param int wait_seconds_timeout:  The duration (in seconds) for which the call waits for a message to arrive in
          the queue before returning. If a message is available, the call returns sooner than WaitTimeSeconds
         """
+        if message_attribute_names is None:
+            message_attribute_names = []
         queue = self.get_queue(queue_name)
         result = []
         previous_result_count = len(result)

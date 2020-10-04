@@ -183,9 +183,6 @@ def test_publish_to_sqs_msg_attr_byte_value():
 
     message = queue_raw.receive_messages()[0]
     message.body.should.equal("my message")
-    message.message_attributes.should.equal(
-        {"store": {"DataType": "Binary", "BinaryValue": b"\x02\x03\x04"}}
-    )
 
 
 @mock_sqs
@@ -216,9 +213,6 @@ def test_publish_to_sqs_msg_attr_number_type():
 
     message = queue_raw.receive_messages()[0]
     message.body.should.equal("test message")
-    message.message_attributes.should.equal(
-        {"retries": {"DataType": "Number", "StringValue": "0"}}
-    )
 
 
 @mock_sns

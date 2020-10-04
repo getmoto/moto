@@ -956,7 +956,7 @@ def test_delete_message():
     queue.write(queue.new_message("this is another test message"))
     queue.count().should.equal(2)
 
-    messages = conn.receive_message(queue, number_messages=1,)
+    messages = conn.receive_message(queue, number_messages=1)
     assert len(messages) == 1
     messages[0].delete()
     queue.count().should.equal(1)
