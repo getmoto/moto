@@ -2026,7 +2026,7 @@ def test_boto3_head_object():
         s3.Object("blah", "hello2.txt").meta.client.head_object(
             Bucket="blah", Key="hello_bad.txt"
         )
-    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("404")
 
 
 @mock_s3
@@ -2103,7 +2103,7 @@ def test_boto3_get_missing_object_with_part_number():
             Bucket="blah", Key="hello.txt", PartNumber=123
         )
 
-    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("404")
 
 
 @mock_s3
@@ -2176,7 +2176,7 @@ def test_boto3_copy_object_with_versioning():
             Bucket="blah",
             Key="test5",
         )
-    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
+    e.value.response["Error"]["Code"].should.equal("404")
 
     response = client.create_multipart_upload(Bucket="blah", Key="test4")
     upload_id = response["UploadId"]
