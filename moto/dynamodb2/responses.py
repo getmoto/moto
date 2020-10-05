@@ -826,7 +826,7 @@ class DynamoHandler(BaseResponse):
                         original.get(key, None), changed[key]
                     )
                     for key in changed.keys()
-                    if changed[key] != original.get(key, None)
+                    if key not in original or changed[key] != original[key]
                 }
             elif type(changed) in (set, list):
                 if len(changed) != len(original):

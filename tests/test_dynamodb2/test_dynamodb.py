@@ -3936,6 +3936,37 @@ def test_update_supports_list_append_maps():
     )
 
 
+@requires_boto_gte("2.9")
+@mock_dynamodb2
+def test_update_supports_nested_update_if_nested_value_not_exists():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    name = "TestTable"
+
+    dynamodb.create_table(
+        TableName=name,
+        KeySchema=[{"AttributeName": "user_id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "user_id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table = dynamodb.Table(name)
+    table.put_item(
+        Item={"user_id": "1234", "friends": {"5678": {"name": "friend_5678"}},},
+    )
+    table.update_item(
+        Key={"user_id": "1234"},
+        ExpressionAttributeNames={"#friends": "friends", "#friendid": "0000",},
+        ExpressionAttributeValues={":friend": {"name": "friend_0000"},},
+        UpdateExpression="SET #friends.#friendid = :friend",
+        ReturnValues="UPDATED_NEW",
+    )
+    item = table.get_item(Key={"user_id": "1234"})["Item"]
+    assert item == {
+        "user_id": "1234",
+        "friends": {"5678": {"name": "friend_5678"}, "0000": {"name": "friend_0000"},},
+    }
+
+
 @mock_dynamodb2
 def test_update_supports_list_append_with_nested_if_not_exists_operation():
     dynamo = boto3.resource("dynamodb", region_name="us-west-1")
