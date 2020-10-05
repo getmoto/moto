@@ -106,6 +106,26 @@ def test_get_secret_that_has_no_value():
 
 
 @mock_secretsmanager
+def test_get_secret_version_that_does_not_exist():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    result = conn.create_secret(Name="java-util-test-password")
+    secret_arn = result["ARN"]
+    missing_version_id = "00000000-0000-0000-0000-000000000000"
+
+    with assert_raises(ClientError) as cm:
+        conn.get_secret_value(SecretId=secret_arn, VersionId=missing_version_id)
+
+    assert_equal(
+        (
+            "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
+            "Manager can't find the specified secret value for VersionId: 00000000-0000-0000-0000-000000000000"
+        ),
+        cm.exception.response["Error"]["Message"],
+    )
+
+
+@mock_secretsmanager
 def test_create_secret():
     conn = boto3.client("secretsmanager", region_name="us-east-1")
 
