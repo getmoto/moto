@@ -408,8 +408,8 @@ class SecretsManagerBackend(BaseBackend):
         self._add_secret(
             secret_id,
             old_secret_version["secret_string"],
-            secret.description,
-            secret.tags,
+            description=secret.description,
+            tags=secret.tags,
             version_id=new_version_id,
             version_stages=["AWSCURRENT"],
         )
