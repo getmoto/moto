@@ -950,6 +950,7 @@ def test_describe_container_instances():
     for instance in response["containerInstances"]:
         instance.keys().should.contain("runningTasksCount")
         instance.keys().should.contain("pendingTasksCount")
+        instance["registeredAt"].should.be.a("datetime.datetime")
 
     with assert_raises(ClientError) as e:
         ecs_client.describe_container_instances(

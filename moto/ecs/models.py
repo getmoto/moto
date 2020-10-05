@@ -1,18 +1,18 @@
 from __future__ import unicode_literals
+
 import re
 import uuid
+from copy import copy
 from datetime import datetime
 from random import random, randint
 
 import pytz
 from boto3 import Session
 
-from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BaseModel, CloudFormationModel
+from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.ec2 import ec2_backends
-from copy import copy
-
 from .exceptions import (
     ServiceNotFoundException,
     TaskDefinitionNotFoundException,
@@ -481,6 +481,7 @@ class ContainerInstance(BaseObject):
             if ec2_instance.platform == "windows"
             else "linux",  # options are windows and linux, linux is default
         }
+        self.registered_at = datetime.now(pytz.utc)
 
     @property
     def response_object(self):
@@ -489,6 +490,10 @@ class ContainerInstance(BaseObject):
             self._format_attribute(name, value)
             for name, value in response_object["attributes"].items()
         ]
+        if isinstance(response_object["registeredAt"], datetime):
+            response_object["registeredAt"] = unix_time(
+                response_object["registeredAt"].replace(tzinfo=None)
+            )
         return response_object
 
     def _format_attribute(self, name, value):
