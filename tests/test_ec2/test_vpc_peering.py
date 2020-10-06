@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
+# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
@@ -50,9 +50,9 @@ def test_vpc_peering_connections_accept():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.reject_vpc_peering_connection(vpc_pcx.id)
-    cm.exception.code.should.equal("InvalidStateTransition")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidStateTransition")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
     all_vpc_pcxs.should.have.length_of(1)
@@ -70,9 +70,9 @@ def test_vpc_peering_connections_reject():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.accept_vpc_peering_connection(vpc_pcx.id)
-    cm.exception.code.should.equal("InvalidStateTransition")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidStateTransition")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     all_vpc_pcxs = conn.get_all_vpc_peering_connections()
     all_vpc_pcxs.should.have.length_of(1)
@@ -94,9 +94,9 @@ def test_vpc_peering_connections_delete():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.delete_vpc_peering_connection("pcx-1234abcd")
-    cm.exception.code.should.equal("InvalidVpcPeeringConnectionId.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVpcPeeringConnectionId.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -132,7 +132,7 @@ def test_vpc_peering_connections_cross_region_fail():
         ec2_usw1.create_vpc_peering_connection(
             VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-2"
         )
-    cm.exception.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
+    cm.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
 
 
 @mock_ec2
@@ -254,13 +254,13 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region():
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as cm:
         ec2_usw1.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
-    cm.exception.response["Error"]["Code"].should.equal("OperationNotPermitted")
+    cm.value.response["Error"]["Code"].should.equal("OperationNotPermitted")
     exp_msg = (
         "Incorrect region ({0}) specified for this request.VPC "
         "peering connection {1} must be "
         "accepted in region {2}".format("us-west-1", vpc_pcx_usw1.id, "ap-northeast-1")
     )
-    cm.exception.response["Error"]["Message"].should.equal(exp_msg)
+    cm.value.response["Error"]["Message"].should.equal(exp_msg)
 
 
 @mock_ec2
@@ -279,10 +279,10 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region():
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as cm:
         ec2_usw1.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
-    cm.exception.response["Error"]["Code"].should.equal("OperationNotPermitted")
+    cm.value.response["Error"]["Code"].should.equal("OperationNotPermitted")
     exp_msg = (
         "Incorrect region ({0}) specified for this request.VPC "
         "peering connection {1} must be accepted or "
         "rejected in region {2}".format("us-west-1", vpc_pcx_usw1.id, "ap-northeast-1")
     )
-    cm.exception.response["Error"]["Message"].should.equal(exp_msg)
+    cm.value.response["Error"]["Message"].should.equal(exp_msg)

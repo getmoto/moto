@@ -43,7 +43,7 @@ def test_launch_template_create():
             },
         )
 
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidLaunchTemplateName.AlreadyExistsException) when calling the CreateLaunchTemplate operation: Launch template name already in use."
     )
 

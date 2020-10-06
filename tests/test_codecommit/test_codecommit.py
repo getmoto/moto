@@ -86,7 +86,7 @@ def test_create_repository_repository_name_exists():
             repositoryName="repository_two",
             repositoryDescription="description repo two",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateRepository")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RepositoryNameExistsException")
@@ -101,7 +101,7 @@ def test_create_repository_invalid_repository_name():
 
     with pytest.raises(ClientError) as e:
         client.create_repository(repositoryName="in_123_valid_@#$_characters")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateRepository")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
@@ -158,7 +158,7 @@ def test_get_repository():
 
     with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName=repository_name)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetRepository")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RepositoryDoesNotExistException")
@@ -173,7 +173,7 @@ def test_get_repository_invalid_repository_name():
 
     with pytest.raises(ClientError) as e:
         client.get_repository(repositoryName="repository_one-@#@")
-    ex = e.exception
+    ex = e.value
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")
     ex.response["Error"]["Message"].should.equal(
@@ -209,7 +209,7 @@ def test_delete_repository_invalid_repository_name():
 
     with pytest.raises(ClientError) as e:
         client.delete_repository(repositoryName="_rep@ository_one")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteRepository")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidRepositoryNameException")

@@ -2611,7 +2611,7 @@ def test_delete_task_set():
 
     assert len(task_sets) == 0
 
-    with assert_raises(ClientError):
+    with pytest.raises(ClientError):
         _ = client.delete_task_set(
             cluster=cluster_name, service=service_name, taskSet=task_set["taskSetArn"],
         )

@@ -520,7 +520,7 @@ def test_update_stack_when_rolled_back():
     with pytest.raises(BotoServerError) as err:
         conn.update_stack("test_stack", dummy_template_json)
 
-    ex = err.exception
+    ex = err.value
     ex.body.should.match(r"is in ROLLBACK_COMPLETE state and can not be updated")
     ex.error_code.should.equal("ValidationError")
     ex.reason.should.equal("Bad Request")

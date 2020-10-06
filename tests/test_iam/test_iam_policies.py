@@ -1629,9 +1629,9 @@ def check_create_policy_with_invalid_policy_document(test_case):
             PolicyName="TestCreatePolicy",
             PolicyDocument=json.dumps(test_case["document"]),
         )
-    ex.exception.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(test_case["error_message"])
+    ex.value.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(test_case["error_message"])
 
 
 @mock_iam

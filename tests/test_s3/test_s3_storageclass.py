@@ -113,7 +113,7 @@ def test_s3_invalid_copied_storage_class():
             StorageClass="STANDARD2",
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("InvalidStorageClass")
     e.response["Error"]["Message"].should.equal(
         "The storage class you specified is not valid"
@@ -133,7 +133,7 @@ def test_s3_invalid_storage_class():
             Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="STANDARDD"
         )
 
-    e = err.exception
+    e = err.value
     e.response["Error"]["Code"].should.equal("InvalidStorageClass")
     e.response["Error"]["Message"].should.equal(
         "The storage class you specified is not valid"
@@ -166,14 +166,14 @@ def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="GLACIER"
     )
 
-    with pytest.raises(ClientError) as exc:
+    with pytest.raises(ClientError) as ex:
         s3.copy_object(
             CopySource={"Bucket": "Bucket", "Key": "First_Object"},
             Bucket="Bucket",
             Key="Second_Object",
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
+    ex.value.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
 
 
 @mock_s3
@@ -194,7 +194,7 @@ def test_s3_copy_object_error_for_deep_archive_storage_class_not_restored():
             Key="Second_Object",
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
+    exc.value.response["Error"]["Code"].should.equal("ObjectNotInActiveTierError")
 
 
 @mock_s3

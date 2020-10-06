@@ -35,7 +35,7 @@ def test_create_database_already_exists():
     with pytest.raises(ClientError) as exc:
         helpers.create_database(client, database_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -46,8 +46,8 @@ def test_get_database_not_exits():
     with pytest.raises(ClientError) as exc:
         helpers.get_database(client, database_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Database nosuchdatabase not found"
     )
 
@@ -105,7 +105,7 @@ def test_create_table_already_exists():
     with pytest.raises(ClientError) as exc:
         helpers.create_table(client, database_name, table_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -195,8 +195,8 @@ def test_get_table_version_not_found():
     with pytest.raises(ClientError) as exc:
         helpers.get_table_version(client, database_name, "myfirsttable", "20")
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("version", re.I)
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("version", re.I)
 
 
 @mock_glue
@@ -210,7 +210,7 @@ def test_get_table_version_invalid_input():
     with pytest.raises(ClientError) as exc:
         helpers.get_table_version(client, database_name, "myfirsttable", "10not-an-int")
 
-    exc.exception.response["Error"]["Code"].should.equal("InvalidInputException")
+    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
 
 
 @mock_glue
@@ -222,8 +222,8 @@ def test_get_table_not_exits():
     with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, "myfirsttable")
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Table myfirsttable not found"
     )
 
@@ -236,8 +236,8 @@ def test_get_table_when_database_not_exits():
     with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, "myfirsttable")
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Database nosuchdatabase not found"
     )
 
@@ -259,8 +259,8 @@ def test_delete_table():
     with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, table_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Table myspecialtable not found"
     )
 
@@ -284,8 +284,8 @@ def test_batch_delete_table():
     with pytest.raises(ClientError) as exc:
         helpers.get_table(client, database_name, table_name)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match(
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match(
         "Table myspecialtable not found"
     )
 
@@ -353,7 +353,7 @@ def test_create_partition_already_exist():
     with pytest.raises(ClientError) as exc:
         helpers.create_partition(client, database_name, table_name, values=values)
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -369,8 +369,8 @@ def test_get_partition_not_found():
     with pytest.raises(ClientError) as exc:
         helpers.get_partition(client, database_name, table_name, values)
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("partition")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("partition")
 
 
 @mock_glue
@@ -551,8 +551,8 @@ def test_update_partition_not_found_moving():
             values=["2018-10-02"],
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("partition")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("partition")
 
 
 @mock_glue
@@ -570,8 +570,8 @@ def test_update_partition_not_found_change_in_place():
             client, database_name, table_name, old_values=values, values=values
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.exception.response["Error"]["Message"].should.match("partition")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Message"].should.match("partition")
 
 
 @mock_glue
@@ -593,7 +593,7 @@ def test_update_partition_cannot_overwrite():
             client, database_name, table_name, old_values=values[0], values=values[1]
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("AlreadyExistsException")
+    exc.value.response["Error"]["Code"].should.equal("AlreadyExistsException")
 
 
 @mock_glue
@@ -652,7 +652,7 @@ def test_update_partition_move():
         helpers.get_partition(client, database_name, table_name, values)
 
     # Old partition shouldn't exist anymore
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
 
     response = client.get_partition(
         DatabaseName=database_name, TableName=table_name, PartitionValues=new_values
@@ -702,7 +702,7 @@ def test_delete_partition_bad_partition():
             DatabaseName=database_name, TableName=table_name, PartitionValues=values
         )
 
-    exc.exception.response["Error"]["Code"].should.equal("EntityNotFoundException")
+    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
 
 
 @mock_glue

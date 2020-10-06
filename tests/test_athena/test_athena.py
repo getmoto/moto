@@ -111,8 +111,8 @@ def test_start_query_validate_workgroup():
             ResultConfiguration={"OutputLocation": "string"},
             WorkGroup="unknown_workgroup",
         )
-    err.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
-    err.exception.response["Error"]["Message"].should.equal("WorkGroup does not exist")
+    err.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    err.value.response["Error"]["Message"].should.equal("WorkGroup does not exist")
 
 
 @mock_athena

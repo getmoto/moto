@@ -79,7 +79,7 @@ def test_create_pipeline_errors():
 
     with pytest.raises(ClientError) as e:
         create_basic_codepipeline(client, "test-pipeline")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -115,7 +115,7 @@ def test_create_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -167,7 +167,7 @@ def test_create_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -203,7 +203,7 @@ def test_create_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidStructureException")
@@ -284,7 +284,7 @@ def test_get_pipeline_errors():
 
     with pytest.raises(ClientError) as e:
         client.get_pipeline(name="not-existing")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetPipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("PipelineNotFoundException")
@@ -456,7 +456,7 @@ def test_update_pipeline_errors():
                 ],
             }
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UpdatePipeline")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -521,7 +521,7 @@ def test_list_tags_for_resource_errors():
         client.list_tags_for_resource(
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListTagsForResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -560,7 +560,7 @@ def test_tag_resource_errors():
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing",
             tags=[{"key": "key-2", "value": "value-2"}],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
@@ -573,7 +573,7 @@ def test_tag_resource_errors():
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:{}".format(name),
             tags=[{"key": "aws:key", "value": "value"}],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidTagsException")
@@ -591,7 +591,7 @@ def test_tag_resource_errors():
                 for i in range(50)
             ],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TooManyTagsException")
@@ -639,7 +639,7 @@ def test_untag_resource_errors():
             resourceArn="arn:aws:codepipeline:us-east-1:123456789012:not-existing",
             tagKeys=["key"],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UntagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")

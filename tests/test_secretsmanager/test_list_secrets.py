@@ -123,7 +123,7 @@ def test_with_all_filter():
     secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["foo"]}])
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
-    assert secret_names == ["foo", "bar", "baz", "qux", "multi"]
+    assert sorted(secret_names) == ['bar', 'baz', 'foo', 'multi', 'qux']
 
 
 @mock_secretsmanager
@@ -133,8 +133,8 @@ def test_with_no_filter_key():
     with pytest.raises(ClientError) as ire:
         conn.list_secrets(Filters=[{"Values": ["foo"]}])
 
-    ire.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ire.exception.response["Error"]["Message"].should.equal("Invalid filter key")
+    ire.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ire.value.response["Error"]["Message"].should.equal("Invalid filter key")
 
 
 @mock_secretsmanager
@@ -146,8 +146,8 @@ def test_with_no_filter_values():
     with pytest.raises(ClientError) as ire:
         conn.list_secrets(Filters=[{"Key": "description"}])
 
-    ire.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ire.exception.response["Error"]["Message"].should.equal(
+    ire.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ire.value.response["Error"]["Message"].should.equal(
         "Invalid filter values for key: description"
     )
 
@@ -159,8 +159,8 @@ def test_with_invalid_filter_key():
     with pytest.raises(ClientError) as ire:
         conn.list_secrets(Filters=[{"Key": "invalid", "Values": ["foo"]}])
 
-    ire.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ire.exception.response["Error"]["Message"].should.equal(
+    ire.value.response["Error"]["Code"].should.equal("ValidationException")
+    ire.value.response["Error"]["Message"].should.equal(
         "1 validation error detected: Value 'invalid' at 'filters.1.member.key' failed to satisfy constraint: Member "
         "must satisfy enum value set: [all, name, tag-key, description, tag-value]"
     )

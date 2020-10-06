@@ -79,7 +79,7 @@ def test_delete_model_not_found():
         boto3.client("sagemaker", region_name="us-east-1").delete_model(
             ModelName="blah"
         )
-    assert err.exception.response["Error"]["Code"].should.equal("404")
+    assert err.value.response["Error"]["Code"].should.equal("404")
 
 
 @mock_sagemaker

@@ -6,7 +6,7 @@ import boto3
 from boto.exception import EC2ResponseError
 from botocore.exceptions import ClientError
 
-# Ensure 'assert_raises' context manager support for Python 2.6
+# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 import sure  # noqa
 
@@ -31,9 +31,9 @@ def test_ami_create_and_delete():
         image_id = conn.create_image(
             instance.id, "test-ami", "this is a test ami", dry_run=True
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateImage operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -78,9 +78,9 @@ def test_ami_create_and_delete():
     # Deregister
     with pytest.raises(EC2ResponseError) as ex:
         success = conn.deregister_image(image_id, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeregisterImage operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -89,9 +89,9 @@ def test_ami_create_and_delete():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.deregister_image(image_id)
-    cm.exception.code.should.equal("InvalidAMIID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @requires_boto_gte("2.14.0")
@@ -120,9 +120,9 @@ def test_ami_copy():
             "this is a test copy ami",
             dry_run=True,
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CopyImage operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -159,9 +159,9 @@ def test_ami_copy():
             "test-copy-ami",
             "this is a test copy ami",
         )
-    cm.exception.code.should.equal("InvalidAMIID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Copy from non-existent source region.
     with pytest.raises(EC2ResponseError) as cm:
@@ -171,9 +171,9 @@ def test_ami_copy():
         conn.copy_image(
             invalid_region, source_image.id, "test-copy-ami", "this is a test copy ami"
         )
-    cm.exception.code.should.equal("InvalidAMIID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -210,9 +210,9 @@ def test_ami_tagging():
 
     with pytest.raises(EC2ResponseError) as ex:
         image.add_tag("a key", "some value", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -235,9 +235,9 @@ def test_ami_create_from_missing_instance():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.create_image(*args)
-    cm.exception.code.should.equal("InvalidInstanceID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidInstanceID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -355,9 +355,9 @@ def test_getting_missing_ami():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_image("ami-missing")
-    cm.exception.code.should.equal("InvalidAMIID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -366,9 +366,9 @@ def test_getting_malformed_ami():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_image("foo-missing")
-    cm.exception.code.should.equal("InvalidAMIID.Malformed")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.Malformed")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -401,9 +401,9 @@ def test_ami_attribute_group_permissions():
     # Add 'all' group and confirm
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_image_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyImageAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -682,9 +682,9 @@ def test_ami_attribute_error_cases():
         conn.modify_image_attribute(
             image.id, attribute="launchPermission", operation="add", groups="everyone"
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Add with user ID that isn't an integer.
     with pytest.raises(EC2ResponseError) as cm:
@@ -694,9 +694,9 @@ def test_ami_attribute_error_cases():
             operation="add",
             user_ids="12345678901A",
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Add with user ID that is > length 12.
     with pytest.raises(EC2ResponseError) as cm:
@@ -706,9 +706,9 @@ def test_ami_attribute_error_cases():
             operation="add",
             user_ids="1234567890123",
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Add with user ID that is < length 12.
     with pytest.raises(EC2ResponseError) as cm:
@@ -718,9 +718,9 @@ def test_ami_attribute_error_cases():
             operation="add",
             user_ids="12345678901",
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Add with one invalid user ID among other valid IDs, ensure no
     # partial changes.
@@ -731,9 +731,9 @@ def test_ami_attribute_error_cases():
             operation="add",
             user_ids=["123456789011", "foo", "123456789022"],
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     attributes = conn.get_image_attribute(image.id, attribute="launchPermission")
     attributes.attrs.should.have.length_of(0)
@@ -743,9 +743,9 @@ def test_ami_attribute_error_cases():
         conn.modify_image_attribute(
             "ami-abcd1234", attribute="launchPermission", operation="add", groups="all"
         )
-    cm.exception.code.should.equal("InvalidAMIID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Remove with invalid image ID
     with pytest.raises(EC2ResponseError) as cm:
@@ -755,9 +755,9 @@ def test_ami_attribute_error_cases():
             operation="remove",
             groups="all",
         )
-    cm.exception.code.should.equal("InvalidAMIID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2

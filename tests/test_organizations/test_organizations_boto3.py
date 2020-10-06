@@ -63,7 +63,7 @@ def test_describe_organization_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
         response = client.describe_organization()
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeOrganization")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AWSOrganizationsNotInUseException")
@@ -114,7 +114,7 @@ def test_describe_organizational_unit_exception():
         response = client.describe_organizational_unit(
             OrganizationalUnitId=utils.make_random_root_id()
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeOrganizationalUnit")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain(
@@ -143,7 +143,7 @@ def test_list_organizational_units_for_parent_exception():
         response = client.list_organizational_units_for_parent(
             ParentId=utils.make_random_root_id()
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListOrganizationalUnitsForParent")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("ParentNotFoundException")
@@ -195,7 +195,7 @@ def test_describe_account_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
         response = client.describe_account(AccountId=utils.make_random_account_id())
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeAccount")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
@@ -339,13 +339,13 @@ def test_list_children_exception():
         response = client.list_children(
             ParentId=utils.make_random_root_id(), ChildType="ACCOUNT"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListChildren")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("ParentNotFoundException")
     with pytest.raises(ClientError) as e:
         response = client.list_children(ParentId=root_id, ChildType="BLEE")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListChildren")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -396,7 +396,7 @@ def test_create_policy_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreatePolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -429,13 +429,13 @@ def test_describe_policy_exception():
     policy_id = "p-47fhe9s3"
     with pytest.raises(ClientError) as e:
         response = client.describe_policy(PolicyId=policy_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribePolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
     with pytest.raises(ClientError) as e:
         response = client.describe_policy(PolicyId="meaninglessstring")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribePolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -514,9 +514,9 @@ def test_detach_policy_root_ou_not_found_exception():
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.detach_policy(PolicyId=policy_id, TargetId="r-xy85")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain(
@@ -539,11 +539,11 @@ def test_detach_policy_ou_not_found_exception():
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.detach_policy(
             PolicyId=policy_id, TargetId="ou-zx86-z3x4yr2t7"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain(
@@ -565,9 +565,9 @@ def test_detach_policy_account_id_not_found_exception():
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.detach_policy(PolicyId=policy_id, TargetId="111619863336")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
@@ -591,9 +591,9 @@ def test_detach_policy_invalid_target_exception():
         Type="SERVICE_CONTROL_POLICY",
     )["Policy"]["PolicySummary"]["Id"]
     client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError) as e:
         response = client.detach_policy(PolicyId=policy_id, TargetId="invalidtargetid")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DetachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -628,7 +628,7 @@ def test_delete_policy_exception():
     non_existent_policy_id = utils.make_random_policy_id()
     with pytest.raises(ClientError) as e:
         response = client.delete_policy(PolicyId=non_existent_policy_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeletePolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
@@ -644,7 +644,7 @@ def test_delete_policy_exception():
     client.attach_policy(PolicyId=policy_id, TargetId=root_id)
     with pytest.raises(ClientError) as e:
         response = client.delete_policy(PolicyId=policy_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeletePolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyInUseException")
@@ -665,7 +665,7 @@ def test_attach_policy_exception():
     )["Policy"]["PolicySummary"]["Id"]
     with pytest.raises(ClientError) as e:
         response = client.attach_policy(PolicyId=policy_id, TargetId=root_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain(
@@ -673,7 +673,7 @@ def test_attach_policy_exception():
     )
     with pytest.raises(ClientError) as e:
         response = client.attach_policy(PolicyId=policy_id, TargetId=ou_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain(
@@ -681,7 +681,7 @@ def test_attach_policy_exception():
     )
     with pytest.raises(ClientError) as e:
         response = client.attach_policy(PolicyId=policy_id, TargetId=account_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
@@ -692,7 +692,7 @@ def test_attach_policy_exception():
         response = client.attach_policy(
             PolicyId=policy_id, TargetId="meaninglessstring"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AttachPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -731,7 +731,7 @@ def test_update_policy_exception():
     non_existent_policy_id = utils.make_random_policy_id()
     with pytest.raises(ClientError) as e:
         response = client.update_policy(PolicyId=non_existent_policy_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UpdatePolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
@@ -795,7 +795,7 @@ def test_list_policies_for_target_exception():
         response = client.list_policies_for_target(
             TargetId=ou_id, Filter="SERVICE_CONTROL_POLICY"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain(
@@ -805,7 +805,7 @@ def test_list_policies_for_target_exception():
         response = client.list_policies_for_target(
             TargetId=account_id, Filter="SERVICE_CONTROL_POLICY"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
@@ -816,7 +816,7 @@ def test_list_policies_for_target_exception():
         response = client.list_policies_for_target(
             TargetId="meaninglessstring", Filter="SERVICE_CONTROL_POLICY"
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -830,7 +830,7 @@ def test_list_policies_for_target_exception():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TargetNotFoundException")
@@ -844,7 +844,7 @@ def test_list_policies_for_target_exception():
         client.list_policies_for_target(TargetId=root_id, Filter="MOTO")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListPoliciesForTarget")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -889,13 +889,13 @@ def test_list_targets_for_policy_exception():
     policy_id = "p-47fhe9s3"
     with pytest.raises(ClientError) as e:
         response = client.list_targets_for_policy(PolicyId=policy_id)
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["Error"]["Code"].should.equal("400")
     ex.response["Error"]["Message"].should.contain("PolicyNotFoundException")
     with pytest.raises(ClientError) as e:
         response = client.list_targets_for_policy(PolicyId="meaninglessstring")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListTargetsForPolicy")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -933,7 +933,7 @@ def test_tag_resource_errors():
         client.tag_resource(
             ResourceId="000000000000", Tags=[{"Key": "key", "Value": "value"},],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("TagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -963,7 +963,7 @@ def test_list_tags_for_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.list_tags_for_resource(ResourceId="000000000000")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListTagsForResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1000,7 +1000,7 @@ def test_untag_resource_errors():
 
     with pytest.raises(ClientError) as e:
         client.untag_resource(ResourceId="000000000000", TagKeys=["key"])
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UntagResource")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1039,7 +1039,7 @@ def test_update_organizational_unit_duplicate_error():
         client.update_organizational_unit(
             OrganizationalUnitId=response["OrganizationalUnit"]["Id"], Name=ou_name
         )
-    exc = e.exception
+    exc = e.value
     exc.operation_name.should.equal("UpdateOrganizationalUnit")
     exc.response["Error"]["Code"].should.contain("DuplicateOrganizationalUnitException")
     exc.response["Error"]["Message"].should.equal(
@@ -1083,7 +1083,7 @@ def test_enable_aws_service_access():
 
     with pytest.raises(ClientError) as e:
         client.enable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("EnableAWSServiceAccess")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1144,7 +1144,7 @@ def test_disable_aws_service_access_errors():
 
     with pytest.raises(ClientError) as e:
         client.disable_aws_service_access(ServicePrincipal="moto.amazonaws.com")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DisableAWSServiceAccess")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1205,7 +1205,7 @@ def test_register_delegated_administrator_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("RegisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ConstraintViolationException")
@@ -1221,7 +1221,7 @@ def test_register_delegated_administrator_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("RegisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
@@ -1237,7 +1237,7 @@ def test_register_delegated_administrator_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("RegisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1253,7 +1253,7 @@ def test_register_delegated_administrator_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("RegisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountAlreadyRegisteredException")
@@ -1323,7 +1323,7 @@ def test_list_delegated_administrators_erros():
         client.list_delegated_administrators(ServicePrincipal="moto.amazonaws.com")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListDelegatedAdministrators")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1369,7 +1369,7 @@ def test_list_delegated_services_for_account_erros():
         client.list_delegated_services_for_account(AccountId="000000000000")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListDelegatedServicesForAccount")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AWSOrganizationsNotInUseException")
@@ -1383,7 +1383,7 @@ def test_list_delegated_services_for_account_erros():
         client.list_delegated_services_for_account(AccountId=ACCOUNT_ID)
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("ListDelegatedServicesForAccount")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotRegisteredException")
@@ -1431,7 +1431,7 @@ def test_deregister_delegated_administrator_erros():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ConstraintViolationException")
@@ -1447,7 +1447,7 @@ def test_deregister_delegated_administrator_erros():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotFoundException")
@@ -1463,7 +1463,7 @@ def test_deregister_delegated_administrator_erros():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("AccountNotRegisteredException")
@@ -1484,7 +1484,7 @@ def test_deregister_delegated_administrator_erros():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeregisterDelegatedAdministrator")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1535,7 +1535,7 @@ def test_enable_policy_type_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("EnablePolicyType")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RootNotFoundException")
@@ -1549,7 +1549,7 @@ def test_enable_policy_type_errors():
         client.enable_policy_type(RootId=root_id, PolicyType="SERVICE_CONTROL_POLICY")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("EnablePolicyType")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("PolicyTypeAlreadyEnabledException")
@@ -1563,7 +1563,7 @@ def test_enable_policy_type_errors():
         client.enable_policy_type(RootId=root_id, PolicyType="MOTO")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("EnablePolicyType")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")
@@ -1610,7 +1610,7 @@ def test_disable_policy_type_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DisablePolicyType")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("RootNotFoundException")
@@ -1626,7 +1626,7 @@ def test_disable_policy_type_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DisablePolicyType")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("PolicyTypeNotEnabledException")
@@ -1640,7 +1640,7 @@ def test_disable_policy_type_errors():
         client.disable_policy_type(RootId=root_id, PolicyType="MOTO")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DisablePolicyType")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidInputException")

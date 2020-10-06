@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
+# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 from moto.ec2.exceptions import EC2ClientError
 from botocore.exceptions import ClientError
@@ -32,9 +32,9 @@ def test_vpcs():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.delete_vpc("vpc-1234abcd")
-    cm.exception.code.should.equal("InvalidVpcID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVpcID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -115,9 +115,9 @@ def test_vpc_get_by_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_vpcs(vpc_ids=["vpc-does_not_exist"])
-    cm.exception.code.should.equal("InvalidVpcID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVpcID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -405,7 +405,7 @@ def test_associate_vpc_ipv4_cidr_block():
         response = ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, CidrBlock="10.10.50.0/22"
         )
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock "
         "operation: This network '{}' has met its maximum number of allowed CIDRs: 5".format(
             vpc.id
@@ -450,7 +450,7 @@ def test_disassociate_vpc_ipv4_cidr_block():
         response = ec2.meta.client.disassociate_vpc_cidr_block(
             AssociationId="vpc-cidr-assoc-BORING123"
         )
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidVpcCidrBlockAssociationIdError.NotFound) when calling the "
         "DisassociateVpcCidrBlock operation: The vpc CIDR block association ID "
         "'vpc-cidr-assoc-BORING123' does not exist"
@@ -472,7 +472,7 @@ def test_disassociate_vpc_ipv4_cidr_block():
         response = ec2.meta.client.disassociate_vpc_cidr_block(
             AssociationId=vpc_base_cidr_assoc_id
         )
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (OperationNotPermitted) when calling the DisassociateVpcCidrBlock operation: "
         "The vpc CIDR block with association ID {} may not be disassociated. It is the primary "
         "IPv4 CIDR block of the VPC".format(vpc_base_cidr_assoc_id)
@@ -552,7 +552,7 @@ def test_vpc_associate_ipv6_cidr_block():
         response = ec2.meta.client.associate_vpc_cidr_block(
             VpcId=vpc.id, AmazonProvidedIpv6CidrBlock=True
         )
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock "
         "operation: This network '{}' has met its maximum number of allowed CIDRs: 1".format(
             vpc.id
@@ -658,7 +658,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
     vpc_cidr_block = "1000.1.0.0/20"
     with pytest.raises(ClientError) as ex:
         vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidParameterValue) when calling the CreateVpc "
         "operation: Value ({}) for parameter cidrBlock is invalid. This is not a valid CIDR block.".format(
             vpc_cidr_block
@@ -673,7 +673,7 @@ def test_create_vpc_with_invalid_cidr_range():
     vpc_cidr_block = "10.1.0.0/29"
     with pytest.raises(ClientError) as ex:
         vpc = ec2.create_vpc(CidrBlock=vpc_cidr_block)
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidVpc.Range) when calling the CreateVpc "
         "operation: The CIDR '{}' is invalid.".format(vpc_cidr_block)
     )

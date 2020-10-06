@@ -58,7 +58,7 @@ def test_get_secret_that_does_not_exist():
 
     assert \
         "Secrets Manager can't find the specified secret." == \
-        cm.exception.response["Error"]["Message"]
+        cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -73,7 +73,7 @@ def test_get_secret_that_does_not_match():
 
     assert \
         "Secrets Manager can't find the specified secret." == \
-        cm.exception.response["Error"]["Message"]
+        cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -99,7 +99,7 @@ def test_get_secret_that_has_no_value():
 
     assert \
         "Secrets Manager can't find the specified secret value for staging label: AWSCURRENT" == \
-        cm.exception.response["Error"]
+        cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -110,16 +110,14 @@ def test_get_secret_version_that_does_not_exist():
     secret_arn = result["ARN"]
     missing_version_id = "00000000-0000-0000-0000-000000000000"
 
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         conn.get_secret_value(SecretId=secret_arn, VersionId=missing_version_id)
 
-    assert_equal(
+    assert \
         (
             "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
             "Manager can't find the specified secret value for VersionId: 00000000-0000-0000-0000-000000000000"
-        ),
-        cm.exception.response["Error"]["Message"],
-    )
+        ) == cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -702,8 +700,8 @@ def test_put_secret_binary_requires_either_string_or_binary():
     with pytest.raises(ClientError) as ire:
         conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME)
 
-    ire.exception.response["Error"]["Code"].should.equal("InvalidRequestException")
-    ire.exception.response["Error"]["Message"].should.equal(
+    ire.value.response["Error"]["Code"].should.equal("InvalidRequestException")
+    ire.value.response["Error"]["Message"].should.equal(
         "You must provide either SecretString or SecretBinary."
     )
 
@@ -883,7 +881,7 @@ def test_update_secret_which_does_not_exit():
 
     assert \
         "Secrets Manager can't find the specified secret." == \
-        cm.exception.response["Error"]["Message"]
+        cm.value.response["Error"]["Message"]
 
 
 @mock_secretsmanager
@@ -900,7 +898,7 @@ def test_update_secret_marked_as_deleted():
 
     assert (
         "because it was marked for deletion."
-        in cm.exception.response["Error"]["Message"]
+        in cm.value.response["Error"]["Message"]
     )
 
 

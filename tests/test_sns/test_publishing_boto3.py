@@ -235,14 +235,14 @@ def test_publish_bad_sms():
     # Test invalid number
     with pytest.raises(ClientError) as cm:
         client.publish(PhoneNumber="NAA+15551234567", Message="my message")
-    cm.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    cm.exception.response["Error"]["Message"].should.contain("not meet the E164")
+    cm.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Message"].should.contain("not meet the E164")
 
     # Test to long ASCII message
     with pytest.raises(ClientError) as cm:
         client.publish(PhoneNumber="+15551234567", Message="a" * 1601)
-    cm.exception.response["Error"]["Code"].should.equal("InvalidParameter")
-    cm.exception.response["Error"]["Message"].should.contain("must be less than 1600")
+    cm.value.response["Error"]["Code"].should.equal("InvalidParameter")
+    cm.value.response["Error"]["Message"].should.contain("must be less than 1600")
 
 
 @mock_sqs

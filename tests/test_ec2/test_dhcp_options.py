@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
+# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 import boto3
@@ -34,9 +34,9 @@ def test_dhcp_options_associate_invalid_dhcp_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.associate_dhcp_options("foo", vpc.id)
-    cm.exception.code.should.equal("InvalidDhcpOptionID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -47,9 +47,9 @@ def test_dhcp_options_associate_invalid_vpc_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.associate_dhcp_options(dhcp_options.id, "foo")
-    cm.exception.code.should.equal("InvalidVpcID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVpcID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -65,17 +65,17 @@ def test_dhcp_options_delete_with_vpc():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.delete_dhcp_options(dhcp_options_id)
-    cm.exception.code.should.equal("DependencyViolation")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("DependencyViolation")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     vpc.delete()
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_dhcp_options([dhcp_options_id])
-    cm.exception.code.should.equal("InvalidDhcpOptionID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -101,15 +101,15 @@ def test_create_dhcp_options_invalid_options():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.create_dhcp_options(ntp_servers=servers)
-    cm.exception.code.should.equal("InvalidParameterValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidParameterValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.create_dhcp_options(netbios_node_type="0")
-    cm.exception.code.should.equal("InvalidParameterValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidParameterValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -132,9 +132,9 @@ def test_describe_dhcp_options_invalid_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_dhcp_options(["1"])
-    cm.exception.code.should.equal("InvalidDhcpOptionID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -150,9 +150,9 @@ def test_delete_dhcp_options():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_dhcp_options([dhcp_option.id])
-    cm.exception.code.should.equal("InvalidDhcpOptionID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -163,9 +163,9 @@ def test_delete_dhcp_options_invalid_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.delete_dhcp_options("dopt-abcd1234")
-    cm.exception.code.should.equal("InvalidDhcpOptionID.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidDhcpOptionID.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -176,9 +176,9 @@ def test_delete_dhcp_options_malformed_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.delete_dhcp_options("foo-abcd1234")
-    cm.exception.code.should.equal("InvalidDhcpOptionsId.Malformed")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidDhcpOptionsId.Malformed")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated

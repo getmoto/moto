@@ -113,7 +113,7 @@ def test_delete_invalid_alarm():
     # trying to delete an alarm which is not created along with valid alarm.
     with pytest.raises(ClientError) as e:
         cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName", "testalarm1"])
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
 
     resp = cloudwatch.describe_alarms(AlarmNames=["testalarm1"])
     # making sure other alarms are not deleted in case of an error.
@@ -122,7 +122,7 @@ def test_delete_invalid_alarm():
     # test to check if the error raises if only one invalid alarm is tried to delete.
     with pytest.raises(ClientError) as e:
         cloudwatch.delete_alarms(AlarmNames=["InvalidAlarmName"])
-    e.exception.response["Error"]["Code"].should.equal("ResourceNotFound")
+    e.value.response["Error"]["Code"].should.equal("ResourceNotFound")
 
 
 @mock_cloudwatch
@@ -425,7 +425,7 @@ def test_list_metrics_paginated():
     # Verify we can't pass a random NextToken
     with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=str(uuid4()))
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
     # Add a boatload of metrics
@@ -454,7 +454,7 @@ def test_list_metrics_paginated():
     # Verify that we can't reuse an existing token
     with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=first_page["NextToken"])
-    e.exception.response["Error"]["Message"].should.equal(
+    e.value.response["Error"]["Message"].should.equal(
         "Request parameter NextToken is invalid"
     )
 

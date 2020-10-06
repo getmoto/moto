@@ -78,9 +78,9 @@ def test_describe_identity_pool_with_invalid_id_raises_error():
     with pytest.raises(ClientError) as cm:
         conn.describe_identity_pool(IdentityPoolId="us-west-2_non-existent")
 
-        cm.exception.operation_name.should.equal("DescribeIdentityPool")
-        cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-        cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        cm.value.operation_name.should.equal("DescribeIdentityPool")
+        cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+        cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 # testing a helper function

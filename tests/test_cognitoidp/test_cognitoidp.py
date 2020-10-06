@@ -608,9 +608,9 @@ def test_update_identity_provider_no_user_pool():
             UserPoolId="foo", ProviderName="bar", ProviderDetails={"thing": new_value}
         )
 
-    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("UpdateIdentityProvider")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -630,9 +630,9 @@ def test_update_identity_provider_no_identity_provider():
             ProviderDetails={"thing": new_value},
         )
 
-    cm.exception.operation_name.should.equal("UpdateIdentityProvider")
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("UpdateIdentityProvider")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -701,9 +701,9 @@ def test_create_group_with_duplicate_name_raises_error():
 
     with pytest.raises(ClientError) as cm:
         conn.create_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.operation_name.should.equal("CreateGroup")
-    cm.exception.response["Error"]["Code"].should.equal("GroupExistsException")
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.operation_name.should.equal("CreateGroup")
+    cm.value.response["Error"]["Code"].should.equal("GroupExistsException")
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp
@@ -749,7 +749,7 @@ def test_delete_group():
 
     with pytest.raises(ClientError) as cm:
         conn.get_group(GroupName=group_name, UserPoolId=user_pool_id)
-    cm.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    cm.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
 
 
 @mock_cognitoidp
@@ -1570,12 +1570,12 @@ def test_resource_server():
             UserPoolId=user_pool_id, Identifier=identifier, Name=name, Scopes=scopes
         )
 
-    ex.exception.operation_name.should.equal("CreateResourceServer")
-    ex.exception.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.operation_name.should.equal("CreateResourceServer")
+    ex.value.response["Error"]["Code"].should.equal("InvalidParameterException")
+    ex.value.response["Error"]["Message"].should.equal(
         "%s already exists in user pool %s." % (identifier, user_pool_id)
     )
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_cognitoidp

@@ -101,8 +101,8 @@ def test_update():
     raw_payload = b'{"state": {"desired": {"led": "on"}}, "version": 1}'
     with pytest.raises(ClientError) as ex:
         client.update_thing_shadow(thingName=name, payload=raw_payload)
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
-    ex.exception.response["Error"]["Message"].should.equal("Version conflict")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    ex.value.response["Error"]["Message"].should.equal("Version conflict")
 
 
 @mock_iotdata

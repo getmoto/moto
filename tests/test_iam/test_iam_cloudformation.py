@@ -113,7 +113,7 @@ Resources:
 
     with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=original_user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
     iam_client.get_user(UserName=new_user_name)
 
@@ -177,7 +177,7 @@ Resources:
     iam_client.get_user(UserName=second_user_name)
     with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=first_user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
 @mock_iam
@@ -207,7 +207,7 @@ Resources:
 
     with pytest.raises(ClientError) as e:
         user = iam_client.get_user(UserName=user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
 @mock_iam
@@ -237,7 +237,7 @@ Resources:
 
     with pytest.raises(ClientError) as e:
         user = iam_client.get_user(UserName=user_name)
-    e.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
+    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
 
 
 @mock_iam
