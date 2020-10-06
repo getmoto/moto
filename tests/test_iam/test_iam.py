@@ -207,7 +207,9 @@ def test_remove_role_from_instance_profile():
 def test_delete_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     conn.create_instance_profile(InstanceProfileName="my-profile")
     conn.add_role_to_instance_profile(
@@ -257,7 +259,9 @@ def test_delete_role():
 
     # Test deletion failure with a managed policy
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     response = conn.create_policy(
         PolicyName="my-managed-policy", PolicyDocument=MOCK_POLICY
@@ -273,10 +277,14 @@ def test_delete_role():
 
     # Test deletion failure with an inline policy
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     conn.put_role_policy(
-        RoleName="my-role", PolicyName="my-role-policy", PolicyDocument=MOCK_POLICY
+        RoleName="my-role",
+        PolicyName="my-role-policy",
+        PolicyDocument=MOCK_POLICY,
     )
     with pytest.raises(conn.exceptions.DeleteConflictException):
         conn.delete_role(RoleName="my-role")
@@ -287,7 +295,9 @@ def test_delete_role():
 
     # Test deletion failure with attachment to an instance profile
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     conn.create_instance_profile(InstanceProfileName="my-profile")
     conn.add_role_to_instance_profile(
@@ -304,7 +314,9 @@ def test_delete_role():
 
     # Test deletion with no conflicts
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     conn.delete_role(RoleName="my-role")
     with pytest.raises(conn.exceptions.NoSuchEntityException):
@@ -331,7 +343,9 @@ def test_list_instance_profiles_for_role():
     conn = boto.connect_iam()
 
     conn.create_role(
-        role_name="my-role", assume_role_policy_document="some policy", path="my-path"
+        role_name="my-role",
+        assume_role_policy_document="some policy",
+        path="my-path",
     )
     conn.create_role(
         role_name="my-role2",
@@ -343,7 +357,8 @@ def test_list_instance_profiles_for_role():
     profile_path_list = ["my-path", "my-path2"]
     for profile_count in range(0, 2):
         conn.create_instance_profile(
-            profile_name_list[profile_count], path=profile_path_list[profile_count]
+            profile_name_list[profile_count],
+            path=profile_path_list[profile_count],
         )
 
     for profile_count in range(0, 2):
@@ -409,7 +424,9 @@ def test_put_role_policy():
 def test_get_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="my-path"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="my-path",
     )
     with pytest.raises(conn.exceptions.NoSuchEntityException):
         conn.get_role_policy(RoleName="my-role", PolicyName="does-not-exist")
@@ -898,19 +915,19 @@ def test_get_all_access_keys():
     conn = boto.connect_iam()
     conn.create_user("my-user")
     response = conn.get_all_access_keys("my-user")
-    assert \
+    assert (
         response["list_access_keys_response"]["list_access_keys_result"][
             "access_key_metadata"
-        ] == []
+        ]
+        == []
+    )
     conn.create_access_key("my-user")
     response = conn.get_all_access_keys("my-user")
-    assert \
-        sorted(
-            response["list_access_keys_response"]["list_access_keys_result"][
-                "access_key_metadata"
-            ][0].keys()
-        ) == \
-        sorted(["status", "create_date", "user_name", "access_key_id"])
+    assert sorted(
+        response["list_access_keys_response"]["list_access_keys_result"][
+            "access_key_metadata"
+        ][0].keys()
+    ) == sorted(["status", "create_date", "user_name", "access_key_id"])
 
 
 @mock_iam
@@ -921,9 +938,9 @@ def test_list_access_keys():
     assert response["AccessKeyMetadata"] == []
     access_key = conn.create_access_key(UserName="my-user")["AccessKey"]
     response = conn.list_access_keys(UserName="my-user")
-    assert \
-        sorted(response["AccessKeyMetadata"][0].keys()) == \
-        sorted(["Status", "CreateDate", "UserName", "AccessKeyId"]
+    assert sorted(response["AccessKeyMetadata"][0].keys()) == sorted(
+        ["Status", "CreateDate", "UserName", "AccessKeyId"]
+    )
     conn = boto3.client(
         "iam",
         region_name="us-east-1",
@@ -931,9 +948,9 @@ def test_list_access_keys():
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
     response = conn.list_access_keys()
-    assert \
-        sorted(response["AccessKeyMetadata"][0].keys()) == \
-        sorted(["Status", "CreateDate", "UserName", "AccessKeyId"])
+    assert sorted(response["AccessKeyMetadata"][0].keys()) == sorted(
+        ["Status", "CreateDate", "UserName", "AccessKeyId"]
+    )
 
 
 @mock_iam_deprecated()
@@ -1022,7 +1039,8 @@ def test_create_virtual_mfa_device_errors():
     client.create_virtual_mfa_device.when.called_with(
         VirtualMFADeviceName="test-device"
     ).should.throw(
-        ClientError, "MFADevice entity at the same path and name already exists."
+        ClientError,
+        "MFADevice entity at the same path and name already exists.",
     )
 
     client.create_virtual_mfa_device.when.called_with(
@@ -1211,7 +1229,9 @@ def test_delete_user():
     # Test deletion failure with an inline policy
     conn.create_user(UserName="my-user")
     conn.put_user_policy(
-        UserName="my-user", PolicyName="my-user-policy", PolicyDocument=MOCK_POLICY
+        UserName="my-user",
+        PolicyName="my-user-policy",
+        PolicyDocument=MOCK_POLICY,
     )
     with pytest.raises(conn.exceptions.DeleteConflictException):
         conn.delete_user(UserName="my-user")
@@ -1396,7 +1416,9 @@ def test_managed_policy():
 
     role_name = "my-role"
     conn.create_role(
-        role_name, assume_role_policy_document={"policy": "test"}, path="my-path"
+        role_name,
+        assume_role_policy_document={"policy": "test"},
+        path="my-path",
     )
     for policy_name in [
         "AmazonElasticMapReduceRole",
@@ -1423,7 +1445,8 @@ def test_managed_policy():
     ].should.have.length_of(2)
 
     conn.detach_role_policy(
-        "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole", role_name
+        "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+        role_name,
     )
     rows = conn.list_policies(only_attached=True)["list_policies_response"][
         "list_policies_result"
@@ -1444,7 +1467,8 @@ def test_managed_policy():
 
     with pytest.raises(BotoServerError):
         conn.detach_role_policy(
-            "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole", role_name
+            "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole",
+            role_name,
         )
 
     with pytest.raises(BotoServerError):
@@ -1562,7 +1586,9 @@ def test_get_ssh_public_key():
 
     with pytest.raises(ClientError):
         client.get_ssh_public_key(
-            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Encoding="SSH"
+            UserName=username,
+            SSHPublicKeyId="xxnon-existent-keyxx",
+            Encoding="SSH",
         )
 
     resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
@@ -1603,7 +1629,9 @@ def test_update_ssh_public_key():
 
     with pytest.raises(ClientError):
         client.update_ssh_public_key(
-            UserName=username, SSHPublicKeyId="xxnon-existent-keyxx", Status="Inactive"
+            UserName=username,
+            SSHPublicKeyId="xxnon-existent-keyxx",
+            Status="Inactive",
         )
 
     resp = client.upload_ssh_public_key(UserName=username, SSHPublicKeyBody=public_key)
@@ -1681,7 +1709,9 @@ def test_get_account_authorization_details():
         UserName="testUser", PolicyName="testPolicy", PolicyDocument=test_policy
     )
     conn.put_group_policy(
-        GroupName="testGroup", PolicyName="testPolicy", PolicyDocument=test_policy
+        GroupName="testGroup",
+        PolicyName="testPolicy",
+        PolicyDocument=test_policy,
     )
 
     conn.attach_user_policy(
@@ -1981,7 +2011,9 @@ def test_create_role_with_tags():
             map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
         )
         conn.create_role(
-            RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=too_many_tags
+            RoleName="my-role3",
+            AssumeRolePolicyDocument="{}",
+            Tags=too_many_tags,
         )
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
@@ -2247,7 +2279,9 @@ def test_update_role_description():
         conn.delete_role(RoleName="my-role")
 
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     response = conn.update_role_description(RoleName="my-role", Description="test")
 
@@ -2262,7 +2296,9 @@ def test_update_role():
         conn.delete_role(RoleName="my-role")
 
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     response = conn.update_role_description(RoleName="my-role", Description="test")
     assert response["Role"]["RoleName"] == "my-role"
@@ -2276,7 +2312,9 @@ def test_update_role():
         conn.delete_role(RoleName="my-role")
 
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     response = conn.update_role(RoleName="my-role", Description="test")
     assert len(response.keys()) == 1
@@ -2317,7 +2355,9 @@ def test_list_entities_for_policy():
 
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Path="/my-path/",
     )
     conn.create_user(Path="/", UserName="testUser")
     conn.create_group(Path="/", GroupName="testGroup")
@@ -2333,7 +2373,9 @@ def test_list_entities_for_policy():
         UserName="testUser", PolicyName="testPolicy", PolicyDocument=test_policy
     )
     conn.put_group_policy(
-        GroupName="testGroup", PolicyName="testPolicy", PolicyDocument=test_policy
+        GroupName="testGroup",
+        PolicyName="testPolicy",
+        PolicyDocument=test_policy,
     )
 
     conn.attach_user_policy(
@@ -2396,7 +2438,9 @@ def test_list_entities_for_policy():
 def test_create_role_no_path():
     conn = boto3.client("iam", region_name="us-east-1")
     resp = conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Description="test"
+        RoleName="my-role",
+        AssumeRolePolicyDocument="some policy",
+        Description="test",
     )
     resp.get("Role").get("Arn").should.equal(
         "arn:aws:iam::{}:role/my-role".format(ACCOUNT_ID)
@@ -2452,7 +2496,9 @@ def test_create_role_with_same_name_should_fail():
     iam = boto3.client("iam", region_name="us-east-1")
     test_role_name = str(uuid4())
     iam.create_role(
-        RoleName=test_role_name, AssumeRolePolicyDocument="policy", Description="test"
+        RoleName=test_role_name,
+        AssumeRolePolicyDocument="policy",
+        Description="test",
     )
     # Create the role again, and verify that it fails
     with pytest.raises(ClientError) as err:
@@ -2539,14 +2585,24 @@ def test_create_open_id_connect_provider_errors():
 
     client.create_open_id_connect_provider.when.called_with(
         Url="http://example.org",
-        ThumbprintList=["a" * 40, "b" * 40, "c" * 40, "d" * 40, "e" * 40, "f" * 40],
+        ThumbprintList=[
+            "a" * 40,
+            "b" * 40,
+            "c" * 40,
+            "d" * 40,
+            "e" * 40,
+            "f" * 40,
+        ],
     ).should.throw(ClientError, "Thumbprint list must contain fewer than 5 entries.")
 
     too_many_client_ids = ["{}".format(i) for i in range(101)]
     client.create_open_id_connect_provider.when.called_with(
-        Url="http://example.org", ThumbprintList=[], ClientIDList=too_many_client_ids
+        Url="http://example.org",
+        ThumbprintList=[],
+        ClientIDList=too_many_client_ids,
     ).should.throw(
-        ClientError, "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100"
+        ClientError,
+        "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100",
     )
 
     too_long_url = "b" * 256
@@ -2587,7 +2643,8 @@ def test_delete_open_id_connect_provider():
     client.get_open_id_connect_provider.when.called_with(
         OpenIDConnectProviderArn=open_id_arn
     ).should.throw(
-        ClientError, "OpenIDConnect Provider not found for arn {}".format(open_id_arn)
+        ClientError,
+        "OpenIDConnect Provider not found for arn {}".format(open_id_arn),
     )
 
     # deleting a non existing provider should be successful
@@ -2679,7 +2736,9 @@ def test_update_account_password_policy_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
     client.update_account_password_policy.when.called_with(
-        MaxPasswordAge=1096, MinimumPasswordLength=129, PasswordReusePrevention=25
+        MaxPasswordAge=1096,
+        MinimumPasswordLength=129,
+        PasswordReusePrevention=25,
     ).should.throw(
         ClientError,
         "3 validation errors detected: "
@@ -2757,7 +2816,8 @@ def test_delete_account_password_policy_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
     client.delete_account_password_policy.when.called_with().should.throw(
-        ClientError, "The account policy with name PasswordPolicy cannot be found."
+        ClientError,
+        "The account policy with name PasswordPolicy cannot be found.",
     )
 
 
@@ -2885,7 +2945,8 @@ def test_list_user_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="kenny-bania")
     conn.create_user(
-        UserName="jackie-chiles", Tags=[{"Key": "Sue-Allen", "Value": "Oh-Henry"}]
+        UserName="jackie-chiles",
+        Tags=[{"Key": "Sue-Allen", "Value": "Oh-Henry"}],
     )
     conn.create_user(
         UserName="cosmo",
@@ -2904,7 +2965,10 @@ def test_list_user_tags():
 
     response = conn.list_user_tags(UserName="cosmo")
     response["Tags"].should.equal(
-        [{"Key": "Stan", "Value": "The Caddy"}, {"Key": "like-a", "Value": "glove"}]
+        [
+            {"Key": "Stan", "Value": "The Caddy"},
+            {"Key": "like-a", "Value": "glove"},
+        ]
     )
     response["IsTruncated"].should_not.be.ok
 
@@ -2947,7 +3011,8 @@ def test_delete_account_password_policy_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
     client.delete_account_password_policy.when.called_with().should.throw(
-        ClientError, "The account policy with name PasswordPolicy cannot be found."
+        ClientError,
+        "The account policy with name PasswordPolicy cannot be found.",
     )
 
 
@@ -2976,7 +3041,10 @@ def test_role_list_config_discovered_resources():
             max_session_duration=3600,
         )
         roles.append(
-            {"id": this_role.id, "name": this_role.name,}
+            {
+                "id": this_role.id,
+                "name": this_role.name,
+            }
         )
 
     assert len(roles) == num_roles
@@ -3034,7 +3102,11 @@ def test_role_config_dict():
     basic_assume_role = {
         "Version": "2012-10-17",
         "Statement": [
-            {"Effect": "Allow", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": "*"},
+                "Action": "sts:AssumeRole",
+            }
         ],
     }
 
@@ -3351,7 +3423,9 @@ def test_role_config_client():
     # Test non-aggregated pagination
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
+            resourceType="AWS::IAM::Role",
+            limit=1,
+            nextToken=result["nextToken"],
         )["resourceIdentifiers"][0]["resourceId"]
     ) != first_result
 
@@ -3387,14 +3461,18 @@ def test_role_config_client():
     # Test non-aggregated resource name/id filter
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceName=roles[1]["name"], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceName=roles[1]["name"],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[1]["name"]
     )
 
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceIds=[roles[0]["id"]], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceIds=[roles[0]["id"]],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[0]["name"]
     )
@@ -3440,13 +3518,17 @@ def test_role_config_client():
     # Test non-aggregated resource name/id filter
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceName=roles[1]["name"], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceName=roles[1]["name"],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[1]["name"]
     )
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", resourceIds=[roles[0]["id"]], limit=1,
+            resourceType="AWS::IAM::Role",
+            resourceIds=[roles[0]["id"]],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == roles[0]["name"]
     )
@@ -3556,7 +3638,10 @@ def test_policy_list_config_discovered_resources():
             policy_name="policy{}".format(ix),
         )
         policies.append(
-            {"id": this_policy.id, "name": this_policy.name,}
+            {
+                "id": this_policy.id,
+                "name": this_policy.name,
+            }
         )
 
     assert len(policies) == num_policies
@@ -3781,7 +3866,9 @@ def test_policy_config_client():
     # Test non-aggregated pagination
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
+            resourceType="AWS::IAM::Policy",
+            limit=1,
+            nextToken=result["nextToken"],
         )["resourceIdentifiers"][0]["resourceId"]
     ) != first_result
 
@@ -3818,14 +3905,18 @@ def test_policy_config_client():
     # Test non-aggregated resource name/id filter
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", resourceName=policies[1]["name"], limit=1,
+            resourceType="AWS::IAM::Policy",
+            resourceName=policies[1]["name"],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == policies[1]["name"]
     )
 
     assert (
         config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", resourceIds=[policies[0]["id"]], limit=1,
+            resourceType="AWS::IAM::Policy",
+            resourceIds=[policies[0]["id"]],
+            limit=1,
         )["resourceIdentifiers"][0]["resourceName"]
         == policies[0]["name"]
     )
@@ -3906,7 +3997,10 @@ def test_policy_config_client():
     assert (
         config_client.batch_get_resource_config(
             resourceKeys=[
-                {"resourceType": "AWS::IAM::Policy", "resourceId": policies[7]["id"]}
+                {
+                    "resourceType": "AWS::IAM::Policy",
+                    "resourceId": policies[7]["id"],
+                }
             ]
         )["baseConfigurationItems"][0]["resourceName"]
         == policies[7]["name"]

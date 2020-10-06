@@ -525,7 +525,9 @@ def test_untag_resource_error():
 @mock_sns
 def test_topic_kms_master_key_id_attribute():
     client = boto3.client("sns", region_name="us-west-2")
-    resp = client.create_topic(Name="test-sns-no-key-attr",)
+    resp = client.create_topic(
+        Name="test-sns-no-key-attr",
+    )
     topic_arn = resp["TopicArn"]
     resp = client.get_topic_attributes(TopicArn=topic_arn)
     resp["Attributes"].should_not.have.key("KmsMasterKeyId")
@@ -538,7 +540,10 @@ def test_topic_kms_master_key_id_attribute():
     resp["Attributes"]["KmsMasterKeyId"].should.equal("test-key")
 
     resp = client.create_topic(
-        Name="test-sns-with-key-attr", Attributes={"KmsMasterKeyId": "key-id",}
+        Name="test-sns-with-key-attr",
+        Attributes={
+            "KmsMasterKeyId": "key-id",
+        },
     )
     topic_arn = resp["TopicArn"]
     resp = client.get_topic_attributes(TopicArn=topic_arn)

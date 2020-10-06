@@ -243,12 +243,14 @@ class SageMakerResponse(BaseResponse):
     @amzn_request_id
     def create_notebook_instance_lifecycle_config(self):
         try:
-            lifecycle_configuration = self.sagemaker_backend.create_notebook_instance_lifecycle_config(
-                notebook_instance_lifecycle_config_name=self._get_param(
-                    "NotebookInstanceLifecycleConfigName"
-                ),
-                on_create=self._get_param("OnCreate"),
-                on_start=self._get_param("OnStart"),
+            lifecycle_configuration = (
+                self.sagemaker_backend.create_notebook_instance_lifecycle_config(
+                    notebook_instance_lifecycle_config_name=self._get_param(
+                        "NotebookInstanceLifecycleConfigName"
+                    ),
+                    on_create=self._get_param("OnCreate"),
+                    on_start=self._get_param("OnStart"),
+                )
             )
             response = {
                 "NotebookInstanceLifecycleConfigArn": lifecycle_configuration.notebook_instance_lifecycle_config_arn,

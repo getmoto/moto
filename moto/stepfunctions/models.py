@@ -148,7 +148,9 @@ class StateMachine(CloudFormationModel):
             tags = cfn_to_api_tags(properties.get("Tags", []))
             sf_backend = stepfunction_backends[region_name]
             state_machine = sf_backend.update_state_machine(
-                original_resource.arn, definition=definition, role_arn=role_arn,
+                original_resource.arn,
+                definition=definition,
+                role_arn=role_arn,
             )
             state_machine.add_tags(tags)
             return state_machine

@@ -76,9 +76,7 @@ def test_put_configuration_recorder():
                     "recordingGroup": bg,
                 }
             )
-        assert (
-            ce.value.response["Error"]["Code"] == "InvalidRecordingGroupException"
-        )
+        assert ce.value.response["Error"]["Code"] == "InvalidRecordingGroupException"
         assert (
             ce.value.response["Error"]["Message"]
             == "The recording group provided is not valid"
@@ -255,8 +253,7 @@ def test_put_configuration_aggregator():
             ],
         )
     assert (
-        "You must choose one of these options"
-        in ce.value.response["Error"]["Message"]
+        "You must choose one of these options" in ce.value.response["Error"]["Message"]
     )
     assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
@@ -270,8 +267,7 @@ def test_put_configuration_aggregator():
             },
         )
     assert (
-        "You must choose one of these options"
-        in ce.value.response["Error"]["Message"]
+        "You must choose one of these options" in ce.value.response["Error"]["Message"]
     )
     assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
@@ -475,8 +471,7 @@ def test_describe_configuration_aggregators():
         in ce.value.response["Error"]["Message"]
     )
     assert (
-        ce.value.response["Error"]["Code"]
-        == "NoSuchConfigurationAggregatorException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationAggregatorException"
     )
 
     # Error describe with more than 1 item in the list:
@@ -489,8 +484,7 @@ def test_describe_configuration_aggregators():
         in ce.value.response["Error"]["Message"]
     )
     assert (
-        ce.value.response["Error"]["Code"]
-        == "NoSuchConfigurationAggregatorException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationAggregatorException"
     )
 
     # Get the normal list:
@@ -553,9 +547,7 @@ def test_describe_configuration_aggregators():
     # Test with an invalid filter:
     with pytest.raises(ClientError) as ce:
         client.describe_configuration_aggregators(NextToken="WRONG")
-    assert (
-        "The nextToken provided is invalid" == ce.value.response["Error"]["Message"]
-    )
+    assert "The nextToken provided is invalid" == ce.value.response["Error"]["Message"]
     assert ce.value.response["Error"]["Code"] == "InvalidNextTokenException"
 
 
@@ -710,9 +702,7 @@ def test_describe_aggregation_authorizations():
     # Test with an invalid filter:
     with pytest.raises(ClientError) as ce:
         client.describe_aggregation_authorizations(NextToken="WRONG")
-    assert (
-        "The nextToken provided is invalid" == ce.value.response["Error"]["Message"]
-    )
+    assert "The nextToken provided is invalid" == ce.value.response["Error"]["Message"]
     assert ce.value.response["Error"]["Code"] == "InvalidNextTokenException"
 
 
@@ -758,8 +748,7 @@ def test_delete_configuration_aggregator():
         in ce.value.response["Error"]["Message"]
     )
     assert (
-        ce.value.response["Error"]["Code"]
-        == "NoSuchConfigurationAggregatorException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationAggregatorException"
     )
 
 
@@ -798,9 +787,7 @@ def test_describe_configurations():
     # Specify an incorrect name:
     with pytest.raises(ClientError) as ce:
         client.describe_configuration_recorders(ConfigurationRecorderNames=["wrong"])
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     assert "wrong" in ce.value.response["Error"]["Message"]
 
     # And with both a good and wrong name:
@@ -808,9 +795,7 @@ def test_describe_configurations():
         client.describe_configuration_recorders(
             ConfigurationRecorderNames=["testrecorder", "wrong"]
         )
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     assert "wrong" in ce.value.response["Error"]["Message"]
 
 
@@ -847,9 +832,7 @@ def test_delivery_channels():
     # Try without a name supplied:
     with pytest.raises(ClientError) as ce:
         client.put_delivery_channel(DeliveryChannel={})
-    assert (
-        ce.value.response["Error"]["Code"] == "InvalidDeliveryChannelNameException"
-    )
+    assert ce.value.response["Error"]["Code"] == "InvalidDeliveryChannelNameException"
     assert "is not valid, blank string." in ce.value.response["Error"]["Message"]
 
     # Try with a really long name:
@@ -1034,9 +1017,7 @@ def test_start_configuration_recorder():
     # Without a config recorder:
     with pytest.raises(ClientError) as ce:
         client.start_configuration_recorder(ConfigurationRecorderName="testrecorder")
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
 
     # Make the config recorder;
     client.put_configuration_recorder(
@@ -1054,9 +1035,7 @@ def test_start_configuration_recorder():
     # Without a delivery channel:
     with pytest.raises(ClientError) as ce:
         client.start_configuration_recorder(ConfigurationRecorderName="testrecorder")
-    assert (
-        ce.value.response["Error"]["Code"] == "NoAvailableDeliveryChannelException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoAvailableDeliveryChannelException"
 
     # Make the delivery channel:
     client.put_delivery_channel(
@@ -1092,9 +1071,7 @@ def test_stop_configuration_recorder():
     # Without a config recorder:
     with pytest.raises(ClientError) as ce:
         client.stop_configuration_recorder(ConfigurationRecorderName="testrecorder")
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
 
     # Make the config recorder;
     client.put_configuration_recorder(
@@ -1184,9 +1161,7 @@ def test_describe_configuration_recorder_status():
         client.describe_configuration_recorder_status(
             ConfigurationRecorderNames=["testrecorder", "wrong"]
         )
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     assert "wrong" in ce.value.response["Error"]["Message"]
 
 
@@ -1213,9 +1188,7 @@ def test_delete_configuration_recorder():
     # Try again -- it should be deleted:
     with pytest.raises(ClientError) as ce:
         client.delete_configuration_recorder(ConfigurationRecorderName="testrecorder")
-    assert (
-        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
-    )
+    assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
 
 
 @mock_config
@@ -1243,8 +1216,7 @@ def test_delete_delivery_channel():
     with pytest.raises(ClientError) as ce:
         client.delete_delivery_channel(DeliveryChannelName="testchannel")
     assert (
-        ce.value.response["Error"]["Code"]
-        == "LastDeliveryChannelDeleteFailedException"
+        ce.value.response["Error"]["Code"] == "LastDeliveryChannelDeleteFailedException"
     )
     assert (
         "because there is a running configuration recorder."
@@ -1267,7 +1239,7 @@ def test_delete_delivery_channel():
 @mock_s3
 def test_list_discovered_resource():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
-             for that individual service's "list_config_service_resources" function.
+    for that individual service's "list_config_service_resources" function.
     """
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1373,7 +1345,7 @@ def test_list_discovered_resource():
 @mock_s3
 def test_list_aggregate_discovered_resource():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
-             for that individual service's "list_config_service_resources" function.
+    for that individual service's "list_config_service_resources" function.
     """
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1517,7 +1489,7 @@ def test_list_aggregate_discovered_resource():
 @mock_s3
 def test_get_resource_config_history():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
-             for that individual service's "get_config_resource" function.
+    for that individual service's "get_config_resource" function.
     """
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1576,7 +1548,7 @@ def test_get_resource_config_history():
 @mock_s3
 def test_batch_get_resource_config():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
-             for that individual service's "get_config_resource" function.
+    for that individual service's "get_config_resource" function.
     """
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1640,7 +1612,7 @@ def test_batch_get_resource_config():
 @mock_s3
 def test_batch_get_aggregate_resource_config():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
-             for that individual service's "get_config_resource" function.
+    for that individual service's "get_config_resource" function.
     """
     from moto.config.models import DEFAULT_ACCOUNT_ID
 
@@ -1873,7 +1845,12 @@ def test_put_evaluations():
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
     response.should.equal(
-        {"FailedEvaluations": [], "ResponseMetadata": {"HTTPStatusCode": 200,},}
+        {
+            "FailedEvaluations": [],
+            "ResponseMetadata": {
+                "HTTPStatusCode": 200,
+            },
+        }
     )
 
 

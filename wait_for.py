@@ -21,12 +21,12 @@ start_ts = time.time()
 print("Waiting for service to come up")
 while True:
     try:
-        urllib.urlopen('http://localhost:5000/', timeout=1)
+        urllib.urlopen("http://localhost:5000/", timeout=1)
         break
     except EXCEPTIONS:
         elapsed_s = time.time() - start_ts
         if elapsed_s > 60:
             raise
 
-        print('.')
+        print(".")
         time.sleep(1)

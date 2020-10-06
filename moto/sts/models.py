@@ -48,10 +48,12 @@ class AssumedRole(BaseModel):
 
     @property
     def arn(self):
-        return "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
-            account_id=ACCOUNT_ID,
-            role_name=self.role_arn.split("/")[-1],
-            session_name=self.session_name,
+        return (
+            "arn:aws:sts::{account_id}:assumed-role/{role_name}/{session_name}".format(
+                account_id=ACCOUNT_ID,
+                role_name=self.role_arn.split("/")[-1],
+                session_name=self.session_name,
+            )
         )
 
 

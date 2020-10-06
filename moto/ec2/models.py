@@ -1059,7 +1059,7 @@ class InstanceBackend(object):
                     return instance
 
     def get_reservations_by_instance_ids(self, instance_ids, filters=None):
-        """ Go through all of the reservations and filter to only return those
+        """Go through all of the reservations and filter to only return those
         associated with the given instance_ids.
         """
         reservations = []
@@ -1358,9 +1358,9 @@ class Ami(TaggedEC2Resource):
 
         elif source_ami:
             """
-              http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html
-              "We don't copy launch permissions, user-defined tags, or Amazon S3 bucket permissions from the source AMI to the new AMI."
-              ~ 2014.09.29
+            http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html
+            "We don't copy launch permissions, user-defined tags, or Amazon S3 bucket permissions from the source AMI to the new AMI."
+            ~ 2014.09.29
             """
             self.virtualization_type = source_ami.virtualization_type
             self.architecture = source_ami.architecture
@@ -1491,7 +1491,12 @@ class AmiBackend(object):
             # Limit by owner ids
             if owners:
                 # support filtering by Owners=['self']
-                owners = list(map(lambda o: OWNER_ID if o == "self" else o, owners,))
+                owners = list(
+                    map(
+                        lambda o: OWNER_ID if o == "self" else o,
+                        owners,
+                    )
+                )
                 images = [ami for ami in images if ami.owner_id in owners]
 
             # Generic filters
@@ -1518,9 +1523,9 @@ class AmiBackend(object):
         # If anything is invalid, nothing is added. (No partial success.)
         if user_ids:
             """
-              AWS docs:
-                "The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
-                http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
+            AWS docs:
+              "The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
+              http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
             """
             for user_id in user_ids:
                 if len(user_id) != 12 or not user_id.isdigit():
@@ -3705,13 +3710,17 @@ class FlowLogsBackend(object):
     ):
         if log_group_name is None and log_destination is None:
             raise InvalidDependantParameterError(
-                "LogDestination", "LogGroupName", "not provided",
+                "LogDestination",
+                "LogGroupName",
+                "not provided",
             )
 
         if log_destination_type == "s3":
             if log_group_name is not None:
                 raise InvalidDependantParameterTypeError(
-                    "LogDestination", "cloud-watch-logs", "LogGroupName",
+                    "LogDestination",
+                    "cloud-watch-logs",
+                    "LogGroupName",
                 )
         elif log_destination_type == "cloud-watch-logs":
             if deliver_logs_permission_arn is None:
@@ -3859,7 +3868,8 @@ class FlowLogsBackend(object):
 
         if non_existing:
             raise InvalidFlowLogIdError(
-                len(flow_log_ids), " ".join(x for x in flow_log_ids),
+                len(flow_log_ids),
+                " ".join(x for x in flow_log_ids),
             )
         return True
 
