@@ -213,9 +213,9 @@ def test_item_add_empty_string_exception():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     )
 
@@ -256,9 +256,9 @@ def test_update_item_with_empty_string_exception():
             ExpressionAttributeValues={":Body": {"S": ""}},
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
     )
 
@@ -1356,10 +1356,10 @@ def test_put_empty_item():
 
     with pytest.raises(ClientError) as ex:
         table.put_item(Item={})
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_dynamodb2
@@ -1375,10 +1375,10 @@ def test_put_item_nonexisting_hash_key():
 
     with pytest.raises(ClientError) as ex:
         table.put_item(Item={"a_terribly_misguided_id_attribute": "abcdef"})
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_dynamodb2
@@ -1400,10 +1400,10 @@ def test_put_item_nonexisting_range_key():
 
     with pytest.raises(ClientError) as ex:
         table.put_item(Item={"structure_id": "abcdef"})
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "One or more parameter values were invalid: Missing the key added_at in the item"
     )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 def test_filter_expression():
@@ -2089,7 +2089,7 @@ def test_describe_continuous_backups_errors():
         client.describe_continuous_backups(TableName="not-existing-table")
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeContinuousBackups")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TableNotFoundException")
@@ -2178,7 +2178,7 @@ def test_update_continuous_backups_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UpdateContinuousBackups")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("TableNotFoundException")
@@ -2444,9 +2444,9 @@ def test_put_return_attributes():
             Item={"id": {"S": "foo"}, "col1": {"S": "val3"}},
             ReturnValues="ALL_NEW",
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Return values set to invalid value"
     )
 
@@ -2969,9 +2969,9 @@ def test_scan_by_non_exists_index():
     with pytest.raises(ClientError) as ex:
         dynamodb.scan(TableName="test", IndexName="non_exists_index")
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "The table does not have the specified index: non_exists_index"
     )
 
@@ -3008,8 +3008,8 @@ def test_query_by_non_exists_index():
             KeyConditionExpression="CarModel=M",
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
     )
 
@@ -3052,8 +3052,8 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
                 }
             }
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    msg = ex.exception.response["Error"]["Message"]
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    msg = ex.value.response["Error"]["Message"]
     msg.should.contain("1 validation error detected: Value")
     msg.should.contain(
         "at 'requestItems.users.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
@@ -3080,8 +3080,8 @@ def test_batch_items_throws_exception_when_requesting_100_items_across_all_table
                 },
             }
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Too many items requested for the BatchGetItem call"
     )
 
@@ -3172,8 +3172,8 @@ def test_batch_items_should_throw_exception_for_duplicate_request():
                 }
             }
         )
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Provided list of item keys contains duplicates"
     )
 
@@ -3210,8 +3210,8 @@ def test_index_with_unknown_attributes_should_fail():
             BillingMode="PAY_PER_REQUEST",
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.contain(expected_exception)
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(expected_exception)
 
 
 @mock_dynamodb2
@@ -3377,8 +3377,8 @@ def test_update_list_index__set_index_of_a_string():
             "Item"
         ]
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "The document path provided in the update expression is invalid for update"
     )
 
@@ -3617,8 +3617,8 @@ def test_item_size_is_under_400KB():
 def assert_failure_due_to_item_size(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Item size has exceeded the maximum allowed size"
     )
 
@@ -3626,8 +3626,8 @@ def assert_failure_due_to_item_size(func, **kwargs):
 def assert_failure_due_to_item_size_to_update(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Item size to update has exceeded the maximum allowed size"
     )
 
@@ -3656,8 +3656,8 @@ def test_hash_key_cannot_use_begins_with_operations():
     table = dynamodb.Table("test-table")
     with pytest.raises(ClientError) as ex:
         table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Query key condition not supported"
     )
 
@@ -4056,8 +4056,8 @@ def test_update_catches_invalid_list_append_operation():
         )
 
     # Verify correct error is returned
-    str(ex.exception).should.match("Parameter validation failed:")
-    str(ex.exception).should.match(
+    str(ex.value).should.match("Parameter validation failed:")
+    str(ex.value).should.match(
         "Invalid type for parameter ExpressionAttributeValues."
     )
 
@@ -4169,9 +4169,9 @@ def test_query_catches_when_no_filters():
     with pytest.raises(ClientError) as ex:
         table.query(TableName="original-rbu-dev")
 
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Either KeyConditions or QueryFilter should be present"
     )
 
@@ -4205,8 +4205,8 @@ def test_invalid_transact_get_items():
             ]
         )
 
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.match(
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.match(
         r"failed to satisfy constraint: Member must have length less than or equal to 25",
         re.I,
     )
@@ -4219,9 +4219,9 @@ def test_invalid_transact_get_items():
             ]
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Requested resource not found"
     )
 
@@ -4514,8 +4514,8 @@ def test_transact_write_items_put_conditional_expressions():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4604,8 +4604,8 @@ def test_transact_write_items_conditioncheck_fails():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Assert the original email address is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
@@ -4701,8 +4701,8 @@ def test_transact_write_items_delete_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -4774,8 +4774,8 @@ def test_transact_write_items_update_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     items.should.have.length_of(1)
@@ -5343,9 +5343,9 @@ def test_transact_write_items_fails_with_transaction_canceled_exception():
                 },
             ]
         )
-    ex.exception.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    ex.value.response["Error"]["Message"].should.equal(
         "Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]"
     )
 

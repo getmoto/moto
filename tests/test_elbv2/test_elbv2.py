@@ -391,8 +391,8 @@ def test_create_target_group_and_listeners():
     # listener referencing it
     with pytest.raises(ClientError) as e:
         conn.delete_target_group(TargetGroupArn=target_group.get("TargetGroupArn"))
-    e.exception.operation_name.should.equal("DeleteTargetGroup")
-    e.exception.args.should.equal(
+    e.value.operation_name.should.equal("DeleteTargetGroup")
+    e.value.args.should.equal(
         (
             "An error occurred (ResourceInUse) when calling the DeleteTargetGroup operation: The target group 'arn:aws:elasticloadbalancing:us-east-1:1:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule",
         )
@@ -1959,7 +1959,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
                 DefaultActions=[invalid_status_code_action],
             )
 
-        invalid_status_code_exception.exception.response["Error"]["Code"].should.equal(
+        invalid_status_code_exception.value.response["Error"]["Code"].should.equal(
             "ValidationError"
         )
 
@@ -2005,6 +2005,6 @@ def test_fixed_response_action_listener_rule_validates_content_type():
             Port=80,
             DefaultActions=[invalid_content_type_action],
         )
-    invalid_content_type_exception.exception.response["Error"]["Code"].should.equal(
+    invalid_content_type_exception.value.response["Error"]["Code"].should.equal(
         "InvalidLoadBalancerAction"
     )

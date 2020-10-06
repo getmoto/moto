@@ -139,7 +139,7 @@ def test_delete_location():
     response = client.list_locations()
     assert len(response["Locations"]) == 0
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError):
         response = client.delete_location(LocationArn=location_arn)
 
 
@@ -262,7 +262,7 @@ def test_update_task():
     assert response["Name"] == updated_name
     assert response["Options"] == updated_options
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError):
         client.update_task(TaskArn="doesnt_exist")
 
 
@@ -286,7 +286,7 @@ def test_delete_task():
     response = client.list_tasks()
     assert len(response["Tasks"]) == 0
 
-    with assert_raises(ClientError) as e:
+    with pytest.raises(ClientError):
         response = client.delete_task(TaskArn=task_arn)
 
 

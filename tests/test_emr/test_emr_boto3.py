@@ -401,7 +401,7 @@ def test_run_job_flow_with_invalid_params():
         args["AmiVersion"] = "2.4"
         args["ReleaseLabel"] = "emr-5.0.0"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
 
 
 @mock_emr
@@ -598,16 +598,16 @@ def test_run_job_flow_with_custom_ami():
         args["CustomAmiId"] = "MyEmrCustomId"
         args["ReleaseLabel"] = "emr-5.6.0"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal("Custom AMI is not allowed")
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal("Custom AMI is not allowed")
 
     with pytest.raises(ClientError) as ex:
         args = deepcopy(run_job_flow_args)
         args["CustomAmiId"] = "MyEmrCustomId"
         args["AmiVersion"] = "3.8.1"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "Custom AMI is not supported in this version of EMR"
     )
 
@@ -618,8 +618,8 @@ def test_run_job_flow_with_custom_ami():
         args["ReleaseLabel"] = "emr-5.6.0"
         args["AmiVersion"] = "3.8.1"
         client.run_job_flow(**args)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.contain(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.contain(
         "Only one AMI version and release label may be specified."
     )
 

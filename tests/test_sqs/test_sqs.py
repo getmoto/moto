@@ -221,7 +221,7 @@ def test_get_nonexistent_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     with pytest.raises(ClientError) as err:
         sqs.get_queue_by_name(QueueName="non-existing-queue")
-    ex = err.exception
+    ex = err.value
     ex.operation_name.should.equal("GetQueueUrl")
     ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
     ex.response["Error"]["Message"].should.equal(
@@ -230,7 +230,7 @@ def test_get_nonexistent_queue():
 
     with pytest.raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
-    ex = err.exception
+    ex = err.value
     ex.operation_name.should.equal("GetQueueAttributes")
     ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
 
@@ -377,7 +377,7 @@ def test_message_with_attributes_invalid_datatype():
                 }
             },
         )
-    ex = e.exception
+    ex = e.value
     ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
     ex.response["Error"]["Message"].should.equal(
         "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
@@ -1658,7 +1658,7 @@ def test_add_permission_errors():
             AWSAccountIds=["111111111111"],
             Actions=["ReceiveMessage", "SendMessage"],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AddPermission")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
@@ -1673,7 +1673,7 @@ def test_add_permission_errors():
             AWSAccountIds=["111111111111"],
             Actions=["RemovePermission"],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AddPermission")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
@@ -1689,7 +1689,7 @@ def test_add_permission_errors():
             AWSAccountIds=["111111111111"],
             Actions=[],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AddPermission")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("MissingParameter")
@@ -1704,7 +1704,7 @@ def test_add_permission_errors():
             AWSAccountIds=[],
             Actions=["ReceiveMessage"],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AddPermission")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
@@ -1728,7 +1728,7 @@ def test_add_permission_errors():
                 "SendMessage",
             ],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("AddPermission")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
     ex.response["Error"]["Code"].should.contain("OverLimit")
@@ -1745,7 +1745,7 @@ def test_remove_permission_errors():
 
     with pytest.raises(ClientError) as e:
         client.remove_permission(QueueUrl=queue_url, Label="test")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("RemovePermission")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
@@ -2174,7 +2174,7 @@ def test_send_messages_to_fifo_without_message_group_id():
 
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="message-1")
-    ex = e.exception
+    ex = e.value
     ex.response["Error"]["Code"].should.equal("MissingParameter")
     ex.response["Error"]["Message"].should.equal(
         "The request must contain the parameter MessageGroupId."

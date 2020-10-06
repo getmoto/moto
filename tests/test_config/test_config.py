@@ -23,20 +23,20 @@ def test_put_configuration_recorder():
     with pytest.raises(ClientError) as ce:
         client.put_configuration_recorder(ConfigurationRecorder={"roleARN": "somearn"})
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "InvalidConfigurationRecorderNameException"
     )
-    assert "is not valid, blank string." in ce.exception.response["Error"]["Message"]
+    assert "is not valid, blank string." in ce.value.response["Error"]["Message"]
 
     # Try with a really long name:
     with pytest.raises(ClientError) as ce:
         client.put_configuration_recorder(
             ConfigurationRecorder={"name": "a" * 257, "roleARN": "somearn"}
         )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
     assert (
         "Member must have length less than or equal to 256"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With resource types and flags set to True:
@@ -77,10 +77,10 @@ def test_put_configuration_recorder():
                 }
             )
         assert (
-            ce.exception.response["Error"]["Code"] == "InvalidRecordingGroupException"
+            ce.value.response["Error"]["Code"] == "InvalidRecordingGroupException"
         )
         assert (
-            ce.exception.response["Error"]["Message"]
+            ce.value.response["Error"]["Message"]
             == "The recording group provided is not valid"
         )
 
@@ -103,11 +103,11 @@ def test_put_configuration_recorder():
                 },
             }
         )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
     assert "2 validation error detected: Value '['LOLNO', 'LOLSTILLNO']" in str(
-        ce.exception.response["Error"]["Message"]
+        ce.value.response["Error"]["Message"]
     )
-    assert "AWS::EC2::Instance" in ce.exception.response["Error"]["Message"]
+    assert "AWS::EC2::Instance" in ce.value.response["Error"]["Message"]
 
     # Create a proper one:
     client.put_configuration_recorder(
@@ -178,12 +178,12 @@ def test_put_configuration_recorder():
             }
         )
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "MaxNumberOfConfigurationRecordersExceededException"
     )
     assert (
         "maximum number of configuration recorders: 1 is reached."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
 
@@ -208,9 +208,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Member must have length less than or equal to 1"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # With an invalid region config (no regions defined):
     with pytest.raises(ClientError) as ce:
@@ -225,9 +225,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Your request does not specify any regions"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     with pytest.raises(ClientError) as ce:
         client.put_configuration_aggregator(
@@ -238,9 +238,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Your request does not specify any regions"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     # With both region flags defined:
     with pytest.raises(ClientError) as ce:
@@ -256,9 +256,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "You must choose one of these options"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     with pytest.raises(ClientError) as ce:
         client.put_configuration_aggregator(
@@ -271,9 +271,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "You must choose one of these options"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     # Name too long:
     with pytest.raises(ClientError) as ce:
@@ -283,8 +283,8 @@ def test_put_configuration_aggregator():
                 {"AccountIds": ["012345678910"], "AllAwsRegions": True}
             ],
         )
-    assert "configurationAggregatorName" in ce.exception.response["Error"]["Message"]
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert "configurationAggregatorName" in ce.value.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Too many tags (>50):
     with pytest.raises(ClientError) as ce:
@@ -299,9 +299,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Member must have length less than or equal to 50"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Tag key is too big (>128 chars):
     with pytest.raises(ClientError) as ce:
@@ -314,9 +314,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Member must have length less than or equal to 128"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Tag value is too big (>256 chars):
     with pytest.raises(ClientError) as ce:
@@ -329,9 +329,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Member must have length less than or equal to 256"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Duplicate Tags:
     with pytest.raises(ClientError) as ce:
@@ -342,8 +342,8 @@ def test_put_configuration_aggregator():
             ],
             Tags=[{"Key": "a", "Value": "a"}, {"Key": "a", "Value": "a"}],
         )
-    assert "Duplicate tag keys found." in ce.exception.response["Error"]["Message"]
-    assert ce.exception.response["Error"]["Code"] == "InvalidInput"
+    assert "Duplicate tag keys found." in ce.value.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "InvalidInput"
 
     # Invalid characters in the tag key:
     with pytest.raises(ClientError) as ce:
@@ -356,9 +356,9 @@ def test_put_configuration_aggregator():
         )
     assert (
         "Member must satisfy regular expression pattern:"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # If it contains both the AccountAggregationSources and the OrganizationAggregationSource
     with pytest.raises(ClientError) as ce:
@@ -374,18 +374,18 @@ def test_put_configuration_aggregator():
         )
     assert (
         "AccountAggregationSource and the OrganizationAggregationSource"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     # If it contains neither:
     with pytest.raises(ClientError) as ce:
         client.put_configuration_aggregator(ConfigurationAggregatorName="testing")
     assert (
         "AccountAggregationSource or the OrganizationAggregationSource"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     # Just make one:
     account_aggregation_source = {
@@ -472,10 +472,10 @@ def test_describe_configuration_aggregators():
         )
     assert (
         "The configuration aggregator does not exist."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "NoSuchConfigurationAggregatorException"
     )
 
@@ -486,10 +486,10 @@ def test_describe_configuration_aggregators():
         )
     assert (
         "At least one of the configuration aggregators does not exist."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "NoSuchConfigurationAggregatorException"
     )
 
@@ -554,9 +554,9 @@ def test_describe_configuration_aggregators():
     with pytest.raises(ClientError) as ce:
         client.describe_configuration_aggregators(NextToken="WRONG")
     assert (
-        "The nextToken provided is invalid" == ce.exception.response["Error"]["Message"]
+        "The nextToken provided is invalid" == ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidNextTokenException"
+    assert ce.value.response["Error"]["Code"] == "InvalidNextTokenException"
 
 
 @mock_config
@@ -574,9 +574,9 @@ def test_put_aggregation_authorization():
         )
     assert (
         "Member must have length less than or equal to 50"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Tag key is too big (>128 chars):
     with pytest.raises(ClientError) as ce:
@@ -587,9 +587,9 @@ def test_put_aggregation_authorization():
         )
     assert (
         "Member must have length less than or equal to 128"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Tag value is too big (>256 chars):
     with pytest.raises(ClientError) as ce:
@@ -600,9 +600,9 @@ def test_put_aggregation_authorization():
         )
     assert (
         "Member must have length less than or equal to 256"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Duplicate Tags:
     with pytest.raises(ClientError) as ce:
@@ -611,8 +611,8 @@ def test_put_aggregation_authorization():
             AuthorizedAwsRegion="us-west-2",
             Tags=[{"Key": "a", "Value": "a"}, {"Key": "a", "Value": "a"}],
         )
-    assert "Duplicate tag keys found." in ce.exception.response["Error"]["Message"]
-    assert ce.exception.response["Error"]["Code"] == "InvalidInput"
+    assert "Duplicate tag keys found." in ce.value.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "InvalidInput"
 
     # Invalid characters in the tag key:
     with pytest.raises(ClientError) as ce:
@@ -623,9 +623,9 @@ def test_put_aggregation_authorization():
         )
     assert (
         "Member must satisfy regular expression pattern:"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
 
     # Put a normal one there:
     result = client.put_aggregation_authorization(
@@ -711,9 +711,9 @@ def test_describe_aggregation_authorizations():
     with pytest.raises(ClientError) as ce:
         client.describe_aggregation_authorizations(NextToken="WRONG")
     assert (
-        "The nextToken provided is invalid" == ce.exception.response["Error"]["Message"]
+        "The nextToken provided is invalid" == ce.value.response["Error"]["Message"]
     )
-    assert ce.exception.response["Error"]["Code"] == "InvalidNextTokenException"
+    assert ce.value.response["Error"]["Code"] == "InvalidNextTokenException"
 
 
 @mock_config
@@ -755,10 +755,10 @@ def test_delete_configuration_aggregator():
         client.delete_configuration_aggregator(ConfigurationAggregatorName="testing")
     assert (
         "The configuration aggregator does not exist."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "NoSuchConfigurationAggregatorException"
     )
 
@@ -799,9 +799,9 @@ def test_describe_configurations():
     with pytest.raises(ClientError) as ce:
         client.describe_configuration_recorders(ConfigurationRecorderNames=["wrong"])
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     )
-    assert "wrong" in ce.exception.response["Error"]["Message"]
+    assert "wrong" in ce.value.response["Error"]["Message"]
 
     # And with both a good and wrong name:
     with pytest.raises(ClientError) as ce:
@@ -809,9 +809,9 @@ def test_describe_configurations():
             ConfigurationRecorderNames=["testrecorder", "wrong"]
         )
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     )
-    assert "wrong" in ce.exception.response["Error"]["Message"]
+    assert "wrong" in ce.value.response["Error"]["Message"]
 
 
 @mock_config
@@ -822,11 +822,11 @@ def test_delivery_channels():
     with pytest.raises(ClientError) as ce:
         client.put_delivery_channel(DeliveryChannel={})
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "NoAvailableConfigurationRecorderException"
     )
     assert (
-        ce.exception.response["Error"]["Message"]
+        ce.value.response["Error"]["Message"]
         == "Configuration recorder is not available to "
         "put delivery channel."
     )
@@ -848,25 +848,25 @@ def test_delivery_channels():
     with pytest.raises(ClientError) as ce:
         client.put_delivery_channel(DeliveryChannel={})
     assert (
-        ce.exception.response["Error"]["Code"] == "InvalidDeliveryChannelNameException"
+        ce.value.response["Error"]["Code"] == "InvalidDeliveryChannelNameException"
     )
-    assert "is not valid, blank string." in ce.exception.response["Error"]["Message"]
+    assert "is not valid, blank string." in ce.value.response["Error"]["Message"]
 
     # Try with a really long name:
     with pytest.raises(ClientError) as ce:
         client.put_delivery_channel(DeliveryChannel={"name": "a" * 257})
-    assert ce.exception.response["Error"]["Code"] == "ValidationException"
+    assert ce.value.response["Error"]["Code"] == "ValidationException"
     assert (
         "Member must have length less than or equal to 256"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Without specifying a bucket name:
     with pytest.raises(ClientError) as ce:
         client.put_delivery_channel(DeliveryChannel={"name": "testchannel"})
-    assert ce.exception.response["Error"]["Code"] == "NoSuchBucketException"
+    assert ce.value.response["Error"]["Code"] == "NoSuchBucketException"
     assert (
-        ce.exception.response["Error"]["Message"]
+        ce.value.response["Error"]["Message"]
         == "Cannot find a S3 bucket with an empty bucket name."
     )
 
@@ -874,9 +874,9 @@ def test_delivery_channels():
         client.put_delivery_channel(
             DeliveryChannel={"name": "testchannel", "s3BucketName": ""}
         )
-    assert ce.exception.response["Error"]["Code"] == "NoSuchBucketException"
+    assert ce.value.response["Error"]["Code"] == "NoSuchBucketException"
     assert (
-        ce.exception.response["Error"]["Message"]
+        ce.value.response["Error"]["Message"]
         == "Cannot find a S3 bucket with an empty bucket name."
     )
 
@@ -889,8 +889,8 @@ def test_delivery_channels():
                 "s3KeyPrefix": "",
             }
         )
-    assert ce.exception.response["Error"]["Code"] == "InvalidS3KeyPrefixException"
-    assert "empty s3 key prefix." in ce.exception.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "InvalidS3KeyPrefixException"
+    assert "empty s3 key prefix." in ce.value.response["Error"]["Message"]
 
     # With an empty string for the SNS ARN:
     with pytest.raises(ClientError) as ce:
@@ -901,8 +901,8 @@ def test_delivery_channels():
                 "snsTopicARN": "",
             }
         )
-    assert ce.exception.response["Error"]["Code"] == "InvalidSNSTopicARNException"
-    assert "The sns topic arn" in ce.exception.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "InvalidSNSTopicARNException"
+    assert "The sns topic arn" in ce.value.response["Error"]["Message"]
 
     # With an invalid delivery frequency:
     with pytest.raises(ClientError) as ce:
@@ -913,9 +913,9 @@ def test_delivery_channels():
                 "configSnapshotDeliveryProperties": {"deliveryFrequency": "WRONG"},
             }
         )
-    assert ce.exception.response["Error"]["Code"] == "InvalidDeliveryFrequency"
-    assert "WRONG" in ce.exception.response["Error"]["Message"]
-    assert "TwentyFour_Hours" in ce.exception.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "InvalidDeliveryFrequency"
+    assert "WRONG" in ce.value.response["Error"]["Message"]
+    assert "TwentyFour_Hours" in ce.value.response["Error"]["Message"]
 
     # Create a proper one:
     client.put_delivery_channel(
@@ -955,12 +955,12 @@ def test_delivery_channels():
             DeliveryChannel={"name": "testchannel2", "s3BucketName": "somebucket"}
         )
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "MaxNumberOfDeliveryChannelsExceededException"
     )
     assert (
         "because the maximum number of delivery channels: 1 is reached."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
 
@@ -1017,14 +1017,14 @@ def test_describe_delivery_channels():
     # Specify an incorrect name:
     with pytest.raises(ClientError) as ce:
         client.describe_delivery_channels(DeliveryChannelNames=["wrong"])
-    assert ce.exception.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
-    assert "wrong" in ce.exception.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
+    assert "wrong" in ce.value.response["Error"]["Message"]
 
     # And with both a good and wrong name:
     with pytest.raises(ClientError) as ce:
         client.describe_delivery_channels(DeliveryChannelNames=["testchannel", "wrong"])
-    assert ce.exception.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
-    assert "wrong" in ce.exception.response["Error"]["Message"]
+    assert ce.value.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
+    assert "wrong" in ce.value.response["Error"]["Message"]
 
 
 @mock_config
@@ -1035,7 +1035,7 @@ def test_start_configuration_recorder():
     with pytest.raises(ClientError) as ce:
         client.start_configuration_recorder(ConfigurationRecorderName="testrecorder")
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     )
 
     # Make the config recorder;
@@ -1055,7 +1055,7 @@ def test_start_configuration_recorder():
     with pytest.raises(ClientError) as ce:
         client.start_configuration_recorder(ConfigurationRecorderName="testrecorder")
     assert (
-        ce.exception.response["Error"]["Code"] == "NoAvailableDeliveryChannelException"
+        ce.value.response["Error"]["Code"] == "NoAvailableDeliveryChannelException"
     )
 
     # Make the delivery channel:
@@ -1093,7 +1093,7 @@ def test_stop_configuration_recorder():
     with pytest.raises(ClientError) as ce:
         client.stop_configuration_recorder(ConfigurationRecorderName="testrecorder")
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     )
 
     # Make the config recorder;
@@ -1185,9 +1185,9 @@ def test_describe_configuration_recorder_status():
             ConfigurationRecorderNames=["testrecorder", "wrong"]
         )
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     )
-    assert "wrong" in ce.exception.response["Error"]["Message"]
+    assert "wrong" in ce.value.response["Error"]["Message"]
 
 
 @mock_config
@@ -1214,7 +1214,7 @@ def test_delete_configuration_recorder():
     with pytest.raises(ClientError) as ce:
         client.delete_configuration_recorder(ConfigurationRecorderName="testrecorder")
     assert (
-        ce.exception.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
+        ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
     )
 
 
@@ -1243,12 +1243,12 @@ def test_delete_delivery_channel():
     with pytest.raises(ClientError) as ce:
         client.delete_delivery_channel(DeliveryChannelName="testchannel")
     assert (
-        ce.exception.response["Error"]["Code"]
+        ce.value.response["Error"]["Code"]
         == "LastDeliveryChannelDeleteFailedException"
     )
     assert (
         "because there is a running configuration recorder."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Stop recording:
@@ -1260,7 +1260,7 @@ def test_delete_delivery_channel():
     # Verify:
     with pytest.raises(ClientError) as ce:
         client.delete_delivery_channel(DeliveryChannelName="testchannel")
-    assert ce.exception.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
+    assert ce.value.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
 
 
 @mock_config
@@ -1343,7 +1343,7 @@ def test_list_discovered_resource():
     # Test with an invalid page num > 100:
     with pytest.raises(ClientError) as ce:
         client.list_discovered_resources(resourceType="AWS::S3::Bucket", limit=101)
-    assert "101" in ce.exception.response["Error"]["Message"]
+    assert "101" in ce.value.response["Error"]["Message"]
 
     # Test by supplying both resourceName and also resourceIds:
     with pytest.raises(ClientError) as ce:
@@ -1354,7 +1354,7 @@ def test_list_discovered_resource():
         )
     assert (
         "Both Resource ID and Resource Name cannot be specified in the request"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # More than 20 resourceIds:
@@ -1365,7 +1365,7 @@ def test_list_discovered_resource():
         )
     assert (
         "The specified list had more than 20 resource ID's."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
 
@@ -1384,7 +1384,7 @@ def test_list_aggregate_discovered_resource():
         )
     assert (
         "The configuration aggregator does not exist"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Create the aggregator:
@@ -1510,7 +1510,7 @@ def test_list_aggregate_discovered_resource():
             ResourceType="AWS::S3::Bucket",
             Limit=101,
         )
-    assert "101" in ce.exception.response["Error"]["Message"]
+    assert "101" in ce.value.response["Error"]["Message"]
 
 
 @mock_config
@@ -1526,7 +1526,7 @@ def test_get_resource_config_history():
         client.get_resource_config_history(
             resourceType="NOT::A::RESOURCE", resourceId="notcreatedyet"
         )
-    assert ce.exception.response["Error"] == {
+    assert ce.value.response["Error"] == {
         "Message": "Resource notcreatedyet of resourceType:NOT::A::RESOURCE is unknown or has "
         "not been discovered",
         "Code": "ResourceNotDiscoveredException",
@@ -1537,7 +1537,7 @@ def test_get_resource_config_history():
         client.get_resource_config_history(
             resourceType="AWS::S3::Bucket", resourceId="notcreatedyet"
         )
-    assert ce.exception.response["Error"] == {
+    assert ce.value.response["Error"] == {
         "Message": "Resource notcreatedyet of resourceType:AWS::S3::Bucket is unknown or has "
         "not been discovered",
         "Code": "ResourceNotDiscoveredException",
@@ -1569,7 +1569,7 @@ def test_get_resource_config_history():
         client.get_resource_config_history(
             resourceType="AWS::S3::Bucket", resourceId="eu-bucket"
         )
-    assert ce.exception.response["Error"]["Code"] == "ResourceNotDiscoveredException"
+    assert ce.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
 
 
 @mock_config
@@ -1590,7 +1590,7 @@ def test_batch_get_resource_config():
         )
     assert (
         "Member must have length less than or equal to 100"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With invalid resource types and resources that don't exist:
@@ -1659,7 +1659,7 @@ def test_batch_get_aggregate_resource_config():
         )
     assert (
         "The configuration aggregator does not exist"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Create the aggregator:
@@ -1679,7 +1679,7 @@ def test_batch_get_aggregate_resource_config():
         )
     assert (
         "Member must have length less than or equal to 100"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Create some S3 buckets:
@@ -1816,10 +1816,10 @@ def test_put_evaluations():
     # Try without Evaluations supplied:
     with pytest.raises(ClientError) as ce:
         client.put_evaluations(Evaluations=[], ResultToken="test", TestMode=True)
-    assert ce.exception.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert ce.value.response["Error"]["Code"] == "InvalidParameterValueException"
     assert (
         "The Evaluations object in your request cannot be null"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Try without a ResultToken supplied:
@@ -1836,7 +1836,7 @@ def test_put_evaluations():
             ResultToken="",
             TestMode=True,
         )
-    assert ce.exception.response["Error"]["Code"] == "InvalidResultTokenException"
+    assert ce.value.response["Error"]["Code"] == "InvalidResultTokenException"
 
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
         raise SkipTest("Does not work in server mode due to error in Workzeug")
@@ -1920,7 +1920,7 @@ def test_put_organization_conformance_pack_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutOrganizationConformancePack")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
@@ -1935,7 +1935,7 @@ def test_put_organization_conformance_pack_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("PutOrganizationConformancePack")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ValidationException")
@@ -1985,7 +1985,7 @@ def test_describe_organization_conformance_packs_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeOrganizationConformancePacks")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain(
@@ -2061,7 +2061,7 @@ def test_describe_organization_conformance_pack_statuses_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeOrganizationConformancePackStatuses")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain(
@@ -2133,7 +2133,7 @@ def test_get_organization_conformance_pack_detailed_status_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetOrganizationConformancePackDetailedStatus")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain(
@@ -2177,7 +2177,7 @@ def test_delete_organization_conformance_pack_errors():
         )
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteOrganizationConformancePack")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain(

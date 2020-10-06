@@ -338,7 +338,7 @@ def test_get_log_events_errors():
             logStreamName=log_stream_name,
             nextToken="n/00000000000000000000000000000000000000000000000000000000",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetLogEvents")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -352,7 +352,7 @@ def test_get_log_events_errors():
             logStreamName=log_stream_name,
             nextToken="not-existing-token",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetLogEvents")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.equal("InvalidParameterException")
@@ -451,7 +451,7 @@ def test_describe_subscription_filters_errors():
         client.describe_subscription_filters(logGroupName="not-existing-log-group",)
 
     # then
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DescribeSubscriptionFilters")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")

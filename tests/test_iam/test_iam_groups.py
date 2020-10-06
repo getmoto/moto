@@ -199,9 +199,9 @@ def test_delete_group():
 @mock_iam
 def test_delete_unknown_group():
     conn = boto3.client("iam", region_name="us-east-1")
-    with assert_raises(ClientError) as err:
+    with pytest.raises(ClientError) as err:
         conn.delete_group(GroupName="unknown-group")
-    err.exception.response["Error"]["Code"].should.equal("NoSuchEntity")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    err.value.response["Error"]["Message"].should.equal(
         "The group with name unknown-group cannot be found."
     )

@@ -24,6 +24,7 @@ def test_basic_decorator():
     list(conn.get_all_instances()).should.equal([])
 
 
+@pytest.mark.network
 def test_context_manager():
     conn = boto.connect_ec2("the_key", "the_secret")
     with pytest.raises(EC2ResponseError):
@@ -38,6 +39,7 @@ def test_context_manager():
         conn.get_all_instances()
 
 
+@pytest.mark.network
 def test_decorator_start_and_stop():
     conn = boto.connect_ec2("the_key", "the_secret")
     with pytest.raises(EC2ResponseError):

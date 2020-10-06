@@ -1355,8 +1355,8 @@ def test_update_item_with_expression():
 def assert_failure_due_to_key_not_in_schema(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.exception.response["Error"]["Code"].should.equal("ValidationException")
-    ex.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    ex.value.response["Error"]["Message"].should.equal(
         "The provided key element does not match the schema"
     )
 

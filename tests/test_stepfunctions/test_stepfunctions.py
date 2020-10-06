@@ -544,11 +544,11 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
         stateMachineArn=sm["stateMachineArn"], name="execution_name"
     )
     #
-    with pytest.raises(ClientError) as exc:
+    with pytest.raises(ClientError) as ex:
         _ = client.start_execution(
             stateMachineArn=sm["stateMachineArn"], name="execution_name"
         )
-    exc.exception.response["Error"]["Message"].should.equal(
+    ex.value.response["Error"]["Message"].should.equal(
         "Execution Already Exists: '" + execution_one["executionArn"] + "'"
     )
 

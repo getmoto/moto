@@ -67,7 +67,7 @@ def test_create_resource_share_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.create_resource_share(name="test", resourceArns=["inalid-arn"])
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("MalformedArnException")
@@ -82,7 +82,7 @@ def test_create_resource_share_errors():
         client.create_resource_share(
             name="test", resourceArns=["arn:aws:iam::{}:role/test".format(ACCOUNT_ID)]
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("MalformedArnException")
@@ -102,7 +102,7 @@ def test_create_resource_share_errors():
                 )
             ],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterException")
@@ -174,7 +174,7 @@ def test_create_resource_share_with_organization_errors():
                 )
             ],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
@@ -196,7 +196,7 @@ def test_create_resource_share_with_organization_errors():
                 )
             ],
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("CreateResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
@@ -238,7 +238,7 @@ def test_get_resource_shares_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.get_resource_shares(resourceOwner="invalid")
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("GetResourceShares")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("InvalidParameterException")
@@ -289,7 +289,7 @@ def test_update_resource_share_errors():
             ),
             name="test-update",
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("UpdateResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
@@ -334,7 +334,7 @@ def test_delete_resource_share_errors():
                 ACCOUNT_ID
             )
         )
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("DeleteResourceShare")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("UnknownResourceException")
@@ -370,7 +370,7 @@ def test_enable_sharing_with_aws_organization_errors():
     # when
     with pytest.raises(ClientError) as e:
         client.enable_sharing_with_aws_organization()
-    ex = e.exception
+    ex = e.value
     ex.operation_name.should.equal("EnableSharingWithAwsOrganization")
     ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
     ex.response["Error"]["Code"].should.contain("OperationNotPermittedException")

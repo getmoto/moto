@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-# Ensure 'assert_raises' context manager support for Python 2.6
+# Ensure 'pytest.raises' context manager support for Python 2.6
 import pytest
 
 from moto.ec2 import ec2_backends
@@ -32,9 +32,9 @@ def test_create_and_delete_volume():
 
     with pytest.raises(EC2ResponseError) as ex:
         volume.delete(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -47,9 +47,9 @@ def test_create_and_delete_volume():
     # Deleting something that was already deleted should throw an error
     with pytest.raises(EC2ResponseError) as cm:
         volume.delete()
-    cm.exception.code.should.equal("InvalidVolume.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVolume.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -71,11 +71,11 @@ def test_delete_attached_volume():
 
     # attempt to delete volume
     # assert raises VolumeInUseError
-    with assert_raises(EC2ResponseError) as ex:
+    with pytest.raises(EC2ResponseError) as ex:
         volume.delete()
-    ex.exception.error_code.should.equal("VolumeInUse")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("VolumeInUse")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "Volume {0} is currently attached to {1}".format(volume.id, instance.id)
     )
 
@@ -96,9 +96,9 @@ def test_create_encrypted_volume_dryrun():
     conn = boto.ec2.connect_to_region("us-east-1")
     with pytest.raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -110,9 +110,9 @@ def test_create_encrypted_volume():
 
     with pytest.raises(EC2ResponseError) as ex:
         conn.create_volume(80, "us-east-1a", encrypted=True, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -135,9 +135,9 @@ def test_filter_volume_by_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_volumes(volume_ids=["vol-does_not_exist"])
-    cm.exception.code.should.equal("InvalidVolume.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidVolume.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -260,9 +260,9 @@ def test_volume_attach_and_detach():
 
     with pytest.raises(EC2ResponseError) as ex:
         volume.attach(instance.id, "/dev/sdh", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -276,9 +276,9 @@ def test_volume_attach_and_detach():
 
     with pytest.raises(EC2ResponseError) as ex:
         volume.detach(dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -289,21 +289,21 @@ def test_volume_attach_and_detach():
 
     with pytest.raises(EC2ResponseError) as cm1:
         volume.attach("i-1234abcd", "/dev/sdh")
-    cm1.exception.code.should.equal("InvalidInstanceID.NotFound")
-    cm1.exception.status.should.equal(400)
-    cm1.exception.request_id.should_not.be.none
+    cm1.value.code.should.equal("InvalidInstanceID.NotFound")
+    cm1.value.status.should.equal(400)
+    cm1.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as cm2:
         conn.detach_volume(volume.id, instance.id, "/dev/sdh")
-    cm2.exception.code.should.equal("InvalidAttachment.NotFound")
-    cm2.exception.status.should.equal(400)
-    cm2.exception.request_id.should_not.be.none
+    cm2.value.code.should.equal("InvalidAttachment.NotFound")
+    cm2.value.status.should.equal(400)
+    cm2.value.request_id.should_not.be.none
 
     with pytest.raises(EC2ResponseError) as cm3:
         conn.detach_volume(volume.id, "i-1234abcd", "/dev/sdh")
-    cm3.exception.code.should.equal("InvalidInstanceID.NotFound")
-    cm3.exception.status.should.equal(400)
-    cm3.exception.request_id.should_not.be.none
+    cm3.value.code.should.equal("InvalidInstanceID.NotFound")
+    cm3.value.status.should.equal(400)
+    cm3.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -313,9 +313,9 @@ def test_create_snapshot():
 
     with pytest.raises(EC2ResponseError) as ex:
         snapshot = volume.create_snapshot("a dryrun snapshot", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -341,9 +341,9 @@ def test_create_snapshot():
     # Deleting something that was already deleted should throw an error
     with pytest.raises(EC2ResponseError) as cm:
         snapshot.delete()
-    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidSnapshot.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -383,9 +383,9 @@ def test_filter_snapshot_by_id():
 
     with pytest.raises(EC2ResponseError) as cm:
         conn.get_all_snapshots(snapshot_ids=["snap-does_not_exist"])
-    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidSnapshot.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2_deprecated
@@ -485,9 +485,9 @@ def test_snapshot_attribute():
 
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"dry_run": True}))
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -507,9 +507,9 @@ def test_snapshot_attribute():
     # Remove 'all' group and confirm
     with pytest.raises(EC2ResponseError) as ex:
         conn.modify_snapshot_attribute(**dict(REMOVE_GROUP_ARGS, **{"dry_run": True}))
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifySnapshotAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -533,9 +533,9 @@ def test_snapshot_attribute():
             operation="add",
             groups="everyone",
         )
-    cm.exception.code.should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidAMIAttributeItemValue")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Add with invalid snapshot ID
     with pytest.raises(EC2ResponseError) as cm:
@@ -545,9 +545,9 @@ def test_snapshot_attribute():
             operation="add",
             groups="all",
         )
-    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidSnapshot.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
     # Error: Remove with invalid snapshot ID
     with pytest.raises(EC2ResponseError) as cm:
@@ -557,9 +557,9 @@ def test_snapshot_attribute():
             operation="remove",
             groups="all",
         )
-    cm.exception.code.should.equal("InvalidSnapshot.NotFound")
-    cm.exception.status.should.equal(400)
-    cm.exception.request_id.should_not.be.none
+    cm.value.code.should.equal("InvalidSnapshot.NotFound")
+    cm.value.status.should.equal(400)
+    cm.value.request_id.should_not.be.none
 
 
 @mock_ec2
@@ -594,12 +594,12 @@ def test_modify_snapshot_attribute():
     }
 
     # Add 'all' group and confirm
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(**dict(ADD_GROUP_ARGS, **{"DryRun": True}))
 
-    cm.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
 
@@ -619,13 +619,13 @@ def test_modify_snapshot_attribute():
     ], "This snapshot should have public group permissions."
 
     # Remove 'all' group and confirm
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         ec2_client.modify_snapshot_attribute(
             **dict(REMOVE_GROUP_ARGS, **{"DryRun": True})
         )
-    cm.exception.response["Error"]["Code"].should.equal("DryRunOperation")
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["Error"]["Code"].should.equal("DryRunOperation")
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
 
@@ -645,40 +645,40 @@ def test_modify_snapshot_attribute():
     ], "This snapshot should have no permissions."
 
     # Error: Add with group != 'all'
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(
             SnapshotId=snapshot.id,
             Attribute="createVolumePermission",
             OperationType="add",
             GroupNames=["everyone"],
         )
-    cm.exception.response["Error"]["Code"].should.equal("InvalidAMIAttributeItemValue")
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["Error"]["Code"].should.equal("InvalidAMIAttributeItemValue")
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Error: Add with invalid snapshot ID
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(
             SnapshotId="snapshot-abcd1234",
             Attribute="createVolumePermission",
             OperationType="add",
             GroupNames=["all"],
         )
-    cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Error: Remove with invalid snapshot ID
-    with assert_raises(ClientError) as cm:
+    with pytest.raises(ClientError) as cm:
         ec2_client.modify_snapshot_attribute(
             SnapshotId="snapshot-abcd1234",
             Attribute="createVolumePermission",
             OperationType="remove",
             GroupNames=["all"],
         )
-    cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-    cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-    cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+    cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+    cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Test adding user id
     ec2_client.modify_snapshot_attribute(
@@ -741,9 +741,9 @@ def test_create_volume_from_snapshot():
 
     with pytest.raises(EC2ResponseError) as ex:
         snapshot = volume.create_snapshot("a test snapshot", dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -789,9 +789,9 @@ def test_modify_attribute_blockDeviceMapping():
         instance.modify_attribute(
             "blockDeviceMapping", {"/dev/sda1": True}, dry_run=True
         )
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
     )
 
@@ -810,9 +810,9 @@ def test_volume_tag_escaping():
 
     with pytest.raises(EC2ResponseError) as ex:
         snapshot.add_tags({"key": "</closed>"}, dry_run=True)
-    ex.exception.error_code.should.equal("DryRunOperation")
-    ex.exception.status.should.equal(400)
-    ex.exception.message.should.equal(
+    ex.value.error_code.should.equal("DryRunOperation")
+    ex.value.status.should.equal(400)
+    ex.value.message.should.equal(
         "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
     )
     snaps = [snap for snap in conn.get_all_snapshots() if snap.id == snapshot.id]
@@ -880,12 +880,12 @@ def test_copy_snapshot():
     # Copy from non-existent source ID.
     with pytest.raises(ClientError) as cm:
         create_snapshot_error = ec2_client.create_snapshot(VolumeId="vol-abcd1234")
-        cm.exception.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
-        cm.exception.response["Error"]["Message"].should.equal(
+        cm.value.response["Error"]["Code"].should.equal("InvalidVolume.NotFound")
+        cm.value.response["Error"]["Message"].should.equal(
             "The volume 'vol-abcd1234' does not exist."
         )
-        cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-        cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+        cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
     # Copy from non-existent source region.
     with pytest.raises(ClientError) as cm:
@@ -893,10 +893,10 @@ def test_copy_snapshot():
             SourceSnapshotId=create_snapshot_response["SnapshotId"],
             SourceRegion="eu-west-2",
         )
-        cm.exception.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
-        cm.exception.response["Error"]["Message"].should.be.none
-        cm.exception.response["ResponseMetadata"]["RequestId"].should_not.be.none
-        cm.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+        cm.value.response["Error"]["Code"].should.equal("InvalidSnapshot.NotFound")
+        cm.value.response["Error"]["Message"].should.be.none
+        cm.value.response["ResponseMetadata"]["RequestId"].should_not.be.none
+        cm.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
 
 
 @mock_ec2

@@ -357,9 +357,9 @@ def test_federation_token_with_too_long_policy():
     json_policy = json.dumps(policy)
     assert len(json_policy) > MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
-    with pytest.raises(ClientError) as exc:
+    with pytest.raises(ClientError) as ex:
         cli.get_federation_token(Name="foo", DurationSeconds=3600, Policy=json_policy)
-    exc.exception.response["Error"]["Code"].should.equal("ValidationError")
-    exc.exception.response["Error"]["Message"].should.contain(
+    ex.value.response["Error"]["Code"].should.equal("ValidationError")
+    ex.value.response["Error"]["Message"].should.contain(
         str(MAX_FEDERATION_TOKEN_POLICY_LENGTH)
     )

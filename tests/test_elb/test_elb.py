@@ -184,9 +184,8 @@ def test_apply_security_groups_to_load_balancer():
         response = client.apply_security_groups_to_load_balancer(
             LoadBalancerName="my-lb", SecurityGroups=["not-really-a-security-group"]
         )
-    assert "One or more of the specified security groups do not exist." in str(
-        error.exception
-    )
+    assert "One or more of the specified security groups do not exist." \
+        in str(error.value)
 
 
 @mock_elb_deprecated

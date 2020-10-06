@@ -445,9 +445,9 @@ def test_create_policy_already_exists():
         response = conn.create_policy(
             PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY
         )
-    ex.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
-    ex.exception.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
-    ex.exception.response["Error"]["Message"].should.contain("TestCreatePolicy")
+    ex.value.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
+    ex.value.response["Error"]["Message"].should.contain("TestCreatePolicy")
 
 
 @mock_iam
@@ -1825,7 +1825,7 @@ def test_signing_certs():
         client.upload_signing_certificate(
             UserName="testing", CertificateBody="notacert"
         )
-    assert ce.exception.response["Error"]["Code"] == "MalformedCertificate"
+    assert ce.value.response["Error"]["Code"] == "MalformedCertificate"
 
     # Upload with an invalid user:
     with pytest.raises(ClientError):
@@ -1848,7 +1848,7 @@ def test_signing_certs():
             UserName="testing", CertificateId="x" * 32, Status="Inactive"
         )
 
-    assert ce.exception.response["Error"][
+    assert ce.value.response["Error"][
         "Message"
     ] == "The Certificate with id {id} cannot be found.".format(id="x" * 32)
 
@@ -1918,7 +1918,7 @@ def test_delete_saml_provider():
     with pytest.raises(ClientError) as ce:
         conn.delete_signing_certificate(UserName="testing", CertificateId=cert_id)
 
-    assert ce.exception.response["Error"][
+    assert ce.value.response["Error"][
         "Message"
     ] == "The Certificate with id {id} cannot be found.".format(id=cert_id)
 
@@ -1985,7 +1985,7 @@ def test_create_role_with_tags():
         )
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a duplicate tag:
@@ -1997,7 +1997,7 @@ def test_create_role_with_tags():
         )
     assert (
         "Duplicate tag keys found. Please note that Tag keys are case insensitive."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Duplicate tag with different casing:
@@ -2009,7 +2009,7 @@ def test_create_role_with_tags():
         )
     assert (
         "Duplicate tag keys found. Please note that Tag keys are case insensitive."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a really big key:
@@ -2021,7 +2021,7 @@ def test_create_role_with_tags():
         )
     assert (
         "Member must have length less than or equal to 128."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a really big value:
@@ -2033,7 +2033,7 @@ def test_create_role_with_tags():
         )
     assert (
         "Member must have length less than or equal to 256."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With an invalid character:
@@ -2045,7 +2045,7 @@ def test_create_role_with_tags():
         )
     assert (
         "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
 
@@ -2126,7 +2126,7 @@ def test_tag_role():
         conn.tag_role(RoleName="my-role", Tags=too_many_tags)
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a duplicate tag:
@@ -2137,7 +2137,7 @@ def test_tag_role():
         )
     assert (
         "Duplicate tag keys found. Please note that Tag keys are case insensitive."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # Duplicate tag with different casing:
@@ -2148,7 +2148,7 @@ def test_tag_role():
         )
     assert (
         "Duplicate tag keys found. Please note that Tag keys are case insensitive."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a really big key:
@@ -2156,7 +2156,7 @@ def test_tag_role():
         conn.tag_role(RoleName="my-role", Tags=[{"Key": "0" * 129, "Value": ""}])
     assert (
         "Member must have length less than or equal to 128."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a really big value:
@@ -2164,7 +2164,7 @@ def test_tag_role():
         conn.tag_role(RoleName="my-role", Tags=[{"Key": "0", "Value": "0" * 257}])
     assert (
         "Member must have length less than or equal to 256."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With an invalid character:
@@ -2172,7 +2172,7 @@ def test_tag_role():
         conn.tag_role(RoleName="my-role", Tags=[{"Key": "NOWAY!", "Value": ""}])
     assert (
         "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
 
     # With a role that doesn't exist:
@@ -2212,27 +2212,27 @@ def test_untag_role():
         conn.untag_role(RoleName="my-role", TagKeys=[str(x) for x in range(0, 51)])
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert "tagKeys" in ce.exception.response["Error"]["Message"]
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
 
     # With a really big key:
     with pytest.raises(ClientError) as ce:
         conn.untag_role(RoleName="my-role", TagKeys=["0" * 129])
     assert (
         "Member must have length less than or equal to 128."
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert "tagKeys" in ce.exception.response["Error"]["Message"]
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
 
     # With an invalid character:
     with pytest.raises(ClientError) as ce:
         conn.untag_role(RoleName="my-role", TagKeys=["NOWAY!"])
     assert (
         "Member must satisfy regular expression pattern: [\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+"
-        in ce.exception.response["Error"]["Message"]
+        in ce.value.response["Error"]["Message"]
     )
-    assert "tagKeys" in ce.exception.response["Error"]["Message"]
+    assert "tagKeys" in ce.value.response["Error"]["Message"]
 
     # With a role that doesn't exist:
     with pytest.raises(ClientError):
@@ -2461,8 +2461,8 @@ def test_create_role_with_same_name_should_fail():
             AssumeRolePolicyDocument="policy",
             Description="test",
         )
-    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.value.response["Error"]["Message"].should.equal(
         "Role with name {0} already exists.".format(test_role_name)
     )
 
@@ -2475,8 +2475,8 @@ def test_create_policy_with_same_name_should_fail():
     # Create the role again, and verify that it fails
     with pytest.raises(ClientError) as err:
         iam.create_policy(PolicyName=test_policy_name, PolicyDocument=MOCK_POLICY)
-    err.exception.response["Error"]["Code"].should.equal("EntityAlreadyExists")
-    err.exception.response["Error"]["Message"].should.equal(
+    err.value.response["Error"]["Code"].should.equal("EntityAlreadyExists")
+    err.value.response["Error"]["Message"].should.equal(
         "A policy called {0} already exists. Duplicate names are not allowed.".format(
             test_policy_name
         )

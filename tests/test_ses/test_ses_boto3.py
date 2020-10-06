@@ -311,7 +311,7 @@ def test_create_configuration_set():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
 
     with pytest.raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
@@ -326,7 +326,7 @@ def test_create_configuration_set():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
 
 
 @mock_ses
@@ -339,7 +339,7 @@ def test_create_receipt_rule_set():
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule_set(RuleSetName="testRuleSet")
 
-    ex.exception.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
 
 
 @mock_ses
@@ -407,7 +407,7 @@ def test_create_receipt_rule():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("RuleAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("RuleAlreadyExists")
 
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
@@ -438,7 +438,7 @@ def test_create_receipt_rule():
             },
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
 
 
 @mock_ses
@@ -467,7 +467,7 @@ def test_create_ses_template():
             }
         )
 
-    ex.exception.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
+    ex.value.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
 
     # get a template which is already added
     result = conn.get_template(TemplateName="MyTemplate")
@@ -478,7 +478,7 @@ def test_create_ses_template():
     with pytest.raises(ClientError) as ex:
         conn.get_template(TemplateName="MyFakeTemplate")
 
-    ex.exception.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
 
     result = conn.list_templates()
     result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")

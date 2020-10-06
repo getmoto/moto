@@ -269,7 +269,7 @@ def test_duplicate_network_acl_entry():
             RuleAction="deny",
             RuleNumber=rule_number,
         )
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry "
         "operation: The network acl entry identified by {} already exists.".format(
             rule_number
@@ -297,10 +297,10 @@ def test_describe_network_acls():
     resp2 = conn.describe_network_acls()["NetworkAcls"]
     resp2.should.have.length_of(3)
 
-    with assert_raises(ClientError) as ex:
+    with pytest.raises(ClientError) as ex:
         conn.describe_network_acls(NetworkAclIds=["1"])
 
-    str(ex.exception).should.equal(
+    str(ex.value).should.equal(
         "An error occurred (InvalidRouteTableID.NotFound) when calling the "
         "DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
     )

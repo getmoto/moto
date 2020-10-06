@@ -136,7 +136,7 @@ def test_create_notebook_instance_bad_volume_size():
     with pytest.raises(ParamValidationError) as ex:
         sagemaker.create_notebook_instance(**args)
     assert \
-        ex.exception.args[0] == \
+        ex.value.args[0] == \
         "Parameter validation failed:\nInvalid range for parameter VolumeSizeInGB, value: {}, valid range: 5-inf".format(vol_size)
 
 
@@ -153,12 +153,12 @@ def test_create_notebook_instance_invalid_instance_type():
     }
     with pytest.raises(ClientError) as ex:
         sagemaker.create_notebook_instance(**args)
-    assert ex.exception.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
     expected_message = "Value '{}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: [".format(
         instance_type
     )
 
-    assert expected_message in ex.exception.response["Error"]["Message"]
+    assert expected_message in ex.value.response["Error"]["Message"]
 
 
 @mock_sagemaker
@@ -182,11 +182,11 @@ def test_notebook_instance_lifecycle():
 
     with pytest.raises(ClientError) as ex:
         sagemaker.delete_notebook_instance(NotebookInstanceName=NAME_PARAM)
-    assert ex.exception.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
     expected_message = "Status (InService) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({})".format(
         notebook_instance_arn
     )
-    assert expected_message in ex.exception.response["Error"]["Message"]
+    assert expected_message in ex.value.response["Error"]["Message"]
 
     sagemaker.stop_notebook_instance(NotebookInstanceName=NAME_PARAM)
 
@@ -207,7 +207,7 @@ def test_notebook_instance_lifecycle():
 
     with pytest.raises(ClientError) as ex:
         sagemaker.describe_notebook_instance(NotebookInstanceName=NAME_PARAM)
-    assert ex.exception.response["Error"]["Message"] == "RecordNotFound"
+    assert ex.value.response["Error"]["Message"] == "RecordNotFound"
 
 
 @mock_sagemaker
@@ -216,7 +216,7 @@ def test_describe_nonexistent_model():
 
     with pytest.raises(ClientError) as e:
         sagemaker.describe_model(ModelName="Nonexistent")
-    assert e.exception.response["Error"]["Message"].startswith("Could not find model")
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
 
 
 @mock_sagemaker
@@ -239,7 +239,7 @@ def test_notebook_instance_lifecycle_config():
             OnStart=on_start,
         )
     assert \
-        e.exception.response["Error"]["Message"].endswith(
+        e.value.response["Error"]["Message"].endswith(
             "Notebook Instance Lifecycle Config already exists.)"
         )
 
@@ -264,7 +264,7 @@ def test_notebook_instance_lifecycle_config():
             NotebookInstanceLifecycleConfigName=name,
         )
     assert \
-        e.exception.response["Error"]["Message"].endswith(
+        e.value.response["Error"]["Message"].endswith(
             "Notebook Instance Lifecycle Config does not exist.)"
         )
 
@@ -273,6 +273,6 @@ def test_notebook_instance_lifecycle_config():
             NotebookInstanceLifecycleConfigName=name,
         )
     assert \
-        e.exception.response["Error"]["Message"].endswith(
+        e.value.response["Error"]["Message"].endswith(
             "Notebook Instance Lifecycle Config does not exist.)"
         )

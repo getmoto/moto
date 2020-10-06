@@ -84,7 +84,7 @@ def test_lifecycle_with_filters():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # With a tag:
     lfc["Rules"][0]["Filter"] = {"Tag": {"Key": "mytag", "Value": "mytagvalue"}}
@@ -172,14 +172,14 @@ def test_lifecycle_with_filters():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     lfc["Rules"][0]["Prefix"] = "some/path"
     with pytest.raises(ClientError) as err:
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # No filters -- just a prefix:
     del lfc["Rules"][0]["Filter"]
@@ -200,7 +200,7 @@ def test_lifecycle_with_filters():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     lfc["Rules"][0]["Filter"] = {
         "Tag": {"Key": "mytag", "Value": "mytagvalue"},
@@ -216,7 +216,7 @@ def test_lifecycle_with_filters():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
     # Make sure multiple rules work:
     lfc = {
@@ -283,7 +283,7 @@ def test_lifecycle_with_eodm():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
     del lfc["Rules"][0]["Expiration"]["Days"]
 
     lfc["Rules"][0]["Expiration"]["Date"] = datetime(2015, 1, 1)
@@ -291,7 +291,7 @@ def test_lifecycle_with_eodm():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3
@@ -387,7 +387,7 @@ def test_lifecycle_with_nvt():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
     lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["NoncurrentDays"] = 30
 
     del lfc["Rules"][0]["NoncurrentVersionTransitions"][0]["StorageClass"]
@@ -395,7 +395,7 @@ def test_lifecycle_with_nvt():
         client.put_bucket_lifecycle_configuration(
             Bucket="bucket", LifecycleConfiguration=lfc
         )
-    assert err.exception.response["Error"]["Code"] == "MalformedXML"
+    assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
 @mock_s3
